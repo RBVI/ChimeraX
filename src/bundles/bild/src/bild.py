@@ -26,7 +26,7 @@ The plan is to support all of the existing bild format.
 from chimerax.core.errors import UserError
 from numpy import array, empty, float32, int32, uint8
 from chimerax.geometry import identity, translation, rotation, scale, distance, z_align
-from chimerax import atomic
+from chimerax.atomic import AtomicShapeDrawing, AtomicShapeInfo
 from chimerax import surface
 
 
@@ -68,9 +68,8 @@ class _BildFile:
     def __init__(self, session, filename):
         from chimerax.core import generic3d
         self.model = generic3d.Generic3DModel(filename, session)
-        self.drawing = atomic.AtomicShapeDrawing('shapes')
-        self.model.add_drawing(self.drawing)
         self.session = session
+        self.shapes = []
         # parse input
         self.warned = set()
         self.lineno = 0
@@ -112,6 +111,10 @@ class _BildFile:
                 func(self, tokens)
             except ValueError as e:
                 self.session.logger.warning('%s on line %d' % (e, self.lineno))
+        drawing = AtomicShapeDrawing('shapes')
+        self.model.add_drawing(drawing)
+        if self.shapes:
+            drawing.add_shapes(self.shapes)
         return [self.model], "Opened BILD data containing %d objects" % self.num_objects
 
     def parse_color(self, x):
@@ -147,13 +150,17 @@ class _BildFile:
         vertices, normals, triangles = get_cylinder(
             r1, p1, junction,
             closed=True, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        vertices, normals, triangles = get_cone(
+        vertices2, normals2, triangles2 = get_cone(
             r2, junction, p2, bottom=True,
             xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.extend_shape(vertices, normals, triangles)
+        vertices, normals, triangles = combine_triangles((
+            (vertices, normals, triangles),
+            (vertices2, normals2, triangles2)
+        ))
+        shape = AtomicShapeInfo(
+            vertices, normals, triangles,
+            _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def associate_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
@@ -176,9 +183,10 @@ class _BildFile:
         else:
             description = 'object %d: box' % self.num_objects
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def cmov_command(self, tokens):
         if len(tokens) != 4:
@@ -226,9 +234,10 @@ class _BildFile:
             description = 'object %d: cone' % self.num_objects
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def cylinder_command(self, tokens):
         if len(tokens) not in (8, 9) or (
@@ -249,9 +258,10 @@ class _BildFile:
             description = 'object %d: cylinder' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def dashed_cylinder_command(self, tokens):
         if len(tokens) not in (9, 10) or (
@@ -273,9 +283,10 @@ class _BildFile:
             description = 'object %d: dashed cylinder' % self.num_objects
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def dot_command(self, tokens):
         if len(tokens) != 4:
@@ -290,9 +301,10 @@ class _BildFile:
             description = 'object %d: dot' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
         self.cur_pos = center
         self.cur_pos_is_move = False
 
@@ -314,16 +326,25 @@ class _BildFile:
             description = 'object %d: vector' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, p1, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        vertices2, normals2, triangles2 = get_cylinder(
+            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
+        if self.cur_pos_is_move:
+            vertices3, normals3, triangles3 = get_sphere(
+                radius, p0, self.transforms[-1], pure=self.pure[-1])
+            vertices, normals, triangles = combine_triangles((
+                (vertices, normals, triangles),
+                (vertices2, normals2, triangles2),
+                (vertices3, normals3, triangles3)
+            ))
+        else:
+            vertices, normals, triangles = combine_triangles((
+                    (vertices, normals, triangles),
+                    (vertices2, normals2, triangles2)
+            ))
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        vertices, normals, triangles = get_cylinder(
-            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.extend_shape(vertices, normals, triangles)
-        if self.cur_pos_is_move:
-            vertices, normals, triangles = get_sphere(
-                radius, p0, self.transforms[-1], pure=self.pure[-1])
-            self.drawing.extend_shape(vertices, normals, triangles)
+        self.shapes.append(shape)
         self.cur_pos = p1
         self.cur_pos_is_move = False
 
@@ -340,9 +361,10 @@ class _BildFile:
         llb = center - 0.5
         urf = center + 0.5
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
         self.cur_pos = center
         self.cur_pos_is_move = False
 
@@ -412,9 +434,10 @@ class _BildFile:
         normals = empty(vertices.shape, dtype=float32)
         normals[:] = plane.normal
         triangles = array(t, dtype=int32)
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def pop_command(self, tokens):
         if len(self.transforms) == 1:
@@ -468,9 +491,10 @@ class _BildFile:
             description = 'object %d: sphere' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
+        self.shapes.append(shape)
 
     def translate_command(self, tokens):
         if len(tokens) != 4:
@@ -500,15 +524,19 @@ class _BildFile:
             description = 'object %d: vector' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, p0, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.add_shape(
+        vertices2, normals2, triangles2 = get_cylinder(
+            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
+        vertices3, normals3, triangles3 = get_sphere(
+            radius, p1, self.transforms[-1], pure=self.pure[-1])
+        vertices, normals, triangles = combine_triangles((
+            (vertices, normals, triangles),
+            (vertices2, normals2, triangles2),
+            (vertices3, normals3, triangles3)
+        ))
+        shape = AtomicShapeInfo(
             vertices, normals, triangles,
             _cvt_color(self.cur_color), self.cur_atoms, description)
-        vertices, normals, triangles = get_cylinder(
-            radius, p0, p1, closed=False, xform=self.transforms[-1], pure=self.pure[-1])
-        self.drawing.extend_shape(vertices, normals, triangles)
-        vertices, normals, triangles = get_sphere(
-            radius, p1, self.transforms[-1], pure=self.pure[-1])
-        self.drawing.extend_shape(vertices, normals, triangles)
+        self.shapes.append(shape)
         self.cur_pos = p1
         self.cur_pos_is_move = False
 
@@ -625,3 +653,26 @@ def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
         xform.transform_points(vertices, in_place=True)
         xform.transform_normals(normals, in_place=True, is_rotation=pure)
     return vertices, normals, triangles
+
+
+def combine_triangles(triangle_info):
+    from numpy import empty, float32, int32, concatenate as concat
+    all_vertices = []
+    all_normals = []
+    all_triangles = []
+    num_vertices = 0
+    num_triangles = 0
+    for i, info in enumerate(triangle_info):
+        vertices, normals, triangles = info
+        all_vertices.append(vertices)
+        all_normals.append(normals)
+        all_triangles.append(triangles + num_vertices)
+        num_vertices += len(vertices)
+        num_triangles += len(triangles)
+    vertices = empty((num_vertices, 3), dtype=float32)
+    normals = empty((num_vertices, 3), dtype=float32)
+    triangles = empty((num_triangles, 3), dtype=int32)
+    return (
+        concat(all_vertices, out=vertices),
+        concat(all_normals, out=normals),
+        concat(all_triangles, out=triangles))

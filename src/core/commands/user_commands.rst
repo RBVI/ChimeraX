@@ -397,8 +397,6 @@ toolshed
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_install
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_uninstall
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_url
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_show
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_hide
 
 transparency
 ============
@@ -415,6 +413,10 @@ ui
 .. autofunction:: chimerax.ui.cmd.ui_dockable
   :noindex:                  
 .. autofunction:: chimerax.mouse_modes.cmd.mousemode
+.. autofunction:: chimerax.ui.cmd.ui_tool_show
+  :noindex:                  
+.. autofunction:: chimerax.ui.cmd.ui_tool_hide
+  :noindex:                  
 
 
 view

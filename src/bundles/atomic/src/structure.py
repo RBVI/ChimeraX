@@ -487,6 +487,7 @@ class Structure(Model, StructureData):
         all_rings = self.rings(all_size_threshold=6)
         # Ring info will change spontaneously when we ask for radii, so remember what we need now
         ring_atoms = [ring.ordered_atoms for ring in all_rings]
+        rings = []
         for atoms in ring_atoms:
             residue = atoms[0].residue
             if not residue.ring_display or not all(atoms.visibles):
@@ -497,22 +498,25 @@ class Structure(Model, StructureData):
             else:
                 offset = min(self._atom_display_radii(atoms))
             if len(atoms) < 6:
-                self.fill_small_ring(atoms, offset, residue.ring_color)
+                rings.append(self.fill_small_ring(atoms, offset, residue.ring_color))
             else:
-                self.fill_6ring(atoms, offset, residue.ring_color)
+                rings.append(self.fill_6ring(atoms, offset, residue.ring_color))
 
         if ring_count:
+            self._ring_drawing.add_shapes(rings)
             self._graphics_changed |= self._SHAPE_CHANGE
 
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring
+        from .shapedrawing import AtomicShapeInfo
         vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
-        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def fill_6ring(self, atoms, offset, color):
         # 6-membered rings
         from chimerax.geometry import fill_6ring
+        from .shapedrawing import AtomicShapeInfo
         # Picking the "best" orientation to show chair/boat configuration is hard
         # so choose anchor the ring using atom nomenclature.
         # Find index of atom with lowest element with lowest number (C1 < C6).
@@ -540,7 +544,7 @@ class Structure(Model, StructureData):
             anchor_element = e
             anchor_name = a.name
         vertices, normals, triangles = fill_6ring(atoms.coords, offset, anchor)
-        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def _create_ribbon_graphics(self):
         ribbons_drawing = self._ribbons_drawing
@@ -2160,7 +2164,7 @@ def selected_atoms(session):
 # -----------------------------------------------------------------------------
 #
 def selected_bonds(session, *, intra_residue=True, inter_residue=True):
-    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    '''All selected bonds in all structures as a :class:`.Bonds` collection.'''
     blist = []
     for m in session.models.list(type = Structure):
         for b in m.selected_items('bonds'):
@@ -2169,7 +2173,8 @@ def selected_bonds(session, *, intra_residue=True, inter_residue=True):
                 continue
             import numpy
             atoms1, atoms2 = b.atoms
-            is_intra = numpy.equal(atoms1.residues, atoms2.residues)
+            # "atoms1.residues == atoms2.residues" returns a scalar boolean, so...
+            is_intra = atoms1.residues.pointers == atoms2.residues.pointers
             if intra_residue:
                 blist.append(b.filter(is_intra))
             if inter_residue:

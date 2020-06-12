@@ -1117,6 +1117,8 @@ class Drawing:
         Delete drawing and all child drawings.
         '''
         self.was_deleted = True
+        if self.parent is not None:
+            self.parent.remove_drawing(self, delete = False)
         c = self._opengl_context
         if c:
             from . import OpenGLError

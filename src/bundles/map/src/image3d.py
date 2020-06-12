@@ -1235,14 +1235,11 @@ class Texture3dPlanes(PlanesDrawing):
     k0,k1 = kstep*(k0//kstep), kstep*(k1//kstep)
     p = ir._color_plane(k0, z_axis, color_3d=True)
     sz = (k1 - k0 + kstep)//kstep
-    if sz == 1:
-      td = p	# Single z plane
-    else:
-      from numpy import empty
-      td = empty((sz,) + tuple(p.shape), p.dtype)
-      td[0,:] = p
-      for i in range(1,sz):
-        td[i,:] = ir._color_plane(k0+i*kstep, z_axis, color_3d=True)
+    from numpy import empty
+    td = empty((sz,) + tuple(p.shape), p.dtype)
+    td[0,:] = p
+    for i in range(1,sz):
+      td[i,:] = ir._color_plane(k0+i*kstep, z_axis, color_3d=True)
     return td
 
   def _fill_texture_blend(self, texture):

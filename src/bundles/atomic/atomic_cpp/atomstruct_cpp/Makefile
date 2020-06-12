@@ -96,3 +96,4 @@ Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBMan
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
+$(OBJS): imex.h

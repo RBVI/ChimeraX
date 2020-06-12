@@ -9,7 +9,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def color_image(session, surfaces, file = None, coords = None, write_colors = None):
+def color_image(session, surfaces, file = None, coords = None, write_colors = None,
+                modulate = False):
     '''
     Color surfaces using images read from files and specify texture coordinates
     that define how to map the image onto the surface.
@@ -43,6 +44,12 @@ def color_image(session, surfaces, file = None, coords = None, write_colors = No
         makes no attempt to wrap the texture coordinates onto the surface.  Instead
         each distinct color is simply assigned a unique texture coordinate without
         regard to the spatial arrangement of colors on the surface.
+    modulate : bool
+        Texture colors are multiplied by the surface single color or vertex colors.
+        If the file argument is specified to define a texture and modulate is False,
+        then the surface is set to single color white and vertex color are cleared
+        so the true image colors are shown.  If modulate is true then the single color
+        and vertex color are left unchanged.
     '''
     
     rgba = None if file is None or file == 'none' else image_file_as_rgba(file)
@@ -52,7 +59,7 @@ def color_image(session, surfaces, file = None, coords = None, write_colors = No
         crgba = _set_vertex_color_texture_coordinates(session, dlist)
         trgba = crgba if rgba is None else rgba
         for d in dlist:
-            _set_texture(session, d, trgba)
+            _set_texture(session, d, trgba, modulate)
         if write_colors is not None:
             from PIL import Image
             # Flip y-axis since PIL image has row 0 at top,
@@ -67,7 +74,7 @@ def color_image(session, surfaces, file = None, coords = None, write_colors = No
             if file == 'none':
                 _remove_texture(session, d)
             elif rgba is not None:
-                _set_texture(session, d, rgba)
+                _set_texture(session, d, rgba, modulate)
 
     msg = 'Textured %d drawings: %s' % (len(dlist), ', '.join(d.name for d in dlist))
     session.logger.info(msg)
@@ -163,13 +170,16 @@ def _set_vertex_color_texture_coordinates(session, drawings, max_width = 1024):
     
     return rgba
 
-def _set_texture(session, drawing, rgba):
+def _set_texture(session, drawing, rgba, modulate = True):
     _remove_texture(session, drawing)
     from chimerax.graphics import Texture
     t = Texture(rgba)
     t.linear_interpolation = False
     drawing.texture = t
     drawing.opaque_texture = (rgba[:,:,3] == 255).all()
+    if not modulate:
+        drawing.color = (255,255,255,255)
+        drawing.vertex_colors = None
 
 def _remove_texture(session, drawing):
     if drawing.texture is None:
@@ -180,12 +190,13 @@ def _remove_texture(session, drawing):
     drawing.texture = None
 
 def register_color_image_command(logger):
-    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('file', OpenFileNameArg),
                    ('coords', EnumOf(('sphere','pole','south','vertexcolors'))),
-                   ('write_colors', SaveFileNameArg),],
+                   ('write_colors', SaveFileNameArg),
+                   ('modulate', BoolArg)],
         synopsis = 'Color surfaces with images from files'
     )
     register('color image', desc, color_image, logger=logger)

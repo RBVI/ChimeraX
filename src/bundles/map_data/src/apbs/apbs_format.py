@@ -105,13 +105,13 @@ class APBS_Data:
 
     xyz_step = tuple(xyz_step)
     
-    if grid_size == None:
+    if grid_size is None:
       raise SyntaxError('Missing "object 1 class gridpositions counts <l> <m> <n>" header line')
-    if xyz_origin == None:
+    if xyz_origin is None:
       raise SyntaxError('Missing "origin" header line')
     if len(xyz_step) != 3:
       raise SyntaxError('Only found %d "delta" lines, require 3' % len(xyz_step))
-    if data_offset == None:
+    if data_offset is None:
       raise SyntaxError('Missing header line ending with "data follows"')
 
     return comments, grid_size, xyz_origin, xyz_step, data_offset

@@ -111,8 +111,9 @@ to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
 The XML-RPC method (<a href="https://en.wikipedia.org/wiki/XML-RPC"
 target="_blank">extensible markup language remote procedure call</a>)
 is used by Python scripts or applications.
-The command <b>remotecontrol xmlrpc on</b> or
-<b>remotecontrol xmlrpc true</b> allows ChimeraX to
+The command <b>remotecontrol xmlrpc on</b> 
+(synonyms for <b>on</b> are <b>true</b>, <b>True</b>, <b>1</b>)
+allows ChimeraX to
 receive instructions in this way, with optional specification of the
 <b>port</b> number (default <b>42184</b>). The <i>IP-address</i> should be
 that of the computer running ChimeraX (default <b>127.0.0.1</b>, localhost,
@@ -126,14 +127,14 @@ sends commands to ChimeraX using XML-RPC via port number 42184:
 python2 /Applications/ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax/remote_control/run.py "open 1a0m"
 </span>
 </blockquote>
+<p>
 This method of communication does not return log output, 
 just a true/false status of whether the command succeeded.
 The <b>timeout</b> period <i>s</i> (default <b>10.0</b> seconds)
 is how long ChimeraX should wait after trying to report that status
 to the other application.
-</p><p>
 The command <b>remotecontrol xmlrpc off</b> 
-or <b>remotecontrol xmlrpc false</b> 
+(synonyms for <b>off</b> are <b>false</b>, <b>False</b>, <b>0</b>)
 discontinues accepting commands by XML-RPC.
 </p>
 

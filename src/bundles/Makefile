@@ -21,7 +21,7 @@ BUNDLE_BUILDER_SUBDIR = bundle_builder
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
-	  cellpack chem_group clashes cmd_line color_actions \
+	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe connect_structure core_formats \
 	  crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
@@ -41,6 +41,10 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+
+ifeq ($(OS),Linux)
+REST_SUBDIRS += linux_support
+endif
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
 

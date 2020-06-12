@@ -84,7 +84,7 @@ class SubsampledGrid(GridData):
     if subsampling is None:
       subsampling, ss_size = self.choose_subsampling(ijk_step)
       
-    if ijk_size == None:
+    if ijk_size is None:
       ijk_size = self.size
 
     d = self.available_subsamplings[tuple(subsampling)]

@@ -54,13 +54,13 @@ def pdbimages(session, directory = '.', subdirectories = True,
         log.flush()
         try:
             save_images(f, width, height, supersample, image_suffix, s)
-        except Error as e:
+        except Exception as e:
             log.write(str(e) + '\n')
     log.close()
 
 class NoLog:
     def write(self, text):
-        pass
+        print(text)
     def flush(self):
         pass
     def close(self):
@@ -83,20 +83,19 @@ def cif_files(directory, subdirectories, exclude, image_suffix):
 
 def save_images(path, width, height, supersample, image_suffix, session):
 
-    s = session
-    m = s.models
-    mols = m.open(path)
-    m.close(mols[1:]) # Only use first model in nmr ensembles.
+    from chimerax.atomic.mmcif import open_mmcif
+    mols, msg = open_mmcif(session, path)
     mol = mols[0]
+    session.models.add([mol]) # Only use first model in nmr ensembles.
 
-    run(s, 'ks cc')	# Color by chain
+    run(session, 'ks cc')	# Color by chain
 
     from os.path import splitext
     image_prefix = splitext(path)[0]
     save_assembly_images(mol, width, height, supersample,
                          image_prefix, image_suffix, session)
 
-    run(s, 'close')
+    run(session, 'close')
 
 def save_assembly_images(mol, width, height, supersample, image_prefix, image_suffix, session):
     s = session

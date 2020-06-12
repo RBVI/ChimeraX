@@ -22,6 +22,10 @@ Registration is optional and free.  Registration helps us document the impact of
 """
 
 
+import threading
+_registration_lock = threading.Lock()
+
+
 def nag(session):
     if not session.ui.is_gui:
         return
@@ -30,15 +34,16 @@ def nag(session):
 
 
 def install(session, registration):
-    reg_file = _registration_file()
-    try:
-        with open(reg_file, "w") as f:
-            f.write(registration)
-        return True
-    except IOError as e:
-        session.logger.error("Cannot write registration file %r: %s" %
-                             (reg_file, str(e)))
-        return False
+    with _registration_lock:
+        reg_file = _registration_file()
+        try:
+            with open(reg_file, "w") as f:
+                f.write(registration)
+            return True
+        except IOError as e:
+            session.logger.error("Cannot write registration file %r: %s" %
+                                 (reg_file, str(e)))
+            return False
 
 
 def check_registration(logger=None):
@@ -109,15 +114,16 @@ def _registration_file():
 
 
 def _get_registration(logger):
-    reg_file = _registration_file()
-    try:
-        param = {}
-        with open(reg_file) as f:
-            for line in f:
-                key, value = [s.strip() for s in line.split(':', 1)]
-                param[key] = value
-    except IOError:
-        return None
+    with _registration_lock:
+        reg_file = _registration_file()
+        try:
+            param = {}
+            with open(reg_file) as f:
+                for line in f:
+                    key, value = [s.strip() for s in line.split(':', 1)]
+                    param[key] = value
+        except IOError:
+            return None
     if "Name" not in param or "Email" not in param:
         if logger:
             logger.error("Registration file %r is invalid." % reg_file)
@@ -167,14 +173,15 @@ def _write_registration(logger, param):
     if ("Name" not in param or "Email" not in param or
         ("Expires" not in param and "Signed" not in param)):
         raise ValueError("invalid registration data")
-    reg_file = _registration_file()
-    try:
-        with open(reg_file, "w") as f:
-            for key, value in param.items():
-                print("%s: %s" % (key, value), file=f)
-    except IOError as e:
-        if logger:
-            logger.error("%r: %s" % (reg_file, str(e)))
+    with _registration_lock:
+        reg_file = _registration_file()
+        try:
+            with open(reg_file, "w") as f:
+                for key, value in param.items():
+                    print("%s: %s" % (key, value), file=f)
+        except IOError as e:
+            if logger:
+                logger.error("%r: %s" % (reg_file, str(e)))
 
 
 def _usage_file():
