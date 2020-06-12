@@ -67,7 +67,7 @@ class Memory_Use_Dialog(ModelessDialog):
     mb = float(2**20)
 
     dcache = self.data_cache()
-    if dcache == None:
+    if dcache is None:
       dlist = []
       limit = 0
     else:

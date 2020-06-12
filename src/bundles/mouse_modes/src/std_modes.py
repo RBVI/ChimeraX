@@ -172,7 +172,7 @@ class SelectSubtractMouseMode(SelectMouseMode):
     '''Mouse mode to subtract objects from selection by clicking on them.'''
     name = 'select subtract'
     icon_file = None
-    
+
 class SelectToggleMouseMode(SelectMouseMode):
     '''Mouse mode to toggle selected objects by clicking on them.'''
     name = 'select toggle'
@@ -264,7 +264,7 @@ class MoveMouseMode(MouseMode):
         # Undo
         self._starting_atom_scene_coords = None
         self._starting_model_positions = None
-        
+
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         if self.action(event) == 'rotate':
@@ -283,6 +283,7 @@ class MoveMouseMode(MouseMode):
             self._translate(shift)
         self._moved = True
 
+
     def mouse_up(self, event):
         if self.click_to_select:
             if event.position() == self.mouse_down_position:
@@ -294,7 +295,7 @@ class MoveMouseMode(MouseMode):
 
         if self.move_atoms:
             self._atoms = None
-        
+
     def wheel(self, event):
         d = event.wheel_value()
         if self.move_atoms:
@@ -311,7 +312,31 @@ class MoveMouseMode(MouseMode):
             # Holding shift key switches between rotation and translation
             a = 'translate' if a == 'rotate' else 'rotate'
         return a
-    
+
+    def touchpad_two_finger_trans(self, event):
+        move = event.two_finger_trans
+        if self.mouse_action=='rotate':
+            tp = self.session.ui.mouse_modes.trackpad
+            from math import sqrt
+            dx, dy = move
+            turns = sqrt(dx*dx + dy*dy)*tp.full_width_translation_distance/tp.full_rotation_distance
+            angle = tp.trackpad_speed*360*turns
+            self._rotate((dy, dx, 0), angle)
+
+    def touchpad_three_finger_trans(self, event):
+        dx, dy = event.three_finger_trans
+        if self.mouse_action=='translate':
+            tp = self.session.ui.mouse_modes.trackpad
+            ww = self.session.view.window_size[0] # window width in pixels
+            s = tp.trackpad_speed*ww
+            self._translate((s*dx, -s*dy, 0))
+
+    def touchpad_two_finger_twist(self, event):
+        angle = event.two_finger_twist
+        if self.mouse_action=='rotate':
+            self._rotate((0,0,1), angle)
+
+
     def _set_z_rotation(self, event):
         x,y = event.position()
         w,h = self.view.window_size
@@ -372,7 +397,7 @@ class MoveMouseMode(MouseMode):
             self._move_atoms(translation(step))
         else:
             self.view.translate(step, self.models())
-        
+
     def _translation(self, event):
         '''Returned shift is in camera coordinates.'''
         dx, dy = self.mouse_motion(event)
@@ -401,7 +426,7 @@ class MoveMouseMode(MouseMode):
     @property
     def _moving_atoms(self):
         return self.move_atoms and self._atoms is not None and len(self._atoms) > 0
-        
+
     def _move_atoms(self, transform):
         atoms = self._atoms
         atoms.scene_coords = transform * atoms.scene_coords
@@ -444,7 +469,7 @@ class MoveMouseMode(MouseMode):
             from chimerax.atomic import selected_atoms
             self._atoms = selected_atoms(self.session)
         self._undo_start()
-        
+
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
         if self._moving_atoms:
@@ -452,11 +477,11 @@ class MoveMouseMode(MouseMode):
         else:
             self.view.move(event.motion, self.models())
         self._moved = True
-        
+
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._undo_save()
-        
+
 class RotateMouseMode(MoveMouseMode):
     '''
     Mouse mode to rotate objects (actually the camera is moved) by dragging.
@@ -587,7 +612,7 @@ class RotateSelectedAtomsMouseMode(RotateMouseMode):
     name = 'rotate selected atoms'
     icon_file = 'icons/rotate_atoms.png'
     move_atoms = True
-        
+
 class ZoomMouseMode(MouseMode):
     '''
     Mouse mode to move objects in z, actually the camera is moved
@@ -599,7 +624,7 @@ class ZoomMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.speed = 1
 
-    def mouse_drag(self, event):        
+    def mouse_drag(self, event):
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
@@ -611,6 +636,14 @@ class ZoomMouseMode(MouseMode):
         psize = self.pixel_size()
         delta_z = 100*d*psize*self.speed
         self.zoom(delta_z, stereo_scaling = not event.alt_down())
+
+    def touchpad_two_finger_scale(self, event):
+        scale = event.two_finger_scale
+        v = self.session.view
+        wpix = v.window_size[0]
+        psize = v.pixel_size()
+        d = (scale-1)*wpix*psize
+        self.zoom(d)
 
     def zoom(self, delta_z, stereo_scaling = False):
         v = self.view
@@ -624,7 +657,7 @@ class ZoomMouseMode(MouseMode):
         else:
             shift = c.position.transform_vector((0, 0, delta_z))
             v.translate(shift)
-        
+
 class ObjectIdMouseMode(MouseMode):
     '''
     Mouse mode to that shows the name of an object in a popup window
@@ -634,7 +667,7 @@ class ObjectIdMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         session.triggers.add_trigger('mouse hover')
-        
+
     def pause(self, position):
         ui = self.session.ui
         if ui.activeWindow() is None:
@@ -704,7 +737,7 @@ class AtomCenterOfRotationMode(MouseMode):
             return
         from chimerax.std_commands import cofr
         cofr.cofr(self.session, pivot=xyz)
-           
+
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
     name = 'none'
@@ -747,7 +780,7 @@ class ClipMouseMode(MouseMode):
         front_shift = 1 if shift or not alt else 0
         back_shift = 0 if not (alt or shift) else (1 if alt and shift else -1)
         return front_shift, back_shift
-    
+
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
@@ -793,9 +826,9 @@ class ClipMouseMode(MouseMode):
             use_scene_planes = (clip_settings.mouse_clip_plane_type == 'scene planes')
         else:
             use_scene_planes = (p.find_plane('front') or p.find_plane('back'))
-                
+
         pfname, pbname = ('front','back') if use_scene_planes else ('near','far')
-        
+
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
         from chimerax.std_commands.clip import adjust_plane
         c = v.camera
@@ -924,6 +957,42 @@ class ClipRotateMouseMode(MouseMode):
             p.normal = move.transform_vector(p.normal)
             p.plane_point = move * p.plane_point
 
+class SwipeAsScrollMouseMode(MouseMode):
+    '''
+    Reinterprets the vertical component of a multi-touch swiping action as a
+    mouse scroll, and passes it on to the currently-mapped mode.
+    '''
+    name = 'swipe as scroll'
+    def _scrollwheel_mode(self, modifiers):
+        return self.session.ui.mouse_modes.mode(button='wheel', modifiers=modifiers)
+
+    def _wheel_value(self, dy):
+        tp = self.session.ui.mouse_modes.trackpad
+        speed = tp.trackpad_speed
+        wcp = tp.wheel_click_pixels
+        fwd = tp.full_width_translation_distance
+        delta = speed * dy * fwd / wcp
+        return delta
+
+    def touchpad_two_finger_trans(self, event):
+        self._pass_event(event, 'two_finger_trans')
+
+    def touchpad_three_finger_trans(self, event):
+        self._pass_event(event, 'three_finger_trans')
+
+    def touchpad_four_finger_trans(self, event):
+        self._pass_event(event, 'four_finger_trans')
+
+    def _pass_event(self, event, event_type):
+        _, dy = getattr(event, event_type)
+        swm = self._scrollwheel_mode(event.modifiers)
+        if swm:
+            wv = self._wheel_value(dy)
+            from .mousemodes import MouseEvent
+            swm.wheel(MouseEvent(position=event.position, wheel_value=wv, modifiers=event.modifiers))
+
+
+
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''
     mode_classes = [
@@ -946,6 +1015,7 @@ def standard_mouse_mode_classes():
         ClipRotateMouseMode,
         ObjectIdMouseMode,
         AtomCenterOfRotationMode,
+        SwipeAsScrollMouseMode,
         NullMouseMode,
     ]
     return mode_classes

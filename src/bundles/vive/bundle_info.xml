@@ -12,6 +12,7 @@
   <DataFiles>
     <DataFile>menu_icon.png</DataFile>
     <DataFile>no_action.png</DataFile>
+    <DataFile>command_icon.png</DataFile>
   </DataFiles>
 
   <Categories>

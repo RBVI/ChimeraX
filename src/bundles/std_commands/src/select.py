@@ -41,17 +41,21 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
-    if sequence is None:
-        objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
-        clear_selection(session, undo_state)
-        modify_selection(objects, 'add', undo_state, full_residues = residues)
+    session.triggers.block_trigger("selection changed")
+    try:
+        if sequence is None:
+            objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
+            clear_selection(session, undo_state)
+            modify_selection(objects, 'add', undo_state, full_residues = residues)
 
-        if polymer is not None:
-            polymer_selection(polymer, session, undo_state)
-    else:
-        clear_selection(session, undo_state)
-        objects = _select_sequence(objects, sequence)
-        modify_selection(objects, 'add', undo_state, full_residues = residues)
+            if polymer is not None:
+                polymer_selection(polymer, session, undo_state)
+        else:
+            clear_selection(session, undo_state)
+            objects = _select_sequence(objects, sequence)
+            modify_selection(objects, 'add', undo_state, full_residues = residues)
+    finally:
+        session.triggers.release_trigger("selection changed")
 
     session.undo.register(undo_state)
     report_selection(session)
@@ -166,7 +170,11 @@ def select_clear(session):
     '''Clear the selection.'''
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select clear")
-    clear_selection(session, undo_state)
+    session.triggers.block_trigger("selection changed")
+    try:
+        clear_selection(session, undo_state)
+    finally:
+        session.triggers.release_trigger("selection changed")
     session.undo.register(undo_state)
 
 def report_selection(session):

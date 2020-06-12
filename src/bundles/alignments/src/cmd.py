@@ -136,7 +136,7 @@ def seqalign_chain(session, chains):
 
     if len(chains) == 1:
         chain = chains[0]
-        ident = ".".join([str(part) for part in chain.structure.id]) + "." + chain.chain_id
+        ident = ".".join([str(part) for part in chain.structure.id]) + "/" + chain.chain_id
         alignment = session.alignments.new_alignment([chain], ident, seq_viewer="sv",
             auto_associate=None, intrinsic=True)
     else:
