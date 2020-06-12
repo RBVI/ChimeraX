@@ -53,7 +53,7 @@ Here is an example of a function that may be registered with cli::
         spec = modelspec.evaluate(session)
         import numpy
         by_vector = numpy.array(by)
-        from chimerax.core.geometry import place
+        from chimerax.geometry import place
         translation = place.translation(by_vector)
         for m in spec.models:
             m.position = translation * m.position

@@ -214,7 +214,8 @@ class CFunctions:
                     v = ctypes.cast(v, ctypes.POINTER(ctypes.c_char))
                 else:
                     # Allocate numpy array of values to pass to C.
-                    va = empty((n,value_count), value_type)
+                    vshape = (n,) if value_count == 1 else (n,value_count)
+                    va = empty(vshape, value_type)
                     va[:] = values
                     v = pointer(va)
                 cset(self._c_pointers, n, v)

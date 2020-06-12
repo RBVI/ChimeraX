@@ -385,7 +385,7 @@ def _stitched_triangles(loop1_vertices, offset1, loop2_vertices, offset2):
     triangles = []
     n1, n2 = len(loop1_vertices), len(loop2_vertices)
     i1 = i2 = 0
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     while i1 < n1 or i2 < n2:
         v1, v2 = loop1_vertices[i1%n1], loop2_vertices[i2%n2]
         vn1, vn2 = loop1_vertices[(i1+1)%n1], loop2_vertices[(i2+1)%n2]

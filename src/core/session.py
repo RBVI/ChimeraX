@@ -257,7 +257,7 @@ class _SaveManager:
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj, parents)
-                except ValueError as e:
+                except Exception as e:
                     raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
 
@@ -666,6 +666,8 @@ class Session:
                 if isinstance(name, str):
                     if attr_info.get(name, False):
                         setattr(self, name, data)
+                        # Make sure leading underscore attributes are state managers.
+                        self.add_state_manager(name, data)
                     else:
                         self.add_state_manager(name, data)
                 else:

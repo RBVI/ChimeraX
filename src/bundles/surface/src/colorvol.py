@@ -176,15 +176,6 @@ class VolumeColor(State):
 
     # -------------------------------------------------------------------------
     #
-    def set_volume(self, volume):
-
-        self.volume = volume
-
-#        from chimera import addModelClosedCallback
-#        addModelClosedCallback(volume, self.volume_closed_cb)
-
-    # -------------------------------------------------------------------------
-    #
     def set_colormap(self, palette, range, per_pixel = False):
         r = self.value_range() if _use_full_range(range, palette) else range
         self.colormap = _colormap_with_range(palette, r)
@@ -247,7 +238,7 @@ class VolumeColor(State):
     # -------------------------------------------------------------------------
     #
     def _auto_recolor(self):
-        if self.volume.data is None:
+        if self.closed():
             # Volume has been deleted.
             self.surface.auto_recolor_vertices = None
             return
@@ -385,6 +376,11 @@ class VolumeColor(State):
 
     # -------------------------------------------------------------------------
     #
+    def closed(self):
+        return self.volume.deleted
+    
+    # -------------------------------------------------------------------------
+    #
     def take_snapshot(self, session, flags):
         data = {
             'surface': self.surface,
@@ -413,12 +409,6 @@ class VolumeColor(State):
                 transparency = data['transparency'], offset = data['offset'])
         c.set_vertex_colors()
         return c
-            
-    # -------------------------------------------------------------------------
-    #
-    def volume_closed_cb(self, volume):
-
-        self.volume = None
 
 # -----------------------------------------------------------------------------
 #

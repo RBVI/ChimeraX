@@ -126,6 +126,7 @@ def shape_cylinder(session, radius = 1.0, height = 1.0,
     s = _show_surface(session, varray, tarray, color, mesh,
                       center, rotation, qrotation, coordinate_system,
                       slab, model_id, name)
+    return s
 
 # -----------------------------------------------------------------------------
 #
@@ -373,7 +374,7 @@ def shape_ribbon(session, atoms, follow_bonds = False,
     s.vertex_colors = ca
     if mesh or (mesh is None and width == 0):
         s.display_style = s.Mesh
-    session.models.add([s])
+    _add_surface(s)
 
     return s
 
@@ -461,7 +462,7 @@ def _show_surface(session, varray, tarray, color, mesh,
         s.display_style = s.Mesh
     if edge_mask is not None:
         s.edge_mask = edge_mask    # Hide spokes of hexagons.
-    session.models.add([s])
+    _add_surface(s)
 
     return s
 
@@ -488,6 +489,36 @@ def _find_surface_model(session, model_id):
     from chimerax.core.models import Surface
     mlist = session.models.list(type = Surface, model_id = model_id)
     return mlist[0] if len(mlist) == 1 else None
+
+# -----------------------------------------------------------------------------
+#
+def _add_surface(surface):
+    session = surface.session
+    models = session.models
+    if models.have_model(surface):
+        # Reusing existing model.
+        return
+
+    # Check if request model id is already being used.
+    model_id = surface.id
+    if model_id:
+        if models.have_id(model_id):
+            from chimerax.core.errors import UserError
+            id_string = '.'.join('%d'%i for i in model_id)
+            raise UserError('Model id #%s already in use' % id_string)
+
+        # If parent models don't exist create grouping models.
+        p = None
+        for i in range(1,len(model_id)):
+            if not models.have_id(model_id[:i]):
+                from chimerax.core.models import Model
+                m = Model('shape', session)
+                m.id = model_id[:i]
+                models.add([m], parent = p)
+                p = m
+
+    # Add surface.
+    models.add([surface])
 
 # -----------------------------------------------------------------------------
 #
@@ -553,7 +584,7 @@ def shape_tube(session, atoms, radius = 1.0, band_length = 0.0, follow_bonds = F
     s.vertex_colors = ca
     if mesh or (mesh is None and radius == 0):
         s.display_style = s.Mesh
-    session.models.add([s])
+    _add_surface(s)
 
     return s
 

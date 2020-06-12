@@ -228,7 +228,7 @@ class CommandLine(ToolInstance):
     def execute(self):
         from contextlib import contextmanager
         @contextmanager
-        def processing_command(line_edit, cmd_text):
+        def processing_command(line_edit, cmd_text, command_worked):
             line_edit.blockSignals(True)
             self._processing_command = True
             # as per the docs for contextmanager, the yield needs
@@ -239,7 +239,8 @@ class CommandLine(ToolInstance):
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
-                line_edit.selectAll()
+                if command_worked[0]:
+                    line_edit.selectAll()
                 self._processing_command = False
         session = self.session
         logger = session.logger
@@ -251,11 +252,16 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
-            with processing_command(self.text.lineEdit(), cmd_text):
+            # don't select the text if the command failed, so that
+            # an accidental keypress won't erase the command, which
+            # probably needs to be edited to work
+            command_worked = [False]
+            with processing_command(self.text.lineEdit(), cmd_text, command_worked):
                 try:
                     self._just_typed_command = cmd_text
                     cmd = Command(session)
                     cmd.run(cmd_text)
+                    command_worked[0] = True
                 except SystemExit:
                     # TODO: somehow quit application
                     raise

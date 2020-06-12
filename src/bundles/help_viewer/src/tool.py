@@ -467,14 +467,13 @@ class HelpUI(ToolInstance):
     def page_loaded(self, w, okay):
         if self.tabs.currentWidget() != w:
             return
-        history = w.history()
-        self.back.setEnabled(history.canGoBack())
-        self.forward.setEnabled(history.canGoForward())
+        self.update_back_forward(w)
 
     def url_changed(self, w, url):
         if self.tabs.currentWidget() != w:
             return
         self.url.setText(_qurl2text(url))
+        self.update_back_forward(w)
 
     def title_changed(self, w, title):
         if self.tabs.currentWidget() == w:
@@ -498,11 +497,13 @@ class HelpUI(ToolInstance):
         else:
             # no more tabs
             self.display(False)
+        self.update_back_forward()
 
     def close_tab(self, i):
         w = self.tabs.widget(i)
         self.tabs.removeTab(i)
         w.deleteLater()
+        self.update_back_forward()
 
     def close_current_tab(self):
         i = self.tabs.currentIndex()
@@ -525,6 +526,13 @@ class HelpUI(ToolInstance):
             self.tabs.setCurrentIndex(count - 1)
         elif n < count:
             self.tabs.setCurrentIndex(n)
+
+    def update_back_forward(self, w=None):
+        if w is None:
+            w = self.tabs.currentWidget()
+        history = w.history()
+        self.back.setEnabled(history.canGoBack())
+        self.forward.setEnabled(history.canGoForward())
 
     @classmethod
     def get_viewer(cls, session, target=None):

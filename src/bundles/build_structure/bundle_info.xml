@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="1.0" package="chimerax.atomic.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="1.0.1" package="chimerax.atomic.build_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -18,7 +18,7 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-AddH" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=1.0"/>

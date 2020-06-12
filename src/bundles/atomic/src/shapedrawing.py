@@ -14,6 +14,12 @@
 import numpy
 from chimerax.graphics import Drawing, Pick
 from chimerax.core.state import State
+from collections import namedtuple
+
+AtomicShapeInfo = namedtuple(
+    "AtomicShapeInfo",
+    ("vertices", "normals", "triangles", "color", "atoms", "description"),
+    defaults=(None, None))
 
 
 class AtomicShapeDrawing(Drawing, State):
@@ -234,6 +240,54 @@ class AtomicShapeDrawing(Drawing, State):
         s = _AtomicShape(range(start, self.triangles.shape[0]), description, atoms)
         self._shapes.append(s)
 
+    def add_shapes(self, shape_info):
+        """Add multiple shapes to drawing
+
+        Parameters
+        ----------
+        shape_info: sequence of :py:class:`AtomicShapeInfo`
+
+        There must be no initial geometry.
+        """
+        from numpy import empty, float32, int32, uint8, concatenate as concat
+        num_shapes = len(shape_info)
+        all_vertices = [None] * num_shapes
+        all_normals = [None] * num_shapes
+        all_triangles = [None] * num_shapes
+        all_colors = [None] * num_shapes
+        all_shapes = [None] * num_shapes
+        num_vertices = 0
+        num_triangles = 0
+        has_atoms = False
+        for i, info in enumerate(shape_info):
+            vertices, normals, triangles, color, atoms, description = info
+            all_vertices[i] = vertices
+            all_normals[i] = normals
+            all_triangles[i] = triangles + num_vertices
+            if color.ndim == 1 or color.shape[0] == 1:
+                colors = empty((vertices.shape[0], 4), dtype=uint8)
+                colors[:] = color
+            else:
+                colors = color.asarray(color, dtype=uint8)
+                assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
+            all_colors[i] = colors
+            has_atoms = has_atoms or (atoms is not None)
+            new_num_triangles = num_triangles + len(triangles)
+            all_shapes[i] = _AtomicShape(range(num_triangles, new_num_triangles), description, atoms)
+            num_vertices += len(vertices)
+            num_triangles = new_num_triangles
+        if has_atoms:
+            self._add_handler_if_needed()
+        vertices = empty((num_vertices, 3), dtype=float32)
+        normals = empty((num_vertices, 3), dtype=float32)
+        triangles = empty((num_triangles, 3), dtype=int32)
+        self.set_geometry(
+            concat(all_vertices, out=vertices),
+            concat(all_normals, out=normals),
+            concat(all_triangles, out=triangles))
+        self.vertex_colors = concat(all_colors)
+        self._shapes = all_shapes
+
     def extend_shape(self, vertices, normals, triangles, color=None):
         """Extend previous shape
 
@@ -348,7 +402,7 @@ class PickedAtomicShapes:
     def description(self):
         return '%d shapes' % len(self.shapes)
 
-    def select(self, mode = 'add'):
+    def select(self, mode='add'):
         shapes = [s for s in self.shapes if s.atoms]
         if not shapes:
             return  # TODO: allow shapes without atoms to be selected

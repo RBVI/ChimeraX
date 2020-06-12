@@ -64,7 +64,7 @@ class MouseMode:
 
     def enable(self):
         '''
-        Supported API. 
+        Supported API.
         Called when mouse mode is enabled.
         Override if mode wants to know that it has been bound to a mouse button.
         '''
@@ -139,7 +139,7 @@ class MouseMode:
     def uses_wheel(self):
         '''Return True if derived class implements the wheel() method.'''
         return getattr(self, 'wheel') != MouseMode.wheel
-    
+
     def pause(self, position):
         '''
         Supported API.
@@ -155,6 +155,62 @@ class MouseMode:
         This allows for instance undisplaying a popup help balloon window.
         '''
         pass
+
+    def touchpad_two_finger_scale(self, event):
+        '''
+        Supported API.
+        Override this method to take action when a two-finger pinching motion is
+        used on a multitouch touchpad. The scale parameter is available as
+        event.two_finger_scale and is a float, where values larger than 1
+        indicate fingers moving apart and values less than 1 indicate fingers
+        moving together.
+        '''
+        pass
+
+    def touchpad_two_finger_twist(self, event):
+        '''
+        Supported API.
+        Override this method to take action when a two-finger twisting motion
+        is used on a multitouch touchpad. The angle parameter is available as
+        event.two_finger_twist, and is a float representing the rotation
+        angle in degrees.
+        '''
+        pass
+
+    def touchpad_two_finger_trans(self, event):
+        '''
+        Supported API.
+        Override this method to take action when a two-finger swiping motion is
+        used on a multitouch touchpad. This method should use either
+        event.two_finger_trans (a tuple of two floats delta_x and delta_y) or
+        event.wheel_value (an effective mouse wheel value synthesized from
+        delta_y). delta_x and delta_y are distances expressed as fractions of
+        the total width of the trackpad.
+        '''
+        pass
+
+    def touchpad_three_finger_trans(self, event):
+        '''
+        Supported API.
+        Override this method to take action when a three-finger swiping motion
+        is used on a multitouch touchpad. The move parameter is available as
+        event.three_finger_trans and is a tuple of two floats: (delta_x,
+        delta_y) representing the distance moved on the touchpad as a fraction
+        of its width.
+        '''
+        pass
+
+    def touchpad_four_finger_trans(self, event):
+        '''
+        Supported API.
+        Override this method to take action when a four-finger swiping motion
+        is used on a multitouch touchpad. The move parameter is available as
+        event.three_finger_trans and is a tuple of two floats: (delta_x,
+        delta_y) representing the distance moved on the touchpad as a fraction
+        of its width.
+        '''
+        pass
+
 
     def pixel_size(self, center = None, min_scene_frac = 1e-5):
         '''
@@ -201,7 +257,7 @@ class MouseMode:
         cfile = inspect.getfile(cls)
         p = path.join(path.dirname(cfile), file)
         return p
-    
+
 class MouseBinding:
     '''
     Associates a mouse button ('left', 'middle', 'right', 'wheel', 'pause') and
@@ -227,6 +283,10 @@ class MouseBinding:
         '''
         return button == self.button and set(modifiers) == set(self.modifiers)
 
+
+
+
+
 class MouseModes:
     '''
     Keep the list of available mouse modes and also which mode is bound
@@ -243,12 +303,10 @@ class MouseModes:
         self._available_modes = [mode(session) for mode in standard_mouse_mode_classes()]
 
         self._bindings = []  # List of MouseBinding instances
+        self._trackpad_bindings = [] # List of MultitouchBinding instances
 
         from PyQt5.QtCore import Qt
         # Qt maps control to meta on Mac...
-        self._modifier_bits = []
-        for keyfunc in ["alt", "control", "command", "shift"]:
-            self._modifier_bits.append((mod_key_info(keyfunc)[0], keyfunc))
 
         # Mouse pause parameters
         self._last_mouse_time = None
@@ -261,9 +319,30 @@ class MouseModes:
         self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
         from .trackpad import MultitouchTrackpad
-        self.trackpad = MultitouchTrackpad(session)
+        self.trackpad = MultitouchTrackpad(session, self)
 
-    def bind_mouse_mode(self, button, modifiers, mode):
+    def bind_mouse_mode(self, mouse_button=None, mouse_modifiers=[], mode=None,
+            trackpad_action=None, trackpad_modifiers=[]):
+        '''
+        Bind a MouseMode to a mouse click and/or a multitouch trackpad action
+        with optional modifier keys.
+
+        mouse_button is either None or one of ("left", "middle", "right", "wheel", or "pause").
+
+        trackpad_action is either None or one of ("pinch", "twist", "two finger swipe",
+        "three finger swipe" or "four finger swipe").
+
+        mouse_modifiers and trackpad_modifiers are each a list of 0 or more of
+        ("alt", "command", "control" or "shift").
+
+        mode is a MouseMode instance.
+        '''
+        if mouse_button is not None:
+            self._bind_mouse_mode(mouse_button, mouse_modifiers, mode)
+        if trackpad_action is not None:
+            self._bind_trackpad_mode(trackpad_action, trackpad_modifiers, mode)
+
+    def _bind_mouse_mode(self, button, modifiers, mode):
         '''
         Button is "left", "middle", "right", "wheel", or "pause".
         Modifiers is a list 0 or more of 'alt', 'command', 'control', 'shift'.
@@ -279,12 +358,32 @@ class MouseModes:
         if button == "right" and not modifiers:
             self.session.triggers.activate_trigger("set right mouse", mode)
 
-    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
+    def _bind_trackpad_mode(self, action, modifiers, mode):
+        '''
+        Action is one of ("pinch", "twist", "two finger swipe",
+        "three finger swipe" or "four finger swipe"). Modifiers is a list of
+        0 or more of ("alt", "command", "control" or "shift"). Mode is a
+        MouseMode instance.
+        '''
+        self.remove_binding(trackpad_action=action, trackpad_modifiers=modifiers)
+        if mode is not None:
+            from .std_modes import NullMouseMode
+            if not isinstance(mode, NullMouseMode):
+                from .trackpad import MultitouchBinding
+                b = MultitouchBinding(action, modifiers, mode)
+                self._trackpad_bindings.append(b)
+                mode.enable()
+
+    def bind_standard_mouse_modes(self,
+                                  buttons = ('left', 'middle', 'right', 'wheel', 'pause'),
+                                  trackpad = ('two finger swipe', 'twist', 'pinch',
+                                              'three finger swipe', 'four finger swipe')):
+
         '''
         Bind the standard mouse modes: left = rotate, ctrl-left = select, middle = translate,
         right = zoom, wheel = zoom, pause = identify object.
         '''
-        standard_modes = (
+        standard_button_modes = (
             ('left', [], 'rotate'),
             ('left', ['control'], 'select'),
             ('middle', [], 'translate'),
@@ -292,10 +391,23 @@ class MouseModes:
             ('wheel', [], 'zoom'),
             ('pause', [], 'identify object'),
             )
+        
         mmap = {m.name:m for m in self.modes}
-        for button, modifiers, mode_name in standard_modes:
+        for button, modifiers, mode_name in standard_button_modes:
             if button in buttons:
                 self.bind_mouse_mode(button, modifiers, mmap[mode_name])
+
+        standard_trackpad_modes = (
+            ('two finger swipe', [], 'rotate'),
+            ('twist', [], 'rotate'),
+            ('pinch', [], 'zoom'),
+            ('three finger swipe', [], 'translate'),
+            ('four finger swipe', [], 'swipe as scroll')
+            )
+                
+        for trackpad_action, modifiers, mode_name in standard_trackpad_modes:
+            self.bind_mouse_mode(trackpad_action=trackpad_action,
+                                 trackpad_modifiers=modifiers, mode=mmap[mode_name])
 
     def add_mode(self, mode):
         '''Supported API. Add a MouseMode instance to the list of available modes.'''
@@ -321,6 +433,23 @@ class MouseModes:
             m = None
         return m
 
+    def trackpad_mode(self, action, modifiers=[], exact=False):
+        '''
+        Return the MouseMode associated with a specific multitouch action and
+        modifiers, or None if no mode is bound.
+        '''
+        if exact:
+            mb = [b for b in self._trackpad_bindings if b.exact_match(action, modifiers)]
+        else:
+            mb = [b for b in self._trackpad_bindings if b.matches(action, modifiers)]
+        if len(mb) == 1:
+            m = mb[0].mode
+        elif len(mb) > 1:
+            m = max(mb, key = lambda b: len(b.modifiers)).mode
+        else:
+            m = None
+        return m
+
     @property
     def modes(self):
         '''List of MouseMode instances.'''
@@ -331,7 +460,7 @@ class MouseModes:
             if m.name == name:
                 return m
         return None
-    
+
     def mouse_pause_tracking(self):
         '''
         Called periodically to check for mouse pause and invoke pause mode.
@@ -362,12 +491,16 @@ class MouseModes:
                 self._mouse_pause()
                 self._paused = True
 
-    def remove_binding(self, button, modifiers):
+    def remove_binding(self, button=None, modifiers=[],
+            trackpad_action=None, trackpad_modifiers=[]):
         '''
         Unbind the mouse button and modifier key combination.
         No mode will be associated with this button and modifier.
         '''
-        self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
+        if button is not None:
+            self._bindings = [b for b in self.bindings if not b.exact_match(button, modifiers)]
+        if trackpad_action is not None:
+            self._trackpad_bindings = [b for b in self._trackpad_bindings if not b.exact_match(trackpad_action, trackpad_modifiers)]
 
     def remove_mode(self, mode):
         '''Remove a MouseMode instance from the list of available modes.'''
@@ -382,7 +515,7 @@ class MouseModes:
     def _mouse_buttons_down(self):
         from PyQt5.QtCore import Qt
         return self.session.ui.mouseButtons() != Qt.NoButton
-        
+
     def _dispatch_mouse_event(self, event, action):
         button, modifiers = self._event_type(event)
         if button is None:
@@ -404,7 +537,7 @@ class MouseModes:
             self._last_mode = None
 
     def _event_type(self, event):
-        modifiers = self._key_modifiers(event)
+        modifiers = key_modifiers(event)
 
         # button() gives press/release buttons; buttons() gives move buttons
         from PyQt5.QtCore import Qt
@@ -449,16 +582,43 @@ class MouseModes:
 
         return button, modifiers
 
+    def _dispatch_touch_event(self, touch_event):
+        te = touch_event
+        from .trackpad import touch_action_to_property
+        for action, prop in touch_action_to_property.items():
+            data = getattr(te, prop)
+            if getattr(touch_event, prop) is None:
+                continue
+            m = self.trackpad_mode(action, te.modifiers)
+            if m is not None:
+                f = getattr(m, 'touchpad_'+prop)
+                f(te)
+
+
+        # t_string = ('Registered touch event: \n'
+        #     'modifer keys pressed: {}\n'
+        #     'wheel_value: {}\n'
+        #     'two_finger_trans: {}\n'
+        #     'two_finger_scale: {}\n'
+        #     'two_finger_twist: {}\n'
+        #     'three_finger_trans: {}\n'
+        #     'four_finger_trans: {}').format(
+        #         ', '.join(te._modifiers),
+        #         te.wheel_value,
+        #         te.two_finger_trans,
+        #         te.two_finger_scale,
+        #         te.two_finger_twist,
+        #         te.three_finger_trans,
+        #         te.four_finger_trans
+        #     )
+        # print(t_string)
+
+
     def _have_mode(self, button, modifier):
         for b in self.bindings:
             if b.exact_match(button, [modifier]):
                 return True
         return False
-
-    def _key_modifiers(self, event):
-        mod = event.modifiers()
-        modifiers = [mod_name for bit, mod_name in self._modifier_bits if bit & mod]
-        return modifiers
 
     def _mouse_pause(self):
         m = self.mode('pause')
@@ -482,7 +642,7 @@ class MouseModes:
     def _wheel_event(self, event):
         if self.trackpad.discard_trackpad_wheel_event(event):
             return	# Trackpad processing handled this event
-        f = self.mode('wheel', self._key_modifiers(event))
+        f = self.mode('wheel', key_modifiers(event))
         if f:
             f.wheel(MouseEvent(event))
 
@@ -498,7 +658,7 @@ class MouseEvent:
                                         # for mouse button emulation.
         self._position = position	# x,y in pixels, can be None
         self._wheel_value = wheel_value # wheel clicks (usually 1 click equals 15 degrees rotation).
-        
+
     def shift_down(self):
         '''
         Supported API.
@@ -556,7 +716,7 @@ class MouseEvent:
                 delta = min(deltas.x(), deltas.y())
             return delta/120.0   # Usually one wheel click is delta of 120
         return 0
-        
+
 def mod_key_info(key_function):
     """Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
@@ -584,6 +744,18 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
+_function_keys = ["alt", "control", "command", "shift"]
+_modifier_bits = [(mod_key_info(fkey)[0], fkey) for fkey in _function_keys]
+
+
+def key_modifiers(event):
+    return decode_modifier_bits(event.modifiers())
+
+def decode_modifier_bits(mod):
+    modifiers = [mod_name for bit, mod_name in _modifier_bits if bit & mod]
+    return modifiers
+
+
 def keyboard_modifier_names(qt_keyboard_modifiers):
     from PyQt5.QtCore import Qt
     import sys
@@ -601,9 +773,13 @@ def keyboard_modifier_names(qt_keyboard_modifiers):
     mnames = [mname for mflag, mname in modifiers if mflag & qt_keyboard_modifiers]
     return mnames
 
+
+
+
+
 def unpickable(drawing):
     return not getattr(drawing, 'pickable', True)
-    
+
 def picked_object(window_x, window_y, view, max_transparent_layers = 3, exclude = unpickable):
     xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
     if xyz1 is None or xyz2 is None:
@@ -621,4 +797,3 @@ def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3, exclu
         else:
             break
     return p2 if p2 else p
-
