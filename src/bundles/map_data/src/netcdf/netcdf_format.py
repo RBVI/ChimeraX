@@ -139,7 +139,7 @@ class NetCDF_Data:
       if var.shape == shape:
         cname = self.read_variable_name(f, name)
         color = self.read_variable_color(f, name)
-        if color == None:
+        if color is None:
           color = self.default_color(len(components))
         typecode = self.read_variable_typecode(f, name)
         c = NetCDF_Array(path, name, cname, typecode, color)

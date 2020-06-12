@@ -66,7 +66,7 @@ cdef class CyAtomSearchTree:
         The cumulative difference of all three coordinates from target must
         be less than 'window'.
 
-        Note that unlike chimera.core.geometry.AdaptiveTree, only items that are
+        Note that unlike chimerax.geometry.AdaptiveTree, only items that are
         within 'window' are returned, rather than all items in leaf nodes that are
         within 'window' (so some individual items might not be within 'window').
         """

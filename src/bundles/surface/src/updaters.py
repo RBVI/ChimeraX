@@ -5,9 +5,9 @@ class SurfaceUpdaters(State):
     '''
     Keep track of the surface auto update routines so they can be saved in sessions.
     '''
-    def __init__(self):
+    def __init__(self, updaters = []):
         from weakref import WeakSet
-        self._updaters = WeakSet()
+        self._updaters = WeakSet(updaters)
 
     def add(self, updater):
         '''
@@ -16,21 +16,26 @@ class SurfaceUpdaters(State):
         self._updaters.add(updater)
         
     def take_snapshot(self, session, flags):
-        updaters = tuple(u for u in self._updaters
-                         if hasattr(u, 'surface')
-                         and u.surface is not None
-                         and not u.surface.deleted)
+        updaters = tuple(u for u in self._updaters if not _updater_closed(u))
         data = {'updaters': updaters,
                 'version': 1}
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        # Actual updaters are added when each is restored.
-        return SurfaceUpdaters()
+        return SurfaceUpdaters(data['updaters'])
 
     def clear(self):
         self._updaters.clear()
+
+# -----------------------------------------------------------------------------
+#
+def _updater_closed(u):
+    if hasattr(u, 'surface') and (u.surface is None or u.surface.deleted):
+        return True
+    if hasattr(u, 'closed') and u.closed():
+        return True
+    return False
         
 # -----------------------------------------------------------------------------
 #

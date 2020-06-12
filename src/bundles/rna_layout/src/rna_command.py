@@ -15,9 +15,11 @@
 # -----------------------------------------------------------------------------
 #
 def rna_path(session, pairs, length = None,
-             pattern = 'circle', loop_pattern = 'helix',
-             marker_radius = 2, random_branch_tilt = 0,
+             pattern = 'circle', loop_pattern = 'helix', 
+             marker_radius = 2,
              loop_color = (102,154,230,255), stem_color = (255,255,0,255),
+             random_loop_twist = 0, random_branch_tilt = 0,
+
              name = 'RNA path'):
 
     plist = parse_pairs(pairs)
@@ -28,6 +30,7 @@ def rna_path(session, pairs, length = None,
         length = max(pair_map.keys())
 
     layout_parameters = LayoutParameters(loop_pattern = loop_pattern,
+                                         loop_twist = random_loop_twist,
                                          branch_tilt = random_branch_tilt)
 
     mset, coords = rna_path(session, length, pair_map,
@@ -76,9 +79,11 @@ def parse_pairs_string(pairs):
 #
 def rna_model(session, sequence, path = None, start_sequence = 1,
               length = None, pairs = None,
-              pattern = 'line', loop_pattern = 'helix', random_branch_tilt = 0,
+              pattern = 'line', loop_pattern = 'helix',
               loop_color = (102,154,230,255), stem_color = (255,255,0,255),
-              p_color = (255,165,0,255), name = 'RNA'):
+              p_color = (255,165,0,255),
+              random_loop_twist = 0, random_branch_tilt = 0,
+              name = 'RNA'):
 
     from . import rna_layout as RL
     import os.path
@@ -87,6 +92,7 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
     seq = seq[start_sequence-1:]
 
     layout_parameters = RL.LayoutParameters(loop_pattern = loop_pattern,
+                                            loop_twist = random_loop_twist,
                                             branch_tilt = random_branch_tilt)
 
     if path is None:
@@ -172,33 +178,31 @@ def register_rna_layout_command(logger):
 
     PatternArg = EnumOf(('line', 'circle', 'helix', 'sphere'))
     LoopPatternArg = EnumOf(('helix', 'horseshoe'))
-    
+
+    path_opts = [('pattern', PatternArg),
+                 ('loop_pattern', LoopPatternArg),
+                 ('marker_radius', FloatArg),
+                 ('loop_color', Color8Arg),
+                 ('stem_color', Color8Arg),
+                 ('random_loop_twist', FloatArg),
+                 ('random_branch_tilt', FloatArg),
+                 ('name', StringArg)
+    ]
+
     # Make RNA marker model
     path_desc = CmdDesc(required = [('pairs', StringArg)],
                         optional = [('length', PositiveIntArg)],
-                        keyword = [('pattern', PatternArg),
-                                   ('loop_pattern', LoopPatternArg),
-                                   ('marker_radius', FloatArg),
-                                   ('random_branch_tilt', FloatArg),
-                                   ('loop_color', Color8Arg),
-                                   ('stem_color', Color8Arg),
-                                   ('name', StringArg)],
+                        keyword = path_opts,
                         synopsis = 'create an RNA marker model')
     register('rna path', path_desc, rna_path, logger=logger)
 
     # Make RNA atomic model
     model_desc = CmdDesc(required = [('sequence', StringArg)],
                          optional = [('path', AtomsArg)],
-                        keyword = [('start_sequence', IntArg),
-                                   ('length', PositiveIntArg),
-                                   ('pairs', StringArg),
-                                   ('pattern', PatternArg),
-                                   ('loop_pattern', LoopPatternArg),
-                                   ('random_branch_tilt', FloatArg),
-                                   ('loop_color', Color8Arg),
-                                   ('stem_color', Color8Arg),
-                                   ('p_color', Color8Arg),
-                                   ('name', StringArg)],
+                         keyword = [('start_sequence', IntArg),
+                                    ('length', PositiveIntArg),
+                                    ('pairs', StringArg),
+                                    ('p_color', Color8Arg)] + path_opts,
                         synopsis = 'create an RNA atomic model')
     register('rna model', model_desc, rna_model, logger=logger)
 

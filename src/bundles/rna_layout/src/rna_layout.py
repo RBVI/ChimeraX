@@ -255,6 +255,9 @@ class Loop:
             segs = self.helix_segments(params, circuit_segments)
         elif pattern == 'horseshoe':
             segs = self.horseshoe_segments(params, circuit_segments)
+
+        self.rotate_nucleotides(segs, params.loop_twist)
+
         return segs
 
     def helix_segments(self, params, circuit_segments):
@@ -407,6 +410,18 @@ class Loop:
 
         return Segment(c, 2*r, spacing)
 
+    def rotate_nucleotides(self, segs, max_rotation):
+        '''Rotate each nucleotide a random angle around P-P backbone.'''
+        if max_rotation == 0:
+            return
+
+        from chimerax.geometry import rotation
+        from random import random
+        for seg in segs:
+            for b, place in seg.placements.items():
+                a = (2*random()-1) * max_rotation
+                seg.placements[b] = place * rotation((1,0,0), a)
+
 class Segment:
     '''
     Nucleotide placements for a sequence of one or more nucleotides
@@ -433,7 +448,7 @@ def singleton_segments(base_index, count, spacing, placement = None):
 class LayoutParameters:
     '''Parameters controlling the nucleotide backbone P atom path.'''
     
-    def __init__(self, loop_pattern = 'helix', loop_spacing = 6.5,
+    def __init__(self, loop_pattern = 'helix', loop_spacing = 6.5, loop_twist = 0,
                  helix_loop_size = 8, helix_loop_rise = 20,
                  horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
                  pair_spacing = 2.55, pair_width = 18.3, pair_off_axis = 3.4, pair_tilt = 110.7,
@@ -442,6 +457,7 @@ class LayoutParameters:
         # Loop layout parameters
         self.loop_pattern = loop_pattern	# Loop layout "helix" or "horseshoe".
         self.loop_spacing = loop_spacing	# Spacing of nucleotides in horseshoe or helix, Angstroms.
+        self.loop_twist = loop_twist		# Random nucleotide rotation magnitude about P-P, degrees
 
         # Loop layout parameters for helical loops
         self.helix_loop_size = helix_loop_size	# Number of nucleotides in a loop layed out as a helix
@@ -452,16 +468,16 @@ class LayoutParameters:
         self.horseshoe_side_size = horseshoe_side_size	# Max nucleotides in one horseshoe side
         self.horseshoe_spacing = horseshoe_spacing	# Number of nucleotides to place between 2 horseshoes
 
+        # Segment orientation parameters
+        self.branch_twist = branch_twist	# Twist per loop or stem in straight pattern (degrees).
+        self.branch_tilt = branch_tilt		# Random tilt magnitude (degrees) for circle pattern
+
         # Double helix stem parameters
         self.pair_spacing = pair_spacing	# Spacing of one base pair to next base pair, Angstroms.
         self.pair_width = pair_width		# P-P basepair spacing between double helix strands.
         self.pair_off_axis = pair_off_axis	# P-P center point distance from double helix axis.
         self.pair_tilt = pair_tilt		# Angle helix axis makes with basepair P-P line.
         self.stem_twist = stem_twist		# Twist per base-pair in a stem (degrees).
-
-        # Segment orientation parameters
-        self.branch_twist = branch_twist	# Twist per loop or stem in straight pattern (degrees).
-        self.branch_tilt = branch_tilt		# Random tilt magnitude (degrees) for circle pattern
 
         # Global path layout parameters
         self.helix_radius = 300			# Radius for helix layout, Angstroms

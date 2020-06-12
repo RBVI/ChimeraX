@@ -1367,7 +1367,7 @@ class Axis:
         else:
             a = self.coords
         if normalize:
-            from .. import geometry
+            from chimerax import geometry
             a = geometry.normalize_vector(a)
         return a
 

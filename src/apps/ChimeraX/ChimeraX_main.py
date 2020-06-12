@@ -119,6 +119,7 @@ def parse_arguments(argv):
     opts.version = -1
     opts.get_available_bundles = True
     opts.safe_mode = False
+    opts.toolshed = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -142,6 +143,7 @@ def parse_arguments(argv):
         "--usedefaults",
         "--version",
         "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -261,6 +263,8 @@ def parse_arguments(argv):
             opts.version += 1
         elif opt == "--qtscalefactor":
             os.environ["QT_SCALE_FACTOR"] = optarg
+        elif opt == "--toolshed":
+            opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -468,15 +472,6 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-
-    # Put geometry in core for backwards compatibility.
-    # TODO: Remove this for ChimeraX 1.0.
-    try:
-        from chimerax import geometry
-        from sys import modules
-        modules['chimerax.core.geometry'] = geometry
-    except ImportError:
-        pass	# When building geometry may not yet exist
         
     # initialize qt
     if opts.gui:
@@ -551,8 +546,15 @@ def init(argv, event_loop=True):
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
+    if opts.toolshed is None:
+        toolshed_url = None
+    elif opts.toolshed == "preview":
+        toolshed_url = toolshed.preview_toolshed_url()
+    else:
+        toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
-                  check_available=opts.get_available_bundles)
+                  check_available=opts.get_available_bundles,
+                  remote_url=toolshed_url)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working

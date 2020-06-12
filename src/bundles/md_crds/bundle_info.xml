@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MDcrds" version="1.0"
+<BundleInfo name="ChimeraX-MDcrds" version="1.0.1"
 	    package="chimerax.atomic.md_crds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
