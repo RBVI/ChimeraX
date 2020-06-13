@@ -1988,13 +1988,14 @@ class Histogram_Pane:
   def _planes_slider_moved_cb(self, event):
       k = self._planes_slider.value()
       self._update_plane(k)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      if self._planes_slider_shown:
-          self._planes_spinbox.setValue(k)
-          self._planes_slider.setValue(k)
+      self._update_plane_slider(k)
+      
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -2006,8 +2007,23 @@ class Histogram_Pane:
       v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step)
-      # Make sure this plane is shown before we show another plane.
-      self.dialog.session.update_loop.update_graphics_now()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_plane_slider(self, k):
+      '''Update plane slider gui without invoking callbacks.'''
+      if not self._planes_slider_shown:
+          return
+
+      psb = self._planes_spinbox
+      psb.blockSignals(True)	# Don't send valueChanged signal
+      psb.setValue(k)
+      psb.blockSignals(False)
+
+      psl = self._planes_slider
+      psl.blockSignals(True)	# Don't send valueChanged signal
+      psl.setValue(k)
+      psl.blockSignals(False)
 
   # ---------------------------------------------------------------------------
   # x,y in canvas coordinates

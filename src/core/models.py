@@ -880,9 +880,12 @@ class Models(StateManager):
     def close(self, models):
         '''
         Remove the models from the scene as well as all child models
-        to all depths, and delete the models.
+        to all depths, and delete the models.  Models that are not
+        part of the scene are deleted, and models that have already
+        been deleted are ignored.
         '''
-        self.remove(models)
+        mopen = [m for m in models if self.have_model(m)]
+        self.remove(mopen)
         for m in models:
             if not m.deleted:
                 m.delete()
