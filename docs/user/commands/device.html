@@ -202,7 +202,7 @@ restored when VR is turned off.
 <a href="#top" class="nounder">&bull;</a>
 <a name="vr-button"><b>vr button</b></a> 
 &nbsp;<i>button-name</i>
-&nbsp;<i>function</i>
+[&nbsp;<i>function</i>&nbsp;]
 [&nbsp;<b>hand</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;]
 <blockquote>
 <table class="clRight" cellspacing="0">
@@ -234,16 +234,21 @@ The available <i>function</i> names are as listed
 <a href="ui.html#functions">above</a> for 
 <a href="ui.html#mousemode"><b>mousemode</b></a>,
 plus the following VR-specific modes:
+</p>
 <ul>
 <li><b>recenter</b> &ndash; center and scale models in the room
 <li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
 </ul>
+<p>
 The available <i>function</i> names can be listed in the
 <a href="../tools/log.html"><b>Log</b></a> with
 command <a href="usage.html"><b>usage</b></a> <b>vr button</b>,
 and should be enclosed in quotation marks if they contain spaces.
 The function can also be given as the word <b>default</b> to reset to
 <a href="../vr.html#default-controller">default functions</a>.
+</p><p>
+If <i>function</i> is omitted from the command, the current function 
+is reported in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 The <b>hand</b> option can be given to assign a function 
 to the specified button of only one hand controller; 
@@ -454,5 +459,5 @@ is based on the assumption that the camera is not moving.
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+June 2020</address>
 </body></html>
