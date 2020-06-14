@@ -251,6 +251,8 @@ class _Trigger:
         return [h._func for h in self._handlers if h not in self._pending_del]
 
 
+from contextlib import contextmanager
+
 class TriggerSet:
     """Keep track of related groups of triggers."""
 
@@ -347,31 +349,27 @@ class TriggerSet:
         else:
             trigger.activate(data)
 
+    @contextmanager
     def block_trigger(self, name):
-        """Block all handlers registered with the given name.
+        """Context manager to block all handlers registered with the
+        given name until the context is exited, at which point the
+        triggers fire (if applicable).
 
-        triggerset.block_trigger(name) => None
+        with triggerset.block_trigger(name):
+           ...code to execute with trigger blocked...
 
         If no trigger corresponds to name, an exception is raised.
-        block_trigger()/release_trigger() may be nested inside other
-        block_trigger()/release_trigger() pairs.
+        Blocked trigger contexts can be nested.
         """
         self._triggers[name].block()
+        try:
+            yield
+        finally:
+            self._triggers[name].release()
 
     def is_trigger_blocked(self, name):
         """Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
-
-    def release_trigger(self, name):
-        """Release all handlers registered with the given name.
-
-        triggerset.release_trigger(name) => None
-
-        If no trigger corresponds to name, an exception is raised.
-        The last call to activate_trigger() made between the outermost
-        block_trigger()/release_trigger() pair is executed.
-        """
-        self._triggers[name].release()
 
     def profile_trigger(self, name, sort_by='time', num_entries=20):
         """Supported API. Profile the next firing of the given trigger.
