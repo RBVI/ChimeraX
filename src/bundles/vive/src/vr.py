@@ -16,6 +16,7 @@
 #
 def vr(session, enable = None, room_position = None, mirror = None,
        gui = None, center = None, click_range = None,
+       near_clip_distance = None, far_clip_distance = None,
        multishadow_allowed = False, simplify_graphics = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
@@ -46,6 +47,12 @@ def vr(session, enable = None, room_position = None, mirror = None,
     click_range : float
       How far away hand controller tip can be when clicking an atom in scene units
       (Angstroms).  Default 5.
+    near_clip_distance : float
+      Parts of the scene closer than this distance (meters) to the eye are not shown.
+      Default 0.10.
+    far_clip_distance : float
+      Parts of the scene farther than this distance (meters) from the eye are not shown.
+      Default 500.
     multishadow_allowed : bool
       If this option is false and multi-shadow lighting is enabled (ambient occlusion) when vr is
       enabled, then lighting is switched to simple lighting.  If the option is true then no
@@ -97,6 +104,12 @@ def vr(session, enable = None, room_position = None, mirror = None,
         
     if click_range is not None:
         c.user_interface.set_mouse_mode_click_range(click_range)
+
+    if near_clip_distance is not None:
+        c.near_clip_distance = near_clip_distance
+
+    if far_clip_distance is not None:
+        c.far_clip_distance = far_clip_distance
 
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
@@ -256,6 +269,8 @@ def register_vr_command(logger):
                               ('gui', StringArg),
                               ('center', BoolArg),
                               ('click_range', FloatArg),
+                              ('near_clip_distance', FloatArg),
+                              ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                    ],
@@ -476,11 +491,7 @@ class SteamVRCamera(Camera, StateManager):
         # Compute projection and eye matrices, units in meters
 
         # Left and right projections are different. OpenGL 4x4.
-        z_near, z_far = self._z_near, self._z_far
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
-        self._projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
-        self._projection_right = hmd44_to_opengl44(pr)
+        self._set_projection_matrices()
 
         # Eye shifts from hmd pose.
         vl = vrs.getEyeToHeadTransform(openvr.Eye_Left)
@@ -539,6 +550,29 @@ class SteamVRCamera(Camera, StateManager):
         self._reposition_room_camera(p)
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
     '''Transformation from room coordinates to scene coordinates.'''
+
+    def _set_projection_matrices(self):
+        z_near, z_far = self._z_near, self._z_far
+        vrs = self._vr_system
+        import openvr
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
+        self._projection_left = hmd44_to_opengl44(pl)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
+        self._projection_right = hmd44_to_opengl44(pr)
+
+    def _get_near_clip_distance(self):
+        return self._z_near
+    def _set_near_clip_distance(self, near):
+        self._z_near = near
+        self._set_projection_matrices()
+    near_clip_distance = property(_get_near_clip_distance, _set_near_clip_distance)
+
+    def _get_far_clip_distance(self):
+        return self._z_far
+    def _set_far_clip_distance(self, far):
+        self._z_far = far
+        self._set_projection_matrices()
+    far_clip_distance = property(_get_far_clip_distance, _set_far_clip_distance)
         
     def _reposition_user_interface(self):
         ui = self.user_interface
