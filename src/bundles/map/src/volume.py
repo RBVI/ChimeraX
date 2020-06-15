@@ -1172,7 +1172,7 @@ class Volume(Model):
     d = self.data
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
-    v = self.position * lv
+    v = self.scene_position.transform_vector(lv)
     from chimerax.geometry import normalize_vector
     vn = normalize_vector(v)
     return vn
