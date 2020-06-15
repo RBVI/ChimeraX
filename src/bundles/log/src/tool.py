@@ -145,7 +145,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy Selection", lambda:
-                    log_window.page().triggerAction(log_window.page().Copy))
+                    self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from PyQt5.QtWidgets import QAction
