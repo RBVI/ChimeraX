@@ -209,6 +209,10 @@ style="display:inline-block; vertical-align:middle"><tr>
 The marker model is opened as number <i>model-number</i>
 (default next unused number) with name <i>model-name</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
+Atomic mass-weighting is always used, but the related command
+<a href="define.html#centroid"><b>define centroid</b></a>
+allows calculating the center of geometry (not mass-weighted)
+of a set of atoms.
 See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
@@ -389,9 +393,9 @@ the new model will be a submodel of <i>surf-model</i>.
 [&nbsp;<b>showSlabs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
 [&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>t</i>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>color2</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 <blockquote>
 Report the transformation of <i>model1</i> relative to <i>model2</i> as:
@@ -427,7 +431,10 @@ If <b>showAxis</b> is <b>true</b> (default), a
 <a href="../markers.html">marker model</a> showing the axis as a rod
 will be created, with the specified <b>length</b>
 (default the largest dimension of the bounding box of the displayed part
-of <i>model2</i>) and <b>radius</b> (default 2.5% of the length).
+of <i>model2</i>), <b>radius</b> (default 2.5% of the length), and <b>color</b>
+(default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>).
 If <b>showSlabs</b> is <b>true</b> (default <b>false</b>), two rectangular
 slabs showing the rotation axis and angle and the shift will be created
 as surface models, with the specified <b>length</b>
