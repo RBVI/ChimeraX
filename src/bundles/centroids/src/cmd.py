@@ -37,8 +37,12 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     if color:
         a.color = color.uint8x4()
     else:
-        from chimerax.atomic.colors import element_color
-        a.color = element_color(a.element.number)
+        from chimerax.atomic.colors import element_color, predominant_color
+        color = predominant_color(atoms)
+        if color is None:
+            a.color = element_color(a.element.number)
+        else:
+            a.color = color
     a.radius = radius
     if len(structures) > 1:
         session.models.add([s])
