@@ -93,8 +93,6 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         synopsis="read and display data")
     register("open", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
-    from chimerax.core.commands.cli import _usage
-    print(_usage('open', registry=registry))
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
