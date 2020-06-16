@@ -49,7 +49,7 @@ sphinxcontrib-blockdiag==2.0.0
 #
 # Windows
 #
-pywin32==227; sys_platform == 'win32'
+pywin32==228; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
 #
 # Linux
