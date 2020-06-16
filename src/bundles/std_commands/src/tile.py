@@ -18,7 +18,7 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         return False
     if models is None:
         models = [m for m in session.models.list() if tilable(m)]
-    models = [m for m in models if tilable(m)]
+    models = [m for m in models if tilable(m) and m.bounds() is not None]
     if len(models) == 0:
         from chimerax.core.errors import UserError
         raise UserError("No structures found for tiling.")
