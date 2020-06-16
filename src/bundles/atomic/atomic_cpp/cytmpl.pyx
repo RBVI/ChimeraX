@@ -105,6 +105,9 @@ cdef class TmplAtom:
             raise ValueError("Do not use %s constructor directly; use TmplResidue.get_template method"
                 " and go from there" % self.__class__.__name__)
 
+    def __lt__(self, other):
+        return self.name < other.name
+
     @property
     def bonds(self):
         tmp = self.cpp_atom.bonds()
