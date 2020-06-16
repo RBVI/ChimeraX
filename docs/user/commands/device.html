@@ -185,8 +185,9 @@ The <b>nearClipDistance</b> and <b>farClipDistance</b> options
 set clipping-plane positions in meters from the viewer
 (defaults <i>d<sub>n</sub></i> = <b>0.1</b> and
 <i>d<sub>f</sub></i> =  <b>500</b>). The difference from using the
-<a href="clip.html"><b>clip</b></a> command is that with these options,
-the hand-controller cones and tool panels will not be clipped.
+<a href="clip.html"><b>clip</b></a> command is that these options
+keep the planes at the specified distances from the viewer as the viewpoint
+changes.
 If surfaces are clipped, for speed-of-interaction purposes it may be useful
 to hide the planar caps 
 (command <b><a href="surface.html#cap">surface cap false</a></b>).
