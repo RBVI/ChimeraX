@@ -21,7 +21,7 @@ lxml==4.5.1
 matplotlib==3.2.1
 msgpack==1.0.0
 networkx==2.4
-openvr==1.11.1101
+openvr==1.12.501
 Pillow==7.1.2
 pkginfo==1.5.0.1
 psutil==5.7.0
