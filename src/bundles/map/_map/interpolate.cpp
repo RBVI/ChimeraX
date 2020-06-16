@@ -203,7 +203,7 @@ void interpolate_colormap(float values[], int64_t n,
 	  while (v > color_data_values[j])
 	    j += 1;
 	  float v0 = color_data_values[j-1], v1 = color_data_values[j];
-	  float f1 = (v - v0) / (v1 - v0);
+	  float f1 = (v1 > v0 ? (v - v0) / (v1 - v0) : 0);
 	  float f0 = 1 - f1;
 	  float *c0 = rgba_colors[j-1], *c1 = rgba_colors[j];
 	  for (int a = 0 ; a < 4 ; ++a)
