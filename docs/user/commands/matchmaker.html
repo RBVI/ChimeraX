@@ -341,19 +341,20 @@ This option may improve superposition results
 by generating consistent assignments, whereas pre-existing assignments
 may reflect the use of different criteria on different structures. 
 However, any pre-existing assignments will not be overwritten unless
-<a href="#keepComputedSs"><b>keepComputedSs</b></a> is set to <b>false</b>.
+<a href="#keepComputedSs"><b>keepComputedSs</b></a> is set to <b>true</b>.
 When <a href="#ssFraction">secondary structure scoring</a> is <b><i>not</i></b>
 used, <b>computeSs</b> is ignored and secondary structure assignments 
 are not computed.
 </blockquote>
 <blockquote>
-  <a name="keepComputedSs"><b>keepComputedSs</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <a name="keepComputedSs"><b>keepComputedSs</b></a> &nbsp;true&nbsp;|&nbsp;<b>false</b>
   <br>
 When secondary structure assignments are recomputed
 (<a href="#computeSs"><b>computeSs</b></a> <b>true</b>),
-whether to remember and keep the previous secondary structure assignments
-(default <b>true</b>). If <b>false</b>, the newly computed assignments 
-will overwrite any pre-existing secondary structure assignments.
+whether to overwrite any previous assignments with the newly computed ones.
+The default is <b>false</b>, meaning to use the new assignments only
+temporarily for superposition and to keep any secondary structure assignments
+that existed before the <b>matchmaker</b> command was used.
 </blockquote>
 <blockquote>
   <a name="gapOpen"><b>gapOpen</b> &nbsp;<i>opening-penalty</i></a>
