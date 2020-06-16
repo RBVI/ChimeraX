@@ -18,10 +18,10 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         return False
     if models is None:
         models = [m for m in session.models.list() if tilable(m)]
-    models = [m for m in models if tilable(m)]
+    models = [m for m in models if tilable(m) and m.bounds() is not None]
     if len(models) == 0:
         from chimerax.core.errors import UserError
-        raise UserError("No structures found for tiling.")
+        raise UserError("No models found for tiling.")
 
     # Size each tile to the maximum size (+buffer) among all models
     spacing = max([m.bounds().radius() for m in models]) * spacing_factor
@@ -65,6 +65,8 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         run(session, "; ".join(commands), log=False)
     undo.finish(session, models)
     session.undo.register(undo)
+    session.logger.info("%d model%s tiled" %
+                        (len(models), "s" if len(models) != 1 else ""))
 
 
 def register_command(logger):

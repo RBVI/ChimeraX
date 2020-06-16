@@ -486,13 +486,13 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 for a in res.atoms:
                     ea = exemplar.find_atom(a.name)
                     if ea:
-                        idatm_lookup[a] = ea.idatm_type
+                        a.idatm_type = ea.idatm_type
             for r in template_lookup.values():
                 r.structure.delete()
             template_lookup.clear()
 
         for atom in struct.atoms:
-            atom_type = idatm_lookup[atom] if atom in idatm_lookup else atom.idatm_type
+            atom_type = atom.idatm_type
             idatm_type[atom] = atom_type
             if atom_type in type_info:
                 # don't want to ask for idatm_type in middle
