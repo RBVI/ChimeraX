@@ -19,4 +19,5 @@ def run_provider(session, name):
         raise ValueError('Medical Toolbar called with unknown operation "%s"' % name)
 
 def open_dicom(session):
-    session.ui.main_window.folder_open_cb(session)
+    from chimerax.open_command import show_open_folder_dialog
+    show_open_folder_dialog(session)
