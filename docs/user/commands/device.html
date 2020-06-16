@@ -145,6 +145,7 @@ picking objects with the hand-controller cones, where <i>r</i>
 to the object in scene distance units, typically &Aring;.
 Limiting the range prevents accidentally picking far-away objects.
 </p><p>
+<a name="vrgui"></a>
 The <b>gui</b> option specifies which ChimeraX tool panels to show in VR
 when the hand-controller button assigned to that function 
 (by <a href="../vr.html#default-controller">default</a>,
@@ -203,6 +204,7 @@ restored when VR is turned off.
 <a name="vr-button"><b>vr button</b></a> 
 &nbsp;<i>button-name</i>
 [&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>command</b>&nbsp;&nbsp;"<i>string</i>"&nbsp;]
 [&nbsp;<b>hand</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;]
 <blockquote>
 <table class="clRight" cellspacing="0">
@@ -240,6 +242,11 @@ plus the following VR-specific modes:
 <li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
 </ul>
 <p>
+Alternatively, with the <b>command</b> option,
+<a href="../index.html#commands">command(s)</a> to execute upon button click 
+can be given as a <i>string</i> enclosed in quotation marks.
+The string may contain multiple commands with semicolon separators.
+</p><p>
 The available <i>function</i> names can be listed in the
 <a href="../tools/log.html"><b>Log</b></a> with
 command <a href="usage.html"><b>usage</b></a> <b>vr button</b>,
@@ -247,8 +254,8 @@ and should be enclosed in quotation marks if they contain spaces.
 The function can also be given as the word <b>default</b> to reset to
 <a href="../vr.html#default-controller">default functions</a>.
 </p><p>
-If <i>function</i> is omitted from the command, the current function 
-is reported in the <a href="../tools/log.html"><b>Log</b></a>.
+If no <i>function</i> or <b>command</b> assignment is given, the current 
+function is reported in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 The <b>hand</b> option can be given to assign a function 
 to the specified button of only one hand controller; 
@@ -311,6 +318,8 @@ and <b>play coordinates</b>
 [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
 [&nbsp;<b>backgroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>savePosition</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showHands</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;|&nbsp;toggle&nbsp;]
+[&nbsp;<b>showPanel</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;|&nbsp;toggle&nbsp;]
 [&nbsp;<b>tracker</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>saveTrackerMount</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
@@ -348,6 +357,12 @@ assigned by clicking either icon:
 </p><p>
 Specifying <b>savePosition true</b> saves the current position and orientation
 of the room camera in the <a href="../preferences.html#other">preferences</a>.
+</p><p>
+The <b>showHands</b> and <b>showPanel</b> options control whether the
+hand-controller cones and <a href="#vrgui">VR gui panels</a> are shown 
+in the room camera view, respectively (default <b>true</b>, whereas 
+<b>toggle</b> reverses the current setting). 
+These options do not affect what is shown in the headset.
 </p><p>
 Two options allow using a 
 <a href="https://www.vive.com/us/vive-tracker/" target="_blank">Vive Tracker</a>
