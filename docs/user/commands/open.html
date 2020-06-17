@@ -668,6 +668,13 @@ command file</a></td>
 <td align="center">
 hypertext to render in the 
 <a href="../tools/helpviewer.html">ChimeraX browser</a></td>
+</tr><tr>
+<td align="center"><a href="../formats/positions.html">ChimeraX 
+model positions</a></td>
+<td align="center"><b>positions</b></td>
+<td align="center">.positions</td>
+<td align="center">
+ChimeraX model names and positions to restore</td>
 </tr></table>
 
 <a name="local"></a>
@@ -835,6 +842,14 @@ into one (default <b>true</b>) to prevent errors in subsequent
 calculations such as <a href="addh.html">adding hydrogens</a>.
 </blockquote>
 <blockquote>
+<a name="childModels"></a>
+<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to explicitly apply matrices for submodels rather than simply
+allowing them to follow their parent models.
+</blockquote>
+<blockquote>
 <a name="coordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -864,6 +879,14 @@ Whether to fetch ensembles associated with an IHM dataset
 Whether to show available <a href="../modelinfo.html">model information</a>
 (other than structure title) in the <a href="../tools/log.html"><b>Log</b></a>.
 See also: <a href="log.html#metadata"><b>log metadata</b></a>
+</blockquote>
+<blockquote>
+<a name="matchNames"></a>
+<b>matchNames</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to match models by name instead of simply applying the
+matrices in order of appearance in the file.
 </blockquote>
 <blockquote>
 <a name="maxModels"></a>
