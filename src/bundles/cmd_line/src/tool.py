@@ -384,9 +384,11 @@ class _HistoryDialog:
         if typed or not self.typed_only:
             self.listbox.addItem(item)
         self._history.enqueue((item, typed))
-        self.listbox.clearSelection()
-        self.listbox.setCurrentRow(len(self.history()) - 1)
-        self.update_list()
+        # 'if typed:' to avoid clearing any partially entered command text
+        if typed:
+            self.listbox.clearSelection()
+            self.listbox.setCurrentRow(len(self.history()) - 1)
+            self.update_list()
 
     def button_clicked(self, label):
         session = self.controller.session
