@@ -1,0 +1,65 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>IMOD Segmentation Files</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>IMOD Segmentation Files</h3>
+<p>
+<a href="http://bio3d.colorado.edu/imod/" target="_blank">IMOD</a> 
+is a suite of programs for processing and analyzing data 
+from electron microscopy and tomography.  
+<a href="http://bio3d.colorado.edu/imod/doc/binspec.html"
+target="_blank">IMOD binary files</a> (format <b>imod</b>, filename
+suffix .imod or .mod) contain segmentation mesh data and contour data.
+</p><p>
+See also:
+<a href="../commands/color.html#map"><b>color map</b></a>,
+<a href="../commands/color.html#zone"><b>color zone</b></a>,
+<a href="../commands/volume.html#mask"><b>volume mask</b></a>,
+<a href="../tools/segment.html"><b>Segment Map</b></a>,
+<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+</p><p>
+IMOD segmentation files can be opened using
+the <a href="../menu.html#file"><b>File</b> menu</a>
+or the <a href="../commands/open.html"><b>open</b></a> command:
+<blockquote>
+<a href="../commands/usageconventions.html"><b>Usage</b></a>:
+<a href="../commands/open.html"><b>open</b></a> &nbsp;<i>filename</i>
+[&nbsp;<b>format imod</b>&nbsp;]
+[&nbsp;<a href="../commands/open.html#meshes"><b>meshes</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="../commands/open.html#contours"><b>contours</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+By default, only the mesh data are read and displayed (<b>meshes true</b>
+and <b>contours false</b>). Each mesh object is opened as a surface model.
+Setting <b>contours true</b> indicates reading the contours
+and adding them as <a href="../markers.html">markers and links</a>.
+Each contour object is opened as a marker model.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2020</address>
+</body></html>
