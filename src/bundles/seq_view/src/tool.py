@@ -523,6 +523,9 @@ class SequenceViewer(ToolInstance):
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
 
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info")
+
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
         comp_model_action.triggered.connect(lambda arg: run(self.session,
