@@ -187,6 +187,8 @@ protected:
         _chains->emplace_back(chain);
         return chain;
     }
+    void  _per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
+    void  _per_structure_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
     void  remove_chain(Chain* chain) {
         _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
     }
