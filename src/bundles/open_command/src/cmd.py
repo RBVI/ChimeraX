@@ -92,7 +92,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="read and display data")
     register("open", desc, provider_open, registry=registry)
-    Command(session, registry=registry).run(provider_cmd_text, log=log)
+    return Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):

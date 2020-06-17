@@ -499,14 +499,14 @@ class SequenceViewer(ToolInstance):
         from PyQt5.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
-        from chimerax.core.commands import run, quote_path_if_necessary
+        from chimerax.core.commands import run, StringArg
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.name.casefold())
         for fmt in fmts:
             action = QAction(fmt.name, save_as_menu)
             action.triggered.connect(lambda arg, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
-                % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
+                % (fmt.name, StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
@@ -528,6 +528,20 @@ class SequenceViewer(ToolInstance):
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         structure_menu.addAction(comp_model_action)
+
+        info_menu = menu.addMenu("Info")
+        if len(self.alignment.seqs) == 1:
+            blast_action = QAction("Blast Protein...", info_menu)
+            blast_action.triggered.connect(lambda arg: run(self.session,
+                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            info_menu.addAction(blast_action)
+        else:
+            blast_menu = info_menu.addMenu("Blast Protein")
+            for i, seq in enumerate(self.alignment.seqs):
+                blast_action = QAction(seq.name, blast_menu)
+                blast_action.triggered.connect(lambda arg: run(self.session,
+                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_menu.addAction(blast_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
