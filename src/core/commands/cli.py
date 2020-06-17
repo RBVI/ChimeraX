@@ -755,7 +755,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive=False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -789,13 +789,13 @@ class EnumOf(Annotation):
             self.allow_truncated = abbreviations
 
         self._case_sensitive = case_sensitive
-        
+
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
         case = self._case_sensitive
-        word = token if case  else token.casefold()
+        word = token if case else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
             id = ident if case else ident.casefold()
@@ -829,19 +829,19 @@ class DynamicEnum(Annotation):
         self.values_func = values_func
 
     def parse(self, text, session):
-        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        e = EnumOf(self.values_func(), case_sensitive=self._case_sensitive)
         return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        e = EnumOf(self.values_func(), case_sensitive=self._case_sensitive)
         return e.unparse(value, session)
 
     @property
     def name(self):
         if self.__name is not None:
             return self.__name
-        return 'one of ' + commas(["'%s'" % str(v)
-              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
+        return 'one of ' + commas(
+            ["'%s'" % str(v) for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
 
     @property
     def _html_name(self):
@@ -851,8 +851,9 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             name = self.__name
         else:
-            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
+            name = 'one of ' + commas([
+                "<b>%s</b>" % escape(str(v))
+                for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -2344,7 +2345,6 @@ def _compute_available_commands(session):
     ts.register_available_commands(session.logger)
 
 
-
 class _FakeSession:
     pass
 
@@ -2935,11 +2935,11 @@ def command_url(name, no_aliases=False, *, registry=None):
     if cmd._ci:
         return cmd._ci.url
     else:
-        return _get_help_url(name.split())
+        return _get_help_url(cmd.command_name.split())
 
 
 def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False,  *,
-        registry=None):
+          registry=None):
     try:
         text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)
     except ValueError as e:
