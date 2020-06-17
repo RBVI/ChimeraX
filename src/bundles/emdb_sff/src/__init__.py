@@ -20,9 +20,16 @@ class _SFFBundleAPI(BundleAPI):
     def run_provider(session, name, mgr):
         from chimerax.open_command import OpenerInfo
         class Info(OpenerInfo):
-            def open(self, session, path, file_name):
+            def open(self, session, path, file_name, max_surfaces = 100, debug = False):
                 from . import sff
-                return sff.read_sff(session, path)
+                return sff.read_sff(session, path,
+                                    max_surfaces = max_surfaces,
+                                    debug = debug)
+            @property
+            def open_args(self):
+                from chimerax.core.commands import IntArg, BoolArg
+                return { 'max_surfaces': IntArg,
+                         'debug': BoolArg }
         return Info()
 
 bundle_api = _SFFBundleAPI()
