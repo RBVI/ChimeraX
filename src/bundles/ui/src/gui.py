@@ -388,7 +388,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         elif sizing_scheme == "fixed":
             width, height = size_data
-        if sizing_scheme != "full screen":
+        if sizing_scheme not in ["full screen", "maximized"]:
             self.resize(width, height)
         # going into full screen causes events to happen, so delay until we're more
         # fully initialized
@@ -479,6 +479,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         if sizing_scheme == "full screen":
             self.showFullScreen()
+        elif sizing_scheme == "maximized":
+            self.showMaximized()
         else:
             self.show()
 
@@ -2616,7 +2618,7 @@ class InitWindowSizeOption(Option):
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()
-        for label in ("last used", "proportional", "fixed", "full screen"):
+        for label in ("last used", "proportional", "fixed", "maximized", "full screen"):
             action = QAction(label, self.push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
