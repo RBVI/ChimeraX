@@ -388,9 +388,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         elif sizing_scheme == "fixed":
             width, height = size_data
-        if sizing_scheme != "full screen":
+        if sizing_scheme not in ["full screen", "maximized"]:
             self.resize(width, height)
-        # going into full screen causes events to happen, so delay until we're more
+        # going into full screen / maximized causes events to happen, so delay until we're more
         # fully initialized
 
         from PyQt5.QtCore import QSize
@@ -477,8 +477,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
 
-        if sizing_scheme == "full screen":
-            self.showFullScreen()
+        # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
+        # so withdrawn in favor of just "maximized" for now
+        #if sizing_scheme == "full screen":
+        #    self.showFullScreen()
+        if sizing_scheme == "maximized" or sizing_scheme == "full screen":
+            self.showMaximized()
         else:
             self.show()
 
@@ -2616,7 +2620,7 @@ class InitWindowSizeOption(Option):
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()
-        for label in ("last used", "proportional", "fixed", "full screen"):
+        for label in ("last used", "proportional", "fixed", "maximized"):
             action = QAction(label, self.push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)

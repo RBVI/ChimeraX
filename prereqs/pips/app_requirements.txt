@@ -21,12 +21,12 @@ lxml==4.5.1
 matplotlib==3.2.1
 msgpack==1.0.0
 networkx==2.4
-openvr==1.11.1101
+openvr==1.12.501
 Pillow==7.1.2
 pkginfo==1.5.0.1
 psutil==5.7.0
 pycollada==0.7.1
-pydicom==1.4.2
+pydicom==2.0.0
 python-dateutil==2.8.1
 qtconsole==4.7.4
 six==1.15.0

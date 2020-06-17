@@ -240,37 +240,72 @@ def _which_segments(segmentation, conditions):
     for condition in conditions:
         if '=' in condition:
             # All segments with attribute with specified value ("neuron_id=1")
-            attribute_name, val = condition.split('=', maxsplit = 1)
-            value = int(val)
+            attribute_name, vals = condition.split('=', maxsplit = 1)
             av = _attribute_values(segmentation, attribute_name)
-            mask = (av == value)
+            values = _parse_integers(vals)
+            if values is None:
+                from chimerax.core.errors import UserError
+                raise UserError('Require integer values "%s"' % condition)
+            from numpy import isin
+            mask = isin(av, values)
             logical_and(mask, group, mask)
             group[:] = 0
-            group[mask] = value
+            group[mask] = av[mask]
         elif condition == 'segment':
             pass
         else:
-            try:
-                seg_id = int(condition)
-            except ValueError:
-                seg_id = None
-            if seg_id is not None:
-                # One specific segment ("5")
-                attribute_name = 'segment'
-                if group[seg_id]:
-                    group[:] = 0
-                    group[seg_id] = seg_id
-                else:
-                    group[:] = 0
-            else:
-                # All segments with non-zero attribute value ("neuron_id").
+            seg_ids = _parse_integers(condition)
+            if seg_ids is None:
+                # Condition is just an attribute name, e.g. "neuron_id".
+                # Take all segments with non-zero attribute value.
                 attribute_name = condition
                 av = _attribute_values(segmentation, attribute_name)
                 mask = (group != 0)
                 group[mask] = av[mask]
+            else:
+                # One or more segments, e.g. "5-12,23,70-102"
+                attribute_name = 'segment'
+                try:
+                    keep_seg_ids = seg_ids[group[seg_ids] != 0]
+                except IndexError:
+                    from chimerax.core.errors import UserError
+                    raise UserError('Segment ids (%d - %d) out of range (0 - %d)'
+                                    % (seg_ids.min(), seg_ids.max(), max_seg_id))
+                group[:] = 0
+                group[keep_seg_ids] = keep_seg_ids
 
     return group, attribute_name
 
+# -----------------------------------------------------------------------------
+#
+def _parse_integers(ids_string):
+    '''
+    Parse integers, that can be comma-separated numbers and ranges
+    such as 5,9,15-32,7.  Return an array of integer values.
+    If the string does not contain integers return None.
+    '''
+    ids = []
+    groups = ids_string.split(',')
+    for g in groups:
+        r = g.split('-')
+        if len(r) == 1:
+            try:
+                r0 = int(r[0])
+            except ValueError:
+                return None
+            ids.append(r0)
+        elif len(r) == 2:
+            try:
+                r0,r1 = int(r[0]), int(r[1])
+            except ValueError:
+                return None
+            ids.extend(range(r0,r1+1))
+        else:
+            return None
+    from numpy import array, int32
+    idsa = array(ids, int32)
+    return idsa
+    
 # -----------------------------------------------------------------------------
 #
 def segmentation_surfaces(session, segmentations,
@@ -417,9 +452,11 @@ def _attribute_values(seg, attribute_name):
     if hasattr(seg, attribute_name):
         g = getattr(seg, attribute_name)
     else:
-        g = seg.data.find_attribute(attribute_name)
-        if g is None and not attribute_name.endswith('_id'):
-            g = seg.data.find_attribute(attribute_name + '_id')
+        g = None
+        if hasattr(seg.data, 'find_attribute'):
+            g = seg.data.find_attribute(attribute_name)
+            if g is None and not attribute_name.endswith('_id'):
+                g = seg.data.find_attribute(attribute_name + '_id')
         if g is None:
             raise UserError('Segmentation %s (#%s) has no attribute %s'
                             % (seg.name, seg.id_string, attribute_name))
