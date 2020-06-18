@@ -123,6 +123,17 @@ class QCxTableModel(QAbstractTableModel):
         #TODO: might need to be '<br>'.join(words)
         return '\n'.join(words)
 
+class NumSortingProxyModel(QSortFilterProxyModel):
+    def lessThan(self, left_index, right_index):
+        left_data = self.sourceModel().data(left_index)
+        right_data = self.sourceModel().data(right_index)
+        try:
+            left_num = float(left_data)
+            right_num = float(right_data)
+        except ValueError:
+            return left_data.casefold() < right_data.casefold()
+        return left_num < right_num
+
 class ItemTable(QTableView):
     """ Typical usage is to add_column()s, set the 'data' attribute, and then launch() (see doc
         strings for those).  If you saved the table's state (via session_info() call), then provide
@@ -362,7 +373,7 @@ class ItemTable(QTableView):
     def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
-            sort_model = QSortFilterProxyModel()
+            sort_model = NumSortingProxyModel()
             sort_model.setSourceModel(self._table_model)
             self.setModel(sort_model)
             self.setSortingEnabled(True)
