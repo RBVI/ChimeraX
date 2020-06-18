@@ -522,21 +522,24 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
-        comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
+
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info")
+
+        tools_menu = menu.addMenu("Tools")
+        comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
         comp_model_action.triggered.connect(lambda arg: run(self.session,
             "ui tool show 'Modeller Comparative'"))
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
-        structure_menu.addAction(comp_model_action)
-
-        info_menu = menu.addMenu("Info")
+        tools_menu.addAction(comp_model_action)
         if len(self.alignment.seqs) == 1:
-            blast_action = QAction("Blast Protein...", info_menu)
+            blast_action = QAction("Blast Protein...", tools_menu)
             blast_action.triggered.connect(lambda arg: run(self.session,
                 "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
-            info_menu.addAction(blast_action)
+            tools_menu.addAction(blast_action)
         else:
-            blast_menu = info_menu.addMenu("Blast Protein")
+            blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
                 blast_action.triggered.connect(lambda arg: run(self.session,

@@ -42,6 +42,7 @@ class _PDBioAPI(BundleAPI):
                             'coordsets': BoolArg,
                             'log_info': BoolArg,
                             'max_models': IntArg,
+                            'segid_chains': BoolArg,
                         }
             else:
                 from chimerax.open_command import FetcherInfo
