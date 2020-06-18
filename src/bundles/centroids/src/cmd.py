@@ -29,7 +29,18 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
             raise UserError("Atom specifier selects no atoms")
 
     structures = atoms.unique_structures
-    xyz = centroid(atoms, mass_weighting=mass_weighting, use_scene_coords=len(structures)>1)
+    if len(structures) > 1:
+        crds = atoms.scene_coords
+    else:
+        crds = atoms.coords
+    if mass_weighting:
+        masses = atoms.elements.masses
+        avg_mass = masses.sum() / len(masses)
+        import numpy
+        weights = masses[:, numpy.newaxis] / avg_mass
+    else:
+        weights = None
+    xyz = centroid(crds, weights=weights)
     s = Structure(session, name=name)
     r = s.new_residue('centroid', 'centroid', 1)
     from chimerax.atomic.struct_edit import add_atom
