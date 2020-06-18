@@ -103,7 +103,7 @@ class Structure(Model, StructureData):
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = StructureData.deleted
+    deleted = Model.deleted
 
     def copy(self, name = None):
         '''
