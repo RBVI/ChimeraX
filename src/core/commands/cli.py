@@ -325,7 +325,7 @@ def dq_repr(obj):
     return ''.join(result)
 
 
-def _user_kw(kw_name):
+def user_kw(kw_name):
     """Return user version of a keyword argument name."""
     words = kw_name.split('_')
     return words[0] + ''.join([x.capitalize() for x in words[1:]])
@@ -430,8 +430,8 @@ class Annotation(metaclass=abc.ABCMeta):
         if name is None:
             name = cls.name
         if cls.url is None:
-            return escape(name)
-        return '<a href="%s">%s</a>' % (escape(cls.url), escape(name))
+            return escape(name, quote=False)
+        return '<a href="%s">%s</a>' % (escape(cls.url), escape(name, quote=False))
 
     def inst_html_name(self, name=None):
         # used to override html_name class method with an instance method
@@ -441,8 +441,8 @@ class Annotation(metaclass=abc.ABCMeta):
         if name is None:
             name = self.name
         if self.url is None:
-            return escape(name)
-        return '<a href="%s">%s</a>' % (escape(self.url), escape(name))
+            return escape(name, quote=False)
+        return '<a href="%s">%s</a>' % (escape(self.url), escape(name, quote=False))
 
 
 class Aggregate(Annotation):
@@ -755,7 +755,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive=False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -789,13 +789,13 @@ class EnumOf(Annotation):
             self.allow_truncated = abbreviations
 
         self._case_sensitive = case_sensitive
-        
+
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
         case = self._case_sensitive
-        word = token if case  else token.casefold()
+        word = token if case else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
             id = ident if case else ident.casefold()
@@ -829,19 +829,19 @@ class DynamicEnum(Annotation):
         self.values_func = values_func
 
     def parse(self, text, session):
-        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        e = EnumOf(self.values_func(), case_sensitive=self._case_sensitive)
         return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        e = EnumOf(self.values_func(), case_sensitive=self._case_sensitive)
         return e.unparse(value, session)
 
     @property
     def name(self):
         if self.__name is not None:
             return self.__name
-        return 'one of ' + commas(["'%s'" % str(v)
-              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
+        return 'one of ' + commas(
+            ["'%s'" % str(v) for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
 
     @property
     def _html_name(self):
@@ -851,8 +851,9 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             name = self.__name
         else:
-            name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
+            name = 'one of ' + commas([
+                "<b>%s</b>" % escape(str(v))
+                for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -1119,7 +1120,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
 
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
-    name = "name of a file to open/read"
+    name = "name of a file to open/read; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1133,7 +1134,7 @@ class OpenFileNameArg(FileNameArg):
 
 class OpenFileNamesArg(Annotation):
     """Annotation for opening one or more files"""
-    name = "file names to open"
+    name = "file names to open; a name of 'browse' will bring up a file browser"
     # name_filter should be a string compatible with QFileDialog.setNameFilter(),
     # or None (which means all ChimeraX-openable types)
     name_filter = None
@@ -1159,7 +1160,7 @@ class OpenFileNamesArg(Annotation):
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
-    name = "name of a file to save/write"
+    name = "name of a file to save/write; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1173,7 +1174,7 @@ class SaveFileNameArg(FileNameArg):
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
-    name = "name of a folder to open/read"
+    name = "name of a folder to open/read; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1187,7 +1188,7 @@ class OpenFolderNameArg(FileNameArg):
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
-    name = "name of a folder to save/write"
+    name = "name of a folder to save/write; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -2344,7 +2345,6 @@ def _compute_available_commands(session):
     ts.register_available_commands(session.logger)
 
 
-
 class _FakeSession:
     pass
 
@@ -2541,7 +2541,7 @@ class Command:
                     # alias argument position
                     required = "%s required" % ordinal(kw_name)
                 else:
-                    required = 'required "%s"' % _user_kw(kw_name)
+                    required = 'required "%s"' % user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
             text = self._skip_white_space(text)
             if kw_name in self._ci._optional and self._start_of_keywords(text):
@@ -2579,14 +2579,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % _user_kw(kw_name)
+                        arg_name = '"%s"' % user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % _user_kw(kw_name)
+                        arg_name = '"%s"' % user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2612,7 +2612,7 @@ class Command:
             return True
         if tmp[0].isalpha():
             # Don't change case of what user types.  Fixes "show O".
-            tmp = _user_kw(tmp)
+            tmp = user_kw(tmp)
             if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
                     any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                 return True
@@ -2640,7 +2640,7 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = _user_kw(word)
+            arg_name = user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 kw_map = self._ci._keyword_map
@@ -2689,7 +2689,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name][0]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)
+                self._error = 'Missing "%s" keyword\'s argument' % user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -2704,7 +2704,7 @@ class Command:
                         self._kw_args[kwn] = [value]
                 else:
                     if kwn in self._kw_args:
-                        self._error = 'Repeated keyword argument "%s"' % _user_kw(kw_name)
+                        self._error = 'Repeated keyword argument "%s"' % user_kw(kw_name)
                         return
                     self._kw_args[kwn] = value
                 prev_annos = (anno, None)
@@ -2712,7 +2712,7 @@ class Command:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
                 self._error = 'Invalid "%s" argument: %s' % (
-                    _user_kw(kw_name), err)
+                    user_kw(kw_name), err)
                 return
             m = _whitespace.match(text)
             start = m.end()
@@ -2935,19 +2935,20 @@ def command_url(name, no_aliases=False, *, registry=None):
     if cmd._ci:
         return cmd._ci.url
     else:
-        return _get_help_url(name.split())
+        return _get_help_url(cmd.command_name.split())
 
 
-def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False):
+def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False,  *,
+          registry=None):
     try:
-        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
             text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
-                          registry=_available_commands)
+                          registry=_available_commands if registry is None else registry)
         except ValueError:
             raise e
     return text
@@ -2981,7 +2982,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         syntax = cmd.command_name
         for arg_name in ci._required:
             arg = ci._required[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2993,7 +2994,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg = ci._optional[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -3006,7 +3007,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
-            uarg_name = _user_kw(arg_name)
+            uarg_name = user_kw(arg_name)
             if arg_type is NoArg:
                 syntax += ' [%s]' % uarg_name
                 continue
@@ -3068,16 +3069,16 @@ def can_be_empty_arg(arg):
 
 
 def html_usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False):
+               show_hidden=False, *, registry=None):
     try:
-        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
             text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
-                               registry=_available_commands)
+                               registry=_available_commands if registry is None else registry)
         except ValueError:
             raise e
     return text
@@ -3115,7 +3116,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 ci.url, escape(cmd.command_name))
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             if arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
@@ -3131,7 +3132,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg_type = ci._optional[arg_name]
-            arg_name = escape(_user_kw(arg_name))
+            arg_name = escape(user_kw(arg_name))
             if arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
@@ -3148,7 +3149,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
-            uarg_name = escape(_user_kw(arg_name))
+            uarg_name = escape(user_kw(arg_name))
             if arg_type is NoArg:
                 type_info = ""
             elif isinstance(arg_type, type):

@@ -18,8 +18,11 @@ def rna_path(session, pairs, length = None,
              pattern = 'circle', loop_pattern = 'helix', 
              marker_radius = 2,
              loop_color = (102,154,230,255), stem_color = (255,255,0,255),
-             random_loop_twist = 0, random_branch_tilt = 0,
-
+             loop_twist = 0, branch_tilt = 0,
+             helix_radius = 300, helix_rise = 50,
+             sphere_radius = None, sphere_turns = None, sphere_turn_spacing = 60,
+             helix_loop_size = 8, helix_loop_rise = 20,
+             horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
              name = 'RNA path'):
 
     plist = parse_pairs(pairs)
@@ -29,9 +32,14 @@ def rna_path(session, pairs, length = None,
     if length is None:
         length = max(pair_map.keys())
 
-    layout_parameters = LayoutParameters(loop_pattern = loop_pattern,
-                                         loop_twist = random_loop_twist,
-                                         branch_tilt = random_branch_tilt)
+    param_names = ['loop_pattern', 'loop_twist', 'branch_tilt',
+                   'helix_radius', 'helix_rise',
+                   'sphere_radius', 'sphere_turns', 'sphere_turn_spacing',
+                   'helix_loop_size', 'helix_loop_rise',
+                   'horseshoe_curve_size', 'horseshoe_side_size', 'horseshoe_spacing']
+    pvalues = locals()
+    params = {pname:pvalues[pname] for pname in param_names}
+    layout_parameters = LayoutParameters(**params)
 
     mset, coords = rna_path(session, length, pair_map,
                             pattern = pattern,
@@ -82,7 +90,11 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
               pattern = 'line', loop_pattern = 'helix',
               loop_color = (102,154,230,255), stem_color = (255,255,0,255),
               p_color = (255,165,0,255),
-              random_loop_twist = 0, random_branch_tilt = 0,
+              loop_twist = 0, branch_tilt = 0,
+              helix_radius = 300, helix_rise = 50,
+              sphere_radius = None, sphere_turns = None, sphere_turn_spacing = 60,
+              helix_loop_size = 8, helix_loop_rise = 20,
+              horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
               name = 'RNA'):
 
     from . import rna_layout as RL
@@ -91,9 +103,14 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
     seq = RL.read_fasta(seq_path) if os.path.exists(seq_path) else sequence
     seq = seq[start_sequence-1:]
 
-    layout_parameters = RL.LayoutParameters(loop_pattern = loop_pattern,
-                                            loop_twist = random_loop_twist,
-                                            branch_tilt = random_branch_tilt)
+    param_names = ['loop_pattern', 'loop_twist', 'branch_tilt',
+                   'helix_radius', 'helix_rise',
+                   'sphere_radius', 'sphere_turns', 'sphere_turn_spacing',
+                   'helix_loop_size', 'helix_loop_rise',
+                   'horseshoe_curve_size', 'horseshoe_side_size', 'horseshoe_spacing']
+    pvalues = locals()
+    params = {pname:pvalues[pname] for pname in param_names}
+    layout_parameters = RL.LayoutParameters(**params)
 
     if path is None:
         if pairs is None:
@@ -184,8 +201,18 @@ def register_rna_layout_command(logger):
                  ('marker_radius', FloatArg),
                  ('loop_color', Color8Arg),
                  ('stem_color', Color8Arg),
-                 ('random_loop_twist', FloatArg),
-                 ('random_branch_tilt', FloatArg),
+                 ('loop_twist', FloatArg),
+                 ('branch_tilt', FloatArg),
+                 ('helix_radius', FloatArg),
+                 ('helix_rise', FloatArg),
+                 ('sphere_radius', FloatArg),
+                 ('sphere_turns', FloatArg),
+                 ('sphere_turn_spacing', FloatArg),
+                 ('helix_loop_size', IntArg),
+                 ('helix_loop_rise', FloatArg),
+                 ('horseshoe_curve_size', IntArg),
+                 ('horseshoe_side_size', IntArg),
+                 ('horseshoe_spacing', IntArg),
                  ('name', StringArg)
     ]
 

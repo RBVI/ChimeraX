@@ -384,7 +384,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res)
+    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res, bool segid_chains)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -564,7 +564,7 @@ start_t = end_t;
 
             AtomName aname;
             ResName rname;
-            auto cid = ChainID({record.atom.res.chain_id});
+            auto cid = segid_chains ? ChainID(record.atom.seg_id) : ChainID({record.atom.res.chain_id});
             if (islower(record.atom.res.chain_id))
                 as->lower_case_chains = true;
             if (islower(record.atom.res.i_code))
@@ -1218,7 +1218,7 @@ read_fileno(void *f)
 }
 
 static PyObject *
-read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains)
 {
     std::vector<Structure *> file_structs;
     bool reached_end;
@@ -1310,7 +1310,7 @@ start_t = clock();
         std::set<Residue*> het_res;
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res);
+          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res, segid_chains);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1927,7 +1927,7 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
 
 static const char*
 docstr_read_pdb_file = 
-"read_pdb_file(f, log=None, explode=True, atomic=True)\n"
+"read_pdb_file(f, log=None, explode=True, atomic=True, segid_chains=False)\n"
 "\n"
 "'f' is a file-like object open for reading containing the PDB info\n"
 "'log' is a file-like object open for writing warnings/errors and other"
@@ -1937,6 +1937,7 @@ docstr_read_pdb_file =
 "'atomic' controls whether models are treated as atomic models with"
 " standard chemical properties (default True) or as graphical models"
 " (False)\n"
+"'segid_chains' controls whether the segment ID is used in lieu of the chain ID\n"
 "\n"
 "Returns a numpy array of C++ pointers to AtomicStructure objects"
 " (if 'atomic' is True, otherwise Structure objects)";
@@ -1946,10 +1947,10 @@ read_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *pdb_file;
     PyObject *py_logger;
-    int explode, atomic;
-    if (!PyArg_ParseTuple(args, "OOpp", &pdb_file, &py_logger, &explode, &atomic))
+    int explode, atomic, segid_chains;
+    if (!PyArg_ParseTuple(args, "OOppp", &pdb_file, &py_logger, &explode, &atomic, &segid_chains))
         return nullptr;
-    return read_pdb(pdb_file, py_logger, explode, atomic);
+    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains);
 }
 
 static const char*

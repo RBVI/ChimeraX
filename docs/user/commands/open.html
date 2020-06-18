@@ -94,6 +94,7 @@ The command <b>open formats</b> command lists the possible formats and
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
 <li><a href="#volume">Volume Data and Related</a>
+<li><a href="#segmentation">Segmentations</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
 <li><a href="#composite">Composite</a>
@@ -445,12 +446,6 @@ versions 6 and 7)</td>
 <td align="center"><b>pif</b></td>
 <td align="center">.pif</td>
 <td align="center">electron density map</td>
-</tr><tr>
-<td align="center">
-<a href="../tools/segment.html">Segger segmentation</a></td>
-<td align="center"><b>segger</b></td>
-<td align="center">.seg</td>
-<td align="center">segmentation regions</td>
 <!-- via Signal Viewer bundle in Toolshed
 </tr><tr>
 <td align="center">
@@ -494,6 +489,29 @@ target="_blank">TOM toolbox</a> map</td>
 <td align="center">.grd</td>
 <td align="center">electrostatic potential map from
 University of Houston Brownian Dynamics</td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="segmentation"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Segmentations</b></td>
+</tr><tr>
+<td align="center">
+<a href="../formats/sff.html">EMDB segmentation</a></td>
+<td align="center"><b>sff</b></td>
+<td align="center">.sff (XML)<br>.hff (HDF5)</td>
+<td align="center">EM segmentation</td>
+</tr><tr>
+<td align="center">
+<a href="../formats/imod.html">IMOD segmentation</a></td>
+<td align="center"><b>imod</b></td>
+<td align="center">.imod<br>.mod</td>
+<td align="center">EM segmentation meshes and contours</td>
+</tr><tr>
+<td align="center">
+<a href="../tools/segment.html">Segger segmentation</a></td>
+<td align="center"><b>segger</b></td>
+<td align="center">.seg</td>
+<td align="center">segmentation regions</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="object"></a>
@@ -668,6 +686,13 @@ command file</a></td>
 <td align="center">
 hypertext to render in the 
 <a href="../tools/helpviewer.html">ChimeraX browser</a></td>
+</tr><tr>
+<td align="center"><a href="../formats/positions.html">ChimeraX 
+model positions</a></td>
+<td align="center"><b>positions</b></td>
+<td align="center">.positions</td>
+<td align="center">
+ChimeraX model names and positions to restore</td>
 </tr></table>
 
 <a name="local"></a>
@@ -835,6 +860,21 @@ into one (default <b>true</b>) to prevent errors in subsequent
 calculations such as <a href="addh.html">adding hydrogens</a>.
 </blockquote>
 <blockquote>
+<a name="childModels"></a>
+<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to explicitly apply matrices for submodels rather than simply
+allowing them to follow their parent models.
+</blockquote>
+<blockquote>
+<a name="contours"></a>
+<b>contours</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to read the contours from an
+<a href="../formats/imod.html">IMOD segmentation file</a>.
+</blockquote>
+<blockquote>
 <a name="coordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -852,6 +892,14 @@ separate submodels that can be shown/hidden/specified independently
 or collectively (for example, using #1).
 </blockquote>
 <blockquote>
+<a name="debug"></a>
+<b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to send verbose information to the 
+<a href="../tools/log.html"><b>Log</b></a> when opening a
+<a href="../formats/sff.html">EMDB segmentation file</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
@@ -866,12 +914,34 @@ Whether to show available <a href="../modelinfo.html">model information</a>
 See also: <a href="log.html#metadata"><b>log metadata</b></a>
 </blockquote>
 <blockquote>
+<a name="matchNames"></a>
+<b>matchNames</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to match models by name instead of simply applying the
+matrices in order of appearance in the file.
+</blockquote>
+<blockquote>
 <a name="maxModels"></a>
 <b>maxModels</b>&nbsp;&nbsp;<i>M</i>
 <br>
 Maximum number of models to keep when opening a multi-model file 
 in mmCIF or PDB format as multiple models in ChimeraX
 (<b><a href="#coordsets">coordsets</a> false</b>).
+</blockquote>
+<blockquote>
+<a name="maxSurfaces"></a>
+<b>maxSurfaces</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Maximum number of surface models to create when opening an
+<a href="../formats/sff.html">EMDB segmentation file</a>.
+</blockquote>
+<blockquote>
+<a name="meshes"></a>
+<b>meshes</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to read the meshes from an
+<a href="../formats/imod.html">IMOD segmentation file</a>.
 </blockquote>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
@@ -901,6 +971,12 @@ overrides the corresponding
 <a href="../preferences.html#window"><b>Window</b> preference</a>.
 Opening a ChimeraX <a href="save.html#session">session</a>
 automatically runs <a href="close.html"><b>close session</b></a> first.
+</blockquote>
+<blockquote>
+<a name="segidChains"></a>
+<b>segidChains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to assign segment IDs in PDB format as the chain IDs in ChimeraX.
 </blockquote>
 <blockquote>
 <a name="structureModel"></a>

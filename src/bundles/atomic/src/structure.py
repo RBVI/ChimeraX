@@ -97,12 +97,13 @@ class Structure(Model, StructureData):
         self._ses_handlers.clear()
         ses = self.session
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
-        if not self.deleted:
+        # ensure we are checking StructureData.deleted, not Model.deleted
+        if not StructureData.deleted.fget(self):
             self.session = ses
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = StructureData.deleted
+    deleted = Model.deleted
 
     def copy(self, name = None):
         '''

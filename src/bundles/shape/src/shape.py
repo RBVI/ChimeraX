@@ -126,6 +126,7 @@ def shape_cylinder(session, radius = 1.0, height = 1.0,
     s = _show_surface(session, varray, tarray, color, mesh,
                       center, rotation, qrotation, coordinate_system,
                       slab, model_id, name)
+    return s
 
 # -----------------------------------------------------------------------------
 #

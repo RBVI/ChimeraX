@@ -1276,6 +1276,10 @@ def _residue_atoms_and_colors(residues, colors):
 def _value_colors(palette, range, values):
     from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
     r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    if r[0] == r[1]:
+        # all values the same; artificially manipulate the range to get the
+        # 'middle' of the color range used
+        r = (r[0]-1, r[1]+1)
     cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
     colors = cmap.interpolated_rgba8(values)
     return colors

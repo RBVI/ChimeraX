@@ -1,0 +1,92 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: define</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: define</h3>
+
+<a name="centroid"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>define</b> <b>centroid</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;<b>massWeighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i></a>&nbsp;]
+<!--
+<a href="#options"><i>general-options</i></a>
+-->
+</h3>
+<p>
+Define the centroid of the specified atoms with or without 
+mass-weighting (default without). 
+The centroid is added as a <a href="../markers.html">marker</a>
+with the designated <b>color</b>
+(default the most prevalent color among the specified atoms,
+if at least 30% share that color, otherwise <b>#909090</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>),
+<b>radius</b> (default <b>2.0</b> &Aring;), 
+and model <b>name</b> (default <b>centroid</b>).
+The related command <a href="measure.html#center"><b>measure center</b></a>
+can also calculate center of mass for density maps.
+See also: 
+<a href="../measurements.html">measurements</a>
+</p>
+
+<!--
+<a name="options">
+<h3>General Options</h3></a>
+
+<blockquote>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>
+Object color (default based on the coloring of the corresponding atoms).
+</blockquote>
+<blockquote>
+  <b>radius</b> &nbsp;<i>r</i>
+<br>
+Object radius in &Aring;. Defaults:
+  <ul>
+  <li>for axes, the average axis-atom/centroid distance,
+or for axes based on only two atoms and/or centroids, 
+the constant radius last used in the dialog,
+or for an axis normal to a plane, 4% of the plane radius
+  <li>for planes, to enclose the projections of the atoms
+  (an additional margin can be specified with the
+  <a href="#plane"><b>padding</b></a> option)
+  <li>for centroids, <b>2.0</b> &Aring;
+  </ul>
+</blockquote>
+<blockquote>
+  <b>name</b> &nbsp;<i>name</i></a>
+  <br>
+Object name (default <b>axis</b> for an axis, <b>plane</b> for a plane, 
+<b>centroid</b> for a centroid).
+</blockquote>
+-->
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2020</address>
+</body></html>

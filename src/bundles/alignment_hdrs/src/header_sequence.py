@@ -279,6 +279,7 @@ class DynamicHeaderSequence(HeaderSequence):
     single_sequence_relevant = False
 
     def alignment_notification(self, note_name, note_data):
+        super().alignment_notification(note_name, note_data)
         if not self.single_sequence_relevant:
             if note_name == "add sequences" and len(self.alignment.seqs) - len(note_data) == 1:
                 self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
