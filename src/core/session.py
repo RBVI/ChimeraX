@@ -667,7 +667,8 @@ class Session:
                     if attr_info.get(name, False):
                         setattr(self, name, data)
                         # Make sure leading underscore attributes are state managers.
-                        self.add_state_manager(name, data)
+                        if data is not None:
+                            self.add_state_manager(name, data)
                     else:
                         self.add_state_manager(name, data)
                 else:
