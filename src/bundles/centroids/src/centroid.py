@@ -11,27 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def centroid(atoms, *, use_scene_coords=None, mass_weighting=False):
+def centroid(xyzs, *, weights=False):
     """
-    Compute a centroid from an Atoms collection.
+    Compute a centroid from a numpy Nx3 array of floats,
+    optionally weighted by a 'weights' array of length N.
 
-    If `mass_weighting` is True, weight each atom by its mass.
-    If `use_scene_coords` is True then use the atoms' scene coordinates,
-    if false use untransformed coordinates, if None then use scene
-    coordinates if the atoms are in multiple structures, else
-    untransformed coordinates.
+    The 'xyzs' is frequently obtained from an Atoms collection from either its 'coords' or 'scene_coords'
+    attributes, usually depending whether the centroid should be in particular structure's coordinate
+    system, or in the global coordinate system containing several structures.
 
     Returns an xyz array.
     """
-    if use_scene_coords is None:
-        use_scene_coords = len(atoms.unique_structures) > 1
-    if use_scene_coords:
-        crds = atoms.scene_coords
-    else:
-        crds = atoms.coords
-    if mass_weighting:
-        masses = atoms.elements.masses
-        avg_mass = masses.sum() / len(masses)
-        import numpy
-        crds = crds * masses[:, numpy.newaxis] / avg_mass
-    return crds.mean(0)
+    if weights is not None:
+        xyzs = xyzs * weights
+    return xyzs.mean(0)

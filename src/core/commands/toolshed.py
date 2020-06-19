@@ -350,7 +350,7 @@ def toolshed_show(session, bundle_name=None):
         bi = ts.find_bundle(bundle_name, session.logger, installed=False)
         if bi is None:
             from ..errors import UserError
-            raise UserError("Unknown bundle")
+            raise UserError("Cannot find bundle '%s' in Toolshed" % bundle_name)
         url = session.toolshed.bundle_url(bi.name)
     help_viewer.show_url(session, url)
 
