@@ -506,7 +506,7 @@ class SequenceViewer(ToolInstance):
             action = QAction(fmt.name, save_as_menu)
             action.triggered.connect(lambda arg, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
-                % (fmt.name, StringArg.unparse(self.alignment.ident))))
+                % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
