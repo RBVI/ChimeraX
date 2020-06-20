@@ -55,7 +55,7 @@ class PlaneModel(Surface):
         varray, tarray = cylinder_geometry(self.radius, self.thickness,
             max(2, int(self.thickness / 3 + 0.5)), max(2, int(self.radius / 3 + 0.5)), True)
         from chimerax.geometry import translation, vector_rotation
-        varray = (translation(-self.plane.origin)
+        varray = (translation(self.plane.origin)
             * vector_rotation((0,0,1), self.plane.normal)).transform_points(varray)
         from chimerax.surface import calculate_vertex_normals
         narray = calculate_vertex_normals(varray, tarray)
