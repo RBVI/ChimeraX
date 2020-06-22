@@ -447,6 +447,8 @@ def _maximum_segment_id(segmentation):
         try:
             max_seg_id = seg.data.find_attribute('maximum_segment_id')
         except Exception:
+            max_seg_id = None
+        if max_seg_id is None:
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 
