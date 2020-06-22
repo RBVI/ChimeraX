@@ -74,29 +74,34 @@ def _color_segmentation(segmentation, attribute_name, color = None, outside_colo
     if i:
         i.segment_colors = seg_colors
         i._need_color_update()
-        
+
 # -----------------------------------------------------------------------------
 #
 def _color_map(map, segmentation, attribute_name, color = None, outside_color = None):
-    ac = _attribute_colors(segmentation, attribute_name)
-    zc = (255,255,255,255) if outside_color is None else outside_color
-    seg_rgba = ac.segment_colors(color, zc)
-    seg_rgb = seg_rgba[:,:3].copy()	# Make contiguous
-    def seg_color(color_plane, region, seg=segmentation,
-                  segment_rgba = seg_rgba, segment_rgb = seg_rgb):
-        seg_matrix = seg.region_matrix(region)
-        segment_ids = seg_matrix.reshape(color_plane.shape[:-1]) # Squeeze out single plane dimension
-        nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
-        segment_colors = segment_rgba if nc == 4 else segment_rgb
-        from chimerax.map import indices_to_colors
-        indices_to_colors(segment_ids, segment_colors, color_plane, modulate = True)
-
+    seg_color = SegmentationMapColor(segmentation, attribute_name,
+                                     color=color, outside_color=outside_color)
     map.mask_colors = seg_color
 
-    i = map._image 
-    if i:
-        i.mask_colors = map.mask_colors
-        i._need_color_update()
+# -----------------------------------------------------------------------------
+#
+class SegmentationMapColor:
+    def __init__(self, segmentation, attribute_name, color = None, outside_color = None):
+        self._segmentation = segmentation
+        ac = _attribute_colors(segmentation, attribute_name)
+        zc = (255,255,255,255) if outside_color is None else outside_color
+        seg_rgba = ac.segment_colors(color, zc)
+        self._segment_rgba = seg_rgba
+        self._segment_rgb = seg_rgba[:,:3].copy()	# Make contiguous
+
+    def __call__(self, color_plane, region):
+        seg = self._segmentation
+        seg_matrix = seg.region_matrix(region)
+        shape = color_plane.shape[:-1]
+        segment_ids = seg_matrix.reshape(shape) # Squeeze out single plane dimension
+        nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
+        segment_colors = self._segment_rgba if nc == 4 else self._segment_rgb
+        from chimerax.map import indices_to_colors
+        indices_to_colors(segment_ids, segment_colors, color_plane, modulate = True)
         
 # -----------------------------------------------------------------------------
 #
