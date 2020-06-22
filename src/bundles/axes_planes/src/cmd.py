@@ -53,7 +53,7 @@ class PlaneModel(Surface):
     def _update_geometry(self):
         from chimerax.shape.shape import cylinder_geometry
         varray, tarray = cylinder_geometry(self.radius, self.thickness,
-            max(2, int(self.thickness / 3 + 0.5)), max(2, int(self.radius / 3 + 0.5)), True)
+            max(2, int(self.thickness / 3 + 0.5)), max(40, int(20.0 * self.radius + 0.5)), True)
         from chimerax.geometry import translation, vector_rotation
         varray = (translation(self.plane.origin)
             * vector_rotation((0,0,1), self.plane.normal)).transform_points(varray)
@@ -104,7 +104,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         for crd in crds:
             projected = plane.nearest(crd)
             sq_dist = distance_squared(origin, projected)
-            if max_sq_dist is None or sq_dist < max_sq_dist:
+            if max_sq_dist is None or sq_dist > max_sq_dist:
                 max_sq_dist = sq_dist
         from math import sqrt
         radius = sqrt(max_sq_dist)
