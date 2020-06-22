@@ -78,20 +78,23 @@ def _color_segmentation(segmentation, attribute_name, color = None, outside_colo
 # -----------------------------------------------------------------------------
 #
 def _color_map(map, segmentation, attribute_name, color = None, outside_color = None):
-    seg_color = SegmentationMapColor(segmentation, attribute_name,
-                                     color=color, outside_color=outside_color)
-    map.mask_colors = seg_color
+    ac = _attribute_colors(segmentation, attribute_name)
+    zc = (255,255,255,255) if outside_color is None else outside_color
+    seg_rgba = ac.segment_colors(color, zc)
+    if outside_color is None and isinstance(map.mask_colors, SegmentationMapColor):
+         # Blend with existing colors
+        seg_mask = (ac._segment_attribute_values == 0)
+        cur_rgba = map.mask_colors._segment_rgba
+        seg_rgba[seg_mask] = cur_rgba[seg_mask]
+    map.mask_colors = SegmentationMapColor(segmentation, seg_rgba)
 
 # -----------------------------------------------------------------------------
 #
 class SegmentationMapColor:
-    def __init__(self, segmentation, attribute_name, color = None, outside_color = None):
+    def __init__(self, segmentation, segment_rgba):
         self._segmentation = segmentation
-        ac = _attribute_colors(segmentation, attribute_name)
-        zc = (255,255,255,255) if outside_color is None else outside_color
-        seg_rgba = ac.segment_colors(color, zc)
-        self._segment_rgba = seg_rgba
-        self._segment_rgb = seg_rgba[:,:3].copy()	# Make contiguous
+        self._segment_rgba = segment_rgba
+        self._segment_rgb = segment_rgba[:,:3].copy()	# Make contiguous
 
     def __call__(self, color_plane, region):
         seg = self._segmentation
