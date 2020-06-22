@@ -66,9 +66,12 @@ def segmentation_colors(session, segmentations, color = None,
 #
 def _color_segmentation(segmentation, attribute_name, color = None, outside_color = None):
     seg = segmentation
-    c = _attribute_colors(seg, attribute_name)
+    ac = _attribute_colors(seg, attribute_name)
     zc = (0,0,0,0) if outside_color is None else outside_color
-    seg_colors = c.segment_colors(color, zc)
+    seg_colors = ac.segment_colors(color, zc)
+    if outside_color is None and seg.segment_colors is not None:
+        seg_mask = (ac._segment_attribute_values == 0)
+        seg_colors[seg_mask] = seg.segment_colors[seg_mask]
     seg.segment_colors = seg_colors
 
 # -----------------------------------------------------------------------------
