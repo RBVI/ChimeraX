@@ -75,7 +75,7 @@ class _mmCIFioAPI(BundleAPI):
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, FloatArg
                         return {
-                            'oversampling': FloatArg,
+                            'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
         else:
