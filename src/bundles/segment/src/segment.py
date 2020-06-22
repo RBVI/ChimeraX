@@ -70,10 +70,6 @@ def _color_segmentation(segmentation, attribute_name, color = None, outside_colo
     zc = (0,0,0,0) if outside_color is None else outside_color
     seg_colors = c.segment_colors(color, zc)
     seg.segment_colors = seg_colors
-    i = seg._image 
-    if i:
-        i.segment_colors = seg_colors
-        i._need_color_update()
 
 # -----------------------------------------------------------------------------
 #

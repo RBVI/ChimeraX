@@ -84,7 +84,8 @@ class Volume(Model):
     self._image = None
     self.image_levels = []                      # list of (threshold, scale)
     self.image_colors = []
-    self._mask_colors = None			# For segmentation coloring
+    self._mask_colors = None			# For coloring by segmentation
+    self._segment_colors = None			# For coloring segmentations
     self.transparency_depth = 0.5               # for image rendering
     self.image_brightness_factor = 1
 
@@ -414,6 +415,16 @@ class Volume(Model):
     if self._image:
       self._image.mask_colors = mask_colors
   mask_colors = property(_get_mask_colors, _set_mask_colors)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_segment_colors(self):
+    return self._segment_colors
+  def _set_segment_colors(self, segment_colors):
+    self._segment_colors = segment_colors
+    if self._image:
+      self._image.segment_colors = segment_colors
+  segment_colors = property(_get_segment_colors, _set_segment_colors)
   
   # ---------------------------------------------------------------------------
   #
@@ -1837,7 +1848,7 @@ class VolumeImage(Image3d):
 
     if v.mask_colors is not None:
       self.mask_colors = v.mask_colors
-    if hasattr(v, 'segment_colors'):
+    if v.segment_colors is not None:
       self.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
