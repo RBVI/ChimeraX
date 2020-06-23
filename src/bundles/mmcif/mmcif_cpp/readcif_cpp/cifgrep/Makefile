@@ -6,7 +6,7 @@ INCS = -I..
 SRCS = cifgrep.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 ifdef WIN32
-LIBS = ../readcif.lib
+LIBS = ../libreadcif.lib
 else
 LIBS = -L.. -lreadcif
 endif
