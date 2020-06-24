@@ -112,16 +112,10 @@ are the same as described for <a href="#path"><b>rna path</b></a>.
 or computed implicitly using the same algorithm as that command.
 The algorithm generates a series of markers and assigns an orientation
 to each marker (<a href="#path-alg">details...</a>).
-Atomic model templates
-are placed in the computed orientations,
-with template coordinates 0,0,0
-(atom N9 in A and G nucleotides, atom N1 in C and U nucleotides)
+Atomic model templates are placed in the computed orientations
 on top of the markers.
-In stem regions, orientations are chosen to form base-pairing
-hydrogen bonds. In loops (which are shaped like lobes),
-orientations are chosen to stack the bases perpendicular to the plane
-of the lobe and to extend them toward the center line of the lobe
-or the center of the semicircle that forms the lobe end.
+In stem regions, the orientations are chosen to form base-pairing
+hydrogen bonds.
 <!--
 The atomic templates are in the file rna-templates.pdb
 within the Chimera RNALayout module.
