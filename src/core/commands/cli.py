@@ -1496,7 +1496,7 @@ class PlaceArg(Annotation):
             values = [float(x) for x in fields]
         except ValueError:
             raise AnnotationError("Require numeric values")
-        from ..geometry import Place
+        from chimerax.geometry import Place
         p = Place(matrix=(values[0:4], values[4:8], values[8:12]))
         return p
 

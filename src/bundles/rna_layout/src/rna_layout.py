@@ -452,7 +452,9 @@ class LayoutParameters:
                  helix_loop_size = 8, helix_loop_rise = 20,
                  horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
                  pair_spacing = 2.55, pair_width = 18.3, pair_off_axis = 3.4, pair_tilt = 110.7,
-                 stem_twist = 31.5, branch_twist = 0, branch_tilt = 0):
+                 stem_twist = 31.5, branch_twist = 0, branch_tilt = 0,
+                 helix_radius = 300, helix_rise = 50,
+                 sphere_radius = None, sphere_turns = None, sphere_turn_spacing = 60):
 
         # Loop layout parameters
         self.loop_pattern = loop_pattern	# Loop layout "helix" or "horseshoe".
@@ -480,12 +482,12 @@ class LayoutParameters:
         self.stem_twist = stem_twist		# Twist per base-pair in a stem (degrees).
 
         # Global path layout parameters
-        self.helix_radius = 300			# Radius for helix layout, Angstroms
-        self.helix_rise = 50			# Rise per turn for helix layout, Angstroms
+        self.helix_radius = helix_radius	# Radius for helix layout, Angstroms
+        self.helix_rise = helix_rise		# Rise per turn for helix layout, Angstroms
 
-        self.sphere_radius = None		# Spiral sphere layout radius, Angstroms
-        self.sphere_turns = None		# Spiral sphere turns from top to bottom, count.
-        self.sphere_turn_spacing = 60		# Spacing between turns, Angstroms
+        self.sphere_radius = sphere_radius	# Spiral sphere layout radius, Angstroms
+        self.sphere_turns = sphere_turns	# Spiral sphere turns from top to bottom, count.
+        self.sphere_turn_spacing = sphere_turn_spacing	# Spacing between turns, Angstroms
 
     def set_sphere_defaults(self, path_length):
         '''

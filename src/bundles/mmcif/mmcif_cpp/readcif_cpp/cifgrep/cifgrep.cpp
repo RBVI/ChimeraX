@@ -5,9 +5,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <getopt.h>
 #include <sysexits.h>
+#else
+#include "getopt.h"
+#define EX_USAGE 64
+#endif
 #include <iostream>
 #include <vector>
 #include <unordered_map>

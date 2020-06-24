@@ -103,7 +103,7 @@ class Structure(Model, StructureData):
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = StructureData.deleted
+    deleted = Model.deleted
 
     def copy(self, name = None):
         '''
@@ -1350,8 +1350,11 @@ class AtomicStructure(Structure):
             else:
                 for ch in self.chains:
                     mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
-                    chain_to_desc[ch.chain_id] = (
-                        entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
+                    try:
+                        chain_to_desc[ch.chain_id] = (
+                            entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
+                    except KeyError:
+                        pass  # ignore bad metadata
         elif 'COMPND' in self.metadata and self.pdb_version > 1:
             compnd_recs = self.metadata['COMPND']
             compnd_chain_ids = None

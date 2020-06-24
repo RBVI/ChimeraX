@@ -66,37 +66,44 @@ def segmentation_colors(session, segmentations, color = None,
 #
 def _color_segmentation(segmentation, attribute_name, color = None, outside_color = None):
     seg = segmentation
-    c = _attribute_colors(seg, attribute_name)
+    ac = _attribute_colors(seg, attribute_name)
     zc = (0,0,0,0) if outside_color is None else outside_color
-    seg_colors = c.segment_colors(color, zc)
+    seg_colors = ac.segment_colors(color, zc)
+    if outside_color is None and seg.segment_colors is not None:
+        seg_mask = (ac._segment_attribute_values == 0)
+        seg_colors[seg_mask] = seg.segment_colors[seg_mask]
     seg.segment_colors = seg_colors
-    i = seg._image 
-    if i:
-        i.segment_colors = seg_colors
-        i._need_color_update()
-        
+
 # -----------------------------------------------------------------------------
 #
 def _color_map(map, segmentation, attribute_name, color = None, outside_color = None):
     ac = _attribute_colors(segmentation, attribute_name)
     zc = (255,255,255,255) if outside_color is None else outside_color
     seg_rgba = ac.segment_colors(color, zc)
-    seg_rgb = seg_rgba[:,:3].copy()	# Make contiguous
-    def seg_color(color_plane, region, seg=segmentation,
-                  segment_rgba = seg_rgba, segment_rgb = seg_rgb):
+    if outside_color is None and isinstance(map.mask_colors, SegmentationMapColor):
+         # Blend with existing colors
+        seg_mask = (ac._segment_attribute_values == 0)
+        cur_rgba = map.mask_colors._segment_rgba
+        seg_rgba[seg_mask] = cur_rgba[seg_mask]
+    map.mask_colors = SegmentationMapColor(segmentation, seg_rgba)
+
+# -----------------------------------------------------------------------------
+#
+class SegmentationMapColor:
+    def __init__(self, segmentation, segment_rgba):
+        self._segmentation = segmentation
+        self._segment_rgba = segment_rgba
+        self._segment_rgb = segment_rgba[:,:3].copy()	# Make contiguous
+
+    def __call__(self, color_plane, region):
+        seg = self._segmentation
         seg_matrix = seg.region_matrix(region)
-        segment_ids = seg_matrix.reshape(color_plane.shape[:-1]) # Squeeze out single plane dimension
+        shape = color_plane.shape[:-1]
+        segment_ids = seg_matrix.reshape(shape) # Squeeze out single plane dimension
         nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
-        segment_colors = segment_rgba if nc == 4 else segment_rgb
+        segment_colors = self._segment_rgba if nc == 4 else self._segment_rgb
         from chimerax.map import indices_to_colors
         indices_to_colors(segment_ids, segment_colors, color_plane, modulate = True)
-
-    map.mask_colors = seg_color
-
-    i = map._image 
-    if i:
-        i.mask_colors = map.mask_colors
-        i._need_color_update()
         
 # -----------------------------------------------------------------------------
 #
@@ -440,6 +447,8 @@ def _maximum_segment_id(segmentation):
         try:
             max_seg_id = seg.data.find_attribute('maximum_segment_id')
         except Exception:
+            max_seg_id = None
+        if max_seg_id is None:
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 

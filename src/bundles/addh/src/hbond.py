@@ -1131,6 +1131,16 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
             if debug:
                 print("determined proton")
             protons[nearest] = 1
+        if len(protons) == hyds_to_position:
+            # it is possible that an earlier call to this routine had protons in
+            # the same position and therefore decided that the full set of proton
+            # positions hadn't been determined, but between that call and a later
+            # call one of the H-bond partners became fully determined and caused
+            # the "nearest" proton to switch to a different position, so that by
+            # the time this routine is called again, you don't need the extra
+            # H-bond, so this check is to prevent adding extra protons!  Example
+            # is /H:2081 (water) in 2c9t
+            break
 
     for is_acc, other in conflicting:
         if debug:

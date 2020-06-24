@@ -39,6 +39,8 @@ class Image3d(Model):
 
     self._session = session
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
+    self._mask_colors = None			# Method for segmentation color modulation
+    self._segment_colors = None			# Color lookup table for segmentations
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
     self._p_mode = self._auto_projection_mode() # Explicit mode, not "auto"
@@ -230,7 +232,7 @@ class Image3d(Model):
     if self._rendering_options.colormap_on_gpu and not require_color:
       return m
 
-    if hasattr(self, 'segment_colors'):
+    if self.segment_colors is not None:
       cmap = self.segment_colors
       colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
       from ._map import indices_to_colors
@@ -244,12 +246,30 @@ class Image3d(Model):
       from . import _map
       _map.data_to_colors(m, dmin, dmax, cmap, cm.extend_left, cm.extend_right, colors)
     
-    if hasattr(self, 'mask_colors'):
+    if self.mask_colors is not None:
       region = self._plane_region(plane, axis)
       self.mask_colors(colors, region)
 
     return colors
 
+  # ---------------------------------------------------------------------------
+  #
+  def _get_mask_colors(self):
+    return self._mask_colors
+  def _set_mask_colors(self, mask_colors):
+    self._mask_colors = mask_colors
+    self._need_color_update()	# Adjust color mode to rgb or rgba
+  mask_colors = property(_get_mask_colors, _set_mask_colors)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_segment_colors(self):
+    return self._segment_colors
+  def _set_segment_colors(self, segment_colors):
+    self._segment_colors = segment_colors
+    self._need_color_update()	# Adjust color mode to rgb or rgba
+  segment_colors = property(_get_segment_colors, _set_segment_colors)
+  
   # ---------------------------------------------------------------------------
   # Reuse current volume color array if it has correct size.
   # This gives 2x speed-up over allocating a new array when flipping
@@ -466,7 +486,7 @@ class Image3d(Model):
       cmap = self._colormap
       from numpy import array
       tf = array(cmap.transfer_function)
-      if len(tf) == 0 or hasattr(self, 'mask_colors') or hasattr(self, 'segment_colors'):
+      if len(tf) == 0 or self.mask_colors is not None or self.segment_colors is not None:
         m = 'rgb' if opaque else 'rgba'
       else:
         single_color = _colinear(tf[:,2:5], 0.99)
