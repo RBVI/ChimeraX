@@ -258,17 +258,17 @@ by a random number uniformly distributed between &ndash;1 and 1.
 </p><p>
 <a name="path-alg">
 <b>Algorithm</b></a>:
+The markers are P backbone atom positions and are spaced so that backbone
+bond lengths are reasonable.
 Stem regions are generated as twisted double helices rotating
-36&deg; per base pair, with pairs 4 &Aring; apart along the
-helix axis and the markers for paired nucleotides 9 &Aring; apart.
-The line between the paired markers is perpendicular to the
-helix axis and 4 &Aring; from that axis.
-Markers for loop nucleotides are 5 &Aring; apart. 
+31.5&deg; per base pair, with pairs 2.55 &Aring; apart along the
+helix axis.
 The overall layout of the series of loops and stems is given by the
 <b>pattern</b> option. Loops and stems radiate directly outward from
-that pattern, with variations within the <b>branchTilt</b> angle.
-Loop layout is given with the <b>loopPattern</b> option, 
-with the twist of each nucleotide varying within the <b>loopTwist</b> angle.
+that pattern, with tilt angles varying according to the <b>branchTilt</b>
+parameter. Loop layout is given with the <b>loopPattern</b> option, 
+with the twist of each nucleotide varying according to the
+<b>loopTwist</b> parameter.
 </p>
 </blockquote>
 
