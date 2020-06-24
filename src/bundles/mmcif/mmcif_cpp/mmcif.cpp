@@ -719,62 +719,87 @@ ExtractMolecule::finished_parse()
             seqres.reserve(entity_poly.seq.size());
             residues.reserve(entity_poly.seq.size());
             no_polymer = no_polymer && entity_poly.seq.empty();
-            for (auto& p: entity_poly.seq) {
-                auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
+            auto& entity_poly_seq = poly.at(entity_id).seq;
+            for (auto pi = entity_poly_seq.begin(); pi != entity_poly_seq.end();) {
+                auto p = *pi;
+                auto pit = entity_poly_seq.equal_range(p);
+                // count might be more than one if there is microheterogenatity 
+                // or guessed sequence has duplicate seq_id's.  Only look at
+                // one residue with a given seq_id
+                auto count = std::distance(pit.first, pit.second);
+                ResidueMap::iterator ri = residue_map.end();
+                multiset<PolySeq>::iterator pi2;
+                for (pi2 = pit.first; pi2 != pit.second; ++pi2) {
+                    auto& p2 = *pi2;
+                    ri = residue_map.find(ResidueKey(entity_id, p2.seq_id, p2.mon_id));
+                    if (ri == residue_map.end())
+                        continue;
+                    p = p2;
+                    break;
+                }
+                if (pi2 != pit.second) {
+                    for (++pi2; pi2 != pit.second; ++pi2) {
+                        // delete duplicates and microheterogeneity
+                        auto& p2 = *pi2;
+                        auto ri2 = residue_map.find(ResidueKey(entity_id, p2.seq_id, p2.mon_id));
+                        if (ri2 == residue_map.end())
+                            continue;
+                        string c_id;
+                        if (auth_chain_id == " ")
+                            c_id = "' '";
+                        else
+                            c_id = auth_chain_id;
+                        if (model_num == first_model_num) {
+                            if (model_num != first_model_num)
+                                ;  // only warn for first model
+                            else if (p2.hetero)
+                                logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
+                                                p.seq_id, " in chain ", c_id);
+                            else
+                                logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
+                                                p.seq_id, " in chain ", c_id);
+                        }
+                        Residue* r = ri2->second;
+                        residue_map.erase(ri2);
+                        mol->delete_residue(r);
+                    }
+                }
                 if (ri == residue_map.end()) {
                     if (!lastp || lastp->seq_id != p.seq_id) {
-                        // ignore duplicates and microheterogeneity
                         seqres.push_back(p.mon_id);
                         residues.push_back(nullptr);
                     }
-                    if (current.empty())
+                    if (current.empty()) {
+                        pi = pit.second;
                         continue;
+                    }
                     if (!previous.empty())
                         connect_polymer_pair(previous[0], current[0], gap, nstd);
                     previous = std::move(current);
                     current.clear();
                     if (!lastp || lastp->seq_id != p.seq_id) {
-                        // microheterogenetity doesn't introduce gaps
                         gap = true;
                     }
-                    lastp = &p;
+                    lastp = &*pi;
+                    pi = pit.second;
                     continue;
                 }
                 Residue* r = ri->second;
+                seqres.push_back(p.mon_id);
+                residues.push_back(r);
                 if (auth_chain_id.empty())
                     auth_chain_id = r->chain_id();
-                if (lastp && lastp->seq_id == p.seq_id) {
-                    string c_id;
-                    if (auth_chain_id == " ")
-                        c_id = "' '";
-                    else
-                        c_id = auth_chain_id;
-                    if (model_num == first_model_num) {
-                        if (model_num != first_model_num)
-                            ;  // only warn for first model
-                        else if (lastp->hetero)
-                            logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
-                                            p.seq_id, " in chain ", c_id);
-                        else
-                            logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
-                                            p.seq_id, " in chain ", c_id);
-                    }
-                    residue_map.erase(ri);
-                    mol->delete_residue(r);
-                } else {
-                    seqres.push_back(p.mon_id);
-                    residues.push_back(r);
-                    if (!previous.empty() && !current.empty()) {
-                        connect_polymer_pair(previous[0], current[0], gap, nstd);
-                        gap = false;
-                    }
-                    if (!current.empty()) {
-                        previous = std::move(current);
-                        current.clear();
-                    }
-                    current.push_back(r);
+                if (!previous.empty() && !current.empty()) {
+                    connect_polymer_pair(previous[0], current[0], gap, nstd);
+                    gap = false;
                 }
-                lastp = &p;
+                if (!current.empty()) {
+                    previous = std::move(current);
+                    current.clear();
+                }
+                current.push_back(r);
+                lastp = &*pi;
+                pi = pit.second;
             }
             if (!previous.empty() && !current.empty())
                 connect_polymer_pair(previous[0], current[0], gap, nstd);
