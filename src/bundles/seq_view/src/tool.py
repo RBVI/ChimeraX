@@ -501,12 +501,12 @@ class SequenceViewer(ToolInstance):
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
-        fmts.sort(key=lambda fmt: fmt.name.casefold())
+        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
-            action = QAction(fmt.name, save_as_menu)
+            action = QAction(fmt.synopsis, save_as_menu)
             action.triggered.connect(lambda arg, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
-                % (fmt.name, StringArg.unparse(self.alignment.ident))))
+                % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))

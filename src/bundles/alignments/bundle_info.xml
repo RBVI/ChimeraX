@@ -67,7 +67,7 @@
 
   <Providers manager="save command">
 	<!-- Using nicknames for the provider names since the saver function is based on that -->
-    <Provider name="rsf" />
+    <Provider name="aln" />
     <Provider name="fasta" />
     <Provider name="pir" />
   </Providers>

@@ -60,7 +60,7 @@ class _PDBioAPI(BundleAPI):
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, IntArg, FloatArg
                         return {
-                            'oversampling': FloatArg,
+                            'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
         else:
