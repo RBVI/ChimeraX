@@ -64,10 +64,11 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         makedirs(dirname, exist_ok=True)
 
     from urllib.request import URLError
+    import socket
     try:
         retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
-    except (URLError, EOFError) as e:
+    except (URLError, EOFError, socket.timeout) as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
