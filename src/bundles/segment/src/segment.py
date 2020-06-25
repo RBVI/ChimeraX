@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 #
 def segmentation_colors(session, segmentations, color = None,
-                        map = None, surface = None,
+                        map = None, surfaces = None,
                         by_attribute = None, outside_color = None,
                         step = None,  # Step is just used for surface coloring interpolation.
                         max_segment_id = None):
@@ -36,7 +36,7 @@ def segmentation_colors(session, segmentations, color = None,
     if outside_color is not None:
         outside_color = outside_color.uint8x4()
         
-    if map is None and surface is None:
+    if map is None and surfaces is None:
         for seg in segmentations:
             _color_segmentation(seg, by_attribute, color, outside_color)
 
@@ -53,14 +53,15 @@ def segmentation_colors(session, segmentations, color = None,
 
         _color_map(map, seg, by_attribute, color, outside_color)
 
-    if surface is not None:
+    if surfaces is not None:
         if len(segmentations) != 1:
             from chimerax.core.errors import UserError
             raise UserError('segmentation colors: Can only specify one segmentation'
                             ' when coloring a surface, got %d' % len(segmentations))
         seg = segmentations[0]
-        _color_surface(surface, seg, by_attribute,
-                       color=color, outside_color=outside_color, step=step)
+        for surface in surfaces:
+            _color_surface(surface, seg, by_attribute,
+                           color=color, outside_color=outside_color, step=step)
         
 # -----------------------------------------------------------------------------
 #
@@ -501,14 +502,14 @@ def _attribute_values(seg, attribute_name):
 # -----------------------------------------------------------------------------
 #
 def register_segmentation_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg, SurfaceArg, ColorArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg, SurfacesArg, ColorArg, RepeatOf
     from chimerax.map import MapsArg, MapArg, MapRegionArg, MapStepArg
 
     desc = CmdDesc(
         required = [('segmentations', MapsArg)],
         optional = [('color', ColorArg)],
         keyword = [('map', MapArg),
-                   ('surface', SurfaceArg),
+                   ('surfaces', SurfacesArg),
                    ('by_attribute', StringArg),
                    ('outside_color', ColorArg),
                    ('max_segment_id', IntArg),
