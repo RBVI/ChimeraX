@@ -879,7 +879,7 @@ def place_residues(session, coords, sequence, residue_templates,
     rlist = []
     for p, tf in sorted(coords.items()):
         if p <= n:
-            t = sequence[p-1]
+            t = sequence[p-1].upper()
             if t in residue_templates:
                 rt = residue_templates[t]
                 r = copy_residue(rt, p, tf, m)

@@ -100,8 +100,17 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
     from . import rna_layout as RL
     import os.path
     seq_path = os.path.expanduser(sequence)
-    seq = RL.read_fasta(seq_path) if os.path.exists(seq_path) else sequence
+    if os.path.exists(seq_path):
+        seq = RL.read_fasta(seq_path)
+    else:
+        if set(sequence) - set(('A','C','G','U','T','a','c','g','u','t')):
+            from chimerax.core.errors import UserError
+            raise UserError('Sequence "%s" does not specify a file and the string contains characters besides A,C,G,U,T' % sequence)
+        seq = sequence
     seq = seq[start_sequence-1:]
+    if len(seq) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Sequence "%s" is empty' % sequence)
 
     param_names = ['loop_pattern', 'loop_twist', 'branch_tilt',
                    'helix_radius', 'helix_rise',
