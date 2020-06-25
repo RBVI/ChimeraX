@@ -465,8 +465,6 @@ def _attribute_values(seg, attribute_name):
         g = None
         if hasattr(seg.data, 'find_attribute'):
             g = seg.data.find_attribute(attribute_name)
-            if g is None and not attribute_name.endswith('_id'):
-                g = seg.data.find_attribute(attribute_name + '_id')
         if g is None:
             raise UserError('Segmentation %s (#%s) has no attribute %s'
                             % (seg.name, seg.id_string, attribute_name))
