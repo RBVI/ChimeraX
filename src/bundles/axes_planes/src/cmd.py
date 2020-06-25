@@ -14,7 +14,8 @@
 from .settings import defaults
 
 from chimerax.core.models import Surface
-class PlaneModel(Surface):
+from chimerax.dist_monitor import SimpleMeasurable, ComplexMeasurable
+class PlaneModel(Surface, ComplexMeasurable):
     def __init__(self, session, name, plane, thickness, radius, color):
         super().__init__(name, session)
         self.plane = plane
@@ -23,6 +24,31 @@ class PlaneModel(Surface):
         self._radius = radius
         self.display_style = self.Solid
         self._update_geometry()
+
+    def angle(self, obj):
+        return NotImplemented
+
+    def distance(self, obj, *, signed=False):
+        if isinstance(obj, PlaneModel):
+            from chimerax.geometry.plane import PlaneNoIntersectionError
+            try:
+                self.plane.intersection(obj.plane)
+            except PlaneNoIntersectionError:
+                class CoordMeasurable(SimpleMeasurable):
+                    def __init__(self, crd):
+                        self.coord = crd
+
+                    @property
+                    def scene_coord(self):
+                        return self.coord
+                return self.distance(CoordMeasurable(obj.position * obj.plane.origin), signed=signed)
+            return 0.0
+        if not isinstance(obj, SimpleMeasurable):
+            return NotImplemented
+        scene_crd = obj.scene_coord
+        # need to inverse transform to get into same coord sys as self.plane
+        signed_dist = self.plane.distance(self.position.inverse() * scene_crd)
+        return signed_dist if signed else abs(signed_dist)
 
     def _get_radius(self):
         return self._radius
@@ -62,12 +88,19 @@ class PlaneModel(Surface):
         self.set_geometry(varray, narray, tarray)
 
     def take_snapshot(self, session, flags):
-        return { 'version': 1, 'Model data': super().take_snapshot(session, flags), 'plane': self.plane }
+        return {
+            'version': 1,
+            'base data': super().take_snapshot(session, flags),
+            'plane': self.plane,
+            'thickness': self.thickness,
+            'radius': self.radius,
+            'color': self.color
+        }
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        inst = cls(session, None, data['plane'])
-        Model.set_state_from_snapshot(inst, session, data['Model data'])
+        inst = cls(session, None, data['plane'], data['thickness'], data['radius'], data['color'])
+        Surface.set_state_from_snapshot(inst, session, data['base data'])
         return inst
 
 

@@ -16,6 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class AxesPlanes_API(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "PlaneModel":
+            from .cmd import PlaneModel
+            return PlaneModel
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
