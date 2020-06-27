@@ -513,6 +513,7 @@ class Label:
         self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
         self.drawing = d = LabelModel(session, self)
+        d.display = visibility
         lb = session_labels(session, create = True)
         lb.add_label(self)
 
