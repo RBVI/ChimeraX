@@ -69,6 +69,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     if name == 'all':
         from chimerax.core.errors import UserError
         raise UserError("'all' is reserved to refer to all labels")
+    elif name:
+        lm = session_labels(session)
+        if lm and lm.named_label(name) is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('Label "%s" already exists' % name)
 
     kw = {'text':text, 'color':color, 'size':size, 'font':font,
           'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
@@ -508,6 +513,7 @@ class Label:
         self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
         self.drawing = d = LabelModel(session, self)
+        d.display = visibility
         lb = session_labels(session, create = True)
         lb.add_label(self)
 
