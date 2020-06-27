@@ -161,7 +161,7 @@ def _expiration_time(param):
             pass
         try:
             return (datetime.strptime(param["Signed"], TimeFormat) +
-                    timedelta(year=1))
+                    timedelta(days=365))
         except (KeyError, ValueError):
             pass
     finally:
