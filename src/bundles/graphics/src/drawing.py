@@ -274,11 +274,11 @@ class Drawing:
     def add_drawing(self, d):
         '''Add a child drawing.'''
         d.set_redraw_callback(self._redraw_needed)
-        cd = self._child_drawings
-        cd.append(d)
         if d.parent is not None:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
+        cd = self._child_drawings
+        cd.append(d)
         d.parent = self
         d._inherit_lighting_settings(self)
         if self.display:
@@ -338,6 +338,7 @@ class Drawing:
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display = property(get_display, set_display)
@@ -360,6 +361,7 @@ class Drawing:
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)

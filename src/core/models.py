@@ -774,7 +774,7 @@ class Models(StateManager):
             p = None 		# Root model
         else:
             p = self.scene_root_model
-        model.parent = p
+
         if p:
             p.add_drawing(model)
 

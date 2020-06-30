@@ -293,9 +293,10 @@ mseries
 
 open
 ====
-Function defined in *chimerax.open_command.cmd*
+Function defined in *chimerax.open_command.manager* and called via `session.open_command.open_data(...)`
 
-.. autofunction:: chimerax.open_command.cmd.provider_open
+.. autoclass:: chimerax.open_command.manager.OpenManager
+	:members: open_data
 
 perframe
 ========
@@ -323,14 +324,19 @@ roll
 
 run
 ===
-.. autofunction:: chimerax.core.commands.run.run
+.. autofunction:: chimerax.core.commands.run
     :noindex:
 
-save
-====
-Function defined in *chimerax.save_command.cmd*
+..
+	save
+	====
+	Function defined in *chimerax.save_command.manager* and called via `session.save_command.save_data(...)`
 
-.. autofunction:: chimerax.save_command.cmd.provider_save
+	.. autoclass:: chimerax.open_command.manager.OpenManager
+		:members: open_data
+	Function defined in *chimerax.save_command.cmd*
+
+	.. autofunction:: chimerax.save_command.cmd.provider_save
 
 select
 ======

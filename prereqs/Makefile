@@ -148,7 +148,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= gdcm imex lineprofiler numpy openmm \
+SUBDIRS	+= cxservices gdcm imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy
@@ -216,6 +216,8 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+cxservices.install: pips.install
+cxservices.app-install: pips.app-install
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
