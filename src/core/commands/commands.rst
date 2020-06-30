@@ -24,9 +24,7 @@ commands: Register user commands
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.commands.run
-    :members:
-    :show-inheritance:
+.. autofunction:: chimerax.core.commands.run
 
 .. automodule:: chimerax.core.commands.runscript
     :members:
