@@ -26,8 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: distance</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance</b>
-&nbsp;<a href="atomspec.html"><i>atom1</i></a>&nbsp;
-&nbsp;<a href="atomspec.html"><i>atom2</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>object1</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>object2</i></a>&nbsp;
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -37,14 +37,14 @@ class="clRight" title="User Guide Index"/></a>
 <a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance delete</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 <br>&ndash; or &ndash;
-<br><b>~distance</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br><b>~distance</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 </h3>
 <a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance style</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -60,8 +60,20 @@ The <b>distance</b> command
 (see also the <a href="../tools/distances.html"><b>Distances</b></a>
 graphical interface) adds a <b><i>distance monitor</i></b>
 <a href="../pseudobonds.html">pseudobond</a>
-between the specified atoms and labels it with the distance. The current 
-distance is also reported in the <a href="../tools/log.html"><b>Log</b></a>.
+between the two <a href="atomspec.html">specified</a>
+objects and labels it with the distance. 
+The current distance is also reported in the 
+<a href="../tools/log.html"><b>Log</b></a>. Each object can be: 
+</p>
+<ul>
+<li>a single atom or <a href="../markers.html">marker</a>
+<li>a plane object (surface model) created previously
+using <a href="define.html#plane"><b>define plane</b></a>
+</ul>
+<p>
+The <b>signed</b> option allows reporting opposite-sign distances for
+objects on opposite sides of a plane.
+</p><p>
 Although subsequent changes in distance are not logged, 
 distance labels and the values shown in 
 the <a href="../tools/distances.html"><b>Distances</b></a> tool 
@@ -156,5 +168,5 @@ for specifying the name and location interactively.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+June 2020</address>
 </body></html>
