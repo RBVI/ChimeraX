@@ -47,10 +47,10 @@ class TapeMeasureMouseMode(MouseMode):
 
     def _clear(self):
         mset = self._marker_set
-        if mset:
+        if mset and not mset.deleted:
             self._log_clear_command()
-            self._marker_set = None
             self.session.models.close([mset])
+        self._marker_set = None
             
     def _show_distance(self, end_point):
         if self._markers:
