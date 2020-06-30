@@ -682,6 +682,8 @@ class Atoms(Collection):
         f = c_function('atom_transform',
             args=(ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_double)))
         f(self._c_pointers, len(self), pointer(place.matrix))
+        from .triggers import get_triggers
+        get_triggers().activate_trigger("atoms transformed", (self, place))
     @property
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''

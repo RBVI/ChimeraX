@@ -16,9 +16,11 @@ def centroid(xyzs, *, weights=False):
     Compute a centroid from a numpy Nx3 array of floats,
     optionally weighted by a 'weights' array of length N.
 
-    The 'xyzs' is frequently obtained from an Atoms collection from either its 'coords' or 'scene_coords'
-    attributes, usually depending whether the centroid should be in particular structure's coordinate
-    system, or in the global coordinate system containing several structures.
+    The 'xyzs' is frequently obtained from an Atoms collection
+    from either its 'coords' or 'scene_coords' attributes,
+    usually depending whether the centroid should be in particular
+    structure's coordinate system, or in the global coordinate
+    system containing several structures.
 
     Returns an xyz array.
     """

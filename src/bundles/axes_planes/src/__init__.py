@@ -11,14 +11,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_triggers = None
-def get_triggers(session=None):
-    """Get the atomic triggers (prior implementation used 'session' arg)"""
-    global _triggers
-    if _triggers is None:
-        from chimerax.core.triggerset import TriggerSet
-        _triggers = TriggerSet()
-        _triggers.add_trigger("atoms transformed")
-        _triggers.add_trigger("changes")
-        _triggers.add_trigger("changes done")
-    return _triggers
+from chimerax.core.toolshed import BundleAPI
+
+class AxesPlanes_API(BundleAPI):
+
+    @staticmethod
+    def get_class(class_name):
+        if class_name == "PlaneModel":
+            from .cmd import PlaneModel
+            return PlaneModel
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(command_name, logger)
+
+bundle_api = AxesPlanes_API()

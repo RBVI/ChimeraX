@@ -11,14 +11,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_triggers = None
-def get_triggers(session=None):
-    """Get the atomic triggers (prior implementation used 'session' arg)"""
-    global _triggers
-    if _triggers is None:
-        from chimerax.core.triggerset import TriggerSet
-        _triggers = TriggerSet()
-        _triggers.add_trigger("atoms transformed")
-        _triggers.add_trigger("changes")
-        _triggers.add_trigger("changes done")
-    return _triggers
+defaults = {
+    "plane_thickness": 0.1,
+}
+
+from  chimerax.core.settings import Settings
+from copy import deepcopy
+
+class _AxesPlanesSettings(Settings):
+	EXPLICIT_SAVE = deepcopy(defaults)
+
+_settings = None
+def get_settings(session):
+    global _settings
+    if _settings is None:
+        _settings = _AxesPlanesSettings(session, "Axes/Planes")
+    return _settings

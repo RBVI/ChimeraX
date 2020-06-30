@@ -60,5 +60,7 @@ class _GeometryBundleAPI(BundleAPI):
             return Place
         elif class_name == 'Places':
             return Places
+        elif class_name == 'Plane':
+            return Plane
 
 bundle_api = _GeometryBundleAPI()

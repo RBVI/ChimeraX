@@ -824,6 +824,8 @@ class Image3d(Model):
     bd = self._backing_drawing
     if bd is None:
       self._backing_drawing = bd = BackingDrawing(self.name + ' backing', self)
+    if bd.position != self.scene_position:
+      bd.position = self.scene_position
     bd.draw_backing(renderer)
     
 # ---------------------------------------------------------------------------
