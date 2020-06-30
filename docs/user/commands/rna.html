@@ -222,7 +222,12 @@ non-base-paired segments of the sequence:
   <ul class="none">
   <li>[&nbsp;<b>helixLoopSize</b>&nbsp;&nbsp;<i>N<sub>loop</sub></i>&nbsp;]
 (default <b>8</b>) 
-&ndash; number of nucleotides per helical turn
+&ndash; minimum number of nucleotides per helical turn: in a given loop,
+this number or 2x or 3x the value may be used (the largest possible) 
+if the loop contains at least that many residues.  
+For example, if the parameter is 8, there will be 24 nucleotides per turn
+in loops of 24 or more residues, 16 per turn in loops of 16-23 residues, 
+and 8 per turn in loops of 15 residues or fewer.
   <li>[&nbsp;<b>helixLoopRise</b>&nbsp;&nbsp;<i>rise<sub>loop</i></i>&nbsp;]
 (default <b>20.0</b> &Aring;) &ndash; rise per helical turn
   </ul>

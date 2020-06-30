@@ -54,7 +54,8 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             # the atomspec remains unique when we load structures later
             chain_spec = str_chain.structure.atomspec + chain_spec
     BlastProteinJob(session, chain.ungapped(), chain_spec,
-                    database, cutoff, matrix, maxSeqs, log, name)
+                    database=database, cutoff=cutoff, matrix=matrix,
+                    max_seqs=maxSeqs, log=log, tool_inst_name=name)
 blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                                    AlignSeqPairArg))],
                         keyword=[("database", EnumOf(DBs)),

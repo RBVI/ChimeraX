@@ -324,7 +324,7 @@ roll
 
 run
 ===
-.. autofunction:: chimerax.core.commands.run.run
+.. autofunction:: chimerax.core.commands.run
     :noindex:
 
 ..
