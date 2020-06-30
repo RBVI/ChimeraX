@@ -338,6 +338,7 @@ class Drawing:
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display = property(get_display, set_display)
@@ -360,6 +361,7 @@ class Drawing:
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
