@@ -543,12 +543,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._fill_tb_context_menu_cbs[tb] = (tool, fill_context_menu_cb)
         settings =  self.session.ui.settings
         if tool.tool_name in settings.tool_positions['toolbars']:
-            version, *info = settings.tool_positions['toolbars'][tool.tool_name]
-            if version == 1:
-                placement, geom_info = info
-                tab_info = None
+            pos_info = settings.tool_positions['toolbars'][tool.tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
             else:
-                placement, geom_info, tab_info = info
+                version, *info = settings.tool_positions['toolbars'][tool.tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is None:
                 self.session.logger.info("Cannot restore toolbar as floating")
                 #from PyQt5.QtCore import Qt
@@ -1850,12 +1856,18 @@ class ToolWindow(StatusLogger):
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
-            version, *info = settings.tool_positions['windows'][tool_name]
-            if version == 1:
-                placement, geom_info = info
-                tab_info = None
+            pos_info = settings.tool_positions['windows'][tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
             else:
-                placement, geom_info, tab_info = info
+                version, *info = settings.tool_positions['windows'][tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is not None:
                 for tabbed_with in tab_info:
                     for ti, tws in ui.main_window.tool_instance_to_windows.items():
@@ -2299,7 +2311,7 @@ def _remember_tool_pos(ui, tool_instance, widget):
             raise LimitationError("Cannot currently save toolbars as floating")
         get_side = mw.toolBarArea
         mem_location = remembered['toolbars']
-        tab_info = None
+        tab_info = []
     else:
         get_side = mw.dockWidgetArea
         mem_location = remembered['windows']
@@ -2315,12 +2327,17 @@ def _remember_tool_pos(ui, tool_instance, widget):
     if widget.isFloating():
         side = None
         geom = widget.geometry()
-        pos_info = (geom.x(), geom.y(), geom.width(), geom.height())
+        geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         side = get_side(widget)
-        pos_info = None
-    version = 2
-    mem_location[tool_instance.tool_name] = (version, side, pos_info, tab_info)
+        geom_info = None
+    version = 3
+    mem_location[tool_instance.tool_name] = {
+        'version': version,
+        'placement': side,
+        'geom_info': geom_info,
+        'tab_info': tab_info
+    }
     ui.settings.tool_positions = remembered
     ui.settings.save()
 
