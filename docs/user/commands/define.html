@@ -25,67 +25,104 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: define</h3>
 
-<a name="centroid"></a>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>define</b> <b>centroid</b>
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
-[&nbsp;<b>massWeighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i></a>&nbsp;]
-<!--
-<a href="#options"><i>general-options</i></a>
--->
-</h3>
 <p>
-Define the centroid of the specified atoms with or without 
-mass-weighting (default without). 
-The centroid is added as a <a href="../markers.html">marker</a>
-with the designated <b>color</b>
-(default the most prevalent color among the specified atoms,
-if at least 30% share that color, otherwise <b>#909090</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>),
-<b>radius</b> (default <b>2.0</b> &Aring;), 
-and model <b>name</b> (default <b>centroid</b>).
-The related command <a href="measure.html#center"><b>measure center</b></a>
-can also calculate center of mass for density maps.
+The <b>define</b> command calculates and displays geometric objects based on
+atomic coordinates: 
+<ul>
+<!--
+<li><a href="#axis"><b>axis</b></a>
+-->
+<li><a href="#centroid"><b>centroid</b></a>
+<li><a href="#plane"><b>plane</b></a>
+</ul>
+<p>
+The objects can be used in
+<a href="distance.html"><b>distance</b></a> measurements.
+<!-- and <a href="angle.html"><b>angle</b></a> -->
 See also: 
+<a href="measure.html#inertia"><b>measure inertia</b></a>,
+<a href="shape.html"><b>shape</b></a>,
+<a href="open.html#object">3D object formats</a>,
 <a href="../measurements.html">measurements</a>
 </p>
 
-<!--
-<a name="options">
-<h3>General Options</h3></a>
+<a href="#top" class="nounder">&bull;</a>
+<a name="centroid"></a>
+<b>define centroid</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>massWeighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<a href="#options"><i>general-options</i></a>
+<blockquote>
+Define the centroid of the specified atoms with or without 
+mass-weighting (default without). 
+The centroid is added as a <a href="../markers.html">marker</a>.
+The related command <a href="measure.html#center"><b>measure center</b></a>
+can also calculate center of mass for density maps.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="plane"></a>
+<b>define plane</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>thickness</b>&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>padding</b>&nbsp;<i>offset</i>&nbsp;]
+<a href="#options"><i>general-options</i></a>
+<blockquote>
+Define a plane for the specified atoms.
+Eigenvectors/values are calculated from the atomic coordinates after
+subtracting the position of their non-mass-weighted centroid.
+The plane is anchored at the centroid and aligned with the first
+two eigenvectors (the third eigenvector is normal to the plane).
+The plane is added as a surface model shaped like a disk.
+The default <b>thickness</b> is <b>0.1</b> &Aring;.
+The disk center is the non-mass-weighted centroid of the atoms; disk radius
+can be set to a fixed value as described <a href="#options">below</a>
+or set automatically to enclose the projections of the atoms (default).
+An extra margin (<b>padding</b>, default <b>0.0</b> &Aring;)
+can be added to the automatically determined radius,
+but is ignored if a fixed radius is supplied.
+</blockquote>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: define</a>]
+</p>
+<h3>General Options</h3>
 
 <blockquote>
-  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
-  <br>
-Object color (default based on the coloring of the corresponding atoms).
+<b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<br>
+Object color (default the most prevalent color among the specified atoms,
+if at least 30% share that color, otherwise <b>#909090</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>).
 </blockquote>
 <blockquote>
-  <b>radius</b> &nbsp;<i>r</i>
+<b>radius</b> &nbsp;<i>r</i>
 <br>
 Object radius in &Aring;. Defaults:
   <ul>
+<!--
   <li>for axes, the average axis-atom/centroid distance,
-or for axes based on only two atoms and/or centroids, 
-the constant radius last used in the dialog,
-or for an axis normal to a plane, 4% of the plane radius
+  or for axes based on only two atoms and/or centroids, 
+  the constant radius last used in the dialog,
+  or for an axis normal to a plane, 4% of the plane radius
+-->
+  <li>for centroids, <b>2.0</b> &Aring;
   <li>for planes, to enclose the projections of the atoms
   (an additional margin can be specified with the
   <a href="#plane"><b>padding</b></a> option)
-  <li>for centroids, <b>2.0</b> &Aring;
   </ul>
 </blockquote>
 <blockquote>
-  <b>name</b> &nbsp;<i>name</i></a>
-  <br>
-Object name (default <b>axis</b> for an axis, <b>plane</b> for a plane, 
-<b>centroid</b> for a centroid).
+<b>name</b> &nbsp;<i>name</i></a>
+<br>
+Object name 
+<!-- default <b>axis</b> for an axis, -->
+(default <b>centroid</b> for a centroid, <b>plane</b> for a plane).
 </blockquote>
--->
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2020</address>
