@@ -274,11 +274,11 @@ class Drawing:
     def add_drawing(self, d):
         '''Add a child drawing.'''
         d.set_redraw_callback(self._redraw_needed)
-        cd = self._child_drawings
-        cd.append(d)
         if d.parent is not None:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
+        cd = self._child_drawings
+        cd.append(d)
         d.parent = self
         d._inherit_lighting_settings(self)
         if self.display:
