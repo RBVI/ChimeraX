@@ -3117,9 +3117,13 @@ class HandMotionEvent(HandEvent):
         '''Rotation and translation in scene coordinates give as a Place instance.'''
         rp = self.hand_controller.room_position
         ldp = self._last_drag_room_position
-        room_move = rp * ldp.inverse()
-        rts = self.camera.room_to_scene
-        move = rts * room_move * rts.inverse()
+        if ldp is None:
+            from chimerax.geometry import Place
+            move = Place()
+        else:
+            room_move = rp * ldp.inverse()
+            rts = self.camera.room_to_scene
+            move = rts * room_move * rts.inverse()
         return move
     def set_last_drag_position(self, last_position):
         self._last_drag_room_position = last_position
