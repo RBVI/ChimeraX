@@ -577,17 +577,24 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
     name = 'move picked models'
     icon_file = 'icons/move_h2o.png'  # TODO: Make icon witbhout selection outline
 
-    def mouse_down(self, event):
+    def __init__(self, session):
+        TranslateMouseMode.__init__(self, session)
         self._picked_models = None
+
+    def mouse_down(self, event):
         x,y = event.position()
         from . import picked_object
         pick = picked_object(x, y, self.view)
+        self._pick_model(pick)
+        TranslateMouseMode.mouse_down(self, event)
+
+    def _pick_model(self, pick):
+        self._picked_models = None
         if pick and hasattr(pick, 'drawing'):
             m = pick.drawing()
             from chimerax.core.models import Model
             if isinstance(m, Model):
                 self._picked_models = [m]
-        TranslateMouseMode.mouse_down(self, event)
 
     def mouse_up(self, event):
         TranslateMouseMode.mouse_up(self, event)
@@ -596,6 +603,11 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
     def models(self):
         return self._picked_models
 
+    def vr_press(self, event):
+        # Virtual reality hand controller button press.
+        pick = event.picked_object(self.view)
+        self._pick_model(pick)
+        TranslateMouseMode.vr_press(self, event)
 
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''

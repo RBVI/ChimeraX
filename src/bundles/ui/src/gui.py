@@ -1184,7 +1184,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action = QAction(style.capitalize(), self)
             surface_menu.addAction(action)
             action.triggered.connect(lambda *args, run=self._run_surf_command,
-                cmd="surface style %%s %s" % style: run(cmd))
+                cmd="surface style %%s %s" % style: run(cmd, whole_surf=True))
         surface_menu.addSeparator()
         transparency_menu = surface_menu.addMenu("Transparency")
         for percent in range(0, 101, 10):
@@ -1307,30 +1307,33 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cd.hide()
         cd.show()
 
-    def _run_surf_command(self, cmd):
+    def _run_surf_command(self, cmd, *, whole_surf=False):
         from chimerax.core.commands import run, sel_or_all, NoneSelectedError
         from chimerax.core.models import Surface
-        try:
-            selector = sel_or_all(self.session, ['atoms', 'bonds'])
-        except NoneSelectedError:
-            try:
-                selector = sel_or_all(self.session, Surface)
-            except NoneSelectedError:
-                from chimerax.core.errors import UserError
-                if self.session.selection.empty():
-                    raise UserError("No atoms, bonds, or surfaces visible")
-                else:
-                    raise UserError("No visible atoms, bonds, or surfaces selected")
+        if whole_surf:
+            selector = sel_or_all(self.session, Surface, relevant_types=Surface)
         else:
-            if "sel" not in selector:
-                # no visible atoms/bonds selected, see if any surfaces are
+            try:
+                selector = sel_or_all(self.session, ['atoms', 'bonds'])
+            except NoneSelectedError:
                 try:
-                    surf_selector = sel_or_all(self.session, Surface)
+                    selector = sel_or_all(self.session, Surface)
                 except NoneSelectedError:
-                    pass
-                else:
-                    if "sel" in surf_selector:
-                        selector = surf_selector
+                    from chimerax.core.errors import UserError
+                    if self.session.selection.empty():
+                        raise UserError("No atoms, bonds, or surfaces visible")
+                    else:
+                        raise UserError("No visible atoms, bonds, or surfaces selected")
+            else:
+                if "sel" not in selector:
+                    # no visible atoms/bonds selected, see if any surfaces are
+                    try:
+                        surf_selector = sel_or_all(self.session, Surface)
+                    except NoneSelectedError:
+                        pass
+                    else:
+                        if "sel" in surf_selector:
+                            selector = surf_selector
         run(self.session, cmd % selector)
 
     def _get_label_text_arg(self):
