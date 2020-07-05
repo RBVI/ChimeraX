@@ -16,7 +16,7 @@ index 0f81e8ad0..ab4a8ccb5 100644
  MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
  
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index 67437bed8..baabef213 100644
+index 67437bed8..638472baf 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
 @@ -3,16 +3,22 @@ TOP	= ../..
@@ -46,7 +46,7 @@ index 67437bed8..baabef213 100644
  QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
  ifeq (,$(PYQT_MINOR_VERSION))
  PYQT_VERSION = $(VERSION)
-@@ -25,16 +31,14 @@ else
+@@ -25,50 +31,49 @@ else
  PYQTWE_VERSION = $(VERSION).$(PYQTWE_MINOR_VERSION)
  endif
  
@@ -58,22 +58,28 @@ index 67437bed8..baabef213 100644
 +BUILDER_VERSION = 1.4.0
 +
  QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
- WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(BUILD_TAGS).whl
+-WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(BUILD_TAGS).whl
 -# Explicitly choose sip version that works -- depends how unlicensed wheel
 -# from Riverbank Computing Limited was built and presumably matches the gpl
 -# wheel in PyPI.
 -SIP_VERSION = 4.19.19
++WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
  
 -PYQT_LICENSE_VERSION = 1.17
  PYTHON_TAGS = cp35.cp36.cp37.cp38
  
  ifeq ($(OS),Darwin)
-@@ -45,30 +49,27 @@ QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
+ BIN_PLATFORM = macos
+ WHEEL_ABI = abi3
+ WHEEL_PLATFORM = macosx_10_6_intel
++WE_WHEEL_PLATFORM = macosx_10_13_intel
+ QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
  else ifeq ($(OS),Linux)
  BIN_PLATFORM = linux
  WHEEL_ABI = abi3
 -WHEEL_PLATFORM = manylinux1_x86_64
 +WHEEL_PLATFORM = manylinux2014_x86_64
++WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
  #QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/gcc_64
  QTDIR = $(HOME)/Qt/$(QT_VERSION)/gcc_64
  else ifeq ($(OS),Windows)
@@ -81,15 +87,17 @@ index 67437bed8..baabef213 100644
  WHEEL_ABI = none
  WHEEL_PLATFORM = win_amd64
 -QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2017_64
++WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 +QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2019_64
  endif
  BUILD_TAGS = $(QT_VERSION)-$(PYTHON_TAGS)-$(WHEEL_ABI)-$(WHEEL_PLATFORM)
- 
++WE_BUILD_TAGS = $(QT_VERSION)-$(PYTHON_TAGS)-$(WHEEL_ABI)-$(WE_WHEEL_PLATFORM)
++
 +BUNDLE_ARGS = --qt-dir $(QTDIR) --ignore-missing --no-openssl
 +ifdef WIN32
 +BUNDLE_ARGS += --no-msvc-runtime
 +endif
-+
+ 
  ifneq ($(PYQT_LICENSE),commercial)
  QT_WHEEL := PyQt5==$(PYQT_VERSION)
  WB_WHEEL := PyQtWebEngine==$(PYQT_VERSION)
@@ -106,13 +114,13 @@ index 67437bed8..baabef213 100644
  
  all:
  
-@@ -90,23 +91,34 @@ ifeq ($(PYQT_LICENSE),commercial)
+@@ -90,23 +95,34 @@ ifeq ($(PYQT_LICENSE),commercial)
  	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(WB_WHEEL) .
  endif
  
 +REMOTE_SOURCE =  \
 +		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial-$(PYQT_VERSION)-cp\*-$(WHEEL_PLATFORM).whl \
-+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial-$(PYQTWE_VERSION)-cp\*-$(WHEEL_PLATFORM).whl \
++		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial-$(PYQTWE_VERSION)-cp\*-$(WE_WHEEL_PLATFORM).whl \
 +		$(REMOTE_DIR)/pyqt-commercial.sip
 +
  pyqt-commercial.sip:
