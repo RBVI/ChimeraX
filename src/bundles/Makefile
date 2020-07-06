@@ -42,7 +42,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot \
-	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+	  viewdockx vive volume_menu vtk wavefront_obj \
+	  webcam webservices zone
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
