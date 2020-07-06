@@ -63,6 +63,7 @@ class WebCam (Model):
                  color_popup = False, flip_horizontal = True, use_opencv = False):
         Model.__init__(self, name, session)
 
+        self._camera = None		# QCamera
         self.camera_name = ''
         self._capture = None		# OpenCV VideoCapture instance
         self.size = None		# Width, height in pixels
@@ -85,11 +86,15 @@ class WebCam (Model):
             self._capture.release()
             self._capture = None
         else:
-            cam = self._camera
+            self._close_camera()
+        Model.delete(self)
+
+    def _close_camera(self):
+        cam = self._camera
+        if cam:
             cam.unload()
             cam.deleteLater()
             self._camera = None
-        Model.delete(self)
         
     def _start_video(self):
         from PyQt5.QtMultimedia import QCameraInfo, QCamera, QVideoFrame
@@ -116,9 +121,11 @@ class WebCam (Model):
     def _camera_state_changed(self, state):
 #        print ('current camera state', state)
 
-        self._start_capture()
+        from PyQt5.QtMultimedia import QCamera
+        if state == QCamera.ActiveState and self._capture is None:
+            self._start_capture()
 
-        cam = self._camera
+#        cam = self._camera
 #        print ('capture mode (2=video)', int(cam.captureMode()))
 #        res = cam.supportedViewfinderResolutions()
 #        print ('supported resolutions', [(s.width(), s.height()) for s in res])
@@ -150,7 +157,12 @@ class WebCam (Model):
         # and just uses default pixel format.
         from PyQt5.QtMultimedia import QVideoSurfaceFormat, QVideoFrame
         pixel_format = QVideoFrame.Format_ARGB32
-        self._set_camera_pixel_format(pixel_format)
+        try:
+            self._set_camera_pixel_format(pixel_format)
+        except Exception:
+            # Pixel format not offered by camera.
+            self._close_camera()
+            raise
         w,h = self.size
         from PyQt5.QtCore import QSize
         fmt = QVideoSurfaceFormat(QSize(w,h), pixel_format)
@@ -163,6 +175,13 @@ class WebCam (Model):
 #        self._report_supported_pixel_formats()
         settings = cam.viewfinderSettings()
         if settings.pixelFormat() != pixel_format:
+            pformats = cam.supportedViewfinderPixelFormats()
+            if pixel_format not in pformats:
+                from chimerax.core.errors import UserError
+                raise UserError('Pixel format %s required by webcam command is not supported by camera "%s" (%s)'
+                                % (_pixel_format_name(pixel_format),
+                                   self.camera_name,
+                                   ', '.join(_pixel_format_name(f) for f in pformats)))
             from PyQt5.QtMultimedia import QCameraViewfinderSettings
             new_settings = QCameraViewfinderSettings(settings)
             new_settings.setPixelFormat(pixel_format)
@@ -599,3 +618,17 @@ def qvideoframe_uyvy_to_numpy(frame):
     rgb[:,:,1] = uyvy[:,:,1]
     rgb[:,:,2] = uyvy[:,:,0]
     return rgb
+
+_pixel_format_names = {}
+def _pixel_format_name(qt_pixel_format):
+    global _pixel_format_names
+    if len(_pixel_format_names) == 0:
+        from PyQt5.QtMultimedia import QVideoFrame    
+        for name in dir(QVideoFrame):
+            if name.startswith('Format_'):
+                value = getattr(QVideoFrame, name)
+                _pixel_format_names[value] = name[7:]
+    name = _pixel_format_names.get(qt_pixel_format)
+    if name is None:
+        name = str(int(qt_pixel_format))
+    return name
