@@ -584,12 +584,21 @@ class VideoCapture(QAbstractVideoSurface):
                 QVideoFrame.Format_IMC4, QVideoFrame.Format_Y8, QVideoFrame.Format_Y16,
                 QVideoFrame.Format_Jpeg, QVideoFrame.Format_CameraRaw, QVideoFrame.Format_AdobeDng]
 
+_wrong_frame_size = False
 def qvideoframe_argb32_to_numpy(frame):
     # TODO: add an array argument and avoid making temporary arrays.
     #  Best done in C++.
     f = frame
     shape = (f.height(), f.width(), 4)
-    buf = f.bits().asstring(f.mappedBytes())
+    nbytes = f.height() * f.width() * 4
+    global _wrong_frame_size
+    if not _wrong_frame_size and f.mappedBytes() != nbytes:
+        # On 2012 MacBookPro, 1280x720 gives 3686432 mapped bytes instead of 3686400.
+        # Dropping last 32 bytes gives correct image.
+        _wrong_frame_size = True
+        print ('QVideoFrame (%d by %d, pixel format %d) has wrong number of bytes %d, expected %d'
+               % (f.width(), f.height(), f.pixelFormat(), f.mappedBytes(), nbytes))
+    buf = f.bits().asstring(nbytes)
     from numpy import uint8, frombuffer
     bgra = frombuffer(buf, uint8).reshape(shape)
     rgba = bgra.copy()
