@@ -371,17 +371,18 @@ class ColorPick(Pick):
 from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
-#    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
-    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
+    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
+#    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
 
     def __init__(self, new_frame_cb):
+        self._rgba_image = None		# Numpy uint8 array of size (h, w, 4)
         self._new_frame_cb = new_frame_cb
         QAbstractVideoSurface.__init__(self)
 
     def present(self, frame):
         if frame.isValid():
-            rgba_image = _numpy_rgba_array_from_qt_video_frame(frame)
-            self._new_frame_cb(rgba_image)
+            self._rgba_image = _numpy_rgba_array_from_qt_video_frame(frame, self._rgba_image)
+            self._new_frame_cb(self._rgba_image)
         return True
 
     def isFormatSupported(self, format):
@@ -398,58 +399,80 @@ class VideoCapture(QAbstractVideoSurface):
 
 # -----------------------------------------------------------------------------
 #
-def _numpy_rgba_array_from_qt_video_frame(frame):
+_wrong_frame_size = False
+def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     f = frame
     pixel_format = f.pixelFormat()
-    if pixel_format == f.Format_ARGB32:
-        a = _qvideoframe_argb32_to_numpy(f)
-    elif pixel_format == f.Format_YUYV:
-        a = _qvideoframe_yuyv_to_numpy(f)
-    else:
+    if pixel_format not in (f.Format_ARGB32, f.Format_YUYV):
         raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
-    return a
+
+    # Map video frame into memory.
+    from PyQt5.QtMultimedia import QAbstractVideoBuffer
+    f.map(QAbstractVideoBuffer.ReadOnly)
+
+    # Check video frame size
+    w, h = f.width(), f.height()
+    if rgba_image is not None:
+        ih, iw = rgba_image.shape[:2]
+        if ih != h or iw != w:
+            raise ValueError('QVideoFrame size (%d,%d) does not match expected image size (%d,%d)'
+                             % (w, h, iw, ih))
+    nbytes = h * w * 4
+    if f.mappedBytes() != nbytes:
+        global _wrong_frame_size
+        if not _wrong_frame_size:
+            # On 2012 MacBookPro, 1280x720 gives 3686432 mapped bytes instead of 3686400.
+            # Dropping last 32 bytes gives correct image.
+            _wrong_frame_size = True
+            print ('QVideoFrame (%d by %d, pixel format %d) has wrong number of bytes %d, expected %d' 
+                   % (f.width(), f.height(), f.pixelFormat(), f.mappedBytes(), nbytes))
+
+    # Create rgba image array
+    if rgba_image is None:
+        from numpy import empty, uint8
+        rgba_image = empty((h,w,4), uint8)
+
+    # Convert video frame data to rgba
+    data = f.bits()
+    if pixel_format == f.Format_ARGB32:
+        a = _argb32_image_to_numpy(data, rgba_image)
+    elif pixel_format == f.Format_YUYV:
+        a = _yuyv_image_to_numpy(data, rgba_image)
+
+    # Release mapped video frame data.
+    f.unmap()
+
+    return rgba_image
 
 # -----------------------------------------------------------------------------
 #
-_wrong_frame_size = False
-def _qvideoframe_argb32_to_numpy(frame):
+def _argb32_image_to_numpy(data, rgba_image):
     # TODO: add an array argument and avoid making temporary arrays.
     #  Best done in C++.
-    f = frame
-    from PyQt5.QtMultimedia import QAbstractVideoBuffer
-    f.map(QAbstractVideoBuffer.ReadOnly)
-    shape = (f.height(), f.width(), 4)
-    nbytes = f.height() * f.width() * 4
-    global _wrong_frame_size
-    if not _wrong_frame_size and f.mappedBytes() != nbytes:
-        # On 2012 MacBookPro, 1280x720 gives 3686432 mapped bytes instead of 3686400.
-        # Dropping last 32 bytes gives correct image.
-        _wrong_frame_size = True
-        print ('QVideoFrame (%d by %d, pixel format %d) has wrong number of bytes %d, expected %d'
-               % (f.width(), f.height(), f.pixelFormat(), f.mappedBytes(), nbytes))
-    buf = f.bits().asstring(nbytes)
+    h,w = rgba_image.shape[:2]
+    buf = data.asstring(h*w*4)
     from numpy import uint8, frombuffer
-    bgra = frombuffer(buf, uint8).reshape(shape)
-    f.unmap()
-    rgba = bgra.copy()
-    rgba[:,:,0] = bgra[:,:,2]
-    rgba[:,:,2] = bgra[:,:,0]
-    return rgba
+    bgra = frombuffer(buf, uint8).reshape((h, w, 4))
+    
+    rgba_image[:,:,0] = bgra[:,:,2]
+    rgba_image[:,:,1] = bgra[:,:,1]
+    rgba_image[:,:,2] = bgra[:,:,0]
+    rgba_image[:,:,3] = bgra[:,:,3]
 
 # -----------------------------------------------------------------------------
 #
-def _qvideoframe_yuyv_to_numpy(frame):
-    f = frame
-    w,h = f.width(), f.height()
-    from PyQt5.QtMultimedia import QAbstractVideoBuffer
-    f.map(QAbstractVideoBuffer.ReadOnly)
-    buf = f.bits().asstring(f.mappedBytes())
-    f.unmap()
+def _yuyv_image_to_numpy(data, rgba_image):
+    h,w = rgba_image.shape[:2]
+    buf = data.asstring(h*w*2)
     from numpy import uint8, frombuffer
     yuyv = frombuffer(buf, uint8).reshape((h, w, 2))
+    _yuyv_to_rgba(yuyv, rgba_image)
+
+# -----------------------------------------------------------------------------
+#
+def _yuyv_to_rgba(yuyv, rgba_image):
     yuv = _yuyv_to_yuv(yuyv)
-    rgba = _yuv_to_rgba(yuv)
-    return rgba
+    _yuv_to_rgba(yuv, rgba_image)
 
 # -----------------------------------------------------------------------------
 #
@@ -469,23 +492,21 @@ def _yuyv_to_yuv(yuyv):
 
 # -----------------------------------------------------------------------------
 #
-def _yuv_to_rgba(yuv):
+def _yuv_to_rgba(yuv, rgba_image):
 # From https://www.fourcc.org/fccyvrgb.php
 # B = 1.164(Y - 16)                   + 2.018(U - 128)
 # G = 1.164(Y - 16) - 0.813(V - 128) - 0.391(U - 128)
 # R = 1.164(Y - 16) + 1.596(V - 128)
-    from numpy import float32, empty, uint8, clip
+    from numpy import float32, clip
     y, u, v = yuv[:,:,0].astype(float32), yuv[:,:,1].astype(float32), yuv[:,:,2].astype(float32)
     b = 1.164 * (y - 16)                   + 2.018 * (u - 128)
     g = 1.164 * (y - 16) - 0.813 * (v - 128) - 0.391 * (u - 128)
     r = 1.164 * (y - 16) + 1.596 * (v - 128)
     h,w = yuv.shape[:2]
-    rgba = empty((h,w,4), uint8)
-    clip(r, 0, 255, rgba[:,:,0])
-    clip(g, 0, 255, rgba[:,:,1])
-    clip(b, 0, 255, rgba[:,:,2])
-    rgba[:,:,3] = 255
-    return rgba
+    clip(r, 0, 255, rgba_image[:,:,0])
+    clip(g, 0, 255, rgba_image[:,:,1])
+    clip(b, 0, 255, rgba_image[:,:,2])
+    rgba_image[:,:,3] = 255
 
 # -----------------------------------------------------------------------------
 #
