@@ -60,12 +60,12 @@ class WebCam (Model):
     casts_shadows = False
     SESSION_SAVE = False
     def __init__(self, name, session, foreground_color = (0,255,0,255), saturation = 10,
-                 color_popup = False, flip_horizontal = True, use_opencv = False):
+                 color_popup = False, flip_horizontal = True):
         Model.__init__(self, name, session)
 
         self._camera = None		# QCamera
         self.camera_name = ''
-        self._capture = None		# OpenCV VideoCapture instance
+        self._capture = None		# VideoCapture instance
         self.size = None		# Width, height in pixels
         self.framerate = None		# Frames per second, float
         self._first_image = True	# Whether first image has been acquired
@@ -75,18 +75,10 @@ class WebCam (Model):
         self.color_popup = color_popup
         self._flip_horizontal = flip_horizontal
 
-        self._use_opencv = use_opencv
-        if use_opencv:
-            self._start_video_opencv()
-        else:
-            self._start_video()
+        self._start_video()
 
     def delete(self):
-        if self._use_opencv:
-            self._capture.release()
-            self._capture = None
-        else:
-            self._close_camera()
+        self._close_camera()
         Model.delete(self)
 
     def _close_camera(self):
@@ -264,61 +256,6 @@ class WebCam (Model):
                 logical_and(fg_mask, (rgb[l]-sat > rgb[s]), fg_mask)
         alpha = im[:,:,3]
         alpha[fg_mask] = 0
-        
-    def _start_video_opencv(self):
-        import cv2
-
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            from chimerax.core.errors import UserError
-            raise UserError('Could not open camera for video capture')
-        self._capture = cap
-
-        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # 1280.0 on Mac laptop
-        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # 720.0 on Mac laptop
-        self.size = (w,h)
-        self.framerate = cap.get(cv2.CAP_PROP_FPS) # Float, 29.000049 on Mac laptop
-
-        t = self.session.triggers.add_handler('graphics update', self._opencv_update_image)
-        self._update_trigger = t
-        
-    def _opencv_update_image(self, tname, view):
-
-        if not self.display:
-            return
-        
-        # Read frame
-        success, frame = self._capture.read()
-
-        if not success:
-            # TODO: Warn if fail to capture many frames in a row.
-            return
-
-        from numpy import asarray
-        image = asarray(frame[:,:])
-
-        # Flip red and blue
-        red = image[:,:,0].copy()
-        image[:,:,0] = image[:,:,2]
-        image[:,:,2] = red
-        
-        # TODO: Verify image.dtype is uint8
-
-#        skip = self._skip_frames
-#        if skip > 0:
-#            self._current_frame += 1
-#            if self._current_frame % (skip+1) != 1:
-#                return
-
-        if self._first_image:
-            print ('frame shape', image.shape)
-            self._create_textures_video(image, depth_image = None)
-            self._first_image = False
-        else:
-            self.texture.reload_texture(image)
-#            self._depth_texture.reload_texture(depth_image)
-
-        self.redraw_needed()
 
     def _create_textures_video(self, color_image, depth_image):
         # TODO: Does not have sensible bounds.  Bounds don't really make sense.
@@ -432,67 +369,6 @@ class WebCam (Model):
         w,h = self.size
         from chimerax.core.commands import run
         run(self.session, 'windowsize %d %d' % (w,h))
-
-    def _report_capabilities(self):
-        video_properties = (    
-            ("CAP_PROP_POS_MSEC", 0), 
-            ("CAP_PROP_POS_FRAMES", 1), 
-            ("CAP_PROP_POS_AVI_RATIO", 2), 
-            ("CAP_PROP_FRAME_WIDTH", 3), 
-            ("CAP_PROP_FRAME_HEIGHT", 4), 
-            ("CAP_PROP_FPS", 5), 
-            ("CAP_PROP_FOURCC", 6), 
-            ("CAP_PROP_FRAME_COUNT", 7), 
-            ("CAP_PROP_FORMAT", 8), 
-            ("CAP_PROP_MODE", 9), 
-            ("CAP_PROP_BRIGHTNESS", 10), 
-            ("CAP_PROP_CONTRAST", 11), 
-            ("CAP_PROP_SATURATION", 12), 
-            ("CAP_PROP_HUE", 13), 
-            ("CAP_PROP_GAIN", 14), 
-            ("CAP_PROP_EXPOSURE", 15), 
-            ("CAP_PROP_CONVERT_RGB", 16), 
-            ("CAP_PROP_WHITE_BALANCE_BLUE_U", 17), 
-            ("CAP_PROP_RECTIFICATION", 18), 
-            ("CAP_PROP_MONOCHROME", 19), 
-            ("CAP_PROP_SHARPNESS", 20), 
-            ("CAP_PROP_AUTO_EXPOSURE", 21), 
-            ("CAP_PROP_GAMMA", 22), 
-            ("CAP_PROP_TEMPERATURE", 23), 
-            ("CAP_PROP_TRIGGER", 24), 
-            ("CAP_PROP_TRIGGER_DELAY", 25), 
-            ("CAP_PROP_WHITE_BALANCE_RED_V", 26), 
-            ("CAP_PROP_ZOOM", 27), 
-            ("CAP_PROP_FOCUS", 28), 
-            ("CAP_PROP_GUID", 29), 
-            ("CAP_PROP_ISO_SPEED", 30), 
-            ("CAP_PROP_BACKLIGHT", 32), 
-            ("CAP_PROP_PAN", 33), 
-            ("CAP_PROP_TILT", 34), 
-            ("CAP_PROP_ROLL", 35), 
-            ("CAP_PROP_IRIS", 36), 
-            ("CAP_PROP_SETTINGS", 37), 
-            ("CAP_PROP_BUFFERSIZE", 38), 
-            ("CAP_PROP_AUTOFOCUS", 39), 
-            ("CAP_PROP_SAR_NUM", 40), 
-            ("CAP_PROP_SAR_DEN", 41), 
-            ("CAP_PROP_BACKEND", 42), 
-            ("CAP_PROP_CHANNEL", 43), 
-            ("CAP_PROP_AUTO_WB", 44), 
-            ("CAP_PROP_WB_TEMPERATURE", 45), 
-            ("CAP_PROP_CODEC_PIXEL_FORMAT", 46), 
-#            ("CAP_PROP_BITRATE", 47),
-        )
-
-        lines = ['Webcam capabilities reported by OpenCV']
-        cap = self._capture
-        import cv2
-        for pname, p_id in video_properties:
-            pid = getattr(cv2, pname)
-            pval = cap.get(pid)
-            lines.append('%s %s' % (pval, pname))
-        msg = '\n'.join(lines)
-        self.session.info(msg)
   
     # ---------------------------------------------------------------------------
     #
