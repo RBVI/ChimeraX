@@ -793,7 +793,8 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         return;
     Residue* start_r;
     Residue* other_r;
-    if (b == nullptr) {
+    bool is_pb = (b == nullptr);
+    if (is_pb) {
         // missing structure pseudobond; need to pass through residue list to determine
         // relative ordering of the residues
         for (auto r: residues()) {
@@ -864,7 +865,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
-        } else {
+        } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();
             auto start_index = chain->res_map().at(start_r);

@@ -311,6 +311,22 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
+    opts, args = parse_arguments(argv)
+
+    # install line_profile decorator, and install it before
+    # initialize_ssl_cert_dir() in case the line profiling is in the
+    # core (which would cause initialize_ssl_cert_dir() to fail)
+    import builtins
+    if not opts.line_profile:
+        builtins.__dict__['line_profile'] = lambda x: x
+    else:
+        # write profile results on exit
+        import atexit
+        import line_profiler
+        prof = line_profiler.LineProfiler()
+        builtins.__dict__['line_profile'] = prof
+        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
 
@@ -323,20 +339,6 @@ def init(argv, event_loop=True):
     except ImportError:
         print("error: unable to figure out %s's version" % app_name)
         return os.EX_SOFTWARE
-
-    opts, args = parse_arguments(argv)
-
-    # install line_profile decorator
-    import builtins
-    if not opts.line_profile:
-        builtins.__dict__['line_profile'] = lambda x: x
-    else:
-        # write profile results on exit
-        import atexit
-        import line_profiler
-        prof = line_profiler.LineProfiler()
-        builtins.__dict__['line_profile'] = prof
-        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     if opts.use_defaults:
         from chimerax.core import configinfo

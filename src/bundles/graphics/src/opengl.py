@@ -1913,6 +1913,7 @@ shader_options = (
     'SHADER_OPAQUE_ONLY',
     'SHADER_STEREO_360',
     'SHADER_CLIP_PLANES',
+    'SHADER_ALPHA_DEPTH',
     'SHADER_ALL_WHITE',
 )
 for i, sopt in enumerate(shader_options):
