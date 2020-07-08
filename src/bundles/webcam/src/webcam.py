@@ -135,11 +135,8 @@ class WebCam (Model):
         res = settings.resolution()
         w, h = res.width(), res.height()
         self.size = (w,h)
-#        print ('camera resolution', w, h)
         frmin, frmax = settings.minimumFrameRate(), settings.maximumFrameRate()
-#        print ('camera min/max framerate', frmin, frmax)
         self.framerate = frmax
-#        print ('camera pixel format', settings.pixelFormat())
 
         capture = VideoCapture(self._new_frame)
         self._capture = capture
@@ -148,9 +145,8 @@ class WebCam (Model):
         # otherwise it does not seem to know the available pixel formats
         # and just uses default pixel format.
         from PyQt5.QtMultimedia import QVideoSurfaceFormat, QVideoFrame
-        pixel_format = QVideoFrame.Format_ARGB32
         try:
-            self._set_camera_pixel_format(pixel_format)
+            pixel_format = self._set_camera_pixel_format()
         except Exception:
             # Pixel format not offered by camera.
             self._close_camera()
@@ -158,27 +154,29 @@ class WebCam (Model):
         w,h = self.size
         from PyQt5.QtCore import QSize
         fmt = QVideoSurfaceFormat(QSize(w,h), pixel_format)
-#        fmt = QVideoSurfaceFormat(QSize(w,h), QVideoFrame.Format_UYVY)
         capture.start(fmt)
-#        cam.start()
 
-    def _set_camera_pixel_format(self, pixel_format):
+    def _set_camera_pixel_format(self):
         cam = self._camera
-#        self._report_supported_pixel_formats()
         settings = cam.viewfinderSettings()
-        if settings.pixelFormat() != pixel_format:
-            pformats = cam.supportedViewfinderPixelFormats()
-            if pixel_format not in pformats:
+        pixel_format = settings.pixelFormat()
+        if pixel_format not in VideoCapture.supported_formats:
+            pformats = set(cam.supportedViewfinderPixelFormats())
+            for pixel_format in VideoCapture.supported_formats:
+                if pixel_format in pformats:
+                    break
+            else:
                 from chimerax.core.errors import UserError
-                raise UserError('Pixel format %s required by webcam command is not supported by camera "%s" (%s)'
-                                % (_pixel_format_name(pixel_format),
-                                   self.camera_name,
-                                   ', '.join(_pixel_format_name(f) for f in pformats)))
+                raise UserError('Camera "%s" pixel formats (%s) are not supported by webcam command (%s)'
+                                % (self.camera_name,
+                                   ','.join(_qt_pixel_format_name(f) for f in pformats),
+                                   ','.join(_qt_pixel_format_name(f) for f in VideoCapture.supported_formats)))
             from PyQt5.QtMultimedia import QCameraViewfinderSettings
             new_settings = QCameraViewfinderSettings(settings)
             new_settings.setPixelFormat(pixel_format)
             cam.setViewfinderSettings(new_settings)
-
+        return pixel_format
+    
     def _report_supported_pixel_formats(self):
         cam = self._camera
         pformats = cam.supportedViewfinderPixelFormats()
@@ -192,47 +190,23 @@ class WebCam (Model):
             print ('%d: res %d %d, format %d, framerate %g - %g'
                    % (i, sz.width(), sz.height(), pf, frmin, frmax))
 
-    def _new_frame(self, qt_video_frame):
+    def _new_frame(self, rgba_image):
+        '''rgba_image is a uint8 numpy array of shape (height, width, 4).'''
         if self._camera is None:
             # Get one new frame after camera unload is requested.
             return
-#        print ('new camera image loaded')
-        f = qt_video_frame
-        from PyQt5.QtMultimedia import QAbstractVideoBuffer, QVideoFrame
-        f.map(QAbstractVideoBuffer.ReadOnly)
-        '''
-        image_format = QVideoFrame.imageFormatFromPixelFormat(f.pixelFormat())
-        # This gives format = 0, not supported
-#        print ('image format', image_format)
-        from PyQt5.QtGui import QImage
-        image = QImage(f.bits(), f.width(), f.height(), f.bytesPerLine(), image_format)
-        if image.bits() is None:
-            print ('image bits is None', f.bits())
-            return
-        from chimerax.graphics import qimage_to_numpy
-        a = qimage_to_numpy(image)
-        print('got frame', a.shape, a.dtype)
-        '''
-        pixel_format = f.pixelFormat()
-        if pixel_format == f.Format_ARGB32:
-            a = qvideoframe_argb32_to_numpy(f)
-        elif pixel_format == f.Format_UYVY:
-            a = qvideoframe_uyvy_to_numpy(f)
-        else:
-            raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
 
-        self._mark_image_foreground(a)
+        self._mark_image_foreground(rgba_image)
         
-        self._last_image = a
+        self._last_image = rgba_image
             
         if self._first_image:
-            self._create_textures_video(a, depth_image = None)
+            self._create_video_texture(rgba_image)
             self._first_image = False
             #print('first frame shape', a.shape, 'type', a.dtype, 'pixel format', f.pixelFormat())
         else:
-            self.texture.reload_texture(a)
+            self.texture.reload_texture(rgba_image)
             self.redraw_needed()
-        f.unmap()
 
     def _mark_image_foreground(self, rgba_image):
         '''
@@ -257,7 +231,7 @@ class WebCam (Model):
         alpha = im[:,:,3]
         alpha[fg_mask] = 0
 
-    def _create_textures_video(self, color_image, depth_image):
+    def _create_video_texture(self, color_image):
         # TODO: Does not have sensible bounds.  Bounds don't really make sense.
         #       Causes surprises if it is the first model opened.
         from chimerax.graphics.drawing import rgba_drawing
@@ -271,12 +245,6 @@ class WebCam (Model):
             # at yourself on the screen
             tc[:,0] = 1 - tc[:,0]
         self.texture_coordinates = tc
-        
-#        from chimerax.graphics import Texture
-#        self._depth_texture = dt = Texture(depth_image)
-        # Shader wants to handle 0 depth values (= unknown depth) as max distance
-        # so need to turn off linear interpolation so fragment shader gets 0 values.
-#        dt.linear_interpolation = False
 
     def _get_flip_horizontal(self):
         return self._flip_horizontal
@@ -307,7 +275,6 @@ class WebCam (Model):
                                       r.SHADER_MULTISHADOW |
                                       r.SHADER_CLIP_PLANES)
         r.enable_capabilities |= r.SHADER_ALPHA_DEPTH
-#        r.enable_capabilities |= r.SHADER_DEPTH_TEXTURE
 
         # If the desired field of view of the texture does not match the camera field of view
         # then adjust projection size.  Also if the apect ratio of the target framebuffer and
@@ -333,35 +300,12 @@ class WebCam (Model):
         r.set_view_matrix(p0)
         r.set_model_matrix(p0)
 
-        '''
-        t = self._depth_texture
-        t.bind_texture(r.depth_texture_unit)
-        frm = 2**16 / 1000  # Realsense full range in meters (~65).
-        c = self.session.main_view.camera
-        from chimerax.vive.vr import SteamVRCamera
-        if isinstance(c, SteamVRCamera):
-            # Scale factor from RealSense depth texture 0-1 range
-            # (~65 meters) to scene units (typically Angstroms).
-            depth_scale = frm / c.scene_scale
-        else:
-            depth_scale = self._depth_scale * frm
-        from math import tan, radians
-        cxfov, cyfov = self._realsense_color_field_of_view
-        dxfov, dyfov = self._realsense_depth_field_of_view
-        dxscale = tan(radians(0.5*cxfov)) / tan(radians(0.5*dxfov))
-        dyscale = tan(radians(0.5*cyfov)) / tan(radians(0.5*dyfov))
-        r.set_depth_texture_parameters(dxscale, dyscale, depth_scale)
-#        if r.frame_number % 200 == 1:
-#            print ('depth params', dxscale, dyscale, depth_scale)
-        '''
-        
         Model.draw(self, r, draw_pass)
             
         # Restore view and projection matrices since drawings are not supposed to change these.
         r.set_projection_matrix(cur_proj)
         r.set_view_matrix(cur_view)
         
-#        r.enable_capabilities &= ~r.SHADER_DEPTH_TEXTURE
         r.enable_capabilities &= ~r.SHADER_ALPHA_DEPTH
         r.disable_shader_capabilities(0)
 
@@ -412,6 +356,8 @@ class WebCam (Model):
         
         return pick
     
+# -----------------------------------------------------------------------------
+#
 from chimerax.graphics import Pick
 class ColorPick(Pick):
     def __init__(self, rgb, depth=1):
@@ -420,51 +366,58 @@ class ColorPick(Pick):
     def description(self):
         return 'Color %d,%d,%d' % self.rgb
 
-
-from PyQt5.QtMultimedia import QAbstractVideoSurface
+# -----------------------------------------------------------------------------
+#
+from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
+    
+#    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
+    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
+
     def __init__(self, new_frame_cb):
         self._new_frame_cb = new_frame_cb
         QAbstractVideoSurface.__init__(self)
-    def present(self, frame):
-#        raise RuntimeError('called present')
-#        print ('web cam present')
-        if frame.isValid():
-            self._new_frame_cb(frame)
-#        else:
-#            print ('invalid frame')
-        return True
-    def isFormatSupported(self, format):
-#        from PyQt5.QtMultimedia import QVideoFrame
-#        return format == QVideoFrame.Format_ARGB32
-        return True
-    def start(self, format):
-#        print ('started vid capt')
-        return QAbstractVideoSurface.start(self, format)
-    def stop(self):
-#        print ('stopped vid capt')
-        QAbstractVideoSurface.stop(self)
-    def supportedPixelFormats(self, handle_type):
-        from PyQt5.QtMultimedia import QVideoFrame
-#        return [QVideoFrame.Format_ARGB32]
-        return [QVideoFrame.Format_ARGB32, QVideoFrame.Format_ARGB32_Premultiplied,
-                QVideoFrame.Format_RGB32, QVideoFrame.Format_RGB24, QVideoFrame.Format_RGB565,
-                QVideoFrame.Format_RGB555, QVideoFrame.Format_ARGB8565_Premultiplied,
-                QVideoFrame.Format_BGRA32, QVideoFrame.Format_BGRA32_Premultiplied, QVideoFrame.Format_BGR32,
-                QVideoFrame.Format_BGR24, QVideoFrame.Format_BGR565, QVideoFrame.Format_BGR555,
-                QVideoFrame.Format_BGRA5658_Premultiplied, QVideoFrame.Format_AYUV444,
-                QVideoFrame.Format_AYUV444_Premultiplied, QVideoFrame.Format_YUV444,
-                QVideoFrame.Format_YUV420P, QVideoFrame.Format_YV12, QVideoFrame.Format_UYVY,
-                QVideoFrame.Format_YUYV, QVideoFrame.Format_NV12, QVideoFrame.Format_NV21,
-                QVideoFrame.Format_IMC1, QVideoFrame.Format_IMC2, QVideoFrame.Format_IMC3,
-                QVideoFrame.Format_IMC4, QVideoFrame.Format_Y8, QVideoFrame.Format_Y16,
-                QVideoFrame.Format_Jpeg, QVideoFrame.Format_CameraRaw, QVideoFrame.Format_AdobeDng]
 
+    def present(self, frame):
+        if frame.isValid():
+            rgba_image = _numpy_rgba_array_from_qt_video_frame(frame)
+            self._new_frame_cb(rgba_image)
+        return True
+
+    def isFormatSupported(self, format):
+        return format in self.supported_formats
+
+    def start(self, format):
+        return QAbstractVideoSurface.start(self, format)
+    
+    def stop(self):
+        QAbstractVideoSurface.stop(self)
+        
+    def supportedPixelFormats(self, handle_type):
+        return self.supported_formats
+
+# -----------------------------------------------------------------------------
+#
+def _numpy_rgba_array_from_qt_video_frame(frame):
+    f = frame
+    pixel_format = f.pixelFormat()
+    if pixel_format == f.Format_ARGB32:
+        a = _qvideoframe_argb32_to_numpy(f)
+    elif pixel_format == f.Format_YUYV:
+        a = _qvideoframe_yuyv_to_numpy(f)
+    else:
+        raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
+    return a
+
+# -----------------------------------------------------------------------------
+#
 _wrong_frame_size = False
-def qvideoframe_argb32_to_numpy(frame):
+def _qvideoframe_argb32_to_numpy(frame):
     # TODO: add an array argument and avoid making temporary arrays.
     #  Best done in C++.
     f = frame
+    from PyQt5.QtMultimedia import QAbstractVideoBuffer
+    f.map(QAbstractVideoBuffer.ReadOnly)
     shape = (f.height(), f.width(), 4)
     nbytes = f.height() * f.width() * 4
     global _wrong_frame_size
@@ -477,43 +430,75 @@ def qvideoframe_argb32_to_numpy(frame):
     buf = f.bits().asstring(nbytes)
     from numpy import uint8, frombuffer
     bgra = frombuffer(buf, uint8).reshape(shape)
+    f.unmap()
     rgba = bgra.copy()
     rgba[:,:,0] = bgra[:,:,2]
     rgba[:,:,2] = bgra[:,:,0]
     return rgba
 
-def qvideoframe_uyvy_to_numpy(frame):
+# -----------------------------------------------------------------------------
+#
+def _qvideoframe_yuyv_to_numpy(frame):
     f = frame
     w,h = f.width(), f.height()
-    shape = (h, w, 2)
+    from PyQt5.QtMultimedia import QAbstractVideoBuffer
+    f.map(QAbstractVideoBuffer.ReadOnly)
     buf = f.bits().asstring(f.mappedBytes())
+    f.unmap()
     from numpy import uint8, frombuffer
-    uyvy = frombuffer(buf, uint8).reshape(shape)
+    yuyv = frombuffer(buf, uint8).reshape((h, w, 2))
+    yuv = _yuyv_to_yuv(yuyv)
+    rgba = _yuv_to_rgba(yuv)
+    return rgba
+
+# -----------------------------------------------------------------------------
+#
+def _yuyv_to_yuv(yuyv):
+    h,w = yuyv.shape[:2]
     from numpy import empty, uint8
-    '''
+    yuv = empty((h,w,3), uint8)
+    y = yuyv[:,:,0]
+    u = yuyv[:,::2,1]
+    v = yuyv[:,1::2,1]
+    yuv[:,:,0] = y
+    yuv[:,::2,1] = u
+    yuv[:,1::2,1] = u
+    yuv[:,::2,2] = v
+    yuv[:,1::2,2] = v
+    return yuv
+
+# -----------------------------------------------------------------------------
+#
+def _yuv_to_rgba(yuv):
+# From https://www.fourcc.org/fccyvrgb.php
+# B = 1.164(Y - 16)                   + 2.018(U - 128)
+# G = 1.164(Y - 16) - 0.813(V - 128) - 0.391(U - 128)
+# R = 1.164(Y - 16) + 1.596(V - 128)
+    from numpy import float32, empty, uint8, clip
+    y, u, v = yuv[:,:,0].astype(float32), yuv[:,:,1].astype(float32), yuv[:,:,2].astype(float32)
+    b = 1.164 * (y - 16)                   + 2.018 * (u - 128)
+    g = 1.164 * (y - 16) - 0.813 * (v - 128) - 0.391 * (u - 128)
+    r = 1.164 * (y - 16) + 1.596 * (v - 128)
+    h,w = yuv.shape[:2]
     rgba = empty((h,w,4), uint8)
-    rgba[:,:,0] = uyvy[:,:,0]
-    rgba[:,:,1] = uyvy[:,:,1]
-    rgba[:,:,2] = uyvy[:,:,0]
+    clip(r, 0, 255, rgba[:,:,0])
+    clip(g, 0, 255, rgba[:,:,1])
+    clip(b, 0, 255, rgba[:,:,2])
     rgba[:,:,3] = 255
     return rgba
-    '''
-    rgb = empty((h,w,3), uint8)
-    rgb[:,:,0] = uyvy[:,:,0]
-    rgb[:,:,1] = uyvy[:,:,1]
-    rgb[:,:,2] = uyvy[:,:,0]
-    return rgb
 
-_pixel_format_names = {}
-def _pixel_format_name(qt_pixel_format):
-    global _pixel_format_names
-    if len(_pixel_format_names) == 0:
+# -----------------------------------------------------------------------------
+#
+_qt_pixel_format_names = {}
+def _qt_pixel_format_name(qt_pixel_format):
+    global _qt_pixel_format_names
+    if len(_qt_pixel_format_names) == 0:
         from PyQt5.QtMultimedia import QVideoFrame    
         for name in dir(QVideoFrame):
             if name.startswith('Format_'):
                 value = getattr(QVideoFrame, name)
-                _pixel_format_names[value] = name[7:]
-    name = _pixel_format_names.get(qt_pixel_format)
+                _qt_pixel_format_names[value] = name[7:]
+    name = _qt_pixel_format_names.get(qt_pixel_format)
     if name is None:
         name = str(int(qt_pixel_format))
     return name
