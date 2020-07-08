@@ -36,6 +36,8 @@ where the <i>device-type</i> can be:
 <ul>
 <li><a href="#snav"><b>snav</b></a> 
 &ndash; SpaceNavigator<sup>&reg;</sup> 3D mouse
+<li><a href="#webcam"><b>webcam</b></a>
+&ndash; use webcam video as the background for augmented reality
 <li><a href="#vr"><b>vr</b></a>
 &ndash; HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
   <ul>
@@ -52,9 +54,16 @@ target="_blank"><b>RealSense</b> bundle</a> from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/"
 target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
 allows blending video from a Intel RealSense depth-sensing camera 
-with ChimeraX graphics to make augmented reality videos
+with ChimeraX graphics for 3D augmented reality with depth from both inputs
 </ul>
 <p>
+See also:
+<a href="../movies.html">making movies</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-july2020/"
+target="_blank">Augmented reality videos with ChimeraX</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" 
+target="_blank">Mixed reality video recording in ChimeraX</a>
+</p><p>
 <a name="status"></a>
 The <i>status</i> of a mode can be 
 <b>on</b> (synonyms <b>true</b>, <b>True</b>, <b>1</b>)
@@ -83,6 +92,48 @@ relative to the device (default <b>1.0</b>).
 Decreasing the value (for example, to 0.1) reduces sensitivity to give
 slower motion, whereas increasing the value has the opposite effect.
 See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="webcam"><b>webcam</b></a>
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>foregroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>saturation</b>&nbsp;&nbsp;<i>N</i></a>&nbsp;]
+[&nbsp;<b>colorPopup</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>flipHorizontal</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+The <b>webcam</b> command (same as <b>device webcam</b>)
+shows webcam video as a flat background behind the ChimeraX scene,
+except that items similar to the specified foreground color
+(default <b>lime green</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="limegreen" width="10px" title="lime green"></td></tr></table>)
+will appear in front.
+This allows pointing with a real item to features in the ChimeraX scene.
+The <b>saturation</b> option sets the stringency of color-matching
+(default <b>5</b>, details below) and the <b>colorPopup</b> option (default
+<b>false</b>) sets whether pausing the cursor over the background shows
+a popup balloon reporting the color of the underlying pixel 
+as R,G,B color components on the 0-100 scale.
+</p><p>
+The <b>flipHorizontal</b> option (default <b>true</b>)
+shows the left-right mirror image of the webcam video so that pointing
+rightward while facing the webcam and screen is shown as 
+pointing rightward in the video.
+</p><p>
+When the command is issued, any unspecified options are set to their defaults.
+</p><p>
+<b>Color-matching details</b>: only the relative intensities of the
+R,G,B components of the foreground color are important.
+Pixels in the webcam view are considered as matching if the intensity
+order of the R,G,B components matches that of the foreground color
+(for example, G>B>R) and these components are separated by at least the 
+<b>saturation</b> value on the 0-100 scale. With the default parameters,
+for example (<b>foregroundColor</b> G>B=R and <b>saturation</b> 5), 
+any pixels with the green component at least 10 greater than both the 
+red and blue components will be shown in front of the ChimeraX scene.
 </p>
 </blockquote>
 
@@ -424,8 +475,6 @@ This command is only available after installation of the
 target="_blank"><b>RealSense</b> bundle</a> from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/"
 target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
-See also:
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" target="blank">Mixed Reality Video Recording in ChimeraX</a>
 </p><p>
 The <b>size</b> and <b>dsize</b> options set camera image resolution
 for color and depth, respectively. Each takes a pair of comma-separated values
@@ -485,7 +534,8 @@ This background depth fill does not help for pixels for which the
 camera has never reported a depth value. The denoising algorithm 
 is based on the assumption that the camera is not moving.
 </blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+July 2020</address>
 </body></html>
