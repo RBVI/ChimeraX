@@ -174,11 +174,13 @@ class BundleBuilder:
             self.name = self.name.replace('_', '-')
             self.logger.warning("Bundle renamed to %r after replacing "
                                 "underscores with hyphens." % self.name)
-        self.version = bi.get("version", '')
+        version = bi.get("version", '')
         try:
-            Version(self.version)
+            # canoncialize version
+            version = str(Version(version))
         except InvalidVersion as err:
             raise ValueError("%s line %d" % (err, bi.sourceline))
+        self.version = version
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
