@@ -108,6 +108,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             " multiple different formats or databases; use several 'open' commands"
             " instead.")
     opened_models = []
+    ungrouped_models = []
     statuses = []
     if homogeneous:
         data_format = formats.pop() if formats else None
@@ -124,6 +125,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
+                    ungrouped_models.extend(models)
         else:
             opener_info, provider_info = mgr.open_info(data_format)
             if provider_info.batch:
@@ -135,6 +137,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, paths))
+                    ungrouped_models.extend(models)
             else:
                 for fi in file_infos:
                     if provider_info.want_path:
@@ -149,6 +152,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if models:
                         opened_models.append(name_and_group_models(models, name,
                             [fi.file_name]))
+                        ungrouped_models.extend(models)
     else:
         for fi in file_infos:
             opener_info, provider_info = mgr.open_info(fi.data_format)
@@ -162,6 +166,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
@@ -173,6 +178,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [ident]))
+                ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
     if _add_models and len(names) == 1:
@@ -191,10 +197,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
 
     status ='\n'.join(statuses) if statuses else ""
     if _return_status:
-        return opened_models, status
+        return ungrouped_models, status
     elif status:
         session.logger.status(status, log=True)
-    return opened_models
+    return ungrouped_models
 
 def _fetch_info(mgr, database_name, default_format_name):
     db_info = mgr.database_info(database_name)
