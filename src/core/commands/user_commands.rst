@@ -327,16 +327,14 @@ run
 .. autofunction:: chimerax.core.commands.run
     :noindex:
 
-..
-	save
-	====
-	Function defined in *chimerax.save_command.manager* and called via `session.save_command.save_data(...)`
+save
+====
+Function defined in *chimerax.save_command.manager* and called via `session.save_command.save_data(...)`
 
-	.. autoclass:: chimerax.open_command.manager.OpenManager
-		:members: open_data
-	Function defined in *chimerax.save_command.cmd*
+.. autoclass:: chimerax.save_command.manager.SaveManager
+	:members: save_data
 
-	.. autofunction:: chimerax.save_command.cmd.provider_save
+.. autofunction:: chimerax.save_command.cmd.provider_save
 
 select
 ======
