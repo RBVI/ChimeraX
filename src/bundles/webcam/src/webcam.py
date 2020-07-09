@@ -371,8 +371,8 @@ class ColorPick(Pick):
 from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
-    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
-#    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
+#    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
+    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
 
     def __init__(self, new_frame_cb):
         self._rgba_image = None		# Numpy uint8 array of size (h, w, 4)
@@ -433,11 +433,15 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         rgba_image = empty((h,w,4), uint8)
 
     # Convert video frame data to rgba
-    data = f.bits()
+    data = f.bits()		# sip.voidptr
+    pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
+    from ._webcam import bgra_to_rgba, yuyv_to_rgba
     if pixel_format == f.Format_ARGB32:
-        a = _argb32_image_to_numpy(data, rgba_image)
+        a = bgra_to_rgba(pointer, rgba_image)
+#        a = _bgra_to_rgba(data, rgba_image)
     elif pixel_format == f.Format_YUYV:
-        a = _yuyv_image_to_numpy(data, rgba_image)
+        a = yuyv_to_rgba(pointer, rgba_image)
+#        a = _yuyv_to_rgba(data, rgba_image)
 
     # Release mapped video frame data.
     f.unmap()
@@ -446,7 +450,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
 
 # -----------------------------------------------------------------------------
 #
-def _argb32_image_to_numpy(data, rgba_image):
+def _bgra_to_rgba(data, rgba_image):
     # TODO: add an array argument and avoid making temporary arrays.
     #  Best done in C++.
     h,w = rgba_image.shape[:2]
@@ -461,7 +465,7 @@ def _argb32_image_to_numpy(data, rgba_image):
 
 # -----------------------------------------------------------------------------
 #
-def _yuyv_image_to_numpy(data, rgba_image):
+def _yuyv_to_rgba(data, rgba_image):
     h,w = rgba_image.shape[:2]
     buf = data.asstring(h*w*2)
     from numpy import uint8, frombuffer
