@@ -191,7 +191,8 @@ class WebCam (Model):
         rate_avail = [s for s in available if s.maximumFrameRate() >= fps]
         if len(rate_avail) == 0:
             rate_avail = available
-            max_key = lambda s: s.maximumFrameRate()
+            max_key = lambda s: (s.maximumFrameRate(),
+                                 s.resolution().width()*s.resolution().height())
         else:
             max_key = lambda s: (s.resolution().width()*s.resolution().height(),
                                  s.maximumFrameRate())
