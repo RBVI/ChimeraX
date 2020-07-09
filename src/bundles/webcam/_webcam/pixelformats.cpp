@@ -149,7 +149,7 @@ set_color_alpha(PyObject *, PyObject *args, PyObject *keywds)
   if (color.size(0) != 4)
     {
       PyErr_Format(PyExc_TypeError, "color had size %s, require 4",
-		   color.size_string());
+		   color.size_string().c_str());
       return NULL;
     }
 
