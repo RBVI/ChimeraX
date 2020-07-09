@@ -14,14 +14,15 @@
 # -----------------------------------------------------------------------------
 #
 def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation = 10,
-           flip_horizontal = True, color_popup = False):
+           flip_horizontal = True, framerate = 25, color_popup = False):
 
     wc_list = session.models.list(type = WebCam)
     if enable:
         if len(wc_list) == 0:
             wc = WebCam('webcam', session,
                         foreground_color = foreground_color, saturation = saturation,
-                        flip_horizontal = flip_horizontal, color_popup = color_popup)
+                        flip_horizontal = flip_horizontal, color_popup = color_popup,
+                        framerate = framerate)
             session.models.add([wc])
             w,h = wc.size
             msg = ('Web camera "%s", width %d, height %d, framerate %.4g'
@@ -42,12 +43,14 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, create_alias, BoolArg, Color8Arg, IntArg
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import BoolArg, Color8Arg, IntArg, FloatArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('foreground_color', Color8Arg),
                               ('saturation', IntArg),
                               ('flip_horizontal', BoolArg),
-                              ('color_popup', BoolArg)],
+                              ('color_popup', BoolArg),
+                              ('framerate', FloatArg)],
                    synopsis = 'Turn on webcam rendering')
     register('webcam', desc, webcam, logger=logger)
     create_alias('device webcam', 'webcam $*', logger=logger)
@@ -60,7 +63,7 @@ class WebCam (Model):
     casts_shadows = False
     SESSION_SAVE = False
     def __init__(self, name, session, foreground_color = (0,255,0,255), saturation = 10,
-                 color_popup = False, flip_horizontal = True):
+                 color_popup = False, flip_horizontal = True, framerate = 15):
         Model.__init__(self, name, session)
 
         self._camera = None		# QCamera
@@ -68,6 +71,7 @@ class WebCam (Model):
         self._capture = None		# VideoCapture instance
         self.size = None		# Width, height in pixels
         self.framerate = None		# Frames per second, float
+        self._requested_framerate = framerate
         self._first_image = True	# Whether first image has been acquired
         self._last_image = None		# Numpy color array (h,w,3) uint8
         self.foreground_color = foreground_color  # What color pixels to put in front of models
@@ -130,17 +134,10 @@ class WebCam (Model):
     def _start_capture(self):
         
         cam = self._camera
-        settings = cam.viewfinderSettings()
-
-        res = settings.resolution()
-        w, h = res.width(), res.height()
-        self.size = (w,h)
-        frmin, frmax = settings.minimumFrameRate(), settings.maximumFrameRate()
-        self.framerate = frmax
-
         capture = VideoCapture(self._new_frame)
         self._capture = capture
         cam.setViewfinder(capture)
+        # self._report_supported_pixel_formats()
         # Have to set camera pixel format after setting camera view finder
         # otherwise it does not seem to know the available pixel formats
         # and just uses default pixel format.
@@ -151,7 +148,15 @@ class WebCam (Model):
             # Pixel format not offered by camera.
             self._close_camera()
             raise
-        w,h = self.size
+
+        # Check the resolution and framerate we got.
+        settings = cam.viewfinderSettings()
+        res = settings.resolution()
+        w, h = res.width(), res.height()
+        self.size = (w,h)
+        frmin, frmax = settings.minimumFrameRate(), settings.maximumFrameRate()
+        self.framerate = frmax
+
         from PyQt5.QtCore import QSize
         fmt = QVideoSurfaceFormat(QSize(w,h), pixel_format)
         capture.start(fmt)
@@ -171,12 +176,28 @@ class WebCam (Model):
                                 % (self.camera_name,
                                    ','.join(_qt_pixel_format_name(f) for f in pformats),
                                    ','.join(_qt_pixel_format_name(f) for f in VideoCapture.supported_formats)))
-            from PyQt5.QtMultimedia import QCameraViewfinderSettings
-            new_settings = QCameraViewfinderSettings(settings)
-            new_settings.setPixelFormat(pixel_format)
-            cam.setViewfinderSettings(new_settings)
+            self._choose_resolution_and_framerate(pixel_format)
         return pixel_format
-    
+
+    def _choose_resolution_and_framerate(self, pixel_format):
+        cam = self._camera
+        available = [settings for settings in cam.supportedViewfinderSettings()
+                     if settings.pixelFormat() == pixel_format]
+        if len(available) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No supported settings for pixel format %s'
+                            % _qt_pixel_format_name(pixel_format))
+        fps = self._requested_framerate
+        rate_avail = [s for s in available if s.maximumFrameRate() >= fps]
+        if len(rate_avail) == 0:
+            rate_avail = available
+            max_key = lambda s: s.maximumFrameRate()
+        else:
+            max_key = lambda s: (s.resolution().width()*s.resolution().height(),
+                                 s.maximumFrameRate())
+        settings = max(rate_avail, key = max_key)
+        cam.setViewfinderSettings(settings)
+        
     def _report_supported_pixel_formats(self):
         cam = self._camera
         pformats = cam.supportedViewfinderPixelFormats()
@@ -299,6 +320,7 @@ class WebCam (Model):
         cur_view = r.current_view_matrix
         r.set_view_matrix(p0)
         r.set_model_matrix(p0)
+        r.enable_blending(False)
 
         Model.draw(self, r, draw_pass)
             
@@ -371,8 +393,8 @@ class ColorPick(Pick):
 from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
-#    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
-    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
+    supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
+#    supported_formats = (QVideoFrame.Format_YUYV, QVideoFrame.Format_ARGB32)
 
     def __init__(self, new_frame_cb):
         self._rgba_image = None		# Numpy uint8 array of size (h, w, 4)
@@ -417,7 +439,8 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         if ih != h or iw != w:
             raise ValueError('QVideoFrame size (%d,%d) does not match expected image size (%d,%d)'
                              % (w, h, iw, ih))
-    nbytes = h * w * 4
+    bytes_per_pixel = {f.Format_ARGB32:4, f.Format_YUYV:2}[pixel_format]
+    nbytes = h * w * bytes_per_pixel
     if f.mappedBytes() != nbytes:
         global _wrong_frame_size
         if not _wrong_frame_size:
