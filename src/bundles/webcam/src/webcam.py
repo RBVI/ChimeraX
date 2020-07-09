@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation = 10,
+def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation = 5,
            flip_horizontal = True, framerate = 25, color_popup = False):
 
     wc_list = session.models.list(type = WebCam)
@@ -233,11 +233,15 @@ class WebCam (Model):
         '''
         Set image alpha values to 0 for pixels that should appear in front of models.
         '''
-        # TODO: This should be done in C++ for speed
+        fg = self.foreground_color
+        sat = int(2.55*self.saturation)  # Convert 0-100 scale to 0-255
+        from ._webcam import set_color_alpha
+        set_color_alpha(rgba_image, fg, sat, 0)
+        return
+
+        # Unused Python version
         im = rgba_image
         rgb = [im[:,:,c] for c in (0,1,2)]
-        fg = self.foreground_color
-        sat = self.saturation
         fg_mask = None
         from numpy import logical_and
         for j,k in ((0,1), (1,2), (0,2)):

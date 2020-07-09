@@ -81,30 +81,102 @@ yuyv_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
   for (int64_t i = 0 ; i < wh2 ; ++i)
     {
       unsigned int c = yuyv[i];
-      float y0 = c & 0xff, u = (c & 0xff00) >> 8, y1 = (c & 0xff0000) >> 16, v = (c & 0xff000000) >> 24;
+      float y0 = (float)(c & 0xff);
+      float u = (float)((c & 0xff00) >> 8);
+      float y1 = (float)((c & 0xff0000) >> 16);
+      float v = (float)((c & 0xff000000) >> 24);
 
       // From https://www.fourcc.org/fccyvrgb.php
       // B = 1.164(Y - 16)                   + 2.018(U - 128)
       // G = 1.164(Y - 16) - 0.813(V - 128) - 0.391(U - 128)
       // R = 1.164(Y - 16) + 1.596(V - 128)
-      float y0s = 1.164 * (y0 - 16), y1s = 1.164 * (y1 - 16);
-      float us = (u - 128), vs = (v - 128);
+      float y0s = 1.164f * (y0 - 16.f), y1s = 1.164f * (y1 - 16.f);
+      float us = (u - 128.f), vs = (v - 128.f);
 
-      float b0 = y0s              + 2.018 * us;
-      float g0 = y0s - 0.813 * vs - 0.391 * us;
-      float r0 = y0s + 1.596 * vs;
+      float b0 = y0s               + 2.018f * us;
+      float g0 = y0s - 0.813f * vs - 0.391f * us;
+      float r0 = y0s + 1.596f * vs;
       unsigned int ir0 = (r0 < 0 ? 0 : (r0 >= 256 ? 255 : (int)r0));
       unsigned int ig0 = (g0 < 0 ? 0 : (g0 >= 256 ? 255 : (int)g0));
       unsigned int ib0 = (b0 < 0 ? 0 : (b0 >= 256 ? 255 : (int)b0));
       rgba[2*i] = ir0 | (ig0 << 8) | (ib0 << 16) | a;
       
-      float b1 = y1s              + 2.018 * us;
-      float g1 = y1s - 0.813 * vs - 0.391 * us;
-      float r1 = y1s + 1.596 * vs;
+      float b1 = y1s              + 2.018f * us;
+      float g1 = y1s - 0.813f * vs - 0.391f * us;
+      float r1 = y1s + 1.596f * vs;
       unsigned int ir1 = (r1 < 0 ? 0 : (r1 >= 256 ? 255 : (int)r1));
       unsigned int ig1 = (g1 < 0 ? 0 : (g1 >= 256 ? 255 : (int)g1));
       unsigned int ib1 = (b1 < 0 ? 0 : (b1 >= 256 ? 255 : (int)b1));
       rgba[2*i+1] = ir1 | (ig1 << 8) | (ib1 << 16) | a;
+    }
+  
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+//
+inline bool color_match(unsigned int rgba, int *comps, int nc, int saturation)
+{
+  for (int i = 0 ; i < nc ; ++i)
+    {
+      unsigned int c1 = (rgba >> 8*comps[2*i]) & 0xff;
+      unsigned int c2 = (rgba >> 8*comps[2*i+1]) & 0xff;
+      if (c1 < c2 + saturation)
+	return false;
+    }
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+set_color_alpha(PyObject *, PyObject *args, PyObject *keywds)
+{
+  BArray color;
+  Numeric_Array rgba_image;
+  int alpha, saturation;
+  const char *kwlist[] = {"rgba_array", "color", "saturation", "alpha", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&ii"),
+				   (char **)kwlist,
+				   parse_writable_3d_array, &rgba_image,
+				   parse_uint8_n_array, &color,
+				   &saturation,
+				   &alpha))
+    return NULL;
+
+  if (!check_rgba_array(rgba_image))
+    return NULL;
+  if (color.size(0) != 4)
+    {
+      PyErr_Format(PyExc_TypeError, "color had size %s, require 4",
+		   color.size_string());
+      return NULL;
+    }
+
+  // Determine which pairs of color components to compare
+  // based on relative size of components of specified color.
+  unsigned char *ca = color.values();
+  int comps[6], nc = 0;
+  for (int i = 0 ; i < 3 ; ++i)
+    {
+      int i1 = (i+1)%3;
+      if (ca[i] > ca[i1])
+	{ comps[2*nc] = i; comps[2*nc+1] = i1; nc += 1; }
+      else if (ca[i] < ca[i1])
+	{ comps[2*nc] = i1; comps[2*nc+1] = i; nc += 1; }
+    }
+
+  // Set alpha value for image pixels that have color with
+  // same components of similar relative size.
+  unsigned int *rgba = static_cast<unsigned int *>(rgba_image.values());
+  int64_t h = rgba_image.size(0), w = rgba_image.size(1);
+  int64_t wh = w*h;
+  unsigned int a24 = ((unsigned int)alpha) << 24;
+  for (int64_t i = 0 ; i < wh ; ++i)
+    {
+      unsigned int c = rgba[i];
+      if (color_match(c, comps, nc, saturation))
+	  rgba[i] = (c & 0xffffff) | a24;
     }
   
   return python_none();
@@ -149,6 +221,15 @@ static PyMethodDef webcam_methods[] = {
    "yuyv_to_rgba(yuyv_data, rgba_array)\n"
    "\n"
    "Convert yuyv pixels to rgba pixels for a 2D array.\n"
+   "Implemented in C++.\n"
+  },
+  {const_cast<char*>("set_color_alpha"), (PyCFunction)set_color_alpha,
+   METH_VARARGS|METH_KEYWORDS,
+   "set_color_alpha(rgba_array, color, saturation, alpha)\n"
+   "\n"
+   "Set image alpha values for colors that match the specified color.\n"
+   "Color matching is based on relative color component sizes and\n"
+   "the saturation value.\n"
    "Implemented in C++.\n"
   },
   {NULL, NULL, 0, NULL}
