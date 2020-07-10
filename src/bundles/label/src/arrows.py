@@ -367,6 +367,11 @@ def session_arrows(session, create=False):
 class Arrow:
     def __init__(self, session, name, color=None, weight=1.0, start=(0.0, 0.0), end=(1.0, 1.0),
             visibility=True, head_style="solid"):
+        from chimerax.core.errors import LimitationError
+        has_graphics = session.main_view.render is not None
+        if not has_graphics:
+            raise LimitationError("Unable to draw arrows without rendering images")
+
         self.session = session
         self.name = name
         self.color = color
