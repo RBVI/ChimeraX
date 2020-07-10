@@ -2564,7 +2564,8 @@ class Buffer:
             b = GL.glGenBuffers(1) if replace_buffer else self.opengl_buffer
             btype = self.buffer_type
             GL.glBindBuffer(btype, b)
-            if data.dtype == self.value_type:
+            if data.dtype == self.value_type and data.flags['C_CONTIGUOUS']:
+                # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
                 d = data
             else:
                 d = data.astype(self.value_type)
@@ -2761,7 +2762,9 @@ class Texture:
     def __init__(self, data=None, dimension=2, cube_map=False,
                  linear_interpolation=True, clamp_to_edge=False):
 
-        self.data = data
+        # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
+        d = data if data is None or data.flags['C_CONTIGUOUS'] else data.copy()
+        self.data = d
         self.id = None
         self.dimension = dimension
         self.size = None
@@ -2913,7 +2916,9 @@ class Texture:
         array data.  The data is interpreted the same as for the Texture
         constructor data argument.
         '''
-        self.data = data
+        # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
+        d = data if data.flags['C_CONTIGUOUS'] else data.copy()
+        self.data = d
         if now:
             self.fill_opengl_texture()
 
