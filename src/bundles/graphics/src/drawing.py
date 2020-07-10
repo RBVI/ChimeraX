@@ -2054,10 +2054,10 @@ def qimage_to_numpy(qi):
     buf = qi.bits().asstring(qi.byteCount())
     from numpy import uint8, frombuffer
     bgra = frombuffer(buf, uint8).reshape(shape)
-    rgba = bgra.copy()
+    # Swap red and blue and flip vertically.
+    rgba = bgra[::-1].copy()
     rgba[:,:,0] = bgra[:,:,2]
     rgba[:,:,2] = bgra[:,:,0]
-    rgba = rgba[::-1,:,:]	# flip
     return rgba
 
 # -----------------------------------------------------------------------------
