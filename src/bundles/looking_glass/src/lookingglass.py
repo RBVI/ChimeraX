@@ -1,0 +1,342 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# -----------------------------------------------------------------------------
+# Command to view models in HTC Vive or Oculus Rift for ChimeraX.
+#
+def lookingglass(session, enable = None, device_number = 0,
+                 view_angle = None, field_of_view = None,
+                 verbose = False, quilt = False):
+    '''
+    Render to LookingGlass holographic display.
+    '''
+    
+    if enable is None:
+        enable = True
+
+    enabled = hasattr(session, '_lg_window')
+    if enable and not enabled:
+        session._lg_window = LookingGlassWindow(session,
+                                                device_number = device_number,
+                                                view_angle = view_angle,
+                                                field_of_view = field_of_view,
+                                                verbose = verbose, quilt = quilt)
+    elif not enable and enabled:
+        session._lg_window.delete()
+        delattr(session, '_lg_window')
+        
+# -----------------------------------------------------------------------------
+#
+def register_lookingglass_command(logger):
+    from chimerax.core.commands import register, create_alias, CmdDesc, BoolArg, IntArg, FloatArg
+    desc = CmdDesc(optional = [('enable', BoolArg)],
+                   keyword = [('device_number', IntArg),
+                              ('view_angle', FloatArg),
+                              ('field_of_view', FloatArg),
+                              ('verbose', BoolArg),
+                              ('quilt', BoolArg),
+                   ],
+                   synopsis = 'Render to LookingGlass holographic display.',
+                   url = 'help:user/commands/device.html#lookingglass')
+    register('lookingglass', desc, lookingglass, logger=logger)
+    create_alias('device lookingglass', 'lookingglass $*', logger=logger,
+                 url='help:user/commands/device.html#lookingglass')
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.graphics import Camera
+class LookingGlassCamera(Camera):
+
+    always_draw = True	# Draw even if main window iconified.
+    name = 'lookingglass'
+    
+    def __init__(self, session, device_number = 0,
+                 view_angle = None, field_of_view = None, verbose = False):
+
+        Camera.__init__(self)
+
+        self._session = session
+        self._device_number = device_number
+        self._hpc = hpc = self._load_device_parameters()	# Parameters needed by shader
+
+        if verbose:
+            session.logger.info('HoloPlay library info:\n%s' % hpc.info())
+
+        if field_of_view is None:
+            field_of_view = 22
+        self.field_of_view = field_of_view	# Corresponds to recommended 14 degree vertical field.
+        if view_angle is None:
+            view_angle = hpc.hpc_GetDeviceViewCone(device_number) if self.found_device() else 40
+        self._view_angle = view_angle		# Camera range of x positions
+        self._focus_depth = 100			# Scene units
+        self._update_focus_depth()
+        self._quilt_size = (w,h) = (4096, 4096)
+        self._quilt_columns = c = 5
+        self._quilt_rows = r = 9
+        self._quilt_tile_size = (w//c, h//r)
+        self._framebuffer = None		# For rendering into quilt texture
+        self._texture_drawing = None		# For rendering quilt to window
+        self._shader = None			# OpenGL shader for drawing quilt to screen
+        
+    def delete(self):
+        self._hpc.hpc_CloseApp()
+        self._hpc = None
+
+        fb = self._framebuffer
+        if fb:
+            fb.delete(make_current = True)
+        self._framebuffer = None
+
+        d = self._texture_drawing
+        if d:
+            d.delete()
+        self._texture_drawing = None
+        
+        self._session = None
+
+    def found_device(self):
+        return self._device_number < self._hpc.hpc_GetNumDevices()
+        
+    def screen_name(self):
+        return self._hpc.hpc_GetDeviceHDMIName(self._device_number) if self.found_device() else None
+        
+    def view(self, camera_position, view_num):
+        '''
+        Return the Place coordinate frame of the camera.
+        As a transform it maps camera coordinates to scene coordinates.
+        '''
+        if view_num is None:
+            v = camera_position
+        else:
+            xoffset = self._x_offset_scene(view_num)
+            from chimerax.geometry import place
+            t = place.translation((xoffset, 0, 0))
+            v = camera_position * t
+        return v
+
+    def _x_offset_scene(self, view_num):
+        from math import tan, pi
+        xrange = self._focus_depth * 2*tan(0.5 * self._view_angle * pi / 180)
+        x = xrange * (view_num / (self.number_of_views()-1) - 0.5)
+        return x
+
+    def _x_offset_pixels(self, view_num):
+        xos = self._x_offset_scene(view_num)
+        from math import tan, pi
+        wscene = self._focus_depth * 2*tan(0.5 * self.field_of_view * pi / 180)
+        wpixels = self._quilt_tile_size[0]
+        xop = wpixels * xos / wscene
+        return xop
+
+    def number_of_views(self):
+        '''Number of views rendered by camera.'''
+        return self._quilt_rows * self._quilt_columns
+
+    def view_width(self, point):
+        from chimerax.graphics.camera import perspective_view_width
+        return perspective_view_width(point, self.position.origin(), self.field_of_view)
+
+    def view_all(self, bounds, window_size = None, pad = 0):
+        from chimerax.graphics.camera import perspective_view_all
+        self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
+        self._update_focus_depth()
+
+    def _set_position(self, p):
+        Camera.set_position(self, p)
+        self._update_focus_depth()
+    position = property(Camera.position.fget, _set_position)
+    
+    def _update_focus_depth(self):
+        v = self._session.main_view
+        b = v.drawing_bounds()
+        if b is None:
+            return
+        view_dir = -self.position.z_axis()
+        delta = b.center() - self.position.origin()
+        from chimerax.geometry import inner_product
+        d = inner_product(delta, view_dir)
+        self._focus_depth = d
+        self.redraw_needed = True
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
+        pixel_shift = (self._x_offset_pixels(view_num), 0)
+        from chimerax.graphics.camera import perspective_projection_matrix
+        return perspective_projection_matrix(self.field_of_view, window_size,
+                                             near_far_clip, pixel_shift)
+    
+    def set_render_target(self, view_num, render):
+        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if view_num == 0:
+            fb = self._quilt_framebuffer(render)
+            render.push_framebuffer(fb)
+            render.draw_background()
+        qc = self._quilt_columns
+        x, y = (view_num % qc), (view_num // qc)
+        w, h  = self._quilt_tile_size
+        render.set_viewport(x * w, y * h, w, h)
+
+    def draw_background(self, view_num, render):
+        if render.current_framebuffer() is not self._quilt_framebuffer(render):
+            render.draw_background()
+    
+    def combine_rendered_camera_views(self, render):
+        render.pop_framebuffer()
+        self._draw_quilt(render)
+
+    def _quilt_framebuffer(self, render):
+        fb = self._framebuffer
+        if fb is None:
+            from chimerax.graphics import Texture, opengl
+            t = Texture()
+            qw,qh = self._quilt_size
+            t.initialize_rgba((qw,qh))
+            fb = opengl.Framebuffer('LookingGlass quilt', render.opengl_context, color_texture = t)
+            self._framebuffer = fb
+        return fb
+
+    def _load_device_parameters(self):
+        from .holoplay import HoloPlayCore
+        hpc = HoloPlayCore()
+        err = hpc.hpc_InitializeApp('ChimeraX', hpc.hpc_LICENSE_NONCOMMERCIAL)
+        if err:
+            msg = 'Failed to initialize HoloPlay: %s' % hpc.error_code_message(err)
+            self._session.logger.warning(msg)
+        return hpc
+    
+    def _draw_quilt(self, render):
+        drawing = self._quilt_drawing()
+        ds = drawing._draw_shape
+        ds.activate_bindings(render)
+
+        shader = self._quilt_shader(render)
+        from OpenGL import GL
+        GL.glUseProgram(shader.program_id)
+        render._opengl_context.current_shader_program = None   # Clear cached shader
+        shader.set_integer("screenTex", 0)    # Texture unit 0.
+        qsize = (self._quilt_size[0], self._quilt_size[1], self._quilt_rows, self._quilt_columns)
+        self._hpc.set_shader_uniforms(shader, self._device_number, qsize)
+
+        t = drawing.texture
+        t.bind_texture()
+        ds.draw(drawing.Solid)  # draw triangle
+        t.unbind_texture()
+
+    def _quilt_drawing(self):
+        '''Used  to render ChimeraX desktop graphics window.'''
+        td = self._texture_drawing
+        if td is None:
+            # Drawing for rendering quilt texture to ChimeraX window
+            texture = self._framebuffer.color_texture
+            from chimerax.graphics.drawing import _texture_drawing
+            self._texture_drawing = td = _texture_drawing(texture)
+            td.opaque_texture = True
+            td._create_vertex_buffers()
+            td._update_buffers()
+        return td
+
+    def _quilt_shader(self, render):
+        if self._shader is None:
+            # Create shader
+            from os.path import dirname, join
+            vertex_shader_path = join(dirname(__file__), 'vertex_shader.txt')
+            fragment_shader_path = join(dirname(__file__), 'fragment_shader.txt')
+            capabilities = render.SHADER_BLEND_TEXTURE_2D
+            from chimerax.graphics.opengl import Shader
+            shader = Shader(vertex_shader_path = vertex_shader_path,
+                            fragment_shader_path = fragment_shader_path,
+                            capabilities = capabilities)
+            self._shader = shader
+        return self._shader
+    
+# -------------------------------------------------------------------------------------------------
+#
+from PyQt5.QtGui import QWindow
+class LookingGlassWindow(QWindow):
+    def __init__(self, session, device_number = 0,
+                 view_angle = None, field_of_view = None,
+                 verbose = False, quilt = False):
+        self._session = session
+
+        lgc = LookingGlassCamera(session,
+                                 device_number = device_number,
+                                 view_angle = view_angle,
+                                 field_of_view = field_of_view,
+                                 verbose = verbose)
+        self._looking_glass_camera = lgc
+
+        screen_name = lgc.screen_name()
+        if screen_name is None or quilt:
+            screen = None
+        else:
+            screens = session.ui.screens()
+            lkg_screens = [s for s in screens if s.name() == screen_name]
+            screen = lkg_screens[0] if lkg_screens else None
+
+        QWindow.__init__(self, screen)
+        from PyQt5.QtGui import QSurface
+        self.setSurfaceType(QSurface.OpenGLSurface)
+
+        if screen is not None:
+            session.main_view.camera.field_of_view = lgc.field_of_view
+            self.showFullScreen()
+        else:
+            if not quilt:
+                if screen_name is None:
+                    msg = 'Did not find any connected LookingGlass display'
+                else:
+                    msg = ('Did not find LookingGlass screen name %s, found %s'
+                           % (screen_name, ', '.join(s.name() for s in screens)))
+                session.logger.warning(msg)
+            lgc._hpc._show_quilt = True
+            self.setWidth(500)
+            self.setHeight(500)
+            self.show()
+
+        t = session.triggers
+        self._render_handler = t.add_handler('frame drawn', self._frame_drawn)
+        self._app_quit_handler = t.add_handler('app quit', self._app_quit)
+
+    def delete(self):
+        t = self._session.triggers
+        t.remove_handler(self._render_handler)
+        t.remove_handler(self._app_quit_handler)
+        self._render_handler = None
+        self._app_quit_handler = None
+        self._looking_glass_camera.delete()
+        self._looking_glass_camera = None
+        self.close()	# QWindow method
+
+    def _app_quit(self, tname, tdata):
+        self.delete()
+
+    def event(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.Expose:
+            self._render()
+        return QWindow.event(self, event)
+
+    def _frame_drawn(self, tname, tdata):
+        self._render()
+        
+    def _render(self):
+        camera = self._looking_glass_camera
+        if camera is None:
+            return   # Window deleted
+        view = self._session.main_view
+        r = view.render
+        mvwin = r.use_shared_context(self)
+        camera.position = view.camera.position
+        view.draw(camera = camera)
+        r.use_shared_context(mvwin)  # Reset opengl window
+        r.done_current()
