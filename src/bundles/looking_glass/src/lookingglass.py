@@ -227,10 +227,12 @@ class LookingGlassCamera(Camera):
         qsize = (self._quilt_size[0], self._quilt_size[1], self._quilt_rows, self._quilt_columns)
         self._hpc.set_shader_uniforms(shader, self._device_number, qsize)
 
+        render.enable_depth_test(False)
         t = drawing.texture
         t.bind_texture()
         ds.draw(drawing.Solid)  # draw triangle
         t.unbind_texture()
+        render.enable_depth_test(True)
 
     def _quilt_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
@@ -257,6 +259,7 @@ class LookingGlassCamera(Camera):
                             fragment_shader_path = fragment_shader_path,
                             capabilities = capabilities)
             self._shader = shader
+            shader.validate_program()
         return self._shader
     
 # -------------------------------------------------------------------------------------------------
