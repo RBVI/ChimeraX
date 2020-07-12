@@ -204,13 +204,13 @@ class View:
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if no_drawings:
-                r.draw_background()
+                camera.draw_background(vnum, r)
                 continue
             if offscreen:
                 offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
-            r.draw_background()
+            camera.draw_background(vnum, r)
             self._update_projection(camera, vnum)
             if r.recording_opengl:
                 from . import gllist
