@@ -321,10 +321,11 @@ class LookingGlassWindow(QWindow):
             screen = lkg_screens[0] if lkg_screens else None
             if screen is None:
                 from sys import platform
-                if platform == 'win32':
-                    # On Windows 10 and Qt 5.12 the Qt screen name does not match
-                    # the HoloPlay screen name.  There appears to be no way to identify
-                    # the correct screen.
+                if platform == 'win32' or platform == 'linux':
+                    # On Windows 10 and Linux Ubuntu 18.04 with Qt 5.12 the Qt screen name
+                    # does not match the HoloPlay screen name.
+                    # There appears to be no way to reliably identify the correct screen.
+                    # Use the non-primary screen.
                     extra_screens = [s for s in screens if s is not app.primaryScreen()]
                     if len(extra_screens) == 1:
                         screen = extra_screens[0]
