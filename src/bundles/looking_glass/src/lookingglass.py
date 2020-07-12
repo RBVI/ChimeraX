@@ -278,29 +278,29 @@ class LookingGlassWindow(QWindow):
                                  verbose = verbose)
         self._looking_glass_camera = lgc
 
-        screen_name = lgc.screen_name()
-        if screen_name is None or quilt:
-            screen = None
-        else:
-            screens = session.ui.screens()
-            lkg_screens = [s for s in screens if s.name() == screen_name]
-            screen = lkg_screens[0] if lkg_screens else None
-
-        QWindow.__init__(self, screen)
+        screen = None if quilt else self._looking_glass_screen()
+        QWindow.__init__(self, screen = screen)
         from PyQt5.QtGui import QSurface
         self.setSurfaceType(QSurface.OpenGLSurface)
 
-        if screen is not None:
+        if screen:
             session.main_view.camera.field_of_view = lgc.field_of_view
-            self.showFullScreen()
+            from sys import platform
+            if platform == 'win32':
+                # Qt 5.12 hangs if OpenGL window is put on second display
+                # but works if moved after a delay.
+                self.setScreen(self._session.ui.primaryScreen())
+                def _set_fullscreen(self=self, screen=screen):
+                    self.setScreen(screen)
+                    self.showFullScreen()
+                # Have to save reference to timer or it is deleted before executing.
+                self._timer = self._session.ui.timer(1000, _set_fullscreen)
+                #from PyQt5.QtCore import Qt
+                #self.setFlags(Qt.FramelessWindowHint)
+                self.show()
+            else:
+                self.showFullScreen()
         else:
-            if not quilt:
-                if screen_name is None:
-                    msg = 'Did not find any connected LookingGlass display'
-                else:
-                    msg = ('Did not find LookingGlass screen name %s, found %s'
-                           % (screen_name, ', '.join(s.name() for s in screens)))
-                session.logger.warning(msg)
             lgc._hpc._show_quilt = True
             self.setWidth(500)
             self.setHeight(500)
@@ -309,6 +309,34 @@ class LookingGlassWindow(QWindow):
         t = session.triggers
         self._render_handler = t.add_handler('frame drawn', self._frame_drawn)
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
+        
+    def _looking_glass_screen(self):
+        screen_name = self._looking_glass_camera.screen_name()
+        if screen_name is None:
+            screen = None
+        else:
+            app = self._session.ui
+            screens = app.screens()
+            lkg_screens = [s for s in screens if s.name() == screen_name]
+            screen = lkg_screens[0] if lkg_screens else None
+            if screen is None:
+                from sys import platform
+                if platform == 'win32':
+                    # On Windows 10 and Qt 5.12 the Qt screen name does not match
+                    # the HoloPlay screen name.  There appears to be no way to identify
+                    # the correct screen.
+                    extra_screens = [s for s in screens if s is not app.primaryScreen()]
+                    if len(extra_screens) == 1:
+                        screen = extra_screens[0]
+
+        if screen is None:
+            if screen_name is None:
+                msg = 'Did not find any connected LookingGlass display'
+            else:
+                msg = ('Did not find LookingGlass screen name %s, found %s'
+                       % (screen_name, ', '.join(s.name() for s in screens)))
+            self._session.logger.warning(msg)
+        return screen
 
     def delete(self):
         t = self._session.triggers
