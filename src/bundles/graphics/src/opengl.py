@@ -674,7 +674,7 @@ class Render:
                 p = sp[capabilities]
                 sp[orig_cap] = p
         if p is None:
-            p = Shader(capabilities, self.multishadow.max_multishadows())
+            p = Shader(capabilities = capabilities, max_shadows = self.multishadow.max_multishadows())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
@@ -1626,6 +1626,8 @@ class Offscreen:
             self._offscreen_framebuf = None
 
     def start(self, render):
+        # TODO: Should only push new framebuffer if current framebuffer is not
+        #   an offscreen buffer.
         r = render
         fb = self._offscreen_framebuffer(r)
         r.push_framebuffer(fb)
@@ -2564,7 +2566,8 @@ class Buffer:
             b = GL.glGenBuffers(1) if replace_buffer else self.opengl_buffer
             btype = self.buffer_type
             GL.glBindBuffer(btype, b)
-            if data.dtype == self.value_type:
+            if data.dtype == self.value_type and data.flags['C_CONTIGUOUS']:
+                # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
                 d = data
             else:
                 d = data.astype(self.value_type)
@@ -2612,10 +2615,21 @@ class Buffer:
 class Shader:
     '''OpenGL shader program with specified capabilities.'''
 
-    def __init__(self, capabilities, max_shadows):
+    def __init__(self, capabilities = 0, max_shadows = 0,
+                 vertex_shader_path = None, fragment_shader_path = None):
 
         self.capabilities = capabilities
-        self.program_id = self.compile_shader(capabilities, max_shadows)
+
+        if vertex_shader_path is None:
+            from os.path import dirname, join
+            vertex_shader_path = join(dirname(__file__), 'vertexShader.txt')
+
+        if fragment_shader_path is None:
+            from os.path import dirname, join
+            fragment_shader_path = join(dirname(__file__), 'fragmentShader.txt')
+
+        self.program_id = self.compile_shader(vertex_shader_path, fragment_shader_path,
+                                              capabilities, max_shadows)
         self.uniform_ids = {}
         self._validated = False	# Don't validate program until uniforms set.
 
@@ -2660,15 +2674,14 @@ class Shader:
             uids[name] = uid
         return uid
 
-    def compile_shader(self, capabilities, max_shadows):
+    def compile_shader(self, vertex_shader_path, fragment_shader_path,
+                       capabilities = 0, max_shadows = 0):
 
-        from os.path import dirname, join
-        d = dirname(__file__)
-        f = open(join(d, 'vertexShader.txt'), 'r')
+        f = open(vertex_shader_path, 'r')
         vshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
-        f = open(join(d, 'fragmentShader.txt'), 'r')
+        f = open(fragment_shader_path, 'r')
         fshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
@@ -2680,7 +2693,6 @@ class Shader:
             raise OpenGLError(str(e))
 
         prog_id = self.compile_program(vs, fs)
-        #prog_id = shaders.compileProgram(vs, fs)
 
         # msg = (('Compiled shader %d,\n'
         #        ' capbilities %s,\n'
@@ -2761,7 +2773,9 @@ class Texture:
     def __init__(self, data=None, dimension=2, cube_map=False,
                  linear_interpolation=True, clamp_to_edge=False):
 
-        self.data = data
+        # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
+        d = data if data is None or data.flags['C_CONTIGUOUS'] else data.copy()
+        self.data = d
         self.id = None
         self.dimension = dimension
         self.size = None
@@ -2913,7 +2927,9 @@ class Texture:
         array data.  The data is interpreted the same as for the Texture
         constructor data argument.
         '''
-        self.data = data
+        # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
+        d = data if data.flags['C_CONTIGUOUS'] else data.copy()
+        self.data = d
         if now:
             self.fill_opengl_texture()
 

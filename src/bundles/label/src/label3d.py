@@ -615,6 +615,10 @@ class ObjectLabel:
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
+        from chimerax.core.errors import LimitationError
+        has_graphics = session.main_view.render is not None
+        if not has_graphics:
+            raise LimitationError("Unable to draw 3D labels without rendering images")
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
