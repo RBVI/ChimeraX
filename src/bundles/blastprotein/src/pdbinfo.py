@@ -167,30 +167,45 @@ class PDB_Chain_Info:
         if len(pdb_chain_ids) == 0:
             return {}
 
-        pdb_ids = [tuple(id.split('_')) for id in pdb_chain_ids]
-
-        author_data = new_fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', pdb_ids)
-        if author_data is None:
-            # TODO: Warn that fetch failed.
-            return {}
-
         # The tool presents some data that is based on all chains of the structure,
         # so look up all polymers in the entries, leveraging data cached from the
         # previous entry lookup
+        # Also, Blast uses author chain ID whereas RSCB web service uses 'canonical'
+        # chain ID, so make a mapping from one to the other
         polymer_data = {}
+        chainID_mapping = {}
+        reverse_chainID_mapping = {}
         global _polymer_info
         for entry_code, entity_ids in _polymer_info.items():
             polymer_data[entry_code] = per_entity_data = {}
+            chainID_mapping[entry_code] = cid_mapping = {}
+            reverse_chainID_mapping[entry_code] = back_map = {}
             for entity_id in entity_ids:
-                per_entity_data[entity_id] = new_fetch_from_pdb(session,
+                per_entity_data[entity_id] = edata = new_fetch_from_pdb(session,
                     'polymer_entity/%s/%s', [(entry_code, entity_id)])[(entry_code, entity_id)]
+                id_data = edata['rcsb_polymer_entity_container_identifiers']
+                canon = id_data['asym_ids']
+                auth = id_data['auth_asym_ids']
+                cid_mapping.update(dict(zip(auth, canon)))
+                back_map.update(dict(zip(canon, auth)))
+
+        pdb_ids = [tuple(id.split('_')) for id in pdb_chain_ids]
+        mapped_pdb_ids = [(code, chainID_mapping[code].get(cid, cid)) for code, cid in pdb_ids]
+
+        canon_data = new_fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', mapped_pdb_ids)
+        if canon_data is None:
+            # TODO: Warn that fetch failed.
+            return {}
 
         # Compute derived chain attributes
         pimap = {}
-        for pcid, author in author_data.items():
+
+        for pcid, canon in canon_data.items():
             polymers = polymer_data[pcid[0]]
-            pdb_id, cid = pcid
-            pimap[pdb_id + '_' + cid] = self.chain_properties(author, polymers)
+            pdb_id, canon_cid = pcid
+            # need to map canonical chain ID back to author chain ID
+            auth_cid = reverse_chainID_mapping[pdb_id].get(canon_cid, canon_cid)
+            pimap[pdb_id + '_' + auth_cid] = self.chain_properties(canon, polymers)
 
         return pimap
 
