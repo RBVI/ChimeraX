@@ -30,7 +30,7 @@ def _execute(session, name):
     kw = {'set_lighting': len(structures) < 2}
     if name in name_mapping:
         kw['style'] = name_mapping[name]
-    from .nucleotides.cmd import nucleotides
+    from chimerax.nucleotides.cmd import nucleotides
     nucleotides(session, 'atoms', create_undo=False)
     surfaces = [cm for s in structures
                    for cm in s.child_models()

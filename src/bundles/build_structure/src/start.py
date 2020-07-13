@@ -145,7 +145,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     from chimerax.atomic import Residues
     residues = Residues(residues)
 
-    from chimerax.atomic.swap_res import swap_aa
+    from chimerax.swap_res import swap_aa
     # swap_aa is capable of swapping all residues in one call, but need to process one by one
     # since side-chain clashes are only calculated against pre-existing side chains
     kw = {}

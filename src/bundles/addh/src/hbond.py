@@ -215,7 +215,7 @@ def add_hydrogens(session, atom_list, *args):
             hbond_info[atom] = [(alt_loc, h_positions, [])
                 for alt_loc, _, h_positions in altloc_hpos_info]
 
-    from chimerax.atomic.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
+    from chimerax.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
 
     logger.status("Finding hydrogen bonds", blank_after=0, secondary=True)
     donors = {}

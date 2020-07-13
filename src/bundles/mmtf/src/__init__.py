@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # get shared lib loaded
-from chimerax.atomic import pdb
+from chimerax import pdb
 
 from chimerax.core.toolshed import BundleAPI
 

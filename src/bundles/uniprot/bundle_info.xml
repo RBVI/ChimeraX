@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-uniprot" version="1.0"
-	    package="chimerax.seqlign.uniprot"
+<BundleInfo name="ChimeraX-uniprot" version="2.0"
+	    package="chimerax.uniprot"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
