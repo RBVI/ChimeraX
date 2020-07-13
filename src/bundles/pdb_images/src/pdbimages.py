@@ -83,7 +83,7 @@ def cif_files(directory, subdirectories, exclude, image_suffix):
 
 def save_images(path, width, height, supersample, image_suffix, session):
 
-    from chimerax.atomic.mmcif import open_mmcif
+    from chimerax.mmcif import open_mmcif
     mols, msg = open_mmcif(session, path)
     mol = mols[0]
     session.models.add([mol]) # Only use first model in nmr ensembles.

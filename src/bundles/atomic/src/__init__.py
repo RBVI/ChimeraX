@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
-    StructureSeq, PseudobondManager, Ring, ChangeTracker
+    StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds

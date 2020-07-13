@@ -64,6 +64,11 @@ def label(session, objects = None, object_type = None, text = None,
     if text is not None and attribute is not None:
         raise UserError("Cannot specify both 'text' and 'attribute' keywords")
 
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to draw 3D labels without rendering images")
+
     settings = {}
     if text == 'default':
         settings['text'] = None

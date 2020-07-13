@@ -156,6 +156,8 @@ pl = {
     "NSHighResolutionCapable": True,
     "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True},
     "LSBackgroundOnly": False,
+    "NSCameraUsageDescription": "The ChimeraX webcam command needs permission to use the camera.",
+    "NSMicrophoneUsageDescription": "The ChimeraX webcam command needs permission to use the microphone.",
 }
 
 target = "10.4"

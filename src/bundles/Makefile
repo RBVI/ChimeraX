@@ -29,7 +29,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces io label list_info log \
+	  interfaces io label list_info log looking_glass \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -42,7 +42,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot \
-	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+	  viewdockx vive volume_menu vtk wavefront_obj \
+	  webcam webservices zone
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support

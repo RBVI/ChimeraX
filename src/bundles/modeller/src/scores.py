@@ -71,7 +71,7 @@ class ModellerScoringJob(Job):
 
         thread_safe = session.ui.thread_safe
         from io import StringIO
-        from chimerax.atomic.pdb import save_pdb
+        from chimerax.pdb import save_pdb
         pdb_buffer = StringIO()
         save_pdb(session, pdb_buffer, models=[structure])
         fields = [

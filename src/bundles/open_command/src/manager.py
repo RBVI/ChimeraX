@@ -161,6 +161,9 @@ class OpenManager(ProviderManager):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
         tuple.  The models will not have been opened in the session.
+
+        The format name can be provided with the 'format' keyword if the filename suffix of the path
+        does not correspond to those for the desired format.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,

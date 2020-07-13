@@ -32,7 +32,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     gap_open_strand=defaults["strand_open"],
                     gap_open_other=defaults["other_open"],
                     compute_ss=defaults["compute_ss"]):
-    from chimerax.seqalign import sim_matrices
+    from chimerax import sim_matrices
     similarity_matrix = sim_matrices.matrix(session, matrix_name)
     ssf = ss_fraction
     ssm = ss_matrix
@@ -63,7 +63,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             from chimerax.std_commands import dssp
             dssp.compute_ss(session, need_compute)
     if algorithm == "nw":
-        from chimerax.seqalign.align_algs import NeedlemanWunsch
+        from chimerax.alignment_algs import NeedlemanWunsch
         score, seqs = NeedlemanWunsch.nw(ref, match,
             score_gap=-gap_extend, score_gap_open=0-gap_open,
             similarity_matrix=similarity_matrix, return_seqs=True,
@@ -90,7 +90,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             for let in "HSO ":
                 ssm[(let, ' ')] = 0.0
                 ssm[(' ', let)] = 0.0
-        from chimerax.seqalign.align_algs import SmithWaterman
+        from chimerax.alignment_algs import SmithWaterman
         score, alignment = SmithWaterman.align(ref.characters, match.characters,
             similarity_matrix, float(gap_open), float(gap_extend),
             gap_char=".", ss_matrix=ssm, ss_fraction=ssf,
@@ -251,7 +251,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             " amino acid chains.\nUse the command-line 'align' command" \
             " to superimpose small molecules/ligands."
         rd_res, md_res = domain_residues
-        from chimerax.seqalign.sim_matrices import matrix_compatible
+        from chimerax.sim_matrices import matrix_compatible
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
             # specific chain(s) in each
 
@@ -609,7 +609,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     # 'to' only needed to sidestep problem with adjacent atom specs...
     ref_atoms = to
 
-    from chimerax.seqalign import sim_matrices
+    from chimerax import sim_matrices
     if matrix not in sim_matrices.matrices(session):
         raise UserError("No such matrix name: %s" % str(matrix))
     if pairing == CP_SPECIFIC_SPECIFIC:

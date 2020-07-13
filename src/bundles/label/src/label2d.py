@@ -89,6 +89,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
         kw['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         kw['background'] = None
+
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to draw 2D labels without rendering images")
         
     return Label(session, name, **kw)
 
@@ -276,6 +281,10 @@ def label_delete(session, labels = None):
 #
 def label_listfonts(session):
     '''Report available fonts.'''
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to do list fonts without being able to render images")
     from PyQt5.QtGui import QFontDatabase
     fdb = QFontDatabase()
     fnames = list(fdb.families())
@@ -493,6 +502,7 @@ class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0):
+
         self.session = session
         self.name = name
         self.text = text

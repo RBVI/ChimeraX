@@ -236,18 +236,17 @@ class Touch:
         # There is an offset in Qt 5.9 which is the current pointer window position x,y (in pixels).
         self.x = t.pos().x()
         self.y = t.pos().y()
-        self.last_x = t.lastPos().x()
-        self.last_y = t.lastPos().y()
 
     def move(self, last_touch_locations):
         id = self.id
+        x,y = self.x, self.y
         if id in last_touch_locations:
             lx,ly = last_touch_locations[id]
+            dx, dy = (x-lx, y-ly)
         else:
-            lx,ly = self.last_x, self.last_y
-        x,y = self.x, self.y
+            dx = dy = 0
         last_touch_locations[id] = (x,y)
-        return (x-lx, y-ly)
+        return (dx, dy)
 
 touch_action_to_property = {
     'pinch':    'two_finger_scale',

@@ -2,7 +2,8 @@
 
 def open_pdbqt(session, path, file_name, auto_style, atomic):
     structures, _status = session.open_command.open_data(path, format="pdb", log_errors=False)
-    with open(path) as f:
+    from chimerax.io import open_input
+    with open_input(path, encoding='utf-8') as f:
         _extract_metadata(session, f, structures)
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
                     file_name, len(structures),

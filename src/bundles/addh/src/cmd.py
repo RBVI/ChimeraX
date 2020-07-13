@@ -345,7 +345,7 @@ _tree_dist = 3.25
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
     from chimerax.geometry import distance_squared
-    from chimerax.atomic.search import AtomSearchTree
+    from chimerax.atom_search import AtomSearchTree
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
     # looking off their heavy atoms
@@ -466,7 +466,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 try:
                     exemplar = template_lookup[res.name]
                 except KeyError:
-                    from chimerax.atomic.mmcif import find_template_residue
+                    from chimerax.mmcif import find_template_residue
                     tmpl = find_template_residue(session, res.name)
                     if not tmpl:
                         continue

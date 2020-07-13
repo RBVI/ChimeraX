@@ -227,7 +227,7 @@ def _get_formatted_res_info(model, *, standalone=True):
 
 # also used by mmcif
 def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
-    from chimerax.atomic.pdb import process_chem_name
+    from chimerax.pdb import process_chem_name
     html = ""
     nonstd_res_names = model.nonstandard_residue_names
     if nonstd_res_names:

@@ -42,7 +42,7 @@ class Conservation(DynamicHeaderSequence):
             args = (category,)
         self.al2co_options_widget, al2co_options = options_container.add_option_group(*args,
             group_label="AL2CO parameters")
-        from chimerax.seqalign.sim_matrices import matrices, matrix_name_key_func
+        from chimerax.sim_matrices import matrices, matrix_name_key_func
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
         matrix_names.sort(key=matrix_name_key_func)
@@ -234,7 +234,7 @@ class Conservation(DynamicHeaderSequence):
             "-g", str(self.settings.al2co_gap) ]
         if self.settings.al2co_cons == 2:
             command += ["-m", str(self.settings.al2co_transform)]
-            from chimerax.seqalign.sim_matrices import matrix_files
+            from chimerax.sim_matrices import matrix_files
             matrix_lookup = matrix_files(session)
             if self.settings.al2co_matrix in matrix_lookup:
                 command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]

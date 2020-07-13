@@ -1219,7 +1219,7 @@ class AtomicStructure(Structure):
                 nucleic = ribbonable.filter(mask)
                 display |= nucleic
                 if nucleic:
-                    from .nucleotides.cmd import nucleotides
+                    from chimerax.nucleotides.cmd import nucleotides
                     if len(nucleic) < 100:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
                     else:
@@ -1329,12 +1329,12 @@ class AtomicStructure(Structure):
         for het, alt in alternatives.items():
             if len(alt) < len(hnd[het]):
                 hnd[het] = alt
-        from .pdb import process_chem_name
+        from chimerax.pdb import process_chem_name
         for k, v in hnd.items():
             hnd[k] = process_chem_name(v)
 
     def _set_chain_descriptions(self, session):
-        from . import mmcif
+        from chimerax import mmcif
         chain_to_desc = {}
         struct_asym, entity = mmcif.get_mmcif_tables_from_metadata(self, ['struct_asym', 'entity'])
         if struct_asym:
@@ -1400,7 +1400,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from chimerax.atomic.pdb import process_chem_name
+            from chimerax.pdb import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
@@ -1486,7 +1486,7 @@ class AtomicStructure(Structure):
 
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
-    from chimerax.atomic import mmcif 
+    from chimerax import mmcif
     sat = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly'])[0]
     sagt = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly_gen'])[0]
     if not sat or not sagt:

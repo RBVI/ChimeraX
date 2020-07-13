@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-PDB" version="1.1"
-	    package="chimerax.atomic.pdb" purePython="false"
+<BundleInfo name="ChimeraX-PDB" version="2.0"
+	    package="chimerax.pdb" purePython="false"
 		installedIncludeDir="include" installedLibraryDir="lib"
   	    minSessionVersion="1" maxSessionVersion="1">
 

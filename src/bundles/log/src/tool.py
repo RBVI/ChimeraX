@@ -221,6 +221,10 @@ class Log(ToolInstance, HtmlLog):
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
+        from PyQt5.QtCore import QTimer
+        self.regulating_timer = QTimer()
+        self.regulating_timer.timeout.connect(self._actually_show)
+
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
@@ -345,6 +349,11 @@ class Log(ToolInstance, HtmlLog):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
+        # start() is documented to stop the timer if it is running
+        self.regulating_timer.start(100)
+
+    def _actually_show(self):
+        self.regulating_timer.stop()
         if self.suppress_scroll:
             sp = self.log_window.page().scrollPosition()
             height = str(sp.y())
