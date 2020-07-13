@@ -204,7 +204,7 @@ def mmcif_assemblies(model):
     table_names = ('pdbx_struct_assembly',
                    'pdbx_struct_assembly_gen',
                    'pdbx_struct_oper_list')
-    from chimerax.atomic import mmcif
+    from chimerax import mmcif
     assem, assem_gen, oper = mmcif.get_mmcif_tables_from_metadata(model, table_names)
     if not assem or not assem_gen or not oper:
         return []

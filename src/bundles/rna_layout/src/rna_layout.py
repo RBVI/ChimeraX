@@ -1116,7 +1116,7 @@ def rna_nucleotide_templates(session, file = 'rna_templates_6pj6.cif', chain_id 
     # Read template residues from mmCIF file
     from os.path import join, dirname
     path = join(dirname(__file__), file)
-    from chimerax.atomic.mmcif import open_mmcif
+    from chimerax.mmcif import open_mmcif
     mols, msg = open_mmcif(session, path)
     m = mols[0]
 

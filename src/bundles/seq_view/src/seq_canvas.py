@@ -692,7 +692,7 @@ class SeqCanvas:
             for hdr_class in aln_mgr.headers()]
         self.headers.sort(key=lambda hdr: hdr.name)
         """
-        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
+        from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
             header = seq(self.alignment)
             self.headers.append(header)
