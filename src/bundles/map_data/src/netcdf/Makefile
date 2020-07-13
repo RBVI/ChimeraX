@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/netcdf
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/netcdf
 
 PYSRCS = __init__.py netcdf_format.py netcdf_grid.py
 

@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/emanhdf
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/emanhdf
 
 PYSRCS = __init__.py eman_hdf_format.py eman_hdf_grid.py
 

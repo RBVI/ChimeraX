@@ -21,7 +21,7 @@ def gaussian_convolve(volume, sdev, step = 1, subregion = None,
 
   gg = gaussian_grid(volume, sdev, step, subregion, value_type = value_type,
                      invert = invert, task = task)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   gv = volume_from_grid_data(gg, session, model_id = modelId)
   gv.copy_settings_from(volume, copy_region = False, copy_colors = False, copy_thresholds = False)
   
@@ -47,7 +47,7 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
   gm = gaussian_convolution(m, ijk_sdev, value_type = value_type,
                             invert = invert, task = task)
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   d = v.data
   if v.name.endswith('gaussian'): name = v.name
   else:                           name = '%s gaussian' % v.name

@@ -23,7 +23,7 @@ def map_series_states(session):
 #
 def restore_map_series(ms_states, session, file_paths, attributes_only = False):
     for ms_state in ms_states:
-        from ..session import find_volumes_by_session_id
+        from chimerax.map.session import find_volumes_by_session_id
         maps = find_volumes_by_session_id(ms_state['maps'], session)
         from .series import MapSeries
         ms = MapSeries(ms_state['name'], maps, session)

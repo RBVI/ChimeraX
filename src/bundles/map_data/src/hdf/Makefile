@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/hdf
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/hdf
 
 PYSRCS = __init__.py hdf_format.py hdf_grid.py
 

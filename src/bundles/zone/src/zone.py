@@ -95,7 +95,7 @@ class AtomZoneMouseMode(MouseMode):
 
         self._restore_original_display()
         self._unlabel(log_command = False)
-        from chimerax.map.filter.vopcommand import volume_unzone
+        from chimerax.map_filter.vopcommand import volume_unzone
         volume_unzone(self.session, self._shown_volumes())
         if log_command:
             from chimerax.core.commands import log_equivalent_command
@@ -178,7 +178,7 @@ class AtomZoneMouseMode(MouseMode):
         residues.ribbon_colors = rcolors
 
     def _show_volume_zone(self, atoms):
-        from chimerax.map.filter.zone import zone_operation
+        from chimerax.map_filter.zone import zone_operation
         for v in self._shown_volumes():
             zone_operation(v, atoms, self._surface_distance,
                            minimal_bounds = True, new_map = False)

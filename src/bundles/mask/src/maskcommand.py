@@ -104,7 +104,7 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100,
     from numpy import ones, int8
     vtype = int8 if value_type is None else value_type
     varray = ones(size[::-1], vtype)
-    from chimerax.map.data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(varray, origin, spacing, name = 'mask')
 
     # Create Volume model

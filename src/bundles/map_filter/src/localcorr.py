@@ -29,11 +29,11 @@ def local_correlation(map1, map2, window_size, subtract_mean, model_id = None):
 
     hs = 0.5*(window_size-1)
     origin = tuple(o+hs*s for o,s in zip(d1.origin, d1.step))
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(mc, origin, d1.step, d1.cell_angles, d2.rotation,
                       name = 'local correlation')
 
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     mapc = volume_from_grid_data(g, map1.session, model_id = model_id)
     mapc.position = map1.position
 
@@ -58,7 +58,7 @@ def local_correlation_matrix(m1, m2, window_size, subtract_mean):
     if not m2.flags['C_CONTIGUOUS']:
         m2 = m2.copy()
 
-    from .. import local_correlation
+    from chimerax.map import local_correlation
     local_correlation(m1, m2, window_size, subtract_mean, mc)
     return mc
 
