@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-AlignmentMatrices" version="1.0.1"
-	    package="chimerax.seqalign.sim_matrices"
+<BundleInfo name="ChimeraX-AlignmentMatrices" version="2.0"
+	    package="chimerax.sim_matrices"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

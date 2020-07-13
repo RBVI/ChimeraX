@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2 expandtab: -->
-<BundleInfo name="ChimeraX-Nucleotides" version="1.0"
-	package="chimerax.atomic.nucleotides"
+<BundleInfo name="ChimeraX-Nucleotides" version="2.0"
+	package="chimerax.nucleotides"
   	minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

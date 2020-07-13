@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,12 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Must import search to get shared object loaded
-import chimerax.atom_search
-
 from chimerax.core.toolshed import BundleAPI
 
-class _ConnectStructureBundle(BundleAPI):
-    pass
+class _LookingGlassAPI(BundleAPI):
 
-bundle_api = _ConnectStructureBundle()
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from .lookingglass import register_lookingglass_command
+        register_lookingglass_command(logger)
+
+bundle_api = _LookingGlassAPI()

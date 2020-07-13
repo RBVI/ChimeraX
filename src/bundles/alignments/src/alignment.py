@@ -582,7 +582,7 @@ def nw_assoc(session, align_seq, struct_seq):
     sseq = struct_seq
     aseq = Sequence(name=align_seq.name, characters=align_seq.ungapped())
     aseq.circular = align_seq.circular
-    from chimerax.seqalign.align_algs.NeedlemanWunsch import nw
+    from chimerax.alignment_algs.NeedlemanWunsch import nw
     score, match_list = nw(sseq, aseq)
 
     errors = 0

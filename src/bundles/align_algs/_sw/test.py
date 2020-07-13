@@ -42,7 +42,7 @@
 #
 # The code below demonstrates how the module might be used.
 #
-from chimerax.seqalign.align_algs import SmithWaterman
+from chimerax.alignment_algs import SmithWaterman
 
 matrix = {
 	('A', 'A'): 1.0,

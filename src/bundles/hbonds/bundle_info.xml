@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Hbonds" version="1.0" package="chimerax.atomic.hbonds"
+<BundleInfo name="ChimeraX-Hbonds" version="2.0" package="chimerax.hbonds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -20,8 +20,8 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomSearch" version="~=1.0"/>
-    <Dependency name="ChimeraX-ChemGroup" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
+    <Dependency name="ChimeraX-ChemGroup" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>

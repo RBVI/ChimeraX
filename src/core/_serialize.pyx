@@ -41,7 +41,7 @@ MSGPACK_MAX_LEN = 2 ** 32 - 1
 
 PRIMITIVE_TYPES = frozenset((
     # supported types natively by msgpack
-    bool, int, float, bytes, bytearray, unicode, dict, list, memoryview, type(None),
+    bool, int, float, bytes, bytearray, str, dict, list, memoryview, type(None),
     # additionally supported types
     complex, tuple, range, _UniqueName,
     numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,

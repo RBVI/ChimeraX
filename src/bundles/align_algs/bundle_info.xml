@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-AlignmentAlgorithms" version="1.0"
-	    package="chimerax.seqalign.align_algs"
+<BundleInfo name="ChimeraX-AlignmentAlgorithms" version="2.0"
+	    package="chimerax.alignment_algs"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
