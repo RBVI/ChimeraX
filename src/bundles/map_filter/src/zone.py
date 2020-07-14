@@ -42,7 +42,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
 # -----------------------------------------------------------------------------
 #
 def _bounding_region(points, radius, grid_data):
-    from chimerax.map.data.regions import points_ijk_bounds, clamp_region, integer_region
+    from chimerax.map_data.regions import points_ijk_bounds, clamp_region, integer_region
     r = points_ijk_bounds(points, radius, grid_data)
     r = clamp_region(integer_region(r), grid_data.size)
     return r
@@ -54,13 +54,13 @@ def zone_volume(volume, points, radius,
                 subregion = 'all', step = 1, model_id = None):
 
     region = volume.subregion(step, subregion)
-    from .. import data
-    sg = data.GridSubregion(volume.data, *region)
+    from chimerax import map_data
+    sg = map_data.GridSubregion(volume.data, *region)
 
-    mg = data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
+    mg = map_data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
     mg.name = volume.name + ' zone'
 
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     vz = volume_from_grid_data(mg, volume.session, model_id = model_id)
     vz.copy_settings_from(volume, copy_colors = False, copy_zone = False)
     volume.display = False

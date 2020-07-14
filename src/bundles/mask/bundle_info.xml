@@ -27,6 +27,7 @@
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 

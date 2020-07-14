@@ -214,7 +214,7 @@ class Fit:
             return None
 
         # Look for exactly one map that was fit into volume.
-        from .. import Volume
+        from chimerax.map import Volume
         vtf = [(m,tf) for m, tf in zip(self.models, self.transforms)
                if m and not m.was_deleted and isinstance(m, Volume)]
         if len(vtf) != 1:
@@ -268,7 +268,7 @@ class Fit:
     #
     def fit_map(self):
 
-        from .. import Volume
+        from chimerax.map import Volume
         vols = [m for m in self.models if isinstance(m, Volume)]
         mmap = vols[0] if vols else None
         return mmap

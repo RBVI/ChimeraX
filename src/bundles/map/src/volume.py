@@ -813,9 +813,9 @@ class Volume(Model):
 
     gvolume = volume / cell_volume
     matrix = self.full_matrix()
-    from . import data
+    from chimerax.map_data import surface_level_enclosing_volume
     try:
-      level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
+      level = surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
     except MemoryError as e:
       self.session.warning(str(e))
       level = None
@@ -1014,7 +1014,7 @@ class Volume(Model):
     origin, step = self.region_origin_and_step(r)
     if new_spacing is not None:
       step = new_spacing
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
     return g
@@ -1034,7 +1034,7 @@ class Volume(Model):
 
     ijk_min_edge, ijk_max_edge = self.ijk_bounds(step, subregion)
     
-    from .data import box_corners, bounding_box
+    from chimerax.map_data import box_corners, bounding_box
     ijk_corners = box_corners(ijk_min_edge, ijk_max_edge)
     data = self.data
     xyz_min, xyz_max = bounding_box([data.ijk_to_xyz(c) for c in ijk_corners])
@@ -1053,7 +1053,7 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def corners(self, step = None, subregion = None):
-    from .data import box_corners
+    from chimerax.map_data import box_corners
     ijk_corners = box_corners(*self.ijk_bounds())
     corners = self.data.ijk_to_xyz_transform * ijk_corners
     return corners
@@ -1160,7 +1160,7 @@ class Volume(Model):
   def bounding_region(self, points, padding = 0, step = None, clamp = True, cubify = False):
 
     d = self.data
-    from .data import points_ijk_bounds
+    from chimerax.map_data import points_ijk_bounds
     ijk_fmin, ijk_fmax = points_ijk_bounds(points, padding, d)
     r = self.integer_region(ijk_fmin, ijk_fmax, step)
     if cubify:
@@ -1223,7 +1223,7 @@ class Volume(Model):
     origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
-    from .data import ProgressReporter
+    from chimerax.map_data import ProgressReporter
     progress = ProgressReporter(operation, size, d.value_type.itemsize,
                                 log = self.session.logger)
     from_cache_only = not read_matrix
@@ -1409,7 +1409,7 @@ class Volume(Model):
 
     matrix, p2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
-    from .data import interpolate_volume_data
+    from chimerax.map_data import interpolate_volume_data
     values, outside = interpolate_volume_data(points, p2m_transform,
                                               matrix, method)
 
@@ -1430,7 +1430,7 @@ class Volume(Model):
     matrix, v2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
 
-    from .data import interpolate_volume_gradient
+    from chimerax.map_data import interpolate_volume_gradient
     gradients, outside = interpolate_volume_gradient(points, v2m_transform,
                                                      matrix, method)
     if out_of_bounds_list:
@@ -1540,7 +1540,7 @@ class Volume(Model):
     '''Return subregion of self that covers the full region of map v.'''
     vijk_min = (0,0,0)
     vijk_max = tuple(s-1 for s in v.data.size)
-    from .data import box_corners, bounding_box
+    from chimerax.map_data import box_corners, bounding_box
     vijk_corners = box_corners(vijk_min, vijk_max)
     vxyz_corners = v.data.ijk_to_xyz(vijk_corners)
     xyz_corners = self.scene_position.inverse() * v.scene_position * vxyz_corners
@@ -1565,7 +1565,7 @@ class Volume(Model):
     data = self.data
     size = data.size
     from numpy import float32
-    from .data import grid_indices
+    from chimerax.map_data import grid_indices
     if zplane is None:
       points = grid_indices(size, float32)
     else:
@@ -1609,7 +1609,7 @@ class Volume(Model):
       sg = self.data
     else:
       ijk_min, ijk_max, ijk_step = region
-      from .data import GridSubregion
+      from chimerax.map_data import GridSubregion
       sg = GridSubregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
@@ -1618,7 +1618,7 @@ class Volume(Model):
 #      if SurfaceZone.showing_zone(surf_model):
       if False:
         points, radius = SurfaceZone.zone_points_and_distance(surf_model)
-        from .data import zone_masked_grid_data
+        from chimerax.map_data import zone_masked_grid_data
         mg = zone_masked_grid_data(sg, points, radius)
         return mg
         
@@ -1661,7 +1661,7 @@ class Volume(Model):
       return None
 
     points, radius = SurfaceZone.zone_points_and_distance(self)
-    from .data import zone_masked_grid_data
+    from chimerax.map_data import zone_masked_grid_data
     masked_data = zone_masked_grid_data(self.data, points, radius,
                                         invert_mask = outside)
     if outside: name = 'outside zone'
@@ -1688,7 +1688,7 @@ class Volume(Model):
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
     ipv = getattr(self.data, 'ignore_pad_value', None)
-    from .data import MatrixValueStatistics
+    from chimerax.map_data import MatrixValueStatistics
     self.matrix_stats = ms = MatrixValueStatistics(matrices, ignore_pad_value = ipv)
     if nvox >= min_status_message_voxels:    
       self.message('')
@@ -1723,7 +1723,7 @@ class Volume(Model):
   #
   def write_file(self, path, format = None, options = {}):
 
-    from .data import save_grid_data
+    from chimerax.map_data import save_grid_data
     d = self.grid_data()
     format = save_grid_data(d, path, self.session, format, options)
 
@@ -2479,7 +2479,7 @@ class OutlineBox:
     btlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
               (0,1,3), (3,2,0), (7,3,1), (1,5,7),
               (7,6,2), (2,3,7), (7,5,4), (4,6,7))
-    from .data import box_corners
+    from chimerax.map_data import box_corners
     if planes[1] and planes[2]:
       x0, x1 = corners[0][0], corners[4][0]
       v0 = len(vlist)
@@ -2873,8 +2873,8 @@ def clamp_ijk(ijk, ijk_min, ijk_max):
 #
 def clamp_region(region, size):
 
-  from . import data
-  r = data.clamp_region(region[:2], size) + tuple(region[2:])
+  from chimerax.map_data import clamp_region
+  r = clamp_region(region[:2], size) + tuple(region[2:])
   return r
 
 # ---------------------------------------------------------------------------
@@ -3069,7 +3069,7 @@ def is_empty_region(region):
 #
 def resize_region_for_zone(data_region, points, radius, initial_resize = False):
 
-  from .data import points_ijk_bounds
+  from chimerax.map_data import points_ijk_bounds
   ijk_min, ijk_max = points_ijk_bounds(points, radius, data_region.data)
   ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None),
                                   data_region.data.size)[:2]
@@ -3249,7 +3249,7 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 
     # Create volume data copy.
     xyz_min = grid.ijk_to_xyz(ijk_min)
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
                       name = grid.name)
     return g
@@ -3261,10 +3261,10 @@ def open_volume_file(path, session, format = None, name = None, style = 'auto',
                      open_models = True, model_id = None,
                      show_data = True, show_dialog = True, verbose = False):
 
-  from . import data
+  from chimerax.map_data import open_file, FileFormatError
   try:
-    glist = data.open_file(path, format, log = session.logger, verbose = verbose)
-  except data.FileFormatError as value:
+    glist = open_file(path, format, log = session.logger, verbose = verbose)
+  except FileFormatError as value:
     raise
     from os.path import basename
     if isinstance(path, (list,tuple)):
@@ -3304,7 +3304,7 @@ def default_settings(session):
 # -----------------------------------------------------------------------------
 #
 def set_data_cache(grid_data, session):
-  from .data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   if isinstance(grid_data, ArrayGridData):
     return	# No caching for in-memory maps
 
@@ -3317,7 +3317,7 @@ def data_cache(session):
   if dc is None:
     ds = default_settings(session)
     size = ds['data_cache_size'] * (2**20)
-    from .data import datacache
+    from chimerax.map_data import datacache
     session._volume_data_cache = dc = datacache.Data_Cache(size = size)
   return dc
 
@@ -3521,8 +3521,8 @@ def open_map(session, path, name = None, format = None, **kw):
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
 
-    from . import data
-    grids = data.open_file(path, file_type = format, log = session.logger, **kw)
+    from chimerax.map_data import open_file
+    grids = open_file(path, file_type = format, log = session.logger, **kw)
 
     models = []
     msg_lines = []
@@ -3610,14 +3610,14 @@ def open_grids(session, grids, name, **kw):
       if len(set(len(cm) for cm in cmaps.values())) > 1:
         session.logger.warning('Map channels have differing numbers of series maps: %s'
                                % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
-      from .series import MapSeries
+      from chimerax.map_series import MapSeries
       ms = [MapSeries('channel %d' % c, cm, session) for c, cm in cmaps.items()]
       mc = MultiChannelSeries(name, ms, session)
       msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
              % (name, len(ms), len(maps)//len(ms)))
       models = [mc]
     elif is_series:
-      from .series import MapSeries
+      from chimerax.map_series import MapSeries
       ms = MapSeries(name, maps, session)
       ms.display = show
       msg = 'Opened map series %s, %d images' % (name, len(maps))
@@ -3880,7 +3880,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           raise UserError('Specified models are not volumes' + mstring)
 
       
-    from .data.fileformats import file_writer, file_formats
+    from chimerax.map_data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError
         if format_name is None:
@@ -3912,7 +3912,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         options['compress_shuffle'] = compress_shuffle
         options['compress'] = True
     if path in ('browse', 'browser'):
-        from .data import select_save_path
+        from chimerax.map_data import select_save_path
         path, format_name = select_save_path()
     if path:
         grids = []
@@ -3922,7 +3922,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)
-        from .data import save_grid_data
+        from chimerax.map_data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
                 save_grid_data(g, path % (i + base_index), session, format_name, options)
@@ -3979,5 +3979,5 @@ def is_multifile_save(path):
 # -----------------------------------------------------------------------------
 #
 def add_map_format(session, map_format):
-  from .data import file_formats
+  from chimerax.map_data import file_formats
   file_formats.append(map_format)

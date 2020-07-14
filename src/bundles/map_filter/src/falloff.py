@@ -26,7 +26,7 @@ def falloff(volume, iterations = 10, in_place = False,
         fv = volume
     else:
         fg = falloff_grid(volume, iterations, step, subregion)
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         fv = volume_from_grid_data(fg, model_id = modelId, session = session)
         fv.copy_settings_from(volume)
         volume.display = False          # Hide original map
@@ -44,7 +44,7 @@ def falloff_grid(volume, iterations = 10, step = 1, subregion = None):
     m = v.region_matrix(region).astype(float32)
     falloff_matrix(m, iterations)
 
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     d = v.data
     name = '%s falloff' % v.name
     forigin, fstep = v.region_origin_and_step(region)

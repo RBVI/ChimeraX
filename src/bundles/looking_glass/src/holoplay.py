@@ -90,8 +90,10 @@ class HoloPlayCore:
         return f()
 
     def hpc_GetDeviceHDMIName(self, device):
+        # For 8.9" display on Mac got "LKG03cWgSCevy"
         return self._device_string('hpc_GetDeviceHDMIName', device)
     def hpc_GetDeviceType(self, device):
+        # For 8.9" display on Mac got LKG03cWgSCevy "standard"
         return self._device_string('hpc_GetDeviceType', device)
 
     def hpc_GetDevicePropertyWinX(self, device):
@@ -168,25 +170,27 @@ class HoloPlayCore:
     def set_shader_uniforms(self, shader, device, quilt_size):
         p = self.device_parameters(device)
         s = shader
-        s.set_float('pitch', p['pitch'])
-        s.set_float('tilt', p['tilt'])
-        s.set_float('center', p['center'])
-        s.set_integer('invView', p['invView'])
-        s.set_float('subp', p['subp'])
-        s.set_float('displayAspect', p['aspect'])
-        s.set_integer('ri', p['ri'])
-        s.set_integer('bi', p['bi'])
+        # Values in comments reported for 8.9" display by HoloPlayCore 1.1.1
+        # (July 2020) on Mac, displaysize 2560 x 1600.
+        s.set_float('pitch', p['pitch'])		# 354.686
+        s.set_float('tilt', p['tilt'])			# -0.113296
+        s.set_float('center', p['center'])		# -0.101902
+        s.set_integer('invView', p['invView'])		# 1
+        s.set_float('subp', p['subp'])			# 0.000130208
+        s.set_float('displayAspect', p['aspect'])	# 1.6
+        s.set_integer('ri', p['ri'])			# 0
+        s.set_integer('bi', p['bi'])			# 2
 
-        qs_width, qs_height, qs_rows, qs_columns = quilt_size
-        qs_total_views = qs_rows * qs_columns
-        qs_view_width = qs_width // qs_columns
-        qs_view_height = qs_height // qs_rows
-        s.set_vector3('tile', (qs_columns, qs_rows, qs_total_views))
+        qs_width, qs_height, qs_rows, qs_columns = quilt_size	# 4096, 4096, 9, 5
+        qs_total_views = qs_rows * qs_columns			# 45
+        qs_view_width = qs_width // qs_columns			# 819		
+        qs_view_height = qs_height // qs_rows			# 455
+        s.set_vector3('tile', (qs_columns, qs_rows, qs_total_views))	# 5, 9, 45
         s.set_vector2('viewPortion', (qs_view_width * qs_columns / qs_width,
-                                      qs_view_height * qs_rows / qs_height))
-        s.set_float('quiltAspect', p['aspect'])
-        s.set_integer('overscan', 0)
-        s.set_integer('quiltInvert', 0)
+                                      qs_view_height * qs_rows / qs_height))	# 0.999755, 0.999755
+        s.set_float('quiltAspect', p['aspect'])		# 1.6
+        s.set_integer('overscan', 0)			# 0
+        s.set_integer('quiltInvert', 0)			# 0
         s.set_integer('debug', (1 if self._show_quilt else 0))
 
     def device_parameters(self, device):

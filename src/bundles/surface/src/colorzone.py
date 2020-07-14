@@ -338,11 +338,11 @@ def split_zones_by_color(volume, points, point_colors, radius):
   point_indices = [ctable[tuple(c)] for c in point_colors]
 
   ijk_min, ijk_max, ijk_step = volume.region
-  from chimerax.map.data import GridSubregion
+  from chimerax.map_data import GridSubregion
   sg = GridSubregion(volume.data, ijk_min, ijk_max)
 
   # Get volume mask with values indicating nearest color within given radius.
-  from chimerax.map.data import zone_mask, masked_grid_data
+  from chimerax.map_data import zone_mask, masked_grid_data
   mask = zone_mask(sg, points, radius, zone_point_mask_values = point_indices)
 
   grids = []

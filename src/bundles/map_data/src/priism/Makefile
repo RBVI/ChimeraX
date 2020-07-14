@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/priism
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/priism
 
 PYSRCS = __init__.py priism_format.py priism_grid.py
 

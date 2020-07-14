@@ -28,10 +28,10 @@ def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
         ijk_min = [max(s,t) for s,t in zip(ijk_min, ijk_rmin)]
         ijk_max = [min(s,t) for s,t in zip(ijk_max, ijk_rmax)]
         region = (ijk_min, ijk_max, ijk_step)
-        from ..volume import is_empty_region
+        from chimerax.map.volume import is_empty_region
         if is_empty_region(region):
             continue
-        from ..data import GridSubregion
+        from chimerax.map_data import GridSubregion
         g = GridSubregion(volume.data, *region)
         g.name = 'box %s' % str(a)
         if base_model_id is None:
@@ -40,7 +40,7 @@ def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
             mid = base_model_id
         else:
             mid = base_model_id + (i+1,)
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         v = volume_from_grid_data(g, session, model_id = mid, show_dialog = False)
         v.copy_settings_from(volume, copy_region = False,
                              copy_active = False, copy_zone = False)
