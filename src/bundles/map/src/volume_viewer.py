@@ -3397,6 +3397,7 @@ class Plane_Panel(PopupPanel):
   #
   def preload_cb(self, event = None):
 
+    # TODO: Not yet ported
     v = active_volume()
     if v:
       step = v.region[2]

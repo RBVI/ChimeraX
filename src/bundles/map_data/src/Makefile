@@ -16,8 +16,8 @@ SUBDIRS	= amira apbs brix ccp4 cmap delphi deltavision dock dsn6 emanhdf gaussia
 	  gopenmol hdf imagestack imagic imod ims macmolplt mrc priism profec \
 	  pif situs spider tom_em uhbd xplor
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/map/data
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/map_data
 
 PYSRCS = __init__.py arraygrid.py arrays.py datacache.py fileformats.py \
 	griddata.py memoryuse.py opendialog.py progress.py readarray.py \

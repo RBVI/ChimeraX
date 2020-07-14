@@ -112,13 +112,13 @@ VolumeImage
 GridData
 --------
 
-.. autoclass:: chimerax.map.data.GridData
+.. autoclass:: chimerax.map_data.GridData
     :members:
 
 ArrayGridData
 -------------
 
-.. autoclass:: chimerax.map.data.ArrayGridData	       
+.. autoclass:: chimerax.map_data.ArrayGridData	       
     :members:
     :exclude-members: read_matrix
     :show-inheritance:

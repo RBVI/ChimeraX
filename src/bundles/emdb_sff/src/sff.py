@@ -92,7 +92,7 @@ def lattice_models(session, seg, max_surfaces = 100):
     for i,lattice in enumerate(lattices):
         d = lattice.data_array	# Docs say number array, but emd 1547 gives bytes
         name = 'region map' if len(lattices) == 1 else 'region map %d' % i
-        from chimerax.map.data import ArrayGridData
+        from chimerax.map_data import ArrayGridData
         g = ArrayGridData(d, step=scale, origin=shift, name = name)
         from chimerax.map import volume_from_grid_data
         v = volume_from_grid_data(g, session, open_model = False)

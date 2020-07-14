@@ -29,7 +29,7 @@ class _MapFitBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from chimerax.map import fit
-        fit.register_fitmap_command(logger)
+        from chimerax import map_fit
+        map_fit.register_fitmap_command(logger)
 
 bundle_api = _MapFitBundle()

@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/apbs
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/apbs
 
 PYSRCS = __init__.py apbs_format.py apbs_grid.py
 

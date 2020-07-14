@@ -33,7 +33,7 @@ def _zero_data_in_sphere(grid_data, center, radius):
 
     # Optimization: Mask only subregion containing sphere.
     ijk_min, ijk_max = _sphere_grid_bounds(grid_data, center, radius)
-    from chimerax.map.data import GridSubregion, zone_masked_grid_data
+    from chimerax.map_data import GridSubregion, zone_masked_grid_data
     subgrid = GridSubregion(grid_data, ijk_min, ijk_max)
 
     mg = zone_masked_grid_data(subgrid, [center], radius)
@@ -50,7 +50,7 @@ def _zero_data_in_sphere(grid_data, center, radius):
 #
 def _zero_data_outside_sphere(grid_data, center, radius):
 
-    from chimerax.map.data import zone_masked_grid_data
+    from chimerax.map_data import zone_masked_grid_data
     mg = zone_masked_grid_data(grid_data, [center], radius)
 
     dmatrix = grid_data.full_matrix()

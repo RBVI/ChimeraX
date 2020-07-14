@@ -120,8 +120,8 @@ def register_volume_command(logger):
     register('volume settings', vsettings_desc, volume_settings, logger=logger)
 
     # Register volume subcommands for filtering operations.
-    from . import filter
-    filter.register_volume_filtering_subcommands(logger)
+    from chimerax import map_filter
+    map_filter.register_volume_filtering_subcommands(logger)
     
 # -----------------------------------------------------------------------------
 #

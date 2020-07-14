@@ -62,10 +62,10 @@ def tile_planes(v, axis = 'z', pstep = 1, trim = 0,
     elif axis == 'x':
       ta[r*s0:(r+1)*s0,c*s1:(c+1)*s1,0] = m[:,:,p]
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   td = ArrayGridData(ta, dorigin, dstep)
   td.name = v.name + ' tiled %s' % axis
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   tv = volume_from_grid_data(td, v.session, model_id = model_id)
   tv.copy_settings_from(v, copy_region = False, copy_active = False,
                         copy_xform = open)
