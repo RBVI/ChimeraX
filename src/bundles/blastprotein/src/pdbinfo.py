@@ -17,6 +17,7 @@
 # and ligands, publication date, literature reference, number of residues...
 #
 _polymer_info = {}
+_non_polymer_info = {}
 class PDB_Entry_Info:
 
     columns = (
@@ -39,23 +40,27 @@ class PDB_Entry_Info:
 
     def fetch_info(self, session, pdb_chain_ids):
 
-        global _polymer_info
+        global _polymer_info, _non_polymer_info
         _polymer_info.clear()
+        _non_polymer_info.clear()
         if len(pdb_chain_ids) == 0:
             return {}
 
         pdb_ids = [id.split('_')[0].upper() for id in pdb_chain_ids]
 
         # Fetch PDB entry info
-        mmcif_data = new_fetch_from_pdb(session, 'entry/%s', set(pdb_ids))
+        mmcif_data = fetch_from_pdb(session, 'entry/%s', set(pdb_ids))
         if mmcif_data is None:
             session.logger.warning("Could not fetch overall PDB entry info corresponding to BLAST results")
             return {}
         for id, info in mmcif_data.items():
             try:
-                _polymer_info[id] = info["rcsb_entry_container_identifiers"]["polymer_entity_ids"]
+                id_info = info["rcsb_entry_container_identifiers"]
+                _polymer_info[id] = id_info["polymer_entity_ids"]
+                _non_polymer_info[id] = id_info.get("non_polymer_entity_ids", [])
             except KeyError:
                 _polymer_info[id] = []
+                _non_polymer_info[id] = []
         pis = [self.pdb_info(session, id, info) for id, info in mmcif_data.items()]
         da = dict((pi.structureId.lower(), self.entry_properties(pi))
                   for pi in pis)
@@ -181,7 +186,7 @@ class PDB_Chain_Info:
             chainID_mapping[entry_code] = cid_mapping = {}
             reverse_chainID_mapping[entry_code] = back_map = {}
             for entity_id in entity_ids:
-                per_entity_data[entity_id] = edata = new_fetch_from_pdb(session,
+                per_entity_data[entity_id] = edata = fetch_from_pdb(session,
                     'polymer_entity/%s/%s', [(entry_code, entity_id)])[(entry_code, entity_id)]
                 id_data = edata['rcsb_polymer_entity_container_identifiers']
                 canon = id_data['asym_ids']
@@ -192,7 +197,7 @@ class PDB_Chain_Info:
         pdb_ids = [tuple(id.split('_')) for id in pdb_chain_ids]
         mapped_pdb_ids = [(code, chainID_mapping[code].get(cid, cid)) for code, cid in pdb_ids]
 
-        canon_data = new_fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', mapped_pdb_ids)
+        canon_data = fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', mapped_pdb_ids)
         if canon_data is None:
             # TODO: Warn that fetch failed.
             return {}
@@ -296,9 +301,6 @@ class Polymer:
         self.taxonomyName = ''          # "Homo sapiens"
         self.taxonomyId = None          # "9606"
 
-        self.integer_fields = ('entityNr', 'length')
-        self.float_fields = ('weight',)
-
 # -----------------------------------------------------------------------------
 #
 class PDB_Ligand_Info:
@@ -321,90 +323,41 @@ class PDB_Ligand_Info:
         if len(pdb_chain_ids) == 0:
             return {}
 
-        pdb_ids = [id.split('_')[0].lower() for id in pdb_chain_ids]
+        global _non_polymer_info
+        by_name = {}
+        by_entry = {}
+        for code_chain in pdb_chain_ids:
+            entry = code_chain.split('_')[0]
+            if entry in by_entry:
+                continue
+            by_entry[entry] = all_ligands = []
+            for entity_id in _non_polymer_info[entry]:
+                key = (entry, entity_id)
+                entity_data = fetch_from_pdb(session, 'nonpolymer_entity/%s/%s', [key])[key]
+                if not entity_data:
+                    continue
+                name = entity_data["pdbx_entity_nonpoly"]["comp_id"]
+                all_ligands.append(name)
+                if name in by_name:
+                    continue
+                comp_data = fetch_from_pdb(session, 'chemcomp/%s', [name])[name]
+                by_name[name] = lig_info = {}
+                lig_info["Name"] = comp_data["chem_comp"]["name"]
+                lig_info["Formula"] = comp_data["chem_comp"]["formula"]
+                lig_info["Weight"] = comp_data["chem_comp"]["formula_weight"]
+                lig_info["Smile"] = comp_data["rcsb_chem_comp_descriptor"]["smiles"]
 
-        xml = fetch_from_pdb(session, 'ligandInfo', set(pdb_ids))
-        if xml is None:
-            # TODO: Warn that fetch failed.
-            return {}
-        los = [self.ligands_info(e)
-               for e in xml.getElementsByTagName('structureId')]
+        entry_ligands = {}
+        for entry, names in by_entry.items():
+            entry_ligands[entry] = lig_dict = {}
+            lig_dict['ligandSymbols'] = names
+            comp_dicts = [by_name[n] for n in names]
+            for key in ["Name", "Formula", "Weight", "Smile"]:
+                lig_dict["ligand"+key+"s"] = [cd[key] for cd in comp_dicts]
+        return dict([(pcid, entry_ligands[pcid.split('_')[0]]) for pcid in pdb_chain_ids])
 
-        lmap = dict((pdb_id.lower(), ligands) for pdb_id, ligands in los)
-        pmap = dict((pcid, self.ligand_properties(lmap.get(pdb_id, {})))
-                    for pcid, pdb_id in zip(pdb_chain_ids, pdb_ids))
-        return pmap
 
-    def ligands_info(self, e):
-
-        pdb_id = e.getAttribute('id')
-        ligands = [self.ligand_info(p)
-                   for p in e.getElementsByTagName('ligand')]
-        return (pdb_id, ligands)
-
-    def ligand_info(self, e):
-
-        lig = Ligand()
-        for a in ('chemicalID', 'type', 'molecularWeight'):
-            if e.hasAttribute(a):
-                setattr(lig, a, e.getAttribute(a))
-        for t in ('chemicalName', 'formula', 'smiles', 'InChi', 'InChiKey'):
-            te = e.getElementsByTagName(t)
-            if te.length >= 1:
-                setattr(lig, t, tag_text(te.item(0)))
-        strings_to_numeric_values(lig)
-        return lig
-
-    def ligand_properties(self, ligands):
-
-        d = {
-            'ligandNames': [l.chemicalName for l in ligands],
-            'ligandSmiles': [l.smiles for l in ligands],
-            'ligandSymbols': [l.chemicalID for l in ligands],
-            'ligandWeights': [l.molecularWeight for l in ligands],
-            'ligandFormulas': [l.formula for l in ligands],
-            }
-        return d
-
-# -----------------------------------------------------------------------------
-#
-class Ligand:
-
-    def __init__(self):
-
-        self.chemicalID = None          # "1B0"
-        self.type = None                # "non-polymer"
-        self.molecularWeight = None     # "425.522"
-        self.chemicalName = ''          # "PHENYLALANINAMIDE"
-        self.formula = ''               # "C27 H27 N3 O2"
-        self.smiles = ''                # "Cc1c(c2ccccc2[nH]1)CC(=O)N[C@@H](Cc3ccccc3)C(=O)N(C)c4ccccc4</smiles>"
-        self.InChi = None
-        self.InChiKey = None
-
-        self.float_fields = ('molecularWeight',)
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_pdb(session, query, pdb_ids):
-
-    ids = ','.join([pdb_id.lower() for pdb_id in pdb_ids])
-    url = 'https://www.rcsb.org/pdb/rest/%s?structureId=%s' % (query, ids)
-    from urllib.request import urlopen
-    from urllib.error import URLError, HTTPError
-    try:
-        f = urlopen(url)
-        xml_string = f.read()
-        f.close()
-    except (URLError, HTTPError) as e:
-        if session:
-            session.logger.warning('Fetching BLAST PDB info using URL:\n'
-                                   '%s\nFailed %s\n' % (url, str(e)))
-        return None
-    from xml.dom.minidom import parseString
-    xml = parseString(xml_string)
-    return xml
-
-def new_fetch_from_pdb(session, query_template, query_args):
+def fetch_from_pdb(session, query_template, query_args):
 
     info = {}
     for arg in query_args:
@@ -427,34 +380,9 @@ def new_fetch_from_pdb(session, query_template, query_args):
 
 # -----------------------------------------------------------------------------
 #
-def tag_attribute(element, tag_name, attr_name, default = ''):
-
-    for e in element.getElementsByTagName(tag_name):
-        if e.hasAttribute(attr_name):
-            return e.getAttribute(attr_name)
-    return default
-
-# -----------------------------------------------------------------------------
-#
-def tag_text(element, default = ''):
-
-    t = ''.join(n.data for n in element.childNodes if n.nodeType == n.TEXT_NODE)
-    return t
-
-# -----------------------------------------------------------------------------
-#
 entry_info = PDB_Entry_Info()
 chain_info = PDB_Chain_Info()
 ligand_info = PDB_Ligand_Info()
-def strings_to_numeric_values(o):
-
-    for fname, fcast in (('integer', int), ('float', float)):
-        for aname in getattr(o, fname+'_fields', ()):
-            try:
-                setattr(o, aname, fcast(getattr(o, aname)))
-            except Exception:
-                pass
-
 
 if __name__ == "__main__":
     chain_ids = ["1GCN_A", "3FX2_A"]
