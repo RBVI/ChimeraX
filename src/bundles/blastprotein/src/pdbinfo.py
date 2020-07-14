@@ -179,12 +179,10 @@ class PDB_Chain_Info:
         # chain ID, so make a mapping from one to the other
         polymer_data = {}
         chainID_mapping = {}
-        reverse_chainID_mapping = {}
         global _polymer_info
         for entry_code, entity_ids in _polymer_info.items():
             polymer_data[entry_code] = per_entity_data = {}
             chainID_mapping[entry_code] = cid_mapping = {}
-            reverse_chainID_mapping[entry_code] = back_map = {}
             for entity_id in entity_ids:
                 per_entity_data[entity_id] = edata = fetch_from_pdb(session,
                     'polymer_entity/%s/%s', [(entry_code, entity_id)])[(entry_code, entity_id)]
@@ -192,25 +190,28 @@ class PDB_Chain_Info:
                 canon = id_data['asym_ids']
                 auth = id_data['auth_asym_ids']
                 cid_mapping.update(dict(zip(auth, canon)))
-                back_map.update(dict(zip(canon, auth)))
 
-        pdb_ids = [tuple(id.split('_')) for id in pdb_chain_ids]
-        mapped_pdb_ids = [(code, chainID_mapping[code].get(cid, cid)) for code, cid in pdb_ids]
+        entry_chain_data = {}
+        for pcid in pdb_chain_ids:
+            entry, auth_cid = pcid.split('_')
+            try:
+                key = (entry, chainID_mapping[entry][auth_cid])
+            except KeyError:
+                session.logger.warning("Chain ID mapping failed for %s" % pcid)
+                chain_data = {}
+            else:
+                chain_data = fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', [key])[key]
+            entry_chain_data[pcid] = chain_data
 
-        canon_data = fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', mapped_pdb_ids)
-        if canon_data is None:
+        if entry_chain_data is None:
             # TODO: Warn that fetch failed.
             return {}
 
         # Compute derived chain attributes
         pimap = {}
-
-        for pcid, canon in canon_data.items():
-            polymers = polymer_data[pcid[0]]
-            pdb_id, canon_cid = pcid
-            # need to map canonical chain ID back to author chain ID
-            auth_cid = reverse_chainID_mapping[pdb_id].get(canon_cid, canon_cid)
-            pimap[pdb_id + '_' + auth_cid] = self.chain_properties(canon, polymers)
+        for pcid in pdb_chain_ids:
+            entry, auth_id = pcid.split('_')
+            pimap[pcid] = self.chain_properties(entry_chain_data[pcid], polymer_data[entry])
 
         return pimap
 
@@ -248,18 +249,18 @@ class PDB_Chain_Info:
                     entity_info['rcsb_polymer_entity']['pdbx_description']))
         pr['chain_names'] = cdesc
         try:
-            gene_srcs = []
+            gene_srcs = set()
             for src_data in entity_data["entity_src_gen"]:
-                gene_srcs.append(src_data["pdbx_gene_src_scientific_name"])
+                gene_srcs.add(src_data["pdbx_gene_src_scientific_name"])
             src = ", ".join(gene_srcs)
         except KeyError:
             try:
-                nat_srcs = []
+                nat_srcs = set()
                 for src_data in entity_data["entity_src_nat"]:
                     try:
-                        nat_srcs.append(src_data["pdbx_organism_scientific"])
+                        nat_srcs.add(src_data["pdbx_organism_scientific"])
                     except KeyError:
-                        nat_srcs.append(src_data["species"])
+                        nat_srcs.add(src_data["species"])
                 src = ", ".join(nat_srcs)
             except KeyError:
                 src = ""
@@ -281,25 +282,6 @@ class PDB_Chain_Info:
             weight = 0.0
         pr['chain_weight'] = weight
         return pr
-
-# -----------------------------------------------------------------------------
-#
-class Polymer:
-
-    def __init__(self):
-
-        self.entityNr = None            # "1"
-        self.length = None              # "141"
-        self.type = None                # "protein"
-        self.weight = None              # "15150.5"
-        self.chainIds = []              # ["A", "C"]
-        self.macroMoleculeName = ''     # "Hemoglobin subunit alpha"
-        self.macroMoleculeId = None     # "P69905"
-        self.polymerDescription = ''    # "HEMOGLOBIN (DEOXY) (ALPHA CHAIN)"
-        self.fragment = ''              # "HEAVY CHAIN 1-219"
-        self.details = ''               # "OBTAINED BY PAPAIN CLEAVAGE (FAB)"
-        self.taxonomyName = ''          # "Homo sapiens"
-        self.taxonomyId = None          # "9606"
 
 # -----------------------------------------------------------------------------
 #
@@ -342,10 +324,22 @@ class PDB_Ligand_Info:
                     continue
                 comp_data = fetch_from_pdb(session, 'chemcomp/%s', [name])[name]
                 by_name[name] = lig_info = {}
-                lig_info["Name"] = comp_data["chem_comp"]["name"]
-                lig_info["Formula"] = comp_data["chem_comp"]["formula"]
-                lig_info["Weight"] = comp_data["chem_comp"]["formula_weight"]
-                lig_info["Smile"] = comp_data["rcsb_chem_comp_descriptor"]["smiles"]
+                try:
+                    lig_info["Name"] = comp_data["chem_comp"]["name"]
+                except KeyError:
+                    lig_info["Name"] = None
+                try:
+                    lig_info["Formula"] = comp_data["chem_comp"]["formula"]
+                except KeyError:
+                    lig_info["Formula"] = None
+                try:
+                    lig_info["Weight"] = comp_data["chem_comp"]["formula_weight"]
+                except KeyError:
+                    lig_info["Weight"] = None
+                try:
+                    lig_info["Smile"] = comp_data["rcsb_chem_comp_descriptor"]["smiles"]
+                except KeyError:
+                    lig_info["Smile"] = None
 
         entry_ligands = {}
         for entry, names in by_entry.items():
