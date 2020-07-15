@@ -173,7 +173,7 @@ def dicom_contours(session, contour_series):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.map.data import MapFileFormat
+from chimerax.map_data import MapFileFormat
 class DICOMMapFormat(MapFileFormat):
     def __init__(self):
         MapFileFormat.__init__(self, 'DICOM image', 'dicom', ['dicom'], ['dcm'],

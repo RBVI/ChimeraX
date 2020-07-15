@@ -872,7 +872,7 @@ class BackingDrawing(Drawing):
     ijk_min = tuple(i-0.5 for i in imin)
     ijk_max = tuple(i+0.5 for i in imax)
     xyz_min, xyz_max = im._last_ijk_to_xyz_transform * (ijk_min, ijk_max)
-    from .data import box_corners
+    from chimerax.map_data import box_corners
     corners = box_corners(xyz_min, xyz_max)
 
     ro = im._rendering_options

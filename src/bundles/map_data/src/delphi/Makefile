@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/delphi
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/delphi
 
 PYSRCS = __init__.py delphi_format.py delphi_grid.py
 

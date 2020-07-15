@@ -23,7 +23,7 @@ def flatten(volume, method = 'multiply linear',
 
   fg = flattened_grid(volume, method, step, subregion,
                       fitregion = fitregion, task = task)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   fv = volume_from_grid_data(fg, volume.session, model_id = modelId)
   fv.copy_settings_from(volume, copy_region = False)
   volume.display = False          # Hide original map
@@ -50,7 +50,7 @@ def flattened_grid(volume, method = 'multiply linear',
     moffset = (0,0,0)
   flatten_matrix(m, method, mfit, moffset, task = task)
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   d = v.data
   if v.name.endswith('flat'): name = v.name
   else:                       name = '%s flat' % v.name
@@ -69,7 +69,7 @@ def flatten_matrix(m, method = 'multiply linear',
     
   if task:
     task.updateStatus('computing moments')
-  from .. import moments, affine_scale
+  from chimerax.map import moments, affine_scale
   v2, v1, v0 = moments(mfit)
 
   if method == 'multiply linear':

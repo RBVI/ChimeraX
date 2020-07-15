@@ -1,3 +1,5 @@
+# we depend on the fact that entry information
+# is fetched before chain information
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -69,6 +71,7 @@ class ToolUI(HtmlToolInstance):
         _instance_map[instance_name] = self
         display_name = "%s [name: %s]" % (tool_name, instance_name)
         from . import pdbinfo
+        # we depend on this ordering of infos (due to caching in the pdbinfo module)
         self._pdbinfo_list = (pdbinfo.entry_info, pdbinfo.chain_info,
                               pdbinfo.ligand_info)
 
@@ -337,6 +340,8 @@ class ToolUI(HtmlToolInstance):
     def _add_pdbinfo(self, pdb_chains):
         chain_ids = pdb_chains.keys()
         for info in self._pdbinfo_list:
+            # we depend on the fact that entry information
+            # is fetched before chain information
             data = info.fetch_info(self.session, chain_ids)
             for chain_id, hit in pdb_chains.items():
                 for k, v in data[chain_id].items():

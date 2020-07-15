@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/mrc
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/mrc
 
 PYSRCS = __init__.py mrc_format.py mrc_grid.py writemrc.py
 

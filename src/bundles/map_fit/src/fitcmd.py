@@ -187,7 +187,7 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules,
 
     if sequence > 0:
         if resolution is None:
-            from .. import Volume
+            from chimerax.map import Volume
             vlist = [v for v in atoms_or_map.models if isinstance(v, Volume)]
             if len(vlist) < 1:
                 if len(atoms_or_map.atoms) > 0:
@@ -229,7 +229,7 @@ def subtraction_maps(objects, resolution, session):
         for m, matoms in atoms.by_structure:
             from .fitmap import simulated_map
             vlist.append(simulated_map(matoms, resolution, session))
-    from .. import Volume
+    from chimerax.map import Volume
     vlist.extend([v for v in objects.models if isinstance(v, Volume)])
     return vlist
     
@@ -237,7 +237,7 @@ def subtraction_maps(objects, resolution, session):
 #
 def split_by_model(sel, resolution, symmetric, session):
     aom = [(atoms, None) for m,atoms in sel.atoms.by_structure]
-    from .. import Volume
+    from chimerax.map import Volume
     aom.extend([(None, v) for v in sel.models if isinstance(v, Volume)])
     if not resolution is None:
         aom = remove_atoms_with_volumes(aom, resolution, session)
@@ -491,7 +491,7 @@ def fit_sequence(vlist, volume, subtract_maps = [],
 #
 def map_to_fit(selection):
 
-  from .. import Volume
+  from chimerax.map import Volume
   vlist = [m for m in selection.models if isinstance(m, Volume)]
   if len(vlist) == 0:
     raise UserError('No atoms or maps for %s' % selection.spec)
@@ -546,7 +546,7 @@ def report_status(log):
 def register_fitmap_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg
-    from ..mapargs import MapArg
+    from chimerax.map.mapargs import MapArg
 
     fitmap_desc = CmdDesc(
         required = [

@@ -127,7 +127,12 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
 
 def register_attr(session, class_obj, attr_name, attr_type):
     if hasattr(class_obj, 'register_attr'):
-        class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        from chimerax.atomic.attr_registration import RegistrationConflict
+        try:
+            class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        except RegistrationConflict as e:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError(str(e))
     else:
         session.logger.warning("Class %s does not support attribute registration; '%s' attribute"
             " will not be preserved in sessions." % (class_obj.__name__, attr_name))

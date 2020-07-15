@@ -18,7 +18,7 @@ def threshold(volume, minimum = None, set_minimum = None,
 
   tg = threshold_grid(volume, minimum, set_minimum, maximum, set_maximum,
                       step, subregion)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   tv = volume_from_grid_data(tg, model_id = modelId, session = session)
   tv.copy_settings_from(volume)
   
@@ -55,7 +55,7 @@ def threshold_grid(volume, minimum = None, set_minimum = None,
     else:
       putmask(m, m > t, array(set_maximum, m.dtype))
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   d = v.data
   if v.name.endswith('thresholded'): name = v.name
   else:                         name = '%s thresholded' % v.name

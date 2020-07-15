@@ -251,7 +251,7 @@ def project_and_mask(zsurf, size, mvol, mijk_to_dijk, sandwich, fill_overlap):
 def array_to_model(mvol, volume, ijk_origin, model_id):
 
   # Create masked volume grid object.
-  from chimerax.map.data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   g = volume.data
   morigin = g.ijk_to_xyz_transform * ijk_origin
   m = ArrayGridData(mvol, morigin, g.step, cell_angles = g.cell_angles,

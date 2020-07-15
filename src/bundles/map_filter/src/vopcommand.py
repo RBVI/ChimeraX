@@ -51,8 +51,8 @@ def register_volume_filtering_subcommands(logger):
     from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg
     from chimerax.core.commands import AxisArg, CenterArg, CoordSysArg
     from chimerax.atomic import AtomsArg
-    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
-    from ..mapargs import BoxArg, Float2Arg
+    from chimerax.map.mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
+    from chimerax.map.mapargs import BoxArg, Float2Arg
 
     varg = [('volumes', MapsArg)]
     ssm_kw = [
@@ -435,7 +435,7 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume product'
         else:
             rg.name = 'volume sum'
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         rv = volume_from_grid_data(rg, session, model_id = model_id,
                                    show_dialog = False)
         rv.position = gv.position
@@ -460,7 +460,7 @@ def combine_operation(volumes, operation, subregion, step,
 #
 def same_grids(volumes, subregion, step, gv, gr):
 
-    from ..volume import same_grid
+    from chimerax.map.volume import same_grid
     for v in volumes:
         if not same_grid(v, v.subregion(step, subregion), gv, gr):
             return False
@@ -470,7 +470,7 @@ def same_grids(volumes, subregion, step, gv, gr):
 #
 def volume_corners(volumes, subregion, step, place):
 
-    from ..data import box_corners
+    from chimerax.map_data import box_corners
     corners = []
     for v in volumes:
         xyz_min, xyz_max = v.xyz_bounds(step = step, subregion = subregion)
@@ -531,7 +531,7 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
     if bc > 1:
         raise CommandError('Specify covering box in one way')
 
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     from .cover import cover_box_bounds, map_covering_box
     cvlist = []
     for v in volumes:
@@ -713,10 +713,10 @@ def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,
         from numpy import float32
         value_type = float32
     a = zeros(shape, dtype = value_type)
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     grid = ArrayGridData(a, origin = origin, step = grid_spacing,
                          cell_angles = cell_angles, name = name)
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     v = volume_from_grid_data(grid, session, model_id = model_id)
     return v
 
@@ -1023,7 +1023,7 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
         return v
     else:
         fg = flip.FlipGrid(g, axes)
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
         v.display = False
