@@ -41,6 +41,7 @@ class PDB_Entry_Info:
     def fetch_info(self, session, pdb_chain_ids):
 
         global _polymer_info, _non_polymer_info
+        session.logger.status("Fetching PDB entry info for hits")
         _polymer_info.clear()
         _non_polymer_info.clear()
         if len(pdb_chain_ids) == 0:
@@ -66,6 +67,7 @@ class PDB_Entry_Info:
                   for pi in pis)
         pimap = dict((pcid, da.get(pdb_id.lower(),{}))
                      for pdb_id, pcid in zip(pdb_ids, pdb_chain_ids))
+        session.logger.status("Done fetching PDB entry info for hits")
         return pimap
 
     def pdb_info(self, session, pdb_id, info):
@@ -78,6 +80,7 @@ class PDB_Entry_Info:
             ("nr_entities", ['rcsb_entry_info', 'polymer_entity_count']),
             ("nr_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
             ("nr_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
+            ("deposition_date", ['rcsb_accession_info', 'deposit_date']),
             ("publish_date", ['rcsb_accession_info', 'initial_release_date']),
             ("revision_date", ['rcsb_accession_info', 'revision_date']),
             ("structure_authors", ['audit_author', 'name']),
@@ -102,6 +105,8 @@ class PDB_Entry_Info:
                     #session.logger.info("%s item missing from '%s' table in %s entry information"
                     #    % (key2, key1, pdb_id))
                     continue
+                if value and isinstance(value, list) and isinstance(value[0], str):
+                    value = ", ".join(value)
             else:
                 values = []
                 for table in table_info:
@@ -177,10 +182,13 @@ class PDB_Chain_Info:
         # previous entry lookup
         # Also, Blast uses author chain ID whereas RSCB web service uses 'canonical'
         # chain ID, so make a mapping from one to the other
+        session.logger.status("Fetching PDB chain mapping info for hits")
         polymer_data = {}
         chainID_mapping = {}
         global _polymer_info
-        for entry_code, entity_ids in _polymer_info.items():
+        for i, item in enumerate(_polymer_info.items()):
+            session.logger.status("%d/%d" % (i, len(_polymer_info)), secondary=True)
+            entry_code, entity_ids = item
             polymer_data[entry_code] = per_entity_data = {}
             chainID_mapping[entry_code] = cid_mapping = {}
             for entity_id in entity_ids:
@@ -191,8 +199,10 @@ class PDB_Chain_Info:
                 auth = id_data['auth_asym_ids']
                 cid_mapping.update(dict(zip(auth, canon)))
 
+        session.logger.status("Fetching PDB chain entity info for hits")
         entry_chain_data = {}
-        for pcid in pdb_chain_ids:
+        for i, pcid in enumerate(pdb_chain_ids):
+            session.logger.status("%d/%d" % (i, len(pdb_chain_ids)), secondary=True)
             entry, auth_cid = pcid.split('_')
             try:
                 key = (entry, chainID_mapping[entry][auth_cid])
@@ -202,6 +212,7 @@ class PDB_Chain_Info:
             else:
                 chain_data = fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', [key])[key]
             entry_chain_data[pcid] = chain_data
+        session.logger.status("", secondary=True)
 
         if entry_chain_data is None:
             # TODO: Warn that fetch failed.
@@ -213,6 +224,7 @@ class PDB_Chain_Info:
             entry, auth_id = pcid.split('_')
             pimap[pcid] = self.chain_properties(entry_chain_data[pcid], polymer_data[entry])
 
+        session.logger.status("Done fetching PDB chain entity info for hits")
         return pimap
 
     def chain_properties(self, author_data, polymers):
@@ -305,10 +317,12 @@ class PDB_Ligand_Info:
         if len(pdb_chain_ids) == 0:
             return {}
 
+        session.logger.status("Fetching PDB ligand info for hits")
         global _non_polymer_info
         by_name = {}
         by_entry = {}
-        for code_chain in pdb_chain_ids:
+        for i, code_chain in enumerate(pdb_chain_ids):
+            session.logger.status("%d/%d" % (i, len(pdb_chain_ids)), secondary=True)
             entry = code_chain.split('_')[0]
             if entry in by_entry:
                 continue
@@ -340,6 +354,7 @@ class PDB_Ligand_Info:
                     lig_info["Smile"] = comp_data["rcsb_chem_comp_descriptor"]["smiles"]
                 except KeyError:
                     lig_info["Smile"] = None
+        session.logger.status("", secondary=True)
 
         entry_ligands = {}
         for entry, names in by_entry.items():
@@ -348,13 +363,16 @@ class PDB_Ligand_Info:
             comp_dicts = [by_name[n] for n in names]
             for key in ["Name", "Formula", "Weight", "Smile"]:
                 lig_dict["ligand"+key+"s"] = [cd[key] for cd in comp_dicts]
+        session.logger.status("Done fetching PDB ligand info for hits")
         return dict([(pcid, entry_ligands[pcid.split('_')[0]]) for pcid in pdb_chain_ids])
 
 
 def fetch_from_pdb(session, query_template, query_args):
 
     info = {}
-    for arg in query_args:
+    for i, arg in enumerate(query_args):
+        if len(query_args) > 1:
+            session.logger.status("%d/%d" % (i, len(query_args)), secondary=True)
         url = 'https://data.rcsb.org/rest/v1/core/%s' % (query_template % arg)
         from urllib.request import urlopen
         from urllib.error import URLError, HTTPError
@@ -370,6 +388,8 @@ def fetch_from_pdb(session, query_template, query_args):
             info[arg] = {}
             continue
         info[arg] = eval(data)
+    if len(query_args) > 1:
+        session.logger.status("", secondary=True)
     return info
 
 # -----------------------------------------------------------------------------
