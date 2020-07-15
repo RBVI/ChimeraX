@@ -14,11 +14,12 @@
 # -----------------------------------------------------------------------------
 # Volume cache memory use dialog.
 #
-from chimera.baseDialog import ModelessDialog
+#from chimera.baseDialog import ModelessDialog
 
 # -----------------------------------------------------------------------------
 #
-class Memory_Use_Dialog(ModelessDialog):
+#class Memory_Use_Dialog(ModelessDialog):
+class Memory_Use_Dialog:
 
   title = 'Volume Memory Manager'
   name = 'volume memory manager'
@@ -102,5 +103,5 @@ def show_memory_use_dialog():
     
 # -----------------------------------------------------------------------------
 #
-from chimera import dialogs
-dialogs.register(Memory_Use_Dialog.name, Memory_Use_Dialog, replace = 1)
+#from chimera import dialogs
+#dialogs.register(Memory_Use_Dialog.name, Memory_Use_Dialog, replace = 1)
