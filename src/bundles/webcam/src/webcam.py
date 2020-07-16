@@ -222,6 +222,11 @@ class WebCam (Model):
             # Get one new frame after camera unload is requested.
             return
 
+        # Video frame can change size when some other app opens the camera
+        # and changes its settings.  ChimeraX ticket #3517
+        h,w = rgba_image.shape[:2]
+        self.size = (w,h)
+        
         self._mark_image_foreground(rgba_image)
         
         self._last_image = rgba_image
@@ -229,7 +234,6 @@ class WebCam (Model):
         if self._first_image:
             self._create_video_texture(rgba_image)
             self._first_image = False
-            #print('first frame shape', a.shape, 'type', a.dtype, 'pixel format', f.pixelFormat())
         else:
             self.texture.reload_texture(rgba_image)
             self.redraw_needed()
@@ -446,8 +450,8 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     if rgba_image is not None:
         ih, iw = rgba_image.shape[:2]
         if ih != h or iw != w:
-            raise ValueError('QVideoFrame size (%d,%d) does not match expected image size (%d,%d)'
-                             % (w, h, iw, ih))
+            # Video frame does not match array size so make new array.
+            rgba_image = None
     bytes_per_pixel = {f.Format_ARGB32:4, f.Format_YUYV:2}[pixel_format]
     nbytes = h * w * bytes_per_pixel
     if f.mappedBytes() != nbytes:
