@@ -270,14 +270,20 @@ class Arrows(Model):
         Model.__init__(self, '2D arrows', session)
         self._arrows = []
         self._named_arrows = {}    # Map arrow name to Arrow object
+        self.handlers = []
         from chimerax.core.core_settings import settings
-        self.handler = settings.triggers.add_handler('setting changed', self._background_color_changed)
+        self.handlers.append(
+            settings.triggers.add_handler('setting changed', self._background_color_changed))
+        from chimerax.core.models import REMOVE_MODELS
+        self.handlers.append(session.triggers.add_handler(REMOVE_MODELS, self._models_removed))
         session.main_view.add_overlay(self)
         self.model_panel_show_expanded = False
 
     def delete(self):
         self.session.main_view.remove_overlays([self], delete = False)
-        self.handler.remove()
+        for handler in self.handlers:
+            handler.remove()
+        self.handlers.clear()
         Model.delete(self)
 
     def add_arrow(self, arrow):
@@ -313,6 +319,11 @@ class Arrows(Model):
             for a in self.all_arrows:
                 if a.color is None:
                     a.update_drawing()
+
+    def _models_removed(self, trig_name, models):
+        for m in models:
+            if isinstance(m, ArrowModel) and m in self._arrows:
+                self.delete_arrow(m.arrow)
 
     SESSION_SAVE = True
 
