@@ -19,10 +19,10 @@ class HoloPlayCore:
         self._c_funcs = self._open_c_library(library_path)
 
         self._device_params = {}		# Cached device parameters
-        self._show_quilt = False
         self._string_length = 1000
         self._string = ctypes.create_string_buffer(self._string_length)
         self._string_p = ctypes.c_char_p(ctypes.addressof(self._string))
+        self._shader = None			# OpenGL shader for drawing quilt to screen
 
     def _open_c_library(self, library_path):
         if library_path is None:
@@ -167,17 +167,32 @@ class HoloPlayCore:
         info = '\n'.join(lines)
         return info
 
+    def quilt_shader(self, show_quilt):
+        if self._shader is None:
+            # Create shader
+            from os.path import dirname, join
+            vertex_shader_path = join(dirname(__file__), 'vertex_shader.txt')
+            fragment_shader_path = join(dirname(__file__), 'fragment_shader.txt')
+            from chimerax.graphics.opengl import Shader, Render
+            capabilities = Render.SHADER_TEXTURE_2D if show_quilt else 0
+            shader = Shader(vertex_shader_path = vertex_shader_path,
+                            fragment_shader_path = fragment_shader_path,
+                            capabilities = capabilities)
+            self._shader = shader
+            shader.validate_program()
+        return self._shader
+
     def set_shader_uniforms(self, shader, device, quilt_size):
         p = self.device_parameters(device)
         s = shader
         # Values in comments reported for 8.9" display by HoloPlayCore 1.1.1
         # (July 2020) on Mac, displaysize 2560 x 1600.
-        s.set_float('pitch', p['pitch'])		# 354.686
-        s.set_float('tilt', p['tilt'])			# -0.113296
+        pitch_x = p['pitch']				# 354.686
+        tilt = p['tilt']				# -0.113296
+        pitch_y = pitch_x * tilt			# -40.1845
+        s.set_vector2('pitch', (pitch_x, pitch_y))
         s.set_float('center', p['center'])		# -0.101902
-        s.set_integer('invView', p['invView'])		# 1
         s.set_float('subp', p['subp'])			# 0.000130208
-        s.set_float('displayAspect', p['aspect'])	# 1.6
         s.set_integer('ri', p['ri'])			# 0
         s.set_integer('bi', p['bi'])			# 2
 
@@ -186,12 +201,15 @@ class HoloPlayCore:
         qs_view_width = qs_width // qs_columns			# 819		
         qs_view_height = qs_height // qs_rows			# 455
         s.set_vector3('tile', (qs_columns, qs_rows, qs_total_views))	# 5, 9, 45
-        s.set_vector2('viewPortion', (qs_view_width * qs_columns / qs_width,
-                                      qs_view_height * qs_rows / qs_height))	# 0.999755, 0.999755
-        s.set_float('quiltAspect', p['aspect'])		# 1.6
-        s.set_integer('overscan', 0)			# 0
-        s.set_integer('quiltInvert', 0)			# 0
-        s.set_integer('debug', (1 if self._show_quilt else 0))
+        s.set_vector2('texture_region', (qs_view_width * qs_columns / qs_width,
+                                         qs_view_height * qs_rows / qs_height))	# 0.999755, 0.999755
+        quilt_aspect = qs_view_width / qs_view_height	# 1.8
+        if quilt_aspect >= p['aspect']:
+            adjust_aspect = p['aspect']/quilt_aspect, 1
+        else:
+            adjust_aspect = 1, quilt_aspect/p['aspect']
+        s.set_vector2('adjust_aspect', adjust_aspect)
+        s.set_float('flip_vertical', (-1.0 if p['invView'] else 1.0))	 # -1.0
 
     def device_parameters(self, device):
         d = device
@@ -256,3 +274,53 @@ class CFunctions:
         if ret is not None:
             f.restype = ret
         return f
+
+# -----------------------------------------------------------------------------
+#
+def write_lattice_images(device_parameters, quilt_size, tile_number = 22,
+                         screen_image = 'screen.png', tile_image = 'tile.png'):
+    p = device_parameters
+    pitch = p['pitch']				# 354.686
+    tilt = p['tilt']				# -0.113296
+    center = p['center']			# -0.101902
+    invView = p['invView']			# 1
+    subp = p['subp']				# 0.000130208
+    displayAspect = p['aspect']			# 1.6
+    ri = p['ri']				# 0
+    bi = p['bi']				# 2
+
+    qs_width, qs_height, qs_rows, qs_columns = quilt_size	# 4096, 4096, 9, 5
+    qs_total_views = qs_rows * qs_columns			# 45
+    qs_view_width = qs_width // qs_columns			# 819		
+    qs_view_height = qs_height // qs_rows			# 455
+    tile = (qs_columns, qs_rows, qs_total_views)		# 5, 9, 45
+    viewPortion = (qs_view_width * qs_columns / qs_width,
+                   qs_view_height * qs_rows / qs_height)	# 0.999755, 0.999755
+#    quiltAspect = p['aspect']					# 1.6
+    quiltAspect = qs_view_width / qs_view_height		# 1.8
+    overscan = 0
+    quiltInvert = 0
+
+    sw, sh = 2560, 1600
+
+    from numpy import zeros, uint8
+    simage = zeros((sh, sw, 3), uint8)
+    timage = zeros((qs_view_height, qs_view_width, 3), uint8)
+
+    for i in range(sw):
+        u = (0.5 + i)/sw
+        for j in range(sh):
+            v = (0.5 + j)/sh
+            invert = -1.0 if invView + quiltInvert == 1 else 1.0
+            w = (invert * ((u + v * tilt) * pitch - center)) % 1.0
+            from math import floor
+            z = floor(w * tile[2])
+            if z == tile_number:
+                ti, tj = int(u * qs_view_width), int(v * qs_view_height)
+                timage[tj,ti,:] = 255
+                simage[j,i,:] = 255
+
+    format_name = 'PNG'
+    from PIL import Image
+    Image.fromarray(simage[::-1]).save(screen_image, format_name)
+    Image.fromarray(timage[::-1]).save(tile_image, format_name)

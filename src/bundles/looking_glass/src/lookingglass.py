@@ -86,8 +86,8 @@ class LookingGlassCamera(Camera):
         self._quilt_tile_size = (w//c, h//r)
         self._framebuffer = None		# For rendering into quilt texture
         self._texture_drawing = None		# For rendering quilt to window
-        self._shader = None			# OpenGL shader for drawing quilt to screen
-        
+        self._show_quilt = False
+
     def delete(self):
         self._hpc.hpc_CloseApp()
         self._hpc = None
@@ -218,21 +218,23 @@ class LookingGlassCamera(Camera):
         drawing = self._quilt_drawing()
         ds = drawing._draw_shape
         ds.activate_bindings(render)
+        self._activate_quilt_shader(render)
+        render.enable_depth_test(False)
+        t = drawing.texture
+        t.bind_texture()
+        ds.draw(drawing.Solid)  # draw rectangle
+        t.unbind_texture()
+        render.enable_depth_test(True)
 
-        shader = self._quilt_shader(render)
+    def _activate_quilt_shader(self, render):
+        shader = self._hpc.quilt_shader(self._show_quilt)
         from OpenGL import GL
         GL.glUseProgram(shader.program_id)
         render._opengl_context.current_shader_program = None   # Clear cached shader
         shader.set_integer("screenTex", 0)    # Texture unit 0.
         qsize = (self._quilt_size[0], self._quilt_size[1], self._quilt_rows, self._quilt_columns)
-        self._hpc.set_shader_uniforms(shader, self._device_number, qsize)
-
-        render.enable_depth_test(False)
-        t = drawing.texture
-        t.bind_texture()
-        ds.draw(drawing.Solid)  # draw triangle
-        t.unbind_texture()
-        render.enable_depth_test(True)
+        if not self._show_quilt:
+            self._hpc.set_shader_uniforms(shader, self._device_number, qsize)
 
     def _quilt_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
@@ -246,21 +248,6 @@ class LookingGlassCamera(Camera):
             td._create_vertex_buffers()
             td._update_buffers()
         return td
-
-    def _quilt_shader(self, render):
-        if self._shader is None:
-            # Create shader
-            from os.path import dirname, join
-            vertex_shader_path = join(dirname(__file__), 'vertex_shader.txt')
-            fragment_shader_path = join(dirname(__file__), 'fragment_shader.txt')
-            capabilities = render.SHADER_BLEND_TEXTURE_2D
-            from chimerax.graphics.opengl import Shader
-            shader = Shader(vertex_shader_path = vertex_shader_path,
-                            fragment_shader_path = fragment_shader_path,
-                            capabilities = capabilities)
-            self._shader = shader
-            shader.validate_program()
-        return self._shader
     
 # -------------------------------------------------------------------------------------------------
 #
@@ -301,7 +288,7 @@ class LookingGlassWindow(QWindow):
             else:
                 self.showFullScreen()
         else:
-            lgc._hpc._show_quilt = True
+            lgc._show_quilt = True
             self.setWidth(500)
             self.setHeight(500)
             self.show()
@@ -370,5 +357,18 @@ class LookingGlassWindow(QWindow):
         mvwin = r.use_shared_context(self)
         camera.position = view.camera.position
         view.draw(camera = camera)
+#        self._save_screen_image(r, view)
         r.use_shared_context(mvwin)  # Reset opengl window
         r.done_current()
+
+    def _save_screen_image(self, r, view):
+        self._save_screen_image_countdown = getattr(self, '_save_screen_image_countdown', 50) - 1
+        if self._save_screen_image_countdown == 0:
+            s = self.size()
+            w, h = s.width(), s.height()
+            print ('capturing screen window size', w, h)
+            view._use_opengl()
+            rgba = r.frame_buffer_image(w, h, front_buffer = True)
+            from PIL import Image
+            Image.fromarray(rgba[::-1]).save('screen.png', 'PNG')
+            
