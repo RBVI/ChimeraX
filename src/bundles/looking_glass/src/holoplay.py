@@ -22,7 +22,6 @@ class HoloPlayCore:
         self._string_length = 1000
         self._string = ctypes.create_string_buffer(self._string_length)
         self._string_p = ctypes.c_char_p(ctypes.addressof(self._string))
-        self._shader = None			# OpenGL shader for drawing quilt to screen
 
     def _open_c_library(self, library_path):
         if library_path is None:
@@ -167,49 +166,60 @@ class HoloPlayCore:
         info = '\n'.join(lines)
         return info
 
-    def quilt_shader(self, show_quilt):
-        if self._shader is None:
-            # Create shader
-            from os.path import dirname, join
-            vertex_shader_path = join(dirname(__file__), 'vertex_shader.txt')
-            fragment_shader_path = join(dirname(__file__), 'fragment_shader.txt')
-            from chimerax.graphics.opengl import Shader, Render
-            capabilities = Render.SHADER_TEXTURE_2D if show_quilt else 0
-            shader = Shader(vertex_shader_path = vertex_shader_path,
-                            fragment_shader_path = fragment_shader_path,
-                            capabilities = capabilities)
-            self._shader = shader
-            shader.validate_program()
-        return self._shader
+    def quilt_shader(self, device, quilt_size, show_quilt):
+        # Create shader
+        from os.path import dirname, join
+        vertex_shader_path = join(dirname(__file__), 'vertex_shader.txt')
+        fragment_shader_path = join(dirname(__file__), 'fragment_shader.txt')
+        from chimerax.graphics.opengl import Shader, Render
+        capabilities = Render.SHADER_TEXTURE_2D if show_quilt else 0
+        shader = Shader(vertex_shader_path = vertex_shader_path,
+                        fragment_shader_path = fragment_shader_path,
+                        capabilities = capabilities)
+        shader.validate_program()
+        shader._lg_uniforms = {} if show_quilt else self._shader_uniforms(device, quilt_size)
+        return shader
 
-    def set_shader_uniforms(self, shader, device, quilt_size):
+    def _shader_uniforms(self, device, quilt_size):
+        u = {}
         p = self.device_parameters(device)
-        s = shader
         # Values in comments reported for 8.9" display by HoloPlayCore 1.1.1
         # (July 2020) on Mac, displaysize 2560 x 1600.
-        pitch_x = p['pitch']				# 354.686
+        pitch_x = p['pitch']			# 354.686
         tilt = p['tilt']				# -0.113296
         pitch_y = pitch_x * tilt			# -40.1845
-        s.set_vector2('pitch', (pitch_x, pitch_y))
-        s.set_float('center', p['center'])		# -0.101902
-        s.set_float('subp', p['subp'])			# 0.000130208
-        s.set_integer('ri', p['ri'])			# 0
-        s.set_integer('bi', p['bi'])			# 2
+        subp = p['subp']				# 0.000130208
+        pitch_rgb = subp * pitch_x
+        center = p['center']			# -0.101902
+        ri = p['ri']				# 0
+        bi = p['bi']				# 2
+        if p['invView']:				# 1
+            pitch_x, pitch_y, pitch_rgb, center = -pitch_x, -pitch_y, -pitch_rgb, -center
+        u['pitch'] = (pitch_x, pitch_y, center)
+        u['rgb_pitch'] = (ri*pitch_rgb, pitch_rgb, bi*pitch_rgb)
 
         qs_width, qs_height, qs_rows, qs_columns = quilt_size	# 4096, 4096, 9, 5
         qs_total_views = qs_rows * qs_columns			# 45
         qs_view_width = qs_width // qs_columns			# 819		
         qs_view_height = qs_height // qs_rows			# 455
-        s.set_vector3('tile', (qs_columns, qs_rows, qs_total_views))	# 5, 9, 45
-        s.set_vector2('texture_region', (qs_view_width * qs_columns / qs_width,
-                                         qs_view_height * qs_rows / qs_height))	# 0.999755, 0.999755
-        quilt_aspect = qs_view_width / qs_view_height	# 1.8
-        if quilt_aspect >= p['aspect']:
-            adjust_aspect = p['aspect']/quilt_aspect, 1
-        else:
-            adjust_aspect = 1, quilt_aspect/p['aspect']
-        s.set_vector2('adjust_aspect', adjust_aspect)
-        s.set_float('flip_vertical', (-1.0 if p['invView'] else 1.0))	 # -1.0
+        u['tile'] = (qs_columns, qs_rows, qs_total_views)	# 5, 9, 45
+        u['texture_region'] = (qs_view_width * qs_columns / qs_width,
+                               qs_view_height * qs_rows / qs_height)	# 0.999755, 0.999755
+        quilt_aspect = qs_view_width / qs_view_height		# 1.8
+        u['adjust_aspect'] = ((p['aspect']/quilt_aspect, 1)
+                              if quilt_aspect >= p['aspect'] else
+                              (1, quilt_aspect/p['aspect']))
+        return u
+
+    def set_shader_uniforms(self, shader):
+        s = shader
+        u = s._lg_uniforms
+        if u:
+            s.set_vector3('pitch', u['pitch'])
+            s.set_vector3('rgb_pitch', u['rgb_pitch'])
+            s.set_vector3('tile', u['tile'])
+            s.set_vector2('texture_region', u['texture_region'])
+            s.set_vector2('adjust_aspect', u['adjust_aspect'])
 
     def device_parameters(self, device):
         d = device

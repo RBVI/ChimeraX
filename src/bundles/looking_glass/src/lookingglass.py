@@ -84,6 +84,7 @@ class LookingGlassCamera(Camera):
         self._quilt_columns = c = 5
         self._quilt_rows = r = 9
         self._quilt_tile_size = (w//c, h//r)
+        self._shader = None			# Shader for rendering quilt to window
         self._framebuffer = None		# For rendering into quilt texture
         self._texture_drawing = None		# For rendering quilt to window
         self._show_quilt = False
@@ -227,14 +228,16 @@ class LookingGlassCamera(Camera):
         render.enable_depth_test(True)
 
     def _activate_quilt_shader(self, render):
-        shader = self._hpc.quilt_shader(self._show_quilt)
+        shader = self._shader
+        if shader is None:
+            qsize = (self._quilt_size[0], self._quilt_size[1], self._quilt_rows, self._quilt_columns)
+            shader = self._hpc.quilt_shader(self._device_number, qsize, self._show_quilt)
+            self._shader = shader
         from OpenGL import GL
         GL.glUseProgram(shader.program_id)
         render._opengl_context.current_shader_program = None   # Clear cached shader
         shader.set_integer("screenTex", 0)    # Texture unit 0.
-        qsize = (self._quilt_size[0], self._quilt_size[1], self._quilt_rows, self._quilt_columns)
-        if not self._show_quilt:
-            self._hpc.set_shader_uniforms(shader, self._device_number, qsize)
+        self._hpc.set_shader_uniforms(shader)
 
     def _quilt_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
