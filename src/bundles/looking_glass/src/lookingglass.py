@@ -15,7 +15,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def lookingglass(session, enable = None, device_number = 0,
-                 view_angle = None, field_of_view = None,
+                 view_angle = None, field_of_view = None, depth_offset = None,
                  verbose = False, quilt = False):
     '''
     Render to LookingGlass holographic display.
@@ -24,15 +24,27 @@ def lookingglass(session, enable = None, device_number = 0,
     if enable is None:
         enable = True
 
-    enabled = hasattr(session, '_lg_window')
-    if enable and not enabled:
-        session._lg_window = LookingGlassWindow(session,
-                                                device_number = device_number,
-                                                view_angle = view_angle,
-                                                field_of_view = field_of_view,
-                                                verbose = verbose, quilt = quilt)
-    elif not enable and enabled:
-        session._lg_window.delete()
+    lg_window = getattr(session, '_lg_window', None)
+    if enable:
+        if lg_window is None:
+            lg_window = LookingGlassWindow(session,
+                                           device_number = device_number,
+                                           view_angle = view_angle,
+                                           field_of_view = field_of_view,
+                                           depth_offset = depth_offset,
+                                           verbose = verbose, quilt = quilt)
+            session._lg_window = lg_window
+        else:
+            lg_camera = lg_window.looking_glass_camera
+            if view_angle is not None:
+                lg_camera.view_angle = view_angle
+            if field_of_view is not None:
+                lg_camera.field_of_view = field_of_view
+            if depth_offset is not None:
+                lg_camera.depth_offset = depth_offset
+                
+    elif not enable and lg_window:
+        lg_window.delete()
         delattr(session, '_lg_window')
         
 # -----------------------------------------------------------------------------
@@ -43,6 +55,7 @@ def register_lookingglass_command(logger):
                    keyword = [('device_number', IntArg),
                               ('view_angle', FloatArg),
                               ('field_of_view', FloatArg),
+                              ('depth_offset', FloatArg),
                               ('verbose', BoolArg),
                               ('quilt', BoolArg),
                    ],
@@ -61,7 +74,8 @@ class LookingGlassCamera(Camera):
     name = 'lookingglass'
     
     def __init__(self, session, device_number = 0,
-                 view_angle = None, field_of_view = None, verbose = False):
+                 view_angle = None, field_of_view = 22,
+                 depth_offset = 0, verbose = False):
 
         Camera.__init__(self)
 
@@ -72,12 +86,11 @@ class LookingGlassCamera(Camera):
         if verbose:
             session.logger.info('HoloPlay library info:\n%s' % hpc.info())
 
-        if field_of_view is None:
-            field_of_view = 22
         self.field_of_view = field_of_view	# Corresponds to recommended 14 degree vertical field.
         if view_angle is None:
             view_angle = hpc.hpc_GetDeviceViewCone(device_number) if self.found_device() else 40
         self._view_angle = view_angle		# Camera range of x positions
+        self._depth_offset = depth_offset	# Depth shift of center of bounding box from mid-depth
         self._focus_depth = 100			# Scene units
         self._update_focus_depth()
         self._quilt_size = (w,h) = (4096, 4096)
@@ -110,6 +123,24 @@ class LookingGlassCamera(Camera):
         
     def screen_name(self):
         return self._hpc.hpc_GetDeviceHDMIName(self._device_number) if self.found_device() else None
+
+    def _get_field_of_view(self):
+        return self._field_of_view
+    def _set_field_of_view(self, field_of_view):
+        self._field_of_view = field_of_view
+        self._session.main_view.camera.field_of_view = field_of_view
+        self._redraw_needed()
+    field_of_view = property(_get_field_of_view, _set_field_of_view)
+
+    def _get_view_angle(self):
+        return self._view_angle
+    def _set_view_angle(self, view_angle):
+        self._view_angle = view_angle
+        self._redraw_needed()
+    view_angle = property(_get_view_angle, _set_view_angle)
+
+    def _redraw_needed(self):
+        self._session.main_view.redraw_needed = True
         
     def view(self, camera_position, view_num):
         '''
@@ -134,7 +165,7 @@ class LookingGlassCamera(Camera):
     def _x_offset_pixels(self, view_num):
         xos = self._x_offset_scene(view_num)
         from math import tan, pi
-        wscene = self._focus_depth * 2*tan(0.5 * self.field_of_view * pi / 180)
+        wscene = self._focus_depth * 2*tan(0.5 * self._field_of_view * pi / 180)
         wpixels = self._quilt_tile_size[0]
         xop = wpixels * xos / wscene
         return xop
@@ -145,18 +176,26 @@ class LookingGlassCamera(Camera):
 
     def view_width(self, point):
         from chimerax.graphics.camera import perspective_view_width
-        return perspective_view_width(point, self.position.origin(), self.field_of_view)
+        return perspective_view_width(point, self.position.origin(), self._field_of_view)
 
     def view_all(self, bounds, window_size = None, pad = 0):
         from chimerax.graphics.camera import perspective_view_all
-        self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
+        self.position = perspective_view_all(bounds, self.position, self._field_of_view, window_size, pad)
         self._update_focus_depth()
 
     def _set_position(self, p):
         Camera.set_position(self, p)
         self._update_focus_depth()
     position = property(Camera.position.fget, _set_position)
-    
+
+    def _get_depth_offset(self):
+        return self._depth_offset
+    def _set_depth_offset(self, offset):
+        self._depth_offset = offset
+        self._update_focus_depth()
+        self._redraw_needed()
+    depth_offset = property(_get_depth_offset, _set_depth_offset)
+        
     def _update_focus_depth(self):
         v = self._session.main_view
         b = v.drawing_bounds()
@@ -166,14 +205,16 @@ class LookingGlassCamera(Camera):
         delta = b.center() - self.position.origin()
         from chimerax.geometry import inner_product
         d = inner_product(delta, view_dir)
-        self._focus_depth = d
-        self.redraw_needed = True
+        d -= self._depth_offset
+        if d != self._focus_depth:
+            self._focus_depth = d
+            self._redraw_needed()
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         pixel_shift = (self._x_offset_pixels(view_num), 0)
         from chimerax.graphics.camera import perspective_projection_matrix
-        return perspective_projection_matrix(self.field_of_view, window_size,
+        return perspective_projection_matrix(self._field_of_view, window_size,
                                              near_far_clip, pixel_shift)
     
     def set_render_target(self, view_num, render):
@@ -257,24 +298,28 @@ class LookingGlassCamera(Camera):
 from PyQt5.QtGui import QWindow
 class LookingGlassWindow(QWindow):
     def __init__(self, session, device_number = 0,
-                 view_angle = None, field_of_view = None,
+                 view_angle = None, field_of_view = None, depth_offset = None,
                  verbose = False, quilt = False):
         self._session = session
 
-        lgc = LookingGlassCamera(session,
-                                 device_number = device_number,
-                                 view_angle = view_angle,
-                                 field_of_view = field_of_view,
-                                 verbose = verbose)
-        self._looking_glass_camera = lgc
+        # Create camera for rendering LookingGlass image
+        cam_settings = {name:value for name, value in (
+                         ('device_number', device_number),
+                         ('view_angle', view_angle),
+                         ('field_of_view', field_of_view),
+                         ('depth_offset', depth_offset),
+                         ('verbose', verbose))
+                        if value is not None}
+        lgc = LookingGlassCamera(session, **cam_settings)
+        self.looking_glass_camera = lgc
 
+        # Create fullscreen window on LookingGlass display
         screen = None if quilt else self._looking_glass_screen()
         QWindow.__init__(self, screen = screen)
         from PyQt5.QtGui import QSurface
         self.setSurfaceType(QSurface.OpenGLSurface)
 
         if screen:
-            session.main_view.camera.field_of_view = lgc.field_of_view
             from sys import platform
             if platform == 'win32':
                 # Qt 5.12 hangs if OpenGL window is put on second display
@@ -301,7 +346,7 @@ class LookingGlassWindow(QWindow):
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
         
     def _looking_glass_screen(self):
-        screen_name = self._looking_glass_camera.screen_name()
+        screen_name = self.looking_glass_camera.screen_name()
         if screen_name is None:
             screen = None
         else:
@@ -335,8 +380,8 @@ class LookingGlassWindow(QWindow):
         t.remove_handler(self._app_quit_handler)
         self._render_handler = None
         self._app_quit_handler = None
-        self._looking_glass_camera.delete()
-        self._looking_glass_camera = None
+        self.looking_glass_camera.delete()
+        self.looking_glass_camera = None
         self.close()	# QWindow method
 
     def _app_quit(self, tname, tdata):
@@ -352,14 +397,16 @@ class LookingGlassWindow(QWindow):
         self._render()
         
     def _render(self):
-        camera = self._looking_glass_camera
+        camera = self.looking_glass_camera
         if camera is None:
             return   # Window deleted
         view = self._session.main_view
         r = view.render
         mvwin = r.use_shared_context(self)
         camera.position = view.camera.position
+        redraw = view.redraw_needed
         view.draw(camera = camera)
+        view.redraw_needed = redraw  # Restore redraw needed flag since main window needs redraw.
 #        self._save_screen_image(r, view)
         r.use_shared_context(mvwin)  # Reset opengl window
         r.done_current()
