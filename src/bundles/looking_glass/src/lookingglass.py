@@ -34,6 +34,7 @@ def lookingglass(session, enable = None, device_number = 0,
                                            depth_offset = depth_offset,
                                            verbose = verbose, quilt = quilt)
             session._lg_window = lg_window
+            _bind_depth_mouse_mode(session)
         else:
             lg_camera = lg_window.looking_glass_camera
             if view_angle is not None:
@@ -421,4 +422,39 @@ class LookingGlassWindow(QWindow):
             rgba = r.frame_buffer_image(w, h, front_buffer = True)
             from PIL import Image
             Image.fromarray(rgba[::-1]).save('screen.png', 'PNG')
-            
+
+from chimerax.mouse_modes import MouseMode
+class DepthShiftMouseMode(MouseMode):
+    '''
+    Mouse mode to move LookingGlass focal plane.
+    '''
+    name = 'lookingglass depth'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.speed = 1
+
+    def mouse_drag(self, event):
+        dx, dy = self.mouse_motion(event)
+        psize = self.pixel_size()
+        delta_z = 2*psize*dy*self.speed
+        self._depth_shift(delta_z)
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        delta_z = 20*d*psize*self.speed
+        self._depth_shift(delta_z)
+
+    def _depth_shift(self, delta_z):
+        lg_window = getattr(self.session, '_lg_window', None)
+        if lg_window:
+            lg_camera = lg_window.looking_glass_camera
+            lg_camera.depth_offset -= delta_z
+
+def _bind_depth_mouse_mode(session):
+    mm = session.ui.mouse_modes
+    mode = mm.named_mode(DepthShiftMouseMode.name)
+    if mode is None:
+        mode = DepthShiftMouseMode(session)
+        mm.add_mode(mode)
+    mm.bind_mouse_mode(mouse_button = 'wheel', mouse_modifiers = ['shift'], mode = mode)
