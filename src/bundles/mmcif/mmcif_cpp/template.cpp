@@ -358,7 +358,7 @@ ExtractTemplate::parse_chem_comp_atom()
     }
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
-        tmpl::Atom* a = templates->new_atom(name, elem);
+        tmpl::Atom* a = templates->new_atom(name, elem, chirality);
         if (std::isnan(pdbx_x)) {
             tmpl::Coord c(x, y, z);
             a->set_coord(c);

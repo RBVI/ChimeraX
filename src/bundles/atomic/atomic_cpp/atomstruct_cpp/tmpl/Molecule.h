@@ -37,7 +37,7 @@ using atomstruct::ResName;
 class ATOMSTRUCT_IMEX Molecule: public pyinstance::PythonInstance<Molecule> {
 public:
         ~Molecule();
-    Atom    *new_atom(const AtomName& n, const element::Element& e);
+    Atom    *new_atom(const AtomName& n, const element::Element& e, char chirality = '?');
     typedef std::set<Atom *> Atoms;
     typedef std::set<Bond *> Bonds;
     typedef std::vector<CoordSet *> CoordSets;
