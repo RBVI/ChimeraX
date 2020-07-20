@@ -103,6 +103,7 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 [&nbsp;<b>colorPopup</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>flipHorizontal</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>framerate</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>xpixels,ypixels</i></a>&nbsp;]
 <blockquote>
 The <b>webcam</b> command (same as <b>device webcam</b>)
 shows webcam video as a flat background behind the ChimeraX scene,
@@ -124,15 +125,25 @@ shows the left-right mirror image of the webcam video so that pointing
 rightward while facing the webcam and screen is shown as 
 pointing rightward in the video.
 </p><p>
-The video resolution is whatever the webcam can provide given the target
+If <b>size</b> is not specified,
+the video resolution is whatever the webcam can provide given the target
 <b>framerate</b> value (default <b>25</b> frames per second), or if
-that rate is not possible, the maximum framerate the camera can provide.
+that rate is not possible, the closest framerate supported by the camera.
+If <b>size</b> is specified, the closest size supported by the camera
+is provided, and matching the framerate is given second priority.
+</p><p>
+When the command is issued, any unspecified options are set to their defaults.
+An exception is that
+to change the framerate and size after a previous <b>webcam</b> command,
+it is necessary to use <b>webcam off</b> first and then <b>webcam on</b>
+with the new values.
+</p><p>
+Note that other applications in use at the same time as ChimeraX
+may change the webcam resolution or framerate unexpectedly.
 Not all webcams will work with this command, only ones that use certain
 RGB and YUV pixel formats. If an unsupported pixel format is used,
 an error message will appear and the video will not be 
-shown in the ChimeraX background.
-</p><p>
-When the command is issued, any unspecified options are set to their defaults.
+shown in the ChimeraX background. 
 </p><p>
 <b>Color-matching details</b>: only the relative intensities of the
 R,G,B components of the foreground color are important.

@@ -12,6 +12,13 @@
 # === UCSF ChimeraX Copyright ===
 
 
+# Timestamps in registration file come from RBVI web server
+# which runs with US English locale.  So we use our own
+# strftime and strptime that are hardcoded to handle dates
+# with English names.
+
+import threading
+
 RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
@@ -21,8 +28,6 @@ NagMessage = """You have used ChimeraX %d times over %d days.  Please register y
 Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
 """
 
-
-import threading
 _registration_lock = threading.Lock()
 
 
@@ -75,7 +80,7 @@ def extend_registration(logger=None, extend_by=None):
         when = extend_by
     else:
         raise ValueError("invalid extension period")
-    param["Expires"] = datetime.strftime(when, TimeFormat)
+    param["Expires"] = _strftime(when)
     _write_registration(logger, param)
 
 
@@ -104,6 +109,10 @@ def report_status(logger, verbose):
             logger.info("Registration valid (expires %s)" % exp)
         if verbose:
             for key, value in param.items():
+                if key in ('Expires', 'Signed'):
+                    # show dates according to user's locale
+                    t = _strptime(value)
+                    value = t.strftime(TimeFormat)
                 logger.info("%s: %s" % (key.title(), value))
 
 
@@ -138,40 +147,28 @@ def _check_expiration(param, logger):
         return None
     if datetime.now() > expires:
         if logger:
+            reg_file = _registration_file()
             logger.warning("Registration file %r has expired" % reg_file)
         return None
     return expires
 
 
 def _expiration_time(param):
-    from datetime import datetime, timedelta
-    import locale
-    # Timestamps in registration file come from RBVI web server
-    # which runs with US English locale.  So we temporarily set
-    # the TIME locale when parsing timestamp and then restore it.
-    save = locale.getlocale(locale.LC_TIME)
-    if save is None:
-        # When restoring locale, we must use empty string instead of None
-        save = ''
+    from datetime import timedelta
     try:
-        locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
-        try:
-            return datetime.strptime(param["Expires"], TimeFormat)
-        except (KeyError, ValueError):
-            pass
-        try:
-            return (datetime.strptime(param["Signed"], TimeFormat) +
-                    timedelta(days=365))
-        except (KeyError, ValueError):
-            pass
-    finally:
-        locale.setlocale(locale.LC_TIME, save)
+        return _strptime(param["Expires"])
+    except (KeyError, ValueError):
+        pass
+    try:
+        return _strptime(param["Signed"]) + timedelta(days=365)
+    except (KeyError, ValueError):
+        pass
     return None
 
 
 def _write_registration(logger, param):
     if ("Name" not in param or "Email" not in param or
-        ("Expires" not in param and "Signed" not in param)):
+            ("Expires" not in param and "Signed" not in param)):
         raise ValueError("invalid registration data")
     with _registration_lock:
         reg_file = _registration_file()
@@ -219,9 +216,8 @@ def _check_usage(session):
 
 
 def _get_usage():
-    from datetime import datetime
     usage_file = _usage_file()
-    usage = {"count":0, "dates":[]}
+    usage = {"count": 0, "dates": []}
     try:
         # Read the usage file of count (total number of invocations)
         # and dates (first usage datetime on any day)
@@ -229,7 +225,7 @@ def _get_usage():
             for line in f:
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
-                    usage["dates"].append(datetime.strptime(value, TimeFormat))
+                    usage["dates"].append(_strptime(value))
                 elif key == "count":
                     usage["count"] = int(value)
     except IOError:
@@ -238,12 +234,38 @@ def _get_usage():
 
 
 def _write_usage(logger, usage):
-    from datetime import datetime
     usage_file = _usage_file()
     try:
         with open(usage_file, "w") as f:
             print("count: %d" % usage["count"], file=f)
             for dt in usage["dates"]:
-                print("date: %s" % dt.strftime(TimeFormat), file=f)
+                print("date: %s" % _strftime(dt), file=f)
     except IOError as e:
-        logger.error("Cannot write %r: %s" % (usage_file, str(e))) 
+        logger.error("Cannot write %r: %s" % (usage_file, str(e)))
+
+
+# Need English version of days and months to match locale of server
+_days = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+_months = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+
+
+def _strptime(value):
+    # convert to datetime
+    from datetime import datetime
+    try:
+        _, month_name, day, time, year = value.split()
+        month = _months.index(month_name)
+        day = int(day)
+        year = int(year)
+        hour, minute, second = time.split(':')
+        hour = int(hour)
+        minute = int(minute)
+        second = int(second)
+        return datetime(year, month, day, hour, minute, second)
+    except Exception:
+        raise ValueError("time data does not match format")
+
+
+def _strftime(dt):
+    # convert to string
+    return f'{_days[dt.weekday()]}{_months[dt.month]} {dt.day} {dt.hour}:{dt.minute}:{dt.second} {dt.year}'
