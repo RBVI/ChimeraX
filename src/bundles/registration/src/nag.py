@@ -246,14 +246,23 @@ def _write_usage(logger, usage):
 
 # Need English version of days and months to match locale of server
 _days = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
-_months = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+# months are 1-based in datetime
+_months = ('XXX', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
 
 def _strptime(value):
     # convert to datetime
     from datetime import datetime
     try:
-        _, month_name, day, time, year = value.split()
+        # _, month_name, day, time, year = value.split()
+        # workaround earlier bug in _strftime
+        values = value.split()
+        if len(values) == 5:
+            _, month_name, day, time, year = values
+        else:
+            month_name, day, time, year = values
+            month_name = month_name[3:]
+
         month = _months.index(month_name)
         day = int(day)
         year = int(year)
@@ -268,4 +277,4 @@ def _strptime(value):
 
 def _strftime(dt):
     # convert to string
-    return f'{_days[dt.weekday()]}{_months[dt.month]} {dt.day} {dt.hour}:{dt.minute}:{dt.second} {dt.year}'
+    return f'{_days[dt.weekday()]} {_months[dt.month]} {dt.day} {dt.hour}:{dt.minute}:{dt.second} {dt.year}'
