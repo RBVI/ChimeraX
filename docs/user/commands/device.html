@@ -55,6 +55,9 @@ target="_blank"><b>RealSense</b> bundle</a> from the
 target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
 allows blending video from a Intel RealSense depth-sensing camera 
 with ChimeraX graphics for 3D augmented reality with depth from both inputs
+<li><a href="#lookingglass"><b>lookingglass</b></a>
+&ndash; use a <a href="https://lookingglassfactory.com/product"
+target="_blank">Looking Glass</a> holographic display
 </ul>
 <p>
 See also:
@@ -557,6 +560,48 @@ camera has never reported a depth value. The denoising algorithm
 is based on the assumption that the camera is not moving.
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="lookingglass"><b>lookingglass</b></a>
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>viewAngle</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
+[&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>fov</i>&nbsp;]
+[&nbsp;<b>depthOffset</b>&nbsp;&nbsp;<i>offset</i>&nbsp;]
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>quilt</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>deviceNumber</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+The command <b>lookingglass</b> (same as <b>device lookingglass</b>)
+enables showing the contents of the ChimeraX graphics window in
+a <a href="https://lookingglassfactory.com/product" 
+target="_blank">Looking Glass</a> holographic display
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/lookingglass-july2020/"
+target="_blank">details...</a>).
+This device uses 45 images spanned by the horizontal <b>viewAngle</b>
+(default <b>40</b>&deg;). 
+Each image is rendered with the specified <b>fieldOfView</b> 
+(default <b>22</b>&deg; recommended by the device manufacturer).
+</p><p>
+The <b>depthOffset</b> (default <b>0.0</b> &Aring;)
+is the position of the center of the bounding box of displayed models
+relative to the mid-depth plane of the Looking Glass display, where
+the focus is best.
+Positive values push the models further back in the display.
+Enabling a Looking Glass automatically assigns adjusting the depth offset
+to <b>Shift-scroll</b> with the mouse or trackpad.
+This <b>lookingglass depth</b> mode can be assigned to other buttons using
+the <a href="ui.html#mousemode"><b>mousemode</b></a> command.
+</p><p>
+The <b>verbose</b> option (default <b>false</b>) 
+gives technical device parameters in the
+<a href="../tools/log.html"><b>Log</b></a>.
+The <b>quilt</b> option (default <b>false</b>) shows the 45 images as
+tiled in a separate window and is used for debugging.
+The <b>deviceNumber</b> option (not yet working) designates a
+specific Looking Glass device when more than one is connected.
+See also:
+<a href="camera.html"><b>camera</b></a>
+</p>
+</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 July 2020</address>
