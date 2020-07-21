@@ -273,6 +273,8 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
+        if len(db_name) < 2:
+            return None
     elif database_name:
         db_name = database_name
         ident = file_arg
@@ -520,33 +522,48 @@ def cmd_usage_open_database(session, database):
 
 def cmd_open_formats(session):
     '''Report file formats, suffixes and databases that the open command knows about.'''
-    if session.ui.is_gui:
-        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
-    else:
-        session.logger.info('File format, Short name(s), Suffixes:')
     from chimerax.core.commands import commas
-    formats = session.open_command.open_data_formats
-    formats.sort(key = lambda f: f.name.lower())
-    for f in formats:
+    all_formats = session.open_command.open_data_formats
+    by_category = {}
+    for fmt in all_formats:
+        by_category.setdefault(fmt.category.title(), []).append(fmt)
+    titles = list(by_category.keys())
+    titles.sort()
+    lines = []
+    for title in titles:
+        formats = by_category[title]
         if session.ui.is_gui:
-            from html import escape
-            if f.reference_url:
-                descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
-            else:
-                descrip = escape(f.synopsis)
-            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
-                escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+            lines.extend([
+                '<table border=1 cellspacing=0 cellpadding=2>',
+                '<tr><th colspan="3">%s' % title,
+                '<tr><th>File format<th>Short name(s)<th>Suffixes'
+            ])
         else:
-            session.logger.info('    %s: %s: %s' % (f.synopsis,
-                commas(f.nicknames), ', '.join(f.suffixes)))
-    if session.ui.is_gui:
-        lines.append('</table>')
-        lines.append('<p></p>')
+            session.logger.info(title)
+            session.logger.info('File format, Short name(s), Suffixes:')
+        formats.sort(key = lambda f: f.name.lower())
+        for f in formats:
+            if session.ui.is_gui:
+                from html import escape
+                if f.reference_url:
+                    descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+                else:
+                    descrip = escape(f.synopsis)
+                lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                    escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+            else:
+                session.logger.info('    %s: %s: %s' % (f.synopsis,
+                    commas(f.nicknames), ', '.join(f.suffixes)))
+        if session.ui.is_gui:
+            lines.append('</table>')
+            lines.append('<p></p>')
+        else:
+            session.logger.info('\n')
 
     if session.ui.is_gui:
         lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
     else:
-        session.logger.info('\nDatabase, Formats:')
+        session.logger.info('Database, Formats:')
     database_names = session.open_command.database_names
     database_names.sort(key=lambda dbn: dbn.lower())
     for db_name in database_names:
