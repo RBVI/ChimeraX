@@ -70,6 +70,11 @@ class OpenManager(ProviderManager):
             self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
                 check_path, batch)
         elif type == "fetch":
+            if not name:
+                raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
+            if len(name) == 1:
+                raise ValueError("Database fetch '%s' in bundle %s has single-character name which is"
+                    " disallowed to avoid confusion with Windows drive letters" % (name, bundle_name))
             if format_name is None:
                 raise ValueError("Database fetch '%s' in bundle %s failed to specify"
                     " file format name" % (name, bundle_name))

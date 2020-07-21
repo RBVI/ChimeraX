@@ -45,6 +45,7 @@ private:
         Atom(const Atom &);    // disable
         ~Atom();
     Bonds         _bonds;
+    char          _chirality;
     const Element*       _element;
     AtomType      _idatm_type;
     mutable unsigned int _index;
@@ -57,6 +58,7 @@ private:
 public:
     void          add_bond(Bond *b);
     const Bonds&  bonds() const { return _bonds; }
+    char          chirality() const { return _chirality; }
     const Coord&  coord() const;
     const Element&       element() const { return *_element; }
     Molecule*     molecule() const { return _molecule; }
@@ -71,7 +73,7 @@ public:
     const AtomType&  idatm_type() const { return _idatm_type; }
     void    set_idatm_type(const AtomType& i) { _idatm_type = i; }
 private:
-    Atom(Molecule *, const AtomName& n, const Element &e);
+    Atom(Molecule *, const AtomName& n, const Element &e, char chirality);
 };
 
 }  // namespace tmpl

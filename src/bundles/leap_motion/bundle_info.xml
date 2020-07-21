@@ -1,0 +1,40 @@
+<BundleInfo name="ChimeraX-LeapMotion" version="1.1"
+	    package="chimerax.leap_motion"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Leap Motion hand tracking</Synopsis>
+  <Description>Enable hand tracking mouse modes using Leap Motion device.</Description>
+
+  <DataFiles>
+    <DataFile>LeapC.dll</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <CModule name="_leap">
+    <SourceFile>_leap/leap.cpp</SourceFile>
+    <Library>arrays</Library>
+    <Library>LeapC.lib</Library>
+    <LibraryDir>_leap</LibraryDir>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: leapmotion :: General :: Leap motion hand tracking</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: device leapmotion :: General :: Leap motion hand tracking</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

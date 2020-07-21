@@ -1001,7 +1001,7 @@ class SwipeAsScrollMouseMode(MouseMode):
         if swm:
             wv = self._wheel_value(dy)
             from .mousemodes import MouseEvent
-            swm.wheel(MouseEvent(position=event.position, wheel_value=wv, modifiers=event.modifiers))
+            swm.wheel(MouseEvent(position=event.position(), wheel_value=wv, modifiers=event.modifiers))
 
 
 
