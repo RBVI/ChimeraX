@@ -18,20 +18,31 @@ open_save: open/save dialogs
 TODO
 """
 
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 from PyQt5.QtCore import Qt
 class SaveDialog(QFileDialog):
-    def __init__(self, parent = None, *args, **kw):
-        default_suffix = kw.pop('add_extension', None)
-        name_filter = kw.pop('name_filter', None)
+    def __init__(self, session, parent = None, *args, data_formats=None, **kw):
+        if data_formats is None:
+            data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
+        data_formats.sort(key=lambda fmt: fmt.name.casefold())
+        # make some things public
+        self.data_formats = data_formats
+        self.name_filters = [session.data_formats.qt_file_filter(fmt) for fmt in data_formats]
+        if len(data_formats) == 1:
+            default_suffix = data_formats[0].suffixes[0] if data_formats[0].suffixes else None
+            name_filter = self.name_filters[0]
+        else:
+            default_suffix = name_filter = None
         super().__init__(parent, *args, **kw)
         self.setFileMode(QFileDialog.AnyFile)
         self.setAcceptMode(QFileDialog.AcceptSave)
         self.setOption(QFileDialog.DontUseNativeDialog)
+        if self.name_filters:
+            self.setNameFilters(self.name_filters)
+            if name_filter:
+                self.setNameFilter(name_filter)
         if default_suffix:
             self.setDefaultSuffix(default_suffix)
-        if name_filter:
-            self.setNameFilter(name_filter)
         self._custom_area = None
 
     @property
@@ -41,7 +52,9 @@ class SaveDialog(QFileDialog):
             row = layout.rowCount()
             from PyQt5.QtWidgets import QFrame
             self._custom_area = QFrame(self)
-            layout.addWidget(self._custom_area, row, 0, 1, -1, Qt.AlignCenter)
+            self._custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
+            self._custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            layout.addWidget(self._custom_area, row, 0, 1, -1)
         return self._custom_area
 
     def get_path(self):
@@ -81,11 +94,12 @@ class OpenDialogWithMessage(QFileDialog):
 # those situations where you do need to add widgets.
 class OpenDialog(QFileDialog):
     def __init__(self, parent = None, caption = 'Open File', starting_directory = None,
-            widget_alignment = Qt.AlignCenter):
+                 widget_alignment = Qt.AlignCenter, filter = ''):
         if starting_directory is None:
             import os
             starting_directory = os.getcwd()
-        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory)
+        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory,
+                             filter = filter)
         self.setFileMode(QFileDialog.AnyFile)
         self.setOption(QFileDialog.DontUseNativeDialog)
 
@@ -104,52 +118,10 @@ class OpenDialog(QFileDialog):
         path = paths[0]
         return path
 
-
-def export_file_filter(category=None, format_name=None, all=False):
-    """Return file name filter suitable for Export File dialog for Qt"""
-
-    result = []
-    from chimerax.core import io
-    for fmt in io.formats(open = (format_name is not None)):
-        if format_name and fmt.name != format_name:
-            continue
-        if category and fmt.category != category:
-            continue
-        exts = '*' + ' *'.join(fmt.extensions)
-        result.append("%s files (%s)" % (fmt.name, exts))
-    if all:
-        result.append("All files (*)")
-    if not result:
-        if not category:
-            files = "any"
-        else:
-            files = "\"%s\"" % category
-        raise ValueError("No filters for %s files" % files)
-    result.sort(key=str.casefold)
-    return ';;'.join(result)
-
-def open_file_filter(all=False, format_name=None):
-    """Return file name filter suitable for Open File dialog for Qt"""
-
-    combine = {}
-    from chimerax.core import io
-    for fmt in io.formats(export=False):
-        exts = combine.setdefault(fmt.category, [])
-        exts.extend(fmt.extensions)
-    result = []
-    for k in combine:
-        exts = '*' + ' *'.join(combine[k])
-        compression_suffixes = io.compression_suffixes()
-        if compression_suffixes:
-            for ext in combine[k]:
-                exts += ' ' + ' '.join('*%s%s' % (ext, c) for c in compression_suffixes)
-        result.append("%s files (%s)" % (k, exts))
-    result.sort(key=str.casefold)
-    if all:
-        result.insert(0, "All files (*)")
-    if format_name:
-        fmt = io.format_from_name(format_name)
-        if fmt:
-            result.insert(0, '%s files (%s)' % (fmt.name, ' '.join('*%s' for ext in fmt.extensions)))
-    return ';;'.join(result)
-
+    def get_paths(self):
+        if not self.exec():
+            return None
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        return paths

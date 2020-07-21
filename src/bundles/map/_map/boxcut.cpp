@@ -370,8 +370,11 @@ static void box_cuts(const float *corners, const float *axis,
       float depth = offset + i*spacing;
       int n = box_cut(corners, cdepths, depth, nvert,
                       vertices + 3*nvert, triangles+3*ntri);
-      nvert += n+1;
-      ntri += n;
+      if (n > 0)
+	{
+	  nvert += (n+1);
+	  ntri += n;
+	}
     }
   *nt = ntri;
   *nv = nvert;
@@ -409,7 +412,8 @@ offset_range(PyObject *, PyObject *args, PyObject *keywds)
 
   if (carray.size(0) != 8)
     {
-      PyErr_Format(PyExc_TypeError, "Corner array must be size 8, got %d", carray.size(0));
+      PyErr_Format(PyExc_TypeError, "Corner array must be size 8, got %s",
+		   carray.size_string(0).c_str());
       return NULL;
     }
 
@@ -442,23 +446,24 @@ box_cuts(PyObject *, PyObject *args, PyObject *keywds)
 
   if (carray.size(0) != 8)
     {
-      PyErr_Format(PyExc_TypeError, "Corner array must be size 8, got %d", carray.size(0));
+      PyErr_Format(PyExc_TypeError, "Corner array must be size 8, got %s",
+		   carray.size_string(0).c_str());
       return NULL;
     }
 
   if (vertices.dimension() == 2 && vertices.size(0) < 7*num_cuts)
     {
       PyErr_Format(PyExc_TypeError,
-                   "Vertex array must be at least size 7 * num_cuts (%d) = %d, got %d",
-                   num_cuts, 7*num_cuts, vertices.size(0));
+                   "Vertex array must be at least size 7 * num_cuts (%d) = %d, got %s",
+                   num_cuts, 7*num_cuts, vertices.size_string(0).c_str());
       return NULL;
     }
 
   if (triangles.dimension() == 2 && triangles.size(0) < 6*num_cuts)
     {
       PyErr_Format(PyExc_TypeError,
-                   "Triangle array must be at least size 6 * num_cuts (%d) = %d, got %d",
-                   num_cuts, 6*num_cuts, triangles.size(0));
+                   "Triangle array must be at least size 6 * num_cuts (%d) = %d, got %s",
+                   num_cuts, 6*num_cuts, triangles.size_string(0).c_str());
       return NULL;
     }
 

@@ -35,68 +35,74 @@ width="300px"></a></td></tr>
 target="_blank">Get this session...</a></font></td></tr>
 </table>
 
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b> &nbsp;<i>creation-options</i>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b> 
-&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>
-&nbsp;<i>change-options</i>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>2dlabels</b> &nbsp;<b>listfonts</b>
-</h3>
 <p>
-The <b>2dlabels</b> command allows adding 
-text and <a href="symbols.html">symbols</a> to the display
-for presentation-quality images and movies.
-2D labels exist in the X,Y plane (the plane of the screen) 
-and do not move along with the 3D scene, but they can be repositioned
-with the <b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
+The <b>2dlabels</b> command adds text, <a href="symbols.html">symbols</a>,
+and straight arrows to the display for presentation-quality images and movies.
+These 2D labels exist in the X,Y plane of the screen and do not move 
+along with the 3D scene, but can be repositioned by 
+dragging with the <b>move label</b> 
+<span class="nowrap"><a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.
-Dragging a 2D label echoes the corresponding command with X and Y positions 
-to the <a href="../tools/log.html"><b>Log</b></a>, which may be useful 
-for <a href="usageconventions.html#cxc-files">scripting</a>.
-2D labels can be faded in/out or repositioned over a specified number of frames. 
-2D labels are created as models and can be acted on by general commands such as 
-<a href="close.html"><b>close</b></a>,
-<a href="show.html"><b>show/hide</b></a>, and
-<a href="color.html"><b>color</b></a>.
-</p><p>
+<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.</span>
+A 2D arrow can be dragged at either end.
+2D labels (including arrows) can also be faded in and out or repositioned 
+over a specified number of frames for animation purposes. 
+</p>
+<ul>
+<li><a href="#create"><b>2dlabels</b></a>
+&ndash; <a href="#create">create</a> or <a href="#change">change</a> a
+text label (which may include <a href="symbols.html">symbols</a>)
+<li><a href="#acreate"><b>2dlabels arrow</b></a>
+&ndash; <a href="#acreate">create</a> or <a href="#achange">change</a> an arrow
+<li><a href="#delete"><b>2dlabels delete</b></a>
+&ndash; remove text labels and arrows
+</ul>
+<p>
 For &ldquo;3D&rdquo; labels that move along with the associated atoms,
 see the <a href="label.html"><b>label</b></a> command.
 The <b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>
-works for both 2D and 3D labels.
+works for both 2D labels and 3D labels.
+Dragging a 2D label echoes the corresponding command with X and Y positions 
+to the <a href="../tools/log.html"><b>Log</b></a>, which may be useful 
+for <a href="usageconventions.html#cxc-files">scripting</a>.
+2D labels are models that can be acted on by general commands such as 
+<a href="close.html"><b>close</b></a>,
+<a href="show.html"><b>show/hide</b></a>, and
+<a href="color.html"><b>color</b></a>.
 See also:
 <a href="save.html"><b>save</b></a>,
 <a href="movie.html"><b>movie</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 </p><p>
-Example:
+Example command script:
 </p>
 <blockquote><b>
-<a href="open.html">open</a> 1gfl; <a href="delete">delete</a> /B; <a href="preset.html">preset</a> pub
+<a href="open.html">open</a> 1bfp; <a href="turn">turn</a> z 90; <a href="turn">turn</a> y 10
 <br>
-2dlabels text 'Green Fluorescent Protein' color light sea green size 26 xpos .03 ypos .92
+<a href="preset.html">preset</a> pub;
+<a href="windowsize.html">windowsize</a> 600 400
 <br>
-2dlab #2 ypos .03 size 40 frames 60; <a href="wait.html">wait</a> 90
+2dlab text 'Blue Fluorescent Protein' color light sea green size 26 x .03 y .92;
+<a href="wait.html">wait</a> 60
 <br>
-2dlab #2 text 'Fading now...' visibility f frames 100; <a href="wait.html">wait</a> 100
+2dlab #2 ypos .03 size 40 frames 60; <a href="wait.html">wait</a> 120
 <br>
-2dlab delete all
+2dlab #2 text "here's an arrow"
+<br>
+2d arrow start .5,.075 end .9,.2 color red; <a href="wait.html">wait</a> 120
+<br>
+2dlab #2 text 'Fading...' vis f frames 100; 2d arrow #3 vis f frames 100; <a href="wait.html">wait</a> 100
 </b></blockquote>
 <p>
-For an example image with a script, see
-<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
-target="_blank">G-Protein Switch Regions</a>.
+See also the <a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
+target="_blank">G-Protein Switch Regions</a> example image and script.
 </p><p>
 <a name="listfonts"></a>
-The command <b>2dlabels listfonts</b>
-lists the available font names in the <a href="../tools/log.html"><b>Log</b></a>.
+The command <b>2dlabels listfonts</b> lists the available font names 
+in the <a href="../tools/log.html"><b>Log</b></a>.
 </p>
 
 <a name="create"></a>
@@ -106,7 +112,7 @@ lists the available font names in the <a href="../tools/log.html"><b>Log</b></a>
 <h3>Creating a 2D Label</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>2dlabels</b> [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
+<b>2dlabels</b> &nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
 [&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
@@ -119,29 +125,37 @@ lists the available font names in the <a href="../tools/log.html"><b>Log</b></a>
 [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>visibility</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
-The 2D label is added as a new model, and the model ID number 
-(or the word <b>all</b> to indicate all 2D labels) 
-can be used as the specifier for subsequently 
-<a href="#change">changing</a> or <a href="#delete">deleting</a> it.
-The <i>label-contents</i> (default nothing) can include 
-letters, numbers, symbols from the keyboard; additional
-<a href="symbols.html">symbols</a> can be copied and pasted
-into the command line, or indicated with
+The <b>text</b> argument is required to create a new 2D label.
+The 2D label is added as a new model, and the resulting model ID number 
+(or the word <b>all</b> to indicate all 2D labels) can be used 
+to specify it for subsequent <a href="#change">changes</a> 
+or <a href="#delete">deletion</a>.
+The <b>text</b> <i>label-contents</i> may include letters, numbers, 
+and symbols. A few symbols are available from the keyboard, and many 
+others can be copied and pasted into the command line from various sources 
+(such as <a href="symbols.html">this page</a>) or indicated with
 <a href="http://unicode.org/charts/" target="_blank">unicode</a> 
-character codes or character names. Unicode examples:
+character codes or character names, as in the following examples:
  <ul class="none">
  <li><b>text 'the \u03b1 subunit'</b> &nbsp;&nbsp;
  gives &nbsp;&nbsp; <b>the &alpha; subunit</b>
  <li><b>text 'reactants \N{RIGHTWARDS ARROW} products'</b> &nbsp;&nbsp;
  gives &nbsp;&nbsp; <b>reactants &rarr; products</b>
  </ul>
-Spaces and quote marks can be included by enclosing the 
-entire <i>label-contents</i> in single or double quote marks.
+Spaces and quotation marks can be included by enclosing the 
+entire <i>label-contents</i> in single or double quotation marks.
+<!-- ticket #766
 Carriage returns are indicated with <b>\n</b>. 
+-->
+The second example uses an arrow symbol that cannot be reoriented;
+for arrows pointing in any direction in the X,Y plane, see
+<a href="#acreate"><b>2dlabels arrow</b></a>.
 <p>
 The label can be shown over a rectangular background of another color 
 given with the <b>bgColor</b> option (default <b>none</b>, no background).
-The <b>color</b> of the text itself defaults to <b>white</b> or <b>black</b>
+If the <b>color</b> is specified as <b>default</b>
+(or the <b>color</b> option is not used), the label color will
+automatically adjust to <b>white</b> or <b>black</b>
 depending on the color of the label background, if any, 
 otherwise the <a href="set.html#bgColor">window background</a>.
 The colored rectangle will extend beyond the text in each direction
@@ -174,7 +188,7 @@ The <b>visibility</b> option specifies whether the label should be displayed.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>2dlabels</b>
-(&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+[&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
@@ -189,11 +203,15 @@ The <b>visibility</b> option specifies whether the label should be displayed.
 [&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>frames</b>&nbsp;<i>N</i>&nbsp;]
 </blockquote>
+<p>
 The 2D label(s) to change are specified by 
 <a href="atomspec.html#othermodels">model number</a>
 or the word <b>all</b> to specify all 2D labels collectively.
-All other options besides <b>frames</b> are as described above for 
-<a href="#create">creating a 2D label</a>,
+A blank specification also means &ldquo;all&rdquo;
+unless the <b>text</b> option is used, which would create
+a new 2D label as described <a href="#create">above</a>.
+All other options besides <b>frames</b> are
+as described <a href="#create">above</a>,
 except that the defaults are to leave the current label unchanged.
 The <b>frames</b> option allows making certain types of changes gradually 
 over <i>N</i> frames, such as fading labels in or out 
@@ -201,9 +219,78 @@ over <i>N</i> frames, such as fading labels in or out
 it does not apply to changes in the <b>text</b>, <b>font</b>, 
 <b>bold</b>, or <b>italic</b> options, which will occur immediately. 
 Changing <b>bgColor</b> to <b>none</b> from a color will also occur
-abruptly, but backgrounds can be faded in/out by specifying a transparent color
-instead of <b>none</b>.
+abruptly, but backgrounds can be faded in/out by specifying a 
+transparent color instead of <b>none</b>.
+</p>
+
+<a name="acreate"></a>
+<p class="nav">
+[<a href="#top">back to top: 2dlabels</a>]
+</p>
+<h3>Creating a 2D Arrow</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>2dlabels arrow</b> &nbsp;<b>start</b>&nbsp;&nbsp;<i>x1,y1</i>&nbsp;
+&nbsp;<b>end</b>&nbsp;&nbsp;<i>x2,y2</i>&nbsp;
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>weight</b>&nbsp;<i>weight</i>&nbsp;]
+[&nbsp;<b>headStyle</b>&nbsp;blocky&nbsp;|&nbsp;<b>solid</b>&nbsp;|&nbsp;pointy&nbsp;|&nbsp;pointer&nbsp;]
+<!-- [&nbsp;<b>midPoint</b>&nbsp;<i>x3,y3</i>&nbsp;] -->
+[&nbsp;<b>visibility</b>&nbsp;hide&nbsp;|&nbsp;<b>show</b>&nbsp;]
 </blockquote>
+<p>
+The <b>start</b> and <b>end</b> arguments are required to create a new 2D arrow.
+The arrow is added as a new model, and the resulting model ID number 
+(or the word <b>all</b> to indicate all 2D arrows) can be used 
+to specify it for subsequent <a href="#achange">changes</a> 
+or <a href="#delete">deletion</a>.
+The <b>start</b> and <b>end</b> arguments specify the
+the start and end (tip) locations of the arrow in the X,Y plane,
+where the X axis is horizontal and the Y axis is vertical,
+and both range from 0 to 1 in the visible portion of the window.
+The X and Y coordinates should be separated by a comma only (no spaces).
+If the <b>color</b> is specified as <b>default</b>
+(or the <b>color</b> option is not used), the arrow color will
+automatically adjust to <b>white</b> or <b>black</b> depending on 
+the <a href="set.html#bgColor">window background color</a>.
+The <b>weight</b> option gives a scale factor
+for the overall thickness of the arrow (default <b>1.0</b>) .
+The <b>headStyle</b> option specifies arrowhead style (default <b>solid</b>).
+The <b>visibility</b> option specifies whether the arrow should be displayed.
+</p>
+
+<a name="achange"></a>
+<p class="nav">
+[<a href="#top">back to top: 2dlabels</a>]
+</p>
+<h3>Changing a 2D Arrow</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>2dlabels arrow</b> 
+[&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>start</b>&nbsp;&nbsp;<i>x1,y1</i>&nbsp;]
+[&nbsp;<b>end</b>&nbsp;&nbsp;<i>x2,y2</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>weight</b>&nbsp;<i>weight</i>&nbsp;]
+[&nbsp;<b>headStyle</b>&nbsp;blocky&nbsp;|&nbsp;<b>solid</b>&nbsp;|&nbsp;pointy&nbsp;|&nbsp;pointer&nbsp;]
+<!-- [&nbsp;<b>midPoint</b>&nbsp;<i>x3,y3</i>&nbsp;] -->
+[&nbsp;<b>visibility</b>&nbsp;hide&nbsp;|&nbsp;<b>show</b>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;<i>N</i>&nbsp;]
+</blockquote>
+<p>
+The 2D arrow(s) to change are specified by 
+<a href="atomspec.html#othermodels">model number</a>
+or the word <b>all</b> to specify all 2D arrows collectively.
+A blank specification also means &ldquo;all&rdquo;
+unless <b>start</b> and <b>end</b> values are given, which would create
+a new 2D arrow as described <a href="#acreate">above</a>.
+All other options besides <b>frames</b> are
+as described <a href="#acreate">above</a>, except that the defaults
+are to leave the current arrow unchanged.
+The <b>frames</b> option allows making certain types of changes gradually 
+over <i>N</i> frames, such as fading in or out 
+(changing <b>visibility</b>).
+</p>
 
 <a name="delete"></a>
 <p class="nav">
@@ -216,15 +303,15 @@ instead of <b>none</b>.
 [&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 </blockquote>
 <p>
-The 2D label(s) to delete can be specified by
+The 2D label(s) and arrows to delete can be specified by
 <a href="atomspec.html#othermodels">model number</a>,
 or a blank specification or the word <b>all</b>
-to indicate all 2D labels collectively.
-Alternatively, 2D label models can be closed with the 
+to indicate all 2D labels and arrows collectively.
+Alternatively, the models can be closed with the 
 <a href="close.html"><b>close</b></a> command.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+February 2020</address>
 </body></html> 

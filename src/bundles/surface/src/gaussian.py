@@ -35,8 +35,8 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
 
     if level is None:
         # Use level of half the minimum density at point positions
-        from chimerax.map import data
-        mxyz, outside = data.interpolate_volume_data(xyz, grid.xyz_to_ijk_transform, m)
+        from chimerax.map_data import interpolate_volume_data
+        mxyz, outside = interpolate_volume_data(xyz, grid.xyz_to_ijk_transform, m)
         level = 0.5*min(mxyz)
 
     from chimerax.map import contour_surface
@@ -46,7 +46,7 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
     tf = grid.ijk_to_xyz_transform
     tf.transform_points(va, in_place = True)
     tf.transform_normals(na, in_place = True)
-    from chimerax.core.geometry import vector
+    from chimerax.geometry import vector
     vector.normalize_vectors(na)
 
     return va, na, ta, level

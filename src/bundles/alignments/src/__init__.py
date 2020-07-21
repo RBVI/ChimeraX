@@ -47,29 +47,48 @@ class _AlignmentsBundleAPI(BundleAPI):
         del session.alignments
 
     @staticmethod
-    def open_file(session, stream, file_name, format_name, alignment=True,
-            ident=None, auto_associate=True):
-        from .parse import open_file
-        return open_file(session, stream, file_name, format_name=format_name.upper(),
-            alignment=alignment, ident=ident, auto_associate=auto_associate)
-
-    @staticmethod
-    def save_file(session, path, format_name="fasta", alignment=None):
-        if not alignment:
-            alignments = list(session.alignments.alignments.values())
-            from chimerax.core.errors import UserError
-            if not alignments:
-                raise UserError("No alignments open!")
-            elif len(alignments) != 1:
-                raise UserError("More than one alignment open;"
-                    " use 'alignment' keyword to specify one")
-            alignment = alignments[0]
-        alignment.save(path, format_name=format_name)
-
-    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import cmd
         cmd.register_seqalign_command(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class SeqInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from .parse import open_file
+                    return open_file(session, data, file_name,
+                        format_name=name.upper(), **kw)
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg, StringArg
+                    return {
+                        'alignment': BoolArg,
+                        'auto_associate': BoolArg,
+                        'ident': StringArg,
+                    }
+        else:
+            from chimerax.save_command import SaverInfo
+            class SeqInfo(SaverInfo):
+                def save(self, session, path, *, alignment=None, **kw):
+                    if not alignment:
+                        alignments = session.alignments.alignments
+                        from chimerax.core.errors import UserError
+                        if not alignments:
+                            raise UserError("No alignments open!")
+                        elif len(alignments) != 1:
+                            raise UserError("More than one alignment open;"
+                                " use 'alignment' keyword to specify one")
+                        alignment = alignments[0]
+                    alignment.save(path, format_name=name)
+
+                @property
+                def save_args(self):
+                    return { 'alignment': AlignmentArg }
+
+        return SeqInfo()
 
 bundle_api = _AlignmentsBundleAPI()

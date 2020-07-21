@@ -50,7 +50,7 @@ public:
     std::set<std::string>   reasons;
     long  num_deleted = 0;
 
-    bool  changed() const { return !(created.empty() && modified.empty() && num_deleted==0); }
+    bool  changed() const { return !(created.empty() && modified.empty() && reasons.empty() && num_deleted==0); }
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
@@ -83,16 +83,20 @@ public:
     static const std::string  REASON_ANISO_U;
     static const std::string  REASON_BALL_SCALE;
     static const std::string  REASON_BFACTOR;
+    static const std::string  REASON_CHAIN_ID;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
     static const std::string  REASON_COORDSET;
     static const std::string  REASON_DISPLAY;
     static const std::string  REASON_DRAW_MODE;
+    static const std::string  REASON_ELEMENT;
     static const std::string  REASON_HALFBOND;
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
+    static const std::string  REASON_INSERTION_CODE;
     static const std::string  REASON_IS_BACKBONE;
     static const std::string  REASON_NAME;
+    static const std::string  REASON_NUMBER;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
     static const std::string  REASON_RESIDUES;
@@ -153,7 +157,11 @@ public:
             return;
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
-            if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
+            if (ptr == nullptr) {
+                // If ptr is null the object is not included in the modified list.
+                // This is to improve speed with large structures, see ticket #3000.
+                s_changes.reasons.insert(reason);
+            } else if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
                 // newly created objects don't also go in modified set
                 s_changes.modified.insert(ptr);
                 s_changes.reasons.insert(reason);

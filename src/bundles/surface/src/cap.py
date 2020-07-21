@@ -15,6 +15,9 @@ def update_clip_caps(view):
         return
     cp = view.clip_planes
     planes = cp.planes()
+    # TODO: The check of cp.changed is unreliable because View.check_for_drawing_change()
+    #  clears this flag, so it can be cleared before caps get a chance to update as happened
+    #  in chimerax bug #2751.  Need a reliable mechanism to detect clipping changes.
     update = (cp.changed or
               (planes and
                (view.shape_changed or
@@ -91,7 +94,7 @@ def compute_cap(drawing, plane, offset):
     else:
         dp = d.scene_position.inverse()
         pnormal = dp.transform_vector(plane.normal)
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
         from . import compute_cap
         varray, tarray = compute_cap(pnormal, poffset, d.vertices, t)
@@ -121,7 +124,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.transform_vector(normal)
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, pinv*point) + doffset
         from . import compute_cap
         ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
@@ -169,9 +172,9 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         cap_name = 'cap ' + plane_name
         np = len(d.get_scene_positions(displayed_only = True))
         if np == 1:
-            cm = new_cap(d.session, d, cap_name)
+            cm = new_cap(d, cap_name)
         else:
-            cm = new_cap(d.session, None, cap_name + ' ' + d.name)
+            cm = new_cap(d.parent, cap_name + ' ' + d.name)
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
         cm.clip_plane_name = plane_name
         cm.clip_cap_owner = d
@@ -180,17 +183,15 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
 
     cm.set_geometry(varray, narray, tarray)
 
-def new_cap(session, drawing, cap_name):
+def new_cap(drawing, cap_name):
     from chimerax.core.models import Model, Surface
-    if isinstance(drawing, Model) or drawing is None:
+    if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
-        c = Surface(cap_name, session)
+        c = Surface(cap_name, drawing.session)
         c.SESSION_SAVE = False
-        if drawing is None:
-            session.models.add([c])
-        else:
-            drawing.add([c])
+        drawing.add([c])
     else:
         # Cap is on a Drawing that is not a Model
         c = drawing.new_drawing(cap_name)
+    c.is_clip_cap = True
     return c

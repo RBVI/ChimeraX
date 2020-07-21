@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-Std_Commands" version="1.0"
-	    package="chimerax.std_commands"
+<BundleInfo name="ChimeraX-StdCommands" version="1.0.3"
+	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -9,13 +9,22 @@
   <Synopsis>Standard commands</Synopsis>
   <Description>General purpose commands always available in ChimeraX</Description>
 
+  <DataFiles>
+    <DataFile>coordset.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Structure Analysis"/>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.1.dev1"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.4"/>
+    <Dependency name="ChimeraX-Dssp" version="~=2.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapFit" version="~=2.0"/>
+    <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>
@@ -68,10 +77,10 @@
     <ChimeraXClassifier>Command :: measure convexity :: Surface/Binding Analysis :: color surface based on local convexity</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure inertia :: General Controls :: measure moments of inertia</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure rotation :: Volume :: measure rotation of one model relative to another</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure symmetry :: Volume :: compute map symmetry</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: pdbimages :: Input/Output :: batch processing of mmCIF files into images</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: perframe :: General Controls :: execute commands every frame</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~perframe :: General Controls :: stop execution of commands every frame</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: pwd :: Utilities :: report current working directory</ChimeraXClassifier>

@@ -1,7 +1,5 @@
 include ../Makefile.bundle
 
-DEVEL_ARGS = test false
-
 CSRCS = $(wildcard _mmtf/*.cpp)
 HEADERS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
@@ -14,7 +12,7 @@ MSGPACK_SOURCE	= msgpack-c-$(MSGPACK_VERSION)
 
 CLEAN_ALWAYS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
-wheel install app-install:	$(CSRCS) $(HEADERS)
+build wheel install app-install:	$(CSRCS) $(HEADERS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files

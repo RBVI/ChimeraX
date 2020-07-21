@@ -43,7 +43,7 @@ def interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set):
         defined by atoms (a0, a1, a2, a3).
         """
         t0 = time()
-        from chimerax.core.geometry import distance, angle, dihedral, dihedral_point
+        from chimerax.geometry import distance, angle, dihedral, dihedral_point
         c00 = coords0[i0]
         c01 = coords0[i1]
         c02 = coords0[i2]

@@ -163,7 +163,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         # For each chain pair, we align them using MatchMaker to get
         # the residue correspondences.
         #
-        from chimerax.seqalign.sim_matrices import matrix_compatible
+        from chimerax.sim_matrices import matrix_compatible
         from chimerax.match_maker.settings import defaults
         from chimerax.match_maker.match import align
         ksdsspCache = set([m0, m1])

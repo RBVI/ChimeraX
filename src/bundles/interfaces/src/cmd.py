@@ -61,6 +61,7 @@ class SphereGroup(Node):
     def __init__(self, name, atoms):
         self.full_name = self.name = name
         self.atoms = atoms
+        self._original_atom_count = len(atoms)	# For detecting if atoms deleted
         self.residues = atoms.unique_residues
         self.centers = atoms.scene_coords
         self.radii = atoms.radii
@@ -139,6 +140,10 @@ class SphereGroup(Node):
         if hasattr(self, '_original_atom_colors'):
             self.atoms.colors = self._original_atom_colors
 
+    @property
+    def atoms_deleted(self):
+        return len(self.atoms) < self._original_atom_count
+    
 def chain_spheres(atoms, session):
     if atoms is None:
         from chimerax.atomic import all_atoms
@@ -170,16 +175,16 @@ def buried_areas(sphere_groups, probe_radius, min_area = 1):
 
     # Optimize buried area calculations using bounds of each atom set.
     naxes = 64
-    from chimerax.core.geometry.sphere import sphere_points
+    from chimerax.geometry.sphere import sphere_points
     axes = sphere_points(naxes)
-    from chimerax.core.geometry import sphere_axes_bounds
+    from chimerax.geometry import sphere_axes_bounds
     bounds = [sphere_axes_bounds(g.centers, r, axes) for g, r in s]
 
     # Compute buried areas between all pairs.
     buried = []
     n = len(s)
     pairs = []
-    from chimerax.core.geometry import bounds_overlap
+    from chimerax.geometry import bounds_overlap
     for i in range(n):
         for j in range(i+1,n):
             if bounds_overlap(bounds[i], bounds[j], 0):
@@ -209,7 +214,7 @@ def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
 
     # Check for no contact using bounding planes.
     # And find subsets of spheres that may be in contact to speed up area calculation.
-    from chimerax.core.geometry import spheres_in_bounds
+    from chimerax.geometry import spheres_in_bounds
     i1 = spheres_in_bounds(xyz1, r1, axes, b2, 0)
     i2 = spheres_in_bounds(xyz2, r2, axes, b1, 0)
     if len(i1) == 0 or len(i2) == 0:
@@ -277,7 +282,7 @@ class Contact(Edge):
     def explode_contact(self, distance = 30, move_group = None):
         g1, g2 = (self.group1, self.group2)
         xyz1, xyz2 = [self.contact_residue_atoms(g).scene_coords.mean(axis = 0) for g in (g1,g2)]
-        from chimerax.core.geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         step = (0.5*distance)*normalize_vector(xyz2 - xyz1)
         if move_group is g1:
             g1.move(-2*step)
@@ -294,7 +299,7 @@ class Contact(Edge):
         xyz1, xyz2 = [r.atoms.scene_coords.mean(axis = 0) for r in (r1,r2)]
         zaxis = (xyz2 - xyz1) if facing_group is self.group1 else (xyz1 - xyz2)
         center = 0.5 * (xyz1 + xyz2)
-        from chimerax.core.geometry import orthonormal_frame
+        from chimerax.geometry import orthonormal_frame
         f = orthonormal_frame(zaxis, origin = center)
         return f
         

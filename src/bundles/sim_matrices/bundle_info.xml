@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-AlignmentMatrices" version="1.0"
-	    package="chimerax.seqalign.sim_matrices"
+<BundleInfo name="ChimeraX-AlignmentMatrices" version="2.0"
+	    package="chimerax.sim_matrices"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -19,8 +19,8 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Alignments" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

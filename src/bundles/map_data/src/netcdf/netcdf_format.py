@@ -72,7 +72,7 @@ class NetCDF_Data:
     angle = self.read_float(f, 'rotation_angle', None)
     if axis is None or angle is None:
       return ((1,0,0),(0,1,0),(0,0,1))
-    from chimerax.core.geometry import matrix
+    from chimerax.geometry import matrix
     r = matrix.rotation_from_axis_angle(axis, angle)
     return r
 
@@ -139,7 +139,7 @@ class NetCDF_Data:
       if var.shape == shape:
         cname = self.read_variable_name(f, name)
         color = self.read_variable_color(f, name)
-        if color == None:
+        if color is None:
           color = self.default_color(len(components))
         typecode = self.read_variable_typecode(f, name)
         c = NetCDF_Array(path, name, cname, typecode, color)
@@ -304,7 +304,7 @@ def write_grid_as_netcdf(grid_data, outpath, options = {}, progress = None):
   if grid_data.cell_angles != (90,90,90):
     f.cell_angles = grid_data.cell_angles
   if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-    from chimerax.core.geometry import matrix
+    from chimerax.geometry import matrix
     axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
     f.rotation_axis = axis
     f.rotation_angle = angle

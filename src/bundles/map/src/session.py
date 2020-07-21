@@ -159,8 +159,9 @@ def relative_path(path, base_path):
     return tuple([relative_path(p, base_path) for p in path])
 
 
-  from os.path import dirname, join
-  d = join(dirname(base_path), '')       # Make directory end with "/".
+  from os.path import dirname, join, abspath
+  bpath = abspath(base_path)
+  d = join(dirname(bpath), '')       # Make directory end with "/".
   if not path.startswith(d):
     return path
 
@@ -253,8 +254,13 @@ class ReplacementFilePaths:
         return None
       replacements[path] = p
       if replace_dir:
-        from os.path import dirname
-        self._replace_dirs[dirname(path)] = dirname(p)
+        from os.path import basename, dirname
+        # Remove the right part of path that stays the same.
+        # This find directory replacements that work for data trees, like DICOM files or Tiff stacks.
+        dorig, dnew = path, p
+        while dnew and basename(dnew) == basename(dorig):
+          dorig, dnew = dirname(dorig), dirname(dnew)
+        self._replace_dirs[dorig] = dnew
       return p
     else:
       return path
@@ -272,14 +278,18 @@ class ReplacementFilePaths:
 # ---------------------------------------------------------------------------
 #
 def existing_directory(path):
-  if not path:
-    import os
-    return os.getcwd()
   from os.path import dirname, isdir
-  d = dirname(path)
-  if isdir(d):
-    return d
-  return existing_directory(d)
+  d = path
+  while d:
+    if isdir(d):
+      return d
+    parent = dirname(d)
+    if parent == d:
+      break
+    d = parent
+
+  from os import getcwd
+  return getcwd()
 
 # ---------------------------------------------------------------------------
 #
@@ -320,11 +330,11 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
   if hasattr(dt, 'channel') and dt.channel is not None:
-    s['channel_index'] = dt.channel
+    s['channel'] = dt.channel
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 
-  from .data import SubsampledGrid
+  from chimerax.map_data import SubsampledGrid
   if isinstance(dt, SubsampledGrid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
@@ -345,7 +355,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     if not a.flags.writeable:
       a = a.copy()
     array = a.reshape(s['size'][::-1])
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
@@ -399,7 +409,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
-    from .data import SubsampledGrid
+    from chimerax.map_data import SubsampledGrid
     dslist = []
     for data in dlist:
       if not isinstance(data, SubsampledGrid):
@@ -427,7 +437,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     return dlist
 
   if dbfetch is None:
-    from .data import opendialog
+    from chimerax.map_data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
                                                       stack_images = False,
@@ -527,7 +537,7 @@ def state_from_map(volume):
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 2
-  from .series import MapSeries
+  from chimerax.map_series import MapSeries
   if isinstance(v.parent, MapSeries):
     s['in_map_series'] = True
   return s
@@ -576,7 +586,7 @@ def set_map_state(s, volume, notify = True):
       style = 'image'
     v.set_display_style(style)
       
-  from chimerax.core.geometry import Place
+  from chimerax.geometry import Place
   v.position = Place(s['place'])
 
   v.new_region(*s['region'], adjust_step = False)
@@ -636,6 +646,8 @@ rendering_options_attributes = (
   'color_mode',
   'colormap_on_gpu',
   'colormap_size',
+  'colormap_extend_left',
+  'colormap_extend_right',
   'blend_on_gpu',
   'projection_mode',
   'plane_spacing',
@@ -658,9 +670,14 @@ rendering_options_attributes = (
   'smoothing_iterations',
   'square_mesh',
   'cap_faces',
-  'box_faces',
   'orthoplanes_shown',
   'orthoplane_positions',
+  'tilted_slab_axis',
+  'tilted_slab_offset',
+  'tilted_slab_spacing',
+  'tilted_slab_plane_count',
+  'image_mode',
+  'backing_color',
 )
 
 # ---------------------------------------------------------------------------
@@ -669,16 +686,24 @@ def state_from_rendering_options(rendering_options):
 
   s = dict((attr,getattr(rendering_options, attr))
            for attr in rendering_options_attributes)
-  s['version'] = 1
+  s['version'] = 2
   return s
 
 # ---------------------------------------------------------------------------
 #
 def rendering_options_from_state(s):
 
-  from .volume import Rendering_Options
-  ro = Rendering_Options()
+  from .volume import RenderingOptions
+  ro = RenderingOptions()
   for attr in rendering_options_attributes:
     if attr in s and attr != 'version':
       setattr(ro, attr, s[attr])
+
+  # Handle old session file box_faces attribute.
+  if s['version'] == 1:
+    if s.get('box_faces', False):
+      ro.image_mode = 'box faces'
+    elif s['orthoplanes_shown'] != (False, False, False):
+      ro.image_mode = 'orthoplanes'
+    
   return ro

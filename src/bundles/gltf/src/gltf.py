@@ -133,7 +133,7 @@ def scene_and_node_models(scenes, nodes, file_name, session):
             nm.gltf_child_nodes = node['children']
         if 'matrix' in node:
             m = node['matrix']
-            from chimerax.core.geometry import Place
+            from chimerax.geometry import Place
             nm.position = Place(((m[0],m[4],m[8],m[12]),
                                  (m[1],m[5],m[9],m[13]),
                                  (m[2],m[6],m[10],m[14])))
@@ -182,7 +182,7 @@ def meshes_as_models(session, meshes, buf_arrays):
             if 'NORMAL' in pa:
                 na = ba[pa['NORMAL']]
             else:
-                from chimerax.core import surface
+                from chimerax import surface
                 na = surface.calculate_vertex_normals(va, ta)
             if 'COLOR_0' in pa:
                 vc = ba[pa['COLOR_0']]
@@ -215,15 +215,25 @@ def buffer_arrays(accessors, buffer_views, binc):
     balist = []
     from numpy import float32, uint32, uint16, int16, uint8, frombuffer
     value_type = {5126:float32, 5125:uint32, 5123:uint16, 5122:int16, 5121:uint8}
+    atype_size = {'VEC3':3, 'VEC4':4, 'SCALAR':1}
     for a in accessors:
         ibv = a['bufferView']	# index into buffer_views
         bv = buffer_views[ibv]
         bo = bv['byteOffset']	# int
         bl = bv['byteLength']	# int
+        bv = binc[bo:bo+bl]
         ct = a['componentType']	# 5123 = uint16, 5126 = float32, 5120 = uint8
         dtype = value_type[ct]
-        ba = frombuffer(binc[bo:bo+bl], dtype)
         atype = a['type']		# "VEC3", "SCALAR"
+        av = bv
+        if 'byteOffset' in a:
+            ao = a['byteOffset']
+            av = av[ao:]
+        if 'count' in a:
+            ac = a['count']
+            nb = ac*dtype().itemsize*atype_size[atype]
+            av = av[:nb]
+        ba = frombuffer(av, dtype)
         if atype == 'VEC3':
             ba = ba.reshape((len(ba)//3, 3))
         elif atype == 'VEC4':
@@ -287,7 +297,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     top_nodes = [node_index[m] for m in top_models]
     
     if center is not None or size is not None:
-        from chimerax.core.geometry import union_bounds
+        from chimerax.geometry import union_bounds
         bounds = union_bounds(m.bounds() for m in top_models)
         tnodes = [nodes[ni] for ni in top_nodes]
         # Apply matrix to only top-level nodes

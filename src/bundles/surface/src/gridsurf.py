@@ -30,12 +30,20 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
              for a in (2,1,0)]
 #    print('ses surface grid size', shape, 'spheres', len(xyz))
     from numpy import empty, float32, sqrt
-    matrix = empty(shape, float32)
+    try:
+        matrix = empty(shape, float32)
+    except (MemoryError, ValueError):
+        raise MemoryError('Surface calculation out of memory trying to allocate a grid %d x %d x %d '
+                          % (shape[2], shape[1], shape[0]) + 
+                          'to cover xyz bounds %.3g,%.3g,%.3g ' % tuple(xyz_min) +
+                          'to %.3g,%.3g,%.3g ' % tuple(xyz_max) +
+                          'with grid size %.3g' % grid_spacing)
+                          
     max_index_range = 2
     matrix[:,:,:] = max_index_range
 
     # Transform centers and radii to grid index coordinates
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     xyz_to_ijk_tf = Place(((1.0/s, 0, 0, -origin[0]/s),
                            (0, 1.0/s, 0, -origin[1]/s),
                            (0, 0, 1.0/s, -origin[2]/s)))

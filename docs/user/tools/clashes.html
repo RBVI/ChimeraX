@@ -1,0 +1,254 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Clashes, Contacts</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Clashes, Contacts</h3>
+<p>
+<b>Clashes</b> and <b>Contacts</b> are two separate tools with nearly
+identical options. Some of the default parameters are different, 
+as meant to detect:
+</p>
+<ul>
+<li><b><i>clashes</i></b>
+&ndash; unfavorable interactions where atoms are too close together;
+close contacts
+<li><b><i>contacts</i></b>
+&ndash; all kinds of direct interactions:
+polar and nonpolar, favorable and unfavorable (including clashes)
+</ul>
+<p>
+The corresponding commands are
+<a href="../commands/clashes.html"><b>clashes</b></a>
+and <a href="../commands/clashes.html"><b>contacts</b></a>.
+See also:
+<a href="rotamers.html"><b>Rotamers</b></a>,
+<a href="hbonds.html"><b>H-Bonds</b></a>,
+<a href="distances.html"><b>Distances</b></a>,
+<a href="../commands/interfaces.html"><b>interfaces</b></a>,
+<a href="../commands/select.html#new"><b>select</b> by pseudobond length</a>,
+<a href="../measurements.html">measurements</a>,
+<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a>
+</p><p>
+<b>Clashes</b> and <b>Contacts</b>
+can be opened from the <b>Structure Analysis</b> section of the
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>). 
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+runs the calculation. Several of the dialog settings are remembered as 
+<a href="../preferences.html#other">preferences</a> when the calculation is run.
+</p><p>
+<b>Interaction parameters</b>:
+<ul>
+<a name="overlap-def"></a>
+<li><b>Find pairs of atoms with VDW overlap &ge; [ <i>cutoff</i> ] &Aring;</b>
+&ndash; identify pairs of atoms with VDW overlap &ge; <i>cutoff</i>.
+The <b><i>VDW overlap</i></b> between two atoms is defined as the sum of their
+<a href="../radii.html">VDW radii</a> minus the distance between their centers.
+An overlap of 0 means the VDW surfaces are just touching.
+A positive overlap is the distance of interpenetration,
+whereas a negative overlap is the distance of separation.
+A larger positive <i>cutoff</i> restricts the results to more severe
+clashes, whereas a negative <i>cutoff</i> can also identify
+pairs of atoms that are farther apart.
+<li>for <b>Clashes</b> only: <b>Subtract [ <i>allowance</i> ]
+from overlap for potentially H-bonding pairs</b>
+&ndash; an <i>allowance</i> &gt; 0
+reflects the observation that atoms sharing a hydrogen bond can come
+closer to each other than would be expected from their
+<a href="../radii.html">VDW radii</a>.
+The <i>allowance</i> is only subtracted for pairs
+comprised of a donor (or donor-borne hydrogen) and an acceptor.
+This is equivalent to using smaller radii to characterize hydrogen-bonding
+interactions (for example, see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/9672047" target="_blank">Li
+and Nussinov</a>, <i>Proteins</i> <b>32</b>:111 (1998)).
+As in <a href="hbonds.html"><b>H-Bonds</b></a>,
+possible donor groups are hydrogen-bearing nitrogen, oxygen, and sulfur atoms,
+and possible acceptor groups are nitrogen, oxygen, and sulfur atoms with a
+lone pair.
+<blockquote>
+<a name="recommended"></a>
+<table border cellpadding="4" cellspacing="0"><tr>
+<th style="background-color: #eaeaea" rowspan="2">&nbsp;tool&nbsp;</th>
+<th style="background-color: #eaeaea" colspan="2">
+<i>cutoff</i> (&Aring;)</th>
+<th style="background-color: #eaeaea" colspan="2">
+<i>allowance</i> (&Aring;)</th>
+</tr><tr>
+<td align="center" style="background-color: #eaeaea">initial default</td>
+<td align="center" style="background-color: #eaeaea">usual range</td>
+<td align="center" style="background-color: #eaeaea">initial default</td>
+<td align="center" style="background-color: #eaeaea">usual range</td>
+</tr><tr>
+<td align="center"><b>Clashes</b></td>
+<td align="center"><b>0.6</b></td>
+<td align="center">0.4-1.0</td>
+<td align="center"><b>0.4</b></td>
+<td align="center">0.2-0.6</td>
+</tr><tr>
+<td align="center"><b>Contacts</b></td>
+<td align="center"><b>&minus;0.4</b></td>
+<td align="center">0.0-(&minus;1.0)</td>
+<td colspan="2" align="center">not applicable</td>
+</tr>
+</table>
+</blockquote>
+<li>
+<b>Find pairs of atoms with center-center distance &le; [ <i>d</i> ] &Aring;</b> 
+(initial default <b>off</b>, with <i>d</i>=<b>4.0</b>)
+&ndash; instead of <a href="#overlap-def">VDW overlap</a>,
+use a simple distance cutoff to identify interactions
+<li><b>Limit by selection</b> (initial default <b>off</b>) 
+&ndash; whether to limit the results by the current
+<a href="../selection.html">selection</a> according to one of the following
+choices in the pulldown menu:
+  <ul>
+  <li><b>with at least one end selected</b>
+  <li><b>with exactly one end selected</b>
+  <li><b>with both ends selected</b>
+  <li><b>between selection and atom spec...</b> 
+  [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
+The two sets of atoms may overlap, but will not overrule other restrictions.
+    </ul>
+<li><b>Ignore interactions between atoms [ <i>N</i> ] or fewer bonds apart</b>
+(initial default <i>N</i>=<b>4</b>)
+<li><b>Ignore interactions between residues < [ <i>M</i> ] apart in sequence</b>
+(initial default <b>off</b>, with <i>M</i>=<b>5</b>)
+<li><b>Include intermodel</b> (initial default <b>on</b>)
+<li><b>Include intramodel</b> (initial default <b>on</b>)
+<li><b>Include intramolecule</b> (initial default <b>on</b>)
+&ndash; whether to include intramolecular interactions,
+where a molecule is defined as a covalently bonded set of atoms
+<li><b>Include intraresidue</b> (initial default <b>off</b>)
+</ul>
+<p>
+<b>Treatment of results</b>:
+</p>
+<ul>
+<li><b>Select atoms</b> (initial default <b>off</b>)
+&ndash; whether to <a href="../selection.html">select</a> the interacting atoms
+<li><b>Reveal atoms of interacting residues</b> (initial default <b>off</b>)
+&ndash; since a <a href="../pseudobonds.html">pseudobond</a>
+is only shown when both of its endpoint atoms are shown,
+whether to ensure all showing all H-bonds by displaying all of the endpoint
+atoms. To avoid showing disconnected atoms, the entire residues will be shown,
+except that amino acid and nucleic acid residues are split into
+<a href="../commands/atomspec.html#builtin">sidechain</a> and
+<a href="../commands/atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
+<li><b>Assign atomic attribute named</b> [<i>name</i>] 
+(initial default <b>off</b>)
+&ndash; whether to assign the largest <a href="#overlap-def">overlap</a>
+per atom as an <a href="../attribute.html">attribute</a> with the 
+specified <i>name</i> (default <b>overlap</b>);
+disallowed with <a href="#continuous">continuous monitoring</a>
+<li><b>Display as pseudobonds</b> (initial default <b>on</b>)
+&ndash; whether to show the interactions as
+<a href="../pseudobonds.html">pseudobonds</a>, with related settings:
+  <ul>
+  <li><b>Color</b>
+(initial default 
+<b>medium orchid</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=mediumorchid width="10px" title="medium orchid"></td></tr></table>
+for clashes,
+<b>forest green</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=forestgreen width="10px" title="forest green"></td></tr></table>
+for contacts)
+&ndash; <a href="../pseudobonds.html">pseudobond</a> color
+  <li><b>Radius</b>
+(initial default 
+<b>0.15</b> for clashes,
+<b>0.075</b> for contacts) 
+&ndash; <a href="../pseudobonds.html">pseudobond</a> radius in &Aring; 
+  <li><b>Dashes</b> 
+(initial default
+<b>4</b> for clashes,
+<b>6</b> for contacts) 
+&ndash; <a href="../pseudobonds.html">pseudobond</a> number of dashes;
+currently, odd numbers are rounded down to give an even number of dashes.
+  <li><b>Distance label</b> (initial default <b>off</b>)
+&ndash; whether to show &Aring; distances as bond labels;
+the number of decimal places and whether to show the &Aring; symbol can be 
+changed with <a href="../commands/distance.html#style"><b>distance style</b></a>
+or set beforehand in the
+<a href="../preferences.html#distances"><b>Distances</b> preferences</a>,
+and label height in &Aring; can be changed with 
+<a href="../commands/label.html#height"><b>label height</b></a>
+or set beforehand in the
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
+The distances (pseudobond lengths) can also be plotted as a histogram with
+<a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
+<li><b>Group name</b>
+(initial default <b>clashes</b> or <b>contacts</b> according to
+which tool is being used)
+&ndash; name for the since a <a href="../pseudobonds.html">pseudobond group</a>.
+Pseudobonds with group name <b>clashes</b> can be removed with the command 
+<a href="../commands/clashes.html#delete"><b>clashes delete</b></a> or
+<a href="../commands/clashes.html#delete"><b>~clashes</b></a>,
+and those with group name <b>contacts</b> removed with 
+<a href="../commands/clashes.html#delete"><b>contacts delete</b></a> or
+<a href="../commands/clashes.html#delete"><b>~contacts</b></a>.
+A <a href="../pseudobonds.html">pseudobond model</a> can also be closed
+with the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
+or the <a href="../commands/close.html"><b>close</b></a> command.
+  </ul>
+</ul>
+<p>
+<b>Write information to</b>:
+Where to write clash/contact information,
+including atom pair specifications 
+(see the <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
+for specifier style), overlaps, and center-center distances;
+disallowed with <a href="#continuous">continuous monitoring</a>.
+</p>
+  <ul>
+  <li><b>Log</b> (initial default <b>off</b>) 
+&ndash; show the information in the <a href="log.html"><b>Log</b></a>
+  <li><b>File</b> (initial default <b>off</b>) 
+&ndash; save the information to a text file
+  </ul>
+<p>
+<b>Frequency of checking</b>:
+</p>
+<ul>
+<li><b>when OK/Apply clicked</b> (default)
+<li>
+<a name="continuous"></a>
+<b>continuously (until dialog closed)</b>
+&ndash; during motions 
+</ul>
+  </ul>
+</ul>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2020</address>
+</body></html>

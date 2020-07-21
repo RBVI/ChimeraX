@@ -17,12 +17,14 @@
 //
 #include <math.h>			// use sqrt()
 
+#include "fitting.h"
+
 namespace Fitting
 {
 
 // g = (|v-vm|^2*sum(wi*vi,j) - sum(wi*vi)*sum((vi-vm)*vi,j)) / |w||v-vm|^3
 //   with vm = mean(v)
-void correlation_gradient(float point_weights[], int n,
+void correlation_gradient(float point_weights[], int64_t n,
 			  float values[], float gradients[][3],
 			  bool about_mean, float *gradient_ret)
 {
@@ -31,12 +33,12 @@ void correlation_gradient(float point_weights[], int n,
   double svvmg0 = 0, svvmg1 = 0, svvmg2 = 0;
   if (about_mean)
     {
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	vm += values[k];
       if (n > 0)
 	vm /= n;
     }
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float w = point_weights[k], v = values[k], *g = gradients[k];
       float g0 = g[0], g1 = g[1], g2 = g[2];
@@ -63,12 +65,12 @@ void correlation_gradient(float point_weights[], int n,
 
 
 // Return sum(w*(p-c) x f).
-void torque(float points[][3], int n, float *point_weights,
+void torque(float points[][3], int64_t n, float *point_weights,
 	    float forces[][3], float center[3], float *torque_ret)
 {
   float c0 = center[0], c1 = center[1], c2 = center[2];
   double t0 = 0, t1 = 0, t2 = 0;
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *p = points[k];
       float pc0 = p[0]-c0, pc1 = p[1]-c1, pc2 = p[2]-c2;
@@ -85,11 +87,11 @@ void torque(float points[][3], int n, float *point_weights,
 }
 
 // Return (p-c) x f.
-void torques(float points[][3], int n, float center[3], float forces[][3],
+void torques(float points[][3], int64_t n, float center[3], float forces[][3],
 	     float torques[][3])
 {
   float c0 = center[0], c1 = center[1], c2 = center[2];
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *p = points[k], *f = forces[k], *t = torques[k];
       float pc0 = p[0]-c0, pc1 = p[1]-c1, pc2 = p[2]-c2;
@@ -102,7 +104,7 @@ void torques(float points[][3], int n, float center[3], float forces[][3],
 
 // Return (|v-vm|^2*sum(w*(rxg)) - sum(w*v)*sum((v-vm)*(rxg)) / |v-vm|^3
 //   with r = p-c, vm = mean(v)
-void correlation_torque(float points[][3], int n, float point_weights[],
+void correlation_torque(float points[][3], int64_t n, float point_weights[],
 			float values[], float gradients[][3], float center[3],
 			bool about_mean, float *torque_ret)
 {
@@ -112,13 +114,13 @@ void correlation_torque(float points[][3], int n, float point_weights[],
   double vvmrg0 = 0, vvmrg1 = 0, vvmrg2 = 0;
   if (about_mean)
     {
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	vm += values[k];
       if (n > 0)
 	vm /= n;
     }
 
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *p = points[k];
       float r0 = p[0] - c0, r1 = p[1] - c1, r2 = p[2] - c2;
@@ -150,7 +152,7 @@ void correlation_torque(float points[][3], int n, float point_weights[],
 
 // Return (|v-vm|^2*sum(w*(rxg)) - sum(w*v)*sum((v-vm)*(rxg)) / |v-vm|^3
 //   with vm = mean(v)
-void correlation_torque2(float point_weights[], int n,
+void correlation_torque2(float point_weights[], int64_t n,
 			 float values[], float rxg[][3],
 			 bool about_mean, float *torque_ret)
 {
@@ -159,13 +161,13 @@ void correlation_torque2(float point_weights[], int n,
   double vvmrg0 = 0, vvmrg1 = 0, vvmrg2 = 0;
   if (about_mean)
     {
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	vm += values[k];
       if (n > 0)
 	vm /= n;
     }
 
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float v = values[k], w = point_weights[k], *rg = rxg[k];
       float rg0 = rg[0], rg1 = rg[1], rg2 = rg[2];

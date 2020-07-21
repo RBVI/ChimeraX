@@ -43,26 +43,26 @@ One of the following <i>action</i> keywords must be given:
 </p>
 <ul>
 <li><a href="#record"><b>record</b></a>
-- start recording frames
+&ndash; start recording frames
 <li><a href="#encode"><b>encode</b></a>
-- stop any ongoing recording and
+&ndash; stop any ongoing recording and
 encode the saved image frames into a movie file
 <li><b>stop</b> 
-- stop recording frames
+&ndash; stop recording frames
 <li><a href="#reset"><b>reset</b></a>
-- reset status to zero frames saved
+&ndash; reset status to zero frames saved
 <li><b>abort</b>
-- halt any encoding in progress and perform a <b>reset</b>
+&ndash; halt any encoding in progress and perform a <b>reset</b>
 <li><a href="#crossfade"><b>crossfade</b></a>
-- interpolate from the preceding frame to the following frame
+&ndash; interpolate from the preceding frame to the following frame
 <li><a href="#duplicate"><b>duplicate</b></a>
-- expand the preceding frame into multiple frames
+&ndash; expand the preceding frame into multiple frames
 <li><a href="#ignore"><b>ignore</b></a>
-- start/stop ignoring subsequent <b>movie</b> commands
+&ndash; start/stop ignoring subsequent <b>movie</b> commands
 <li><b>formats</b>
-- list the available movie file formats
+&ndash; list the available movie file formats
 <li><b>status</b>
-- report status (number of saved frames, <i>etc.</i>)
+&ndash; report status (number of saved frames, <i>etc.</i>)
 in the <a href="../tools/log.html"><b>Log</b></a>
 </ul>
 <p>
@@ -81,15 +81,16 @@ down to the final size.
 Increasing <b><i>N</i></b> increases the smoothness of edges
 within images and the calculation time with little effect on file size.
 <b><i>N</i></b> is the number of pixels sampled in the X and Y dimensions 
-for each pixel in the final saved image.
-Useful values range from 1 (no supersampling, default) to 4 
-(4x4 supersampling), with 3 recommended when supersampling is done.
+for each pixel in the final saved image (default <b>1</b>, no supersampling).
+Useful values range from 1 to 4, with 3 generally recommended 
+when supersampling is done.
 In addition, a value of 0 can be used to indicate onscreen rather than
 offscreen rendering, without supersampling.
-A potential disadvantage of over-supersampling is that lines
-such as silhouettes or hydrogen-bond representations in the 
-final images may become unacceptably thin because there is a limit
-to how wide they can be in the initial images.
+A potential disadvantage of supersampling is that
+<a href="graphics.html#silhouettes">silhouettes</a>
+in the final images may be thinner than expected because there is a limit
+to how thick they can be in the initial images; if this happens, try
+reducing the supersampling level <b><i>N</i></b>.
 </blockquote>
 <blockquote>
 <a name="size"></a>
@@ -239,8 +240,8 @@ what is being displayed. Recording generally slows the process further;
 however, the frame rate of the resulting movie is controlled independently
 with the <b>framerate</b> option described above.
 Thus, movie playback may be faster or slower than the original process 
-in ChimeraX. The command <a href="set.html#maxFrameRate"><b>set 
-maxFrameRate</b></a> can be used to make the interactive frame rate as 
+in ChimeraX.  The command <a href="graphics.html#rate"><b>graphics rate</b></a>
+(<b>maxFrameRate</b> option) can be used to make the interactive frame rate as 
 similar as possible to the playback rate to preview movie-content scripts.
 </p>
 </blockquote>
@@ -314,5 +315,5 @@ script (movie content) development.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2017</address>
+February 2020</address>
 </body></html>

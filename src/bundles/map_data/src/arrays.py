@@ -15,24 +15,24 @@
 # Method can be linear or nearest.
 #
 def interpolate_volume_data(vertices, vertex_transform, array,
-                            method = 'linear'):
+                            method = 'linear', values = None):
 
-#  from _interpolate import interpolate_volume_data
-  from .._map import interpolate_volume_data
+  kw = {} if values is None else {'values': values}
+  from chimerax.map._map import interpolate_volume_data
   values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
-                                            array, method)
+                                              array, method, **kw)
   return values, outside
     
 # -----------------------------------------------------------------------------
 # Method can be linear or nearest.
 #
 def interpolate_volume_gradient(vertices, v2m_transform, array,
-                                method = 'linear'):
+                                method = 'linear', gradients = None):
 
-#  from _interpolate import interpolate_volume_gradient
-  from .._map import interpolate_volume_gradient
+  kw = {} if gradients is None else {'gradients': gradients}
+  from chimerax.map._map import interpolate_volume_gradient
   gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
-                                                   array, method)
+                                                   array, method, **kw)
   return gradients, outside
 
 # -----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ class MatrixValueStatistics:
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
       
     # Determine minimum and maximum data values.
-    from .. import _map
+    from chimerax.map import _map
     if ignore_pad_value is None:
       mm = [_map.minimum_and_maximum(m) for m in matrices]
     else:
@@ -282,7 +282,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
       mask_value = 1
 
   from . import grid_indices
-  from chimerax.core.geometry import find_closest_points
+  from chimerax.geometry import find_closest_points
 
   size_limit = 2 ** 22          # 4 Mvoxels
   if mask_3d.size > size_limit:
@@ -362,7 +362,7 @@ def invert_matrix(m):
 #
 def surface_level_enclosing_volume(matrix, volume, tolerance = 1e-3,
                                    max_bisections = 30, session = None):
-  from .. import _map
+  from chimerax.map import _map
   l0, l1 = _map.minimum_and_maximum(matrix)
   for s in range(max_bisections):
     level = 0.5*(l0 + l1)

@@ -25,9 +25,11 @@ class AtomZoneMouseMode(MouseMode):
         self._label_color = BuiltinColors['yellow']
         self._label_background = BuiltinColors['black']
         self._surface_distance = 8
-        self._coil_width_thickness = (0.2, 0.2)
-        self._helix_width_thickness = (0.6, 0.2)
-        self._sheet_width_thickness = (0.6, 0.2)
+        self._coil_width_scale = (0.2, 0.2)
+        self._helix_width_scale = (0.6, 0.2)
+        self._helix_arrow_scale = (1.2, 0.2, 0.2, 0.2)
+        self._sheet_width_scale = (0.6, 0.2)
+        self._sheet_arrow_scale = (1.2, 0.2, 0.2, 0.2)
         self._ribbon_transparency = 100		# 0 = completely transparent, 255 = opaque
         self._labeled_residues = None
         self._scale_accum = 1
@@ -93,7 +95,7 @@ class AtomZoneMouseMode(MouseMode):
 
         self._restore_original_display()
         self._unlabel(log_command = False)
-        from chimerax.map.filter.vopcommand import volume_unzone
+        from chimerax.map_filter.vopcommand import volume_unzone
         volume_unzone(self.session, self._shown_volumes())
         if log_command:
             from chimerax.core.commands import log_equivalent_command
@@ -158,15 +160,14 @@ class AtomZoneMouseMode(MouseMode):
             res = struct.residues
             if not hasattr(struct, '_zone_ribbon_setup'):
                 struct._zone_ribbon_setup = True
+                rm = struct.ribbon_xs_mgr
+                rm.set_coil_scale(*self._coil_width_scale)
+                rm.set_helix_scale(*self._helix_width_scale)
+                rm.set_helix_arrow_scale(*self._helix_arrow_scale)
+                rm.set_sheet_scale(*self._sheet_width_scale)
+                rm.set_sheet_arrow_scale(*self._sheet_arrow_scale)
                 res.ribbon_displays = True
                 res.ribbon_hide_backbones = False
-                rm = struct.ribbon_xs_mgr
-                cw,ch = self._coil_width_thickness
-                rm.set_coil_scale(cw, ch)
-                hw,hh = self._helix_width_thickness
-                rm.set_helix_scale(hw, hh)
-                sw,sh = self._sheet_width_thickness
-                rm.set_sheet_scale(sw, sh)
 
             res.ribbon_displays = True
             hide_residues.ribbon_displays = False
@@ -177,7 +178,7 @@ class AtomZoneMouseMode(MouseMode):
         residues.ribbon_colors = rcolors
 
     def _show_volume_zone(self, atoms):
-        from chimerax.map.filter.zone import zone_operation
+        from chimerax.map_filter.zone import zone_operation
         for v in self._shown_volumes():
             zone_operation(v, atoms, self._surface_distance,
                            minimal_bounds = True, new_map = False)
@@ -247,20 +248,19 @@ class AtomZoneMouseMode(MouseMode):
             r = None
         return r
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         res = self._picked_residue(pick) 
         if res:
             self._show_zone(res, ribbon=False)
         elif not self._unlabel():
             self._unzone()
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         from math import exp
-        scale = exp(delta_z / .3)
+        scale = exp(event.room_vertical_motion / .3)
         self._scale_range(scale, ribbon=False)
 
 def zone(session, atoms = None, residue_distance = None,

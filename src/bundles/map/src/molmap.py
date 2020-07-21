@@ -206,7 +206,7 @@ def molecule_grid_data(atoms, resolution, step, pad, on_grid,
 # -----------------------------------------------------------------------------
 #
 def bounding_grid(xyz, step, pad, transforms = None):
-    from chimerax.core.geometry import bounds
+    from chimerax.geometry import bounds
     b = bounds.point_bounds(xyz, transforms)
     origin = [x-pad for x in b.xyz_min]
     from math import ceil
@@ -214,7 +214,7 @@ def bounding_grid(xyz, step, pad, transforms = None):
              for a in (2,1,0)]
     from numpy import zeros, float32
     matrix = zeros(shape, float32)
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     grid = ArrayGridData(matrix, origin, (step,step,step))
     return grid
 
@@ -229,7 +229,7 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None,
         sdevs[:,a] = sdev / grid.step[a]
 
     if transforms is None:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         transforms = Places()
     from ._map import sum_of_gaussians
     ijk = empty(xyz.shape, float32)
@@ -249,7 +249,7 @@ def add_gaussians(grid, xyz, weights, sdev, cutoff_range, transforms = None,
 def add_balls(grid, xyz, radii, sdev, cutoff_range, transforms = None):
 
     if transforms is None or len(transforms) == 0:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         transforms = Places()
     from numpy import empty, float32
     ijk = empty(xyz.shape, float32)

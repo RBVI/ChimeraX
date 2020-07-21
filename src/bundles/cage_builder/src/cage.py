@@ -70,7 +70,7 @@ def select_polygons(session, polygons):
 def ordered_link_markers(link):
 
     m0, m1 = link.atoms
-    idiff = int(m0.name) - int(m1.name)
+    idiff = m0.residue.number - m1.residue.number
     if idiff == 1 or idiff < -1:
         m0, m1 = m1, m0
     return m0, m1
@@ -108,53 +108,70 @@ def connected_markers(m):
 class Polygon:
 
     def __init__(self, session, n, radius = 1.0, edge_thickness = 0.2, inset = 0.1,
-                 color = (.7,.7,.7,1), marker_set = None,
-                 mlist = None, elist = None):
-
-        if mlist is None or elist is None:
-            initial_view = False
-            if marker_set is None:
-                msets = cage_marker_sets(session)
-                if msets:
-                    marker_set = msets[0]
-                else:
-                    initial_view = session.models.empty()
-                    marker_set = new_marker_set(session, 'Cage')
-            mlist = []
-            r = radius - inset
-            edge_radius = 0.5*edge_thickness
-            from math import pi, cos, sin
-            for a in range(n):
-                angle = a*2*pi/n
-                p = (r*cos(angle), r*sin(angle), 0)
-                m = place_marker(marker_set, p, color, edge_radius)
-                mlist.append(m)
-            elist = [add_link(m, mlist[(i+1)%n], color, edge_radius)
-                     for i,m in enumerate(mlist)]
-            if initial_view:
-                session.main_view.initial_camera_view()
-            
+                 color = (.7,.7,.7,1), marker_set = None, markers = None, edges = None):
+ 
         self.n = n
         self.radius = radius
         self.thickness = edge_thickness
         self.inset = inset
         self.using_inset = True
+        self.marker_set = marker_set
 
-        self.marker_set = mlist[0].structure
-        self.vertices = mlist
-        self.edges = elist
-        for v in mlist:
-            v.polygon = self
-        for e in elist:
-            e.polygon = self
+        self._create_markers(session, color, markers, edges)
 
-        if mlist:
+        if self.vertices:
             # Add placement method to get positions for placing molecule
             # copies on cage polygons.
             mset = self.marker_set
             if not hasattr(mset, 'placements'):
                 p = lambda n,mset=mset: parse_placements(n, marker_set=mset)
                 mset.placements = p
+
+    # -------------------------------------------------------------------------
+    #
+    def _create_markers(self, session, color, markers = None, edges = None):
+
+        initial_view = False
+        if self.marker_set is None:
+            msets = cage_marker_sets(session)
+            if msets:
+                self.marker_set = msets[0]
+            else:
+                initial_view = session.models.empty()
+                self.marker_set = Cage(session)
+                session.models.add([self.marker_set])
+
+        if markers is None:
+            mlist = []
+            r = self.radius - self.inset
+            edge_radius = 0.5*self.thickness
+            from math import pi, cos, sin
+            for a in range(self.n):
+                angle = a*2*pi/self.n
+                p = (r*cos(angle), r*sin(angle), 0)
+                m = self.marker_set.create_marker(p, color, edge_radius)
+                mlist.append(m)
+        else:
+            im = {a.residue.number:a for a in self.marker_set.atoms}
+            mlist = [im[i] for i in markers]
+            
+        self.vertices = mlist
+        for v in mlist:
+            v.polygon = self
+
+        if edges is None:
+            elist = [add_link(m, mlist[(i+1)%self.n], color, edge_radius)
+                     for i,m in enumerate(mlist)]
+        else:
+            ie = {tuple(a.residue.number for a in b.atoms):b for b in self.marker_set.bonds}
+            elist = [ie[e] for e in edges]
+            
+        self.edges = elist
+        for e in elist:
+            e.polygon = self
+
+        if initial_view:
+            session.main_view.initial_camera_view()
 
     # -------------------------------------------------------------------------
     #
@@ -167,7 +184,7 @@ class Polygon:
     def normal(self):
 
         x0,x1,x2 = [m.coord for m in self.vertices[:3]]
-        from chimerax.core.geometry import normalize_vector, cross_product
+        from chimerax.geometry import normalize_vector, cross_product
         n = normalize_vector(cross_product(x1-x0, x2-x1))
         return n
         
@@ -265,6 +282,24 @@ class Polygon:
         for v in self.vertices:
             v.delete()
 
+    # -------------------------------------------------------------------------
+    #
+    def polygon_state(self):
+        data = {attr:getattr(self, attr) for attr in ('n', 'radius', 'thickness', 'inset')}
+        data['markers'] = [a.residue.number for a in self.vertices]
+        data['edges'] = [tuple(a.residue.number for a in b.atoms) for b in self.edges]
+        data['version'] = 1
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @staticmethod
+    def polygon_from_state(state, marker_set):
+        p = Polygon(marker_set.session, state['n'], radius = state['radius'],
+                    edge_thickness = state['thickness'], inset = state['inset'],
+                    marker_set = marker_set, markers = state['markers'], edges = state['edges'])
+        return p
+
 # -----------------------------------------------------------------------------
 #
 def marker_center(markers):
@@ -281,15 +316,7 @@ def joined_edge(e):
     
 # -----------------------------------------------------------------------------
 #
-def join_edges(l0 = None, l1 = None, vertex_degree = None):
-
-    if l0 is None or l1 is None:
-        links = selected_edges()
-        if len(links) != 2:
-            return False
-        l0, l1 = links
-        if l0.polygon is l1.polygon:
-            return False
+def join_edges(l0, l1, vertex_degree = None):
 
     join(l0, l1)
     join(l1, l0)
@@ -312,8 +339,6 @@ def join(l0, l1):
     if l0j:
         unjoin_edges([l0j])
     l0.joined_edge = l1
-    if not hasattr(l0, 'extra_attributes'):
-        l0.extra_attributes = {}
     l0.color = lighten_color(l0.color)
 
 # -----------------------------------------------------------------------------
@@ -364,27 +389,21 @@ def next_polygon_edge(edge, direction):
 
 # -----------------------------------------------------------------------------
 #
-def unjoin_edges(edges = None):
+def unjoin_edges(edges):
 
-    if edges is None:
-        edges = selected_edges()
     lset = set(edges)
     for link in lset:
         lj = joined_edge(link)
         if lj:
             delattr(lj, 'joined_edge')
-            del lj.extra_attributes['join']
-            lj.set_rgba(darken_color(lj.rgba()))
+            lj.color = darken_color(lj.color)
             delattr(link, 'joined_edge')
-            del link.extra_attributes['join']
-            link.set_rgba(darken_color(link.rgba()))
+            link.color = darken_color(link.color)
 
 # -----------------------------------------------------------------------------
 #
-def delete_polygons(plist = None):
+def delete_polygons(plist):
 
-    if plist is None:
-        plist = selected_polygons()
     for p in plist:
         p.delete()
         
@@ -406,7 +425,7 @@ def optimized_placement(polygon, vertex_degree):
         if l0j:
             lpairs.append((l0,l0j))
 
-    from chimerax.core.geometry import Place, align_points
+    from chimerax.geometry import Place, align_points
     if len(lpairs) == 0:
         tf = Place()
     elif len(lpairs) == 1:
@@ -442,7 +461,7 @@ def edge_join_transform(link, rlink, vertex_degree):
 
     f0 = edge_coordinate_frame(rlink)
     f1 = edge_coordinate_frame(link)
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     r = Place(((-1,0,0,0),
                (0,-1,0,0),
                (0,0,1,0)))     # Rotate 180 degrees about z.
@@ -476,7 +495,7 @@ def edge_coordinate_frame(edge):
     p = edge.polygon
     c = p.center()
     c01 = 0.5 * (x0+x1)
-    from chimerax.core.geometry import cross_product, normalize_vector, Place
+    from chimerax.geometry import cross_product, normalize_vector, Place
     xa = normalize_vector(x1 - x0)
     za = normalize_vector(cross_product(xa, c01-c))
     ya = cross_product(za, xa)
@@ -532,6 +551,7 @@ def expand(polygons, distance):
 #
 def align_molecule():
 
+    # TODO: Not ported.
     from chimera import selection
     atoms = selection.currentAtoms(ordered = True)
     mols = set([a.molecule for a in atoms])
@@ -592,9 +612,10 @@ def selected_vertices(session):
 
 # -----------------------------------------------------------------------------
 #
-def selected_polygons(full_cages = False, none_implies_all = False):
+def selected_polygons(session, full_cages = False, none_implies_all = False):
 
-    plist = set([e.polygon for e in selected_edges() + selected_vertices()])
+    plist = set([e.polygon for e in selected_edges(session)] +
+                [v.polygon for v in selected_vertices(session)])
     if full_cages:
         cages = set([p.marker_set for p in plist])
         plist = sum([cage_polygons(c) for c in cages], [])
@@ -620,46 +641,45 @@ def selected_cages():
 
 # -----------------------------------------------------------------------------
 #
-def new_marker_set(session, name):
-    from chimerax.atomic import Structure
-    m = Structure(session, name = name)
-    m.ball_scale = 1.0
-    session.models.add([m])
-    return m
-
-# -----------------------------------------------------------------------------
-#
-def place_marker(marker_set, p, color, radius):
-    m = marker_set
-    elem_name = 'C'
-    id = m.num_atoms + 1
-    name = str(id)
-    a = m.new_atom(name, elem_name)
-    a.coord = p
-    a.color = color
-    a.radius = radius
-    a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
-    chain_id = 'M'
-    rname = 'mark'
-    r = m.new_residue(rname, chain_id, id)
-    r.add_atom(a)
-    return a
-
+from chimerax.markers import MarkerSet
+class Cage(MarkerSet):
+    def __init__(self, session, name = 'Cage'):
+        MarkerSet.__init__(self, session, name = name)
+    def take_snapshot(self, session, flags):
+        ei = {b:tuple(a.residue.number for a in b.atoms) for b in self.bonds}
+        joined_edges = [(ei[b], ei[b.joined_edge]) for b in self.bonds if hasattr(b, 'joined_edge')]
+        polygons = set([a.polygon for a in self.atoms if hasattr(a, 'polygon')] +
+                       [b.polygon for b in self.bonds if hasattr(b, 'polygon')])
+        pstates = [p.polygon_state() for p in polygons]
+        data = {'marker set state': MarkerSet.take_snapshot(self, session, flags),
+                'joined edges': joined_edges,
+                'polygons': pstates,
+                'version': 1}
+        return data
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = MarkerSet.restore_snapshot(session, data['marker set state'])
+        ei = {tuple(a.residue.number for a in b.atoms):b for b in s.bonds}
+        for ei1,ei2 in data['joined edges']:
+            e1,e2 = ei[ei1],ei[ei2]
+            e1.joined_edge = e2
+            e2.joined_edge = e1
+        for pstate in data['polygons']:
+            Polygon.polygon_from_state(pstate, s)
+        return s
+        
+    
 # -----------------------------------------------------------------------------
 #
 def add_link(a1, a2, color, radius):
-    s = a1.structure
-    b = s.new_bond(a1, a2)
-    b.radius = radius
-    b.color = color
-    b.halfbond = False
-    return b
+    from chimerax.markers import create_link
+    return create_link(a1, a2, rgba = color, radius = radius)
 
 # -----------------------------------------------------------------------------
 #
 def cage_marker_sets(session):
-    from chimerax.atomic import Structure
-    return [m for m in session.models.list(type = Structure) if m.name == 'Cage']
+    from chimerax.markers import MarkerSet
+    return [m for m in session.models.list(type = MarkerSet) if m.name == 'Cage']
     
 # -----------------------------------------------------------------------------
 #
@@ -774,7 +794,7 @@ def parse_placements(name, marker_set):
 
     try:
         n = int(ns)
-    except:
+    except Exception:
         from chimerax.core.errors import UserError
         raise UserError('Symmetry placement must be "p" or "pn" followed by an integer, got "%s"' % name)
 
@@ -787,11 +807,11 @@ def parse_placements(name, marker_set):
 def placements(n, marker_set, each_edge = False):
 
     plist = polygons(marker_set)
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     tflist = Places([polygon_coordinate_frame(p) for p in plist if p.n == n])
 
     if each_edge:
-        from chimerax.core import geometry
+        from chimerax import geometry
         tflist = tflist * geometry.cyclic_symmetry_matrices(n)
 
     return tflist
@@ -806,7 +826,7 @@ def polygon_coordinate_frame(polygon):
     c = p.center()
     za = p.normal()
     xa = p.vertices[0].coord - c
-    from chimerax.core.geometry import normalize_vector, cross_product, Place
+    from chimerax.geometry import normalize_vector, cross_product, Place
     ya = normalize_vector(cross_product(za, xa))
     xa = normalize_vector(cross_product(ya, za))
     tf = [(xa[a], ya[a], za[a], c[a]) for a in (0,1,2)]

@@ -208,36 +208,55 @@ class _BaseTool(HtmlToolInstance):
             return self.structures
 
     def show_only(self, model_id):
-        self._block_updates = True
-        any_change = False
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
-                s.display = onoff
-                any_change = True
-        self._block_updates = False
-        if any_change:
-            self._update_display()
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
 
     def show_toggle(self, model_id):
-        self._block_updates = True
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
-                s.display = not s.display
-        self._block_updates = False
-        self._update_display()
+                if s.display:
+                    off.append(s)
+                else:
+                    on.append(s)
+        self._show_hide(on, off)
 
     def show_set(self, model_id, onoff):
-        self._block_updates = True
-        any_change = False
         structures = self.get_structures(model_id)
+        on = []
+        off = []
         for s in structures:
             if s.display != onoff and s in self.structures:
-                s.display = onoff
-        self._block_updates = False
-        if any_change:
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
+
+    def _show_hide(self, on, off):
+        if on or off:
+            from chimerax.core.commands import concise_model_spec, run
+            self._block_updates = True
+            cmd = []
+            if off:
+                models = concise_model_spec(self.session, off)
+                cmd.append("hide %s models" % models)
+            if on:
+                models = concise_model_spec(self.session, on)
+                cmd.append("show %s models" % models)
+            run(self.session, " ; ".join(cmd))
+            self._block_updates = False
             self._update_display()
 
     # Session stuff
@@ -319,7 +338,7 @@ class TableTool(_BaseTool):
             raise KeyError("ViewDock name %r already in use" % name)
         self.name = name
         self._name_map[name] = self
-        super().__init__(session,"ViewDockX Table (%s)" % name)
+        super().__init__(session,"ViewDockX Table (name: %s)" % name)
         self.setup_page("viewdockx_table.html")
 
     def delete(self):
@@ -410,13 +429,20 @@ class TableTool(_BaseTool):
         tool.setup(self.structures)
 
     def _cb_hb(self, query):
+        self._count_pbonds(query, "hbonds", "hydrogen bonds", "HBonds")
+
+    def _count_pbonds(self, query, finder, cat_name, column_name):
         # Create hydrogen bonds between receptor(s) and ligands
         from chimerax.core.commands import concise_model_spec, run
-        cmd = "hbonds %s restrict cross reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
+        from chimerax.atomic import AtomicStructure
+        mine = concise_model_spec(self.session, self.structures)
+        all = self.session.models.list(type=AtomicStructure)
+        others = concise_model_spec(self.session,
+                                    set(all) - set(self.structures))
+        cmd = ("%s %s restrict %s "
+               "reveal true intersubmodel true" % (finder, mine, others))
         run(self.session, cmd)
-        self._count_pb("hydrogen bonds", "HBonds")
+        self._count_pb(cat_name, column_name)
 
     def _count_pb(self, group_name, key):
         # Count up the hydrogen bonds for each structure
@@ -434,33 +460,27 @@ class TableTool(_BaseTool):
         self._update_models()
 
     def _cb_clash(self, query):
-        # Compute clashes between receptor(s) and ligands
-        from chimerax.core.commands import concise_model_spec, run
-        cmd = "clashes %s test others reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
-        run(self.session, cmd)
-        self._count_pb("clashes", "Clashes")
+        self._count_pbonds(query, "clashes", "clashes", "Clashes")
 
     def _cb_export(self, query):
         from chimerax.ui.open_save import SaveDialog
-        sd = SaveDialog(add_extension="mol2")
+        sd = SaveDialog(self.session, data_formats=[self.session.data_formats["mol2"]])
         if not sd.exec():
             return
         path = sd.get_path()
         if path is None:
             return
         prefix = "##########"
-        from chimerax.mol2.io import write_mol2
+        from chimerax.mol2 import write_mol2
         with open(path, "w") as outf:
             for s in self.structures:
                 with OutputCache() as sf:
                     write_mol2(self.session, sf, models=[s])
-                    for item in s.viewdockx_data.items():
-                        print(prefix, "%s: %s\n" % item, end='', file=outf)
-                    print("\n", end='', file=outf)
-                    print(sf.saved_output, end='', file=outf)
-                    print("\n\n", end='', file=outf)
+                for item in s.viewdockx_data.items():
+                    print(prefix, "%s: %s\n" % item, end='', file=outf)
+                print("\n", end='', file=outf)
+                print(sf.saved_output, end='', file=outf)
+                print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
         stars = int(query["stars"][0])
@@ -474,6 +494,12 @@ class TableTool(_BaseTool):
     def _cb_columns_updated(self, query):
         self._update_display()
         self._update_ratings()
+
+    def _cb_arrow(self, query):
+        from chimerax.core.commands import run
+        direction = query["direction"][0]
+        cmd = "viewdock %s name %s" % (direction, self.name)
+        run(self.session, cmd, log=False)
 
 
 class OutputCache(StringIO):

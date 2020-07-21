@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -12,10 +14,10 @@
 # -----------------------------------------------------------------------------
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
-def vr(session, enable = None, room_position = None, display = None,
-       show_controllers = True, gui = None, click_range = None,
-       multishadow_allowed = False, simplify_graphics = True,
-       toolbar_panels = True):
+def vr(session, enable = None, room_position = None, mirror = None,
+       gui = None, center = None, click_range = None,
+       near_clip_distance = None, far_clip_distance = None,
+       multishadow_allowed = False, simplify_graphics = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -32,21 +34,25 @@ def vr(session, enable = None, room_position = None, display = None,
     room_position : Place or "report"
       Maps physical room coordinates to molecular scene coordinates.
       Room coordinates have origin at center of room and units are meters.
-    display : "mirror", "independent", or "blank"
-      Controls what is shown on the desktop display.  The default "mirror" shows the right
-      eye view seen in the VR headset.  With "independent" the desktop display shows a
-      separate camera view fixed in the VR room coordinates set to match the viewpoint of
-      the VR headset when the command is issued. The value "blank" displays no graphics on
-      the desktop display which allows all graphics computing resources to be dedicated to
-      the VR headset rendering.
-    show_controllers : bool
-      Whether to show the hand controllers in the scene. Default true.
+    mirror : bool
+      Controls whether VR scene is mirrored to the desktop display graphics window.
+      Default true.
     gui : string
       Name of a tool instance which will be shown as the VR gui panel.  If not specified
       then the VR gui panel consists of all tools docked on the right side of the main window.
+    center : bool
+      Whether to center and scale models to fit in room.  This is always done the first time VR
+      is started.  If vr is turned off and the on it remembers the previous model position unless
+      this options is specified.
     click_range : float
       How far away hand controller tip can be when clicking an atom in scene units
       (Angstroms).  Default 5.
+    near_clip_distance : float
+      Parts of the scene closer than this distance (meters) to the eye are not shown.
+      Default 0.10.
+    far_clip_distance : float
+      Parts of the scene farther than this distance (meters) from the eye are not shown.
+      Default 500.
     multishadow_allowed : bool
       If this option is false and multi-shadow lighting is enabled (ambient occlusion) when vr is
       enabled, then lighting is switched to simple lighting.  If the option is true then no
@@ -57,15 +63,13 @@ def vr(session, enable = None, room_position = None, display = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
-    toolbar_panels : bool
-      Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
-      This is useful for consolidating the controls in the VR gui panel.  Default true.
     '''
     
     if enable is None and room_position is None:
         enable = True
 
-    start = (vr_camera(session) is None)
+    c = vr_camera(session, create = False)
+    start = (session.main_view.camera is not c)
 
     if enable is not None:
         if enable:
@@ -73,64 +77,264 @@ def vr(session, enable = None, room_position = None, display = None,
         else:
             stop_vr(session, simplify_graphics)
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
+    
     if room_position is not None:
-        if c is None:
-            from chimerax.core.errors import UserError
-            raise UserError('Cannot use vr roomPosition unless vr enabled.')
         if isinstance(room_position, str) and room_position == 'report':
             p = ','.join('%.5g' % x for x in tuple(c.room_to_scene.matrix.flat))
             session.logger.info(p)
         else:
             c.room_to_scene = room_position
 
-    if c:
-        if display is None and start:
-            if not wait_for_vsync(session, False):
-                session.logger.warning('Graphics on desktop display may cause VR to flicker. Turning off mirroring to desktop display.')
-                display = 'blank'
-        if display is not None:
-            if display in ('mirror', 'independent'):
-                if not wait_for_vsync(session, False):
-                    session.logger.warning('Graphics on desktop display may cause VR to flicker.')
-            c.desktop_display = display
-            if display == 'independent':
-                c.initialize_desktop_camera_position = True
-        if show_controllers is not None:
-            c.show_hand_controllers(show_controllers)
-        if gui is not None:
-            c.user_interface.set_gui_panels([tool_name.strip() for tool_name in gui.split(',')])
-        if click_range is not None:
-            c.user_interface.set_mouse_mode_click_range(click_range)
+    if mirror is None and start:
+        if not wait_for_vsync(session, False):
+            session.logger.warning('Graphics on desktop display may cause VR to flicker.'
+                                   '  Turning off mirroring to desktop display.')
+            mirror = False
+    if mirror:
+        if not wait_for_vsync(session, False):
+            session.logger.warning('Graphics on desktop display may cause VR to flicker.')
+        c.mirror = mirror
 
-    if toolbar_panels:
-        from chimerax.mouse_modes.tool import MouseModePanel
-        from chimerax.shortcuts.tool import ShortcutPanel
-        toolbar_classes = (MouseModePanel, ShortcutPanel)
-        for tb in session.tools.list():
-            if isinstance(tb, toolbar_classes) and tb.displayed():
-                tb.display(False)
-                tb.display_panel(True)
+    if gui is not None:
+        c.user_interface.set_gui_panels([tool_name.strip() for tool_name in gui.split(',')])
 
+    if center:
+        c.fit_scene_to_room()
+        
+    if click_range is not None:
+        c.user_interface.set_mouse_mode_click_range(click_range)
+
+    if near_clip_distance is not None:
+        c.near_clip_distance = near_clip_distance
+
+    if far_clip_distance is not None:
+        c.far_clip_distance = far_clip_distance
+
+# -----------------------------------------------------------------------------
+# Assign VR hand controller buttons
+#
+def vr_button(session, button, mode = None, hand = None, command = None):
+    '''
+    Assign VR hand controller buttons
+
+    Parameters
+    ----------
+    button : 'trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'
+      Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
+      and X/Y imply hand = 'left'
+    mode : HandMode instance or 'default'
+      VR hand mode to assign to button.  If mode is None then report the current mode.
+    hand : 'left', 'right', None
+      Which hand controller to assign.  If None then assign button on both hand controllers.
+      If button is A, B, X, or Y then hand is ignored since A/B implies right and X/Y implies left.
+    command : string
+      Assign the button press to execute this command string.  Mode should be None or an error
+      is raised.
+    '''
+
+    c = vr_camera(session)
+
+    if button in ('A', 'B'):
+        hand = 'right'
+    elif button in ('X', 'Y'):
+        hand = 'left'
+        
+    hclist = [hc for hc in c.hand_controllers() if hand is None or hc.left_or_right == hand]
+    if len(hclist) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Hand controller is not enabled.')
+
+    from openvr import \
+        k_EButton_Grip as grip, \
+        k_EButton_ApplicationMenu as menu, \
+        k_EButton_SteamVR_Trigger as trigger, \
+        k_EButton_SteamVR_Touchpad as touchpad, \
+        k_EButton_A as a
+    button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+
+    openvr_button_ids = {
+        'grip': [grip],
+        'menu': [menu],
+        'trigger': [trigger],
+        'touchpad': [touchpad],
+        'thumbstick': [touchpad],
+        'A': [a],
+        'B': [menu],
+        'X': [a],
+        'Y': [menu],
+        'all': [grip, menu, trigger, touchpad, a],
+    }
+    openvr_buttons = openvr_button_ids[button]
+
+    if command is not None:
+        if mode is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('vr button: Cannot specify both mode and command.')
+        mode = RunCommandMode(session, command)
+        
+    report_modes = (mode is None and command is None)
+    
+    mode_names = []
+    for hc in hclist:
+        for button_id in openvr_buttons:
+            if report_modes:
+                if hc.on:
+                    bname = button_names[button_id] if button == 'all' else button
+                    bmode = hc.current_hand_mode(button_id)
+                    mname = (bmode.name if bmode else 'none')
+                    mode_names.append('%s %s = %s' % (hc.left_or_right, bname, mname))
+            elif mode == 'default':
+                hc.set_default_hand_mode(button_id)
+            else:
+                hc.set_hand_mode(button_id, mode)
+
+    if report_modes:
+        modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
+        msg = 'Current VR button modes: ' + modes
+        session.logger.info(msg)
+        
+# -----------------------------------------------------------------------------
+#
+def vr_room_camera(session, enable = True, field_of_view = None, width = None,
+                   background_color = None, show_hands = None, show_panels = None,
+                   save_position = None, tracker = None, save_tracker_mount = None):
+    '''
+    Mirror using fixed camera in room separate from VR headset view.
+
+    By default VR mirroring shows the right eye view seen in the VR headset.
+    This command allows instead using a camera view fixed in room coordinates.
+
+    Parameters
+    ----------
+    enable : bool
+      Whether to use a separate room camera for VR mirroring.
+    field_of_view : float
+      Horizontal field of view of room camera.  Degrees.  Default 90.
+    width : float
+      Width of room camera screen shown in VR in meters.  Default 1.
+    background_color : Color
+      Color of background in room camera rendering.  Default is dark gray.
+    show_hands : bool or "toggle"
+      Whether to show hand cones in room camera view.
+    show_panels : bool or "toggle"
+      Whether to show gui panels in room camera view.
+    save_position : bool
+      If true save the current camera room position for future sessions.
+    tracker : bool
+      Whether to set the camera position from a Vive tracker device.  Default False.
+    save_tracker_mount : bool
+      If true save the current relative camera position in tracker coordinates
+      for future sessions.
+    '''
+
+    c = vr_camera(session)
+    rc = c.enable_room_camera(enable)
+
+    if not enable:
+        loc = locals()
+        for option in ('field_of_view', 'width', 'background_color',
+                       'tracker', 'save_position', 'save_tracker_mount'):
+            if loc.get(option) is not None:
+                from chimerax.core.errors import UserError
+                raise UserError('Cannot use room camera option "%s" with camera off' % option)
+        return
+    
+    if field_of_view is not None:
+        rc._field_of_view = field_of_view
+    if width is not None:
+        rc._camera_model.set_size(width)
+    if background_color is not None:
+        rc._background_color = background_color.rgba
+    if show_hands is not None:
+        rc.show_hands = (not rc.show_hands) if show_hands == 'toggle' else show_hands
+    if show_panels is not None:
+        rc.show_gui_panels = (not rc.show_gui_panels) if show_panels == 'toggle' else show_panels
+    if tracker is not None:
+        rc.use_tracker(tracker)
+    if save_position:
+        rc.save_settings(camera_position = True)
+    if save_tracker_mount:
+        rc.save_settings(tracker_transform = True)
+        
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command(logger):
-    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, StringArg
+    from chimerax.core.commands import CmdDesc, BoolArg, FloatArg, PlaceArg, Or, EnumOf, StringArg, ColorArg
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('display', EnumOf(('mirror', 'independent', 'blank'))),
-                              ('show_controllers', BoolArg),
+                              ('mirror', BoolArg),
                               ('gui', StringArg),
+                              ('center', BoolArg),
                               ('click_range', FloatArg),
+                              ('near_clip_distance', FloatArg),
+                              ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
-                              ('toolbar_panels', BoolArg),
                    ],
-                   synopsis = 'Start SteamVR virtual reality rendering')
-    register('device vr', desc, vr, logger=logger)
-    create_alias('vr', 'device vr $*', logger=logger)
+                   synopsis = 'Start SteamVR virtual reality rendering',
+                   url = 'help:user/commands/device.html#vr')
+    register('vr', desc, vr, logger=logger)
+    create_alias('device vr', 'vr $*', logger=logger,
+                 url='help:user/commands/device.html#vr')
+
+    button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
+    desc = CmdDesc(required = [('button', button_name)],
+                   optional = [('mode', VRModeArg(logger.session))],
+                   keyword = [('hand', EnumOf(('left', 'right'))),
+                              ('command', StringArg)],
+                   synopsis = 'Assign VR hand controller buttons',
+                   url = 'help:user/commands/device.html#vr-button')
+    register('vr button', desc, vr_button, logger=logger)
+    create_alias('device vr button', 'vr button $*', logger=logger,
+                 url='help:user/commands/device.html#vr-button')
+
+    ToggleArg = Or(EnumOf(['toggle']), BoolArg)
+    desc = CmdDesc(optional = [('enable', BoolArg)],
+                   keyword = [('field_of_view', FloatArg),
+                              ('width', FloatArg),
+                              ('background_color', ColorArg),
+                              ('show_hands', ToggleArg),
+                              ('show_panels', ToggleArg),
+                              ('save_position', BoolArg),
+                              ('tracker', BoolArg),
+                              ('save_tracker_mount', BoolArg)],
+                   synopsis = 'Control VR room camera',
+                   url = 'help:user/commands/device.html#vr-roomCamera')
+    register('vr roomCamera', desc, vr_room_camera, logger=logger)
+    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
+                 url='help:user/commands/device.html#vr-roomCamera')
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import Annotation, AnnotationError
+class VRModeArg(Annotation):
+    '''Command argument for specifying VR hand controller mode.'''
+
+    def __init__(self, session):
+        Annotation.__init__(self)
+        from chimerax.core.commands import quote_if_necessary
+        names = list(hand_mode_names(session) + ('default',))
+        names.sort()
+        qnames = [quote_if_necessary(n) for n in names]
+        self.name = 'one of %s' % ', '.join(qnames)
+        self._html_name = 'one of %s' % ', '.join('<b>%s</b>' % n for n in qnames)
+        
+    @staticmethod
+    def parse(text, session):
+        from chimerax.core.commands import EnumOf
+        mode_arg = EnumOf(hand_mode_names(session) + ('default',))
+        mode_name, used, rest = mode_arg.parse(text, session)
+        if mode_name is 'default':
+            hm = 'default'
+        else:
+            c = vr_camera(session)
+            hm = c.user_interface._hand_mode_from_name(mode_name)
+            if hm is None:
+                raise AnnotationError('Unknown VR hand mode "%s"' % mode_name)
+        return hm, used, rest
 
 # -----------------------------------------------------------------------------
 #
@@ -142,41 +346,50 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         run(session, 'lighting simple')
 
     if simplify_graphics:
-        from chimerax.std_commands.graphics import graphics
-        graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
+        from chimerax.std_commands.graphics import graphics_quality
+        graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
     from chimerax.label.label3d import label_orient
     label_orient(session, label_reorient)	# Don't continuously reorient labels.
-    
-    if vr_camera(session) is not None:
+
+    c = vr_camera(session)
+    if c is session.main_view.camera:
         return
 
     try:
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to import OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e)) from e
 
     import sys
     if sys.platform == 'darwin':
         # SteamVR on Mac is older then what PyOpenVR expects.
         openvr.IVRSystem_Version = "IVRSystem_019"
+        openvr.IVRCompositor_Version = "IVRCompositor_022"
         
-    mv = session.main_view
     try:
-        mv.camera = SteamVRCamera(session)
+        c.start_vr()
     except openvr.OpenVRError as e:
         if 'error number 108' in str(e):
             msg = ('The VR headset was not detected.\n' +
                    'Possibly a cable to the VR headset is not plugged in.\n' +
                    'If the headset is a Vive Pro, the link box may be turned off.\n' +
                    'If using a Vive Pro wireless adapter it may not be powered on.')
+        elif 'InterfaceNotFound' in str(e):
+            msg = ('Your installed SteamVR runtime does not support the requested version.\n' +
+                   'You probably need to update SteamVR by starting the Steam application.\n')
         else:
             msg = ('Failed to initialize OpenVR.\n' +
                    'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e)))
-        
+        raise UserError('%s\n%s' % (msg, str(e))) from e
+
+    session.main_view.camera = c
+
+    # VR gui cannot display a native file dialog.
+    from chimerax.open_command import set_use_native_open_file_dialog
+    set_use_native_open_file_dialog(False)
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
@@ -188,33 +401,33 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         
 # -----------------------------------------------------------------------------
 #
-def vr_camera(session):
-    c = session.main_view.camera
-    return c if isinstance(c, SteamVRCamera) and not c.closed else None
+def vr_camera(session, create = True):
+    c = getattr(session, '_steamvr_camera', None)
+    if c is None and create:
+        session._steamvr_camera = c = SteamVRCamera(session)
+        session.add_state_manager('_steamvr_camera', c)	# For session saving
+    return c
 
 # -----------------------------------------------------------------------------
 #
 def stop_vr(session, simplify_graphics = True):
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
     if c is None:
         return
-    
-    # Have to delay shutdown of SteamVR connection until draw callback
-    # otherwise it clobbers the Qt OpenGL context making entire gui black.
-    def replace_camera(s = session):
-        from chimerax.core.graphics import MonoCamera
-        v = s.main_view
-        v.camera = MonoCamera()
-        s.update_loop.set_redraw_interval(10)
-        if simplify_graphics:
-            from chimerax.std_commands.graphics import graphics
-            graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
-        from chimerax.label.label3d import label_orient
-        label_orient(session, 0)	# Continuously reorient labels.
-        v.view_all()
 
-    c.close(replace_camera)
+    c.close()
+    
+    from chimerax.graphics import MonoCamera
+    v = session.main_view
+    v.camera = MonoCamera()
+    session.update_loop.set_redraw_interval(10)
+    if simplify_graphics:
+        from chimerax.std_commands.graphics import graphics_quality
+        graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+    from chimerax.label.label3d import label_orient
+    label_orient(session, 0)	# Continuously reorient labels.
+    v.view_all()
     wait_for_vsync(session, True)
 
 # -----------------------------------------------------------------------------
@@ -226,14 +439,16 @@ def wait_for_vsync(session, wait):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Camera
-class SteamVRCamera(Camera):
+from chimerax.graphics import Camera
+from chimerax.core.state import StateManager	# For session saving
+class SteamVRCamera(Camera, StateManager):
 
     always_draw = True	# Draw even if main window iconified.
     
     def __init__(self, session):
 
         Camera.__init__(self)
+        StateManager.__init__(self)
 
         self._session = session
         self._framebuffers = []		# For rendering each eye view to a texture
@@ -241,115 +456,180 @@ class SteamVRCamera(Camera):
         from sys import platform
         self._use_opengl_flush = (platform == 'darwin')	# On macOS 10.14.1 flickers without glFlush().
 
-        from chimerax.core.geometry import Place
-
-        self._close = False
-        self._hand_controllers = []	# List of HandController
-        self._controller_show = True	# Whether to show hand controllers
-        self._controller_next_id = 0	# Used when searching for controllers.
+        self._hand_controllers = [HandController(self, 'right'),
+                                  HandController(self, 'left')]	# List of HandController
+        self._tracker_device_index = None	# Vive tracker
+        
         self.user_interface = UserInterface(self, session)
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
-        self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
-        self._desktop_camera_position = Place()	#  Used only for desktop_display = "independent" mode.
-        self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
-        self.initialize_desktop_camera_position = False
+        self._mirror = True		# Whether to render to desktop graphics window.
+        self._room_camera = None	# RoomCamera, fixed view camera independent of VR headset
 
+        from chimerax.geometry import Place
         self.room_position = Place()	# ChimeraX camera coordinates to room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
+        self._z_near = 0.1		# Meters, near clip plane distance
+        self._z_far = 500.0		# Meters, far clip plane distance
+        # TODO: Scaling models to be huge causes clipping at far clip plane.
 
+        self._new_frame_handler = None
+        self._app_quit_handler = None
+
+    def start_vr(self):
         import openvr
-        self.vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
+        self._vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
         # The init() call raises OpenVRError if SteamVR is not installed.
         # Handle this in the code that tries to create the camera.
 
-        self._render_size = self.vr_system.getRecommendedRenderTargetSize()
-        self.compositor = openvr.VRCompositor()
-        if self.compositor is None:
+        self._render_size = vrs.getRecommendedRenderTargetSize()
+        self._compositor = c = openvr.VRCompositor()
+        if c is None:
             raise RuntimeError("Unable to create compositor") 
 
         # Compute projection and eye matrices, units in meters
-        zNear = 0.1
-        zFar = 500.0
-        # TODO: Scaling models to be huge causes clipping at far clip plane.
 
         # Left and right projections are different. OpenGL 4x4.
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, zNear, zFar)
-        self.projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, zNear, zFar)
-        self.projection_right = hmd44_to_opengl44(pr)
+        self._set_projection_matrices()
 
         # Eye shifts from hmd pose.
         vl = vrs.getEyeToHeadTransform(openvr.Eye_Left)
-        self.eye_shift_left = hmd34_to_position(vl)
+        self._eye_shift_left = hmd34_to_position(vl)
         vr = vrs.getEyeToHeadTransform(openvr.Eye_Right)
-        self.eye_shift_right = hmd34_to_position(vr)
+        self._eye_shift_right = hmd34_to_position(vr)
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
-        self.fit_scene_to_room()
-        
+        if self._room_to_scene is None:
+            self.fit_scene_to_room()
+
         # Update camera position every frame.
         self._frame_started = False
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
-        t = session.triggers
+        t = self._session.triggers
         self._new_frame_handler = t.add_handler('new frame', self.next_frame)
 
+        # Assign hand controllers
+        self._find_hand_controllers()
+        
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
-        self._close_cb = None
-        
-    def _get_position(self):
-        # In independent desktop camera mode this is the desktop camera position,
-        # otherwise it is the VR head mounted display position.
-        return Camera.get_position(self)
-    def _set_position(self, position):
-        '''Move camera in scene while keeping camera in a fixed position in room.'''
-        self.room_to_scene = position * self.position.inverse() * self.room_to_scene
-        Camera.set_position(self, position)
-        ui = self.user_interface
-        if ui.shown():
-            ui.move()
-    position = property(_get_position, _set_position)
 
     @property
-    def desktop_camera_position(self):
-        '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
-        return self._desktop_camera_position if self.desktop_display == 'independent' else None
+    def active(self):
+        return self is self._session.main_view.camera
+    
+    def _move_camera_in_room(self, position):
+        '''
+        Move camera to the given scene position without changing
+        the scene position within the room.  This is done whenever
+        the VR headset moves.
+        '''
+        Camera.set_position(self, position)
+        
+    def _get_position(self):
+        '''VR head mounted display position in the scene.'''
+        return Camera.get_position(self)
+    def _set_position(self, position):
+        '''
+        Move camera scene position while keeping it at a fixed position in the room.
+        This is for when the mouse moves the camera while in VR.
+        '''
+        move = position * self.position.inverse()
+        Camera.set_position(self, position)
+        self.room_to_scene = move * self.room_to_scene
+    position = property(_get_position, _set_position)
     
     def _get_room_to_scene(self):
         return self._room_to_scene
     def _set_room_to_scene(self, p):
-        self._update_desktop_camera(p)
         self._room_to_scene = p
+        # Update positions of models that have fixed room positions.
         self._reposition_user_interface()
+        self._reposition_room_camera(p)
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
+    '''Transformation from room coordinates to scene coordinates.'''
 
-    def _update_desktop_camera(self, new_rts):
-        if self.desktop_display != 'independent':
+    def _set_projection_matrices(self):
+        z_near, z_far = self._z_near, self._z_far
+        vrs = self._vr_system
+        import openvr
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
+        self._projection_left = hmd44_to_opengl44(pl)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
+        self._projection_right = hmd44_to_opengl44(pr)
+
+    def _get_near_clip_distance(self):
+        return self._z_near
+    def _set_near_clip_distance(self, near):
+        self._z_near = near
+        self._set_projection_matrices()
+    near_clip_distance = property(_get_near_clip_distance, _set_near_clip_distance)
+
+    def _get_far_clip_distance(self):
+        return self._z_far
+    def _set_far_clip_distance(self, far):
+        self._z_far = far
+        self._set_projection_matrices()
+    far_clip_distance = property(_get_far_clip_distance, _set_far_clip_distance)
+        
+    def _reposition_user_interface(self):
+        ui = self.user_interface
+        if ui.shown():
+            ui.move()
+
+    def _reposition_room_camera(self, position):
+        rc = self._room_camera
+        if rc:
+            rc.scene_moved(position)
+
+    def _get_mirror(self):
+        return self._mirror
+    def _set_mirror(self, enable):
+        if enable == self._mirror:
             return
-        # Main camera stays at same position in room.
-        rts = self._room_to_scene
-        if rts is None:
-            return   # VR room to scene not yet set.  Leave desktop camera unchanged.
-        tf = new_rts * rts.inverse()
-        mpos = tf * self._desktop_camera_position
-        # Need to remove scale factor.
-        x,y,z = tf.matrix[:,0]
-        from math import sqrt
-        s = 1/sqrt(x*x + y*y + z*z)
-        m = mpos.matrix
-        m[:3,:3] *= s
-        from chimerax.core.geometry import Place
-        self._desktop_camera_position = Place(m)
+        self._mirror = enable
+    mirror = property(_get_mirror, _set_mirror)
     
-    def _move_camera_in_room(self, position):
-        '''Move camera to given scene position without changing scene position in room.'''
-        Camera.set_position(self, position)
-        if self.initialize_desktop_camera_position:
-            self._desktop_camera_position = position
-            self.initialize_desktop_camera_position = False
+    def enable_room_camera(self, enable):
+        rc = self._room_camera
+        if enable and rc is None:
+            parent = self._vr_control_model_group()
+            self._room_camera = rc = RoomCamera(parent, self.room_to_scene, self.render)
+        elif not enable and rc:
+            rc.close(self.render)
+            self._room_camera = None
+        return rc
+
+    @property
+    def room_camera(self):
+        return self._room_camera
+
+    @property
+    def have_room_camera(self):
+        return self._room_camera is not None
+
+    @property
+    def have_tracker(self):
+        return (self._tracker_device_index is not None
+                or self._find_tracker() is not None)
+    
+    def tracker_room_position(self):
+        i = self._tracker_device_index
+        if i is None:
+            i = self._find_tracker()
+            if i is None:
+                return None
+        return self.device_position(i)
+
+    def _find_tracker(self):
+        import openvr
+        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
+            if self._device_type(device_id) == 'tracker' and self._device_connected(device_id):
+                self._tracker_device_index = device_id
+                return device_id
+        return None
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -367,7 +647,16 @@ class SteamVRCamera(Camera):
 #            print('corners', tuple(c.v))
         b = scene_bounds
         if b is None:
-            b = self.vr_view.drawing_bounds()
+            g = self._vr_model_group
+            if g is None or g.deleted:
+                b = self.vr_view.drawing_bounds()
+            else:
+                # Need to exclude UI from bounds.
+                top_models = self._session.models.scene_root_model.child_models()
+                from chimerax.geometry import union_bounds
+                b = union_bounds(m.bounds() for m in top_models
+                                 if m.display and m.id[0] != g.id[0] and
+                                 not getattr(m, 'skip_bounds', False))
         if b:
             scene_size = b.width()
             scene_center = b.center()
@@ -376,7 +665,7 @@ class SteamVRCamera(Camera):
             from numpy import zeros, float32
             scene_center = zeros((3,), float32)
         # First apply scene shift then scene scale to get room coords
-        from chimerax.core.geometry import translation, scale
+        from chimerax.geometry import translation, scale
         from numpy import array, float32
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
@@ -386,49 +675,31 @@ class SteamVRCamera(Camera):
         '''Move is in room coordinates.'''
         self.room_to_scene = self.room_to_scene * move.inverse()
         for hc in self._hand_controllers:
-            hc.update_scene_position(self)
-        
-    def _reposition_user_interface(self):
-        ui = self.user_interface
-        if ui.shown():
-            ui.move()
+            hc.update_scene_position()
 
-    def close(self, close_cb = None):
-        self._close = True
-        self._close_cb = close_cb
-        self._session.main_view.redraw_needed = True
-        m = self._vr_model_group
-        if m is not None:
-            self._session.models.close([m])
-            self._vr_model_group = None
+    def close(self):
 
-    @property
-    def closed(self):
-        return self._close
-    
-    def _app_quit(self, tname, tdata):
-        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
-        # if VR has not been shutdown.
-        import openvr
-        openvr.shutdown()
-        self._close = True	# Make sure openvr is not used any more.
-        
-    def _delayed_close(self):
-        # Apparently OpenVR doesn't make its OpenGL context current
-        # before deleting resources.  If the Qt GUI opengl context is current
-        # openvr deletes the Qt resources instead.  So delay openvr close
-        # until after rendering so that openvr opengl context is current.
         t = self._session.triggers
-        t.remove_handler(self._new_frame_handler)
-        self._new_frame_handler = None
-        t.remove_handler(self._app_quit_handler)
+        nfh = self._new_frame_handler
+        if nfh:
+            t.remove_handler(nfh)
+            self._new_frame_handler = None
 
-        self._app_quit_handler = None
+        aqh = self._app_quit_handler
+        if aqh:
+            t.remove_handler(aqh)
+            self._app_quit_handler = None
+        
         for hc in self._hand_controllers:
             hc.close()
-        self._hand_controllers = []
         
         self.user_interface.close()
+
+        rc = self._room_camera
+        if rc:
+            rc.close(self.render)
+            self._room_camera = None
+
         m = self._vr_model_group
         if m:
             if not m.deleted:
@@ -442,11 +713,18 @@ class SteamVRCamera(Camera):
 
         import openvr
         openvr.shutdown()
-        self.vr_system = None
-        self.compositor = None
+        self._vr_system = None
+        self._compositor = None
         self._delete_framebuffers()
-        if self._close_cb:
-            self._close_cb()	# Replaces the main view camera and resets redraw rate.
+
+        self._session.main_view.redraw_needed = True
+    
+    def _app_quit(self, tname, tdata):
+        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
+        # if VR has not been shutdown.
+        self._compositor = None
+        import openvr
+        openvr.shutdown()
 
     def _delete_framebuffers(self):
         fbs = self._framebuffers
@@ -468,17 +746,22 @@ class SteamVRCamera(Camera):
         return self._session.main_view.render
     
     def _start_frame(self):
-        if self._close:
-            return
-        c = self.compositor
+        c = self._compositor
         if c is None:
             return
         c.waitGetPoses(renderPoseArray = self._poses, gamePoseArray = None)
         self._frame_started = True
 
+    def device_position(self, device_index):
+        p = self._poses[device_index]
+        if not p.bPoseIsValid:
+            return None
+        dp = p.mDeviceToAbsoluteTracking
+        return hmd34_to_position(dp)
+    
     def next_frame(self, *_):
-        c = self.compositor
-        if c is None or self._close:
+        c = self._compositor
+        if c is None:
             return
 
         self._start_frame()
@@ -494,7 +777,7 @@ class SteamVRCamera(Camera):
         H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking) # head to room coordinates.
         
         # Compute camera scene position from HMD position in room
-        from chimerax.core.geometry import scale
+        from chimerax.geometry import scale
         S = scale(self.scene_scale)
         self.room_position = rp = H * S	# ChimeraX camera coordinates to room coordinates
         Cnew = self.room_to_scene * rp
@@ -517,18 +800,53 @@ class SteamVRCamera(Camera):
     def process_controller_buttons(self):
         
         # Check for button press
-        vrs = self.vr_system
+        vrs = self._vr_system
         import openvr
         e = openvr.VREvent_t()
         while vrs.pollNextEvent(e):
-            for hc in self.hand_controllers():
-                hc.process_event(e, self)
-                
+            type = e.eventType
+            if type == openvr.VREvent_TrackedDeviceActivated:
+                i = e.trackedDeviceIndex
+                dtype = self._device_type(i)
+                if dtype == 'controller':
+                    self._hand_controller_enabled(i)
+                elif dtype == 'tracker':
+                    self._tracker_device_index = i
+            elif type == openvr.VREvent_TrackedDeviceDeactivated:
+                i = e.trackedDeviceIndex
+                dtype = self._device_type(i)
+                if dtype == 'controller':
+                    self._hand_controller_disabled(e.trackedDeviceIndex)
+                elif dtype == 'tracker':
+                    self._tracker_device_index = None
+            else:
+                for hc in self.hand_controllers():
+                    hc.process_event(e)
+
+    def _device_type(self, device_index):
+        vrs = self._vr_system
+        c = vrs.getTrackedDeviceClass(device_index)
+        import openvr
+        tmap = {openvr.TrackedDeviceClass_Controller: 'controller',
+                openvr.TrackedDeviceClass_GenericTracker: 'tracker',
+                openvr.TrackedDeviceClass_HMD: 'hmd'}
+        return tmap.get(c, 'unknown')
+
+    def _device_connected(self, device_index):
+        vrs = self._vr_system
+        return vrs.isTrackedDeviceConnected(device_index)
+
     def process_controller_motion(self):
 
         for hc in self.hand_controllers():
-            hc.process_motion(self)
-        
+            hc.process_motion()
+
+    @property
+    def desktop_camera_position(self):
+        '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
+        rc = self._room_camera
+        return rc.camera_position if rc else None
+
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame of the camera.
@@ -537,28 +855,31 @@ class SteamVRCamera(Camera):
         if view_num is None:
             v = camera_position
         elif view_num == 2:
-            v = self._desktop_camera_position
+            v = self._room_camera.camera_position
         else:
             # Stereo eyes view in same direction with position shifted along x.
-            es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
-            t = es.scale_translation(1/self.scene_scale)
-            v = camera_position * t
+            es = self._eye_shift_left if view_num == 0 else self._eye_shift_right
+            ss = self.scene_scale
+            if ss == 0:
+                v = camera_position
+            else:
+                t = es.scale_translation(1/ss)
+                v = camera_position * t
         return v
 
     def number_of_views(self):
         '''Number of views rendered by camera.'''
-        draw_desktop = (self.desktop_display == 'independent'
-                        and self._session.ui.main_window.graphics_window.is_drawable)
+        draw_desktop = (self._room_camera and self._session.ui.main_window.graphics_window.is_drawable)
         return 3 if draw_desktop else 2
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_width
+        from chimerax.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
     def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_all
+        from chimerax.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
         self.fit_scene_to_room(bounds)
@@ -566,14 +887,12 @@ class SteamVRCamera(Camera):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
-            pixel_shift = (0,0)
-            fov = self.desktop_field_of_view
-            from chimerax.core.graphics.camera import perspective_projection_matrix
-            return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
+            p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
+            return p
         elif view_num == 0:
-            p = self.projection_left
+            p = self._projection_left
         elif view_num == 1:
-            p = self.projection_right
+            p = self._projection_right
         pm = p.copy()
         pm[:3,:] *= self.scene_scale
         return pm
@@ -585,26 +904,23 @@ class SteamVRCamera(Camera):
         left_fb, right_fb = self._eye_framebuffers(render)
         if view_num == 0:  # VR left-eye
             render.push_framebuffer(left_fb)
-            render.mix_video = False
         elif view_num == 1:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
             self._submit_eye_image('left', left_fb.openvr_texture, render)
             render.pop_framebuffer()
             render.push_framebuffer(right_fb)
-        elif view_num == 2: # desktop view
+        elif view_num == 2: # independent camera desktop view
             # Submit right eye texture (view 1) before rendering desktop (view 2)
             self._submit_eye_image('right', right_fb.openvr_texture, render)
-            render.mix_video = True  # For making mixed reality videos
-            render.mix_depth_scale = self.scene_scale
+            render.pop_framebuffer()
+            self._room_camera.start_rendering(render)
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
-        if self._close:
-            return
         import openvr
         eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
         # Caution: compositor.submit() changes the OpenGL read framebuffer binding to 0.
-        result = self.compositor.submit(eye, texture)
+        result = self._compositor.submit(eye, texture)
         if self._use_opengl_flush:
             render.flush()
         self._check_for_compositor_error(side, result, render)
@@ -623,20 +939,22 @@ class SteamVRCamera(Camera):
         Submit right eye texture image to OpenVR. Left eye was already submitted
         by set_render_target() when render target switched to right eye.
         '''
-        if self.number_of_views() == 2 and not self._close:
+        if self.number_of_views() == 2:
             rtex = render.current_framebuffer().openvr_texture
             self._submit_eye_image('right', rtex, render)
 
         render.pop_framebuffer()
         
-        if self.desktop_display in ('mirror', 'independent'):
+        if self.mirror:
             # Render right eye to ChimeraX window.
-            from chimerax.core.graphics.drawing import draw_overlays
-            draw_overlays([self._desktop_drawing(render.render_size())], render)
+            drawing = self._desktop_drawing()
+            from chimerax.graphics.drawing import draw_overlays
+            draw_overlays([drawing], render)
 
-        if self._close:
-            self._delayed_close()
-
+        rc = self._room_camera
+        if rc:
+            rc.finish_rendering(render)
+            
         self._frame_started = False
 
     def _eye_framebuffers(self, render):
@@ -645,7 +963,7 @@ class SteamVRCamera(Camera):
         fbs = self._framebuffers
         if not fbs or fbs[0].width != tw or fbs[0].height != th:
             self._delete_framebuffers()
-            from chimerax.core.graphics import Texture, opengl
+            from chimerax.graphics import Texture, opengl
             for eye in ('left', 'right'):
                 t = Texture()
                 t.initialize_rgba((tw,th))
@@ -660,55 +978,90 @@ class SteamVRCamera(Camera):
                 ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fbs
 
-    def _desktop_drawing(self, window_size):
+    def _desktop_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
+        rc = self._room_camera
+        if rc:
+            texture = rc.framebuffer(self.render).color_texture
+        else:
+            texture = self._framebuffers[1].color_texture
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
-            from chimerax.core.graphics.drawing import _texture_drawing
-            t = self._framebuffers[1].color_texture
-            self._texture_drawing = td = _texture_drawing(t)
+            from chimerax.graphics.drawing import _texture_drawing
+            self._texture_drawing = td = _texture_drawing(texture)
             td.opaque_texture = True
-        from chimerax.core.graphics.drawing import match_aspect_ratio
+        else:
+            td.texture = texture
+        window_size = self.render.render_size()
+        from chimerax.graphics.drawing import match_aspect_ratio
         match_aspect_ratio(td, window_size)
         return td
 
     def do_swap_buffers(self):
-        return self.desktop_display != 'blank'
-
-    def show_hand_controllers(self, show):
-        self._controllers_show = show
-        for hc in self._hand_controllers:
-            hc.show_in_scene(show)
+        return self.mirror
 
     def hand_controllers(self):
-        self._check_if_controller_models_closed()
-        cm = self._hand_controllers
-        if len(cm) < 2:
-            self._find_new_hand_controllers()
-        return cm
+        return self._hand_controllers
 
-    def _check_if_controller_models_closed(self):
-        cm = self._hand_controllers
-        cma =[hc for hc in cm if not hc._hand_model.deleted]
-        if len(cma) < len(cm):
-            self._hand_controllers = cma
+    def _hand_controller_enabled(self, device_id):
+        self._assign_hand_controller(device_id)
 
-    def _find_new_hand_controllers(self):
-        # Check if a controller has been turned on.
-        # Only check one controller id per-call to minimize performance penalty.
+    def _hand_controller_disabled(self, device_id):
+        for hc in self._hand_controllers:
+            if hc.device_index == device_id:
+                hc.device_index = None
+        
+    def _find_hand_controllers(self):
+        # Find hand controllers that are turned on.
         import openvr
-        d = self._controller_next_id
-        self._controller_next_id = (d+1) % openvr.k_unMaxTrackedDeviceCount
-        vrs = self.vr_system
-        cm = self._hand_controllers
-        if (vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller
-            and vrs.isTrackedDeviceConnected(d)
-            and d not in tuple(hc.device_index for hc in cm)):
-            hc = HandController(d, self._session, vrs,
-                                parent = self._vr_control_model_group(),
-                                show = self._controllers_show)
-            cm.append(hc)
+        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
+            self._assign_hand_controller(device_id)
+
+    def _assign_hand_controller(self, device_id):
+        d = device_id
+        if self._device_type(d) != 'controller':
+            return
+        vrs = self._vr_system
+        if not vrs.isTrackedDeviceConnected(d):
+            return
+        left_or_right = self._controller_left_or_right(d)
+        assigned = False
+        for hc in self._hand_controllers:
+            if hc.left_or_right == left_or_right:
+                if hc.device_index is None:
+                    hc.device_index = d
+                    assigned = True
+        if not assigned:
+            # This happens when a second right or left controller activates.
+            # In this case don't believe its purported right/left.
+            for hc in self._hand_controllers:
+                if hc.device_index is None:
+                    hc.device_index = d
+                    assigned = True
+
+    def _controller_left_or_right(self, device_index):
+        vrs = self._vr_system
+
+        import openvr
+        left_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_LeftHand)
+        if device_index == left_id:
+            return 'left'
+        right_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_RightHand)
+        if device_index == right_id:
+            return 'right'
+
+        # Above left and right role are 2**32-1 for Oculus when first started.
+        # Try looking at the controller name.
+        model_name = vrs.getStringTrackedDeviceProperty(device_index,
+                                                        openvr.Prop_RenderModelName_String)
+        if model_name.endswith('right'):
+            return 'right'
+        if model_name.endswith('left'):
+            return 'left'
+
+        # Don't know whether left or right.
+        return 'right'
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
@@ -723,20 +1076,317 @@ class SteamVRCamera(Camera):
         
     def other_controller(self, controller):
         for hc in self.hand_controllers():
-            if hc != controller:
+            if hc != controller and hc.on:
                 return hc
         return None
+
+    # Session save.
+    def take_snapshot(self, session, flags):
+        data = {'room_to_scene': self.room_to_scene,
+                'button_assignments': tuple(hc.button_assignments for hc in self._hand_controllers),
+                'active': self.active,
+                'version': 1
+                }
+        return data
+
+    # Session restore.
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        """Create object using snapshot data."""
+        c = vr_camera(session)
+        c.room_to_scene = data['room_to_scene']
+        for hc, ba in zip(c._hand_controllers, data['button_assignments']):
+            hc.button_assignments = ba
+        if data['active']:
+            # Try to start VR if it was active when session saved.
+            def start_vr(trigger_name, session):
+                try:
+                    vr(session, enable = True)
+                except Exception as e:
+                    # Failed to start VR.
+                    session.logger.info(str(e))
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            session.triggers.add_handler('end restore session', start_vr)
+        return c
+
+    def reset_state(self, session):
+        pass
+    
+class RoomCamera:
+    '''Camera fixed in room for mirroring to desktop.'''
+    def __init__(self, parent, room_to_scene, render):
+        self._session = parent.session
+        self._framebuffer = None	# Framebuffer for rendering room camera view.
+        self._camera_model = None
+        self._field_of_view = 90	# Degrees.  Horizontal.
+        self._background_color = (.1,.1,.1,1)	# RGBA, float 0-1
+        self._settings = None		# Saved preferences, room position.
+        self.is_rendering = False	# Allows hand, gui, and screen models to hide themselves
+        self.show_hands = True		# Whether to show hand cones in room camera view
+        self.show_gui_panels = True	# Whether to show VR gui panel in room camera view
+
+        # Depiction of camera in VR scene.
+        render.make_current()	# Texture is allocated when framebuffer created.
+        texture = self.framebuffer(render).color_texture
+        self._camera_model = self._create_camera_model(parent, room_to_scene, texture)
+
+    def delete(self, render):
+        self._delete_framebuffer(render)
+
+    def close(self, render):
+        self._delete_framebuffer(render)
+        cm = self._camera_model
+        if cm:
+            if not cm.deleted:
+                cm.delete()
+            self._camera_model = None
+        
+    @property
+    def enabled(self):
+        return self._camera_model is not None
+
+    @property
+    def camera_position(self):
+        cm = self._camera_model
+        if cm is None or cm.deleted:
+            from chimerax.geometry import Place
+            p = Place()
+        else:
+            p = cm.position
+        return p
+
+    def scene_moved(self, new_room_to_scene):
+        '''
+        Adjust camera scene position so that it stays
+        at the same position in the room.
+        '''
+        cm = self._camera_model
+        if cm:
+            cm.update_scene_position(new_room_to_scene)
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        pixel_shift = (0,0)
+        fov = self._field_of_view
+        from chimerax.graphics.camera import perspective_projection_matrix
+        return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
+    
+    def _create_camera_model(self, parent, room_to_scene, texture):
+        cm = RoomCameraModel('Room camera', parent.session, texture, room_to_scene)
+        cm.room_position = self._initial_room_position()
+        parent.add([cm])
+        return cm
+    
+    def _initial_room_position(self):
+        s = self._saved_settings()
+        from chimerax.geometry import Place
+        p = Place(s.independent_camera_position)
+        return p
+
+    def use_tracker(self, use):
+        ses = self._session
+        cm = self._camera_model
+        if cm is None:
+            ses.logger.warning('Room camera does not exist.  Cannot enable tracker.')
+            return
+        cam = ses.main_view.camera
+        if not hasattr(cam, 'tracker_room_position'):
+            ses.logger.warning('Cannot use room camera tracker before VR camera enabled')
+            return
+        p = cam.tracker_room_position()
+        if p is None:
+            ses.logger.warning('No Vive tracker found.')
+            return
+        tt = self._tracker_transform()
+        cm.room_position = p*tt
+
+    def _tracker_transform(self):
+        s = self._saved_settings()
+        from chimerax.geometry import Place
+        p = Place(s.tracker_transform)
+        return p
+
+    def _saved_settings(self):
+        if self._settings is None:
+            from chimerax.geometry import translation
+            # Centered 1.5 meters off floor, 2 meters from center
+            default_position = translation((0, 1.5, 2))
+            m = tuple(tuple(row) for row in default_position.matrix)
+            from chimerax.core.settings import Settings
+            class _VRRoomCameraSettings(Settings):
+                EXPLICIT_SAVE = {
+                    'independent_camera_position': m,
+                    'tracker_transform': ((1,0,0,0),(0,1,0,0),(0,0,1,0)),
+                }
+            self._settings = _VRRoomCameraSettings(self._session, "vr_room_camera")
+        return self._settings
+
+    def save_settings(self, camera_position = False, tracker_transform = False):
+        cm = self._camera_model
+        if cm is None:
+            return
+        settings = self._saved_settings()
+        if camera_position:
+            m = tuple(tuple(row) for row in cm.room_position.matrix)
+            settings.independent_camera_position = m
+        if tracker_transform:
+            cam = self._session.main_view.camera
+            if hasattr(cam, 'tracker_room_position'):
+                trp = cam.tracker_room_position()
+                if trp:
+                    tt = trp.inverse() * cm.room_position
+                    tm = tuple(tuple(row) for row in tt.matrix)
+                    settings.tracker_transform = tm
+        settings.save()
+        
+    def start_rendering(self, render):
+        fb = self.framebuffer(render)
+        render.push_framebuffer(fb)
+
+        # Set paramters for mixed reality blending.
+        render.mix_video = True  # For making mixed reality videos
+
+        # Allow hand, gui, and screen models to detect if room
+        # camera is rendering so they can hide themselves.
+        self.is_rendering = True
+        
+        # Make background contrast with room background so vr user can see boundary.
+        render.set_background_color(self._background_color)
+
+    def finish_rendering(self, render):
+        # Turn off mixed reality blending.
+        render.mix_video = False
+
+        # Reenable hand, gui and screen rendering for non-room-camera views.
+        self.is_rendering = False
+
+    def framebuffer(self, render):
+        rfb = render.default_framebuffer()
+        tw,th = rfb.width, rfb.height
+        fb = self._framebuffer
+        if fb is None or fb.width != tw or fb.height != th:
+            self._delete_framebuffer(render)
+            from chimerax.graphics import Texture, opengl
+            t = Texture()
+            t.initialize_rgba((tw,th))
+            fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
+            self._framebuffer = fb
+            cm = self._camera_model
+            if cm:
+                cm.texture = t
+                cm.set_size()	# Adjust for new aspect ratio.
+        return fb
+
+    def _delete_framebuffer(self, render):
+        fb = self._framebuffer
+        if fb:
+            render.make_current()
+            fb.delete()
+            self._framebuffer = None
+    
+from chimerax.core.models import Model
+class RoomCameraModel(Model):
+    '''
+    Depict camera in scene when fixed position camera is used
+    to render the desktop graphics window.  The camera looks in the -z direction.
+    The camera is shown as a rectangle and texture mapped onto it is what the camera sees.
+    '''
+    casts_shadows = False
+#    skip_bounds = True   # Camera screen disappears if it is far from models
+    SESSION_SAVE = False
+
+    def __init__(self, name, session, texture, room_to_scene, width = 1):
+        '''Width in meters.'''
+        self._last_room_to_scene = room_to_scene
+        self._width = width
+
+        Model.__init__(self, name, session)
+
+        self.color = (255,255,255,255)	# Don't modulate texture colors.
+        self.use_lighting = False
+        self.texture = texture
+        self.opaque_texture = True
+        self.set_size(width)
+
+        # Avoid camera disappearing when far from models
+        self.allow_depth_cue = False
+
+    def delete(self):
+        cam = self.session.main_view.camera
+        Model.delete(self)
+        if isinstance(cam, SteamVRCamera):
+            cam.enable_room_camera(False)
+            
+    def _get_room_position(self):
+        return (self._last_room_to_scene.inverse() * self.position).remove_scale()
+    def _set_room_position(self, room_position):
+        self.position = (self._last_room_to_scene * room_position).remove_scale()
+    room_position = property(_get_room_position, _set_room_position)
+
+    def set_size(self, width=None):
+        if width is None:
+            width = self._width
+        else:
+            self._width = width
+        scene_width = width * self._last_room_to_scene.scale_factor()
+        tw, th = self.texture.size
+        scene_height = th * scene_width/tw
+        va, na, tc, ta = self._geometry(scene_width, scene_height)
+        self.set_geometry(va, na, ta)
+        self.texture_coordinates = tc
+    
+    def _geometry(self, width, height):
+        '''Depict camera as a rectangle perpendicular to z axis.'''
+        w, h = .5 * width, .5 * height
+        from numpy import array, float32, int32, uint8
+        vertices = array([(-w,-h,0),(-w,h,0),(w,h,0),(w,-h,0)], float32)
+        normals = array([(0,0,-1),(0,0,-1),(0,0,-1),(0,0,-1)], float32)
+        texcoords = array([(1,0),(1,1),(0,1),(0,0)], float32)
+        triangles = array([(0,1,2),(0,2,3)], int32)
+        return vertices, normals, texcoords, triangles
+
+    def draw(self, renderer, draw_pass):
+        if self._hide_camera():
+            return
+        # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+        # but the texture may have transparent alpha values.  The drawing code uses alpha
+        # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+        # code should be disabling alpha blending.
+        renderer.enable_blending(False)
+        Model.draw(self, renderer, draw_pass)
+        renderer.enable_blending(True)
+
+    def _hide_camera(self):
+        '''
+        Returns true if the room camera is currently being rendered.
+        This is used to suppress screen drawing so it does not block the view.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering
+        return False
+    
+    def update_scene_position(self, new_rts):
+        old_rts = self._last_room_to_scene
+        self._last_room_to_scene = new_rts
+        move = new_rts * old_rts.inverse()
+        mpos = move * self.position
+        # Need to remove scale factor.
+        from chimerax.geometry import norm, Place
+        s = norm(move.matrix[:,0])
+        m = mpos.matrix
+        m[:3,:3] *= 1/s
+        self.position = Place(m)
+        if abs(s - 1) > 1e-5:
+            # Keep camera same size in room coordinates.
+            self.set_geometry(s*self.vertices, self.normals, self.triangles)
 
 class UserInterface:
     '''
     Panel in VR showing ChimeraX main window.
     Buttons can be clicked with hand controllers.
     '''
-    casts_shadows = False
-    pickable = False
-    skip_bounds = True
-    SESSION_SAVE = False
-
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
@@ -746,13 +1396,16 @@ class UserInterface:
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_model = None
         self._panels = []		# List of Panel, one for each user interface pane
-        self._gui_tool_names = ['Toolbar', 'right panels']
+        self._gui_tool_names = None	# List of ToolInstance names to show panels for.  None shows all visible tools.
         self._panel_y_spacing = 0.01	# meters
         self._panel_z_spacing = 0.001	# meters
         self._buttons_down = {}		# (HandController, button) -> Panel
         self._raised_buttons = {}	# maps highlight_id to (widget, panel)
         self._move_gui = set()		# set of (HandController, button) if gui being moved by press on title bar
         self._move_ui_mode = MoveUIMode()
+        self._resizing_panel = None	# (Panel, HandController) when panel being resized by click and drag on titlebar
+        self._tool_show_handler = None
+        self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
         import openvr
@@ -765,6 +1418,14 @@ class UserInterface:
             if not ui.deleted:
                 self._session.models.close([ui])
             self._ui_model = None
+
+        for h in (self._tool_show_handler, self._tool_hide_handler):
+            if h is not None:
+                triggers = self._session.ui.triggers
+                triggers.remove_handler(h)
+        self._tool_show_handler = self._tool_hide_handler = None
+
+        self._panels = []
 
     @property
     def model(self):
@@ -796,32 +1457,166 @@ class UserInterface:
     def _create_panels(self):
         ui = self._ui_model
         panels = []
-        for tool_name in self._gui_tool_names:
-            if (tool_name in ('right panels', 'main window')
-                or _find_tool_by_name(tool_name, self._session)):
-                p = Panel(ui, self, tool_name)
-                panels.append(p)
-            else:
-                self._session.logger.warning('VR user interface could not find tool "%s"' % tool_name)
-                
-        np = len(panels)
-        if np > 1:
-            sep = self._panel_y_spacing
-            dz = self._panel_z_spacing
-            h = sum(p.size[1] for p in panels) + (np-1)*sep
-            # Stack panels.
-            y = h/2
-            z = 0
-            from chimerax.core.geometry import translation
-            for p in panels:
-                h = p.size[1]
-                y -= 0.5*h
-                pd = p._panel_drawing
-                pd.position = translation((0,y,z)) * pd.position
-                y -= 0.5*h + sep
-                z -= dz
+
+        # Menu bar
+        if self._gui_tool_names is None:
+            menu_bar = self._session.ui.main_window.menuBar()
+            p = Panel(menu_bar, ui, self, tool_name = 'menu bar')
+            panels.append(p)
+
+        # Tools
+        tool_names = self._gui_tool_names
+        if tool_names:
+            tool_wins = []
+            for tool_name in tool_names:
+                twins = _tool_windows(tool_name, self._session)
+                if len(twins) == 0:
+                    self._session.logger.warning('VR user interface tool "%s" not running'
+                                                 % tool_name)
+                tool_wins.extend(twins)
+        else:
+            # Use all shown tools.
+            exclude_tools = set(['Command Line Interface'])
+            tool_wins = [tw for tw in _tool_windows(None, self._session)
+                         if tw.tool_instance.tool_name not in exclude_tools]
+        tool_wins.sort(key = _tool_y_position)
+        tpanels = [Panel(tw, ui, self, add_titlebar = (tw.tool_instance.tool_name != 'Toolbar'))
+                   for tw in tool_wins if tw.shown]
+        panels.extend(tpanels)
+
+        # Position panels on top of each other
+        self._stack_panels(panels)
+
+        # Add panels for non-tools like recent files panel.
+        self._check_for_new_panels()
+        
+        # Monitor when windows are shown and hidden.
+        triggers = self._session.ui.triggers
+        self._tool_show_handler = triggers.add_handler('tool window show',
+                                                       self._tool_window_show)
+        self._tool_hide_handler = triggers.add_handler('tool window hide',
+                                                       self._tool_window_hide)
         return panels
-    
+
+    def _stack_panels(self, panels):
+        sep = self._panel_y_spacing
+        dz = self._panel_z_spacing
+        spanels = [p for p in panels if not p.is_menu()]
+        h = sum(p.size[1] for p in spanels) + (len(spanels)-1)*sep
+        # Stack panels.
+        y = h/2
+        z = -dz
+        for p in spanels:
+            h = p.size[1]
+            y -= 0.5*h
+            p.center = (0,y,z)
+            y -= 0.5*h + sep
+            z -= dz
+
+        if len(panels) > len(spanels):
+            # Position menu panels.
+            mpanels = [p for p in panels if p.is_menu()]
+            for mp in mpanels:
+                mp.position_menu_over_parent(spanels)
+                
+    def _tool_window_show(self, trig_name, tool_window):
+        self._add_tool_panel(tool_window)
+
+    def _tool_window_hide(self, trig_name, tool_window):
+        self._delete_tool_panel(tool_window)
+
+    def _add_tool_panel(self, tool_window):
+        if not self._find_tool_panel(tool_window):
+            is_toolbar = (tool_window.tool_instance.tool_name == 'Toolbar')
+            p = Panel(tool_window, self._ui_model, self, add_titlebar = not is_toolbar)
+            self._add_panels([p])
+            self.redraw_ui()
+
+    def _add_panels(self, panels):
+        z = max([p.center[2]+p.thickness for p in self._panels],
+                default = 0)
+        for p in panels:
+            if not p.is_menu():
+                z += p.thickness
+                p.center = (0,0,z)
+                z += p.thickness
+        self._panels.extend(panels)
+
+    def _user_moved_panels(self):
+        for p in self._panels:
+            if p.position.rotation_angle() != 0:
+                return True
+        return False
+            
+    def _check_for_new_panels(self):
+        # Add new panels for newly appeared top level widgets.
+        from PyQt5.QtWidgets import QDockWidget, QMainWindow, QMenu
+        tw = [w for w in self._session.ui.topLevelWidgets()
+              if w.isVisible() and not isinstance(w, (QDockWidget, QMainWindow))]
+        wset = set(p._widget for p in self._panels)
+        neww = [w for w in tw if w not in wset]
+        newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle(),
+                      add_titlebar = not isinstance(w, QMenu))
+                for w in neww]
+        self._add_panels(newp)
+        
+        for p in newp:
+            if p.is_menu():
+                p.position_menu_over_parent(self._panels)
+
+        # Show rapid access panel
+        w = self._session.ui.main_window.rapid_access
+        if w.isVisible() and w not in wset:
+            p = Panel(w, self._ui_model, self, tool_name = 'Recent Files',
+                      add_titlebar = True)
+            self._add_panels([p])
+            
+        if neww:
+            self.redraw_ui()
+
+        # Remove closed panels
+        for p in tuple(self._panels):
+            try:
+                vis = p._widget.isVisible()
+            except Exception:
+                vis = False	# Panel destroyed
+            if not vis:
+                self._delete_panel(p)
+
+    def _find_tool_panel(self, tool_window):
+        for p in self._panels:
+            if tool_window is p._tool_window:
+                return p
+        return None
+
+    def _delete_tool_panel(self, tool_window):
+        p = self._find_tool_panel(tool_window)
+        if p:
+            self._delete_panel(p)
+        self.redraw_ui()
+
+    def _close_menu_panels(self):
+        # Menus do not automatically close when a VR generated mouse event
+        # is posted on Windows 10.  It seems to take a real mouse click to dismiss menus.
+        # So this routine explicitly dismisses menus when VR click is made.
+        for p in tuple(self._panels):
+            if p.is_menu():
+                w = p.widget
+                if w:
+                    w.close()
+                    
+    def _delete_panel(self, panel):
+        self._panels.remove(panel)
+        panel.delete(self._ui_model)
+        # Forget raised buttons in this panel.
+        hids = []
+        rb = self._raised_buttons
+        for highlight_id, (w, p) in rb.items():
+            if p == panel:
+                hids.append(highlight_id)
+        for hid in hids:
+            del rb[hid]
+        
     def move(self, room_motion = None):
         ui = self._ui_model
         if ui and ui.display:
@@ -838,6 +1633,10 @@ class UserInterface:
         self._gui_tool_names = tool_names
 
     def process_hand_controller_button_event(self, hand_controller, button, pressed, released):
+        '''
+        Returns true if button event was on UI panel, otherwise
+        false indicating hand controller assigned button mode should be used.
+        '''
         b = button
         if b not in self.buttons:
             return False
@@ -849,16 +1648,18 @@ class UserInterface:
 
         bdown = self._buttons_down
         if released:
+            self._resizing_panel = None
             if (hc,b) in bdown:
                 # Current button down has been released.
                 panel = bdown[(hc,b)]
                 window_xy, z_offset = panel._panel_click_position(rp.origin())
-                self._release(window_xy)
+                if window_xy is not None:
+                    panel.release(window_xy)
                 del bdown[(hc,b)]
                 return True
             elif (hc,b) in self._move_gui:
                 self._move_gui.remove((hc,b))
-                hc._drag_end(self._move_ui_mode, self._camera)
+                hc._dispatch_event(self._move_ui_mode, HandButtonEvent(hc, b, released = True))
                 return True
             else:
                 # Button was released where we never got button press event.
@@ -869,118 +1670,102 @@ class UserInterface:
             # Button pressed.
             window_xy, panel = self._click_position(rp.origin())
             if panel:
-                hand_mode = self._clicked_mouse_mode(window_xy)
-                if hand_mode is not None:
-                    self._enable_mouse_mode(hand_mode, hc, b, window_xy)
-                elif self._clicked_on_title_bar(window_xy):
+                if panel.clicked_on_close_button(window_xy):
+                    self._delete_panel(panel)
+                    panel.close_widget()
+                    self.redraw_ui()
+                elif panel.clicked_on_resize_button(window_xy):
+                    panel.undock()
+                    self._resizing_panel = (panel, hc)
+                elif panel.clicked_on_title_bar(window_xy):
                     # Drag on title bar moves VR gui
                     self._move_gui.add((hc,b))
-                    hc._drag_start(self._move_ui_mode, b, self._camera)
-                    return True
+                    mum = self._move_ui_mode
+                    mum.set_panel(panel)
+                    hc._dispatch_event(mum, HandButtonEvent(hc, b, pressed=True))
                 else:
-                    self._press(window_xy)
-                    bdown[(hc,b)] = panel
-                    return True
+                    hand_mode = panel.clicked_mouse_mode(window_xy)
+                    if hand_mode is not None:
+                        self._enable_mouse_mode(hand_mode, hc, b, window_xy, panel)
+                    else:
+                        panel.press(window_xy)
+                        bdown[(hc,b)] = panel
+                if not panel.is_menu():
+                    # Menus don't close on VR click without this call.
+                    self._close_menu_panels()
+                return True
 
         return False
 
-    def _enable_mouse_mode(self, hand_mode, hand_controller, button, window_xy):
+    def _enable_mouse_mode(self, hand_mode, hand_controller, button, window_xy, panel):
         if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
             msg = 'No VR support for mouse mode %s' % hand_mode.name
         else:
-            hand_controller._set_hand_mode(button, hand_mode)
+            hand_controller.set_hand_mode(button, hand_mode)
             msg = 'VR mode %s' % hand_mode.name
         self._session.logger.info(msg)
-        self._show_pressed(window_xy)
+        panel._show_pressed(window_xy)
         self.redraw_ui()	# Show log message
 
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
+
+        if self._resize_panel(hc):
+            return True
+        
         dragged = False
         for (bhc, b), panel in self._buttons_down.items():
             if hc == bhc:
                 window_xy, z_offset = panel._panel_click_position(hc.room_position.origin())
                 if window_xy is not None:
-                    self._drag(window_xy)
+                    panel.drag(window_xy)
                     dragged = True
         if dragged:
             return True
 
         # Highlight ui button under pointer
-        self._highlight_button(hc.room_position.origin(), hc)
+        p = hc.tip_room_position
+        if p is not None:
+            self._highlight_button(p, hc)
 
         return False
 
-    def _press(self, window_xy):
-        return self._click('press', window_xy)
+    def _resize_panel(self, hand_controller):
+        if self._resizing_panel is None:
+            self._last_panel_resize_position = None
+            return False
 
-    def _drag(self, window_xy):
-        return self._click('move', window_xy)
+        panel, resize_hc = self._resizing_panel
+        if hand_controller is not resize_hc:
+            return False
 
-    def _release(self, window_xy):
-        return self._click('release', window_xy)
-
-    def _click(self, type, window_xy):
-        '''Type can be "press" or "release".'''
-        w = self._post_mouse_event(type, window_xy)
-        if w:
-            if type == 'press':
-                self._show_pressed_button(w)
-            if type == 'release':
-                self._show_pressed_button(w, pressed = False)
-                self.redraw_ui()
+        hpos = hand_controller.room_position.origin()
+        window_xy, z_offset = panel._panel_click_position(hpos)
+        if window_xy is None:
             return True
-        return False
-    
-    def _post_mouse_event(self, type, window_xy):
-        '''Type is "press", "release" or "move".'''
-        w, pos = self._clicked_widget(window_xy)
-        if w is None or pos is None:
-            return w
-        from PyQt5.QtGui import QMouseEvent
-        from PyQt5.QtCore import Qt, QEvent
-        if type == 'press':
-            et = QEvent.MouseButtonPress
-            button = buttons = Qt.LeftButton
-        elif type == 'release':
-            et = QEvent.MouseButtonRelease
-            button = Qt.LeftButton
-            buttons =  Qt.NoButton
-        elif type == 'move':
-            et = QEvent.MouseMove
-            button =  Qt.NoButton
-            buttons = Qt.LeftButton
-        me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
-        self._session.ui.postEvent(w, me)
-        return w
         
-    def _clicked_widget(self, window_xy):
-        ui = self._session.ui
-        mw = ui.main_window
-        from PyQt5.QtCore import QPoint, QPointF
-        x,y = window_xy
-        mwp = QPoint(int(x), int(y))
-        w = mw.childAt(mwp)	# Works even if widget is covered.
-        gp = mw.mapToGlobal(mwp)
-        # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
-        wpos = QPointF(w.mapFromGlobal(gp)) if w else None
-        return w, wpos
+        lhpos = getattr(self, '_last_panel_resize_position', None)
+        self._last_panel_resize_position = hpos
+        if lhpos is None:
+            return True
+        
+        last_xy, z_offset = panel._panel_click_position(lhpos)
+        if last_xy is None:
+            return True
+        
+        dx,dy = [x-xl for x,xl in zip(window_xy, last_xy)]
+        rx,ry = -2*int(round(dx)), -2*int(round(dy))
+        panel.resize_widget(rx, ry)
+        
+        if rx == 0 and ry == 0:
+            self._last_panel_resize_position = lhpos  # Accumulate motion
 
-    def _show_pressed(self, window_xy, pressed = True):
-        w, wpos = self._clicked_widget(window_xy)
-        if w:
-            self._show_pressed_button(w, pressed)
-
-    def _show_pressed_button(self, widget, pressed = True):
-        for w, panel in self._raised_buttons.values():
-            if w == widget:
-                widget._show_pressed = pressed
-                panel._update_geometry()	# Show partially depressed button
+        return True
             
     def _highlight_button(self, room_point, highlight_id):
         window_xy, panel = self._click_position(room_point)
         if panel:
-            widget, wpos = self._clicked_widget(window_xy)
+            widget, wpos = panel.clicked_widget(window_xy)
             from PyQt5.QtWidgets import QAbstractButton, QTabBar
             if isinstance(widget, (QAbstractButton, QTabBar)):
                 rb = self._raised_buttons
@@ -997,9 +1782,10 @@ class UserInterface:
             del rb[highlight_id]
             panel._update_geometry()
 
-    def redraw_ui(self, delay = True):
+    def redraw_ui(self, delay = True, delay_frames = None):
         if delay:
-            self._update_later = self._update_delay
+            frames = self._update_delay if delay_frames is None else delay_frames
+            self._update_later = frames
         else:
             self._update_later = 0
             self._update_ui_images()
@@ -1008,47 +1794,33 @@ class UserInterface:
         if self.shown() and self._update_later:
             self._update_later -= 1
             if self._update_later == 0:
+                self._check_for_new_panels()
                 self._update_ui_images()
 
     def _update_ui_images(self):
-        for panel in self._panels:
-            panel._update_image()
-
-    def _clicked_mouse_mode(self, window_xy):
-        w, pos = self._clicked_widget(window_xy)
-        from PyQt5.QtWidgets import QToolButton
-        if isinstance(w, QToolButton):
-            if hasattr(w, 'vr_mode'):
-                if isinstance(w.vr_mode, str):
-                    mouse_mode = self._session.ui.mouse_modes.named_mode(w.vr_mode)
-                else:
-                    mouse_mode = w.vr_mode()
-                return self._hand_mode(mouse_mode)
-            a = w.defaultAction()
-            if hasattr(a, 'vr_mode'):
-                mouse_mode = a.vr_mode()
-                return self._hand_mode(mouse_mode)
-        return None
-
-    def _clicked_on_title_bar(self, window_xy):
-        w, pos = self._clicked_widget(window_xy)
-        from PyQt5.QtWidgets import QDockWidget
-        from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
-        return isinstance(w, (QDockWidget, TabbedToolbar))
+        for panel in tuple(self._panels):
+            if panel._window_closed():
+                self._delete_panel(panel)
+            else:
+                panel._update_image()
+#            self._stack_panels(self._panels)
         
     def set_mouse_mode_click_range(self, range):
         self._mouse_mode_click_range = range
 
-    def _hand_mode(self, mouse_mode):
-        name = mouse_mode.name
-        if name == 'zoom':
-            m = ZoomMode()
-        elif name in ('rotate', 'translate'):
-            m = MoveSceneMode()
+    def _hand_mode_from_name(self, name, mouse_mode = None):
+        mode = hand_mode_by_name(name)
+        if mode:
+            m = mode()
         else:
-            m = MouseMode(mouse_mode, self._mouse_mode_click_range)
+            if mouse_mode is None:
+                mouse_mode = self._session.ui.mouse_modes.named_mode(name)
+            if mouse_mode:
+                m = MouseMode(mouse_mode)
+            else:
+                m = None
         return m
-    
+        
     def _click_position(self, room_point):
         if not self.shown():
             return None, None
@@ -1065,9 +1837,12 @@ class UserInterface:
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
-        m.skip_bounds = True
         m.color = (255,255,255,255)
         m.use_lighting = False
+        # m.skip_bounds = True  # User interface clipped if far from models.
+        m.casts_shadows = False
+        m.pickable = False
+        m.SESSION_SAVE = False
         ses.models.add([m], parent = parent)
         return m
 
@@ -1075,7 +1850,7 @@ class UserInterface:
         rp = hand_room_position
         # Orient horizontally and facing camera.
         view_axis = camera_position.origin() - rp.origin()
-        from chimerax.core.geometry import orthonormal_frame, translation
+        from chimerax.geometry import orthonormal_frame, translation
         p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
         # Offset vertically
         # p = translation(0.5 * width * p.axes()[1]) * p
@@ -1090,52 +1865,109 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    initial_size = {'main window': (1,1), 'right panels': (0.5,1), 'Toolbar': (1,.1)} # Meters
-    def __init__(self, parent, ui, tool_name = 'main window'):
-        self._ui = ui
-        self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
-        self._max_size = Panel.initial_size.get(tool_name, (0.5,1))  # Room coords, meters
-        x0,y0,w,h = self._panel_rectangle()
-        self._size = self._fit_size(w,h) # Billboard width, height in room coords, meters.
-        self._panel_size = None 	# Panel size in Qt device independent pixels
-        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
+    def __init__(self, tool_or_widget, drawing_parent, ui,
+                 tool_name = None, pixel_size = 0.001, add_titlebar = False):
+        from chimerax.ui.gui import ToolWindow
+        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
+            # TODO: Remove test for tool_instance attribute
+            # needed to work around bug #2875
+            tw = tool_or_widget
+            self._tool_window = tw
+            self._widget = tw.ui_area
+            if tool_name is None:
+                tool_name = tw.tool_instance.tool_name
+        else:
+            self._tool_window = None
+            self._widget = tool_or_widget	# This Qt widget is shown in the VR panel.
+        self._ui = ui			# UserInterface instance
+        self._tool_name = tool_name	# Name of tool instance
+        th = 20 if add_titlebar else 0
+        self._titlebar_height = th      # Added titlebar height in pixels
+        w,h = self._panel_size
+        self._size = (pixel_size*w, pixel_size*h) # Billboard width, height in room coords, meters.
+        self._pixel_size = pixel_size	# In meters.
+
         self._last_image_rgba = None
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
         self._button_rise = 0.01	# meters rise when pointer over button
+        self._panel_thickness = 0.01	# meters
 
         # Drawing that renders this panel.
-        self._panel_drawing = self._create_panel_drawing(parent)
-
-    def _create_panel_drawing(self, parent):
-        from chimerax.core.graphics import Drawing
-        d = Drawing('VR UI panel')
-        d.color = (255,255,255,255)
-        d.use_lighting = False
-        d.skip_bounds = True
-        parent.add_drawing(d)
-        return d
+        self._panel_drawing = d = PanelDrawing()
+        drawing_parent.add_drawing(d)
 
     @property
+    def widget(self):
+        w = self._widget
+        try:
+            w.width()
+        except Exception:
+            w = None	# Widget was deleted.
+        return w
+
+    def _get_center(self):
+        pd = self._panel_drawing
+        return pd.position.origin() if pd else None
+    def _set_center(self, center):
+        pd = self._panel_drawing
+        if pd:
+            from chimerax.geometry import translation
+            pd.position = translation(center)
+    center = property(_get_center, _set_center)
+
+    @property
+    def thickness(self):
+        return self._panel_thickness
+    
+    @property
+    def position(self):
+        pd = self._panel_drawing
+        from chimerax.geometry import Place
+        return pd.position if pd else Place()
+    
+    def delete(self, parent):
+        pd = self._panel_drawing
+        if pd:
+            parent.remove_drawings([pd])
+            self._panel_drawing = None
+            
+    @property
     def name(self):
-        return self._gui_tool_name
+        n = self._tool_name
+        return 'unnamed gui panel' if n is None else n
 
     @property
     def size(self):
-        '''Panel width and height in meters.'''
+        '''Panel width and height in room coordinate system (meters).'''
         return self._size
 
-    def _fit_size(self, w, h):
-        # Inscribe rectangle with aspect (w,h) in self._max_size rectangle.
-        mw, mh = self._max_size
-        if w == 0 and h == 0:
-            return (0,0)
-        size = ((w/h)*mh, mh) if mw*h >= mh*w else (mw, (h/w)*mw)
-        return size
+    def resize_widget(self, dx, dy):
+        if dx == 0 and dy == 0:
+            return
+        w = self._widget
+        top = w.window()
+        s = top.size()
+        xs = max(1, s.width() + dx)
+        ys = max(1, s.height() + dy)
+        top.resize(xs, ys)
+        self._update_image()
+
+    def undock(self):
+        tw = self._tool_window
+        if tw is not None and not tw.floating:
+            tw.floating = True
 
     @property
     def drawing(self):
         return self._panel_drawing
-    
+
+    def move(self, room_motion):
+        pd = self._panel_drawing
+        room_to_scene = self._ui._camera.room_to_scene
+        room_pos = room_to_scene.inverse() * pd.scene_position
+        new_room_pos = room_motion * room_pos
+        pd.scene_position = room_to_scene * new_room_pos
+        
     def scale_panel(self, scale_factor, center = None):
         '''
         Center is specified in the parent model coordinate system.
@@ -1143,19 +1975,20 @@ class Panel:
         '''
         w,h = self.size
         self._size = (scale_factor*w, scale_factor*h)
-        mw,mh = self._max_size
-        self._max_size = (scale_factor*mw, scale_factor*mh)
+        self._pixel_size *= scale_factor
 
         self._update_geometry()
 
         if center is not None:
             pd = self._panel_drawing
             shift = (scale_factor-1) * (pd.position.origin() - center)
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             pd.position = translation(shift) * pd.position
             
     def _panel_click_position(self, room_point):
         ui = self._panel_drawing
+        if ui is None:
+            return None, None
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
         w,h = self.size
@@ -1164,29 +1997,35 @@ class Panel:
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
         z_offset = (z - cr) if on_panel else None
         sx, sy = self._panel_size
-        ox, oy = self._panel_offset
+        if sx is None or sy is None:
+            return None, None
         ws = 1/w if w > 0 else 0
         hs = 1/h if h > 0 else 0
-        window_xy = ox + sx * (x + hw) * ws, oy + sy * (hh - y) * hs
+        th = self._titlebar_height
+        window_xy = sx * (x + hw) * ws, sy * (hh - y) * hs - th
         return window_xy, z_offset
 
     def _update_image(self):
         rgba = self._panel_image()
+        if rgba is None:
+            return False
         lrgba = self._last_image_rgba
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
-            h,w = rgba.shape[:2]
-            self._size = self._fit_size(w,h)
+            w,h = self._panel_size
+            ps = self._pixel_size
+            self._size = (ps*w,ps*h)
             self._update_geometry()
 
         d = self._panel_drawing
         if d.texture is not None:
-            # Require OpenGL context for deleting texture.
-            self._ui._session.main_view.render.make_current()
-            d.texture.delete_texture()
-        from chimerax.core.graphics import Texture
-        d.texture = Texture(rgba)
+            d.texture.reload_texture(rgba)
+        else:
+            from chimerax.graphics import Texture
+            d.texture = Texture(rgba)
 
+        return True
+    
     def _update_geometry(self):
         # Vertex coordinates are in room coordinates (meters), and
         # position matrix contains scale factor to produce scene coordinates.
@@ -1194,31 +2033,42 @@ class Panel:
         # Calculate rectangles for panel and raised buttons
         w, h = self.size
         xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
-        rects = [(xmin,ymin,0,xmax,ymax,0)]
+        th = self._panel_thickness
+        rects = [(xmin,ymin,-th,xmax,ymax,0)]
         zr = self._button_rise
         rb = self._ui._raised_buttons
         for widget, panel in rb.values():
             if panel is self:
-                x0,y0,x1,y1 = self._button_rectangle(widget)
+                r = self._button_rectangle(widget)
+                if r is None:
+                    continue
+                x0,y0,x1,y1 = r
                 z = .5*zr if getattr(widget, '_show_pressed', False) else zr
-                rects.append((x0,y0,z,x1,y1,z))
+                rects.append((x0,y0,z-th,x1,y1,z))
 
         # Create geometry for rectangles
         nr = len(rects)
-        nv = 4*nr
-        nt = 2*nr
+        nv = 12*nr
+        nt = 12*nr
         from numpy import empty, float32, int32
         v = empty((nv,3), float32)
         tc = empty((nv,2), float32)
         t = empty((nt,3), int32)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
         for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
-            ov, ot = 4*r, 2*r
-            v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
-            ws = 1/w if w > 0 else 0
-            hs = 1/h if h > 0 else 0
+            ov, ot = 12*r, 12*r
+            v[ov:ov+12] = ((x0,y0,z1), (x1,y0,z1), (x1,y1,z1), (x0,y1,z1), # Front
+                           (x0,y0,z1), (x1,y0,z1), (x1,y1,z1), (x0,y1,z1), # Sides and back
+                           (x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0)) # Sides and back
             tx0, ty0, tx1, ty1 = (x0-xmin)*ws, (y0-ymin)*hs, (x1-xmin)*ws, (y1-ymin)*hs
-            tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
-            t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
+            tc[ov:ov+12] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1), # Front
+                            (tx0,ty0), (tx0,ty0), (tx0,ty0), (tx0,ty0), # Sides and back
+                            (tx0,ty0), (tx0,ty0), (tx0,ty0), (tx0,ty0)) # Sides and back
+            faces = [(ov+i,ov+j,ov+k) for i,j,k in ((0,1,2),(0,2,3),(4,8,9),(4,9,5),
+                                                    (5,9,10),(5,10,6),(6,10,11),(6,11,7),
+                                                    (7,11,8),(7,8,4),(8,11,10),(8,10,9))]
+            t[ot:ot+12] = faces
 
         # Update Drawing
         d = self._panel_drawing
@@ -1228,57 +2078,109 @@ class Panel:
     def panel_image_rgba(self):
         return self._last_image_rgba
 
-    def set_gui_tool_name(self, tool_name):
-        self._gui_tool_name = tool_name
-
     def _panel_image(self):
-        ui = self._ui._session.ui
-        im = ui.window_image()
-        from chimerax.core.graphics.drawing import qimage_to_numpy
-        rgba = qimage_to_numpy(im)
-        wh,ww = rgba.shape[:2]
-        dpr = ui.main_window.devicePixelRatio()
-        x0, y0, w, h = self._panel_rectangle()
-        prgba = rgba[wh-dpr*(y0+h):wh-dpr*y0,dpr*x0:dpr*(x0+w),:]
-        self._panel_offset = (x0, y0)
-        self._panel_size = (w, h)
-        return prgba
+        rgba = self._widget_rgba()
+        return rgba
 
-    def _panel_rectangle(self):
-        '''
-        Returned coordinates are in pixels relative to the top level window.
-        A y value of zero is at the top with increasing y values going down on screen.
-        '''
-        tname = self._gui_tool_name
-        mw = self._ui._session.ui.main_window
-        if tname == 'main window':
-            # Show entire main window in VR.
-            x0, y0, w, h = 0, 0, mw.width(), mw.height()
-        elif tname == 'right panels':
-            gw = mw.graphics_window
-            x0, y0 = gw.x() + gw.width(), gw.y()
-            h = gw.height()
-            w = mw.width() - x0
-        else:
-            tw = self._gui_tool_window()
-            if tw:
-                x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
-            else:
-                self._ui._session.logger.warning('Tool panel "%s" for VR gui was not found' % tname)
-                x0, y0, w, h = 0, 0, mw.width(), mw.height()
-# TODO: The x,y coords need to be in pixels relative to the ChimeraX main window.
-#       But the code gw.x() or tw.x() gives the corner position relative to the parent
-#       window which may not be the top level window.
-        return x0, y0, w, h
+    def _widget_rgba(self):
+        w = self.widget
+        if w is None:
+            return None
+        # TODO: grab() does not include the Windows title bar in the image returned.
+        #  We want the title bar because it gives the name of the tool.
+        #  Looks like Qt can't get the title bar.  I may want to add a title to the
+        #  top of the grabbed image.
+        pixmap = w.grab()
+        size = pixmap.size()
+        if size.width() == 0 or size.height() == 0:
+            return None
+        im = pixmap.toImage()
+        from chimerax.graphics.drawing import qimage_to_numpy
+        rgba = qimage_to_numpy(im)
+        trgba = self._add_titlebar(rgba)
+        return trgba
+
+    def _add_titlebar(self, rgba, title_color = (0,0,0,255), background_color = (210,210,210,255)):
+        th = self._titlebar_height
+        if th == 0:
+            return rgba
+        
+        h,ww,c = rgba.shape
+        from numpy import empty
+        trgba = empty((h+th,ww,c), rgba.dtype)
+        trgba[:h,:,:] = rgba
+        trgba[h:,:,:] = background_color
+
+        # Add resize button
+        rs_sign = '\u21F1'	# Unicode resize symbol
+        rs_rgba = self._icon_image('resize', rs_sign, title_color, th, background_color)
+        rw = min(rs_rgba.shape[1], trgba.shape[1])
+        trgba[h:,:rw,:] = rs_rgba[:,:rw,:]
+
+        # Add title text
+        title = self.name
+        if title:
+            from chimerax.graphics import text_image_rgba
+            title_rgba = text_image_rgba(title, title_color, th, 'Arial',
+                                         background_color = background_color,
+                                         xpad = 8, ypad = 4, pixels = True)
+            tw = min(title_rgba.shape[1], trgba.shape[1]-rw)
+            trgba[h:,rw:rw+tw,:] = title_rgba[:,:tw,:]
+
+        # Add close button
+        x_sign = '\u00D7'	# Unicode multiply symbol
+        x_rgba = self._icon_image('close', x_sign, title_color, th, background_color, xpad = 6)
+        xw = min(x_rgba.shape[1], trgba.shape[1])
+        trgba[h:,-xw:,:] = x_rgba[:,:xw,:]
+
+        return trgba
+
+    def _icon_image(self, name, character, color, height, background_color, xpad = 0):
+        attr = '_%s_icon_rgba' % name
+        icon_rgba = getattr(self, attr, None)
+        if icon_rgba is None:
+            from chimerax.graphics import text_image_rgba
+            icon_rgba = text_image_rgba(character, color, height, 'Arial',
+                                     background_color = background_color,
+                                     xpad = xpad, pixels = True)
+            setattr(self, attr, icon_rgba)
+        return icon_rgba
+
+    def is_menu(self):
+        from PyQt5.QtWidgets import QMenu
+        return isinstance(self.widget, QMenu)
+    
+    def _is_toplevel_widget(self):
+        w = self.widget
+        if w is None:
+            return False
+        top = w.window()
+        return w == top
+
+    def _needs_titlebar(self):
+        return self._is_toplevel_widget() and not self.is_menu()
+    
+    @property
+    def _panel_size(self):
+        '''In pixels.'''
+        pw = self.widget
+        if pw is None:
+            return None, None
+        return pw.width(),pw.height() + self._titlebar_height
 
     def _button_rectangle(self, widget):
         '''Returns coordinates in meters with 0,0 at center of ui panel.'''
-        mw = self._ui._session.ui.main_window
-        x0,y0,w,h = self._panel_rectangle()
-        xc, yc = x0 + 0.5*w, y0 + 0.5*h
+        w, h = self._panel_size
+        if w is None:
+            return None
+        xc, yc = 0.5*w, 0.5*h
+        pw = self.widget
+        if pw is None:
+            return None
         from PyQt5.QtCore import QPoint
-        wxy0 = widget.mapTo(mw, QPoint(0,0))
-        wx0,wy0 = wxy0.x(), wxy0.y()
+        wxy0 = widget.mapTo(pw, QPoint(0,0))
+        th = self._titlebar_height
+        wx0,wy0 = wxy0.x(), wxy0.y() + th
         ww,wh = widget.width(), widget.height()
         wx1, wy1 = wx0+ww, wy0+wh
         pw, ph = self.size
@@ -1287,111 +2189,416 @@ class Panel:
         rect = (pw*(wx0-xc)*ws, -ph*(wy0-yc)*hs, pw*(wx1-xc)*ws, -ph*(wy1-yc)*hs)
         return rect
 
-    def _gui_tool_window(self):
-        tname = self._gui_tool_name
-        if tname is None:
-            return None
+    def _window_closed(self):
+        w = self.widget
+        if w is None or not w.isVisible():
+            return True
+        return False
 
-        ti = _find_tool_by_name(tname, self._ui._session)
-        return ti.tool_window._dock_widget if ti else None
+    def press(self, window_xy):
+        return self._click('press', window_xy)
 
-def _find_tool_by_name(name, session):
-    for ti in session.tools.list():
-        if ti.tool_name == name and hasattr(ti, 'tool_window') and ti and ti.displayed:
-            return ti
-    return None
+    def drag(self, window_xy):
+        return self._click('move', window_xy)
+
+    def release(self, window_xy):
+        return self._click('release', window_xy)
+
+    def _click(self, type, window_xy):
+        'Type can be "press" or "release" or "move".'
+        self._move_mouse_pointer(window_xy)
+        w = self._post_mouse_event(type, window_xy)
+        if w:
+            if type == 'press':
+                self._show_pressed_button(w)
+            if type == 'release':
+                self._show_pressed_button(w, pressed = False)
+                self._ui.redraw_ui()
+            return True
+        return False
+
+    def _move_mouse_pointer(self, window_xy):
+        # Sometimes Windows uses the mouse position instead of the button
+        # event coordinates, for instance when handling cascaded menus.
+        # Details in ChimeraX bug #2848.
+        # So move the mouse pointer to the position of the virtual button event.
+        pw = self.widget
+        if pw is not None:
+            x,y = window_xy
+            from PyQt5.QtCore import QPoint
+            wp = QPoint(int(x), int(y))
+            p = pw.mapToGlobal(wp)
+            from PyQt5.QtGui import QCursor
+            QCursor.setPos(p)
+
+    def _post_mouse_event(self, type, window_xy):
+        '''Type is "press", "release" or "move".'''
+        w, pos = self.clicked_widget(window_xy)
+        if w is None or pos is None:
+            return w
+        from PyQt5.QtCore import Qt, QEvent
+        if type == 'press':
+            from time import time
+            t = time()
+            double_click = (hasattr(self, '_last_click_time')
+                            and t - self._last_click_time < 0.5)
+            et = QEvent.MouseButtonDblClick if double_click else QEvent.MouseButtonPress
+            self._last_click_time = t
+            button = buttons = Qt.LeftButton
+        elif type == 'release':
+            et = QEvent.MouseButtonRelease
+            button = Qt.LeftButton
+            buttons =  Qt.NoButton
+        elif type == 'move':
+            et = QEvent.MouseMove
+            button =  Qt.NoButton
+            buttons = Qt.LeftButton
+        from PyQt5.QtGui import QMouseEvent
+        me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
+        self._ui._session.ui.postEvent(w, me)
+        return w
+
+    def clicked_widget(self, window_xy):
+        # Input window_xy coordinates are in top level window that panel is in.
+        # Returns clicked widget and (x,y) in widget pixel coordinate system.
+        pw = self.widget
+        if pw is None:
+            return None, None
+        from PyQt5.QtCore import QPoint, QPointF
+        x,y = window_xy
+        pwp = QPoint(int(x), int(y))
+        w = pw.childAt(pwp)	# Works even if widget is covered.
+        if w is None:
+            return pw, pwp
+        gp = pw.mapToGlobal(pwp)
+        # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
+        wpos = QPointF(w.mapFromGlobal(gp)) if w else None
+        return w, wpos
+
+    def _show_pressed(self, window_xy, pressed = True):
+        w, wpos = self.clicked_widget(window_xy)
+        if w:
+            self._show_pressed_button(w, pressed)
+
+    def _show_pressed_button(self, widget, pressed = True):
+        rb = self._ui._raised_buttons
+        for w, panel in rb.values():
+            if w == widget:
+                widget._show_pressed = pressed
+                self._update_geometry()	# Show partially depressed button
+
+    def clicked_on_resize_button(self, window_xy):
+        th = self._titlebar_height
+        if th > 0:
+            x,y = window_xy
+            return y < 0 and x <= th
+        return False
+
+    def clicked_on_close_button(self, window_xy):
+        th = self._titlebar_height
+        if th > 0:
+            x,y = window_xy
+            return y < 0 and x >= self._panel_size[0]-th
+        return False
+
+    def close_widget(self):
+        '''Called when close button on panel titlebar pressed.'''
+        tw = self._tool_window
+        if tw:
+            self._ui._session.ui.main_window.close_request(tw)
+        else:
+            self.widget.close()
         
+    def clicked_on_title_bar(self, window_xy):
+        th = self._titlebar_height
+        if th > 0:
+            return window_xy[1] < 0
+        w, pos = self.clicked_widget(window_xy)
+        from PyQt5.QtWidgets import QMenuBar, QDockWidget
+        if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
+            return True
+        from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
+        return isinstance(w, (QDockWidget, TabbedToolbar))
+                           
+    def clicked_mouse_mode(self, window_xy):
+        w, pos = self.clicked_widget(window_xy)
+        from PyQt5.QtWidgets import QToolButton
+        if isinstance(w, QToolButton):
+            if hasattr(w, 'vr_mode'):
+                if isinstance(w.vr_mode, str):
+                    mouse_mode = self._ui._session.ui.mouse_modes.named_mode(w.vr_mode)
+                else:
+                    mouse_mode = w.vr_mode()
+                return self._ui._hand_mode_from_name(mouse_mode.name, mouse_mode)
+            a = w.defaultAction()
+            if hasattr(a, 'vr_mode'):
+                mouse_mode = a.vr_mode()
+                return self._ui._hand_mode_from_name(mouse_mode.name, mouse_mode)
+        return None
+
+    def position_menu_over_parent(self, panels):
+        # Try to use parent widget to find panel to align with.
+        p = self._parent_panel(panels)
+        if p is None:
+            # This can happen of QMenu() was made without specifying a parent.
+            return	# Menu is not child of any panels.
+
+        w = self.widget
+        if w is None:
+            return
+        
+        from PyQt5.QtCore import QPoint
+        pos = w.mapToGlobal(QPoint(0,0))
+        ppos = p._widget.mapFromGlobal(pos)
+        y = ppos.y() + p._titlebar_height
+        ps = p._pixel_size
+        pw,ph = p._size
+        sw,sh = self._size
+        offset = (ppos.x()*ps + sw/2 - pw/2, -(y*ps + sh/2 - ph/2), .01)
+        pd = self._panel_drawing
+        from chimerax.geometry import translation
+        pd.position = p._panel_drawing.position * translation(offset)
+        
+    def _parent_panel(self, panels):
+        w = self.widget
+        if w is None:
+            return None
+        a = set(_ancestor_widgets(w))
+        for p in panels:
+            if p._widget in a:
+                return p
+        return None
+
+from chimerax.graphics import Drawing
+class PanelDrawing(Drawing):
+    '''Draws a single gui panel as a textured rectangle.'''
+    def __init__(self, name = 'VR UI panel'):
+        Drawing.__init__(self, name)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        # self.skip_bounds = True	# Clips if far from models.
+
+    def draw(self, renderer, draw_pass):
+        if not self._hide_panel():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_panel(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the GUI panels are to be hidden.
+        '''
+        c = self.parent.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering and not rc.show_gui_panels
+        return False
+
+def _ancestor_widgets(w):
+    alist = []
+    p = w
+    while True:
+        p = p.parentWidget()
+        if p is None:
+            return alist
+        alist.append(p)
+
+def _tool_y_position(tool_window):
+    w = tool_window.ui_area
+    from PyQt5.QtCore import QPoint
+    return w.mapToGlobal(QPoint(0,0)).y()
+
+def _tool_windows(name, session):
+    return [ti.tool_window for ti in session.tools.list()
+            if hasattr(ti, 'tool_window')]
+            
 class HandController:
-    _controller_colors = ((200,200,0,255), (0,200,200,255))
+    _controller_colors = {'left':(200,200,0,255), 'right':(0,200,200,255), 'default':(180,180,180,255)}
 
-    def __init__(self, device_index, session, vr_system,
-                 parent, show = True, length = 0.20, radius = 0.04):
+    def __init__(self, camera, left_or_right = 'right', length = 0.20, radius = 0.04):
 
-        self.device_index = device_index
-        self.vr_system = vr_system
+        self._camera = camera
+        self._side = left_or_right
+        self._length = length
+        self._radius = radius
 
+        self._device_index = None
+        self._hand_model = None
+        
+        # Assign actions bound to controller buttons
+        self._modes = {}		# Maps button name to HandMode
+        self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
+
+    @property
+    def on(self):
+        return self._device_index is not None
+
+    def _get_device_index(self):
+        return self._device_index
+    def _set_device_index(self, device_index):
+        if device_index == self._device_index:
+            return
+        self._device_index = device_index
+        if device_index is not None:
+            self._set_controller_type()
+            if self.hand_model is None:
+                self._create_hand_model()
+            self._set_initial_button_assignments()
+        else:
+            self._close_hand_model()
+    device_index = property(_get_device_index, _set_device_index)
+
+    @property
+    def hand_model(self):
+        hm = self._hand_model
+        if hm and hm.deleted:
+            self._hand_model = hm = None
+        return hm
+    
+    @property
+    def _vr_system(self):
+        return self._camera._vr_system
+
+    def _set_controller_type(self):
+        vrs = self._camera._vr_system
         from openvr import Prop_RenderModelName_String
-        model_name = vr_system.getStringTrackedDeviceProperty(device_index, Prop_RenderModelName_String)
+        model_name = vrs.getStringTrackedDeviceProperty(self._device_index,
+                                                        Prop_RenderModelName_String)
         # 'vr_controller_vive_1_5' for vive pro
         # 'oculus_cv1_controller_right', 'oculus_cv1_controller_left'
         # 'oculus_rifts_controller_right', 'oculus_rifts_controller_left'
         self._controller_type = model_name
+
+        self._is_oculus = model_name.startswith('oculus')
+
+    def _initial_button_modes(self):
+
+        if not hasattr(self, '_is_oculus'):
+            return {}	# VR not started yet, so we don't know controller type.
         
+        from openvr import \
+            k_EButton_Grip as grip, \
+            k_EButton_ApplicationMenu as menu, \
+            k_EButton_SteamVR_Trigger as trigger, \
+            k_EButton_SteamVR_Touchpad as touchpad, \
+            k_EButton_A as a
+        
+        if self._is_oculus:
+            # Oculus touch controller left and right buttons:
+            #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
+            #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
+            #    A or X button = k_EButton_A = 7
+            #    B or Y button = k_EButton_ApplicationMenu = 1
+            #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
+            right = (self.left_or_right == 'right')
+            thumbstick_mode = ZoomMode() if right else MoveSceneMode()
+            ax_mode = ZoomMode() if right else RecenterMode()
+            initial_modes = {
+                menu: ShowUIMode(),
+                trigger: MoveSceneMode(),
+                grip: MoveSceneMode(),
+                a: ax_mode,
+                touchpad: thumbstick_mode
+            }
+        else:
+            initial_modes = {
+                menu: ShowUIMode(),
+                trigger: MoveSceneMode(),
+                grip: RecenterMode(),
+                touchpad: ZoomMode()
+            }
+
+        return initial_modes
+    
+    def _set_initial_button_assignments(self):
+        im = self._initial_button_modes()
+        for button, mode in im.items():
+            if button not in self._modes:
+                self.set_hand_mode(button, mode)
+
+    def _create_hand_model(self):
         # Create hand model
-        name = 'Hand %s' % device_index
-        self._hand_model = hm = HandModel(session, name, length=length, radius=radius,
-                                          color = self._cone_color(), controller_type = self._controller_type)
-        hm.display = show
+        name = '%s hand' % self.left_or_right
+        c = self._camera
+        self._hand_model = hm = HandModel(c._session, name,
+                                          length=self._length, radius=self._radius,
+                                          color = self._cone_color(),
+                                          controller_type = self._controller_type)
+        parent = c._vr_control_model_group()
         parent.add([hm])
 
-        # Assign actions bound to controller buttons
-        self._modes = {}			# Maps button name to HandMode
-        self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
-        oculus = self._controller_type.startswith('oculus')
-        grip_mode = MoveSceneMode() if oculus else RecenterMode()
-        import openvr
-        initial_modes = [(openvr.k_EButton_Grip, grip_mode),
-                         (openvr.k_EButton_ApplicationMenu, ShowUIMode()),
-                         (openvr.k_EButton_SteamVR_Trigger, MoveSceneMode()),
-                         (openvr.k_EButton_SteamVR_Touchpad, ZoomMode()),
-        ]
-        if oculus:
-            initial_modes.append((openvr.k_EButton_A, ZoomMode()))
-        # Oculus touch controller left and right buttons:
-        #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
-        #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
-        #    A or X button = k_EButton_A = 7
-        #    B or Y button = k_EButton_ApplicationMenu = 1
-        #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
+        # Set icons for buttons
+        for button, mode in self._modes.items():
+            hm._set_button_icon(button, mode.icon_path)
 
-        for button, mode in initial_modes:
-            self._set_hand_mode(button, mode)
+        return hm
     
     def _cone_color(self):
         cc = self._controller_colors
+        side = self.left_or_right
+        color = cc[side] if side in cc else cc['default']
         from numpy import array, uint8
-        rgba8 = array(cc[self.device_index%len(cc)], uint8)
+        rgba8 = array(color, uint8)
         return rgba8
 
     @property
     def room_position(self):
-        return self._hand_model.room_position
+        hm = self.hand_model
+        return hm.room_position if hm else None
 
     @property
     def tip_room_position(self):
-        return self._hand_model.room_position.origin()
+        hm = self.hand_model
+        return hm.room_position.origin() if hm else None
 
     @property
     def position(self):
-        return self._hand_model.position
+        hm = self.hand_model
+        return hm.position if hm else None
 
     @property
     def button_modes(self):
         return self._modes
+
+    @property
+    def left_or_right(self):
+        return self._side
     
     def close(self):
+        self._device_index = None
+        self._close_hand_model()
+
+    def _close_hand_model(self):
         hm = self._hand_model
         if hm:
             if not hm.deleted:
-                hm.session.models.close([hm])
+                hm.delete()
             self._hand_model = None
-
-    def show_in_scene(self, show):
-        self._hand_model.display = show
         
-    def _update_position(self, camera):
+    def _update_position(self):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
-        dp = camera._poses[self.device_index].mDeviceToAbsoluteTracking
-        self._hand_model.room_position = hmd34_to_position(dp)
-        self.update_scene_position(camera)
+        di = self._device_index
+        if di is None:
+            return
 
-    def update_scene_position(self, camera):
-        hm = self._hand_model
-        hm.position = camera.room_to_scene * hm.room_position
+        hm = self.hand_model
+        if hm is None:
+            # Hand model was delete by user, so recreate it.
+            hm = self._create_hand_model()
+
+        hpos = self._camera.device_position(di)
+        if hpos is not None:
+            hm.room_position = hpos
+        self.update_scene_position()
+
+    def update_scene_position(self):
+        hm = self.hand_model
+        if hm:
+            hm.position = self._camera.room_to_scene * hm.room_position
             
-    def process_event(self, e, camera):
-        if e.trackedDeviceIndex != self.device_index:
+    def process_event(self, e):
+        if e.trackedDeviceIndex != self._device_index:
             return
 
         # Handle trackpad touch events.  This is diffent from a button press.
@@ -1408,36 +2615,76 @@ class HandController:
 
         # Check for click on user interface panel.
         b = e.data.controller.button
-        self._hand_model._show_button_down(b, pressed)
+        hm = self.hand_model
+        if hm:
+            hm._show_button_down(b, pressed)
         m = self._modes.get(b)
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
-            ui = camera.user_interface
+            ui = self._camera.user_interface
             if ui.process_hand_controller_button_event(self, b, pressed, released):
                 return
         
-        # Call HandMode press() or release() callback.
+        # Call HandMode event callback.
         if m:
-            if pressed:
-                self._drag_start(m, b, camera)
-            else:
-                self._drag_end(m, camera)
+            event = HandButtonEvent(self, b, pressed = pressed, released = released)
+            if b == openvr.k_EButton_SteamVR_Touchpad:
+                x, y = self._touchpad_position()
+                if x is not None and y is not None:
+                    event.touchpad_position = (x,y)
+            self._dispatch_event(m, event)
 
-    def _drag_start(self, mode, button, camera):
-        mode.pressed(camera, self)
-        mode._button_down = button
-        self._active_drag_modes.add(mode)
+    def _dispatch_event(self, mode, hand_event):
+        if hand_event.pressed:
+            mode.pressed(hand_event)
+            mode._button_down = hand_event.button		# Used for detecting missing button release events
+            self._active_drag_modes.add(mode)
+        elif hand_event.released:
+            mode.released(hand_event)
+            self._active_drag_modes.discard(mode)
+            self._update_ui(mode)
 
-    def _drag_end(self, mode, camera):
-        mode.released(camera, self)
-        self._active_drag_modes.discard(mode)
-        if not isinstance(mode, (ShowUIMode, MoveSceneMode, ZoomMode)):
-            camera.user_interface.redraw_ui()
-        
-    def _set_hand_mode(self, button, hand_mode):
+    def _update_ui(self, mode):
+        if mode.update_ui_on_release:
+            f = mode.update_ui_delay_frames
+            self._camera.user_interface.redraw_ui(delay_frames = f)
+
+    def current_hand_mode(self, button):
+        return self._modes.get(button)
+    
+    def set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
-        self._hand_model._set_button_icon(button, hand_mode.icon_path)
+        hm = self.hand_model
+        if hm:
+            hm._set_button_icon(button, hand_mode.icon_path)
 
+    def set_default_hand_mode(self, button):
+        hand_mode = self._initial_button_modes().get(button) if self.on else None
+        if hand_mode:
+            self.set_hand_mode(button, hand_mode)
+        elif button in self._modes:
+            del self._modes[button]
+
+    def _get_button_assignments(self):
+        return tuple((button, hand_mode.name) for button, hand_mode in self._modes.items())
+    def _set_button_assignments(self, button_assignments):
+        ui = self._camera.user_interface
+        for button, hand_mode_name in button_assignments:
+            hm = ui._hand_mode_from_name(hand_mode_name)
+            if hm:
+                self.set_hand_mode(button, hm)
+                
+    button_assignments = property(_get_button_assignments, _set_button_assignments)
+    '''Used for saving button assignments in sessions.'''
+    
+    def _thumbstick_mode(self):
+        if self._is_oculus:
+            import openvr
+            mode = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+        else:
+            mode = None
+        return mode
+    
     def _process_touch_event(self, e):
         t = e.eventType
         import openvr
@@ -1457,37 +2704,73 @@ class HandController:
         m = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
         return m.uses_touch_motion if m else False
         
-    def process_motion(self, camera):
+    def process_motion(self):
+        if not self.on:
+            return
+        
         # Move hand controller model
         previous_pose = self.room_position
-        self._update_position(camera)
+        self._update_position()
 
         # Generate mouse move event on ui panel.
-        ui = camera.user_interface
+        ui = self._camera.user_interface
         if ui.process_hand_controller_motion(self):
             return	# UI drag in progress.
 
         # Do hand controller drag when buttons pressed
         if previous_pose is not None:
-            self._check_for_missing_button_release(camera)
+            self._check_for_missing_button_release()
             pose = self.room_position
             for m in self._active_drag_modes:
-                m.drag(camera, self, previous_pose, pose)
+                m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
-    def _check_for_missing_button_release(self, camera):
+        # Check for Oculus thumbstick position
+        self._send_thumbstick_events()
+
+    def _send_thumbstick_events(self):
+        ts_mode = self._thumbstick_mode()
+        if ts_mode is None or not ts_mode.uses_thumbstick():
+            return
+        x,y = self._thumbstick_position()
+        if x is None or y is None:
+            return
+        min_tilt = .1
+        if abs(x) < min_tilt and abs(y) < min_tilt:
+            return
+
+        event = HandThumbstickEvent(self, x, y)
+        ts_mode.thumbstick(event)
+        
+        if event.took_step:
+            self._update_ui(ts_mode)
+
+    def _thumbstick_position(self):
+        # Position range is -1 to 1 on each axis.
+        success, cstate = self._vr_system.getControllerState(self._device_index)
+        if success:
+            # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
+            astate = cstate.rAxis[0]
+            return astate.x, astate.y
+        return None, None
+
+    def _touchpad_position(self):
+        return self._thumbstick_position()
+
+    def _check_for_missing_button_release(self):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
         adm = self._active_drag_modes
         if len(adm) == 0:
             return
-        success, cstate = self.vr_system.getControllerState(self.device_index)
+        success, cstate = self._vr_system.getControllerState(self._device_index)
         if success:
             pressed_mask = cstate.ulButtonPressed
             for m in tuple(adm):
-                # bm = openvr.ButtonMaskFromId(m._button_down)  # Routine is missing from pyopenvr
-                bm = 1 << m._button_down
+                b = m._button_down
+                # bm = openvr.ButtonMaskFromId(b)  # Routine is missing from pyopenvr
+                bm = 1 << b
                 if not pressed_mask & bm:
-                    self._drag_end(m, camera)
-        
+                    self._dispatch_event(m, HandButtonEvent(self, b, released = True))
+
 from chimerax.core.models import Model
 class HandModel(Model):
     casts_shadows = False
@@ -1499,7 +2782,7 @@ class HandModel(Model):
                  controller_type = 'htc vive'):
         Model.__init__(self, name, session)
 
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         self.room_position = Place()	# Hand controller position in room coordinates.
 
         self._cone_color = color
@@ -1528,7 +2811,7 @@ class HandModel(Model):
 
         self._buttons = b = HandButtons(self._controller_type)
         geom.extend(b.geometry(length, radius))
-        from chimerax.core.graphics import concatenate_geometry
+        from chimerax.graphics import concatenate_geometry
         va, na, tc, ta = concatenate_geometry(geom)
         
         self._cone_vertices = va
@@ -1552,18 +2835,21 @@ class HandModel(Model):
     def _set_button_icon(self, button, icon_path):
         self._buttons.set_button_icon(button, icon_path)
 
-def hand_mode_icon_path(session, mode_name):
-    if mode_name == 'recenter':
-        return RecenterMode.icon_location()
-    elif mode_name == 'move scene':
-        return MoveSceneMode.icon_location()
-    elif mode_name == 'show ui':
-        return ShowUIMode.icon_location()
-    else:
-        for mm in session.ui.mouse_modes.modes:
-            if mm.name == mode_name:
-                return mm.icon_path
-    return None
+    def draw(self, renderer, draw_pass):
+        if not self._hide_hand():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_hand(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the hand models are to be hidden.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            hide = (rc and rc.is_rendering and not rc.show_hands)
+            return hide
+        return False
 
 class HandButtons:
     def __init__(self, controller_type = 'htc vive'):
@@ -1572,12 +2858,14 @@ class HandButtons:
         buttons = [
         ]
         if controller_type.startswith('oculus'):
-            side, thumb_side, menu_side = (180,110,140) if controller_type.endswith('right') else (0,70,40)
+            right_hand = controller_type.endswith('right')
+            side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
-                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.2,.4)),
-                ButtonGeometry(openvr.k_EButton_A, z=.5, radius=.01, azimuth=thumb_side, tex_range=(.4,.6)),
-                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.6,.8)),
-                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.8,1)),
+                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
+                ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
+                ButtonGeometry(openvr.k_EButton_A, z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
+                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
+                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
             ]
         else:
             # Vive controllers
@@ -1602,7 +2890,7 @@ class HandButtons:
         self._button_rgba = rgba = empty((tex_size, tex_size*(nb + 1),4), uint8)
         rgba[:,0:tex_size,:] = cone_color
         rgba[:,tex_size:,:] = button_color
-        from chimerax.core.graphics import Texture
+        from chimerax.graphics import Texture
         self._texture = t = Texture(rgba)
         return t
 
@@ -1637,7 +2925,8 @@ class HandButtons:
             voffset += b.num_vertices
     
 class ButtonGeometry:
-    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002, num_vertices = 30):
+    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002,
+                 circle_divisions = 30):
         '''
         z is button center position from cone tip at 0 to base at 1.
         radius is in meters
@@ -1651,7 +2940,8 @@ class ButtonGeometry:
         self.azimuth = azimuth
         self.tex_range = tex_range
         self.rise = rise
-        self.num_vertices = num_vertices
+        self._circle_divisions = circle_divisions
+        self.num_vertices = 3*circle_divisions
 
     def cone_button_geometry(self, cone_length, cone_radius):
         '''
@@ -1668,11 +2958,15 @@ class ButtonGeometry:
         cca = cl/e  # cos(cone_angle)
         y0 = self.z * e
         aoffset = self.azimuth * pi/180
-        from numpy import empty, float32, int32
-        n = self.num_vertices
-        va = empty((n,3), float32)
-        na = empty((n,3), float32)
-        tc = empty((n,2), float32)
+        co, so = cos(aoffset), sin(aoffset)
+        from numpy import empty, float32, int32, array
+        bz = array((cca*co, cca*so, -sca), float32)	# Button push axis
+        bx,by = array((-so, co, 0)), array((sca*co, sca*so, cca))  # Button plane axes
+        n = self._circle_divisions
+        nv = self.num_vertices
+        va = empty((nv,3), float32)
+        na = empty((nv,3), float32)
+        tc = empty((nv,2), float32)
         u0,u1 = self.tex_range[::-1]
         v0,v1 = 1,0
         for i in range(n):
@@ -1683,34 +2977,57 @@ class ButtonGeometry:
             r = sqrt(x*x + y*y)
             va[i,:] = (r*sca*cos(az), r*sca*sin(az), r*cca)
             na[i,:] = (cca*cos(az), cca*sin(az), -sca)
+            na[n+i,:] = ca*bx + sa*by
             tc[i,:] = (u0+(u1-u0)*0.5*(1+ca), v0+(v1-v0)*0.5*(1+sa))
 
-        self.vertices_lowered = va + 0.1*self.rise*na
-        va += self.rise*na
-        self.vertices_raised = va.copy()
+        n2 = 2*n
+        va[n:n2] = va[n2:] = va[:n]
+        rise = self.rise*bz
+        va[n2:] -= rise
+        na[n2:] = na[n:n2]
+        tc[n:] = (u0,v0)	# Sides
 
-        ta = empty((n-2,3), int32)
+        vl = va.copy()
+        vl += 0.1*rise
+        self.vertices_lowered = vl
+        vr = va.copy()
+        vr += rise
+        self.vertices_raised = vr
+
+        nt = (n-2) + 2*n
+        ta = empty((nt,3), int32)
+        # Top of button
         for i in range(n//2-1):
             ta[2*i,:] = (i, i+1, n-1-i)
             ta[2*i+1,:] = (i+1, n-2-i, n-1-i)
+        # Sides of button
+        tas = ta[n-2:]
+        for i in range(n):
+            i1 = (i+1)%n
+            tas[2*i,:] = (n+i, n2+i, n2+i1)
+            tas[2*i+1,:] = (n+i, n2+i1, n+i1)
 
-        return va, na, tc, ta
+        return vr, na, tc, ta
 
     def set_icon_image(self, tex_rgba, icon_path, image_size):
-        if icon_path is None:
-            return
-        from PyQt5.QtGui import QImage
-        qi = QImage(icon_path)
-        s = image_size
-        if qi.width() != s or qi.height() != s:
-            qi = qi.scaled(s,s)
-        from chimerax.core.graphics import qimage_to_numpy
-        rgba = qimage_to_numpy(qi)
-        # TODO: Need to alpha blend with button background.
-        transp = (rgba[:,:,3] == 0)
-        from numpy import putmask
-        for c in range(4):
-            putmask(rgba[:,:,c], transp, 255)
+        if icon_path:
+            from PyQt5.QtGui import QImage
+            qi = QImage(icon_path)
+            s = image_size
+            if qi.width() != s or qi.height() != s:
+                qi = qi.scaled(s,s)
+            from chimerax.graphics import qimage_to_numpy
+            rgba = qimage_to_numpy(qi)
+            # TODO: Need to alpha blend with button background.
+            transp = (rgba[:,:,3] == 0)
+            from numpy import putmask
+            for c in range(4):
+                putmask(rgba[:,:,c], transp, 255)
+        else:
+            from numpy import empty, uint8
+            rgba = empty((image_size, image_size, 4), uint8)
+            rgba[:] = 255
+
         tsize = tex_rgba.shape[0]
         inset = (tsize - rgba.shape[0]) // 2
         i0 = inset
@@ -1718,45 +3035,233 @@ class ButtonGeometry:
         j0 = int(self.tex_range[0] * tex_rgba.shape[1]) + inset
         j1 = j0+rgba.shape[1]
         tex_rgba[i0:i1,j0:j1,:] = rgba
+
+class HandEvent:
+    def __init__(self, hand_controller, button):
+        self._hand_controller = hand_controller
+        self._button = button
+        self._touchpad_position = (None,None)
+    @property
+    def hand_controller(self):
+        return self._hand_controller
+    @property
+    def button(self):
+        return self._button
+    @property
+    def is_touchpad(self):
+        import openvr
+        return self._button == openvr.k_EButton_SteamVR_Touchpad
+    def _get_touchpad_position(self):
+        return self._touchpad_position
+    def _set_touchpad_position(self, xy):
+        self._touchpad_position = tuple(xy)
+    touchpad_position = property(_get_touchpad_position, _set_touchpad_position)
+    @property
+    def camera(self):
+        return self.hand_controller._camera
+    @property
+    def position(self):
+        '''Scene coordinates Place.'''
+        rp = self.hand_controller.room_position
+        rts = self.camera.room_to_scene
+        p = rts * rp
+        return p
+    @property
+    def tip_position(self):
+        '''Scene coordinates point.'''
+        return self.position.origin()
+    def picking_segment(self):
+        '''Range is given in scene units.'''
+        p = self.hand_controller.position
+        xyz1 = p * (0,0,0)
+        xyz2 = p * (0,0,-self._picking_range)
+        return xyz1, xyz2
+    @property
+    def _picking_range(self):
+        return self.camera.user_interface._mouse_mode_click_range
+
+class HandButtonEvent(HandEvent):
+    def __init__(self, hand_controller, button, pressed = False, released = False):
+        HandEvent.__init__(self, hand_controller, button)
+        self._pressed = pressed
+        self._released = released
+    @property
+    def pressed(self):
+        return self._pressed
+    @property
+    def released(self):
+        return self._released
+    def picked_object(self, view):
+        '''Return pick for object pointed at, along ray from cone.'''
+        from chimerax.mouse_modes import picked_object_on_segment
+        xyz1, xyz2 = self.picking_segment()
+        pick = picked_object_on_segment(xyz1, xyz2, view)
+        return pick
     
+class HandMotionEvent(HandEvent):
+    def __init__(self, hand_controller, button, previous_pose, current_pose):
+        HandEvent.__init__(self, hand_controller, button)
+        self._previous_pose = previous_pose
+        self._current_pose = current_pose
+        self._last_drag_room_position = None	# May be from earlier than previous HandMotionEvent
+    @property
+    def pose(self):
+        '''Room coordinates Place.'''
+        return self._current_pose
+    @property
+    def previous_pose(self):
+        '''Room coordinates Place.'''
+        return self._previous_pose
+    @property
+    def motion(self):
+        '''Rotation and translation in scene coordinates give as a Place instance.'''
+        rp = self.hand_controller.room_position
+        ldp = self._last_drag_room_position
+        if ldp is None:
+            from chimerax.geometry import Place
+            move = Place()
+        else:
+            room_move = rp * ldp.inverse()
+            rts = self.camera.room_to_scene
+            move = rts * room_move * rts.inverse()
+        return move
+    def set_last_drag_position(self, last_position):
+        self._last_drag_room_position = last_position
+    @property
+    def room_vertical_motion(self):
+        '''In meters.'''
+        rp = self.hand_controller.room_position
+        ldp = self._last_drag_room_position
+        delta_z = (rp.origin() - ldp.origin())[1] # Room vertical motion
+        return delta_z
+    @property
+    def tip_motion(self):
+        '''Scene coordinates vector.'''
+        p = self.tip_position
+        return self.motion * p - p
+
+class HandThumbstickEvent(HandEvent):
+    def __init__(self, hand_controller, x, y):
+        import openvr
+        button = openvr.k_EButton_SteamVR_Touchpad
+        HandEvent.__init__(self, hand_controller, button)
+        self._x = x
+        self._y = y
+
+        # Settings for Oculus thumbstick used as single-step control
+        self._thumbstick_release_level = 0.2
+        self._thumbstick_click_level = 0.5
+        self._thumbstick_repeat_delay = 0.3  # seconds
+        self._thumbstick_repeat_interval = 0.1  # seconds
+        if not hasattr(hand_controller, '_thumbstick_state'):
+            hand_controller._thumbstick_state = {
+                'released': False, 'repeating': False, 'time': None}
+
+        self.took_step = False
+        
+    @property
+    def x(self):
+        return self._x
+    @property
+    def y(self):
+        return self._y
+
+    def thumbstick_step(self, flip_y = False):
+        '''Return 1,0,-1 when thumbstick tilted.'''
+        x,y = self.x, self.y
+        ts = self.hand_controller._thumbstick_state
+        if not ts['released']:
+            release = self._thumbstick_release_level
+            if abs(x) < release and abs(y) < release:
+                ts['released'] = True
+                ts['repeating'] = False
+            elif ts['time'] is not None:
+                repeat = self._thumbstick_repeat_interval if ts['repeating'] else self._thumbstick_repeat_delay
+                from time import time
+                if time() - ts['time'] > repeat:
+                    ts['released'] = True
+                    ts['repeating'] = True
+        if not ts['released']:
+            return 0
+        click = self._thumbstick_click_level
+        if abs(x) < click and abs(y) < click:
+            return 0
+        ts['released'] = False
+        from time import time
+        ts['time'] = time()
+        v = x if abs(x) > abs(y) else (-y if flip_y else y)
+        step = 1 if v > 0 else -1
+        if step:
+            self.took_step = True
+        return step
+        
 class HandMode:
+    name = 'unnamed'
+    update_ui_on_release = True
+    update_ui_delay_frames = None
     @property
     def icon_path(self):
         return None
-    def pressed(self, camera, hand_controller):
+    def pressed(self, hand_button_event):
         pass
-    def released(self, camera, hand_controller):
+    def released(self, hand_button_event):
         pass
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def drag(self, hand_motion_event):
         pass
     uses_touch_motion = False
     def touch(self):
         pass
     def untouch(self):
         pass
+    def uses_thumbstick(self):
+        return False
+    def thumbstick(self, hand_thumbstick_event):
+        pass
+
+class NoneMode(HandMode):
+    name = 'none'
+    @property
+    def icon_path(self):
+        return NoneMode.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        return join(dirname(__file__), 'no_action.png')
 
 class MoveUIMode(HandMode):
     name = 'move ui'
     def __init__(self):
         self._last_hand_position = {}	# HandController -> Place
+        self._panel = None		# Move all panels if None.
         HandMode.__init__(self)
-    def pressed(self, camera, hand_controller):
-        self._last_hand_position[hand_controller] = hand_controller.room_position
-    def released(self, camera, hand_controller):
-        self._last_hand_position[hand_controller] = None
-    def drag(self, camera, hand_controller, previous_pose, pose):
-        ui = camera.user_interface
-        oc = camera.other_controller(hand_controller)
+    def set_panel(self, panel):
+        self._panel = panel
+    def pressed(self, hand_event):
+        hc = hand_event.hand_controller
+        self._last_hand_position[hc] = hc.room_position
+    def released(self, hand_event):
+        self._last_hand_position[hand_event.hand_controller] = None
+        self._panel = None
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
+        ui = e.camera.user_interface
+        hc = e.hand_controller
+        oc = e.camera.other_controller(hc)
         if oc and self._ui_zoom(oc):
-            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
             ui.scale_ui(scale)
             self._last_hand_position.clear()	# Avoid jump when one button released
         else:
-            hrp = hand_controller.room_position
-            lhrp = self._last_hand_position.get(hand_controller)
+            hrp = hc.room_position
+            lhrp = self._last_hand_position.get(hc)
             if lhrp is not None:
-                ui.move(hrp * lhrp.inverse())
-            self._last_hand_position[hand_controller] = hrp
+                room_motion = hrp * lhrp.inverse()
+                panel = self._panel
+                if panel is None:
+                    ui.move(room_motion)
+                else:
+                    panel.move(room_motion)
+                self._last_hand_position[hc] = hrp
     def _ui_zoom(self, oc):
         for m in oc._active_drag_modes:
             if isinstance(m, MoveUIMode):
@@ -1765,6 +3270,7 @@ class MoveUIMode(HandMode):
 
 class ShowUIMode(MoveUIMode):
     name = 'show ui'
+    update_ui_on_release = False
     def __init__(self):
         self._start_ui_move_time = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
@@ -1776,25 +3282,28 @@ class ShowUIMode(MoveUIMode):
     def icon_location():
         from os.path import join, dirname
         return join(dirname(__file__), 'menu_icon.png')
-    def pressed(self, camera, hand_controller):
-        ui = camera.user_interface
+    def pressed(self, hand_event):
+        c = hand_event.camera
+        ui = c.user_interface
         if ui.shown():
             from time import time
             self._start_ui_move_time = time()
         else:
-            ui.display_ui(hand_controller.room_position, camera.room_position)
-        MoveUIMode.pressed(self, camera, hand_controller)
-    def released(self, camera, hand_controller):
+            ui.display_ui(hand_event.hand_controller.room_position, c.room_position)
+        MoveUIMode.pressed(self, hand_event)
+    def released(self, hand_event):
         # End UI move, or hide.
         stime = self._start_ui_move_time
         from time import time
         if stime is not None and time() < stime + self._ui_hide_time:
-            camera.user_interface.hide()
+            hand_event.camera.user_interface.hide()
         self._start_ui_move_time = None
-        MoveUIMode.released(self, camera, hand_controller)
+        MoveUIMode.released(self, hand_event)
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
+    names = ('move scene', 'rotate', 'translate')
+    update_ui_on_release = False
     def __init__(self):
         self._zoom_center = None
     @property
@@ -1806,20 +3315,22 @@ class MoveSceneMode(HandMode):
         from chimerax.mouse_modes import TranslateMouseMode
         return TranslateMouseMode.icon_location()
 
-    def drag(self, camera, hand_controller, previous_pose, pose):
-        oc = camera.other_controller(hand_controller)
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
+        cam = e.camera
+        oc = cam.other_controller(e.hand_controller)
         if oc and self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
-            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
             if self._zoom_center is None:
-                self._zoom_center = _choose_zoom_center(camera, center)
-            _pinch_zoom(camera, scale, self._zoom_center)
+                self._zoom_center = _choose_zoom_center(cam, center)
+            _pinch_zoom(cam, scale, self._zoom_center)
         else:
             self._zoom_center = None
-            move = pose * previous_pose.inverse()
-            camera.move_scene(move)
+            move = e.pose * e.previous_pose.inverse()
+            cam.move_scene(move)
 
-    def released(self, camera, hand_controller):
+    def released(self, hand_event):
         self._zoom_center = None
         
     def _other_controller_move(self, oc):
@@ -1828,8 +3339,33 @@ class MoveSceneMode(HandMode):
                 return True
         return False
 
+    def uses_thumbstick(self):
+        return True
+
+    def thumbstick(self, hand_thumbstick_event):
+        e = hand_thumbstick_event
+        x,y = e.x, e.y
+        from math import sqrt
+        r = sqrt(x*x + y*y)
+        limit = .2
+        if r < limit:
+            return
+
+        f = (r-limit)/(1-limit)
+        angle = f*f	# degrees
+        camera = e.camera
+        center = _choose_zoom_center(camera)
+        (vx,vy,vz) = center - camera.room_position.origin()
+        from chimerax.geometry import normalize_vector, rotation
+        horz_dir = normalize_vector((vz,0,-vx))
+        from numpy import array, float32
+        vert_dir = array((0,1,0),float32)  # y-axis is up in room coordinates
+        axis = normalize_vector(x*vert_dir + y*horz_dir)
+        move = rotation(axis, angle, center)
+        camera.move_scene(move)
+
 def _pinch_scale(prev_pos, pos, other_pos):
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
     if dp > 0:
         s = d / dp
@@ -1842,6 +3378,7 @@ def _pinch_scale(prev_pos, pos, other_pos):
 
 class ZoomMode(HandMode):
     name = 'zoom'
+    update_ui_on_release = False
     size_doubling_distance = 0.1	# meters, vertical motion
     def __init__(self):
         self._zoom_center = None
@@ -1853,36 +3390,51 @@ class ZoomMode(HandMode):
     def icon_location():
         from chimerax.mouse_modes import ZoomMouseMode
         return ZoomMouseMode.icon_location()
-    def pressed(self, camera, hand_controller):
-        self._zoom_center = _choose_zoom_center(camera, hand_controller.tip_room_position)
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def pressed(self, hand_event):
+        tip_position = hand_event.hand_controller.tip_room_position
+        self._zoom_center = _choose_zoom_center(hand_event.camera, tip_position)
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
         center = self._zoom_center
         if center is None:
             return
-        y_motion = (pose.origin() - previous_pose.origin())[1]  # meters
+        y_motion = (e.pose.origin() - e.previous_pose.origin())[1]  # meters
         s = 2 ** (y_motion/self.size_doubling_distance)
         scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
-        _pinch_zoom(camera, scale_factor, center)
-    def released(self, camera, hand_controller):
+        _pinch_zoom(e.camera, scale_factor, center)
+    def released(self, hand_event):
         self._zoom_center = None
+    def uses_thumbstick(self):
+        return True
+    def thumbstick(self, hand_thumbstick_event):
+        e = hand_thumbstick_event
+        y  = e.y
+        limit = .2
+        if abs(y) > limit:
+            center = _choose_zoom_center(e.camera, e.hand_controller.tip_room_position)
+            v = (y-limit if y > 0 else y+limit)/(1-limit)
+            scale_factor = 1.0 - 0.02 * v * abs(v)
+            _pinch_zoom(e.camera, scale_factor, center)
 
-def _choose_zoom_center(camera, center):
+def _choose_zoom_center(camera, center = None):
     # Zoom in about center of scene if requested center point is outside scene bounding box.
     # This avoids pushing a distant scene away.
     b = camera.vr_view.drawing_bounds()
-    if b and not b.contains_point(camera.room_to_scene * center):
+    if b and (center is None or not b.contains_point(camera.room_to_scene * center)):
         return camera.room_to_scene.inverse() * b.center()
+    if center is None:
+        return camera.room_position.origin()
     return center
 
 def _pinch_zoom(camera, scale_factor, center):
-    from chimerax.core.geometry import distance, translation, scale
+    from chimerax.geometry import distance, translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)
 
 class RecenterMode(HandMode):
     name = 'recenter'
-    def pressed(self, camera, hand_controller):
-        camera.fit_scene_to_room()
+    def pressed(self, hand_event):
+        hand_event.camera.fit_scene_to_room()
     @property
     def icon_path(self):
         return self.icon_location()
@@ -1893,55 +3445,111 @@ class RecenterMode(HandMode):
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
 
 class MouseMode(HandMode):
-    name = 'mouse mode'
-    def __init__(self, mouse_mode, click_range = 5.0):
+    def __init__(self, mouse_mode):
         self._mouse_mode = mouse_mode
         mouse_mode.enable()
         self.name = mouse_mode.name
         self._last_drag_room_position = None # Hand controller position at last vr_motion call
-        self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)
+        if hasattr(mouse_mode, 'vr_update_delay_frames'):
+            # Some modes need longer to update GUI after a click, like ViewDockX.
+            self.update_ui_delay_frames = mouse_mode.vr_update_delay_frames
 
     @property
     def has_vr_support(self):
         m = self._mouse_mode
-        return hasattr(m, 'vr_press') or hasattr(m, 'vr_motion') or hasattr(m, 'vr_release')
+        return (hasattr(m, 'vr_press') or
+                hasattr(m, 'vr_motion') or
+                hasattr(m, 'vr_release') or
+                hasattr(m, 'vr_thumbstick'))
 
     @property
     def icon_path(self):
         return self._mouse_mode.icon_path
     
-    def pressed(self, camera, hand_controller):
-        self._click(camera, hand_controller, True)
+    def pressed(self, hand_button_event):
+        self._click(hand_button_event)
 
-    def released(self, camera, hand_controller):
-        self._click(camera, hand_controller, False)
+    def released(self, hand_button_event):
+        self._click(hand_button_event)
 
-    def _click(self, camera, hand_controller, pressed):
+    def _click(self, hand_button_event):
+        e = hand_button_event
         m = self._mouse_mode
-        if hasattr(m, 'vr_press') and pressed:
-            p = hand_controller.position
-            xyz1 = p * (0,0,0)
-            range_scene = self._laser_range
-            xyz2 = p * (0,0,-range_scene)
-            m.vr_press(xyz1, xyz2)
+        if e.pressed and hasattr(m, 'vr_press'):
+            m.vr_press(e)
         if hasattr(m, 'vr_motion'):
-            self._last_drag_room_position = hand_controller.room_position if pressed else None
-        if hasattr(m, 'vr_release') and not pressed:
-            m.vr_release()
+            self._last_drag_room_position = e.hand_controller.room_position if e.pressed else None
+        if e.released and hasattr(m, 'vr_release'):
+            m.vr_release(e)
 
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def drag(self, hand_motion_event):
         m = self._mouse_mode
-        if hasattr(m, 'vr_motion'):
-            rp = hand_controller.room_position
-            ldp = self._last_drag_room_position
-            room_move = rp * ldp.inverse()
-            delta_z = (rp.origin() - ldp.origin())[1] # Room vertical motion
-            rts = camera.room_to_scene
-            move = rts * room_move * rts.inverse()
-            p = rts * rp
-            if m.vr_motion(p, move, delta_z) != 'accumulate drag':
-                self._last_drag_room_position = rp
+        if not hasattr(m, 'vr_motion'):
+            return
+        
+        e = hand_motion_event
+        e.set_last_drag_position(self._last_drag_room_position)
+        if m.vr_motion(e) != 'accumulate drag':
+            self._last_drag_room_position = e.hand_controller.room_position
+
+    def uses_thumbstick(self):
+        return hasattr(self._mouse_mode, 'vr_thumbstick')
+    
+    def thumbstick(self, hand_thumbstick_event):
+        '''Generate a mouse mode wheel event when thumbstick pushed.'''
+        if self.uses_thumbstick():
+            self._mouse_mode.vr_thumbstick(hand_thumbstick_event)
+
+class RunCommandMode(HandMode):
+    name = 'command'
+    update_ui_on_release = True
+    def __init__(self, session, command):
+        self._session = session
+        self._command = command
+        self.name = 'command "%s"' % command
+    @property
+    def icon_path(self):
+        return RunCommandMode.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        return join(dirname(__file__), 'command_icon.png')
+    def pressed(self, hand_event):
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import run
+        try:
+            run(self._session, self._command)
+        except UserError as e:
+            self._session.logger.warning(str(e))
+        except Exception as e:
+            from traceback import format_exc
+            self._session.logger.bug(format_exc())
             
+vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
+
+def hand_mode_names(session):
+    names = set()
+    for m in session.ui.mouse_modes.modes:
+        names.add(m.name)
+    for hm in vr_hand_modes:
+        names.add(hm.name)
+    return tuple(names)
+
+def hand_mode_by_name(name):
+    for mode in vr_hand_modes:
+        if name == mode.name or (hasattr(mode, 'names') and name in mode.names):
+            return mode
+    return None
+
+def hand_mode_icon_path(session, mode_name):
+    mode = hand_mode_by_name(mode_name)
+    if mode:
+        path = mode.icon_location()
+    else:
+        mm = session.ui.mouse_modes.named_mode(mode_name)
+        path = mm.icon_path if mm else None
+    return path
+    
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
     m = hm44.m
@@ -1953,7 +3561,7 @@ def hmd44_to_opengl44(hm44):
     return m44
 
 def hmd34_to_position(hmat34):
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     from numpy import array, float32
     p = Place(array(hmat34.m, float32))
     return p

@@ -29,19 +29,19 @@ namespace Map_Cpp
 // ----------------------------------------------------------------------------
 //
 template <class T>
-void moments(const T *data, const int *size,
+void moments(const T *data, const int64_t *size,
 	     double mo2[3][3], double mo1[3], double *mo0)
 {
-  int s0 = size[0], s1 = size[1], s2 = size[2];
-  int st0 = s1*s2, st1 = s2;
+  int64_t s0 = size[0], s1 = size[1], s2 = size[2];
+  int64_t st0 = s1*s2, st1 = s2;
 
   double m = 0, m0 = 0, m1 = 0, m2 = 0, m00 = 0, m01 = 0, m02 = 0, m11 = 0, m12 = 0, m22 = 0;
 
-  for (int i0 = 0 ; i0 < s0 ; ++i0)
-    for (int i1 = 0 ; i1 < s1 ; ++i1)
-      for (int i2 = 0 ; i2 < s2 ; ++i2)
+  for (int64_t i0 = 0 ; i0 < s0 ; ++i0)
+    for (int64_t i1 = 0 ; i1 < s1 ; ++i1)
+      for (int64_t i2 = 0 ; i2 < s2 ; ++i2)
 	{
-	  int i = i0*st0 + i1*st1 + i2;
+	  int64_t i = i0*st0 + i1*st1 + i2;
 	  T v = data[i];
 	  m00 += i0*i0*v;
 	  m11 += i1*i1*v;
@@ -65,29 +65,29 @@ void moments(const T *data, const int *size,
 // ----------------------------------------------------------------------------
 //
 template <class T>
-void affine_scale(T *data, const int *size, double c, double *u, bool invert)
+void affine_scale(T *data, const int64_t *size, double c, double *u, bool invert)
 {
-  int s0 = size[0], s1 = size[1], s2 = size[2];
-  int st0 = s1*s2, st1 = s2;
+  int64_t s0 = size[0], s1 = size[1], s2 = size[2];
+  int64_t st0 = s1*s2, st1 = s2;
   double u0 = u[0], u1 = u[1], u2 = u[2];
 
   if (invert)
     {
-      for (int i0 = 0 ; i0 < s0 ; ++i0)
-	for (int i1 = 0 ; i1 < s1 ; ++i1)
-	  for (int i2 = 0 ; i2 < s2 ; ++i2)
+      for (int64_t i0 = 0 ; i0 < s0 ; ++i0)
+	for (int64_t i1 = 0 ; i1 < s1 ; ++i1)
+	  for (int64_t i2 = 0 ; i2 < s2 ; ++i2)
 	    {
-	      int i = i0*st0 + i1*st1 + i2;
+	      int64_t i = i0*st0 + i1*st1 + i2;
 	      data[i] /= c + u0*i0 + u1*i1 + u2*i2;
 	    }
     }
   else
     {
-      for (int i0 = 0 ; i0 < s0 ; ++i0)
-	for (int i1 = 0 ; i1 < s1 ; ++i1)
-	  for (int i2 = 0 ; i2 < s2 ; ++i2)
+      for (int64_t i0 = 0 ; i0 < s0 ; ++i0)
+	for (int64_t i1 = 0 ; i1 < s1 ; ++i1)
+	  for (int64_t i2 = 0 ; i2 < s2 ; ++i2)
 	    {
-	      int i = i0*st0 + i1*st1 + i2;
+	      int64_t i = i0*st0 + i1*st1 + i2;
 	      data[i] *= c + u0*i0 + u1*i1 + u2*i2;
 	    }
     }

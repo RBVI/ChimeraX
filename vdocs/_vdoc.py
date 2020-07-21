@@ -1,6 +1,6 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-import sys, getopt, os, os.path
+import sys, getopt, os, shutil
 verbose = False
 my_name = None
 skip = set()
@@ -17,6 +17,15 @@ def build():
         docs_dir = os.path.join(BUNDLES, dirname, "src", "docs")
         if os.path.exists(docs_dir):
             _symlink_user(docs_dir, False)
+    generate_user_index(DOCS)
+
+
+def generate_user_index(root):
+    from chimerax.help_viewer.cmd import _generate_index
+    index = os.path.join(root, 'user', 'index.html')
+    generated = _generate_index(index, session.logger)
+    os.remove('user/index.html')
+    shutil.copyfile(generated, 'user/index.html')
 
 
 def _symlink_user(root, conflict_fatal):
@@ -97,6 +106,10 @@ def check():
             filepath = os.path.join(dirpath, filename)
             if not os.path.islink(filepath):
                 bad_files.append(os.path.relpath(filepath))
+    try:
+        bad_files.remove('user/index.html')
+    except ValueError:
+        pass
     if bad_files:
         if verbose:
             print("%d non-symlink files:" % len(bad_files))
@@ -107,6 +120,11 @@ def check():
 
 def clean():
     bad_files = []
+    index_file = 'user/index.html'
+    try:
+        os.remove(index_file)
+    except OSError as e:
+        print("%s: %s" % (index_file, str(e)))
     for dirpath, dirnames, filenames in os.walk(".", topdown=False):
         for filename in filenames:
             if filename in skip or filename[0] == '.':
@@ -151,7 +169,7 @@ def usage():
     raise SystemExit(2)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
     my_name = os.path.basename(sys.argv[0])
     skip = set([my_name, "Makefile"])
     try:
@@ -164,5 +182,6 @@ if __name__ == "__main__":
             verbose = True
     try:
         action[op]()
-    except KeyError:
+    except KeyError as err:
+        print('Error:', err)
         usage()

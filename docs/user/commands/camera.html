@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>eyeSeparation</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
 [&nbsp;<b>pixelEyeSeparation</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
+[&nbsp;<b>cubePixels</b>&nbsp;&nbsp;<i>cpixels</i>&nbsp;]
 </h3>
 <p>
 The <b>camera</b> command sets mono or stereo viewing and related
@@ -39,23 +40,33 @@ See also:
 <a href="view.html"><b>view</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
+<a href="device.html#vr-roomCamera"><b>vr roomCamera</b></a>,
 <a href="../tools/sideview.html"><b>Side View</b></a>,
 <a href="../vr.html">virtual reality</a>,
 <a href="../images.html">making images</a>
 </p><p>
 The camera <i>mode</i> can be:
+</p>
 <ul>
-<li><b>mono</b> (default) - monoscopic with perspective 
+<li><b>mono</b> (default) &ndash; monoscopic with perspective 
 (apparent size decreasing with distance from the viewer)
-<li><b>ortho</b> - orthographic, monoscopic without perspective
-<li><b>stereo</b> - sequential stereoscopic; see also the
-<a href="../options.html#stereo"><b>--stereo</b></b> startup option</a>
-<li><b>sbs</b> - stereoscopic side-by-side layout (walleye)
-<li><b>tb</b> - stereoscopic top-bottom layout
-<li><b>360</b> - 360&deg; monoscopic
-<li><b>360sbs</b> - 360&deg; stereoscopic side-by-side layout
-<li><b>360tb</b> - 360&deg; stereoscopic top-bottom layout
+<li><b>ortho</b> &ndash; orthographic, monoscopic without perspective
+<li><b>stereo</b> &ndash; sequential stereoscopic; see also the
+<a href="../options.html#stereo"><b>--stereo</b> startup option</a>
+<li><b>sbs</b> &ndash; stereoscopic side-by-side layout (walleye)
+<li><b>tb</b> &ndash; stereoscopic top-bottom layout
+<li><b>360</b> &ndash; 360&deg; equirectangular projection
+with longitude 0-360&deg; along the X axis and latitude &minus;90-90&deg;
+along Y, rendered from a cube map
+<li><b>360sbs</b> &ndash; 360&deg; stereoscopic side-by-side layout
+<li><b>360tb</b> &ndash; 360&deg; stereoscopic top-bottom layout
+<li><b>dome</b> &ndash; 180&deg; (half-sphere) projection
+in which the distance from the window center is proportional to the
+angle from the view direction up to 90&deg; at the nearest window edge,
+rendered from a cube map;
+see also <a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
 </ul>
+<p>
 The <b>fieldOfView</b> option specifies the horizontal
 angular field of view (default <b>30</b>&deg;) for all modes
 except 360&deg; and orthographic.
@@ -73,9 +84,14 @@ left- and right-eye viewpoints in screen pixels (default <b>200</b>)
 for sequential stereo.
 This is usually determined adequately by the display, but adjustments 
 may be needed for comfortable viewing when sequential stereo is projected.
+</p><p>
+The <b>cubePixels</b> option sets cube map size for the 
+<b>360</b>, <b>360sbs</b>, <b>360tb</b>, and <b>dome</b> camera modes
+(default <b>1024</b>, meaning 1024 x 1024 pixels per cube face).
+Powers of 2 are recommended.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+January 2020</address>
 </body></html> 

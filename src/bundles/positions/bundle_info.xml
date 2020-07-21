@@ -1,0 +1,42 @@
+<BundleInfo name="ChimeraX-Positions" version="1.0"
+	    package="chimerax.positions"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Read and write model position matrices</Synopsis>
+  <Description>Read and write model position matrices.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Model Positions" category="Generic 3D objects"
+	      nicknames="positions" suffixes=".positions"
+	      encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Model Positions" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Model Positions" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

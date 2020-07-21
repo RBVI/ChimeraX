@@ -11,13 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.colors import Color, BuiltinColors
-from chimerax.core import configfile, commands
+from chimerax.core.colors import ColorValue, BuiltinColors
 from chimerax.core.settings import Settings
 
 class _DistanceSettings(Settings):
     EXPLICIT_SAVE = {
-        'color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
+        'color': ColorValue(BuiltinColors['gold']),
         'dashes': 9,
         'decimal_places': 3,
         'radius': 0.1,
@@ -27,14 +26,14 @@ class _DistanceSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.widgets import hex_color_name
+    from chimerax.core.colors import color_name
     from chimerax.ui.options import ColorOption, BooleanOption, IntOption, FloatOption
     settings_info = {
         'color': (
             "Color",
             ColorOption,
             "distance style color %s",
-            hex_color_name,
+            color_name,
             "Color of atomic distance monitors"),
         'dashes': (
             "Number of dashes",

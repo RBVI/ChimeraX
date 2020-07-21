@@ -1,0 +1,224 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: marker</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: marker</h3>
+<p>
+The <b>marker</b> command adds or modifies
+<a href="../markers.html">markers and links</a>, 
+nonatomic representations used for marking and measurement
+that are generally handled in the same ways as atoms and bonds.
+It is the command implementation of the 
+<a href="../tools/markerplacement.html"><b>Marker Placement</b></a> tool
+and associated <a href="ui.html#mousemode">mouse modes</a> with icons
+in the <a href="../tools/markers.html"><b>Markers</b></a> tab of the
+<a href="../tools/toolbar.html"><b>Toolbar</b></a>:&nbsp;
+<img class="iconbar" src="../marker-icons.png">
+</p><p>
+See also:
+<a href="hkcage.html"><b>hkcage</b></a>,
+the <b>tape measure</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html#tape" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/tape.png"></a>
+</p>
+<blockquote><b>
+<a href="#create">Creating Markers and Links</a>
+<br>
+<a href="#change">Changing Markers and Links</a>
+<br>
+<a href="#delete">Deletion</a>
+</b></blockquote>
+<p>
+Example commands:
+</p>
+<blockquote><b>
+marker #2 16.06,-9.172,116.5 color yellow radius 1
+<br>
+marker change #2:3 position 2.021,-29.09,121 color blue radius 2
+<br>
+marker link #2:1,2
+<br>
+marker segment #2 10.75,4.667,116.5 to 12.79,-17.44,111.2 color yellow radius 1
+<br>
+mark delete #2 linksOnly true
+<br>
+marker delete #2:3
+</b></blockquote>
+
+<a name="create"></a>
+<a name="link"></a>
+<a name="segment"></a>
+<a name="fromMesh"></a>
+<p class="nav">
+[<a href="#top">back to top: marker</a>]
+</p>
+<h3>Creating Markers and Links</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;
+<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker link</b>
+&nbsp;<a href="atomspec.html"><i>markers</i></a>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker segment</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;
+<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec1</i></a>&nbsp;
+<b>toPosition</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec2</i></a>&nbsp;
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>label</b>&nbsp;&nbsp;<i>label-text</i>&nbsp;]
+[&nbsp;<b>labelHeight</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[&nbsp;<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker fromMesh</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+[&nbsp;<b>edgeRadius</b>&nbsp;&nbsp;<i>stick-radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>markers</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;]
+</blockquote>
+<p>
+The <b>marker</b> command creates a new marker.
+The <a href="atomspec.html#othermodels"><i>marker-model</i></a> and 
+<a href="pointspec.html#point"><i>point-spec</i></a> arguments are required.
+The marker can be added to an existing marker model or added as a new model,
+and each marker has its own residue number, assigned starting with 1.
+The resulting model ID and residue numbers can be used to
+<a href="atomspec.html#hierarchy">specify</a> markers and their associated links
+in commands (analogous to atoms and their associated bonds), such
+as to <a href="#change">change</a> 
+or <a href="#delete">delete</a> them with the <b>marker</b> command.
+Links can be <a href="atomspec.html#hierarchy">specified</a> by their endpoint 
+markers or directly by <a href="../selection.html">selection</b></a>
+and the word <b>sel</b>. Model numbers are shown in the
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>,
+and residue numbers in the identifiers that pop up when the cursor is
+paused over an item in the <a href="../window.html">main window</a>.
+</p><p>
+A <a href="pointspec.html#point"><i>point-spec</i></a> can be given as
+<i>x,y,z</i> (three values separated by commas only),
+an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
+standard <a href="pointspec.html#point">point specifications</a>;
+<i>x,y,z</i> values are interpreted in 
+<a href="view.html#scenecoords">scene coordinates</a>
+unless a different <b>coordinateSystem</b> (reference model number) is given.
+</p><p>
+The <b>marker link</b> command adds a link between the two specified markers.
+For both markers and links,
+the default <b>radius</b> is <b>0.5</b> &Aring; and
+the default <b>color</b> is <b>yellow</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>.
+</p><p>
+The <b>marker segment</b> command creates two markers and a link between them,
+optionally labeled with the specified <i>label-text</i>.
+The default <b>labelHeight</b> is <b>1.0</b> &Aring; and the default 
+<b>labelColor</b> is <b>default</b> (meaning 
+<b>white</b> or <b>black</b> depending on
+the <a href="set.html#bgColor">window background color</a>).
+See also: <a href="label.html"><b>label</b></a>
+</p><p>
+The <b>marker fromMesh</b> command creates markers and links (shown as sticks)
+from a surface mesh, which can only be shown as lines.
+The <b>edgeRadius</b> option sets stick radius (default <b>1.0</b> 
+in physical distance units). The <b>color</b> default is the same as
+the surface model, where each marker gets the corresponding vertex color
+and each link (stick) is assigned the average color of its two endpoints.
+The <b>markers</b> option allows adding the new markers and links 
+to an existing marker model.
+See also: <a href="hkcage.html"><b>hkcage</b></a>,
+<a href="shape.html"><b>shape</b></a>,
+<a href="volume.html"><b>volume</b></a>
+</p>
+
+<a name="change"></a>
+<p class="nav">
+[<a href="#top">back to top: marker</a>]
+</p>
+<h3>Changing Markers and Links</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker change</b>
+&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;
+[&nbsp;<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>markers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>links</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+The <b>marker change</b> command changes the specified marker(s) and their
+associated links. The <b>position</b> option applies to markers only.
+The <b>color</b> and <b>radius</b> settings apply to 
+both markers and links unless one or the other is excluded with 
+<b>markers false</b> or <b>links false</b>.
+<a href="../markers.html">Markers and links</a> can also be adjusted
+in the <a href="../tools/markerplacement.html"><b>Marker
+Placement</b></a> tool, with <a href="size.html"><b>size</b></a> and
+<a href="color.html#simple"><b>color</b></a> commands, or
+<a href="ui.html#mousemode">with the mouse</a>
+<a href="../tools/markers.html" title="Markers Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/move.png"></a>
+<img class="icon" border=1 src="../tools/mouse-icons/resize.png"></a>.
+</p>
+</blockquote>
+
+<a name="delete"></a>
+<p class="nav">
+[<a href="#top">back to top: marker</a>]
+</p>
+<h3>Deletion</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker delete</b>
+&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;
+[&nbsp;<b>linksOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The <b>marker delete</b> command removes the specified marker(s) and
+their associated links, or just the links if <b>linksOnly true</b> is used.
+Alternatively, individual markers can be deleted
+<a href="ui.html#mousemode">with the mouse</a>
+<a href="../tools/markers.html" title="Markers Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/delete.png"></a>
+and marker models can be closed with the 
+<a href="close.html"><b>close</b></a> command.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2019</address>
+</body></html> 

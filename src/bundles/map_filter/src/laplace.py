@@ -41,11 +41,11 @@ def laplacian(v, step = None, subregion = None, model_id = None):
 
   origin, step = v.data_origin_and_step(subregion = subregion, step = step)
   d = v.data
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   ld = ArrayGridData(lm, origin, step, d.cell_angles, d.rotation,
                        name = v.name + ' Laplacian')
   ld.polar_values = True
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   lv = volume_from_grid_data(ld, v.session, model_id = model_id)
   lv.copy_settings_from(v, copy_thresholds = False, copy_colors = False)
   lv.set_parameters(cap_faces = False)

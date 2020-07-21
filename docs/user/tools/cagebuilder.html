@@ -1,0 +1,104 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Cage Builder</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Cage Builder</h3>
+<p>
+<b>Cage Builder</b> 
+creates polyhedral cages composed of hexagons and pentagons.
+Atomic models can be <a href="#placing">placed</a>
+on the cages to create oligomeric molecular assemblies
+using the <a href="../commands/sym.html"><b>sym</b></a> command.
+See also: <a href="../commands/hkcage.html"><b>hkcage</b></a>
+</p><p>
+The <b>Cage Builder</b> tool
+can be opened from the <b>Higher-Order Structure</b> section of the
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+</p>
+<ul>
+<li style="list-style-type:none">
+<b>Create polygon [ 5 ][ 6 ]</b>
+&ndash; clicking a number attaches a new polygon with that number of
+sides to each currently <a href="../selection.html">selected</a>
+polygon edge, or if no such edges exist, creates a single new polygon.
+The polygons are added as a <a href="../markers.html">marker model</a>
+named <b>Cage</b>. The attached edges are automatically <b><i>joined</i></b>.
+Joined edges are shown in lighter colors than unjoined edges.
+</ul>
+<p>
+Clicking <b>Minimize</b> improves the alignment of joined edges.
+This is typically done after some rounds of new polygon attachment.
+</p><p>
+Clicking <b>Delete</b> removes entire polygons that contain any
+<a href="../selection.html">selected</a> edge or vertex.
+</p>
+
+<a name="placing"></a>
+<p class="nav">
+[<a href="#top">back to top: Cage Builder</a>]
+</p>
+<h3>Placing Atomic Models on Cages</h3>
+<p>
+Copies of atomic models can be placed on the polygons using the
+<a href="../commands/sym.html"><b>sym</b></a> command.
+</p><p>
+For example, one might want to put a single copy of the structure
+at each pentagon (ignoring any other types of polygons).
+First, the molecular model would need to be positioned as desired relative
+to one of the pentagons in the cage model.
+Then, if the molecule model is #2 and the cage
+model is #1, the following would place a copy
+of the molecule model at an equivalent position relative to each pentagon:
+</p>
+<blockquote>
+<i>Command</i>:
+<b><a href="../commands/sym.html">sym</a> #2 #1,p5</b>
+</blockquote>
+<p>
+The copies can be removed with
+<a href="../commands/sym.html#clear"><b>sym clear</b></a>.
+</p><p>
+Another possibility is to place multiple copies per polygon. For example,
+after a molecule model #2 has been positioned relative to (1/6) of a hexagon
+in cage model #1, the following would use C<sub>6</sub> symmetry about the
+hexagon center to place six copies per hexagon:
+</p>
+<blockquote>
+<i>Command</i>:
+<b><a href="../commands/sym.html">sym</a>
+#2 #1,pn6 surfaceOnly true</b>
+</blockquote>
+<p>
+The <b>surfaceOnly</b> option specifies creating low-resolution
+surfaces instead of atomic copies (for faster rendering).
+</p><p>
+Currently there is no good way to refine the molecular positions
+to make the interfaces between molecules physically realistic.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2020</address>
+</body></html>

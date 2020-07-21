@@ -257,15 +257,14 @@ class ConfigFile:
 
     def __init__(self, session, tool_name, version="1"):
         import configparser
-        from distlib.version import Version, NormalizedVersion
+        from packaging.version import Version
         import os
-        if isinstance(version, Version):
-            epoch, ver, *_ = version.parse(str(version))
-        else:
-            epoch, ver, *_ = NormalizedVersion("1").parse(version)
-        major_version = ver[0]
+        if not isinstance(version, Version):
+            version = Version(version)
+        major_version = version.major
         self._session = session
         self._on_disk = False
+        self._tool_name = tool_name
         # affirm that properties don't conflict with methods
         for method in dir(self):
             assert(method not in self.PROPERTY_INFO)
@@ -278,7 +277,8 @@ class ConfigFile:
         # don't want all tools forgetting their settings when core version number changes,
         # so use unversioned appdirs
         from chimerax import app_dirs_unversioned
-        self._filename = os.path.join(app_dirs_unversioned.user_config_dir,
+        self._filename = os.path.join(
+            app_dirs_unversioned.user_config_dir,
             '%s-%s' % (tool_name, major_version) if version else tool_name)
         self._config = configparser.ConfigParser(
             comment_prefixes=(),
@@ -286,7 +286,7 @@ class ConfigFile:
         )
         if os.path.exists(self._filename):
             self._on_disk = True
-            self._config.read(self._filename)
+            self._config.read(self._filename, encoding='utf-8')
             # check that all values on disk are valid
             for name in self.PROPERTY_INFO:
                 getattr(self, name)
@@ -330,8 +330,8 @@ class ConfigFile:
                     self._session, self._config['DEFAULT'][name])
             except ValueError as e:
                 self._session.logger.warning(
-                    "Invalid %s.%s value, using default: %s" %
-                    (self._name, name, e))
+                    "Invalid %s '%s' attrbute value, using default: %s" %
+                    (self._tool_name, name, e))
                 value = self.PROPERTY_INFO[name].default
         return value
 
@@ -358,8 +358,8 @@ class ConfigFile:
                 str_value = self.PROPERTY_INFO[name].convert_to_string(
                     self._session, value)
             except ValueError:
-                raise UserError("Illegal %s.%s value, unchanged" %
-                                (self._name, name))
+                raise UserError("Illegal %s '%s' attribute value (%s), leaving attribute unchanged"
+                    % (self._tool_name, name, repr(value)))
             self._config['DEFAULT'][name] = str_value
         if call_save:
             ConfigFile.save(self)
@@ -453,12 +453,11 @@ class Value:
         and returns a value of the right type, or a cli
         :py:class:`~chimerax.core.commands.cli.Annotation`.
         Defaults to py:func:`ast.literal_eval`.
-    to_str : function returning a string, optional
+    to_str : function or Annotation, optional
+        can be either a function that takes a value
+        and returns a string representation of the value, or a cli
+        :py:class:`~chimerax.core.commands.cli.Annotation`.
         Defaults to :py:func:`repr`.
-
-    Attributes
-    ----------
-    section : :py:class:`Section` instance
 
     """
 
@@ -482,13 +481,17 @@ class Value:
             return self.from_str(str_value)
 
     def convert_to_string(self, session, value):
-        str_value = self.to_str(value)
+        if hasattr(self.to_str, 'unparse'):
+            str_value = self.to_str.unparse(value, session)
+        else:
+            str_value = self.to_str(value)
         # confirm that value can be restored from disk,
         # by converting to a string and back
         new_value = self.convert_from_string(session, str_value)
         if new_value != value:
             raise ValueError('value changed while saving it')
         return str_value
+
 
 if __name__ == '__main__':
     # simple test

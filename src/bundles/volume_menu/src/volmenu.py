@@ -37,7 +37,10 @@ class VolumeMenu(ToolInstance):
             self.show()
         else:
             self.hide()
-            
+
+    def displayed(self):
+        return self._shown
+    
     def show(self):
         if self._shown:
             return
@@ -48,8 +51,8 @@ class VolumeMenu(ToolInstance):
             if tool.name == 'Show Volume Menu':
                 continue	# Add a hide menu entry at end.
             def callback(ses = self.session, tool_name=tool.name, vmenu = self):
-                from chimerax.core.commands import run, quote_if_necessary
-                run(ses, "toolshed show %s" % quote_if_necessary(tool_name))
+                from chimerax.core.commands import run, StringArg
+                run(ses, "ui tool show %s" % StringArg.unparse(tool_name))
             self.session.ui.main_window.add_menu_entry(['Volume'], tool.name, callback)
         self.session.ui.main_window.add_menu_entry(['Volume'], 'Hide Volume Menu', self.hide)
 

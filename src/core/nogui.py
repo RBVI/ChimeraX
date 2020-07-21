@@ -115,7 +115,7 @@ class UI:
             self.has_graphics = self.initialize_offscreen_rendering(session)
 
     def initialize_offscreen_rendering(self, session):
-        from . import graphics
+        from chimerax import graphics
         try:
             c = graphics.OffScreenRenderingContext()
         except Exception as e:
@@ -127,6 +127,10 @@ class UI:
                 session.logger.info(str(e))
             return False
         session.main_view.initialize_rendering(c)
+        # Create an offscreen QApplication so labels will work
+        from PyQt5.QtWidgets import QApplication
+        from chimerax import app_dirs as ad
+        self._app = QApplication([ad.appname, '-platform', 'offscreen'])
         return True
 
     def splash_info(self, message, splash_step, num_splash_steps):

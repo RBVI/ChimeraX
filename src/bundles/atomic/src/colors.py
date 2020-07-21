@@ -27,7 +27,9 @@ def element_colors(element_numbers):
 
 def element_color(element_number):
     ect = element_color_table()
-    return ect[element_number]
+    # returning a tuple instead of a numpy array makes comparing colors for
+    # equality less stupid
+    return tuple(ect[element_number])
 
 def element_color_table():
     global element_rgba_256
@@ -347,3 +349,26 @@ def structure_color(id, bg_color):
         model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
     return model_color
 
+def predominant_color(atoms, *, none_fraction=0.3):
+    '''Returns the single predominant color among the (displayed) atoms (which could be the cartoon color).
+    If the predominant color is in less than 'none_fraction' of the displayed atoms, then None will be
+    returned.  If no atoms are displayed in any way and 'none_fraction' is 0, then gray is returned.
+    '''
+    unhidden = atoms.filter(atoms.hides == 0)
+    displayed_normally = unhidden.filter(unhidden.displays)
+    hidden = atoms.filter(atoms.hides != 0)
+    displayed_cartoon = hidden.filter(hidden.residues.ribbon_displays)
+    from .molarray import concatenate
+    colors = concatenate([displayed_normally, displayed_cartoon]).colors
+    if len(colors) == 0:
+        if none_fraction > 0:
+            return None
+        return element_color(6)
+    import numpy
+    unique, indices, counts = numpy.unique(colors, return_inverse=True, return_counts=True)
+    # courtesy of Stack Overflow...
+    color = unique[numpy.argmax(numpy.apply_along_axis(numpy.bincount, 0, indices.reshape(colors.shape),
+        None, numpy.max(indices)+1), axis=0)]
+    if numpy.count_nonzero((colors == color).all(axis=1)) < none_fraction * len(colors):
+        return None
+    return color

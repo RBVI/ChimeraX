@@ -1,13 +1,30 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def open_mae(session, path, file_name, auto_style, atomic):
-    with open(path) as stream:
-        p = MaestroParser(session, stream, file_name, auto_style, atomic)
+    import os.path
+    extension = os.path.splitext(path)[1]
+    if extension == ".mae":
+        with open(path) as stream:
+            p = MaestroParser(session, stream, file_name, auto_style, atomic)
+    elif extension == ".maegz":
+        import gzip
+        with gzip.open(path, "rt") as stream:
+            p = MaestroParser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
+    def num_atoms(s):
+        try:
+            return s.num_atoms
+        except AttributeError:
+            return sum([num_atoms(c) for c in s.child_models()])
+    def num_bonds(s):
+        try:
+            return s.num_bonds
+        except AttributeError:
+            return sum([num_bonds(c) for c in s.child_models()])
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
                     file_name, len(structures),
-                    sum([s.num_atoms for s in structures]),
-                    sum([s.num_bonds for s in structures]))
+                    sum([num_atoms(s) for s in structures]),
+                    sum([num_bonds(s) for s in structures]))
     return structures, status
 
 
@@ -32,20 +49,38 @@ class MaestroParser:
             if block0.get_attribute("s_m_m2io_version") != "2.0.0":
                 raise ValueError("Maestro version mismatch")
             #print "Maestro v2.0.0 file recognized"
-        except:
+        except Exception:
             raise UserError("%s: not a v2.0.0 Maestro file" % path)
 
         # Convert all subsequent blocks named "f_m_ct" to molecules
-        self.structures = []
+        receptors = []
+        ligands = []
         for block in mf_iter:
             if block.name != "f_m_ct":
                 print("%s: Skipping \"%s\" block" % (name, block.name))
             #print "Convert %s block to molecule" % block.name
             s = self._make_structure(block)
             if s:
-                self.structures.append(s)
+                try:
+                    is_ligand = block.get_attribute("r_i_docking_score")
+                except (KeyError, ValueError):
+                    is_ligand = False
+                if is_ligand:
+                    ligands.append(s)
+                else:
+                    receptors.append(s)
+                self._add_properties(s, block, is_ligand)
                 s.name = name
-                self._add_properties(s, block)
+        if not receptors:
+            self.structures = ligands
+        elif not ligands:
+            self.structures = receptors
+        else:
+            from chimerax.core.models import Model
+            self.structures = receptors
+            container = Model(name, self.session)
+            container.add(ligands)
+            self.structures.append(container)
 
     def _make_structure(self, block):
         from numpy import array
@@ -61,7 +96,7 @@ class MaestroParser:
             return None
         bonds = block.get_sub_block("m_bond")
         s = SC(self.session, auto_style=self.auto_style)
-        SC.register_attr(self.session, "viewdocx_data", "ViewDockX")
+        SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
 
         residue_map = {}
         atom_map = {}
@@ -131,13 +166,13 @@ class MaestroParser:
                 b.order = attrs["i_m_order"]
         return s
 
-    def _add_properties(self, s, block):
+    def _add_properties(self, s, block, is_ligand):
         """Add properties to molecule."""
         from .maestro import get_value
         attrs = block.get_attribute_map()
         raw_text = []
         d = {}
-        keep = set(["i", "m", "sd"])
+        keep = set(["i", "m", "sd", "psp"])
         for key, value in attrs.items():
             is_valid = True
             # parts = key.split('_', 2)
@@ -157,7 +192,8 @@ class MaestroParser:
                 d[name] = converted_value
             raw_text.append("%s: %s" % (name, value))
         s.maestro_text = '\n'.join(raw_text)
-        s.viewdockx_data = d
+        if is_ligand:
+            s.viewdockx_data = d
 
     def _split_key(self, key, limit):
         parts = []

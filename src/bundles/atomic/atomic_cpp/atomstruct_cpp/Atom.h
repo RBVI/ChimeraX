@@ -128,6 +128,7 @@ private:
     mutable float  _radius;
     Residue *  _residue;
     Rgba  _rgba;
+    Coord *_ribbon_coord;
     mutable Rings  _rings;
     bool  _selected = false;
     int  _serial_number;
@@ -150,6 +151,7 @@ public:
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
     void  clear_aniso_u();
+    void  clear_ribbon_coord();
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }
@@ -180,7 +182,6 @@ public:
     Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
     float  occupancy(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.occupancy; }
-    int  serial_number() const { return _serial_number; }
     float radius() const {
         if (_radius == 0.0) {
             auto r = default_radius();
@@ -193,16 +194,15 @@ public:
         return _radius;
     }
     float maximum_bond_radius(float default_radius) const;
-    void  register_field(std::string /*name*/, int /*value*/) {}
-    void  register_field(std::string /*name*/, double /*value*/) {}
-    void  register_field(std::string /*name*/, const std::string &/*value*/) {}
     void  remove_bond(Bond *b);
     Residue *  residue() const { return _residue; }
+    const Coord *ribbon_coord() const { return _ribbon_coord; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
     Coord  scene_coord() const;
     Coord  scene_coord(const CoordSet* cs) const;
     Coord  scene_coord(char alt_loc) const;
+    int  serial_number() const { return _serial_number; }
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
@@ -223,13 +223,12 @@ public:
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);
-    void  set_element(const Element& e) {
-        _element = &e; _uncache_radius(); _structure->_idatm_valid = false;
-    }
+    void  set_element(const Element& e);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
     void  set_radius(float);
+    void  set_ribbon_coord(const Point& coord);
     void  set_serial_number(int);
     std::string  str() const;
     Structure*  structure() const { return _structure; }
@@ -295,6 +294,14 @@ Atom::set_computed_idatm_type(const char* it) {
 }
 
 inline void
+Atom::set_element(const Element& e) {
+    change_tracker()->add_modified(structure(), const_cast<Atom*>(this), ChangeTracker::REASON_ELEMENT);
+    _element = &e;
+    _uncache_radius();
+    _structure->_idatm_valid = false;
+}
+
+inline void
 Atom::set_idatm_type(const char* it) {
     // make sure it actually is effectively different before tracking
     // change
@@ -302,6 +309,7 @@ Atom::set_idatm_type(const char* it) {
     && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
     && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type)) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
+        structure()->set_idatm_valid(false);
     }
     _explicit_idatm_type = it;
 }

@@ -72,21 +72,20 @@ class MinimizeMode(MouseMode):
 #        self._tugger._minimize(steps = self._minimize_steps)
         self._tugger._simulate(steps = self._minimize_steps)
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
         view = self.session.main_view
-        pick = picked_object_on_segment(xyz1, xyz2, view)
+        pick = event.picked_object(view)
         self._pick_atom(pick)
         
-    def vr_release(self):
+    def vr_release(self, release):
         # Virtual reality hand controller button release.
         self.mouse_up()
 
 def _zone_atoms(atoms, near_atoms, distance):
     axyz = atoms.scene_coords
     naxyz = near_atoms.scene_coords
-    from chimerax.core.geometry import find_close_points
+    from chimerax.geometry import find_close_points
     i1,i2 = find_close_points(axyz, naxyz, distance)
     za = atoms[i1]
     return za

@@ -108,7 +108,7 @@ For alpha and beta releases, the version number will start from
 follows `semantic versioning`_ rules (newer versions of ChimeraX
 are compatible with older ones with the same major version number),
 bundles written for earlier versions of ChimeraX will typically
-work in later versions as well.  This is indicated by the ``>=``
+work in later versions as well.  This is indicated by the ``~=``
 in the ``version`` attribute of the ``Dependency`` tag for
 ``ChimeraX-Core``.  A ``Dependency`` tag should be present for each
 additional bundle that must be installed.  During installation

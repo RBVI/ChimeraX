@@ -163,7 +163,8 @@ void
 Sequence::push_front(char c)
 {
     _clear_cache();
-    Contents pushed(_contents.size()+1);
+    Contents pushed;
+    pushed.reserve(_contents.size()+1);
     pushed.push_back(c);
     pushed.insert(pushed.end(), _contents.begin(), _contents.end());
     pushed.swap(_contents);
@@ -175,11 +176,6 @@ Sequence::rname3to1(const ResName& rn)
     if (_rname3to1.empty())
         _init_rname_map();
 
-    // MMTF only knows the one-letter code for residues in SEQRES;
-    // as a kludge to allow that, simply return an already-one-letter 
-    // res name
-    if (rn.size() == 1)
-        return rn.c_str()[0];
     _1Letter_Map::const_iterator l1i = _rname3to1.find(rn);
     if (l1i == _rname3to1.end()) {
         return 'X';

@@ -28,7 +28,7 @@ def show(session, objects=None, what=None, target=None, only=False):
         If what is models then hide models that are not specified.
     '''
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
 
     what_to_show = what_objects(target, what, objects)
@@ -60,7 +60,7 @@ def what_objects(target, what, objects):
         # don't implicitly add bonds; they will hide/show as 
         # their endpoint atoms hide/show, and then other code
         # only has to deal with hiding/showing atoms and not bonds
-        if objects.pseudobonds:
+        elif objects.pseudobonds:
             what_to_show.add('pseudobonds')
         if len(what_to_show) == 0:
             what_to_show.add('models')
@@ -70,7 +70,7 @@ def show_atoms(session, objects, only, undo_state):
     atoms = objects.atoms
     undo_state.add(atoms, "displays", atoms.displays, True)
     atoms.displays = True
-    atoms.update_ribbon_visibility()
+    atoms.update_ribbon_backbone_atom_visibility()
     if only:
         from chimerax.atomic import structure_atoms
         other_atoms = structure_atoms(atoms.unique_structures) - atoms
@@ -116,13 +116,16 @@ def show_pseudobonds(session, objects, only, undo_state):
             other_pbonds.displays = False
 
 def show_cartoons(session, objects, only, undo_state):
-    atoms = objects.atoms
-    res = atoms.unique_residues
+    if objects is None:
+        from chimerax.atomic import all_residues
+        res = all_residues(session)
+    else:
+        res = objects.residues
     undo_state.add(res, "ribbon_displays", res.ribbon_displays, True)
     res.ribbon_displays = True
     if only:
         from chimerax.atomic import structure_residues
-        other_res = structure_residues(atoms.unique_structures) - res
+        other_res = structure_residues(res.unique_structures) - res
         undo_state.add(other_res, "ribbon_displays", other_res.ribbon_displays, False)
         other_res.ribbon_displays = False
 
@@ -140,6 +143,10 @@ def show_surfaces(session, objects, only, undo_state):
     if surfs:
         patoms, all_small = molsurf.remove_solvent_ligands_ions(atoms)
         extra_atoms = patoms - concatenate([s.atoms for s in surfs], Atoms)
+        if extra_atoms:
+            # Handle case where atoms were added to existing surfaces
+            # so those surfaces will be replaced.  Bug #2603.
+            extra_atoms = atoms
     else:
         extra_atoms = atoms
     if extra_atoms:
@@ -226,4 +233,5 @@ def register_command(logger):
                    hidden=['only'],
                    synopsis='show specified objects')
     register('show', desc, show, logger=logger)
-    create_alias('display', 'show $*', logger=logger)
+    create_alias('display', 'show $*', logger=logger,
+            url="help:user/commands/show.html")

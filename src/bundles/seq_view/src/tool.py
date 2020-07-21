@@ -46,19 +46,15 @@ class SequenceViewer(ToolInstance):
     """
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
-            set_state_from_snapshot will be called later.
-
-            if 'autoAssociate' is None then it is the same as False except
-            that any StructureSequences in the alignment will be associated
-            with their structures
+            _finalize_init will be called later.
         """
 
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(session, alignment)
+        self._finalize_init(alignment)
 
-    def _finalize_init(self, session, alignment):
+    def _finalize_init(self, alignment):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -85,10 +81,10 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        # subcommand_name also in bundle_info.xml
-        alignment.attach_viewer(self, subcommand_name="viewer")
+        from . import subcommand_name
+        alignment.attach_viewer(self, subcommand_name=subcommand_name)
         from . import settings
-        self.settings = settings.init(session)
+        self.settings = settings.init(self.session)
         """
         from SeqCanvas import shouldWrap
         if numberingDisplay:
@@ -269,7 +265,6 @@ class SequenceViewer(ToolInstance):
         self.structureMenu.add_command(label="Load Structures",
                         command=self._loadStructures)
         """
-        self.child_tools = []
         """
         self.alignDialog = self.assessDialog = self.findDialog = None
         self.prositeDialog = self.regexDialog = None
@@ -493,9 +488,6 @@ class SequenceViewer(ToolInstance):
     def delete(self):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
-        for ct in self.child_tools:
-            if hasattr(ct, 'destroy'):
-                ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
@@ -505,32 +497,58 @@ class SequenceViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
-        from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
-        for fmt in io.formats(open=False):
-            if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name, save_as_menu)
-                action.triggered.connect(lambda arg, fmt=fmt:
-                    run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
-                save_as_menu.addAction(action)
+        file_menu = menu.addMenu("File")
+        save_as_menu = file_menu.addMenu("Save As")
+        from chimerax.core.commands import run, StringArg
+        fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
+        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
+        for fmt in fmts:
+            action = QAction(fmt.synopsis, save_as_menu)
+            action.triggered.connect(lambda arg, fmt=fmt:
+                run(self.session, "save browse format %s alignment %s"
+                % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
+            save_as_menu.addAction(action)
+        scf_action = QAction("Load Sequence Coloring File...", file_menu)
+        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
+        file_menu.addAction(scf_action)
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
-        menu.addAction(settings_action)
-        settings_action = QAction("Associations...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_associations())
+        structure_menu = menu.addMenu("Structure")
+        assoc_action = QAction("Associations...", structure_menu)
+        assoc_action.triggered.connect(lambda arg: self.show_associations())
         from chimerax.atomic import AtomicStructure
         for m in self.session.models:
             if isinstance(m, AtomicStructure):
                 break
         else:
-            settings_action.setEnabled(False)
+            assoc_action.setEnabled(False)
+        structure_menu.addAction(assoc_action)
+
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info")
+
+        tools_menu = menu.addMenu("Tools")
+        comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
+        comp_model_action.triggered.connect(lambda arg: run(self.session,
+            "ui tool show 'Modeller Comparative'"))
+        if not self.alignment.associations:
+            comp_model_action.setEnabled(False)
+        tools_menu.addAction(comp_model_action)
+        if len(self.alignment.seqs) == 1:
+            blast_action = QAction("Blast Protein...", tools_menu)
+            blast_action.triggered.connect(lambda arg: run(self.session,
+                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            tools_menu.addAction(blast_action)
+        else:
+            blast_menu = tools_menu.addMenu("Blast Protein")
+            for i, seq in enumerate(self.alignment.seqs):
+                blast_action = QAction(seq.name, blast_menu)
+                blast_action.triggered.connect(lambda arg: run(self.session,
+                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_menu.addAction(blast_action)
+
+        settings_action = QAction("Settings...", menu)
+        settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...", menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
-        menu.addAction(scf_action)
 
     def headers(self, shown_only=False):
         headers = self.seq_canvas.headers
@@ -574,7 +592,6 @@ class SequenceViewer(ToolInstance):
             from .associations_tool import AssociationsTool
             self.associations_tool = AssociationsTool(self,
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
-            self.child_tools.append(self.associations_tool)
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
 
@@ -583,7 +600,6 @@ class SequenceViewer(ToolInstance):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
                 self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
-            self.child_tools.append(self.settings_tool)
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
@@ -602,7 +618,7 @@ class SequenceViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['alignment'])
+        inst._finalize_init(data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])

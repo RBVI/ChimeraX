@@ -29,6 +29,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
+#include "polymer.h"
 #include "Sequence.h"
 #include "Structure.h"
 #include "PBGroup.h"
@@ -264,6 +265,48 @@ Structure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     }
 }
 
+void
+Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
+    const std::vector<ChainID> new_ids, bool non_polymeric)
+{
+    if (changing_chains.size() != new_ids.size())
+        throw std::logic_error("Number of chains to change IDs for must match number of IDs");
+
+    std::set<StructureSeq*> unique_chains(changing_chains.begin(), changing_chains.end());
+    if (unique_chains.size() < changing_chains.size())
+        throw std::logic_error("List of chains to change IDs for must not contain duplicates");
+
+    std::set<ChainID> unique_ids(new_ids.begin(), new_ids.end());
+    if (unique_ids.size() < new_ids.size())
+        throw std::logic_error("List of chain IDs to change to must not contain duplicates");
+
+    // can change StructureSeq chain IDs freely; Chain chain IDs cannot conflict with existing
+    std::set<ChainID> other_ids;
+    for (auto chain: chains())
+        if (unique_chains.find(chain) == unique_chains.end())
+            other_ids.insert(chain->chain_id());
+    std::map<StructureSeq*,ChainID> chain_remapping;
+    std::map<ChainID,ChainID> id_remapping;
+    auto new_ids_i = new_ids.begin();
+    for (auto chain: changing_chains) {
+        if (chain->is_chain() && other_ids.find(*new_ids_i) != other_ids.end()) {
+            std::stringstream err_msg;
+            err_msg << "New chain ID '" << *new_ids_i << "' already assigned to another chain";
+            throw std::logic_error(err_msg.str().c_str());
+        }
+        chain_remapping[chain] = *new_ids_i;
+        id_remapping[chain->chain_id()] = *new_ids_i++;
+    }
+
+    for (auto chain: changing_chains)
+        chain->set_chain_id(chain_remapping[chain]);
+
+    if (non_polymeric)
+        for (auto r: residues())
+            if (r->chain() == nullptr && id_remapping.find(r->chain_id()) != id_remapping.end())
+                r->set_chain_id(id_remapping[r->chain_id()]);
+}
+
 static void
 _copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
     std::map<Atom*, Atom*>& amap, CoordSet* cs = nullptr)
@@ -346,6 +389,9 @@ void Structure::_copy(Structure* s) const
             }
             a->set_alt_loc(aloc);	// Restore original alt loc.
             ca->set_alt_loc(aloc);
+        } else {
+            ca->set_bfactor(a->bfactor());
+            ca->set_occupancy(a->occupancy());
         }
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
@@ -529,7 +575,7 @@ Structure::delete_atom(Atom* a)
         throw std::invalid_argument("delete_atom called for Atom not in AtomicStructure/Structure");
     }
     if (atoms().size() == 1) {
-        delete this;
+        Py_XDECREF(py_call_method("cpp_del_model"));
         return;
     }
     auto r = a->residue();
@@ -542,7 +588,8 @@ Structure::delete_atom(Atom* a)
 
 static Atom*
 _find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>& bond_losers,
-    std::set<Atom*>& begin_missing_structure_atoms, std::set<Atom*>& end_missing_structure_atoms)
+    std::set<Atom*>& begin_missing_structure_atoms, std::set<Atom*>& end_missing_structure_atoms,
+    bool left_side)
 {
     // if old missing-structure atom is still there, use it
     for (auto a: begin_missing_structure_atoms) {
@@ -561,7 +608,35 @@ _find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>&
     for (auto a: bond_losers)
         if (a->residue() == r)
             return a;
-    throw std::logic_error("No atom in newly disconnected residue lost any bonds!");
+
+    // in some weird situations where the residue is internally decimated, the formerly
+    // connecting atom may not have been bonded to any other atom of the residue so...
+    auto backbone_names = r->ordered_min_backbone_atom_names();
+    if (backbone_names == nullptr)
+        throw std::logic_error("Missing-structure adjacent residue is not polymeric!?!");
+    if (left_side) {
+        // we're on the "left side" of the gap, so need to look through backbone names
+        // in reverse order
+        auto reversed_names = *backbone_names;
+        std::reverse(reversed_names.begin(), reversed_names.end());
+        for (auto bb_name: reversed_names) {
+            Atom *a = r->find_atom(bb_name);
+            if (a != nullptr)
+                return a;
+        }
+    } else {
+        // we're on the "right side" of the gap, so backbone names in normal order
+        for (auto bb_name: *backbone_names) {
+            Atom *a = r->find_atom(bb_name);
+            if (a != nullptr)
+                return a;
+        }
+    }
+
+    // Okay, no main backbone atoms exist -- use any atom!
+    for (auto a: r->atoms())
+        return a;
+    throw std::logic_error("Residue has no atoms!?!");
 }
 
 void
@@ -693,9 +768,9 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(
             _find_attachment_atom(r, atoms, bond_losers,
-                begin_left_missing_structure_atoms, end_left_missing_structure_atoms),
+                begin_left_missing_structure_atoms, end_left_missing_structure_atoms, true),
             _find_attachment_atom(end_next, atoms, bond_losers,
-                begin_right_missing_structure_atoms, end_right_missing_structure_atoms)
+                begin_right_missing_structure_atoms, end_right_missing_structure_atoms, false)
         );
     }
 
@@ -710,11 +785,16 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     // If initial construction is over (i.e. Python instance exists) and make_chains()
     // has been called (i.e. _chains is not null), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
-    if (_chains == nullptr || py_instance(false) == Py_None)
+    if (_chains == nullptr)
+        return;
+    auto inst = py_instance(false);
+    Py_DECREF(inst);
+    if (inst == Py_None)
         return;
     Residue* start_r;
     Residue* other_r;
-    if (b == nullptr) {
+    bool is_pb = (b == nullptr);
+    if (is_pb) {
         // missing structure pseudobond; need to pass through residue list to determine
         // relative ordering of the residues
         for (auto r: residues()) {
@@ -744,16 +824,61 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             chain->push_back(other_r);
         } else {
             // incorporate start_r into other_r's chain
-            other_r->chain()->push_front(start_r);
+            auto other_chain = other_r->chain();
+            auto other_index = other_chain->res_map().at(other_r);
+            if (other_index == 0 || other_chain->residues()[other_index-1] != nullptr) {
+                if (other_index == 0)
+                    other_chain->push_front(start_r);
+                else
+                    other_chain->insert(other_r, start_r);
+            } else {
+                other_chain->_residues[other_index-1] = start_r;
+                other_chain->_res_map[start_r] = other_index-1;
+                auto old_char = other_chain->contents()[other_index-1];
+                auto new_char = Sequence::rname3to1(start_r->name());
+                if (old_char != new_char) {
+                    other_chain->at(other_index-1) = new_char;
+                }
+            }
         }
     } else {
         if (other_r->chain() == nullptr) {
             // incorporate other_r into start_r's chain
-            start_r->chain()->push_back(other_r);
+            auto start_chain = start_r->chain();
+            auto start_index = start_chain->res_map().at(start_r);
+            if (start_index == start_chain->size() - 1
+            || start_chain->residues()[start_index+1] != nullptr) {
+                if (start_index == start_chain->size() - 1)
+                    start_chain->push_back(other_r);
+                else
+                    start_chain->insert(start_chain->residues()[start_index+1], other_r);
+            } else {
+                start_chain->_residues[start_index+1] = other_r;
+                start_chain->_res_map[other_r] = start_index+1;
+                auto old_char = start_chain->contents()[start_index+1];
+                auto new_char = Sequence::rname3to1(other_r->name());
+                if (old_char != new_char) {
+                    start_chain->at(start_index+1) = new_char;
+                }
+            }
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
+        } else if (!is_pb) {
+            // check if there were missing residues at that sequence position and eliminate any
+            auto chain = start_r->chain();
+            auto start_index = chain->res_map().at(start_r);
+            if (chain->residues()[start_index+1] == nullptr) {
+                auto& contents = chain->contents();
+                Sequence::Contents new_chars(contents.begin(), contents.begin() + start_index);
+                auto other_index = chain->res_map().at(other_r);
+                new_chars.insert(new_chars.end(), contents.begin() + other_index, contents.end());
+                auto& residues = chain->residues();
+                StructureSeq::Residues new_residues(residues.begin(), residues.begin() + start_index);
+                new_residues.insert(new_residues.end(), residues.begin() + other_index, residues.end());
+                chain->bulk_set(residues, &new_chars);
+            }
         }
     }
 }
@@ -825,6 +950,11 @@ Structure::delete_bond(Bond *b)
     if (i == _bonds.end())
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
+    // for backbone bonds, create missing-structure pseudobonds
+    if (b->is_backbone()) {
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
+        pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
+    }
     for (auto a: b->atoms())
         a->remove_bond(b);
     _bonds.erase(i);
@@ -919,6 +1049,36 @@ Structure::new_atom(const char* name, const Element& e)
     return a;
 }
 
+static bool
+backbone_increases(Atom* a1, Atom* a2, const std::vector<AtomName>* names)
+{
+    if (a1->residue() == a2->residue())
+        return std::find(names->begin(), names->end(), a1->name()) <
+                std::find(names->begin(), names->end(), a2->name());
+    const auto& residues = a1->structure()->residues();
+    return std::find(residues.begin(), residues.end(), a1->residue()) <
+            std::find(residues.begin(), residues.end(), a2->residue());
+}
+
+Atom*
+follow_backbone(Atom* bb1, Atom* bb2, Atom* goal, std::set<Atom*>& seen)
+{
+    for (auto nb: bb2->neighbors()) {
+        if (!nb->is_backbone(BBE_MIN))
+            continue;
+        if (nb == bb1)
+            continue;
+        if (nb == goal)
+            return nullptr;
+        if (seen.find(nb) != seen.end())
+            // backbone now loops back on itself!
+            return nullptr;
+        seen.insert(bb1);
+        return follow_backbone(bb2, nb, goal, seen);
+    }
+    return bb2;
+}
+
 Bond *
 Structure::new_bond(Atom *a1, Atom *a2)
 {
@@ -926,6 +1086,66 @@ Structure::new_bond(Atom *a1, Atom *a2)
     b->finish_construction(); // virtual calls work now
     add_bond(b);
     _idatm_valid = false;
+    auto inst = py_instance(false);
+    Py_DECREF(inst);
+    if (inst != Py_None) {
+        // chain adjustment now handled by _form_chain_check
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+        if (pbg != nullptr) {
+            // possibly adjust missing-chain pseudobonds
+            if (a1->is_backbone(BBE_MIN) && a2->is_backbone(BBE_MIN)) {
+                for (auto pb: pbg->pseudobonds()) {
+                    auto pb_a1 = pb->atoms()[0];
+                    auto pb_a2 = pb->atoms()[1];
+                    Atom* match_a1 = a1 == pb_a1 ? pb_a1 : (a1 == pb_a2 ? pb_a2 : nullptr);
+                    Atom* match_a2 = a2 == pb_a1 ? pb_a1 : (a2 == pb_a2 ? pb_a2 : nullptr);
+                    Atom* matched_a;
+                    Atom* other_a;
+                    if (match_a1 == nullptr) {
+                        if (match_a2 == nullptr)
+                            continue;
+                        matched_a = a2;
+                        other_a = a1;
+                    } else {
+                        if (match_a2 == nullptr) {
+                            matched_a = a1;
+                            other_a = a2;
+                        } else {
+                            pbg->delete_pseudobond(pb);
+                            if (pbg->pseudobonds().size() == 0)
+                                //pbg->manager()->delete_group(pbg);
+                                Py_XDECREF(pbg->py_call_method("cpp_del_model"));
+                            break;
+                        }
+                    }
+                    // is the unmatched pb atom in "the direction of" the other "a" atom?
+                    auto other_pb = pb->other_atom(matched_a);
+                    auto ordered_names = matched_a->residue()->ordered_min_backbone_atom_names();
+                    if (ordered_names == nullptr)
+                        continue;
+                    bool a_other_increases = backbone_increases(matched_a, other_a, ordered_names);
+                    bool pb_other_increases = backbone_increases(matched_a, other_pb, ordered_names);
+                    if (a_other_increases == pb_other_increases) {
+                        // Okay, the new bond points into the structure gap;
+                        // follow along the new backbone and shorten or eliminate the pseudobond
+                        std::set<Atom*> seen;
+                        auto new_end = follow_backbone(matched_a, other_a, other_pb, seen);
+                        if (new_end == nullptr) {
+                            pbg->delete_pseudobond(pb);
+                            if (pbg->pseudobonds().size() == 0)
+                                //pbg->manager()->delete_group(pbg);
+                                Py_XDECREF(pbg->py_call_method("cpp_del_model"));
+                        } else {
+                            auto shortened = pbg->new_pseudobond(new_end, other_pb);
+                            shortened->copy_style(pb);
+                            pbg->delete_pseudobond(pb);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
     return b;
 }
 
@@ -1005,6 +1225,34 @@ Structure::nonstd_res_names() const
             nonstd.insert(r->name());
     }
     return nonstd;
+}
+
+void
+Structure::renumber_residues(const std::vector<Residue*>& res_list, int start)
+{
+    if (res_list.size() == 0)
+        return;
+    std::set<Residue*> check(res_list.begin(), res_list.end());
+    auto chain_id = res_list[0]->chain_id();
+    for (auto r: res_list)
+        if (r->chain_id() != chain_id)
+            throw std::logic_error("Renumbered residues must all have same chain ID");
+    for (auto r: residues()) {
+        if (r->chain_id() != chain_id)
+            continue;
+        if (check.find(r) != check.end())
+            continue;
+        if (r->insertion_code() != ' ')
+            // renumbered residues will have no insertion code
+            continue;
+        if (r->number() >= start && r->number() < start + static_cast<int>(res_list.size()))
+            throw std::logic_error("Renumbering residies will conflict with other existing residues");
+    }
+    int num = start;
+    for (auto r: res_list) {
+        r->set_insertion_code(' ');
+        r->set_number(num++);
+    }
 }
 
 void
@@ -1753,7 +2001,7 @@ compare_chains(Chain* c1, Chain* c2)
 
 void
 Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
-        const std::vector<Residue*>* correspondences, PolymerType pt)
+        const std::vector<Residue*>* correspondences, PolymerType pt, bool one_letter_names)
 {
     _input_seq_info[chain_id] = res_names;
     if (correspondences != nullptr) {
@@ -1761,10 +2009,22 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
             throw std::invalid_argument(
                 "Sequence length differs from number of corresponding residues");
         if (pt == PT_NONE) {
-            for (auto rn: res_names) {
-                pt = Sequence::rname_polymer_type(rn);
-                if (pt != PT_NONE)
-                    break;
+            if (one_letter_names) {
+                if (correspondences != nullptr) {
+                    for (auto r: *correspondences) {
+                        if (r == nullptr)
+                            continue;
+                        pt = Sequence::rname_polymer_type(r->name());
+                        if (pt != PT_NONE)
+                            break;
+                    }
+                }
+            } else {
+                for (auto rn: res_names) {
+                    pt = Sequence::rname_polymer_type(rn);
+                    if (pt != PT_NONE)
+                        break;
+                }
             }
             if (pt == PT_NONE)
                 throw std::invalid_argument("Cannot determine polymer type of input sequence");
@@ -1775,7 +2035,10 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
         auto res_chars = new Sequence::Contents(res_names.size());
         auto chars_ptr = res_chars->begin();
         for (auto rni = res_names.begin(); rni != res_names.end(); ++rni, ++chars_ptr) {
-            (*chars_ptr) = Sequence::rname3to1(*rni);
+            if (one_letter_names)
+                (*chars_ptr) = (*rni)[0];
+            else
+                (*chars_ptr) = Sequence::rname3to1(*rni);
         }
         chain->bulk_set(*correspondences, res_chars);
         chain->set_from_seqres(true);
@@ -1835,6 +2098,15 @@ Structure::ribbon_orient(const Residue *r) const
     if (r->is_strand())
         return Structure::RIBBON_ORIENT_PEPTIDE;
     return Structure::RIBBON_ORIENT_ATOMS;
+}
+
+size_t Structure::num_ribbon_residues() const
+{
+    size_t count = 0;
+    for (auto r: _residues)
+        if (r->ribbon_display())
+            count += 1;
+    return count;
 }
 
 } //  namespace atomstruct

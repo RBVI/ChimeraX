@@ -29,14 +29,14 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;<i>frame</i>
-[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>coordset</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [<i>start</i>,][<i>end</i>][,<i>step</i>]
-[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -67,7 +67,7 @@ Protein <a href="cartoon.html">cartoon</a> (ribbon) display
 depends on which residues are in helices and strands,
 but these secondary structure assignments are not recomputed automatically
 as the coordinates change.
-The <b>computeSS</b> option (default <b>false</b>)
+The <b>computeSs</b> option (default <b>false</b>)
 can be used to update secondary structure assignments as each frame is shown.
 It runs <a href="dssp.html"><b>dssp</b></a> with default parameters;
 to use different <a href="dssp.html"><b>dssp</b></a> parameters
@@ -137,7 +137,7 @@ instead of abruptly wrapping.
 <blockquote><a href="usageconventions.html"><b>Usage</b></a>:
 <b>coordset slider</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>computeSS</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>computeSs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>holdSteady</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
 [&nbsp;<b>pauseFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 </blockquote>
@@ -147,7 +147,7 @@ for <a href="../trajectories.html">trajectory</a> playback.
 The slider can be dragged or a frame number entered directly.
 The interface also includes a play/pause button and another
 (marked with a red dot) for recording a movie.
-The <b>computeSS</b>, <b>holdSteady</b>, and <b>pauseFrames</b> options are 
+The <b>computeSs</b>, <b>holdSteady</b>, and <b>pauseFrames</b> options are 
 as described <a href="#top">above</a> for the main <b>coordset</b> command.
 A separate slider is shown for each specified trajectory model,
 and appears automatically when a multi-model mmCIF or PDB file is 
@@ -185,7 +185,7 @@ applies in a particular situation.
 If a protein is displayed as a <a href="cartoon.html">cartoon</a> (ribbon)
 and conformational changes are occurring over the trajectory,
 users may want to re-evaluate secondary structure assignments periodically.
-The <b>computeSS</b> option of <a href="#top"><b>coordset</b></a>
+The <b>computeSs</b> option of <a href="#top"><b>coordset</b></a>
 already provides a convenient way to reassign secondary structure 
 at every frame shown.
 However, an alternative approach with <a href="perframe.html"><b>perframe</b></a>

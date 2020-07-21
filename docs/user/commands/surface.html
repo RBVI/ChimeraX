@@ -36,20 +36,21 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
+<br><b>surface</b> (&nbsp;<b>hidePatches</b>&nbsp;|&nbsp;<b>showPatches</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
+<br><b>surface</b> (&nbsp;<b>hidePatches</b>&nbsp;|&nbsp;<b>showPatches</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
+&nbsp;<a href="atomspec.html#othermodels"><i>molsurf-model</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface style</b>
+<br><a href="#style"><b>surface style</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 (&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
 </h3>
 <p>
-The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
+The <b>surface</b> command creates and displays
+<b><i>molecular surfaces</i></b>,
 either atomically detailed solvent-excluded surfaces (default) or
 lower-resolution Gaussian surfaces.
 See also:
@@ -61,6 +62,7 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="volume.html#vop"><b>volume</b> operations</a>,
+<a href="../menu.html#actions"><b>Actions</b> menu</a>,
 <a href="colortables.html#autocolors">chain colors</a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
@@ -116,16 +118,18 @@ will show/hide their patches within the context of
 the entire chain; for example, no patches will be shown
 for atoms that are completely buried inside the chain.
 </p><p>
-The <b>surface show</b> command applies to <i>pre-existing</i> surfaces only,
-whereas <b>surface</b> (without <b>show</b>) creates a new surface as needed.
+The <b>surface showPatches</b> command applies to
+<i>pre-existing</i> surfaces only, whereas <b>surface</b>
+(without <b>showPatches</b>) creates a new molecular surface as needed.
 <!-- still unclear to me exactly what this entails -->
 However, if the intent is to switch between surface types (SES and GS)
 or to create a new surface with default parameters, 
 closing an existing surface first is recommended, otherwise
 some of its settings may be retained.
-The <b>surface close</b> command removes the surface models specified directly,
-or all surface models that enclose any of the specified atoms.
-The command <b>~surface</b> is the same as <b>surface hide</b>.
+The <b>surface close</b> command removes the molecular surface models 
+specified directly by model number,
+or all molecular surface models that enclose any of the specified atoms.
+The command <b>~surface</b> is the same as <b>surface hidePatches</b>.
 </p><p>
 Surface display style (solid, mesh, or dot) can be adjusted with
 <a href="#style"><b>surface style</b></a>.
@@ -160,6 +164,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;[&nbsp;<b>level</b>&nbsp;<i>l</i>&nbsp;]]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>sharpBoundaries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
@@ -235,6 +240,10 @@ for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution)
 for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
+<li>The <b>update</b> option (default <b>true</b>) indicates
+whether to update the surface automatically when its shape changes,
+such as from atom movements during
+<a href="../trajectories.html">trajectory</a> playback.
 </ul>
 <p>
 The default values apply to the initial creation of a surface,
@@ -272,66 +281,66 @@ See also: <a href="#dust"><b>surface dust</b></a>
 <blockquote>
 <b>surface</b>
 <br>
-- display the surface of each biopolymer chain in each model
+&ndash; display the surface of each biopolymer chain in each model
 <br><br>
 <b>surface #1</b>
 <br>
-- display the surface of each biopolymer chain in model 1
+&ndash; display the surface of each biopolymer chain in model 1
 <br><br>
 <b>surface #1:5-38</b>
 <br>
-- display the surface patch(es) for residues 5-38 in each chain of model 1
+&ndash; display the surface patch(es) for residues 5-38 in each chain of model 1
 <br><br>
 <b>surface hide #1/A:5-38</b>
 <br>
-- hide the surface patch(es) for residues 5-38 in chain A of model 1
+&ndash; hide the surface patch(es) for residues 5-38 in chain A of model 1
 <br><br>
 <b>surface :10-20 visible 1</b>
 <br>
-- display the largest surface patch for residues 10-20 in each chain
+&ndash; display the largest surface patch for residues 10-20 in each chain
 <br><br>
 <b>surface close /b</b>
 <br>
-- close (delete) the surface model for chain B
+&ndash; close (delete) the surface model for chain B
 <br><br>
 <b>surface close #1.2</b>
 <br>
-- close (delete) the surface with model number 1.2
+&ndash; close (delete) the surface with model number 1.2
 <br><br>
 <b>surface ligand @<5 visible 1</b>
-- display the largest surface patch per biopolymer chain for
+&ndash; display the largest surface patch per biopolymer chain for
 atoms within 5&Aring; of <a href="atomspec.html#builtin"><b>ligand</b></a>
 <br><br>
 <b>surface ligand</b>
 <br>
-- display surface(s) for <a href="atomspec.html#builtin"><b>ligand</b></a>
+&ndash; display surface(s) for <a href="atomspec.html#builtin"><b>ligand</b></a>
 (divided up by chain ID)
 <br><br>
 <b>surface #1-3</b>
 <br>
-- display the surface of each biopolymer chain in models 1-3
+&ndash; display the surface of each biopolymer chain in models 1-3
 <br><br>
 <b>surface #1-3 enclose #1-3</b>
 <br>
-- display a single surface enclosing all biopolymer chains in models 1-3;
+&ndash; display a single surface enclosing all biopolymer chains in models 1-3;
 the first <b>#1-3</b> could be omitted,
 as a blank specification there is interpreted as &ldquo;all&rdquo; 
 <br><br>
 <b>surface :10-20 enclose /a-c</b>
 <br>
-- display the surface patch(es) for residues 10-20 within a single surface
+&ndash; display the surface patch(es) for residues 10-20 within a single surface
 that encloses chains A-C
 <br><br>
 <b>surface #1 include :hem</b>
 <br>
-- display a surface that encloses each biopolymer chain in model 1 along
+&ndash; display a surface that encloses each biopolymer chain in model 1 along
 with its respective HEM residue (for example, in PDB
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=4hhb"
 target="_blank">4HHB</a>)
 <br><br>
 <b>surface enclose #1 include :hem</b>
 <br>
-- display a single surface that encloses all the biopolymer chains 
+&ndash; display a single surface that encloses all the biopolymer chains 
 and HEM residues in model 1
 </blockquote>
 
@@ -348,7 +357,12 @@ and HEM residues in model 1
 <p>
 The representation of a surface model can be <b>solid</b>,
 <b>mesh</b>, or <b>dot</b>.
-See also: <a href="transparency.html"><b>transparency</b></a>
+This applies to surface models in general, including
+<a href="../tools/volumeviewer.html">volume</a> isosurfaces,
+and always applies to the entire model.
+See also:
+<a href="volume.html"><b>volume</b></a>,
+<a href="transparency.html"><b>transparency</b></a>
 </p>
 
 <a name="sop"></a>
@@ -363,11 +377,11 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 </p>
 <ul>
 <li><a href="#cap"><b>surface cap</b></a>
-- adjust capping of <a href="clip.html">clipped</a> surfaces
+&ndash; adjust capping of <a href="clip.html">clipped</a> surfaces
 <li><a href="#dust"><b>surface dust</b></a>
-- hide small blobs (disconnected parts)
+&ndash; hide small blobs (disconnected parts)
 <li><a href="#zone"><b>surface zone</b></a>
-- show only surface parts within a cutoff distance of specified atoms
+&ndash; show only surface parts within a cutoff distance of specified atoms
 </ul>
 
 <a name="cap"></a>
@@ -399,7 +413,7 @@ See also: <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>
 <b>surface dust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 [&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;&lsquo;area&nbsp;rank&rsquo;&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;&lsquo;size&nbsp;rank&rsquo;&nbsp;|&nbsp;volume&nbsp;|&nbsp;&lsquo;volume&nbsp;rank&rsquo;&nbsp;]
+[&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;area&nbsp;rank&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;size&nbsp;rank&nbsp;|&nbsp;volume&nbsp;|&nbsp;volume&nbsp;rank&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="#sop" class="nounder">&bull;</a>
@@ -409,15 +423,17 @@ See also: <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>
 Hide smaller blobs (disconnected parts) of a surface, 
 such as to simplify the display of noisy density.
 Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
-will be hidden. The size units depend on the <b>metric</b>:
+will be hidden. The size units depend on the <b>metric</b>, which 
+can be any of the following (enclosed in single or double quotation marks 
+if it includes spaces):
   <ul>
-  <li><b>area</b> - surface area
-  <li><b>area rank</b> - rank by largest <b>area</b> 
+  <li><b>area</b> &ndash; surface area
+  <li><b>area rank</b> &ndash; rank by largest <b>area</b> 
   (a value of <i>N</i> indicates showing the <i>N</i> largest blobs)
-  <li><b>size</b> (default) - bounding box dimension (largest of X, Y, Z)
-  <li><b>size rank</b> - rank by largest <b>size</b> 
-  <li><b>volume</b> - enclosed volume
-  <li><b>volume rank</b> - rank by largest <b>volume</b> 
+  <li><b>size</b> (default) &ndash; bounding box dimension (largest of X, Y, Z)
+  <li><b>size rank</b> &ndash; rank by largest <b>size</b> 
+  <li><b>volume</b> &ndash; enclosed volume
+  <li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
   </ul>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
@@ -502,5 +518,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+April 2020</address>
 </body></html>

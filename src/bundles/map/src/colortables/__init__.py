@@ -16,4 +16,5 @@
 # .plist files for setting 3d image rendering colors, brightness and transparency.
 #
 
-from .colortables import appearance_names, appearance_settings
+from .colortables import appearance_names, AppearanceArg, appearance_settings
+from .colortables import add_appearance, delete_appearance

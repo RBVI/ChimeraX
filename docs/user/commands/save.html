@@ -26,15 +26,13 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: save</h3>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> 
-[&nbsp;<a href="#image"><b>image</b></a>&nbsp;|&nbsp;<a href="#session"><b>session</b></a>&nbsp;|&nbsp;<a href="#map"><b>map</b></a>&nbsp;]
-&nbsp;<i>filename</i>
+<br><b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 &nbsp;<i>other-options</i>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> <b>formats</b>
+<br><a href="#formats"><b>save formats</b></a>
 </h3>
 <p>
 The <b>save</b> command saves an image, <a href="#session">ChimeraX session</a>,
@@ -53,33 +51,39 @@ or <a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
 border=1 src="../tools/toolbar-icons/content-save.png"></a>.
 See also: <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
+<a href="../formats/positions.html">ChimeraX positions format</a>,
 <a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
-target="_blank">Writing mmCIF Files in ChimeraX</a>
+target="_blank">writing mmCIF files in ChimeraX</a>
 </p><p>
-An initial
-<b>image</b>, <b>session</b>, or <b>map</b> keyword before the <i>filename</i>
-is optional if the file type is specified with either the 
-<a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
-Some file types have no preceding keyword and must be specified with the 
+The file type is specified with either the 
 <a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
 </p><p>
-Sessions and images include all contents, but for other file types,
-the <b>models</b> option can be used to specify which model(s) to save.
-There may be several additional options, depending on the file type:
+Sessions, images, and scenes include all contents, but map and atomic coordinate
+saving can be limited to specific models with the <b>models</b> option.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>, for example:
+</p>
+<blockquote>
+<b>save mutated.pdb #3</b>
+</blockquote>
+<p>
+There may be additional options, depending on the file type:
 </p>
 <ul class="none">
-<li><a href="#formats"><b>Output Formats</b></a>
-<li><a href="#image"><b>Save Image</b></a>
+<li><a href="#image"><b>Image</b></a>
 <a href="../tools/toolbar.html#home" title="Toolbar Home">
 <img class="icon" border=1 src="../tools/shortcut-icons/camera.png"></a>
-<li><a href="#session"><b>Save Session</b></a>
-<li><a href="#map"><b>Save Map</b></a>
-<li><a href="#pdb"><b>Save PDB</b></a>
-<li><a href="#mmcif"><b>Save mmCIF</b></a>
-<li><a href="#mol2"><b>Save Mol2</b></a>
-<li><a href="#sequence"><b>Save Sequence Data</b></a>
+<li><a href="#session"><b>Session</b></a>
+<li><a href="#map"><b>Map</b></a>
+<li>Atomic Coordinates: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
+&nbsp;<a href="#mmcif"><b>mmCIF</b></a>&nbsp;
+&nbsp;<a href="#mol2"><b>Mol2</b></a>&nbsp;
+<li><a href="#sequence"><b>Sequence Data</b></a>
+<li><a href="#gltf"><b>GLTF</b></a>
+<li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
 </ul>
 
 <a name="formats"></a>
@@ -92,13 +96,13 @@ The command <b>save formats</b> lists the possible output formats in the
 <a href="../tools/log.html"><b>Log</b></a>.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
-<th class="shaded">initial keyword</th>
+<th class="shaded">category</th>
 <th class="shaded"><i>format-name</i></th>
 <th class="shaded"><a name="suffix"><i>filename</i> suffix</a></th>
 <th class="shaded">description</th>
 </tr><tr id="imgformats">
-<td align="center" rowspan="6"><a href="#image"><b>image</b></a></td>
-<td align="center"><b>png</b><br>(default for <b>save image</b>)</td>
+<td align="center" rowspan="6" valign="top">&nbsp;<br>&nbsp;<a href="#image">image</a></td>
+<td align="center"><b>png</b></td>
 <td align="center">.png</td>
 <td align="center">Portable Network Graphics</td>
 </tr><tr>
@@ -122,56 +126,71 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
 </tr><tr id="sesformat">
-<td align="center"><a href="#session"><b>session</b></a></td>
+<td align="center"><a href="#session">session</a></td>
 <td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr id="mapformats">
-<td align="center" rowspan="3"><a href="#map"><b>map</b></a></td>
+<td align="center" rowspan="5" valign="top">&nbsp;<br>&nbsp;<a href="#map">map</a></td>
+<td align="center"><b>brix</b></td>
+<td align="center">.brix</td>
+<td align="center">BRIX density map</td>
+</tr><tr>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center"><a href="#chimap">Chimera map</a>
 <br>(may contain multiple models)</td>
 </tr><tr>
-<td align="center"><b>dsn6</b></td>
-<td align="center">.brix</td>
-<td align="center">BRIX density map</td>
+<td align="center"><b>imagic</b></td>
+<td align="center">.hed<br>.img</td>
+<td align="center"><a href="https://www.imagescience.de/formats.html"
+target="_blank">IMAGIC map</a>
+<br>(the format consists of two files, <i>filename</i>.hed with 
+header information and <i>filename</i>.img with the map values; 
+both files will be saved if <b>format imagic</b> or either 
+suffix is used in the <b>save</b> command; IMAGIC support
+courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 </tr><tr>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<td align="center" rowspan="13">(none)</td>
+<td align="center"><b>mtz</b></td>
+<td align="center">.mtz</td>
+<td align="center" class="text">
+<a href="http://www.ccp4.ac.uk/html/mtzformat.html"
+target="_blank">MTZ</a> crystallographic reflection file
+(reciprocal space map)
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>; 
+see <a href="open.html#clipper">details...</a>
+</tr><tr>
+<td align="center" valign="top" rowspan="6">&nbsp;<br>&nbsp;atomic</td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb</td>
 <td align="center">
-atomic coordinates,<br>PDB<br>
-(see <a href="#pdb"><b>Save PDB</b></a>)</td>
-</tr><tr>
-<td align="center"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
-<td align="center">list of atom pairs to connect with 
-<a href="../pseudobonds.html">pseudobonds</a><br>
-(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+PDB,<br>
+see <a href="#pdb">PDB options</a></td>
 </tr><tr>
 <td align="center"><b>mmcif</b></td>
 <td align="center">.cif</td>
 <td align="center">
-atomic coordinates,<br>
-mmCIF<br>
-(see <a href="#mmcif"><b>Save mmCIF</b></a>)</td>
+mmCIF,<br>
+see <a href="#mmcif">mmCIF options</a></td>
 </tr><tr>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
 <td align="center">
-atomic coordinates,<br>
-Sybyl Mol2<br>
-(see <a href="#mol2"><b>Save Mol2</b></a>)</td>
+Sybyl Mol2,<br>
+see <a href="#mol2">Mol2 options</a></td>
 </tr><tr>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
-<td align="center"><a href="../trajectories.html">trajectory</a> 
-coordinates,<br>DCD (binary)</td>
+<td align="center"><a href="../trajectories.html">trajectory</a>,
+<br>DCD (binary)</td>
 </tr><tr>
 <td align="center"><b>markers</b></td>
 <td align="center">.cmm</td>
@@ -179,19 +198,39 @@ coordinates,<br>DCD (binary)</td>
 <br>(analogous to atoms and bonds)</td>
 </td>
 </tr><tr>
+<td align="center"><b>pseudobonds</b></td>
+<td align="center">.pb</td>
+<td align="center">list of atom pairs to connect with 
+<a href="../pseudobonds.html">pseudobonds</a><br>
+(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+</tr><tr id="seqformats">
+<td align="center" rowspan="3">&nbsp;<br>&nbsp;<a href="#sequence">sequence</a></td>
+<td align="center"><b>aln</b></td>
+<td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
+<td align="center">Clustal ALN</td>
+</tr><tr>
+<td align="center"><b>fasta</b></td>
+<td align="center">.fasta, .fa<br>.afasta, .afa</td>
+<td align="center">FASTA</td>
+</tr><tr>
+<td align="center"><b>pir</b></td>
+<td align="center">.pir, .ali</td>
+<td align="center">PIR (NBRF)</td>
+</tr><tr>
+<td align="center" valign="top" rowspan="5">&nbsp;<br>&nbsp;3D&nbsp;objects</td>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
-<td align="center" class="text">3D objects, <a href="https://www.khronos.org/gltf"
+<td align="center" class="text"><a href="https://www.khronos.org/gltf"
 target="_blank">GL Transmission Format</a>
 <br>(see <a href="#gltf">glTF options</a>)</td>
 </tr><tr>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
-<td align="center">3D objects, STereoLithography</td>
+<td align="center">STereoLithography</td>
 </tr><tr>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj</td>
-<td align="center" class="text">3D objects,
+<td align="center" class="text">
 <a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
 target="_blank">Wavefront OBJ</a>
 <br>(geometric and texture vertices, vertex normals, faces; no colors)
@@ -199,23 +238,22 @@ target="_blank">Wavefront OBJ</a>
 </tr><tr>
 <td align="center"><b>x3d</b></td>
 <td align="center">.x3d</td>
-<td align="center">3D objects, <a href="http://www.web3d.org/x3d/"
+<td align="center"><a href="http://www.web3d.org/x3d/"
 target="_blank">X3D</a></td>
-</tr><tr id="seqformats">
-<td align="center"><b>aln</b></td>
-<td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>Clustal ALN</td>
 </tr><tr>
-<td align="center"><b>fasta</b></td>
-<td align="center">.fasta, .fa<br>.afasta, .afa</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>FASTA</td>
-</tr><tr>
-<td align="center"><b>pir</b></td>
-<td align="center">.pir, .ali</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>PIR (NBRF)</td>
+<td align="center"><b>vtk</b></td>
+<td align="center">.vtk</td>
+<td align="center">
+<a href="http://vtk.org/" target="_blank">Visualization ToolKit</a>
+PolyData 
+<br>(molecular structures and surfaces as points, lines, and mesh;
+<a href="../formats/vtk.html">details...</a>)</td>
+</tr><tr id="posformat">
+<td align="center"><a href="../formats/positions.html">positions</a></td>
+<td align="center"><b>positions</b></td>
+<td align="center">.positions</td>
+<td align="center"><a href="../formats/positions.html">ChimeraX
+model positions</a></td>
 </tr></table>
 
 <a name="image"></a>
@@ -225,7 +263,7 @@ target="_blank">X3D</a></td>
 <h3>Save Image</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#imgformats"><i>format-name</i></a>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
@@ -248,7 +286,10 @@ Image pixel dimensions can be specified directly with
 <b>width</b> and <b>height</b>, or relative to the physical dimensions
 of the view in the window with <b>pixelSize</b>. 
 If none of these are given,
-the image will have the same pixel dimensions as the graphics window.
+the image will have the same pixel dimensions as the graphics display.
+The display dimensions are usually the same as the graphics window reported by
+<a href="windowsize.html"><b>windowsize</b></a>, 
+except twice as large on high-DPI displays such as Apple Retina.
 If only width or height is specified, the other will be set according to the
 window aspect ratio; if both are specified but the image aspect
 ratio is not the same as the window aspect ratio, the image
@@ -275,7 +316,7 @@ The degree of supersampling <i>N</i> defaults to <b>3</b>, meaning
 that the initial image will be 3 times larger in each dimension,
 with 9 times as many pixels, as the final result.
 A value of 1 corresponds to no supersampling.
-See also: <a href="set.html#subdivision"><b>set subdivision</b></a>
+See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
 </blockquote>
 <blockquote>
 <b>quality</b>&nbsp;<i>M</i>
@@ -302,24 +343,32 @@ interpreted correctly by Adobe Photoshop.)
 <h3>Save Session</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 A <b><i>ChimeraX session file</i></b> encodes most aspects of a
-modeling session in ChimeraX, including atomic and other models, sequences,
-<a href="view.html#name">camera views</a>, lighting, display styles, coloring,
-labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>),
-<a href="../selection.html">selections</a>, 
-selection highlighting <a href="set.html#selectionColor">color</a> and 
-<a href="set.html#selectionWidth">width</a>,
-<a href="../attributes.html">attributes</a>,
-<a href="color.html#name">custom colors</a>,
-<a href="buttonpanel.html">custom button panels</a>,
-<a href="alias.html">aliases</a>, <a href="name.html">defined targets</a>,
-<a href="surface.html#zone">surface zones</a>,
-and <a href="../tools/segment.html">segmentation results</a>.
+modeling session in ChimeraX:
+<ul>
+<li>atomic and other models
+<li>sequences and sequence alignments
+<li>lighting, display styles, coloring,
+labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>)
+<li><a href="../selection.html">selections</a>,
+selection highlighting <a href="graphics.html#selections">color and width</a>
+<li><a href="name.html">defined targets</a> (<i>e.g.</i>, named selections)
+<li><a href="view.html#name">named views</a>
+<li><a href="alias.html">aliases</a>
+<li><a href="../attributes.html">attributes</a>
+<li><a href="color.html#name">custom colors</a>
+<li><a href="buttonpanel.html">custom button panels</a>
+<li><a href="surface.html#zone">surface zones</a>
+<li><a href="../tools/segment.html">segmentation results</a>
+<li><a href="../vr.html">virtual reality</a> status including
+model positions in the room and hand-controller button assignments
+<li><a href="../tools/log.html"><b>Log</b></a> contents
+</ul>
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
 A common use is to store setups for 
@@ -329,8 +378,14 @@ is set in the
 <a href="../preferences.html#window"><b>Window</b> preferences</a>
 or can be specified with the <a href="open.html"><b>open</b></a> command
 <a href="open.html#resizeWindow"><b>resizeWindow</b></a> option.
+Whether to clear pre-existing 
+<a href="../tools/log.html"><b>Log</b></a> contents
+before restoring those from the session is set in the
+<a href="../preferences.html#log"><b>Log</b> preferences</a>.
 See also: 
-<a href="usageconventions.html#cxc-files">ChimeraX command files</a>
+<a href="usageconventions.html#cxc-files">ChimeraX command files</a>,
+<a href="../formats/positions.html">ChimeraX positions files</a>,
+<a href="../preferences.html">ChimeraX preferences</a>
 </p><p>
 Sessions are saved in a ChimeraX-specific <a href="#sesformat">format</a>
 not read by other programs.
@@ -341,7 +396,12 @@ The default is <b>false</b>, as maps can be very large.
 If the maps are not included, the session file will still include the
 locations of the corresponding map files and open them automatically
 upon session restore, or if they are not found, prompt the user
-for their current locations.
+for their current locations. The session file will include the
+map file location as a relative path if the map file is in the same
+directory as the session file, or in a subdirectory of that directory.
+If the map file is in neither the same directory as the session file nor
+a subdirectory of that directory, its location will be stored 
+as an absolute path.
 </p>
 
 <a name="map"></a>
@@ -351,7 +411,7 @@ for their current locations.
 <h3>Save Map</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>map</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
@@ -374,9 +434,9 @@ Multiple data sets can be written to multiple files by including a
 %d integer format specification in <i>filename</i>:
 </p>
 <blockquote>
-<b>save #2,3,7 data%d.mrc</b>
+<b>save data%d.mrc models #2,3,7</b>
 <br>
-<b>save #2,3,7 data%03d.mrc</b>
+<b>save data%03d.mrc models #2,3,7</b>
 </blockquote>
 <p>
 The first example would generate the files data1.mrc, data2.mrc,
@@ -391,6 +451,9 @@ Further options:
 <b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Volume model(s) to save; can be omitted if only one volume model is open.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>
@@ -506,6 +569,9 @@ single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
 <b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write only the specified models, otherwise all atomic models.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -626,6 +692,9 @@ Atomic coordinates can be saved in Sybyl Mol2 format, with options:
 Write only the specified models, otherwise all atomic models
 (except as restricted with <a href="#atoms"><b>atoms</b></a>
 and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -686,15 +755,17 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 <!--
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#seqformats"><i>format-name</i></a>&nbsp;]
 -->
-[&nbsp;<b>format</b>&nbsp;&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;aln&nbsp;|&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i></a>&nbsp;]
 </blockquote>
 <p>
-Only the contents of a single
+An individual sequence or multiple sequence alignment open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
+can be saved to a file. Only the contents of a single
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
-can be saved to a file at a time. When more than sequence window is present,
-the <b>alignment</b> option is needed to specify the window of interest,
-using the <i>alignment-id</i> shown in the title bar of the window.
+can be saved at a time. When more than sequence window is present,
+which one to save is indicated with the <b>alignment</b> option, 
+using the <i>alignment-id</i> shown in the window's title bar.
 Example:
 </p>
 <blockquote>
@@ -752,5 +823,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+June 2020</address>
 </body></html>

@@ -1,4 +1,3 @@
-
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -20,14 +19,24 @@
 from chimerax.core.models import Model
 class Volume(Model):
   '''
-  A Volume is a rendering of a 3-d image GridData object.  It includes
-  color, display styles including surface, mesh and grayscale, contouring levels,
+  A Volume is a Model that renders a 3-d image of a :class:`~.data.GridData` object.
+  It includes color, display styles including surface, mesh and grayscale, contouring levels,
   brightness and transparency for grayscale rendering, region bounds for display
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
+
+  Attributes
+  ----------
+  session : :class:`~chimerax.core.session.Session`
+      The session that the Volume will belong to.
+  data : :class:`~.data.GridData`
+      3D data array
+  region : (ijk_min, ijk_max, ijk_step)
+      Initial displayed subregion of 3D array
+  rendering_options : :class:`.RenderingOptions`
+      Appearance settings for surface and image display.
   '''
   def __init__(self, session, data, region = None, rendering_options = None):
-    '''Supported API. Create a volume model from a GridData instance.'''
     
     Model.__init__(self, data.name, session)
 
@@ -47,7 +56,7 @@ class Volume(Model):
     self.region = clamp_region(region, data.size)
 
     if rendering_options is None:
-      rendering_options = Rendering_Options()
+      rendering_options = RenderingOptions()
     self.rendering_options = rendering_options
 
     self.message_cb = session.logger.status
@@ -69,20 +78,18 @@ class Volume(Model):
     # Surface display submodels
     self._surfaces = []				# VolumeSurface instances
 
-    self.outline_box = Outline_Box(self)
+    self.outline_box = OutlineBox(self)
 
     # Image display submodel and parameters
     self._image = None
     self.image_levels = []                      # list of (threshold, scale)
     self.image_colors = []
+    self._mask_colors = None			# For coloring by segmentation
+    self._segment_colors = None			# For coloring segmentations
     self.transparency_depth = 0.5               # for image rendering
     self.image_brightness_factor = 1
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
-
-
-#    from chimera import addModelClosedCallback
-#    addModelClosedCallback(self, self.model_closed_cb)
 
 #    from chimera import triggers
 #    h = triggers.addHandler('SurfacePiece', self.surface_piece_changed_cb, None)
@@ -170,13 +177,16 @@ class Volume(Model):
   #
   @property
   def surfaces(self):
-    '''Supported API.  Return a list of VolumeSurface instances for this Volume.'''
+    '''Supported API.  Return a list of :class:`.VolumeSurface` instances for this Volume.'''
     return self._surfaces
   
   # ---------------------------------------------------------------------------
   #
   def add_surface(self, level, rgba = (.7,.7,.7,1), display = True):
-    '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
+    '''
+    Supported API.  Create and add a new :class:`.VolumeSurface` with
+    specified contour level and color.
+    '''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
     s.display = display
@@ -192,10 +202,10 @@ class Volume(Model):
   #
   def remove_surfaces(self, surfaces = None):
     '''
-    Supported API.  Remove a list of VolumeSurface instances from this Volume.
+    Supported API.  Remove a list of :class:`.VolumeSurface` instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
-    surfs = self._surfaces if surfaces is None else surfaces
+    surfs = tuple(self._surfaces if surfaces is None else surfaces)
     if self.id is None:
       self.remove_drawings(surfs)
     else:
@@ -212,22 +222,54 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def set_parameters(self, **kw):
+  def set_parameters(self,
+                     surface_levels = None,
+                     surface_colors = None,
+                     transparency = None,
+                     brightness = None,
+                     image_levels = None,
+                     image_colors = None,
+                     transparency_depth = None,
+                     image_brightness_factor = None,
+                     default_rgba = None,
+                     **rendering_options):
     '''
-    Set volume display parameters.  The following keyword parameters are valid.
+    Set volume display parameters.
   
-      surface_levels
-      surface_colors              (rgb or rgba values)
-      transparency                (for surfaces)
-      brightness		  (scales surface brightness)
-      image_levels
-      image_colors                (rgb or rgba values)
-      transparency_depth
-      image_brightness_factor
-  
-      Any rendering option attribute names can also be used.
+    Parameters
+    ----------
+    surface_levels : list of float
+      Threshold levels for contour surfaces.
+    surface_colors : list of (r,g,b) or (r,g,b,a)
+      Color for each surface level, color components have 0-1 range.
+    transparency : float
+      Surface transparency, 0 = fully opaque, 1 = fully transparent.
+    brightness : float
+      Scale surface brightness by this factor.
+    image_levels : list of (float, float)
+      Pairs of (threshold, brightness) where threshold is a map value
+      and brighness ranges from 0-1.  This defines a piecewise linear
+      brightness curve for image style rendering.
+    image_colors : list of (r,g,b) or (r,g,b,a)
+      Color associated with each image level, color components have 0-1 range.
+    transparency_depth : float
+      Controls how transparent image style renderings are, range 0-1.
+      Image rendering makes opacity equal to brightness, ie. full brightness (= 1)
+      image levels are fully opaque, and 0 brightness levels are fully transparent.
+      The thickness that produces this transparency is the displayed region size
+      multiplied by the transparency depth, where the region size is the size along
+      the axis (x, y, or z) having fewest grid points.
+    image_brightness_factor : float
+      Scale image style rendering by this factor.
+    default_rgba : 4 floats
+      Initial color (red, green, blue, alpha) to use for surface and
+      image style renderings.  Color components in range 0-1.
+    rendering_options : all additional settings
+      Any RenderingOption attribute name and value can be specified
+      as a keyword option.
     '''
 
+    kw = rendering_options.copy()
     parameters = ('surface_levels',
                   'surface_colors',
                   'transparency',
@@ -238,6 +280,8 @@ class Volume(Model):
                   'transparency_depth',
                   'default_rgba',
                   )
+    loc = locals()
+    kw.update({attr:loc[attr] for attr in parameters if loc[attr] is not None})
 
     def rgb_to_rgba(color):
       if len(color) == 3:
@@ -303,21 +347,13 @@ class Volume(Model):
 
     # Update rendering options.
     option_changed = False
-    if ('orthoplanes_shown' in kw and not 'box_faces' in kw and
-        true_count(kw['orthoplanes_shown']) > 0):
-      # Turn off box faces if orthoplanes enabled.
-      kw['box_faces'] = False
     ro = self.rendering_options
-    box_faces_toggled = ('box_faces' in kw and kw['box_faces'] != ro.box_faces)
-    orthoplanes_toggled = ('orthoplanes_shown' in kw and
-                           kw['orthoplanes_shown'] != ro.orthoplanes_shown and
-                           (true_count(kw['orthoplanes_shown']) == 0 or
-                            true_count(ro.orthoplanes_shown) == 0))
-    adjust_step = (self.image_shown and
-                   (box_faces_toggled or orthoplanes_toggled))
+    image_mode_changed = ('image_mode' in kw and kw['image_mode'] != ro.image_mode)
+    adjust_step = (self.image_shown and image_mode_changed)
     for k,v in kw.items():
-      if k in ro.__dict__:
-        setattr(self.rendering_options, k, v)
+      # TODO: Only allow setting allowed RenderOptions attributes
+      if k in ro.__dict__ or hasattr(ro, k):
+        setattr(ro, k, v)
         option_changed = True
     if adjust_step:
       r = self.region
@@ -370,6 +406,25 @@ class Volume(Model):
     self.set_color(rgba8_to_rgba(color))
   single_color = property(_get_single_color, _set_single_color)
 
+  # ---------------------------------------------------------------------------
+  #
+  def _get_mask_colors(self):
+    return self._mask_colors
+  def _set_mask_colors(self, mask_colors):
+    self._mask_colors = mask_colors
+    if self._image:
+      self._image.mask_colors = mask_colors
+  mask_colors = property(_get_mask_colors, _set_mask_colors)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_segment_colors(self):
+    return self._segment_colors
+  def _set_segment_colors(self, segment_colors):
+    self._segment_colors = segment_colors
+    if self._image:
+      self._image.segment_colors = segment_colors
+  segment_colors = property(_get_segment_colors, _set_segment_colors)
   
   # ---------------------------------------------------------------------------
   #
@@ -415,7 +470,7 @@ class Volume(Model):
 
     # Adjust ijk_step to meet voxel limit.
     ro = self.rendering_options
-    fpa = faces_per_axis(self.image_shown, ro.box_faces, ro.any_orthoplanes_shown())
+    fpa = faces_per_axis(self.image_shown, ro.image_mode)
     adjusted_ijk_step = ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step,
                                                  fpa, ro.limit_voxel_count,
                                                  ro.voxel_limit)
@@ -509,7 +564,7 @@ class Volume(Model):
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
-      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      neg_rgba = _negative_color(rgba)
       colors = [neg_rgba,rgba]
     elif binary:
       levels = [0.5]
@@ -578,7 +633,7 @@ class Volume(Model):
     self.redraw_needed()  # Switch to image does not change surface until draw
     if style == 'image' or self.image_shown:
       ro = self.rendering_options
-      adjust_step = (ro.box_faces or ro.any_orthoplanes_shown())
+      adjust_step = (ro.image_mode in ('box faces', 'orthoplanes'))
     else:
       adjust_step = False
     if adjust_step:
@@ -686,6 +741,11 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
+    if s.in_script:
+      # In scripts update volume drawings immediately.
+      # Script commands often depend on volume surfaces being computed immediately.
+      # For examnple, set surface level, then run volume dust.
+      self.update_drawings()
 
   # ---------------------------------------------------------------------------
   #
@@ -753,9 +813,9 @@ class Volume(Model):
 
     gvolume = volume / cell_volume
     matrix = self.full_matrix()
-    from . import data
+    from chimerax.map_data import surface_level_enclosing_volume
     try:
-      level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
+      level = surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
     except MemoryError as e:
       self.session.warning(str(e))
       level = None
@@ -767,21 +827,7 @@ class Volume(Model):
     '''
     Show an outline box enclosing the displayed subregion of the volume.
     '''
-    if show and rgb is not None:
-      from .data import box_corners
-      ijk_corners = box_corners(*self.ijk_bounds())
-      corners = self.data.ijk_to_xyz_transform * ijk_corners
-      if self.showing_orthoplanes():
-        ro = self.rendering_options
-        planes = ro.orthoplanes_shown
-        center = self.data.ijk_to_xyz(ro.orthoplane_positions)
-        crosshair_width = self.data.step
-      else:
-        planes, center, crosshair_width = None, None, None
-      self.outline_box.show(corners, rgb, linewidth, center, planes,
-                            crosshair_width)
-    else:
-      self.outline_box.erase_box()
+    self.outline_box.show(show, rgb, linewidth)
 
   # ---------------------------------------------------------------------------
   #
@@ -805,12 +851,6 @@ class Volume(Model):
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
     image_disp = (self._image and self._image.display)
     return self.display and (surf_disp or image_disp or self._style_when_shown is not None)
-    
-  # ---------------------------------------------------------------------------
-  #
-  def showing_orthoplanes(self):
-
-    return (self.image_shown or self._style_when_shown == 'image') and self.rendering_options.any_orthoplanes_shown()
 
   # ---------------------------------------------------------------------------
   #
@@ -824,9 +864,10 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
-  def showing_box_faces(self):
+  def showing_image(self, image_mode = None):
 
-    return (self.image_shown or self._style_when_shown == 'image') and self.rendering_options.box_faces
+    same_mode = (image_mode is None or self.rendering_options.image_mode == image_mode)
+    return (self.image_shown or self._style_when_shown == 'image') and same_mode
     
   # ---------------------------------------------------------------------------
   #
@@ -875,12 +916,18 @@ class Volume(Model):
 
     if copy_colors:
       # Copy colors
+
+      color_kw = {}
+      if len(self.surfaces) == len(v.surfaces):
+        color_kw['surface_colors'] = [s.rgba for s in v.surfaces]
+      if len(self.image_colors) == len(v.image_colors):
+        color_kw['image_colors'] = v.image_colors
+
       self.set_parameters(
-        surface_colors = [s.rgba for s in v.surfaces],
-        image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
         image_brightness_factor = v.image_brightness_factor,
-        default_rgba = v.default_rgba
+        default_rgba = v.default_rgba,
+        **color_kw
         )
 
     if copy_rendering_options:
@@ -923,7 +970,7 @@ class Volume(Model):
   # If volume data is not writable then make a writable copy.
   #
   def writable_copy(self, require_copy = False,
-                    unshow_original = True, model_id = None,
+                    unshow_original = True, model_id = None, open_model = True,
                     subregion = None, step = (1,1,1), name = None,
                     copy_colors = True, value_type = None):
 
@@ -942,7 +989,7 @@ class Volume(Model):
       g.name = self.name + ' copy'
 
     v = volume_from_grid_data(g, self.session, style = None, model_id = model_id,
-                              show_dialog = False)
+                              show_dialog = False, open_model = open_model)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
     if unshow_original:
@@ -952,9 +999,12 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None):
+  def region_grid(self, r, value_type = None, new_spacing = None):
 
     shape = self.matrix_size(region = r, clamp = False)
+    if new_spacing is not None:
+      d = self.data
+      shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
     shape.reverse()
     d = self.data
     if value_type is None:
@@ -962,7 +1012,9 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
-    from .data import ArrayGridData
+    if new_spacing is not None:
+      step = new_spacing
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
     return g
@@ -971,7 +1023,7 @@ class Volume(Model):
   #
   def surface_bounds(self):
     '''Surface bounds in volume coordinate system.'''
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     return union_bounds([s.geometry_bounds() for s in self.surfaces])
       
   # ---------------------------------------------------------------------------
@@ -982,13 +1034,30 @@ class Volume(Model):
 
     ijk_min_edge, ijk_max_edge = self.ijk_bounds(step, subregion)
     
-    from .data import box_corners, bounding_box
+    from chimerax.map_data import box_corners, bounding_box
     ijk_corners = box_corners(ijk_min_edge, ijk_max_edge)
     data = self.data
     xyz_min, xyz_max = bounding_box([data.ijk_to_xyz(c) for c in ijk_corners])
     
     return (xyz_min, xyz_max)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def center(self, step = None, subregion = None):
 
+    ijk_min, ijk_max = self.ijk_bounds(step, subregion)
+    ijk_mid = [0.5*(i0+i1) for i0,i1 in zip(ijk_min, ijk_max)]
+    c = self.data.ijk_to_xyz(ijk_mid)
+    return c
+
+  # ---------------------------------------------------------------------------
+  #
+  def corners(self, step = None, subregion = None):
+    from chimerax.map_data import box_corners
+    ijk_corners = box_corners(*self.ijk_bounds())
+    corners = self.data.ijk_to_xyz_transform * ijk_corners
+    return corners
+  
   # ---------------------------------------------------------------------------
   #
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
@@ -998,13 +1067,13 @@ class Volume(Model):
       
     if self.image_shown:
       ro = self.rendering_options
-      if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
+      if ro.image_mode == 'full region':
         vxyz1, vxyz2 = self.position.inverse() * (mxyz1, mxyz2)
         from . import slice
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
           return None
-        from chimerax.core.geometry import norm
+        from chimerax.geometry import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         if self.single_plane():
           # Report voxel under mouse and data value.
@@ -1017,7 +1086,7 @@ class Volume(Model):
           detail = ''
         return PickedMap(self, f, detail)
     elif self.surface_shown:
-      from chimerax.core.graphics import Drawing
+      from chimerax.graphics import Drawing
       pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
       if pd:
         d = pd.drawing()
@@ -1091,7 +1160,7 @@ class Volume(Model):
   def bounding_region(self, points, padding = 0, step = None, clamp = True, cubify = False):
 
     d = self.data
-    from .data import points_ijk_bounds
+    from chimerax.map_data import points_ijk_bounds
     ijk_fmin, ijk_fmax = points_ijk_bounds(points, padding, d)
     r = self.integer_region(ijk_fmin, ijk_fmax, step)
     if cubify:
@@ -1124,8 +1193,8 @@ class Volume(Model):
     d = self.data
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
-    v = self.position * lv
-    from chimerax.core.geometry import normalize_vector
+    v = self.scene_position.transform_vector(lv)
+    from chimerax.geometry import normalize_vector
     vn = normalize_vector(v)
     return vn
 
@@ -1154,9 +1223,9 @@ class Volume(Model):
     origin, size, step = self.step_aligned_region(region)
     d = self.data
     operation = 'reading %s' % d.name
-    from .data import ProgressReporter
+    from chimerax.map_data import ProgressReporter
     progress = ProgressReporter(operation, size, d.value_type.itemsize,
-                                message = self.message_cb)
+                                log = self.session.logger)
     from_cache_only = not read_matrix
     m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
@@ -1252,7 +1321,7 @@ class Volume(Model):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))
@@ -1301,12 +1370,17 @@ class Volume(Model):
     return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin aligned to a multiple of step and size of the region and step.
+  # Return the origin aligned to a multiple of step, and size and step of the region.
+  # The origin[axis] is the smallest index equal or greater to region ijk_min[axis]
+  # that is a multiple of the step.  The end of the region is the largest index equal
+  # or less than ijk_max[axis] that is a multiple of the step, unless that index is
+  # less than the origin in which case the end equals the origin.  The returned
+  # size is always a multiple of step.
   #
   def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
-    
+
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
     origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
@@ -1316,11 +1390,11 @@ class Volume(Model):
       if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
         origin[a] -= ijk_step[a]
 
-    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
+    end = [max(s*(i//s),o) for i,s,o in zip(ijk_max, ijk_step, origin)]
     if clamp:
       origin = [max(i,0) for i in origin]
-      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
-    size = [e-o for e,o in zip(end, origin)]
+      end = [min(i,lim-1) for i,lim in zip(end, self.data.size)]
+    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
 
     return tuple(origin), tuple(size), tuple(ijk_step)
 
@@ -1335,7 +1409,7 @@ class Volume(Model):
 
     matrix, p2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
-    from .data import interpolate_volume_data
+    from chimerax.map_data import interpolate_volume_data
     values, outside = interpolate_volume_data(points, p2m_transform,
                                               matrix, method)
 
@@ -1356,7 +1430,7 @@ class Volume(Model):
     matrix, v2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
 
-    from .data import interpolate_volume_gradient
+    from chimerax.map_data import interpolate_volume_gradient
     gradients, outside = interpolate_volume_gradient(points, v2m_transform,
                                                      matrix, method)
     if out_of_bounds_list:
@@ -1434,6 +1508,10 @@ class Volume(Model):
       # Optimization: avoid interpolation for identical grids.
       values = self.matrix(step = step, subregion = subregion)
     else:
+      if subregion == 'all' and self.data.voxel_count() > 2**28:
+        # Load just the small subregion of self that covers the grid in case
+        # the vgrid is small and map self is huge (e.g. does not fit in memory).
+        subregion = self._covering_subregion(vgrid)
       size_limit = 2 ** 22          # 4 Mvoxels
       isize, jsize, ksize = vgrid.matrix_size(step = 1, subregion = 'all')
       shape = (ksize, jsize, isize)
@@ -1458,6 +1536,23 @@ class Volume(Model):
 
   # -----------------------------------------------------------------------------
   #
+  def _covering_subregion(self, v):
+    '''Return subregion of self that covers the full region of map v.'''
+    vijk_min = (0,0,0)
+    vijk_max = tuple(s-1 for s in v.data.size)
+    from chimerax.map_data import box_corners, bounding_box
+    vijk_corners = box_corners(vijk_min, vijk_max)
+    vxyz_corners = v.data.ijk_to_xyz(vijk_corners)
+    xyz_corners = self.scene_position.inverse() * v.scene_position * vxyz_corners
+    ijk_corners = self.data.xyz_to_ijk(xyz_corners)
+    ijk_min, ijk_max = bounding_box(ijk_corners)
+    from math import floor, ceil
+    ijk_min = tuple(max(0,int(floor(i))) for i in ijk_min)
+    ijk_max = tuple(min(s-1,int(ceil(i))) for i,s in zip(ijk_max, self.data.size))
+    return ijk_min, ijk_max
+    
+  # -----------------------------------------------------------------------------
+  #
   def mean_sd_rms(self):
     return mean_sd_rms(self.matrix())
 
@@ -1470,7 +1565,7 @@ class Volume(Model):
     data = self.data
     size = data.size
     from numpy import float32
-    from .data import grid_indices
+    from chimerax.map_data import grid_indices
     if zplane is None:
       points = grid_indices(size, float32)
     else:
@@ -1514,7 +1609,7 @@ class Volume(Model):
       sg = self.data
     else:
       ijk_min, ijk_max, ijk_step = region
-      from .data import GridSubregion
+      from chimerax.map_data import GridSubregion
       sg = GridSubregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
@@ -1523,7 +1618,7 @@ class Volume(Model):
 #      if SurfaceZone.showing_zone(surf_model):
       if False:
         points, radius = SurfaceZone.zone_points_and_distance(surf_model)
-        from .data import zone_masked_grid_data
+        from chimerax.map_data import zone_masked_grid_data
         mg = zone_masked_grid_data(sg, points, radius)
         return mg
         
@@ -1566,7 +1661,7 @@ class Volume(Model):
       return None
 
     points, radius = SurfaceZone.zone_points_and_distance(self)
-    from .data import zone_masked_grid_data
+    from chimerax.map_data import zone_masked_grid_data
     masked_data = zone_masked_grid_data(self.data, points, radius,
                                         invert_mask = outside)
     if outside: name = 'outside zone'
@@ -1593,7 +1688,7 @@ class Volume(Model):
     if nvox >= min_status_message_voxels:
       self.message('Computing histogram for %s' % self.name)
     ipv = getattr(self.data, 'ignore_pad_value', None)
-    from .data import MatrixValueStatistics
+    from chimerax.map_data import MatrixValueStatistics
     self.matrix_stats = ms = MatrixValueStatistics(matrices, ignore_pad_value = ipv)
     if nvox >= min_status_message_voxels:    
       self.message('')
@@ -1607,12 +1702,12 @@ class Volume(Model):
     matrices = []
     if self.image_shown:
       ro = self.rendering_options
-      if ro.box_faces:
+      if ro.image_mode == 'box faces':
         msize = self.matrix_size()
         for axis in (0,1,2):
           matrices.append(self.matrix_plane(axis, 0, read_matrix))
           matrices.append(self.matrix_plane(axis, msize[axis]-1, read_matrix))
-      elif ro.any_orthoplanes_shown():
+      elif ro.image_mode == 'orthoplanes':
         omijk = self.matrix_index(ro.orthoplane_positions)
         for axis in (0,1,2):
           if ro.orthoplanes_shown[axis]:
@@ -1628,7 +1723,7 @@ class Volume(Model):
   #
   def write_file(self, path, format = None, options = {}):
 
-    from .data import save_grid_data
+    from chimerax.map_data import save_grid_data
     d = self.grid_data()
     format = save_grid_data(d, path, self.session, format, options)
 
@@ -1639,7 +1734,7 @@ class Volume(Model):
       return False
     if self.image_shown:
       return 'a' in self._image.color_mode
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     return Drawing.showing_transparent(self)
   
   # ---------------------------------------------------------------------------
@@ -1690,23 +1785,15 @@ class Volume(Model):
     d = self.data
     if d:
       d.clear_cache()
+      d.remove_change_callback(self.data_changed_cb)
+    self.data = None
+    self._keep_displayed_data = None
+    self.outline_box = None
     self.close_models()
     Model.delete(self)
       
   # ---------------------------------------------------------------------------
   #
-  def model_closed_cb(self, model):
-
-    if self.data:
-      self.data.remove_change_callback(self.data_changed_cb)
-      self.data = None
-      self._keep_displayed_data = None
-      self.outline_box = None   # Remove reference loops
-      from chimera import triggers
-      triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
-      self.surface_piece_change_handler = None
-
-
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
@@ -1719,7 +1806,9 @@ class Volume(Model):
       'version': 1,
     }
     return data
-
+      
+  # ---------------------------------------------------------------------------
+  #
   @staticmethod
   def restore_snapshot(session, data):
     grid_data = data['grid data state'].grid_data
@@ -1738,27 +1827,36 @@ class Volume(Model):
 #
 from .image3d import Image3d
 class VolumeImage(Image3d):
+  '''
+  Model for displaying 3d semi-transparent images.
+  These models are children of a :class:`.Volume` model
+  and should only be created by Volume.
+  '''
   def __init__(self, volume):
 
     self._volume = v = volume
-    
+
+    ro = v.rendering_options
     from .image3d import blend_manager, Colormap
     cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
-                    self._transparency_thickness())
+                    self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
 
     Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
                      v.session, blend_manager(v.session))
     v.add([self])
 
-    if hasattr(v, 'mask_colors'):
-      s.mask_colors = v.mask_colors
+    if v.mask_colors is not None:
+      self.mask_colors = v.mask_colors
+    if v.segment_colors is not None:
+      self.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
   #
   def delete(self):
     self._volume._image = None
     Image3d.delete(self)
-
+      
   # ---------------------------------------------------------------------------
   #
   def update_settings(self):
@@ -1771,9 +1869,11 @@ class VolumeImage(Image3d):
   # ---------------------------------------------------------------------------
   #
   def _update_colormap(self):
+    v = self._volume
+    ro = v.rendering_options
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), self._volume.image_brightness_factor,
-                    self._transparency_thickness())
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor, self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
     self.set_colormap(cmap)
 
   # ---------------------------------------------------------------------------
@@ -1801,9 +1901,14 @@ class VolumeImage(Image3d):
   #
   def _transparency_thickness(self):
     v = self._volume
-    box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
-    thickness = v.transparency_depth * min(box_size)
-    return thickness
+    ro = v.rendering_options
+    if ro.image_mode == 'tilted slab':
+      thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
+    else:
+      ijk_min, ijk_max = v.ijk_bounds()
+      box_size = [(i1-i0)*s for i0,i1,s in zip(ijk_min, ijk_max, v.data.step)]
+      thickness = min(box_size)
+    return v.transparency_depth * thickness
   
   # ---------------------------------------------------------------------------
   # Without brightness and transparency adjustment.
@@ -1842,6 +1947,11 @@ class VolumeImage(Image3d):
 #
 from chimerax.core.models import Surface
 class VolumeSurface(Surface):
+  '''
+  Model for displaying a contour surface of a :class:`.Volume` model.
+  These models are children of a Volume and should only be created
+  by the :func:`.Volume.add_surface` method.
+  '''
 
   def __init__(self, volume, level, rgba = (1,1,1,1), mesh = False):
     name = 'surface'
@@ -1858,7 +1968,10 @@ class VolumeSurface(Surface):
     self.clip_cap = True			# Cap surface when clipped
 
   def delete(self):
-    self.volume._surfaces.remove(self)
+    try:
+      self.volume._surfaces.remove(self)
+    except ValueError:
+      pass	# This VolumeSurface was already removed from Volume
     Surface.delete(self)
 
   def _get_level(self):
@@ -1868,6 +1981,7 @@ class VolumeSurface(Surface):
     self._use_thread = use_thread
     self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
+  '''Threshold level for the surface. Settable.'''
 
   def _get_rgba(self):
     return tuple(c/255 for c in self.color)
@@ -2167,6 +2281,8 @@ class VolumeSurface(Surface):
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
+    if self.vertex_colors is not None and self.auto_recolor_vertices is None:
+      data['vertex_colors'] = self.vertex_colors
     return data
 
   @staticmethod
@@ -2179,6 +2295,12 @@ class VolumeSurface(Surface):
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
     v._surfaces.append(s)
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      s.update_surface(v.rendering_options)
+      vc = data['vertex_colors']
+      if len(s.vertices) == len(vc):
+        s.vertex_colors = vc
     return s
       
 # -----------------------------------------------------------------------------
@@ -2190,8 +2312,11 @@ def maps_pickable(session, pickable):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Pick
+from chimerax.graphics import Pick
 class PickedMap(Pick):
+  '''
+  Returned by :func:`.Volume.first_intercept()` when a Volume is picked.
+  '''
   def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
     self.map = v
@@ -2214,81 +2339,124 @@ class PickedMap(Pick):
     
 # -----------------------------------------------------------------------------
 #
-class Outline_Box:
+class OutlineBox:
 
-  def __init__(self, surface_model):
+  def __init__(self, volume):
 
-    self.model = surface_model
-    self.piece = None
-    self.corners = None
-    self.rgb = None
-    self.linewidth = None
-    self.center = None
-    self.planes = None
-    self.crosshair_width = None
+    self._volume = volume
+    self._drawing = None		# Child of volume
+    self._settings = {}			# Settings from last draw.
     
   # ---------------------------------------------------------------------------
   # The center and planes option are for orthoplane outlines.
   #
-  def show(self, corners, rgb, linewidth,
-           center = None, planes = None, crosshair_width = None):
+  def show(self, show, rgb, linewidth):
+    if not show or rgb is None:
+      self.erase_box()
+      return
 
-    if not corners is None and not rgb is None:
-      from numpy import array_equal
-      changed = (self.corners is None or
-                 not array_equal(corners, self.corners) or
-                 rgb != self.rgb or
-                 linewidth != self.linewidth or
-                 not array_equal(center, self.center) or
-                 planes != self.planes or
-                 crosshair_width != self.crosshair_width)
-      if changed:
-        self.erase_box()
-        self.make_box(corners, rgb, linewidth, center, planes, crosshair_width)
+    v = self._volume
+    corners = v.corners()
+    settings = {'rgb': rgb, 'linewidth': linewidth, 'corners': corners.tolist()}
+    ortho = v.showing_image('orthoplanes')
+    slab = v.showing_image('tilted slab')
+    ro = v.rendering_options
+    if ortho:
+      settings['planes'] = ro.orthoplanes_shown
+      settings['center'] = tuple(v.data.ijk_to_xyz(ro.orthoplane_positions))
+      settings['crosshair_width'] = tuple(v.data.step)
+    elif slab:
+      settings['axis'] = tuple(ro.tilted_slab_axis)
+      settings['offset'] = ro.tilted_slab_offset
+      settings['spacing'] = ro.tilted_slab_spacing
+      settings['plane_count'] = ro.tilted_slab_plane_count
       
+    if settings == self._settings:
+      return
+    self._settings = settings
+    
+    if ortho:
+      vertices, triangles, edge_mask = self._orthoplanes_outline()
+    elif slab:
+      vertices, triangles, edge_mask = self._tilted_slab_outline()
+    else:
+      vertices, triangles, edge_mask = self._box_outline()
+      
+    self._make_box(rgb, linewidth, vertices, triangles, edge_mask)
+
   # ---------------------------------------------------------------------------
   #
-  def make_box(self, corners, rgb, linewidth, center, planes, crosshair_width):
-
-    if center is None or planes is None or not True in planes:
-      vlist = corners
-      tlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
-               (0,1,3), (3,2,0), (7,3,1), (1,5,7),
-               (7,6,2), (2,3,7), (7,5,4), (4,6,7))
-    else:
-      vlist = []
-      tlist = []
-      self.plane_outlines(corners, center, planes, vlist, tlist)
-      self.crosshairs(corners, center, planes, crosshair_width, vlist, tlist)
-          
+  def _box_outline(self):
+    
+    vlist = self._settings['corners']
+    tlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
+             (0,1,3), (3,2,0), (7,3,1), (1,5,7),
+             (7,6,2), (2,3,7), (7,5,4), (4,6,7))
     b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
-    hide_diagonals = [b]*len(tlist)
+    edge_mask = [b]*len(tlist)		# hide box face diagonals
+    return vlist, tlist, edge_mask
 
-    rgba = tuple(rgb) + (1,)
-    p = self.model.new_drawing('outline box')
-    p.display_style = p.Mesh
-    p.lineThickness = linewidth
-    p.use_lighting = False
-    p.pickable = False
-    p.no_cofr = True
+  # ---------------------------------------------------------------------------
+  #
+  def _orthoplanes_outline(self):
+
+    s = self._settings
+    corners, center, planes, crosshair_width = s['corners'], s['center'], s['planes'], s['crosshair_width']
+    vlist, tlist = [], []
+    self._plane_outlines(corners, center, planes, vlist, tlist)
+    self._crosshairs(corners, center, planes, crosshair_width, vlist, tlist)
+    b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
+    edge_mask = [b]*len(tlist)		# hide box face diagonals
+    return vlist, tlist, edge_mask
+
+  # ---------------------------------------------------------------------------
+  #
+  def _tilted_slab_outline(self):
+
+    # Slab box
+    s = self._settings
+    offset, spacing, plane_count = s['offset'], s['spacing'], s['plane_count']
+    start = offset - 0.5*spacing
+    thickness = spacing * plane_count
+    from . import box_cuts
+    sva, sta = box_cuts(s['corners'], s['axis'], start, thickness, num_cuts = 2)
+    from chimerax.surface import boundary_edge_mask
+    se = boundary_edge_mask(sta)
+
+    # Show region box
+    bva, bta, be = self._box_outline()
+
+    # Combine box and slab arrays.
+    from chimerax.surface import combine_geometry_vte
+    va, ta, edge_mask = combine_geometry_vte(((bva,bta,be), (sva,sta,se)))
+
+    return va, ta, edge_mask
+
+  # ---------------------------------------------------------------------------
+  #
+  def _make_box(self, rgb, linewidth, vertices, triangles, edge_mask):
+
+    self.erase_box()
+
+    self._drawing = d = self._volume.new_drawing('outline box')
+    d.display_style = d.Mesh
+#    d.linewidth = linewidth
+    d.use_lighting = False
+    d.casts_shadows = False
+    d.pickable = False
+    d.no_cofr = True
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array
-    p.set_geometry(array(vlist), None, array(tlist))
-    p.edge_mask = hide_diagonals
-    p.color = tuple(int(255*r) for r in rgba)
-
-    self.piece = p
-    self.corners = corners
-    self.rgb = rgb
-    self.linewidth = linewidth
-    self.center = center
-    self.planes = planes
-    self.crosshair_width = crosshair_width
+    va, ta = array(vertices), array(triangles)
+    d.set_geometry(va, None, ta)
+    d.edge_mask = edge_mask
+    rgba = tuple(rgb) + (1,)
+    d.color = tuple(int(255*r) for r in rgba)
     
   # ---------------------------------------------------------------------------
   #
-  def plane_outlines(self, corners, center, planes, vlist, tlist):
+  def _plane_outlines(self, corners, center, planes, vlist, tlist):
 
     for a,p in enumerate(planes):
       if p:
@@ -2305,13 +2473,13 @@ class Outline_Box:
 
   # ---------------------------------------------------------------------------
   #
-  def crosshairs(self, corners, center, planes, width, vlist, tlist):
+  def _crosshairs(self, corners, center, planes, width, vlist, tlist):
 
     hw0,hw1,hw2 = [0.5*w for w in width]
     btlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
               (0,1,3), (3,2,0), (7,3,1), (1,5,7),
               (7,6,2), (2,3,7), (7,5,4), (4,6,7))
-    from .data import box_corners
+    from chimerax.map_data import box_corners
     if planes[1] and planes[2]:
       x0, x1 = corners[0][0], corners[4][0]
       v0 = len(vlist)
@@ -2335,16 +2503,15 @@ class Outline_Box:
   #
   def erase_box(self):
 
-    p = self.piece
-    if not p is None:
-      if not p.was_deleted:
-        self.model.remove_drawing(p)
-      self.piece = None
-      self.corners = None
-      self.rgb = None
-      self.center = None
-      self.planes = None
-      self.crosshair_width = None
+    d = self._drawing
+    if d is None:
+      return
+    
+    if not d.was_deleted:
+      self._volume.remove_drawing(d)
+
+    self._drawing = None
+    self._settings = {}
       
 # -----------------------------------------------------------------------------
 # Compute scale factor f minimizing norm of (f*v + u) over domain v >= level.
@@ -2499,11 +2666,123 @@ class Region_List:
 
 # -----------------------------------------------------------------------------
 #
-class Rendering_Options:
+class RenderingOptions:
+  '''
+  Rendering options for a :class:`.Volume` that specify details of how
+  surface and image style depictions appear.  Some options are not implemented
+  but existed in Chimera and may be implemented in the future.
 
+  Attributes
+  ----------
+  show_outline_box : False
+    Whether a outline box is shown for the displayed subregion.
+  outline_box_rgb : (1,1,1)
+    Outline box color (red, green, blue) components, range 0-1.
+  limit_voxel_count : True
+    Whether to auto-adjust step size so at most voxel_limit voxels are shown.
+  voxel_limit : 16
+    Choose step size so the region has at most this many Mvoxels.
+  color_mode : 'auto8'
+    Sets the pixel format for image style rendering color vs grayscale,
+    transparent vs opaque, and bits per color component.
+    (auto|opaque|rgba|rgb|la|l)(4|8|12|16).
+  color_modes : ('auto4', 'auto8', 'auto12', 'auto16', 'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16', 'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16')
+    The allowed color modes for image style rendering.  Read only.
+  colormap_on_gpu : False
+    Whether colors are computed from map values on the gpu for image style rendering.
+  colormap_size : 2048
+    If colormap_on_gpu is true, what is the size of the colormap for map values
+    that are not  8 or 16-bit data types.
+  colormap_extend_left : False
+    Whether the image coloring applies to map values less than the minimum Volume image_level.
+  colormap_extend_right : True
+    Whether the image coloring applies to map values greater than the maximum Volume image_level.
+  blend_on_gpu : False
+    Whether image rendering blends images on gpu instead of cpu.
+  projection_mode : 'auto'
+    Determines what slices are used for image rendering.
+  projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    Allowed projection modes.  Read only.
+  plane_spacing : 'min'
+    Spacing of slices for image style rendering. Values "min", "max", "mean" use
+    the grid spacing, or specific distance value can be given.
+  full_region_on_gpu : False
+    For image rendering is the entire map kept on the GPU for fast cropping.
+  bt_correction : False
+    Image rendering axis-dependent brightness and transparency correction.  Not implemented.
+  minimal_texture_memory : False
+    Whether to reuse a single texture for image rendering.  Not implemented.
+  maximum_intensity_projection : False
+    Whether to use maximum intensity projection image rendering.  If False then
+    transparent blending is used.
+  linear_interpolation : True
+    Whether image rendering linearly interpolates pixel colors.
+  dim_transparency : True
+    Whether transparent surface rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  dim_transparent_voxels : True
+    Whether transparent image rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  line_thickness : 1
+    The thickness of lines in pixels for mesh display.  Not implemented because
+    OpenGL core profile does not support line thickness.
+  smooth_lines : False
+    Whether mesh lines are rendered with anti-aliasing giving a smoother appearance.
+  mesh_lighting : True
+    Whether mesh rendering uses directional lighting.
+  two_sided_lighting : True
+    Whether the interior of surfaces and meshes have directional lighting.
+    Not implemented, always uses two-sided.
+  flip_normals : False
+    Whether negative map values have surface normals flipped.  Not implemented.
+    This only has an effect when two sided lighting is false, and that mode is not implemented.
+  subdivide_surface : False
+    Whether to split every triangle into 4 smaller triangles for surfaces and meshes.
+  subdivision_levels : 1
+    How many levels of triangle splitting to apply if subdivide surface is True.
+    A value of 1 divides triangles into 4 smaller triangles, 2 divides into 16
+    smaller triangles, N divides into 4^N smaller triangles.
+  surface_smoothing : False
+    Whether to move surface or mesh vertices to give smoother surface appearance.
+  smoothing_iterations : 2
+    How many iterations of smoothing to apply if surface smoothing is enabled.
+  smoothing_factor : .3
+    When surface smoothing each vertex is moved a fraction of the ways towards
+    the average position of the connected vertices.  This parameter is the fraction.
+  square_mesh : True
+    Whether mesh display hides diagonal mesh lines.  If true than only mesh lines
+    intersecting the xy, yz, and xz grid planes are shown.
+  cap_faces : True
+    Whether surface and mesh display covers the holes on the faces of the
+    volume box where the surface reaches the box boundaries.
+  orthoplanes_shown : (False, False, False)
+    For image style display, show 0 to 3 orthogonal planes perpendicular to x,y,z axes.
+    If any of the 3 values is True then orthoplane mode is enabled.
+  orthoplane_positions : (0,0,0)
+    The center voxel i,j,k grid index for orthoplane image rendering.
+  tilted_slab_axis : (0,0,1)
+    If image_mode is "tilted slab" then this is the axis perpendicular
+    to the displayed slab in volume xyz coordinates.
+  tilted_slab_offset : 0
+    Offset of the front face of the slab.  The front face plane is defined
+    by dot((x,y,z), tilted_slab_axis) = tilted_slab_offset
+  tilted_slab_spacing : 1
+    Spacing of planes shown in tilted slab mode in physical units.
+  tilted_slab_plane_count : 1
+    Number of planes shown in tilted slab mode.
+  image_mode : 'full region'
+    The mode for image style rendering.  Can be 'full region', 'orthoplanes',
+    'box faces', or 'tilted slab'.
+  backing_color : None
+    Color drawn behind transparent image rendering.  This blocks the view
+    of objects and the background behind the volume and can give better
+    contrast (e.g. black backing when white background color in use).
+  '''
   def __init__(self):
 
-    self.show_outline_box = True
+    self.show_outline_box = False
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
     self.limit_voxel_count = True           # auto-adjust step size
@@ -2518,7 +2797,9 @@ class Rendering_Options:
     self.color_mode = 'auto8'         # image rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
-    self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_size = 2048	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_extend_left = False
+    self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
@@ -2540,17 +2821,16 @@ class Rendering_Options:
     self.surface_smoothing = False
     self.smoothing_iterations = 2
     self.smoothing_factor = .3
-    self.square_mesh = False
+    self.square_mesh = True
     self.cap_faces = True
-    self.box_faces = False              # image rendering
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
-
-  # ---------------------------------------------------------------------------
-  #
-  def any_orthoplanes_shown(self):
-
-    return true_count(self.orthoplanes_shown) > 0
+    self.tilted_slab_axis = (0,0,1)	# volume xyz coordinates
+    self.tilted_slab_offset = 0
+    self.tilted_slab_spacing = 1
+    self.tilted_slab_plane_count = 1
+    self.image_mode = 'full region'	# 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
+    self.backing_color = None		# Color drawn behind transparent images
 
   # ---------------------------------------------------------------------------
   #
@@ -2567,7 +2847,7 @@ class Rendering_Options:
   #
   def copy(self):
 
-    ro = Rendering_Options()
+    ro = RenderingOptions()
     for key, value in self.__dict__.items():
       if not key.startswith('_'):
         setattr(ro, key, value)
@@ -2593,8 +2873,8 @@ def clamp_ijk(ijk, ijk_min, ijk_max):
 #
 def clamp_region(region, size):
 
-  from . import data
-  r = data.clamp_region(region[:2], size) + tuple(region[2:])
+  from chimerax.map_data import clamp_region
+  r = clamp_region(region[:2], size) + tuple(region[2:])
   return r
 
 # ---------------------------------------------------------------------------
@@ -2616,13 +2896,13 @@ def ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step, faces_per_axis,
 # display 1 plane per axis is shown.  Returns 0 for normal (all planes)
 # display style.
 #
-def faces_per_axis(image_style, box_faces, any_orthoplanes_shown):
+def faces_per_axis(image_style, image_mode):
 
   fpa = 0
   if image_style:
-    if box_faces:
+    if image_mode == 'box faces':
       fpa = 2
-    elif any_orthoplanes_shown:
+    elif image_mode == 'orthoplanes':
       fpa = 1
   return fpa
 
@@ -2666,7 +2946,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
 
   p = int(plane)
   ro = v.rendering_options
-  orthoplanes = v.showing_orthoplanes()
+  orthoplanes = v.showing_image('orthoplanes')
   if orthoplanes:
     if depth == 1:
       ro.show_orthoplane(axis, p)
@@ -2675,7 +2955,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
         return
     else:
       orthoplanes = False
-      v.set_parameters(orthoplanes_shown = (False, False, False))
+      v.set_parameters(orthoplanes = False)
 
   # Make sure requested plane number is in range.
   dsize = v.data.size
@@ -2695,8 +2975,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
       ijk_min[axis] = max(0, min(p, planes - depth*astep))
       ijk_max[axis] = max(0, min(planes-1, p+depth*astep-1))
 
-  fpa = faces_per_axis(v.image_shown, ro.box_faces,
-                       ro.any_orthoplanes_shown())
+  fpa = faces_per_axis(v.image_shown, ro.image_mode)
   def voxel_count(step, fpa=fpa):
     set_plane_range(step)
     return subarray_size(ijk_min, ijk_max, step, fpa)
@@ -2790,7 +3069,7 @@ def is_empty_region(region):
 #
 def resize_region_for_zone(data_region, points, radius, initial_resize = False):
 
-  from .data import points_ijk_bounds
+  from chimerax.map_data import points_ijk_bounds
   ijk_min, ijk_max = points_ijk_bounds(points, radius, data_region.data)
   ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None),
                                   data_region.data.size)[:2]
@@ -2862,7 +3141,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
@@ -2970,7 +3249,7 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 
     # Create volume data copy.
     xyz_min = grid.ijk_to_xyz(ijk_min)
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
                       name = grid.name)
     return g
@@ -2982,10 +3261,10 @@ def open_volume_file(path, session, format = None, name = None, style = 'auto',
                      open_models = True, model_id = None,
                      show_data = True, show_dialog = True, verbose = False):
 
-  from . import data
+  from chimerax.map_data import open_file, FileFormatError
   try:
-    glist = data.open_file(path, format, log = session.logger, verbose = verbose)
-  except data.FileFormatError as value:
+    glist = open_file(path, format, log = session.logger, verbose = verbose)
+  except FileFormatError as value:
     raise
     from os.path import basename
     if isinstance(path, (list,tuple)):
@@ -3025,7 +3304,7 @@ def default_settings(session):
 # -----------------------------------------------------------------------------
 #
 def set_data_cache(grid_data, session):
-  from .data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   if isinstance(grid_data, ArrayGridData):
     return	# No caching for in-memory maps
 
@@ -3038,7 +3317,7 @@ def data_cache(session):
   if dc is None:
     ds = default_settings(session)
     size = ds['data_cache_size'] * (2**20)
-    from .data import datacache
+    from chimerax.map_data import datacache
     session._volume_data_cache = dc = datacache.Data_Cache(size = size)
   return dc
 
@@ -3049,8 +3328,28 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
   '''
   Supported API.
-  Create a new Volume model from a GridData instance and set its initial 
+  Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial 
   display style and color and add it to the session open models.
+
+  Parameters
+  ----------
+  grid_data : :class:`~.data.GridData`
+    Use this GridData to create the Volume.
+  session : :class:`~chimerax.core.session.Session`
+    The session that the Volume will belong to.
+  style : 'auto', 'surface', 'mesh' or 'image'
+    The initial display style.
+  open_model : bool
+    Whether to add the Volume to the session open models.
+  model_id : tuple of integers
+    Model id for the newly created Volume.
+    It is an error if the specifid id equals the id of an existing model.
+  show_dialog : bool
+    Whether to show the Volume Viewer user interface panel.
+
+  Returns
+  -------
+  volume : the created :class:`.Volume`
   '''
   
   set_data_cache(grid_data, session)
@@ -3159,6 +3458,17 @@ def set_initial_volume_color(v, session):
 
 # ---------------------------------------------------------------------------
 #
+def _negative_color(rgba):
+  neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+  minc = max(neg_rgba[:3])
+  if minc == 0:
+    neg_rgba = (1,0,0,neg_rgba[3])
+  elif minc < 0.7:
+    neg_rgba = tuple(c/minc for c in neg_rgba[:3]) + (neg_rgba[3],)
+  return neg_rgba
+
+# ---------------------------------------------------------------------------
+#
 def data_already_opened(path, grid_id, session):
 
   if not path:
@@ -3181,14 +3491,38 @@ def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
     File path can be a string or list of paths.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session that the created Volume will belong to.
+    path : string
+       File path on disk.
+    name : string or None
+       Name used when creating the Volume model.  If None,
+       then the name will be the file name.
+    format : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "open formats".  If None, then the format
+       is derived from the file suffix.
+    channel : int
+       The channel number to assign for multi-channel data.
+    vseries : bool
+       Whether to treat the open data as a time series.
+    show : bool
+       Whether the Volume should be shown or hidden initially.
+
+    Returns
+    -------
+    models : list of :class:`.Volume`
+    message : description of the opened data
     '''
     if name is None:
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
 
-    from . import data
-    grids = data.open_file(path, file_type = format, log = session.logger,
-                           verbose = kw.get('verbose'))
+    from chimerax.map_data import open_file
+    grids = open_file(path, file_type = format, log = session.logger, **kw)
 
     models = []
     msg_lines = []
@@ -3276,14 +3610,14 @@ def open_grids(session, grids, name, **kw):
       if len(set(len(cm) for cm in cmaps.values())) > 1:
         session.logger.warning('Map channels have differing numbers of series maps: %s'
                                % ', '.join('%d (%d)' % (c,cm) for c, cm in cmaps.items()))
-      from .series import MapSeries
+      from chimerax.map_series import MapSeries
       ms = [MapSeries('channel %d' % c, cm, session) for c, cm in cmaps.items()]
       mc = MultiChannelSeries(name, ms, session)
       msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
              % (name, len(ms), len(maps)//len(ms)))
       models = [mc]
     elif is_series:
-      from .series import MapSeries
+      from chimerax.map_series import MapSeries
       ms = MapSeries(name, maps, session)
       ms.display = show
       msg = 'Opened map series %s, %d images' % (name, len(maps))
@@ -3349,7 +3683,7 @@ def set_initial_region_and_style(v):
   if one_plane:
     region[0][2] = region[1][2] = data.size[2]//2
     
-  fpa = faces_per_axis(v.image_shown, ro.box_faces, ro.any_orthoplanes_shown())
+  fpa = faces_per_axis(v.image_shown, ro.image_mode)
   ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
                                       ro.limit_voxel_count, ro.voxel_limit)
   region = tuple(region) + (ijk_step,)
@@ -3465,10 +3799,70 @@ class MultiChannelSeries(Model):
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
-             mask_zone = True, chunk_shapes = None, append = None, compress = None,
+             mask_zone = True, subsamples = None, chunk_shapes = None, append = None,
+             compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
              base_index = 1, **kw):
     '''
+    Supported API.
     Save a density map file having any of the known density map formats.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session containing the Volume models.
+    path : string
+       File path on disk.  For saving multiple volumes to multiple files
+       the path can contain a C-style integer format specifier like "%d" or "%03d"
+       which will have be replaced by integer values starting at parameter base_index
+       for each of the volumes specified in parameter models.
+    format_name : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "save formats".  If None, then the format
+       is derived from the file suffix.
+    models : list of :class:`.Volume`
+       Volume models to save.  Some formats allow saving multiple volumes
+       in one file and some do not.  It is an error to specify multiple
+       models if the format only supports saving one volume and the path
+       does not contain a "%d" style integer substitution.
+    region : 6 integers or None
+       Save only the subregion imin,jmin,kmin,imax,jmax,kmax.  If None
+       the current volume region is saved.
+    step : 3 integers
+       Save only subsampled data using this step.
+    mask_zone : bool
+       If only a zone is shown near atoms or markers write zeros outside
+       that zone in the saved file if this option is True, otherwise save
+       original data values outside zone.  Default True
+    base_index : int
+       When saving multiple files with a C-style integer substitution like "%d"
+       in the path this will be the first integer used.  Default 1.
+
+    ------------------------------------------------------------------------------------------------
+    Parameters below only supported by Chimera Map format (*.cmap)
+    ------------------------------------------------------------------------------------------------
+
+    subsamples : list of tuples of 3 integers or None
+       For file formats that support saving multiple subsampled copies of
+       the data , this lists the specific subsamples to save.
+       Chimera map format will automatically determine subsamples to
+       save if this is not specified.
+    chunk_shapes : list of 'xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'
+       Axis order for laying out the data in the file.
+       Can save multiple axis orders for faster performance access
+       of data slices from disk.
+    append : bool
+       Whether to append this volume to an existing file.  Default False.
+    compress : bool
+       Whether to compress the data in the file.  Default False.
+    compress_method : string
+       Compression method to use.  Default zlib.
+       Some HDF5 compression methods are 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz',
+       'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'.
+    compress_level : integer 1 to 9
+       Level of compression.  Default 5.
+       Higher compression levels take longer.  Not all compression methods use level.
+    compress_shuffle : bool
+       Option to blosc compression.  Default False.
     '''
     if models is None:
         vlist = session.models.list(type = Volume)
@@ -3481,12 +3875,12 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(m.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
       
-    from .data.fileformats import file_writer, file_formats
+    from chimerax.map_data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError
         if format_name is None:
@@ -3500,14 +3894,25 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         raise UserError(msg)
         
     options = {}
+    if subsamples is not None:
+        options['subsamples'] = subsamples
     if chunk_shapes is not None:
         options['chunk_shapes'] = chunk_shapes
     if append:
         options['append'] = True
     if compress:
         options['compress'] = True
+    if compress_method:
+        options['compress_method'] = compress_method
+        options['compress'] = True
+    if compress_level:
+        options['compress_level'] = compress_level
+        options['compress'] = True
+    if compress_shuffle is not None:
+        options['compress_shuffle'] = compress_shuffle
+        options['compress'] = True
     if path in ('browse', 'browser'):
-        from .data import select_save_path
+        from chimerax.map_data import select_save_path
         path, format_name = select_save_path()
     if path:
         grids = []
@@ -3517,7 +3922,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)
-        from .data import save_grid_data
+        from chimerax.map_data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
                 save_grid_data(g, path % (i + base_index), session, format_name, options)
@@ -3551,7 +3956,7 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.deleted:
+        if v.deleted or v.id is None:
           vset.remove(v)
           vdisp.remove(v)
         elif v.display:
@@ -3567,72 +3972,12 @@ class VolumeUpdateManager:
 def is_multifile_save(path):
     try:
         path % 0
-    except:
+    except Exception:
         return False
     return True
 
 # -----------------------------------------------------------------------------
 #
-def add_map_format(session, map_format, register_file_suffixes = True):
-  from .data import file_formats
+def add_map_format(session, map_format):
+  from chimerax.map_data import file_formats
   file_formats.append(map_format)
-  if register_file_suffixes:
-    register_map_format(session, map_format)
-  else:
-    # Prevent register_map_file_formats() from registering this format.
-    map_format._register_suffixes = False
-
-# -----------------------------------------------------------------------------
-#
-def register_map_format(session, map_format):
-    from chimerax.core import io, toolshed
-    suf = tuple('.' + s for s in map_format.suffixes)
-    save_func = save_map if map_format.writable else None
-    def open_map_format(session, path, name = None, format = map_format.name, **kw):
-      return open_map(session, path, name=name, format=format, **kw)
-    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
-                       open_func=open_map_format, batch=True,
-                       allow_directory=map_format.allow_directory,
-                       export_func=save_func)
-
-# -----------------------------------------------------------------------------
-#
-def register_map_file_formats(session):
-    from .data.fileformats import file_formats
-    for ff in file_formats:
-      if getattr(ff, '_register_suffixes', True):
-        register_map_format(session, ff)
-
-    # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg
-    from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
-
-    # Add keywords to save command for maps
-    from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg
-    from .mapargs import MapRegionArg, Int1or3Arg
-    save_map_args = [
-      ('region', MapRegionArg),
-      ('step', Int1or3Arg),
-      ('mask_zone', BoolArg),
-      ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-      ('append', BoolArg),
-      ('compress', BoolArg),
-      ('base_index', IntArg),
-    ]
-    add_keyword_arguments('save', dict(save_map_args))
-
-    # Register save map subcommand
-    from chimerax.core.commands import CmdDesc, register, SaveFileNameArg, ModelsArg
-    from chimerax.core.commands.save import SaveFileFormatsArg, save
-    from chimerax.core import toolshed
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        optional=[('models', ModelsArg)],
-        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + save_map_args,
-        synopsis='save map'
-    )
-    register('save map', desc, save, logger=session.logger)
-
-    from . import savemap
-    savemap.register_map_save_options(session)

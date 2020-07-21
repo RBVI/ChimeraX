@@ -30,15 +30,15 @@ static void fill_occupancy_map(const FArray &xyz_list,
 			       float xyz_origin[3], float xyz_step[3],
 			       FArray &grid)
 {
-  int n = xyz_list.size(0);
+  int64_t n = xyz_list.size(0);
   float x0 = xyz_origin[0], y0 = xyz_origin[1], z0 = xyz_origin[2];
   float xs = xyz_step[0], ys = xyz_step[1], zs = xyz_step[2];
-  int s0 = xyz_list.stride(0), s1 = xyz_list.stride(1);
+  int64_t s0 = xyz_list.stride(0), s1 = xyz_list.stride(1);
   float *xyz = xyz_list.values();
-  int sk = grid.stride(0), sj = grid.stride(1), si = grid.stride(2);
-  int szk = grid.size(0), szj = grid.size(1), szi = grid.size(2);
+  int64_t sk = grid.stride(0), sj = grid.stride(1), si = grid.stride(2);
+  int64_t szk = grid.size(0), szj = grid.size(1), szi = grid.size(2);
   float *g = grid.values();
-  for (int m = 0 ; m < n ; ++m)
+  for (int64_t m = 0 ; m < n ; ++m)
     {
       float x = xyz[s0*m], y = xyz[s0*m+s1], z = xyz[s0*m+2*s1];
       float ri = (x-x0)/xs, rj = (y-y0)/ys, rk = (z-z0)/zs;
@@ -50,7 +50,7 @@ static void fill_occupancy_map(const FArray &xyz_list,
 	  k >= 0 && k+1 < szk)
 	{
 	  float fi = ri-i, fj = rj-j, fk = rk-k;
-	  int base = k*sk + j*sj + i*si;
+	  int64_t base = k*sk + j*sj + i*si;
 	  g[base] += (1-fk)*(1-fj)*(1-fi);
 	  g[base + si] += (1-fk)*(1-fj)*fi;
 	  g[base + sj] += (1-fk)*fj*(1-fi);

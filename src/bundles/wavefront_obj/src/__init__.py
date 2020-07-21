@@ -24,16 +24,24 @@ class _WavefrontOBJBundle(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import obj
-        return obj.read_obj(session, stream, file_name)
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class ObjInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import obj
+                    return obj.read_obj(session, data, file_name)
+        else:
+            from chimerax.save_command import SaverInfo
+            class ObjInfo(SaverInfo):
+                def save(self, session, path, *, models=None, **kw):
+                    from . import obj
+                    return obj.write_obj(session, path, models)
 
-    @staticmethod
-    def save_file(session, path, models=None):
-        # 'save_file' is called by session code to save a file
-        from . import obj
-        return obj.write_obj(session, path, models)
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import ModelsArg
+                    return { 'models': ModelsArg }
+        return ObjInfo()
 
 bundle_api = _WavefrontOBJBundle()

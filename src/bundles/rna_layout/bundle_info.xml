@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-RNALayout" version="1.0"
+	    package="chimerax.rna_layout"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Make RNA models</Synopsis>
+  <Description>Create RNA models from secondary structure information.</Description>
+
+  <DataFiles>
+    <DataFile>rna_templates_6pj6.cif</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: rna path :: Structure Editing :: make RNA marker model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: rna model :: Structure Editing :: make RNA atomic model</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

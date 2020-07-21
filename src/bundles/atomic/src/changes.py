@@ -25,9 +25,11 @@ def check_for_changes(session):
         global_changes, structure_changes = ct.changes
         ct.clear()
         from . import get_triggers
-        get_triggers().activate_trigger("changes", Changes(global_changes))
+        global_triggers = get_triggers()
+        global_triggers.activate_trigger("changes", Changes(global_changes))
         for s, s_changes in structure_changes.items():
             s.triggers.activate_trigger("changes", (s, Changes(s_changes)))
+        global_triggers.activate_trigger("changes done", None)
     finally:
         ul.unblock_redraw()
 
@@ -52,9 +54,6 @@ class Changes:
     def coordset_reasons(self):
         return self._changes["CoordSet"].reasons
 
-    def created_atomic_structures(self):
-        return self._atomic_structures(self._changes["Structure"].created)
-
     def created_atoms(self, include_new_structures=True):
         return self._created_objects("Atom", include_new_structures)
 
@@ -66,10 +65,6 @@ class Changes:
 
     def created_coordsets(self, include_new_structures=True):
         return self._created_objects("CoordSet", include_new_structures)
-
-    def created_structures(self):
-        """includes atomic structures"""
-        return self._changes["Structure"].created
 
     def created_pseudobond_groups(self):
         return self._changes["PseudobondGroup"].created
@@ -111,28 +106,31 @@ class Changes:
 
     def num_deleted_atoms(self):
         return self._changes["Atom"].total_deleted
+    num_destroyed_atoms = num_deleted_atoms
 
     def num_deleted_bonds(self):
         return self._changes["Bond"].total_deleted
+    num_destroyed_bonds = num_deleted_bonds
 
     def num_deleted_chains(self):
         return self._changes["Chain"].total_deleted
+    num_destroyed_chains = num_deleted_chains
 
     def num_deleted_coordsets(self):
         return self._changes["CoordSet"].total_deleted
+    num_destroyed_coordsets = num_deleted_coordsets
 
     def num_deleted_pseudobond_groups(self):
         return self._changes["PseudobondGroup"].total_deleted
+    num_destroyed_pseudobond_groups = num_deleted_pseudobond_groups
 
     def num_deleted_pseudobonds(self):
         return self._changes["Pseudobond"].total_deleted
+    num_destroyed_pseudobonds = num_deleted_pseudobonds
 
     def num_deleted_residues(self):
         return self._changes["Residue"].total_deleted
-
-    def num_deleted_structures(self):
-        """Not possible to distinguish between AtomicStructures and Structures"""
-        return self._changes["Structure"].total_deleted
+    num_destroyed_residues = num_deleted_residues
 
     def pseudobond_reasons(self):
         return self._changes["Pseudobond"].reasons

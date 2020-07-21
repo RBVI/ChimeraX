@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BlastProtein" version="0.1"
+<BundleInfo name="ChimeraX-BlastProtein" version="1.0.1"
 	    package="chimerax.blastprotein"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -20,10 +20,10 @@ interface is available; otherwise, the results are logged.</Description>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
-    <Dependency name="ChimeraX-WebServices" version=">=1.0"/>
-    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-WebServices" version="~=1.0"/>
+    <Dependency name="ChimeraX-Alignments" version="~=1.0"/>
   </Dependencies>
 
   <Providers>
@@ -33,9 +33,10 @@ interface is available; otherwise, the results are logged.</Description>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Blast Protein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastprotein :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastpdb :: General :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Blast Protein :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein mav :: Sequence :: Display BLAST results in MultAlign Viewer</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastpdb :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -62,7 +62,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         Whether to preserve water in generated models
     """
 
-    from chimerax.core.errors import LimitationError
+    from chimerax.core.errors import LimitationError, UserError
     from .common import modeller_copy
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
@@ -77,6 +77,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for alignment, orig_target in targets:
             # Copy the target sequence, changing name to conform to Modeller limitations
             target = modeller_copy(orig_target)
+            if not alignment.associations:
+                raise UserError("Alignment %s has no associated chains" % alignment.ident)
             for chain, aseq in alignment.associations.items():
                 if len(chain.chain_id) > 1:
                     raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
@@ -235,7 +237,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             os.mkdir(struct_dir, mode=0o755)
         except FileExistsError:
             pass
-    from chimerax.atomic.pdb import save_pdb, standard_polymeric_res_names as std_res_names
+    from chimerax.pdb import save_pdb, standard_polymeric_res_names as std_res_names
     for structure in structures_to_save:
         base_name = structure_save_name(structure) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
@@ -275,7 +277,7 @@ def regularized_seq(aseq, chain):
     rseq.description = "structure:" + chain_save_name(chain)
     seq_chars = list(rseq.characters)
     from chimerax.atomic import Sequence
-    from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
+    from chimerax.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     num_res = 0
     for ungapped in range(len(aseq.ungapped())):
@@ -300,7 +302,7 @@ def regularized_seq(aseq, chain):
     return rseq
 
 def find_affixes(chains, chain_info):
-    from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
+    from chimerax.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
     prefixes = []
     suffixes = []
@@ -436,7 +438,7 @@ class ModellerJob(OpalJob):
                 pdb_text = self.get_file(fname)
             except KeyError:
                 raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-            from chimerax.atomic.pdb import open_pdb
+            from chimerax.pdb import open_pdb
             return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
         self.caller.process_ok_models(model_info, stdout, get_pdb_model)
         self.caller = None

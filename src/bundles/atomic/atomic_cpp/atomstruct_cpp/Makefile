@@ -19,18 +19,24 @@ LIBNAME = atomstruct
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
+ifdef WIN32
+ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+else
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+endif
+
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 EXPANDED_INCS := $(INCS)
-INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= tmpl/*.$(OBJ_EXT)
 ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:../lib libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:../lib libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -L../lib -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
+LIBS	+= -L../lib -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
 endif
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
@@ -77,9 +83,8 @@ PBManager.o: ChangeTracker.h destruct.h Structure.h PBGroup.h PBManager.h \
 Point.o: Point.h
 Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobond.h session.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
-Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h Residue.h session.h tmpl/TemplateCache.h \
+Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h PBGroup.h Residue.h session.h tmpl/TemplateCache.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
-RibbonXSection.o: RibbonXSection.h
 Ring.o: Atom.h Bond.h Coord.h Real.h Ring.h ../pyinstance_cpp/PythonInstance.declare.h \
 	../pyinstance_cpp/PythonInstance.instantiate.h
 RingCalc.o: Bond.h Structure.h Residue.h
@@ -91,3 +96,4 @@ Structure.o: Atom.h Bond.h ChangeTracker.h CoordSet.h destruct.h PBGroup.h PBMan
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 StructureSeq.o: Structure.h Chain.h ChangeTracker.h destruct.h Structure.h Sequence.h Residue.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
+$(OBJS): imex.h

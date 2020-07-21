@@ -13,12 +13,11 @@
 
 # -----------------------------------------------------------------------------
 #
-def open_dicom(session, stream, name = None, format = 'dicom', **kw):
-  if isinstance(stream, (str, list)):
-    map_path = stream         # Batched paths
+def open_dicom(session, path, name = None, format = 'dicom', **kw):
+  if isinstance(path, (str, list)):
+    map_path = path         # Batched paths
   else:
-    map_path = stream.name
-    stream.close()
+    raise ValueError('open_dicom() requires path argument, got "%s"' % repr(path))
 
   # Locate all series in subdirectories
   from .dicom_format import find_dicom_series
@@ -59,6 +58,9 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
 # -----------------------------------------------------------------------------
 #
 def omit_16bit_lossless_jpeg(series, log):
+  if gdcm_library_available():
+    return series    # PyDicom will use gdcm to read 16-bit lossless jpeg
+
   # Python Image Library cannot read 16-bit lossless jpeg.
   keep = []
   for s in series:
@@ -68,6 +70,15 @@ def omit_16bit_lossless_jpeg(series, log):
     else:
       keep.append(s)
   return keep
+
+# -----------------------------------------------------------------------------
+#
+def gdcm_library_available():
+  try:
+    import gdcm
+  except Exception:
+    return False
+  return True
 
 # -----------------------------------------------------------------------------
 # Group into a four level hierarchy: directory, patient id, date, series.
@@ -162,7 +173,7 @@ def dicom_contours(session, contour_series):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.map.data import MapFileFormat
+from chimerax.map_data import MapFileFormat
 class DICOMMapFormat(MapFileFormat):
     def __init__(self):
         MapFileFormat.__init__(self, 'DICOM image', 'dicom', ['dicom'], ['dcm'],
@@ -185,13 +196,6 @@ class DICOMMapFormat(MapFileFormat):
 def register_dicom_format(session):
     fmt = DICOMMapFormat()
 
-    # Register file suffix
-    # TODO: Do this in bundle_info.xml once it has allow_directory option.
-    suf = tuple('.' + s for s in fmt.suffixes)
-    from chimerax.core import io, toolshed
-    io.register_format(fmt.description, toolshed.VOLUME, suf, nicknames=fmt.prefixes,
-                       open_func=open_dicom, batch=fmt.batch, allow_directory=fmt.allow_directory)
-    
     # Add map grid format reader
     from chimerax.map import add_map_format
-    add_map_format(session, fmt, register_file_suffixes = False)
+    add_map_format(session, fmt)

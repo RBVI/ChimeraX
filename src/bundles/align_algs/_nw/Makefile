@@ -13,17 +13,18 @@ TOP = ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/seqalign/align_algs
+ARRAYS_DIR	= $(APP_PYSITEDIR)/chimerax/arrays
 
 PYMOD_NAME	= _nw
 SRCS		= nw.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS 		+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 LIBS		+= $(PYTHON_LIB)
 ifeq ($(WIN32),msvc)
-LIBS		+= libalign_algs.lib libarrays.lib
+LIBS		+= libalign_algs.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib
 else
-LIBS		+= -lalign_algs -larrays
+LIBS		+= -lalign_algs -L$(ARRAYS_DIR)/lib -larrays
 endif
 
 all: $(PYMOD)

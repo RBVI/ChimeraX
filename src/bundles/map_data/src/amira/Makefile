@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/amira
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/amira
 
 PYSRCS = __init__.py amira_format.py amira_grid.py
 

@@ -6,23 +6,39 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Legacy VTK file reader</Synopsis>
+  <Synopsis>Legacy VTK file reader and writer</Synopsis>
   <Description>The ChimeraX-VTK bundle provides support for reading
-polygonal data from legacy VTK files.</Description>
+  polygonal data from legacy VTK files and writing those files for
+  molecular structures and surfaces.</Description>
 
   <Categories>
     <Category name="Generic 3D objects"/>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="VTK PolyData" category="Generic 3D objects"
+		nicknames="vtk" suffixes=".vtk"
+		reference_url="http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="VTK PolyData" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="VTK PolyData" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: VTK PolyData :: vtk :: Generic 3D objects :: .vtk :: :: http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf :: :: :: VTK</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: VTK PolyData :: vtk ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

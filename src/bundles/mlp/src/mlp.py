@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
-        color=True, palette=None, range=None, map=False):
+        color=True, palette=None, range=None, surfaces=[], map=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
@@ -34,6 +34,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         Default is lipophilicity colormap (orange lipophilic, blue lipophobic).
     range : 2-tuple of float
         Range of lipophilicity values defining ends of color map.  Default is -20,20
+    surfaces : list of Surface models
+        If the color options is true then these surfaces are colored instead of computing surfaces.
     map : bool
         Whether to open a volume model of lipophilicity values
     '''
@@ -59,20 +61,25 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     if color:
         # Compute surfaces if not already created
         from chimerax.surface import surface
-        surfs = surface(session, patoms)
+        surfs = surface(session, patoms) if len(surfaces) == 0 else surfaces
+        from chimerax.core.undo import UndoState
+        undo_state = UndoState('mlp')
         for s in surfs:
             satoms = s.atoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
             v = mlp_map(session, satoms, method, spacing, max_distance, nexp, name, open_map = map)
             from chimerax.surface import color_surfaces_by_map_value
-            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range)
+            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range,
+                                        undo_state = undo_state)
+        session.undo.register(undo_state)
     else:
         name = 'mlp map'
         v = mlp_map(session, patoms, method, spacing, max_distance, nexp, name, open_map = map)
             
 
 def register_mlp_command(logger):
-    from chimerax.core.commands import register, CmdDesc, SaveFileNameArg, FloatArg, EnumOf, BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import register, CmdDesc, FloatArg, EnumOf, BoolArg, SurfacesArg
+    from chimerax.core.commands import ColormapArg, ColormapRangeArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
@@ -82,6 +89,7 @@ def register_mlp_command(logger):
                             ('color', BoolArg),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
+                            ('surfaces', SurfacesArg),
                             ('map', BoolArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')
@@ -94,13 +102,14 @@ def mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map):
     origin = tuple(xmin for xmin,xmax in bounds)
     s = spacing
     step = (s,s,s)
-    from chimerax.map.data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(data, origin, step, name = name)
     g.polar_values = True
     from chimerax.map import volume_from_grid_data
     v = volume_from_grid_data(g, session, open_model = open_map, show_dialog = open_map)
-    v.update_drawings()  # Compute surface levels
-    v.set_parameters(surface_colors = [(0, 139/255, 139/255, 1), (184/255, 134/255, 11/255, 1)])
+    if open_map:
+        v.update_drawings()  # Compute surface levels
+        v.set_parameters(surface_colors = [(0, 139/255, 139/255, 1), (184/255, 134/255, 11/255, 1)])
     return v
 
 #

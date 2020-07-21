@@ -2,9 +2,9 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# Using nightly OpenMM Mac and Linux builds from https://anaconda.org/omnia/openmm/files
-PYVER = py37_cuda92_rc_1
-VERSION = 7.3.0
+# Using OpenMM builds from https://anaconda.org/omnia/openmm/files
+PYVER = py37_cuda101_rc_1
+VERSION = 7.4.1
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
@@ -12,7 +12,6 @@ ifeq ($(OS),Linux)
 PLATFORM = linux
 endif
 ifeq ($(OS),Windows)
-PYVER = py37_cuda92_rch39e3cac_1
 PLATFORM = windows
 endif
 
@@ -46,6 +45,9 @@ endif
 app-install: install
 	$(RSYNC) $(OPENMM_LIB_INSTALL)/* $(app_shlibdir)
 	$(RSYNC) $(PYSITEDIR)/simtk $(APP_PYSITEDIR)
+ifeq ($(OS),Windows)
+	cd $(app_shlibdir); mv OpenMM*.lib libs/
+endif
 
 $(SOURCE):
 	-mkdir $(SOURCE)
@@ -58,7 +60,8 @@ endif
 ifeq ($(OS),Windows)
 	cd $(SOURCE)/Lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib ; \
-	  chmod a+x site-packages/simtk/openmm/_openmm*.pyd
+	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
+	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
 endif
 
 clean:

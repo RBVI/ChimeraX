@@ -1,0 +1,34 @@
+<BundleInfo name="ChimeraX-LinuxSupport" version="1.0"
+	    package="chimerax.linux" purePython="false"
+  	    minSessionVersion="1" maxSessionVersion="1">
+  <!-- this is actually pure Python, but platform-specific.
+       So pretend it isn't, and only build on Linux -->
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Linux Support</Synopsis>
+  <Description>This bundle provides functionality specifically for the Linux platform.</Description>
+
+  <DataFiles>
+    <DataDir>docs</DataDir>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: linux xdg-install :: General :: Integrate ChimeraX with Linux desktop</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: linux xdg-uninstall :: General :: Remove integration with Linux desktop</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

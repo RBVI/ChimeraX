@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-PDBImages" version="1.1"
+	    package="chimerax.pdb_images"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>PDB assembly images</Synopsis>
+  <Description>Create image files for all assemblies of a directory of mmCIF files.</Description>
+
+  <Categories>
+    <Category name="Higher-Order Structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
+    <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: pdbimages :: Input/Output :: batch processing of mmCIF files into images</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

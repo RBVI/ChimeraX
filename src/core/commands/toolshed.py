@@ -17,7 +17,14 @@ _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger, use_html=False, full=True):
+def _reSt_to_html(source):
+    # from https://wiki.python.org/moin/reStructuredText
+    from docutils import core
+    parts = core.publish_parts(source=source, writer_name='html')
+    return parts['body_pre_docinfo']+parts['fragment']
+
+
+def _display_bundles(bi_list, toolshed, logger, use_html=False, full=True):
     def bundle_key(bi):
         return bi.name
     info = ""
@@ -35,20 +42,22 @@ th.bundle {
 }
 </style>
         """
-        info += "<dl>\n"
+        info += "<ul>\n"
         for bi in sorted(bi_list, key=bundle_key):
             name = bi.name
-            if name.startswith('ChimeraX-'):
-                name = name[len('ChimeraX-'):]
-            info += "<dt><b>%s</b> (%s): <i>%s</i>\n" % (
-                name, bi.version, escape(bi.synopsis))
+            if full:
+                info += "<p>\n"
+            info += "<li>\n"
+            if full:
+                info += "<dt>\n"
+            info += "<b>%s</b> (%s): <i>%s</i>\n" % (
+                toolshed.bundle_link(name), bi.version, escape(bi.synopsis))
             if full:
                 info += "<dd>\n"
                 info += "%s: %s<p>" % (
                     plural_form(bi.categories, "Category"),
                     commas(bi.categories, 'and'))
-                # TODO: convert description's rst text to HTML
-                info += escape(bi.description).replace('\n\n', '<p>\n')
+                info += _reSt_to_html(bi.description)
                 if bi.tools or bi.commands or bi.formats:
                     info += "<table class='bundle' border='1'>\n"
                 if bi.tools:
@@ -72,7 +81,9 @@ th.bundle {
                         f.name, f.category, can_open, can_save)
                 if bi.tools or bi.commands or bi.formats:
                     info += "</table>\n"
-        info += "</dl>\n"
+                info += "</dl>\n"
+            info += "</li>\n"
+        info += "</ul>\n"
     else:
         for bi in sorted(bi_list, key=bundle_key):
             name = bi.name
@@ -133,7 +144,7 @@ def toolshed_list(session, bundle_type="installed",
         bi_list = ts.bundle_info(logger, installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger, use_html, full)
+            _display_bundles(bi_list, ts, logger, use_html, full)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
@@ -142,13 +153,15 @@ def toolshed_list(session, bundle_type="installed",
             logger.info("List of available bundles:")
             if newest:
                 bi_list = _newest_by_name(bi_list)
-            _display_bundles(bi_list, logger, use_html, full)
+            _display_bundles(bi_list, ts, logger, use_html, full)
         else:
             logger.info("No available bundles found.")
+
+
 toolshed_list_desc = CmdDesc(optional=[("bundle_type", _bundle_types),
-                                       ("full", NoArg),
-                                       ("outdated", BoolArg),
-                                       ("newest", BoolArg),],
+                                       ("full", NoArg)],
+                             keyword=[("outdated", BoolArg),
+                                      ("newest", BoolArg)],
                              non_keyword=['bundle_type'],
                              synopsis='List installed bundles')
 
@@ -161,23 +174,33 @@ def toolshed_reload(session, reload_type="installed"):
     ts = session.toolshed
     logger = session.logger
     if reload_type == "installed":
-        kw = {"reread_cache":True,
-              "rebuild_cache":True,
-              "check_remote":False}
+        kw = {
+            "reread_cache": True,
+            "rebuild_cache": True,
+            "check_remote": False
+        }
     elif reload_type == "cache":
-        kw = {"reread_cache":True,
-              "rebuild_cache":False,
-              "check_remote":True}
+        kw = {
+            "reread_cache": True,
+            "rebuild_cache": False,
+            "check_remote": True
+        }
     elif reload_type == "available":
-        kw = {"reread_cache":False,
-              "rebuild_cache":False,
-              "check_remote":True}
+        kw = {
+            "reread_cache": False,
+            "rebuild_cache": False,
+            "check_remote": True
+        }
     elif reload_type == "all":
-        kw = {"reread_cache":True,
-              "rebuild_cache":True,
-              "check_remote":True}
-    ts.reload(session.logger, **kw)
-toolshed_reload_desc = CmdDesc(optional=[("reload_type", _reload_types),],
+        kw = {
+            "reread_cache": True,
+            "rebuild_cache": True,
+            "check_remote": True
+        }
+    ts.reload(logger, **kw)
+
+
+toolshed_reload_desc = CmdDesc(optional=[("reload_type", _reload_types)],
                                non_keyword=['reload_type'],
                                synopsis='Refresh cached bundle metadata')
 
@@ -190,7 +213,7 @@ def _bundle_string(bundle_name, version):
 
 
 def toolshed_install(session, bundle_name, user_only=True,
-                     reinstall=None, version=None):
+                     reinstall=None, version=None, no_deps=None):
     '''
     Install a bundle.
 
@@ -199,6 +222,8 @@ def toolshed_install(session, bundle_name, user_only=True,
     bundle_name : string
     user_only : bool
       Install for this user only, or install for all users.
+    no_deps : bool
+      Don't install any dependencies.
     version : string
     '''
     ts = session.toolshed
@@ -223,16 +248,23 @@ def toolshed_install(session, bundle_name, user_only=True,
                 logger.error("%s does not match any bundles"
                              % _bundle_string(bundle_name, version))
                 return
-    kw = {"session":session,
-          "per_user":user_only}
+    kw = {
+        "session": session,
+        "per_user": user_only,
+        "no_deps": no_deps,
+    }
     if reinstall is not None:
         kw["reinstall"] = reinstall
     ts.install_bundle(bi, logger, **kw)
+
+
 toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
-                          optional=[("user_only", BoolArg),
-                                    ("reinstall", BoolArg),
-                                    ("version", StringArg)],
-                          synopsis='Install a bundle')
+                                optional=[("version", StringArg)],
+                                keyword=[("user_only", BoolArg),
+                                         ("reinstall", BoolArg),
+                                         ("no_deps", BoolArg)],
+                                hidden=["user_only"],
+                                synopsis='Install a bundle')
 
 
 def toolshed_uninstall(session, bundle_name, force_remove=False):
@@ -258,8 +290,10 @@ def toolshed_uninstall(session, bundle_name, force_remove=False):
                             ", ".join(["\"%s\"" % b.name for b in deps])))
             return
     ts.uninstall_bundle(bi, logger, session=session)
+
+
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_name", StringArg)],
-                                  optional=[("force_remove", BoolArg)],
+                                  keyword=[("force_remove", BoolArg)],
                                   synopsis='Uninstall a bundle')
 
 
@@ -276,14 +310,22 @@ def toolshed_url(session, url=None, wait=False):
     if url is None:
         logger.info("Toolshed URL: %s" % ts.remote_url)
     else:
-        ts.remote_url = url
+        from chimerax.core import toolshed
+        if url == 'default':
+            ts.remote_url = toolshed.default_toolshed_url()
+        elif url == 'preview':
+            ts.remote_url = toolshed.preview_toolshed_url()
+        else:
+            ts.remote_url = url
         logger.info("Toolshed URL set to %s" % ts.remote_url)
         if wait:
             ts.reload_available(logger)
         else:
             ts.async_reload_available(logger)
-toolshed_url_desc = CmdDesc(optional=[("url", StringArg),
-                                      ("wait", BoolArg)],
+
+
+toolshed_url_desc = CmdDesc(optional=[("url", StringArg)],
+                            keyword=[("wait", BoolArg)],
                             synopsis='show or set toolshed url')
 
 
@@ -294,69 +336,27 @@ def toolshed_cache(session):
     ts = session.toolshed
     logger = session.logger
     logger.info("Toolshed cache: %s" % ts._cache_dir)
+
+
 toolshed_cache_desc = CmdDesc(synopsis='show toolshed cache location')
 
 
-#
-# Commands that deal with tools
-#
-
-def toolshed_show(session, tool_name, _show=True):
-    '''
-    Show a tool, or start one if none is running.
-
-    Parameters
-    ----------
-    tool_name : string
-    '''
-    if not session.ui.is_gui:
-        from chimerax.core.errors import UserError
-        raise UserError("Need a GUI to show or hide tools")
+def toolshed_show(session, bundle_name=None):
+    from chimerax import help_viewer
     ts = session.toolshed
-    all_tools = session.tools.list()
-    # First look for tool instance whose display name
-    # matches tool_name
-    tinst = [t for t in all_tools if t.display_name == tool_name]
-    # Next look for tool instances whose tool_info name
-    # matches tool_name
-    if not tinst:
-        tinst = [t for t in all_tools if t.tool_name == tool_name]
-    # Next look for tool instances whose bundle_info name
-    # matches tool_name
-    if not tinst:
-        tinst = [t for t in all_tools
-                 if t.bundle_info.name.replace("ChimeraX-", "") == tool_name]
-    if tinst:
-        for ti in tinst:
-            ti.display(_show)
-    elif _show:
-        bi, tool_name = ts.find_bundle_for_tool(tool_name)
-        if bi is None:
-            from chimerax.core.errors import UserError
-            raise UserError('No installed tool named "%s"' % tool_name)
-        bi.start_tool(session, tool_name)
+    if bundle_name is None:
+        url = ts.remote_url
     else:
-        from chimerax.core.errors import UserError
-        # DEBUG:
-        # for t in all_tools:
-        #     print(t, repr(t.display_name), repr(t.tool_name),
-        #             repr(t.bundle_info.name))
-        raise UserError('No running tool named "%s"' % tool_name)
-toolshed_show_desc = CmdDesc(required=[('tool_name', StringArg)],
-                       synopsis="Show tool.  Start if necessary")
+        bi = ts.find_bundle(bundle_name, session.logger, installed=False)
+        if bi is None:
+            from ..errors import UserError
+            raise UserError("Cannot find bundle '%s' in Toolshed" % bundle_name)
+        url = session.toolshed.bundle_url(bi.name)
+    help_viewer.show_url(session, url)
 
 
-def toolshed_hide(session, tool_name):
-    '''
-    Hide tool.
-
-    Parameters
-    ----------
-    tool_name : string
-    '''
-    toolshed_show(session, tool_name, _show=False)
-toolshed_hide_desc = CmdDesc(required=[('tool_name', StringArg)],
-                       synopsis="Hide tool from view")
+toolshed_show_desc = CmdDesc(optional=[("bundle_name", StringArg)],
+                             synopsis='show the toolshed or bundle in toolshed')
 
 
 def register_command(logger):
@@ -369,4 +369,3 @@ def register_command(logger):
     register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
     register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
     register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
-    register("toolshed hide", toolshed_hide_desc, toolshed_hide, logger=logger)

@@ -24,16 +24,18 @@ class _SignalViewerBundle(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, path):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import signals
-        return signals.read_signals(session, path)
-
-    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import signals
         signals.register_signal_command(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class SignalOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import signals
+                return signals.read_signals(session, data)
+        return SignalOpenerInfo()
 
 bundle_api = _SignalViewerBundle()

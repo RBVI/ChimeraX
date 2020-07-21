@@ -626,7 +626,7 @@ class MousePointerModel(Model):
             self.color = msg['color']
         if 'mouse' in msg:
             xyz, axis = msg['mouse']
-            from chimerax.core.geometry import vector_rotation, translation
+            from chimerax.geometry import vector_rotation, translation
             p = translation(xyz) * vector_rotation((0,0,1), axis)
             self.position = p
 
@@ -739,7 +739,7 @@ class VRTracking(PointerModels):
         self._meeting._send_message(msg)
 
     def _head_position(self, vr_camera):
-        from chimerax.core.geometry import scale
+        from chimerax.geometry import scale
         return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
 
     def _face_image_update(self):
@@ -759,7 +759,8 @@ class VRTracking(PointerModels):
     
     def _hand_positions(self, vr_camera):
         # Hand controller room position includes scaling from room to scene coordinates
-        return [_place_matrix(h.room_position) for h in vr_camera._hand_controllers]
+        return [_place_matrix(h.room_position)
+                for h in vr_camera._hand_controllers if h.on]
 
     def _hand_buttons_update(self, vr_camera):
         bu = []
@@ -793,6 +794,7 @@ class VRTracking(PointerModels):
                 gui_state['room position'] = rpos
                 msg['vr gui position'] = _place_matrix(rpos)
 
+            # Notify about changes in panel size, position or image.
             pchanges = []	# GUI panel changes
             for panel in ui.panels:
                 name, size, pos, rgba = panel.name, panel.size, panel.drawing.position, panel.panel_image_rgba()
@@ -809,9 +811,17 @@ class VRTracking(PointerModels):
                 if pchange:
                     pchange['name'] = panel.name
                     pchanges.append(pchange)
+
+            # Notify about removed panels
+            panel_names = set(panel.name for panel in ui.panels)
+            for pname in tuple(gui_state.keys()):
+                if (isinstance(pname, tuple) and len(pname) == 2 and pname[0] == 'panel'
+                    and pname[1] not in panel_names):
+                    pchanges.append({'name':pname[1], 'closed':True})
+                    del gui_state[pname]
+
             if pchanges:
                 msg['vr gui panels'] = pchanges
-            # TODO: Need to handle deleted panels
 
         return msg
     
@@ -934,7 +944,7 @@ class VRHeadModel(Model):
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
-        from chimerax.core.graphics import qimage_to_numpy, Texture
+        from chimerax.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
         tc = zeros((24,2), float32)
@@ -956,7 +966,7 @@ class VRHeadModel(Model):
         caspect = va[:,0].max() / va[:,1].max()
         va[:,0] *= aspect / caspect
         self.set_geometry(va, self.normals, self.triangles)
-        from chimerax.core.graphics import qimage_to_numpy, Texture
+        from chimerax.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         r = self.session.main_view.render
         r.make_current()
@@ -978,6 +988,13 @@ class VRGUIModel(Model):
     def update_panel(self, panel_changes):
         name = panel_changes['name']
         panels = self._panels
+
+        if 'closed' in panel_changes:
+            if name in panels:
+                self.remove_drawing(panels[name])
+                del panels[name]
+            return
+        
         if name in panels:
             p = panels[name]
         else:
@@ -991,7 +1008,7 @@ class VRGUIModel(Model):
         if 'image' in panel_changes:
             p.update_image(panel_changes['image'], self.session)
 
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class VRGUIPanel(Drawing):
     casts_shadows = False
     pickable = False
@@ -1003,7 +1020,7 @@ class VRGUIPanel(Drawing):
 
     def set_size(self, size):
         self._size = (rw, rh) = size
-        from chimerax.core.graphics.drawing import position_rgba_drawing
+        from chimerax.graphics.drawing import position_rgba_drawing
         position_rgba_drawing(self, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
     def update_image(self, encoded_rgba, session):
@@ -1011,7 +1028,7 @@ class VRGUIPanel(Drawing):
         rgba = _decode_numpy_array(encoded_rgba)
         r = session.main_view.render
         r.make_current() # Required for deleting previous texture in rgba_drawing()
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
 
 def _vr_camera(session):
@@ -1024,7 +1041,7 @@ def _place_matrix(p):
     return tuple(tuple(row) for row in p.matrix)
 
 def _matrix_place(m):
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     return Place(matrix = m)
 
 def _encode_face_image(path):

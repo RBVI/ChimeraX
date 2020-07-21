@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -18,7 +20,7 @@ class FileHistory:
     def __init__(self, session):
 
         self.session = session
-        self.version = 1		# In case cache file changes format.
+        self.version = 1        # In case cache file changes format.
         self.max_files = 200
 
         self._save_files = False
@@ -27,7 +29,7 @@ class FileHistory:
 
         from .history import ObjectHistory
         self._file_cache = ObjectHistory('file_history')
-        self._files = self.load_history()	# Map (file path, database) to FileSpec
+        self._files = self.load_history()    # Map (file path, database) to FileSpec
         
         session.triggers.add_trigger('file history changed')
 
@@ -105,11 +107,20 @@ class FileHistory:
             self.save_history()
 
     def load_history(self):
-        fc = self._file_cache.load()
+        try:
+            fc = self._file_cache.load()
+        except Exception as e:
+            backup_path = self._file_cache.backup()
+            msg = ('The history of data files opened in ChimeraX was unreadable.\n'
+                   'The unreadable file has been copied to %s.\n' % backup_path +
+                   'Please report this as a bug using menu Help / Report a Bug.\n\n' +
+                   'The error was "%s".' % str(e))
+            self.session.logger.bug(msg)
+            fc = None
         fmap = {}
         if fc is not None:
             for f in fc['files']:
-                fs = FileSpec.from_state(f)
+                fs = FileSpec.from_state(self.session, f)
                 fmap[(fs.path,fs.database)] = fs
         return fmap
 
@@ -132,13 +143,13 @@ def _supported_option_value_types(open_options):
 class FileSpec:
     def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
-        self.format = format	# Can be None
+        self.format = format    # Can be None
         self.database = database
         self.access_time = None
-        self.image = None	# JPEG encoded as base64 string
+        self.image = None    # JPEG encoded as base64 string
         self.open_options = {}
         self.set_access_time()
-        self.set_open_options(open_options)	# Dictionary of open command keyword to value.
+        self.set_open_options(open_options)    # Dictionary of open command keyword to value.
 
     def set_open_options(self, open_options):
         opt = {k:str(v) for k,v in open_options.items()
@@ -162,10 +173,8 @@ class FileSpec:
         self.image = models_image(session, models, size)
 
     def open_command(self):
-        p = self.path
-        if ' ' in p:
-            p = '"%s"' % p 	# Quote path
-        cmd = 'open %s' % p
+        from chimerax.core.commands import quote_path_if_necessary
+        cmd = 'open %s' % quote_path_if_necessary(self.path)
         f = self.format
         if f:
             if ' ' in f:
@@ -182,8 +191,15 @@ class FileSpec:
         return {k:getattr(self,k) for k in ('path', 'format', 'database', 'access_time', 'image', 'open_options')}
 
     @classmethod
-    def from_state(self, state):
-        f = FileSpec(state['path'], state['format'], database = state['database'],
+    def from_state(self, session, state):
+        format = state['format']
+        if format is not None:
+            # map old format names to those used in new open command
+            try:
+                format = session.data_formats[format].nicknames[0]
+            except KeyError:
+                pass
+        f = FileSpec(state['path'], format, database = state['database'],
                      open_options = state.get('open_options', {}))
         for k in ('access_time', 'image'):
             setattr(f, k, state[k])
@@ -203,7 +219,7 @@ def file_history(session):
 def remember_file(session, filename, format, models, database = None, file_saved = False,
                   open_options = {}):
     if session.in_script:
-        return		# Don't remember files opened by scripts
+        return        # Don't remember files opened by scripts
     h = file_history(session)
     h.remember_file(filename, format, models, database = database, file_saved = file_saved,
                     open_options = open_options)
@@ -214,7 +230,7 @@ def models_image(session, models, size, format = 'JPEG'):
     if models == 'all models':
         image = v.image(width, height)
     else:
-        from .graphics import camera
+        from chimerax.graphics import camera
         c = camera.camera_framing_drawings(models)
         image = v.image(width, height, camera = c, drawings = models)
     import io

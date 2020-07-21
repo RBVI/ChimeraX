@@ -43,60 +43,37 @@ def set(session, bg_color=None,
     '''
     had_arg = False
     view = session.main_view
-    silhouette = view.silhouette
     if bg_color is not None:
         had_arg = True
-        view.background_color = bg_color.rgba
-        view.redraw_needed = True
-    if silhouettes is not None:
+        from .graphics import graphics
+        graphics(session, background_color = bg_color)
+    if (silhouettes is not None
+        or silhouette_width is not None
+        or silhouette_color is not None
+        or silhouette_depth_jump is not None):
         had_arg = True
-        silhouette.enabled = silhouettes
-        view.redraw_needed = True
-    if silhouette_width is not None:
+        from .graphics import graphics_silhouettes
+        graphics_silhouettes(session, enable = silhouettes, width = silhouette_width,
+                             color = silhouette_color, depth_jump = silhouette_depth_jump)
+    if selection_color is not None or selection_width is not None:
         had_arg = True
-        silhouette.thickness = silhouette_width
-        view.redraw_needed = True
-    if silhouette_color is not None:
-        had_arg = True
-        silhouette.color = silhouette_color.rgba
-        view.redraw_needed = True
-    if silhouette_depth_jump is not None:
-        had_arg = True
-        silhouette.depth_jump = silhouette_depth_jump
-        view.redraw_needed = True
-    if selection_color is not None:
-        had_arg = True
-        view.highlight_color = selection_color.rgba
-    if selection_width is not None:
-        had_arg = True
-        view.highlight_thickness = selection_width
+        from .graphics import graphics_selection
+        graphics_selection(session, color = selection_color, width = selection_width)
     if subdivision is not None:
         had_arg = True
-        from chimerax import atomic
-        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+        from .graphics import graphics_quality
+        graphics_quality(session, quality = subdivision)
     if max_frame_rate is not None:
         had_arg = True
-        msec = 1000.0 / max_frame_rate
-        session.update_loop.set_redraw_interval(msec)
+        from .graphics import graphics_rate
+        graphics_rate(session, max_frame_rate = max_frame_rate)
 
     if not had_arg:
         from chimerax import atomic
         lod = atomic.level_of_detail(session)
-        if session.ui.is_gui:
-            msec = session.update_loop.redraw_interval
-            rate = 1000.0 / msec if msec > 0 else 1000.0
-        else:
-            rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
-                         '  Selection color: %d,%d,%d' % tuple(100*r for r in view.highlight_color[:3]),
-                         '  Selection width: %.3g' % view.highlight_thickness,
-                         '  Silhouettes: ' + str(silhouette.enabled),
-                         '  Silhouette width: %.3g' % silhouette.thickness,
-                         '  Silhouette color: %d,%d,%d' % tuple(100*r for r in silhouette.color[:3]),
-                         '  Silhouette depth jump: %.3g' % silhouette.depth_jump,
-                         '  Subdivision: %.3g'  % lod.quality,
-                         '  Max frame rate: %.3g' % rate))
+                         '  Subdivision: %.3g'  % lod.quality))
         session.logger.info(msg)
 
 def xset(session, setting):
@@ -118,10 +95,14 @@ def register_command(logger):
                  ('selection_width', FloatArg),
                  ('subdivision', FloatArg),
                  ('max_frame_rate', FloatArg)],
-        synopsis="set preferences"
+        hidden = ['silhouettes', 'silhouette_width',
+                  'silhouette_color', 'silhouette_depth_jump',
+                  'selection_color', 'selection_width',
+                  'max_frame_rate'],
+        synopsis="set miscellaneous parameters"
     )
     register('set', desc, set, logger=logger)
     xdesc = CmdDesc(required=[('setting', EnumOf(['bgColor']))],
-        synopsis="reset preference to default"
+        synopsis="reset parameters to default"
     )
     register('~set', xdesc, xset, logger=logger)

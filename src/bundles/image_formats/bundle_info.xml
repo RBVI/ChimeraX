@@ -1,0 +1,51 @@
+<BundleInfo name="ChimeraX-ImageFormats" version="1.0"
+	    package="chimerax.image_formats"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Support for saving images</Synopsis>
+  <Description>Support for saving images</Description>
+
+  <Categories>
+    <Category name="I/O"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="BMP image" category="Image" suffixes=".bmp"
+		reference_url="https://en.wikipedia.org/wiki/BMP_file_format" />
+    <Provider name="GIF image" category="Image" suffixes=".gif"
+		reference_url="https://en.wikipedia.org/wiki/GIF" />
+    <Provider name="JPEG image" category="Image" suffixes=".jpg,.jpeg"
+		reference_url="https://en.wikipedia.org/wiki/JPEG" />
+    <Provider name="PNG image" category="Image" suffixes=".png"
+		reference_url="https://en.wikipedia.org/wiki/Portable_Network_Graphics" />
+    <Provider name="PPM image" category="Image" suffixes=".ppm"
+		reference_url="https://en.wikipedia.org/wiki/Netpbm" />
+    <Provider name="TIFF image" category="Image" suffixes=".tif,.tiff"
+		reference_url="https://en.wikipedia.org/wiki/TIFF" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="BMP image" />
+    <Provider name="GIF image" />
+    <Provider name="JPEG image" />
+    <Provider name="PNG image" />
+    <Provider name="PPM image" />
+    <Provider name="TIFF image" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

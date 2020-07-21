@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-AlignmentAlgorithms" version="1.0"
-	    package="chimerax.seqalign.align_algs"
+<BundleInfo name="ChimeraX-AlignmentAlgorithms" version="2.0"
+	    package="chimerax.alignment_algs"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -42,8 +42,9 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Alignments" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

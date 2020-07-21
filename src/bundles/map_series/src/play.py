@@ -394,6 +394,10 @@ class PlaySeriesMouseMode(MouseMode):
     self.last_mouse_x = x
 
     self._take_step(tstep)
+    
+  def wheel(self, event):
+    d = event.wheel_value()
+    self._take_step(-int(d))
 
   def _take_step(self, tstep):
     p = self.play_series()
@@ -406,21 +410,27 @@ class PlaySeriesMouseMode(MouseMode):
     s0 = ser[0]
     t = s0.last_shown_time
     tn = t + tstep
-    tmax = s0.number_of_times() - 1
-    if tn > tmax:
-      tn = tmax
-    elif tn < 0:
-      tn = 0
+    nt = s0.number_of_times()
+    tmax = nt - 1
+    if tn > tmax or tn < 0:
+      tn = tn % nt
     if tn != t:
       p.change_time(tn)
     p.session.logger.status('%s time %d' % (s0.name, tn+1))
 
-  def vr_motion(self, position, move, delta_z):
+  def vr_motion(self, event):
     # Virtual reality hand controller motion.
-    tstep = int(round(20*delta_z))
+    tstep = int(round(20*event.room_vertical_motion))
     if tstep == 0:
       return 'accumulate drag'
     self._take_step(tstep)
+
+  def vr_thumbstick(self, event):
+    # Virtual reality hand controller thumbstick tilt.
+    step = event.thumbstick_step()
+    if step != 0:
+      self._take_step(step)
+        
 
 # -----------------------------------------------------------------------------
 #
@@ -428,7 +438,7 @@ def label_value_in_range(text, imin, imax):
 
   try:
     i = int(text)
-  except:
+  except Exception:
     return False
   return i >= imin and i <= imax
 

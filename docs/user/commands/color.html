@@ -26,20 +26,19 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: color, rainbow</h3>
 <p>
 Depending on the type of coloring, <b>color</b> may apply to
-atomic models and their parts, including <a href="cartoon.html">cartoon</a> 
-and <a href="surface.html">molecular surface</a> representations,
-and <a href="../tools/volumeviewer.html">volume data</a> (map) displays:
+different sets of items:
 </p>
 <ul class="none">
 <li><a href="#simple"><b>Simple Coloring</b></a>
-&ndash; atomic models 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
-and maps
+&ndash; atomic models,
+<a href="../tools/volumeviewer.html">volume data</a> (maps),
+<a href="2dlabels.html">2D labels</a>
 <li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
@@ -55,13 +54,15 @@ and maps
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>
   <li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
-  &ndash; molecular and nonmolecular surfaces
+  &ndash; surfaces, molecular and nonmolecular
   <li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
-  &ndash; molecular and nonmolecular surfaces
+  &ndash; surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
-&ndash; color molecular and nonmolecular surfaces to match nearby atoms
+&ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
+<li><a href="#image"><b>Coloring from Image File</b></a>
+&ndash; paste an image from a file onto a surface; perform texture mapping
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
@@ -69,7 +70,9 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
+<a href="../tools/coloractions.html"><b>Color Actions</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
+the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>
@@ -106,7 +109,8 @@ the <a href="../tools/log.html"><b>Log</b></a>
 Simple coloring applies to atomic models, including
 <a href="cartoon.html">cartoon</a> and 
 <a href="surface.html">molecular surface</a> representations,
-and <a href="../tools/volumeviewer.html">volume data</a> (map) displays.
+<a href="../tools/volumeviewer.html">volume data</a> (map) displays,
+and <a href="2dlabels.html">2D labels</a>.
 The <a name="colorname"><i>colorname</i></a> can be:
 <ul>
 <li>a <a href="colornames.html">color specification</a> by name,
@@ -186,6 +190,8 @@ The default is all of the above (<b>target abcspf</b>)
 except labels, which can be colored independently:
 3D labels with the <a href="label.html"><b>label</b></a> command,
 2D labels with the <a href="2dlabels"><b>2dlabels</b></a> command.
+However, if only <a href="2dlabels"><b>2dlabels</b></a> are specified
+in the command (such as by model number), labels are inferred as the target.
 <p>
 Alternatively, for certain types of coloring,
 targets can be specified with one or more of the following keywords
@@ -433,6 +439,8 @@ For coloring by a user-defined attribute, see the
 <a href="../preferences.html#startup">custom preset example</a>.
 Examples of coloring by <b>bfactor</b>, an attribute 
 automatically read from mmCIF/PDB, are given below.
+For coloring by segmentation region, 
+see <a href="segmentation.html"><b>segmentation</b></a>.
 </p><p>
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
@@ -519,7 +527,7 @@ to make the cap match the nearby atoms.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>sample</b>&nbsp;|&nbsp;<b>electrostatic</b>&nbsp;|&nbsp;<b>gradient</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
-<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
@@ -541,8 +549,12 @@ can be set independently.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
+For coloring by segmentation region, 
+see <a href="segmentation.html"><b>segmentation</b></a>.
 See also: <a href="mlp.html"><b>mlp</b></a>,
-<a href="surface.html#cap"><b>surface cap</b></a>
+<a href="surface.html#cap"><b>surface cap</b></a>,
+<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a>
 </p>
 <ul>
 <li><b>color sample</b> colors by map value.
@@ -575,6 +587,8 @@ the gradient at a surface vertex is found by trilinear interpolation
 from the eight corners of the enclosing data grid cell.
 The norm of the interpolated gradient (the length of the gradient vector)
 is used for assigning colors.
+The <b>map</b> specification can be omitted when it is the same
+model as the surface being colored.
 </ul>
 <!--
 <h4><a href="#map" class="nounder">&larr;</a> Examples</h4>
@@ -694,6 +708,66 @@ when the shape of the surface changes.
 </p><p>
 A map that has been colored by zone can be split accordingly with
 <a href="volume#splitbyzone"><b>volume splitbyzone</b></a>.
+For coloring by segmentation region, 
+see <a href="segmentation.html"><b>segmentation</b></a>.
+</p>
+
+<a name="image"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3>Coloring from Image File</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color</b> &nbsp;<b>image</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
+[&nbsp;<b>file</b>&nbsp;&nbsp;none&nbsp;|&nbsp;<i>input-image-file</i></a>&nbsp;[&nbsp;<b>modulate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]]
+[&nbsp;<b>coords</b></a>&nbsp;&nbsp;pole&nbsp;|&nbsp;south&nbsp;|&nbsp;sphere&nbsp;|&nbsp;vertexcolors&nbsp;]
+[&nbsp;<b>writeColors</b>&nbsp;&nbsp;<i>output-image-file</i>&nbsp;]
+</blockquote>
+<p>
+Coloring by <b>image</b> applies to surfaces only. In this technique, 
+also known as <a href="https://en.wikipedia.org/wiki/Texture_mapping" 
+target="_blank">texture mapping</a>, surface vertices are associated with
+U,V coordinates that map to the X,Y coordinates in an image.
+The <b>file</b> option specifies an image from a file to paste 
+onto the surface (<a href="save.html#imgformats">image format</a> 
+indicated by the filename suffix), or <b>none</b>,
+<!-- needed before doing any other type of coloring -->
+which clears any previous image coloring. Omitting the <b>file</b> option 
+keeps using the previously specified image, if any, for texture mapping.
+The <b>modulate</b> option indicates whether the image in the file should
+modulate rather than replace the current surface coloring (default <b>false</b>,
+replace the current coloring).
+</p><p>
+An image is rectangular, with XY coordinates (0,0) at the lower left corner
+and (1,1) at the top right. 
+The <b>coords</b> setting indicates how UV coordinates should be assigned
+to surface vertices:
+</p>
+<ul>
+<li><b>pole</b>
+&ndash; surface north pole at the middle of the image (U,V = 0.5,0.5)
+and the south pole on a circle touching the image edges
+<li><b>south</b>
+&ndash; as above, except reversing north and south
+<li><b>sphere</b>
+&ndash; UV coordinates are the latitude and longitude of a vertex
+on a sphere centered at 0,0,0 in the surface model coordinate system
+<li><b>vertexcolors</b>
+&ndash; UV coordinates are determined from the existing vertex colors,
+a unique U,V pair for each color; this would be used without specifying 
+an input image.
+The <b>writeColors</b> option can then be used to save the corresponding 
+XY image file (with <a href="save.html#imgformats">format</a>
+indicated by the filename suffix).
+This allows saving texture coloring for import into other programs
+that do not use vertex colors directly, and is most useful for 
+surfaces with a handful of distinct colors rather than many color gradations.
+</ul>
+<p>
+If the <b>coords</b> option is not used, UV coordinates are not assigned 
+(for example, to allow using Python to assign them in some other way).
 </p>
 
 <a name="palette-options"></a>
@@ -940,6 +1014,10 @@ Examples:
 <b>color name tgreen rgba(0%, 80%, 40%, 0.5)</b>
 </blockquote>
 <p>
+Colors can be defined automatically at ChimeraX startup by including
+<b>color name</b> commands in the
+<a href="../preferences.html#startup"><b>Startup</b> preferences</a>.
+</p><p>
 The command <b>color delete</b> can be used to &ldquo;forget&rdquo; a specific
 user-defined color or all <b>custom</b> (user-defined) colors. 
 A <a href="colornames.html#builtin">built-in color name</a> cannot be deleted.
@@ -964,5 +1042,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+May 2020</address>
 </body></html>

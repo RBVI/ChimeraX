@@ -33,8 +33,19 @@ class ModelPanel(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QFrame, QPushButton
-        self.tree = QTreeWidget()
+            QFrame, QPushButton, QSizePolicy
+        class SizedTreeWidget(QTreeWidget):
+            def sizeHint(self):
+                from PyQt5.QtCore import QSize
+                # side buttons will keep the vertical size reasonable
+                if getattr(self, '_first_size_hint_call', True):
+                    self._first_size_hint_call = False
+                    width = 0
+                else:
+                    width = self.header().length()
+                return QSize(width, 200)
+        self.tree = SizedTreeWidget()
+        self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.tree.keyPressEvent = session.ui.forward_keystroke
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
@@ -160,6 +171,7 @@ class ModelPanel(ToolInstance):
     def _fill_tree(self, *, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
+            self._frame_drawn_handler = None
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
 
@@ -298,7 +310,8 @@ class ModelPanel(ToolInstance):
         if column == self.SHOWN_COLUMN:
             self.self_initiated = True
             command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
-            run(self.session, "%s #!%s models" % (command_name, model.id_string))
+            run(self.session, "%s #%s%s models" % (command_name,
+                "!" if len(model.all_models()) > 1 else "", model.id_string))
         elif column == self.SELECT_COLUMN:
             self.self_initiated = True
             prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"

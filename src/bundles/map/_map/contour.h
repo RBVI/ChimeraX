@@ -31,24 +31,24 @@
 // Returned vertex and triangle arrays should be freed with free_surface().
 //
 
+#include "index_types.h"	// Use GIndex, AIndex, VIndex, TIndex
+
 namespace Contour_Calculation
 {
-typedef unsigned int Index; // grid and edge indices, and surface vertex indices
-typedef long Stride;	    // Array strides and pointer offsets, signed
 
 class Contour_Surface
 {
  public:
   virtual ~Contour_Surface() {};
-  virtual Index vertex_count() = 0;
-  virtual Index triangle_count() = 0;
-  virtual void geometry(float *vertex_xyz, Index *triangle_vertex_indices) = 0;
+  virtual VIndex vertex_count() = 0;
+  virtual TIndex triangle_count() = 0;
+  virtual void geometry(float *vertex_xyz, VIndex *triangle_vertex_indices) = 0;
   virtual void normals(float *normals) = 0;
 };
 
 template <class Data_Type>
 Contour_Surface *surface(const Data_Type *grid,
-			 const Index size[3], const Stride stride[3],
+			 const AIndex size[3], const GIndex stride[3],
 			 float threshold, bool cap_faces);
 }
 

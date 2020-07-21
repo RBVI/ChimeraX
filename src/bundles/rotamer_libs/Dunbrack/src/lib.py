@@ -14,14 +14,13 @@
 _dependent_cache = {}
 _independent_cache = {}
 
-from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
-    UnsupportedResTypeError, NoResidueRotamersError
+from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeError, NoResidueRotamersError
 
 class DunbrackRotamerLibrary(RotamerLibrary):
 
     @property
     def display_name(self):
-        return "Dunbrack 2010"
+        return "Dunbrack"
 
     @property
     def description(self):
@@ -45,8 +44,8 @@ Structure, 19, 844-858."""
         return self._rotamer_res_names
 
     @property
-    def res_name_description(self):
-        mapping = super().res_name_description
+    def res_name_descriptions(self):
+        mapping = super().res_name_descriptions
         mapping.update({
             "CPR": "cis proline",
             "CYD": "disulfide-bonded cysteine",

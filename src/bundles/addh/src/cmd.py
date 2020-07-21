@@ -11,12 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
+from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
+    bond_with_H_length
 from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
-from chimerax.atomic.colors import element_colors
+from chimerax.atomic.colors import element_color
+from chimerax.atomic.bond_geom import linear
 
-def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6, template=False,
+def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.95, template=False,
     use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 
     if structures is None:
@@ -59,7 +61,7 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
         session.logger.status("Adding hydrogens")
         try:
             add_h_func(session, structures, template=template, in_isolation=in_isolation, **prot_schemes)
-        except:
+        except BaseException:
             session.logger.status("")
             raise
         finally:
@@ -71,7 +73,7 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
         # If side chains are displayed, then the CA is _not_ hidden, so we
         # need to let the ribbon code update the hide bits so that the CA's
         # hydrogen gets hidden...
-        atoms.update_ribbon_visibility()
+        atoms.update_ribbon_backbone_atom_visibility()
         session.logger.info("%s hydrogens added" %
             (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
 #TODO: initiate_add_hyd
@@ -222,7 +224,7 @@ def post_add(session, fake_n, fake_c):
             continue
         if add_nh:
             if dihed is None:
-                from chimerax.core.geometry import dihedral
+                from chimerax.geometry import dihedral
                 dihed = dihedral(pc.coord, pca.coord, pn.coord, ph.coord)
             session.logger.info("Adding 'H' to %s" % str(fn))
             from chimerax.atomic.struct_edit import add_dihedral_atom
@@ -342,8 +344,8 @@ def _handle_acid_protonation_scheme_item(r, protonation, res_types, atom_names,
 _tree_dist = 3.25
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
-    from chimerax.core.geometry import distance_squared
-    from chimerax.atomic.search import AtomSearchTree
+    from chimerax.geometry import distance_squared
+    from chimerax.atom_search import AtomSearchTree
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
     # looking off their heavy atoms
@@ -447,6 +449,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
 
     remaining_unknowns = {}
     type_info_class = type_info['H'].__class__
+    from chimerax.atomic import Residue
     for struct in structures:
         for atom in struct.atoms:
             if atom.element.number == 0:
@@ -463,11 +466,10 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 try:
                     exemplar = template_lookup[res.name]
                 except KeyError:
-                    from chimerax.atomic.mmcif import find_template_residue
+                    from chimerax.mmcif import find_template_residue
                     tmpl = find_template_residue(session, res.name)
                     if not tmpl:
                         continue
-                    print("Using template for", res.name)
                     from chimerax.atomic import AtomicStructure
                     s = AtomicStructure(session)
                     r = exemplar = template_lookup[res.name] = s.new_residue(res.name, 'A', 1)
@@ -484,13 +486,13 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 for a in res.atoms:
                     ea = exemplar.find_atom(a.name)
                     if ea:
-                        idatm_lookup[a] = ea.idatm_type
+                        a.idatm_type = ea.idatm_type
             for r in template_lookup.values():
                 r.structure.delete()
             template_lookup.clear()
 
         for atom in struct.atoms:
-            atom_type = idatm_lookup[atom] if atom in idatm_lookup else atom.idatm_type
+            atom_type = atom.idatm_type
             idatm_type[atom] = atom_type
             if atom_type in type_info:
                 # don't want to ask for idatm_type in middle
@@ -500,7 +502,14 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # if atom is in standard residue but has missing bonds to
                 # heavy atoms, skip it instead of incorrectly protonating
                 # (or possibly throwing an error if e.g. it's planar)
-                if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                # also
+                # UNK/N residues will be missing some or all of their side-chain atoms, so
+                # skip atoms that would otherwise be incorrectly protonated due to their
+                # missing neighbors
+                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
+                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
+                    and unk_atom_truncated(atom))
+                if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
                     type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
@@ -674,7 +683,7 @@ def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
     near_pos = n = near_atom = None
     exclude_pos = set([tuple(ex._addh_coord) for ex in exclude])
     exclude_pos.add(tuple(atom._addh_coord))
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for nb in nearby:
         n_pos = nb._addh_coord
         if tuple(n_pos) in exclude_pos:
@@ -725,7 +734,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     from numpy.linalg import norm
     v *= cos70_5 * bond_len / norm(v)
     center = at_pos + v
-    from chimerax.core.geometry import Plane
+    from chimerax.geometry import Plane
     plane = Plane(center, normal=v)
     radius = sin70_5 * bond_len
     check_dist += radius
@@ -795,42 +804,35 @@ def roomiest(positions, attached, check_dist, atom_type_info):
     return list(zip(*pos_info))[1]
 
 def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
-    if parent_atom.element.valence < 5:
-        # carbons, et al, can't coordinate metals
+    if parent_atom.element.valence < 5 and parent_type_info.geometry != linear:
+        # non-sp1 carbons, et al, can't coordinate metals
         return False
-    from chimerax.core.geometry import distance, angle
-    if distance(metal_pos, parent_pos) > _metal_dist:
+    from chimerax.geometry import distance, angle
+    if distance(metal_pos, pos) > 2.7:
+        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
+        # see nitrogen stripping in CYS 77 and 120 in 3r24
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)
     if angle(parent_pos, pos, metal_pos) > 120.0:
         return True
     return False
 
+def unk_atom_truncated(atom):
+    if atom.is_side_chain:
+        num_heavy_nbs = len([nb for nb in atom.neighbors if nb.element.number > 1])
+        if atom.is_side_connector:
+            # CA or ribose ring
+            if atom.is_backbone(atom.BBE_MIN) or atom.name == "C1'":
+                # atoms that connect the side chain to the backbone
+                return num_heavy_nbs < 3
+            elif atom.name == "O2'":
+                return num_heavy_nbs < 1
+        return num_heavy_nbs < 2
+    return False
+
 def vdw_radius(atom):
     # to avoid repeated IDATM computation in the middle of hydrogen addition
     return _radii.get(atom, h_rad)
-
-N_H = 1.01
-def bond_with_H_length(heavy, geom):
-    element = heavy.element.name
-    if element == "C":
-        if geom == 4:
-            return 1.09
-        if geom == 3:
-            return 1.08
-        if geom == 2:
-            return 1.056
-    elif element == "N":
-        return N_H
-    elif element == "O":
-        # can't rely on water being in chain "water" anymore...
-        if heavy.num_bonds == 0 or heavy.num_bonds == 2 \
-        and len([nb for nb in heavy.neighbors if nb.element.number > 1]) == 0:
-            return 0.9572
-        return 0.96
-    elif element == "S":
-        return 1.336
-    return Element.bond_length(heavy.element, Element.get_element(1))
 
 def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
     added_hs = []
@@ -897,7 +899,7 @@ def determine_h_color(parent_atom):
     else:
         solvent_set = _solvent_atoms[struct]
     if res.name in res.water_res_names or parent_atom in solvent_set:
-        return element_colors(1)
+        return element_color(1)
     if parent_atom.structure in _h_coloring:
         color_scheme = _h_coloring[parent_atom.structure]
     else:
@@ -907,7 +909,7 @@ def determine_h_color(parent_atom):
                 continue
             if a.element.name == "C":
                 continue
-            if a.color == element_colors(a.element.number):
+            if a.color == element_color(a.element.number):
                 num_match_elements += 1
                 if num_match_elements > 1:
                     color_scheme = "element"
@@ -918,7 +920,7 @@ def determine_h_color(parent_atom):
         else:
             color_scheme = "element"
         _h_coloring[parent_atom.structure] = color_scheme
-    return parent_atom.color if color_scheme == "parent" else element_colors(1)
+    return parent_atom.color if color_scheme == "parent" else element_color(1)
 
 naming_exceptions = {
     'ATP': {
@@ -937,6 +939,22 @@ naming_exceptions = {
     }
 }
 
+def to_h36(base10, max_digits):
+    decimal_limit = eval('9' * max_digits)
+    if base10 <= decimal_limit:
+        return str(base10)
+    base36_num =  10 * 36 ** (max_digits-1) + (base10 - decimal_limit - 1)
+    base36_str = ""
+    while base36_num > 0:
+        digit = base36_num % 36
+        if digit < 10:
+            d_str = str(digit)
+        else:
+            d_str = chr(ord('A') + digit - 10)
+        base36_str = d_str + base36_str
+        base36_num = int(base36_num / 36)
+    return base36_str
+
 def _h_name(atom, h_num, total_hydrogens, naming_schema):
     res_name = atom.residue.name
     find_atom = atom.residue.find_atom
@@ -944,9 +962,9 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     res_schema, pdb_version = naming_schema
     if res_schema == "simple":
         i = 1
-        while atom.residue.find_atom("H%d" % i):
+        while atom.residue.find_atom("H%s" % to_h36(i, 3)):
             i += 1
-        return "H%d" % i
+        return "H%s" % to_h36(i, 3)
     if res_name in naming_exceptions and atom.name in naming_exceptions[res_name]:
         except_names = naming_exceptions[res_name][atom.name]
         for name in except_names:
@@ -969,21 +987,23 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
             h_name = "".join([x for x in h_name if x.isalnum()])
 
     if pdb_version == 2:
-        if total_hydrogens > 1 or find_atom(h_name):
+        # glycosylated asparagines should use the un-glycosylated names
+        if total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
             while find_atom("%d%s" % (h_num, h_name)):
                 h_num += 1
             h_name = "%d%s" % (h_num, h_name)
     elif h_name[-1] == "'" and len(h_name) + (total_hydrogens-1) <= 4:
         while find_atom(h_name):
             h_name += "'"
-    elif total_hydrogens > 1 or find_atom(h_name):
+    elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
         if atom.residue.principal_atom and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
-        while find_atom("%s%d" % (h_name, h_num)):
+        h_digits = 4 - len(h_name)
+        while find_atom("%s%s" % (h_name, to_h36(h_num, h_digits))):
             h_num += 1
-        h_name = "%s%d" % (h_name, h_num)
+        h_name = "%s%s" % (h_name, to_h36(h_num, h_digits))
     return h_name
 
 def register_command(command_name, logger):

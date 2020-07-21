@@ -24,7 +24,6 @@
 
 #include "Python.h"
 
-#include <iostream>
 namespace pyinstance {
 
 template <class C> std::string PythonInstance<C>::_buffer;

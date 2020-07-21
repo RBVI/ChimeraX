@@ -19,19 +19,20 @@ class GraphicsWindow(QWindow):
     """
 
     def __init__(self, parent, ui, stereo = False, opengl_context = None):
+        self.session = ui.session
+        self.view = ui.session.main_view
+
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
-        self.session = ui.session
-        self.view = ui.session.main_view
 
         if opengl_context is None:
-            from chimerax.core.graphics import OpenGLContext
+            from chimerax.graphics import OpenGLContext
             oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
         else:
-            from chimerax.core.graphics import OpenGLError
+            from chimerax.graphics import OpenGLError
             try:
                 opengl_context.enable_stereo(stereo, window = self)
             except OpenGLError as e:
@@ -58,7 +59,7 @@ class GraphicsWindow(QWindow):
     def _check_opengl(self):
         r = self.view.render
         log = self.session.logger
-        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
+        from chimerax.graphics import OpenGLVersionError, OpenGLError
         try:
             mc = r.make_current()
         except (OpenGLVersionError, OpenGLError) as e:
@@ -72,6 +73,36 @@ class GraphicsWindow(QWindow):
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
 
+        self._check_for_bad_intel_driver()
+
+    def _check_for_bad_intel_driver(self):
+        import sys
+        if sys.platform != 'win32':
+            return
+        from chimerax.ui.widgets import HtmlView
+        if HtmlView.require_native_window:
+            return  # Already applied this fix.
+        r = self.view.render
+        if r.opengl_vendor() == 'Intel':
+            ver = r.opengl_version()
+            try:
+                build = int(ver.split('.')[-1])
+            except Exception:
+                return
+            if 6708 < build < 8280:
+                # This is to work around ChimeraX bug #2537 where the entire
+                # GUI becomes blank with some 2019 Intel graphics drivers.
+
+                # TODO: This fix may fail if HtmlView widgets are created
+                #       before the graphisc is checked.  Worked in tests on one machine.
+                HtmlView.require_native_window = True
+                msg = ('Your computer has Intel graphics driver %d with a known bug '
+                       'that causes all Qt user interface panels to be blank. '
+                       'ChimeraX can partially fix this but may make some panel '
+                       'titlebars and edges black.  Hopefully newer '
+                       'Intel graphics drivers will fix this.' % build)
+                self.session.logger.warning(msg)
+                                            
     def handle_drag_and_drop(self, event):
         from PyQt5.QtCore import QEvent
         t = event.type()
@@ -98,7 +129,7 @@ class GraphicsWindow(QWindow):
             return	# Window is not yet exposed so can't use opengl
 
         # Avoid flickering when resizing by drawing immediately.
-        from chimerax.core.graphics import OpenGLVersionError
+        from chimerax.graphics import OpenGLVersionError
         try:
             self.session.update_loop.update_graphics_now()
         except OpenGLVersionError as e:

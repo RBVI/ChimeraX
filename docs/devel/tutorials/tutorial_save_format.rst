@@ -88,65 +88,36 @@ for bundles written completely in Python.  The
 ``bundle_info.xml`` in this example is similar to the one
 from the :doc:`tutorial_tool` example with changes highlighted.
 For explanations of the unhighlighted sections, please
-see :doc:`tutorial_hello`, :doc:`tutorial_command` and
-:doc:`tutorial_tool`.
+see :doc:`tutorial_hello`, :doc:`tutorial_command`,
+:doc:`tutorial_tool`, and :doc:`tutorial_read_format`.
 
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-23,41-43
+    :emphasize-lines: 8-10,17-23,35-48
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-23).
 
-The ``ChimeraXClassifier`` tags on lines 41-43 informs ChimeraX that
-this bundle supports reading a data format named **XYZ**.
-The **DataFormat** classifier consists of several fields after
-the format name:
+The ``Providers`` sections on lines 36 through 48 use the
+:ref:`Manager <Manager>`/:ref:`Provider <Provider>` protocol to inform
+the "data formats" manager about the XYZ format, and the "open command"
+and "save command" managers, respectively,  that this bundle can open
+and save XYZ files,
 
-- an optional comma-separated list of alternative names for the format
-  (none in this example).
-- the category of data stored in this format (**Molecular structure**).
-- a comma-separated list of suffixes that files in this format may use
-  (**.xyz**).
-- the MIME types associated with the format (none in this example).
-- the URL to the format specifications
-  (**https://en.wikipedia.org/wiki/XYZ_file_format**).
-- whether the format potentially contains dangerous data, *e.g.*,
-  an executable script (not in this example).  If the format
-  supports script, this field should be set to **true** and users
-  would be asked whether to try to open a file of this format.
-- the path to an icon for files in this format (none in this example).
-- the description for the format to show to users (**XYZ format**).
-- the encoding for the file contents (**utf-8**).
+The attributes usable with the "data formats" manager are described in
+detail in :ref:`data format`.  Note that most formats have a longer
+official name than "XYZ" and therefore most formats will also specify
+``nicknames`` and ``synopsis`` attributes, whereas they are unneeded
+in this example.
 
-The **Open** classifier fields are:
+The "open command" attributes are described in detail in
+:ref:`open command`.
+Likewise, the "save command" attributes are described in detail in
+:ref:`save command`.
+It *is* typical that the only attribute specified is ``name``.
 
-- the name of the data format (in this example, **XYZ**),
-- a (currently unused) tag name (**XYZ**), and
-- a boolean value for whether this bundle should be the default handler
-  for the named data format (none, defaulting to **false**).  Bundles
-  that provide the canonical format reader for a format should set this
-  value to **true**.
-
-The **Save** classifier fields are:
-
-- the name of the data format (in this example, **XYZ**),
-- a (currently unused) tag name (**XYZ**),
-- a boolean value for whether this bundle should be the default handler
-  for the named data format (none, defaulting to **false**).  Bundles
-  that provide the canonical format writer for a format should set this
-  value to **true**, and
-- descriptions for **save** command keywords accepted for this data format
-  (**models:Models**).  The descriptions are a comma-separated list of
-  colon-separated keyword-*datatype* pairs.  *datatype*
-  must match one of the type names from :py:mod:`chimerax.core.commands`
-  less a **Arg** suffix.  In this example, the **save** command will
-  accept a **models** keyword when an XYZ file is saved; the syntax
-  for the **models** argument matches
-  :py:class:`~chimerax.core.commands.cli.ModelsArg`
-  (*i.e.*, **Models** + **Arg**).
 
 ``src``
 -------
@@ -167,25 +138,39 @@ overridden for registering commands, tools, etc.
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/src/__init__.py
     :language: python
     :linenos:
-    :emphasize-lines: 35-48
+    :emphasize-lines: 29-36,45-83
 
-The ``open_file`` method is overridden to handle opening XYZ data
-files, and is described in detail in :doc:`tutorial_read_format`.
+The :py:meth:`run_provider` method is called by a ChimeraX manager
+when it needs additional information from a provider or it needs a
+provider to execute a task.
+The *session* argument is a :py:class:`~chimerax.core.session.Session` instance,
+the *name* argument is the same as the ``name`` attribute in your Provider
+tag, and the *mgr* argument is the manager instance.
+These arguments can be used to decide what to do when your bundle offers
+several Provider tags, such as in this example.
+The "data formats" manager never calls :py:meth:`run_provider`, so we only
+need to know if it's the "open command" or "save command" manager calling
+this method.
+This "open command" manager is also ``session.open_command`` (and "save command"
+is ``session.save_command``), so we use the test on line 36 to decide.
 
-The ``save_file`` method is called by ChimeraX to save a file.
-The first two arguments are **session**, a
-:py:class:`chimerax.core.session.Session` instance; and
-**path**, the path to the output file as a string.
-An optional **format_name** argument may be listed if
-the bundle supports multiple data formats.
-Additional arguments should match the keyword arguments listed
-by the **Save** classifier in **bundle_info.xml**.
+The information needed by the "open command" manager is returned by the code on
+lines 37-44 and is described in detail in :doc:`tutorial_read_format`.
 
-For this example, the **format_name** argument is omitted because
-the bundle only supports XYZ format.  The **models** argument is
-listed on line 37, matching the **bundle_info.xml** specification.
-All three arguments are passed through to ``io.save_xyz`` to
-actually save the models to the output file in XYZ format.
+When called by the "save command" manager, :py:meth:`run_provider` must return
+an instance of a subclass of :py:class:`chimerax.save_command.SaverInfo`.
+The methods of the class are thoroughly documented if you click the preceding
+link, but briefly:
+
+1. The :py:meth:`save` method is called to actually save the file (and has no
+   return value).  The method's *path* is the full path name of the file to save.
+2. If there are format-specific keyword arguments that the ``save`` command should
+   handle, then a :py:meth:`save_args` property should be implemented, which
+   returns a dictionary mapping **Python** keyword names to :ref:`Annotation <Type Annotations>`
+   subclasses.  Such keywords will be passed to your :py:meth:`save` method.
+3. If your underlying file-writing function uses :py:func:`~chimerax.io.io.open_output`
+   to open the path, then compression implied by the file name (*e.g.* a additional
+   .gz suffix) will be handled automatically.
 
 
 ``src/io.py``
@@ -194,7 +179,7 @@ actually save the models to the output file in XYZ format.
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/src/io.py
     :language: python
     :linenos:
-    :emphasize-lines: 109-150
+    :emphasize-lines: 109-147
 
 The ``open_xyz`` and ``_read_block`` functions are described in
 detail in :doc:`tutorial_read_format`.
@@ -202,22 +187,20 @@ detail in :doc:`tutorial_read_format`.
 The ``save_xyz`` function performs the following steps:
 
 - open the output file for writing using the ChimeraX function
-  :py:func:`chimerax.core.io.open_filename` (lines 112-114),
-- if the **models** keyword was not given, include all atomic structures
-  for saving (lines 116-119),
-- initialize some statistics counters (lines 120-121),
-- loop through the structures to save (line 124) and:
+  :py:func:`~chimerax.io.io.open_output` (lines 112-116),
+- if the *structures* keyword was not given, include all atomic structures
+  for saving (lines 118-121),
+- initialize the total atom count (line 122),
+- loop through the structures to save (line 125) and:
 
-  - try to get the lists of atoms and coordinates for the structure.
-    If that fails, assume that the model is not an atomic structure
-    and skip it (lines 125-134),
+  - get the lists of atoms and coordinates for the structure.  (lines 129-130),
   - print the first two lines (number of atoms and comment) for the
-    structure to the file (lines 136-140),
+    structure to the file (lines 132-135),
   - print one line per atom using the atom and coordinates lists, and
-  - update statistics (lines 134 and 145).
-
+  - update total atom count (lines 136-141).
+- close the output file (line 142)
 - finally, log a status message to let the user know what was written
-  (lines 147-149).
+  (lines 144-146).
 
 
 .. include:: build_test_distribute.rst

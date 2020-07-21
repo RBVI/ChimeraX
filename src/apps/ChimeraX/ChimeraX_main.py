@@ -63,7 +63,7 @@ if sys.platform.startswith('win'):
     os.EX_NOPERM = 77           # permission denied
     os.EX_CONFIG = 78           # configuration error
 
-    if 'LANG' in os.environ:
+    if 'LANG' in os.environ and sys.stdout is not None:
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
@@ -119,6 +119,7 @@ def parse_arguments(argv):
     opts.version = -1
     opts.get_available_bundles = True
     opts.safe_mode = False
+    opts.toolshed = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -142,6 +143,7 @@ def parse_arguments(argv):
         "--usedefaults",
         "--version",
         "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -261,6 +263,8 @@ def parse_arguments(argv):
             opts.version += 1
         elif opt == "--qtscalefactor":
             os.environ["QT_SCALE_FACTOR"] = optarg
+        elif opt == "--toolshed":
+            opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -285,13 +289,16 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
-        # Setup SSL CA certificates file
-        import certifi
-        os.environ["SSL_CERT_FILE"] = certifi.where()
     if sys.platform.startswith('linux'):
         # Workaround for #638:
         # "any number of threads more than one leads to 200% CPU usage"
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+    # Setup SSL CA certificates file
+    # This used to be only necessary for darwin, but Windows
+    # appears to need it as well.  So use it for all platforms.
+    import certifi
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 
     # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
     # metadata classifier, but jurko 0.6 (SOAP package) claims to be
@@ -304,48 +311,21 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
-    # for modules that moved out of core, allow the old imports to work for awhile...
-    from importlib.abc import MetaPathFinder, Loader
-    class CoreCompatFinder(MetaPathFinder):
-        def find_spec(self, full_name, path, target=None):
-            unmoved_modules = []
-            moved_modules = ["ui", "atomic"]
-            for umod in unmoved_modules:
-                future_name = "chimerax." + umod
-                if full_name.startswith(future_name):
-                    current_name = "chimerax.core." + umod
-                    from importlib import util, import_module
-                    real_name = full_name.replace(future_name, current_name)
-                    # ensure real module has been imported...
-                    import_module(real_name)
-                    real_spec = util.find_spec(real_name)
-                    class FakeLoader(Loader):
-                        def create_module(self, spec, real_name=real_name):
-                            return sys.modules[real_name]
-                        def exec_module(self, module):
-                            pass
-                    from importlib.machinery import ModuleSpec
-                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
-                    return fake_spec
-            for mmod in moved_modules:
-                old_name = "chimerax.core." + mmod
-                if full_name.startswith(old_name):
-                    new_name = "chimerax." + mmod
-                    from importlib import util, import_module
-                    real_name = full_name.replace(old_name, new_name)
-                    # ensure real module has been imported...
-                    import_module(real_name)
-                    real_spec = util.find_spec(real_name)
-                    class FakeLoader(Loader):
-                        def create_module(self, spec, real_name=real_name):
-                            return sys.modules[real_name]
-                        def exec_module(self, module):
-                            pass
-                    from importlib.machinery import ModuleSpec
-                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
-                    return fake_spec
-            return None
-    sys.meta_path.append(CoreCompatFinder())
+    opts, args = parse_arguments(argv)
+
+    # install line_profile decorator, and install it before
+    # initialize_ssl_cert_dir() in case the line profiling is in the
+    # core (which would cause initialize_ssl_cert_dir() to fail)
+    import builtins
+    if not opts.line_profile:
+        builtins.__dict__['line_profile'] = lambda x: x
+    else:
+        # write profile results on exit
+        import atexit
+        import line_profiler
+        prof = line_profiler.LineProfiler()
+        builtins.__dict__['line_profile'] = prof
+        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
@@ -359,20 +339,6 @@ def init(argv, event_loop=True):
     except ImportError:
         print("error: unable to figure out %s's version" % app_name)
         return os.EX_SOFTWARE
-
-    opts, args = parse_arguments(argv)
-
-    # install line_profile decorator
-    import builtins
-    if not opts.line_profile:
-        builtins.__dict__['line_profile'] = lambda x: x
-    else:
-        # write profile results on exit
-        import atexit
-        import line_profiler
-        prof = line_profiler.LineProfiler()
-        builtins.__dict__['line_profile'] = prof
-        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     if opts.use_defaults:
         from chimerax.core import configinfo
@@ -508,7 +474,7 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-
+        
     # initialize qt
     if opts.gui:
         from chimerax.ui import initialize_qt
@@ -563,21 +529,34 @@ def init(argv, event_loop=True):
     # Install any bundles before toolshed is initialized so
     # the new ones get picked up in this session
     from chimerax.core import toolshed
-    inst_dir, restart_file = toolshed.install_on_restart_info()
-    restart_install_msgs = []
+    inst_dir, restart_file = toolshed.restart_action_info()
+    restart_action_msgs = []
     if os.path.exists(restart_file):
         # Move file out of the way so next restart of ChimeraX
         # (when we try to install the bundle) will not go into
         # an infinite loop reopening the restart file
         tmp_file = restart_file + ".tmp"
+        try:
+            # Remove in case old file lying around.
+            # Windows does not allow renaming to an existing file.
+            os.remove(tmp_file)
+        except:
+            pass
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                restart_install(line, inst_dir, restart_install_msgs)
+                restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
+    if opts.toolshed is None:
+        toolshed_url = None
+    elif opts.toolshed == "preview":
+        toolshed_url = toolshed.preview_toolshed_url()
+    else:
+        toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
-                  check_available=opts.get_available_bundles)
+                  check_available=opts.get_available_bundles,
+                  remote_url=toolshed_url)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
@@ -606,8 +585,27 @@ def init(argv, event_loop=True):
 
     if opts.list_io_formats:
         sess.silent = False
-        from chimerax.core import io
-        io.print_file_suffixes()
+        collate = {}
+        for fmt in sess.data_formats.formats:
+            collate.setdefault(fmt.category, []).append(fmt)
+        categories = list(collate.keys())
+        categories.sort(key=str.casefold)
+        print("Supported file suffixes:")
+        print("  o = open, s = save")
+        openers = set(sess.open_command.open_data_formats)
+        savers = set(sess.save_command.save_data_formats)
+        for cat in categories:
+            print("\n%s:" % cat)
+            fmts = collate[cat]
+            fmts.sort(key=lambda fmt: fmt.name.casefold())
+            for fmt in fmts:
+                o = 'o' if fmt in openers else ' '
+                s = 's' if fmt in savers else ' '
+                if fmt.suffixes:
+                    exts = ': ' + ', '.join(fmt.suffixes)
+                else:
+                    exts = ''
+                print("%c%c  %s%s" % (o, s, fmt.name, exts))
         # TODO: show database formats
         # TODO: show mime types?
         # TODO: show compression suffixes?
@@ -629,7 +627,13 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         # canonicalize tool names
-        start_tools = [sess.toolshed.find_bundle_for_tool(t)[1] for t in opts.start_tools]
+        start_tools = []
+        for t in opts.start_tools:
+            tools = sess.toolshed.find_bundle_for_tool(t)
+            if not tools:
+                sess.logger.warning("Unable to find tool %s" % repr(t))
+                continue
+            start_tools.append(tools[0][1])
         sess.tools.start_tools(start_tools)
 
     if opts.commands:
@@ -648,9 +652,9 @@ def init(argv, event_loop=True):
             # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        from chimerax.core.commands import runscript
+        from chimerax.core.commands import run
         for script in opts.scripts:
-            runscript(sess, script)
+            run(sess, 'runscript %s' % script)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
@@ -671,8 +675,8 @@ def init(argv, event_loop=True):
                          is_html=True)
 
     # Show any messages from installing bundles on restart
-    if restart_install_msgs:
-        for where, msg in restart_install_msgs:
+    if restart_action_msgs:
+        for where, msg in restart_action_msgs:
             if where == "stdout":
                 sess.logger.info(msg)
             else:
@@ -725,16 +729,32 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import errors, commands
     for arg in args:
-        try:
-            from chimerax.core.commands import quote_if_necessary
-            commands.run(sess, 'open %s' % quote_if_necessary(arg))
-        except (IOError, errors.NotABug) as e:
-            sess.logger.error(str(e))
-            return os.EX_SOFTWARE
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return os.EX_SOFTWARE
+        if opts.safe_mode:
+            # 'open' command unavailable; only open Python files
+            if not arg.endswith('.py'):
+                sess.logger.error("Can only open Python scripts in safe mode, not '%s'" % arg)
+                return os.EX_SOFTWARE
+            from chimerax.core.scripting import open_python_script
+            try:
+                open_python_script(sess, open(arg, 'rb'), arg)
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
+        else:
+            from chimerax.core.commands import StringArg
+            try:
+                commands.run(sess, 'open %s' % StringArg.unparse(arg))
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
 
     # Open files dropped on application
     if opts.gui:
@@ -784,7 +804,7 @@ def uninstall(sess):
         if os.path.basename(exe_dir) != 'bin':
             sys.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
-        from chimerax.core import _xdg
+        from chimerax.linux import _xdg
         _xdg.uninstall(sess)
         # parent = os.path.dirname(exe_dir)
         # rm_rf_path(parent, sess)
@@ -835,18 +855,26 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 
-def restart_install(line, inst_dir, msgs):
+def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
     import sys, subprocess, os.path, os
     parts = line.rstrip().split('\t')
-    bundle = parts[0]
-    pip_args = parts[1:]
+    action = parts[0]
+    bundle = parts[1]
+    pip_args = parts[2:]
     # Options should match those in toolshed
-    command = ["install", "--upgrade",
-               "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
-               "--upgrade-strategy", "only-if-needed"]
+    # Do not want to import toolshed yet, so we duplicate the code
+    if action == "install":
+        command = ["install", "--upgrade",
+                   "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+                   "--upgrade-strategy", "only-if-needed"]
+    elif action == "uninstall":
+        command = ["uninstall", "--yes"]
+    else:
+        msgs.append(("stderr", "unexpected restart action: %s" % line))
+        return
     command.extend(pip_args)
     if bundle.endswith(".whl"):
         command.append(os.path.join(inst_dir, bundle))

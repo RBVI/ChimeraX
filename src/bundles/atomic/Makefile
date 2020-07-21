@@ -1,6 +1,7 @@
+# need to install C++ headers for subsequent builds
+BUILD_AND_INSTALL = 1
 include ../Makefile.bundle
 
-DEVEL_ARGS = test false
 CLEAN_ALWAYS += src/data src/lib src/include
 ifeq ($(OS),CYGWIN_NT)
 CLEAN_ALWAYS += src/libmolc.dll src/cymol.pyd

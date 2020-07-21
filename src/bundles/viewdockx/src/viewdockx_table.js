@@ -31,9 +31,11 @@ var vdxtable = function() {
 
     function update_columns(columns) {
         // Clean up previous incarnation and save some state.
+        var preserve_hidden = false;
         if ($("#viewdockx_table").bootgrid("getTotalRowCount") > 0) {
             // Only save column state if there was something there before.
             // Also preserves "hidden" if we were just restored.
+            preserve_hidden = true;
             hidden = {};
             var settings = $("#viewdockx_table").bootgrid("getColumnSettings");
             for (var i = 0; i < settings.length; i++) {
@@ -54,6 +56,22 @@ var vdxtable = function() {
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
+
+        // If we are not preserving column visibility (probably
+        // first time through), then look at text columns and
+        // hide those with unacceptably long values
+        if (!preserve_hidden)
+            $.each(text, function(key, v) {
+                if (key != "id" && key != "name") {
+                    var num_bad = 0;
+                    var limit = Math.min(v.length, 10);
+                    for (var i = 0; i < limit; i++)
+                        if (v[i].length > 50)
+                            num_bad++;
+                    if (num_bad > limit / 2)
+                        hidden[key] = true;
+                }
+            });
 
         // Build column lists
         var thead = $("<thead/>").appendTo(table);
@@ -124,16 +142,21 @@ var vdxtable = function() {
              .keydown(function(ev) {
                 switch (ev.which) {
                   case 38:
-                      arrow_key(-1);
+                      process_arrow_key("up");
                       break
                   case 40:
-                      arrow_key(1);
+                      process_arrow_key("down");
                       break
                   default:
                       return;
                 }
                 ev.preventDefault();
              });
+    }
+
+    function process_arrow_key(direction) {
+        var url = custom_scheme + ":arrow?direction=" + direction;
+        window.location = url;
     }
 
     function arrow_key(offset) {
@@ -183,6 +206,9 @@ var vdxtable = function() {
             table.bootgrid("deselect", deselect_ids);
         table.on("selected.rs.jquery.bootgrid", update_shown)
              .on("deselected.rs.jquery.bootgrid", update_shown);
+        var top_row = $("tr.active").first();
+        if (!is_element_in_view(top_row, false))
+            scroll_to_visible(top_row);
     }
 
     function update_ratings(new_ratings) {
@@ -194,6 +220,32 @@ var vdxtable = function() {
                 r.rating("update", rating);
         }
         $("#viewdockx_table").trigger("update");
+    }
+
+    function is_element_in_view(element, fully_in_view) {
+        // From https://stackoverflow.com/questions/487073/how-to-check-if-element-is-visible-after-scrolling
+        var pageTop = $(window).scrollTop();
+        var pageBottom = pageTop + $(window).height();
+        var elementTop = $(element).offset().top;
+        var elementBottom = elementTop + $(element).height();
+        if (fully_in_view)
+            return pageTop < elementTop && pageBottom > elementBottom;
+        else
+            return pageTop <= elementTop && pageBottom >= elementBottom;
+    }
+
+    function scroll_to_visible(element) {
+        var page_height = $(window).height();
+        var page_top = $(window).scrollTop();
+        var page_bottom = page_top + page_height;
+        var element_height = $(element).height();
+        var element_top = $(element).offset().top;
+        var element_bottom = element_top + element_height;
+        var top;
+        if (element_bottom > page_bottom)
+            $("html, body").animate({scrollTop: element_bottom - page_height});
+        else if (element_top < page_top)
+            $("html, body").animate({scrollTop: element_top});
     }
 
     function init() {

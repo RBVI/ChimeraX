@@ -32,6 +32,7 @@ def register_selectors(logger):
     reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger, desc="ions")
     reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r), logger, desc="ligands")
     reg("main", lambda s, m, r: _structure_category_selector("main", m, r), logger, desc="main structure")
+    reg("sel-residues", _sel_residues, logger, desc="current selection promoted to full residues")
     reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r), logger, desc="solvent")
     reg("strand", _strands_selector, logger, desc="strands")
     reg("helix", _helices_selector, logger, desc="helices")
@@ -69,6 +70,10 @@ def _backbone_selector(session, models, results):
             if pbs:
                 _add_missing_structure(results, pbs, pbg)
         results.add_atoms(backbone, bonds=True)
+
+def _sel_residues(session, models, results):
+    from chimerax.atomic import selected_atoms
+    results.add_atoms(selected_atoms(session).residues.unique().atoms)
 
 def _polymer_selector(models, results, protein):
     from chimerax.atomic import Structure, Residue
@@ -185,36 +190,14 @@ def add_select_menu_items(session):
     atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
-    parent_menus = ["Che&mistry", "&Element"]
-    elements_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
+    from .widgets import make_elements_menu
+    elements_menu = make_elements_menu(mw, _session=session, _parent_menus=["Che&mistry", "&Element"])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
-    from PyQt5.QtWidgets import QAction
-    for element_name in ["C", "H", "N", "O", "P", "S"]:
-        elements_menu.addAction(QAction(element_name, mw))
-
-    from . import Element
-    known_elements = [nm for nm in Element.names if len(nm) < 3]
-    known_elements.sort()
-    from math import sqrt
-    num_menus = int(sqrt(len(known_elements)) + 0.5)
-    incr = len(known_elements) / num_menus
-    start_index = 0
-    other_menu = mw.add_select_submenu(parent_menus, "Other")
-    for i in range(num_menus):
-        if i < num_menus-1:
-            end_index = int((i+1) * incr + 0.5)
-        else:
-            end_index = len(known_elements) - 1
-        submenu = mw.add_select_submenu(parent_menus + ["Other"], "%s-%s"
-            % (known_elements[start_index], known_elements[end_index]))
-        for en in known_elements[start_index:end_index+1]:
-            action = QAction(en, mw)
-            submenu.addAction(action)
-        start_index = end_index + 1
 
     parent_menus = ["Che&mistry", "&IDATM Type"]
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
+    from PyQt5.QtWidgets import QAction
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
@@ -233,9 +216,7 @@ def add_select_menu_items(session):
     select_structure_menu.addAction(QAction("Ions", mw))
     select_structure_menu.addAction(QAction("Ligand", mw))
     select_structure_menu.addAction(QAction("Main", mw))
-    select_structure_menu.addAction(QAction("Nucleic Acid", mw))
-    select_structure_menu.addAction(QAction("Protein", mw))
-    select_structure_menu.addAction(QAction("Ribose", mw))
+    # Nucleic Acid/Protein/Ribose move to Chemistry menu (chem_group bundle)
     parent_menus = ["&Structure", "&Secondary Structure"]
     ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     ss_menu.addAction(QAction("Coil", mw))
@@ -357,7 +338,7 @@ def _update_select_residues_menu(session):
         res_names = list(members)
         res_names.sort()
         for rn in res_names:
-            spec = ':' + rn
+            spec = '::name="%s"' % rn
             collective_spec += spec
             action = mw.add_menu_selector(select_residues_menu, rn, spec)
             if first_entry is None:

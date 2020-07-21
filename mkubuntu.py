@@ -136,6 +136,66 @@ UBUNTU_DEPENDENCIES = {
         "libxtst6": "1.2.3",
         "xdg-utils": "1.1.2",
         "zlib1g": "1.2.11.dfsg",
+    },
+    "20.04": {
+       "libasound2": "1.2.2",
+       "libatk1.0-0": "2.35.1",
+       "libbz2-1.0": "1.0.8",
+       "libc6": "2.31",
+       "libcairo-gobject2": "1.16.0",
+       "libcairo2": "1.16.0",
+       "libcrypt1": "4.4.10",
+       "libcups2": "2.3.1",
+       "libdbus-1-3": "1.12.16",
+       "libdrm2": "2.4.101",
+       "libegl1": "1.3.1",
+       "libexpat1": "2.2.9",
+       "libffi7": "3.3",
+       "libfftw3-single3": "3.3.8",
+       "libfontconfig1": "2.13.1",
+       "libfreetype6": "2.10.1",
+       "libgcc-s1": "10-20200411",
+       "libgdk-pixbuf2.0-0": "2.40.0+dfsg",
+       "libgl1": "1.3.1",
+       "libglib2.0-0": "2.64.2",
+       "libglu1-mesa": "9.0.1",
+       "libgstreamer-plugins-base1.0-0": "1.16.2",
+       "libgstreamer1.0-0": "1.16.2",
+       "libgtk-3-0": "3.24.18",
+       "libllvm10": "10.0.0",
+       "liblzma5": "5.2.4",
+       "libncursesw6": "6.2",
+       "libnspr4": "4.25",
+       "libnss3": "3.49.1",
+       "libopenjp2-7": "2.3.1",
+       "libosmesa6-dev": "20.0.4",
+       "libpango-1.0-0": "1.44.7",
+       "libpangocairo-1.0-0": "1.44.7",
+       "libpulse-mainloop-glib0": "13.99.1",
+       "libpulse0": "13.99.1",
+       "libssl1.1": "1.1.1f",
+       "libstdc++6": "10-20200411",
+       "libtinfo6": "6.2",
+       "libuuid1": "2.34",
+       "libwayland-client0": "1.18.0",
+       "libwayland-cursor0": "1.18.0",
+       "libwayland-egl1": "1.18.0",
+       "libwayland-server0": "1.18.0",
+       "libx11-6": "1.6.9",
+       "libx11-xcb1": "1.6.9",
+       "libxcb-glx0": "1.14",
+       "libxcb1": "1.14",
+       "libxcomposite1": "0.4.5",
+       "libxcursor1": "1.2.0",
+       "libxdamage1": "1.1.5",
+       "libxext6": "1.3.4",
+       "libxfixes3": "5.0.3",
+       "libxi6": "1.7.10",
+       "libxkbcommon0": "0.10.0",
+       "libxrender1": "0.9.10",
+       "libxtst6": "1.2.3",
+       "xdg-utils": "1.1.3",
+       "zlib1g": "1.2.11.dfsg",
     }
 }
 
@@ -160,11 +220,16 @@ def main():
         print('  Build-type is one of "release", "candidate", or "daily"', file=sys.stderr)
         raise SystemExit(2)
     dependencies = UBUNTU_DEPENDENCIES[os_version]
-    full_version = subprocess.check_output([
+    output = subprocess.check_output([
         CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL).decode()
-    full_version = full_version.strip().split('\n')[1]
-    full_version = full_version.split(':', maxsplit=1)[1].strip()
+    full_version = [line for line in output.split('\n') if 'version:' in line]
+    if not full_version:
+        print("Not able to determine version number")
+        raise SystemExit(1)
+    full_version = full_version[0].split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
+    from packaging.version import Version
+    version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
     bin_name = app_name.lower()  # name of command in /usr/bin
@@ -175,10 +240,10 @@ def main():
         bin_name += "-daily"
     elif build == 'release':
         # release build
-        version = version_number
+        version = version.base_version
     else:
         # candiate build
-        version = f"{version_number}+rc{version_date}"
+        version = f"{version.base_version}+rc{version_date}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
@@ -189,7 +254,7 @@ def main():
     # print('bin_name:', bin_name)
 
     os.umask(0o22)  # turn off group and other writability
-    pkg_root = deb_name
+    pkg_root = f"{deb_name}-{os_version}"
     os.mkdir(pkg_root)
     debian_dir = f"{pkg_root}/DEBIAN"
     os.mkdir(debian_dir)
@@ -289,6 +354,7 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Package: {pkg_name}
             Version: {version}
             Architecture: amd64
+            Depends: {depends}
             Maintainer: Chimera Staff <chimera-staff@cgl.ucsf.edu>
             Description: molecular visualization
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
@@ -309,7 +375,6 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
              interface::3d, interface::graphical, interface::commandline,
              implemented-in::c++, implemented-in::python, uitoolkit::qt,
              network::client
-            Depends: {depends}
             """), file=f)
 
 

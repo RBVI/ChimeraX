@@ -24,7 +24,8 @@ def version(session, format=None):
         return
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
-    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, ad.version))
+    core_bundle = session.toolshed.find_bundle('ChimeraX-Core', session.logger, True)
+    session.logger.info("%s %s version: %s" % (ad.appauthor, ad.appname, core_bundle.version))
     session.logger.info("copyright: %s" % buildinfo.copyright)
     session.logger.info("date: %s" % buildinfo.date)
     session.logger.info("branch: %s" % buildinfo.branch)

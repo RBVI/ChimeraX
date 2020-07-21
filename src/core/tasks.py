@@ -50,7 +50,11 @@ and ``session.trigger.remove_handler``.
 """
 
 import abc
-from .state import State, StateManager, CORE_STATE_VERSION
+from .state import State, StateManager
+
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+TASKS_STATE_VERSION = 1
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -194,7 +198,7 @@ class Task(State):
             import sys
             preface = "Exception in thread"
             if self.id:
-                preface += ' ' + self.id
+                preface += ' ' + str(self.id)
             self.session.logger.report_exception(preface=preface,
                                                  exc_info=sys.exc_info())
         finally:
@@ -403,7 +407,7 @@ class Tasks(StateManager):
             if task.state == RUNNING and task.SESSION_SAVE:
                 tasks[tid] = task
         data = {'tasks': tasks,
-                'version': CORE_STATE_VERSION}
+                'version': TASKS_STATE_VERSION}
         # TODO: self._id_counter?
         return data
 

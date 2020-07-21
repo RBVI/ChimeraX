@@ -2,7 +2,7 @@
 
 # Force import in a particular order since the latter two mess
 # with the contents of distutils, and we want Cython to win
-import distutils
+import distutils  # noqa
 import setuptools
 from Cython.Build import cythonize
 
@@ -22,15 +22,18 @@ from numpy.distutils.misc_util import get_numpy_include_dirs
 # default (written after examining subprocess.py).  The
 # default STARTUPINFO class is replaced before calling
 # setuptools.setup() and reset after it returns.
-# 
+#
+import subprocess
 try:
     from subprocess import STARTUPINFO
 except ImportError:
     MySTARTUPINFO = None
 else:
-    import subprocess, _winapi
+    import _winapi
+
     class MySTARTUPINFO(STARTUPINFO):
         _original = STARTUPINFO
+
         def __init__(self, *args, **kw):
             super().__init__(*args, **kw)
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
@@ -39,7 +42,7 @@ else:
 class BundleBuilder:
 
     def __init__(self, logger, bundle_path=None):
-        import os, os.path
+        import os
         self.logger = logger
         if bundle_path is None:
             bundle_path = os.getcwd()
@@ -47,11 +50,14 @@ class BundleBuilder:
         info_file = os.path.join(bundle_path, "bundle_info.xml")
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
-        self._read_bundle_info(info_file)
+        try:
+            self._read_bundle_info(info_file)
+        except ValueError as err:
+            raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
         self._make_setup_arguments()
 
-    def make_wheel(self, test=True, debug=False):
+    def make_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
@@ -64,7 +70,7 @@ class BundleBuilder:
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
-        import os.path
+        import os
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
@@ -72,8 +78,6 @@ class BundleBuilder:
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
-        if test:
-            setup_args.append("test")
         setup_args.extend(["bdist_wheel"])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
@@ -81,8 +85,8 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    def make_install(self, session, test=True, debug=False, user=None):
-        self.make_wheel(test=test, debug=debug)
+    def make_install(self, session, debug=False, user=None, no_deps=None):
+        self.make_wheel(debug=debug)
         from chimerax.core.commands import run
         cmd = "toolshed install %r" % self.wheel_path
         if user is not None:
@@ -90,10 +94,16 @@ class BundleBuilder:
                 cmd += " user true"
             else:
                 cmd += " user false"
+        if no_deps is not None:
+            if no_deps:
+                cmd += " noDeps true"
+            else:
+                cmd += " noDeps false"
         run(session, cmd)
 
     def make_clean(self):
-        import os.path, fnmatch
+        import os
+        import fnmatch
         self._rmtree(os.path.join(self.path, "build"))
         self._rmtree(os.path.join(self.path, "dist"))
         self._rmtree(os.path.join(self.path, "src", "__pycache__"))
@@ -138,9 +148,9 @@ class BundleBuilder:
             self._platform_names = self._linux_platforms
         # Read data from XML file
         self._used_elements = set()
-        from xml.dom.minidom import parse
+        from lxml.etree import parse
         doc = parse(bundle_info)
-        bi = doc.documentElement
+        bi = doc.getroot()
         self._get_identifiers(bi)
         self._get_categories(bi)
         self._get_descriptions(bi)
@@ -158,28 +168,38 @@ class BundleBuilder:
         self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
-        self.name = bi.getAttribute("name")
+        from packaging.version import Version, InvalidVersion
+        self.name = bi.get("name", '')
         if '_' in self.name:
             self.name = self.name.replace('_', '-')
             self.logger.warning("Bundle renamed to %r after replacing "
                                 "underscores with hyphens." % self.name)
-        self.version = bi.getAttribute("version")
-        self.package = bi.getAttribute("package")
-        self.min_session = bi.getAttribute("minSessionVersion")
-        self.max_session = bi.getAttribute("maxSessionVersion")
-        self.supercedes = bi.getAttribute("supercedes")
-        self.custom_init = bi.getAttribute("customInit")
-        self.pure_python = bi.getAttribute("purePython")
-        self.installed_data_dir = bi.getAttribute("installedDataDir")
-        self.installed_include_dir = bi.getAttribute("installedIncludeDir")
-        self.installed_library_dir = bi.getAttribute("installedLibraryDir")
-        self.installed_executable_dir = bi.getAttribute("installedExecutableDir")
+        version = bi.get("version", '')
+        try:
+            # canoncialize version
+            version = str(Version(version))
+        except InvalidVersion as err:
+            raise ValueError("%s line %d" % (err, bi.sourceline))
+        self.version = version
+        self.package = bi.get("package", '')
+        self.min_session = bi.get("minSessionVersion", '')
+        self.max_session = bi.get("maxSessionVersion", '')
+        self.supercedes = bi.get("supercedes", '')
+        self.custom_init = bi.get("customInit", '')
+        self.pure_python = bi.get("purePython", '')
+        self.installed_data_dir = bi.get("installedDataDir", '')
+        self.installed_include_dir = bi.get("installedIncludeDir", '')
+        self.installed_library_dir = bi.get("installedLibraryDir", '')
+        self.installed_executable_dir = bi.get("installedExecutableDir", '')
 
     def _get_categories(self, bi):
         self.categories = []
         deps = self._get_singleton(bi, "Categories")
         for e in self._get_elements(deps, "Category"):
-            self.categories.append(e.getAttribute("name"))
+            name = e.get("name")
+            if name is None:
+                raise ValueError("Missing Category's name at line %d" % e.sourceline)
+            self.categories.append(name)
 
     def _get_descriptions(self, bi):
         self.author = self._get_singleton_text(bi, "Author")
@@ -195,7 +215,7 @@ class BundleBuilder:
     def _get_datafiles(self, bi):
         self.datafiles = {}
         for dfs in self._get_elements(bi, "DataFiles"):
-            pkg_name = dfs.getAttribute("package")
+            pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "DataFile"):
                 filename = self._get_element_text(e)
@@ -211,15 +231,20 @@ class BundleBuilder:
     def _get_extrafiles(self, bi):
         self.extrafiles = {}
         for dfs in self._get_elements(bi, "ExtraFiles"):
-            pkg_name = dfs.getAttribute("package")
+            pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "ExtraFile"):
-                source = e.getAttribute("source")
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraFiles's source at line %d" % e.sourceline)
                 filename = self._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
-                import os.path, glob
-                source = e.getAttribute("source")
+                import os
+                import glob
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraFileGroup's source at line %d" % e.sourceline)
                 source_base_dir = os.path.dirname(source)
                 while '*' in source_base_dir or '?' in source_base_dir:
                     source_base_dir = os.path.split(source_base_dir)[0]
@@ -230,7 +255,9 @@ class BundleBuilder:
                 for sf in sourcefiles:
                     files.append(("file", sf, os.path.join(dirname, os.path.relpath(sf, source_base_dir))))
             for e in self._get_elements(dfs, "ExtraDir"):
-                source = e.getAttribute("source")
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraDir's source at line %d" % e.sourceline)
                 dirname = self._get_element_text(e)
                 files.append(("dir", source, dirname))
             if files:
@@ -248,30 +275,30 @@ class BundleBuilder:
         for mgrs in self._get_elements(bi, "Managers"):
             for e in self._get_elements(mgrs, "Manager"):
                 keywords = {}
-                if e.attributes:
-                    keywords.update(e.attributes.items())
+                if e.attrib:
+                    keywords.update(e.attrib.items())
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing Manager's name")
+                    raise ValueError("Missing Manager's name at line %d" % e.sourceline)
                 self.managers[name] = keywords
 
     def _get_providers(self, bi):
         self.providers = {}
         for prvs in self._get_elements(bi, "Providers"):
-            default_manager = prvs.getAttribute('manager')
+            default_manager = prvs.get('manager', '')
             for e in self._get_elements(prvs, "Provider"):
                 keywords = {}
-                if e.attributes:
-                    keywords.update(e.attributes.items())
+                if e.attrib:
+                    keywords.update(e.attrib.items())
                 manager = keywords.pop("manager", '')
                 if len(manager) == 0:
                     manager = default_manager
                 if len(manager) == 0:
-                    raise ValueError("Missing Provider's manager")
+                    raise ValueError("Missing manager from Provider at line %d" % e.sourceline)
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing Provider's name")
-                self.providers[name] = (manager, keywords)
+                    raise ValueError("Missing Provider's name at line %d" % e.sourceline)
+                self.providers[(manager, name)] = keywords
 
     def _get_dependencies(self, bi):
         self.dependencies = []
@@ -283,8 +310,8 @@ class BundleBuilder:
             return
         from packaging.requirements import Requirement
         for e in self._get_elements(deps, "Dependency"):
-            pkg = e.getAttribute("name")
-            ver = e.getAttribute("version")
+            pkg = e.get("name", '')
+            ver = e.get("version", '')
             req = "%s %s" % (pkg, ver)
             try:
                 Requirement(req)
@@ -296,8 +323,12 @@ class BundleBuilder:
         self.initializations = {}
         for inits in self._get_elements(bi, "Initializations"):
             for e in self._get_elements(inits, "InitAfter"):
-                i_type = e.getAttribute("type")
-                bundle = e.getAttribute("bundle")
+                i_type = e.get("type")
+                if i_type is None:
+                    raise ValueError("Missing InitAfter's type at line %d" % e.sourceline)
+                bundle = e.get("bundle")
+                if bundle is None:
+                    raise ValueError("Missing InitAfter's bundle at line %d" % e.sourceline)
                 try:
                     self.initializations[i_type].append(bundle)
                 except KeyError:
@@ -306,16 +337,18 @@ class BundleBuilder:
     def _get_c_modules(self, bi):
         self.c_modules = []
         for cm in self._get_elements(bi, "CModule"):
-            mod_name = cm.getAttribute("name")
+            mod_name = cm.get("name")
+            if mod_name is None:
+                raise ValueError("Missing CModule's name at line %d" % cm.sourceline)
             try:
-                major = int(cm.getAttribute("major_version"))
+                major = int(cm.get("major_version", ''))
             except ValueError:
                 major = 0
             try:
-                minor = int(cm.getAttribute("minor_version"))
+                minor = int(cm.get("minor_version", ''))
             except ValueError:
                 minor = 1
-            uses_numpy = cm.getAttribute("usesNumpy") == "true"
+            uses_numpy = cm.get("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor,
                          self.installed_library_dir)
             self._add_c_options(c, cm)
@@ -324,9 +357,9 @@ class BundleBuilder:
     def _get_c_libraries(self, bi):
         self.c_libraries = []
         for lib in self._get_elements(bi, "CLibrary"):
-            c = _CLibrary(lib.getAttribute("name"),
-                          lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true",
+            c = _CLibrary(lib.get("name", ''),
+                          lib.get("usesNumpy") == "true",
+                          lib.get("static") == "true",
                           self.installed_library_dir)
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
@@ -334,40 +367,40 @@ class BundleBuilder:
     def _get_c_executables(self, bi):
         self.c_executables = []
         for lib in self._get_elements(bi, "CExecutable"):
-            c = _CExecutable(lib.getAttribute("name"),
+            c = _CExecutable(lib.get("name", ''),
                              self.installed_executable_dir)
             self._add_c_options(c, lib)
             self.c_executables.append(c)
 
     def _add_c_options(self, c, ce):
-            for e in self._get_elements(ce, "Requires"):
-                c.add_require(self._get_element_text(e))
-            for e in self._get_elements(ce, "SourceFile"):
-                c.add_source_file(self._get_element_text(e))
-            for e in self._get_elements(ce, "IncludeDir"):
-                c.add_include_dir(self._get_element_text(e))
-            for e in self._get_elements(ce, "Library"):
-                c.add_library(self._get_element_text(e))
-            for e in self._get_elements(ce, "LibraryDir"):
-                c.add_library_dir(self._get_element_text(e))
-            for e in self._get_elements(ce, "CompileArgument"):
-                c.add_compile_argument(self._get_element_text(e))
-            for e in self._get_elements(ce, "LinkArgument"):
-                c.add_link_argument(self._get_element_text(e))
-            for e in self._get_elements(ce, "Framework"):
-                c.add_framework(self._get_element_text(e))
-            for e in self._get_elements(ce, "FrameworkDir"):
-                c.add_framework_dir(self._get_element_text(e))
-            for e in self._get_elements(ce, "Define"):
-                edef = self._get_element_text(e).split('=')
-                if len(edef) > 2:
-                    raise TypeError("Too many arguments for macro "
-                                    "definition: %s" % edef)
-                elif len(edef) == 1:
-                    edef.append(None)
-                c.add_macro_define(*edef)
-            for e in self._get_elements(ce, "Undefine"):
-                c.add_macro_undef(self._get_element_text(e))
+        for e in self._get_elements(ce, "Requires"):
+            c.add_require(self._get_element_text(e))
+        for e in self._get_elements(ce, "SourceFile"):
+            c.add_source_file(self._get_element_text(e))
+        for e in self._get_elements(ce, "IncludeDir"):
+            c.add_include_dir(self._get_element_text(e))
+        for e in self._get_elements(ce, "Library"):
+            c.add_library(self._get_element_text(e))
+        for e in self._get_elements(ce, "LibraryDir"):
+            c.add_library_dir(self._get_element_text(e))
+        for e in self._get_elements(ce, "CompileArgument"):
+            c.add_compile_argument(self._get_element_text(e))
+        for e in self._get_elements(ce, "LinkArgument"):
+            c.add_link_argument(self._get_element_text(e))
+        for e in self._get_elements(ce, "Framework"):
+            c.add_framework(self._get_element_text(e))
+        for e in self._get_elements(ce, "FrameworkDir"):
+            c.add_framework_dir(self._get_element_text(e))
+        for e in self._get_elements(ce, "Define"):
+            edef = self._get_element_text(e).split('=')
+            if len(edef) > 2:
+                raise TypeError("Too many arguments for macro "
+                                "definition: %s" % edef)
+            elif len(edef) == 1:
+                edef.append(None)
+            c.add_macro_define(*edef)
+        for e in self._get_elements(ce, "Undefine"):
+            c.add_macro_undef(self._get_element_text(e))
 
     def _get_packages(self, bi):
         self.packages = []
@@ -377,8 +410,12 @@ class BundleBuilder:
             # AdditionalPackages is optional
             return
         for pkg in self._get_elements(pkgs, "Package"):
-            pkg_name = pkg.getAttribute("name")
-            pkg_folder = pkg.getAttribute("folder")
+            pkg_name = pkg.get("name")
+            if pkg_name is None:
+                raise ValueError("Missing Package's name at line %d" % pkg.sourceline)
+            pkg_folder = pkg.get("folder")
+            if pkg_folder is None:
+                raise ValueError("Missing Package's folder at line %d" % pkg.sourceline)
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
@@ -416,9 +453,7 @@ class BundleBuilder:
             args = [m] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Manager :: " + " :: ".join(args))
-        for p, values in self.providers.items():
-            mgr = values[0]
-            kw = values[1]
+        for (mgr, p), kw in self.providers.items():
             args = [p, mgr] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Provider :: " + " :: ".join(args))
@@ -439,7 +474,8 @@ class BundleBuilder:
                 and self.pure_python != "false")
 
     def _copy_extrafiles(self, files):
-        import shutil, os, os.path
+        import shutil
+        import os
         for pkg_name, entries in files.items():
             for kind, src, dst in entries:
                 if kind == "file":
@@ -455,7 +491,7 @@ class BundleBuilder:
                     shutil.copytree(src, dstdir)
 
     def _expand_datafiles(self, files):
-        import os, os.path
+        import os
         datafiles = {}
         for pkg_name, entries in files.items():
             pkg_files = []
@@ -525,6 +561,7 @@ class BundleBuilder:
             if not ext_mods:
                 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
                 from setuptools.dist import Distribution
+
                 class BinaryDistribution(Distribution):
                     def has_ext_modules(foo):
                         return True
@@ -546,6 +583,7 @@ class BundleBuilder:
 
     def _make_package_arguments(self):
         from setuptools import find_packages
+
         def add_package(base_package, folder):
             package_dir[base_package] = folder
             packages.append(base_package)
@@ -559,7 +597,7 @@ class BundleBuilder:
         return package_dir, packages
 
     def _make_paths(self):
-        import os.path
+        import os
         from .wheel_tag import tag
         self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
@@ -569,12 +607,12 @@ class BundleBuilder:
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
     def _run_setup(self, cmd):
-        import os, sys, setuptools
+        import os
+        import sys
         cwd = os.getcwd()
         save = sys.argv
         try:
             if MySTARTUPINFO:
-                import subprocess
                 subprocess.STARTUPINFO = MySTARTUPINFO
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
@@ -582,7 +620,7 @@ class BundleBuilder:
             sys.argv = ["setup.py"] + cmd
             setuptools.setup(**kw)
             return True
-        except:
+        except Exception:
             import traceback
             traceback.print_exc()
             return False
@@ -590,32 +628,27 @@ class BundleBuilder:
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
-                import subprocess
                 subprocess.STARTUPINFO = MySTARTUPINFO._original
 
     #
     # Utility functions dealing with XML tree
     #
     def _get_elements(self, e, tag):
-        tagged_elements = e.getElementsByTagName(tag)
+        tagged_elements = list(e.iter(tag))
         # Mark element as used even for non-applicable platform
         self._used_elements.update(tagged_elements)
         elements = []
         for se in tagged_elements:
-            platform = se.getAttribute("platform")
+            platform = se.get("platform")
             if not platform or platform in self._platform_names:
                 elements.append(se)
         return elements
 
     def _get_element_text(self, e):
-        text = ""
-        for node in e.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                text += node.data
-        return text.strip()
+        return ''.join(e.itertext()).strip()
 
     def _get_singleton(self, bi, tag):
-        elements = bi.getElementsByTagName(tag)
+        elements = list(bi.iter(tag))
         self._used_elements.update(elements)
         if len(elements) > 1:
             raise ValueError("too many %s elements" % repr(tag))
@@ -627,11 +660,12 @@ class BundleBuilder:
         return self._get_element_text(self._get_singleton(bi, tag))
 
     def _check_unused_elements(self, bi):
-        for node in bi.childNodes:
-            if node.nodeType != node.ELEMENT_NODE:
-                continue
+        for node in bi:
             if node not in self._used_elements:
-                print("WARNING: unsupported element:", node.nodeName)
+                if not isinstance(node.tag, str):
+                    # skip comments
+                    continue
+                print("WARNING: unsupported element:", node.tag())
 
 
 class _CompiledCode:
@@ -688,7 +722,8 @@ class _CompiledCode:
         self.macros.append((m,))
 
     def _compile_options(self, logger, dependencies):
-        import sys, os.path
+        import sys
+        import os
         for req in self.requires:
             if not os.path.exists(req):
                 raise ValueError("unused on this platform")
@@ -729,12 +764,17 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
+        from pkg_resources import DistributionNotFound
         for dep in dependencies:
-            d_inc, d_lib = self._get_bundle_dirs(logger, dep)
-            if d_inc:
-                inc_dirs.append(d_inc)
-            if d_lib:
-                lib_dirs.append(d_lib)
+            try:
+                d_inc, d_lib = self._get_bundle_dirs(logger, dep)
+            except (RuntimeError, DistributionNotFound):
+                pass
+            else:
+                if d_inc:
+                    inc_dirs.append(d_inc)
+                if d_lib:
+                    lib_dirs.append(d_lib)
         extra_link_args.extend(self.link_arguments)
         return (inc_dirs, lib_dirs, self.macros,
                 extra_link_args, libraries, cpp_flags)
@@ -756,7 +796,10 @@ class _CompiledCode:
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
-        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        import sys
+        import os
+        import distutils.ccompiler
+        import distutils.sysconfig
         import distutils.log
         distutils.log.set_verbosity(1)
         try:
@@ -784,10 +827,10 @@ class _CompiledCode:
         c_files = []
         cpp_files = []
         for f in self.source_files:
-            l = compiler.detect_language(f)
-            if l == 'c':
+            lang = compiler.detect_language(f)
+            if lang == 'c':
                 c_files.append(f)
-            elif l == 'c++':
+            elif lang == 'c++':
                 cpp_files.append(f)
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
@@ -804,7 +847,7 @@ class _CompiledCode:
 
     def install_locations(self):
         if self.install_dir:
-            import os.path
+            import os
             output_dir = os.path.join("src", self.install_dir)
             install_dir = '/' + self.install_dir
         else:
@@ -855,7 +898,7 @@ class _CLibrary(_CompiledCode):
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-        import sys, os.path
+        import sys
         compiler, objs, extra_link_args = self.compile_objects(logger,
                                                                dependencies,
                                                                self.static,
@@ -910,7 +953,10 @@ class _CLibrary(_CompiledCode):
         return lib
 
     def paths(self):
-        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        import sys
+        import os
+        import distutils.ccompiler
+        import distutils.sysconfig
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         if sys.platform == "win32":
@@ -970,7 +1016,9 @@ class _CExecutable(_CompiledCode):
         return compiler.executable_filename(self.name)
 
     def path(self):
-        import sys, os, os.path, distutils.ccompiler, distutils.sysconfig
+        import os
+        import distutils.ccompiler
+        import distutils.sysconfig
         compiler = distutils.ccompiler.new_compiler()
         distutils.sysconfig.customize_compiler(compiler)
         exec_name = self.name

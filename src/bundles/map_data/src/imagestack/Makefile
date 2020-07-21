@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/imagestack
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/imagestack
 
 PYSRCS = __init__.py imagej_tiff.py imagestack_format.py imagestack_grid.py ome_tiff.py
 

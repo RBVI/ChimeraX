@@ -3,7 +3,7 @@
 """donor geometry testing functions"""
 
 from chimerax.atomic.idatm import type_info, planar, tetrahedral
-from chimerax.core.geometry import angle, distance_squared
+from chimerax.geometry import angle, distance_squared
 from chimerax.atomic.bond_geom import bond_positions
 from . import hbond
 from .common_geom import AtomTypeError, get_phi_plane_params, \

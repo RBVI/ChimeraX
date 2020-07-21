@@ -18,23 +18,14 @@ commands: Register user commands
 .. automodule:: chimerax.core.commands.cli
     :members:
     :show-inheritance:
+    :noindex: html_name
 
 .. automodule:: chimerax.core.commands.atomspec
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.commands.symarg
-    :members:
-    :show-inheritance:
-
-.. automodule:: chimerax.core.commands.run
-    :members:
-    :show-inheritance:
+.. autofunction:: chimerax.core.commands.run
 
 .. automodule:: chimerax.core.commands.runscript
-    :members:
-    :show-inheritance:
-
-.. automodule:: chimerax.core.commands.selectors
     :members:
     :show-inheritance:

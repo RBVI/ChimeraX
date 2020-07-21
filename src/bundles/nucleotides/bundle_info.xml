@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2 expandtab: -->
-<BundleInfo name="ChimeraX-Nucleotides" version="0.1"
-	package="chimerax.atomic.nucleotides"
+<BundleInfo name="ChimeraX-Nucleotides" version="2.0"
+	package="chimerax.nucleotides"
   	minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -24,10 +24,11 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-Surface" version=">=1.0"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Surface" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <DataFiles>
@@ -35,6 +36,8 @@
   </DataFiles>
 
   <Providers manager="toolbar">
+    <Provider tab="Nucleotides"
+      name="tab-nuc" after="Molecule Display" before="Graphics"/>
     <Provider tab="Nucleotides" section="Styles" 
       name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.png" 
       description="Remove nucleotides styling"/>
@@ -63,23 +66,18 @@
       name="nucleotide-color" display_name="nucleotide" icon="nuc-color.png"
       description="Color by nucleotide"/>
 
-    <!-- duplicates in Molecule Display tab with different names -->
+    <!-- Provider names must be unique, so create duplicates
+         in Molecule Display tab with different names -->
     <Provider tab="Molecule Display" section="Styles" group="nuc"
-      name="nucleotide2-plain" display_name="Plain" icon="nuc-atoms.png" 
-      description="Remove nucleotides styling"/>
+      name="nucleotide-1" link="ChimeraX-Nucleotides:nucleotide-plain"/>
     <Provider tab="Molecule Display" section="Styles" group="nuc"
-      name="nucleotide2-filled" display_name="Filled" icon="nuc-fill.png" 
-      description="Show nucleotides with filled rings"/>
+      name="nucleotide-2" link="ChimeraX-Nucleotides:nucleotide-filled"/>
     <Provider tab="Molecule Display" section="Styles" group="nuc"
-      name="nucleotide2-box" display_name="Tube/&#10;Slab" icon="nuc-box.png"
-      description="Show nucleotide bases as boxes and sugars as tubes"/>
+      name="nucleotide-3" link="ChimeraX-Nucleotides:nucleotide-box"/>
     <Provider tab="Molecule Display" section="Styles" group="nuc"
-      name="nucleotide2-ladder" display_name="Ladder" icon="nuc-ladder.png"
-      description="Show nucleotides as H-bond ladders"/>
+      name="nucleotide-4" link="ChimeraX-Nucleotides:nucleotide-ladder"/>
     <Provider tab="Molecule Display" section="Coloring"
-      name="nucleotide2-color" display_name="nucleotide" icon="nuc-color.png"
-      description="Color by nucleotide"/>
-
+      name="nucleotide-5" link="ChimeraX-Nucleotides:nucleotide-color"/>
   </Providers>
 
   <Classifiers>

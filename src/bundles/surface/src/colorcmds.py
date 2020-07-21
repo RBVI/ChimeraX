@@ -44,7 +44,6 @@ def register_color_subcommand(command_name, logger):
         # color by map gradient norm
         desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                        keyword=map_args,
-                       required_arguments = ['map'],
                        synopsis="color surfaces by map gradient norm")
         register('color gradient', desc, color_gradient, logger=logger)
 
@@ -67,3 +66,6 @@ def register_color_subcommand(command_name, logger):
                        keyword=geom_args + [('axis', AxisArg)],
                        synopsis="color surfaces by distance along an axis")
         register('color height', desc, color_height, logger=logger)
+    elif command_name == 'color image':
+        from . import texture
+        texture.register_color_image_command(logger)

@@ -58,9 +58,11 @@ class SeqCanvas:
         """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
+        self.label_scene.setBackgroundBrush(Qt.white)
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
+        self.main_scene.setBackgroundBrush(Qt.white)
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from PyQt5.QtGui import QColor
@@ -635,7 +637,7 @@ class SeqCanvas:
             for seq in self.lines:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
-                offset = len([c for c in seq[:extent] if c.isalpha()])
+                offset = len([c for c in seq[:extent] if c.isalpha() or c == '?'])
                 lwidth = max(lwidth, self.font_metrics.width(
                     "%d " % (seq.numbering_start + offset)))
             lwidth += 3
@@ -685,13 +687,12 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        single_sequence = len(self.alignment.seqs) == 1
         aln_mgr = self.alignment.session.alignments
         self.headers = [hdr_class(self.alignment, self.refresh_header)
-            for hdr_class in aln_mgr.headers(single_seq_relevant=single_sequence)]
+            for hdr_class in aln_mgr.headers()]
         self.headers.sort(key=lambda hdr: hdr.name)
         """
-        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
+        from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
             header = seq(self.alignment)
             self.headers.append(header)
@@ -700,14 +701,8 @@ class SeqCanvas:
         if use_disp_default:
             self.sv.prefs[STARTUP_HEADERS] = startup_headers
         """
-        self.display_header = {}
         for header in self.headers:
-            show = self.display_header[header] = header.settings.initially_shown \
-                and not (single_sequence and not header.single_sequence_relevant)
-                #and not (single_sequence and not header.single_sequence_relevant) \
-                #and not isinstance(header, DynamicStructureHeaderSequence)
-            if show:
-                header.show()
+            header.shown = header.settings.initially_shown and header.relevant
         """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
@@ -745,7 +740,7 @@ class SeqCanvas:
             try:
                 self._clustalCategories, self._clustalColorings\
                         = clustalInfo(prefResColor)
-            except:
+            except Exception:
                 schemes = self.sv.prefs[RC_CUSTOM_SCHEMES]
                 if prefResColor in schemes:
                     schemes.remove(prefResColor)
@@ -757,11 +752,11 @@ class SeqCanvas:
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
-        initial_headers = [hd for hd in self.headers if self.display_header[hd]]
+        initial_headers = [hd for hd in self.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
-        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
+        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -818,7 +813,7 @@ class SeqCanvas:
 
     @property
     def lines(self):
-        return [hdr for hdr in self.headers if self.display_header[hdr]] + self.alignment.seqs
+        return [hdr for hdr in self.headers if hdr.shown] + self.alignment.seqs
 
     """TODO
     def _molChange(self, trigger, myData, changes):
@@ -1008,7 +1003,7 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
-        initial_headers = [hd for hd in self.headers if self.display_header[hd]]
+        initial_headers = [hd for hd in self.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
@@ -1041,9 +1036,16 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_header(self, hdr, bounds):
+    def refresh_header(self, reason, hdr, *args):
         if hasattr(self, 'lead_block'):
-            if bounds == "name":
+            if reason == hdr.CALLBACK_VALUES:
+                bounds, = args
+                if bounds is None:
+                    bounds = (0, len(hdr)-1)
+                if hasattr(self, 'lead_block'):
+                    self.lead_block.refresh(hdr, *bounds)
+                    self.main_scene.update()
+            elif reason == hdr.CALLBACK_NAME:
                 if self.label_width == _find_label_width(self.alignment.seqs +
                         [hdr for hdr in self.headers if self.display_header[hdr]], self.sv.settings,
                         self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
@@ -1051,14 +1053,12 @@ class SeqCanvas:
                     self.label_scene.update()
                 else:
                     self._reformat()
-            else:
-                if bounds is None:
-                    bounds = (0, len(hdr)-1)
-                self.lead_block.refresh(hdr, *bounds)
-                self.main_scene.update()
+            elif reason == hdr.CALLBACK_RELEVANCE:
+                relevant, = args
+                #TODO
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
-        if seq in self.display_header and not self.display_header[seq]:
+        if seq in self.headers and not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
@@ -1905,12 +1905,12 @@ class SeqBlock:
     def _compute_numbering(self, line, end):
         if end == 0:
             count = len([c for c in line[:self.seq_offset]
-                        if c.isalpha()])
+                        if c.isalpha() or c == '?'])
             if count == len(line.ungapped()):
                 count -= 1
         else:
             count = len([c for c in line[:self.seq_offset
-                + self.line_width] if c.isalpha()]) - 1
+                + self.line_width] if c.isalpha()] or c == '?') - 1
         return line.numbering_start + count
 
     """TODO

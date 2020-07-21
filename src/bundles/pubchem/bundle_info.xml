@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-PubChem" version="2.0"
+	    package="chimerax.pubchem"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>PubChem fetch</Synopsis>
+  <Description>This bundle provides the abiility to fetch PubChem files.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-SDF" version="~=2.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="open command">
+    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
+  </Providers>
+
+  <Providers manager="start structure">
+    <Provider name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

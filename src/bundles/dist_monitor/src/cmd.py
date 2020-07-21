@@ -11,16 +11,75 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from abc import ABC, abstractmethod
+
+class SimpleMeasurable(ABC):
+    '''
+    Abstract base class used to determine if the instance has a scene_coord method
+    usable in distance and angle measurements
+    '''
+
+    @property
+    @abstractmethod
+    def scene_coord(self):
+        pass
+
+from chimerax.atomic import Atom
+SimpleMeasurable.register(Atom)
+
+class ComplexMeasurable(ABC):
+    '''
+    Abstract base class for classes that have no simple XYZ coordinate to use in distance or angle
+    measurements, but that may be able to offer such measurements themselves to certain other
+    kinds of objects.
+
+    The inheriting class must implement the distance(SimpleMeasurable or ComplexMeasurable)
+    and angle(ComplexMeasurable) methods, either returning the corresponding value or NotImplemented
+    for objects that it does not know how to make the measurement to.
+    '''
+
+    @abstractmethod
+    def distance(self, obj, *, signed=False):
+        pass
+
+    @abstractmethod
+    def angle(self, obj):
+        pass
+
 from chimerax.core.triggerset import TriggerSet
 group_triggers = TriggerSet()
 group_triggers.add_trigger("update")
 group_triggers.add_trigger("delete")
 
-def distance(session, atoms, *, color=None, dashes=None,
-        decimal_places=None, radius=None, symbol=None):
+def distance(session, objects, *, color=None, dashes=None,
+        decimal_places=None, radius=None, symbol=None, signed=False):
     '''
-    Show/report distance between two atoms.
+    Show/report distance between two objects.
     '''
+    from chimerax.core.errors import UserError, LimitationError
+    measurables = [m for m in objects.models if isinstance(m, (SimpleMeasurable, ComplexMeasurable))]
+    measurables.extend(objects.atoms)
+    if len(measurables) != 2:
+        raise UserError("Expected exactly two atoms and/or measurable objects (e.g. axes, planes), got %d"
+            % len(measurables))
+    if len(objects.atoms) != 2:
+        # just report the distance -- no distance monitor
+        if len([m for m in measurables if isinstance(m, SimpleMeasurable)]) == 2:
+            from chimerax.geometry import distance
+            dist = distance(measurables[0].scene_coord, measurables[1].scene_coord)
+        else:
+            dist = NotImplemented
+            if isinstance(measurables[0], ComplexMeasurable):
+                dist = measurables[0].distance(measurables[1], signed=signed)
+            if dist is NotImplemented and isinstance(measurables[1], ComplexMeasurable):
+                dist = measurables[1].distance(measurables[0], signed=signed)
+            if dist is NotImplemented:
+                raise LimitationError("Don't know how to measure distance between %s and %s"
+                    % tuple(measurables))
+        session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
+            % (measurables[0], measurables[1], dist))
+        return dist
+    a1, a2 = measurables
     grp = session.pb_manager.get_group("distances", create=False)
     from .settings import settings
     if not grp:
@@ -37,11 +96,9 @@ def distance(session, atoms, *, color=None, dashes=None,
         grp.dashes = settings.dashes
         session.models.add([grp])
         session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
-    a1, a2 = atoms
     for pb in grp.pseudobonds:
         pa1, pa2 = pb.atoms
         if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
-            from chimerax.core.errors import UserError
             raise UserError("Distance already exists;"
                 " modify distance properties with 'distance style'")
     pb = grp.new_pseudobond(a1, a2)
@@ -62,8 +119,8 @@ def distance(session, atoms, *, color=None, dashes=None,
         % (a1, a2.string(relative_to=a1), pb.length))
 
 def distance_save(session, save_file_name):
-    from chimerax.core.io import open_filename
-    save_file = open_filename(save_file_name, 'w')
+    from chimerax.io import open_output
+    save_file = open_output(save_file_name, 'utf-8')
     from chimerax.atomic import Structure
     for model in session.models:
         if not isinstance(model, Structure):
@@ -158,29 +215,21 @@ def _notify_updates():
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AnnotationError, \
-        Or, EmptyArg, ColorArg, NonNegativeIntArg, FloatArg, BoolArg, SaveFileNameArg
-    from chimerax.atomic import AtomsArg, PseudobondsArg
+        Or, EmptyArg, ColorArg, NonNegativeIntArg, FloatArg, BoolArg, SaveFileNameArg, ObjectsArg
+    from chimerax.atomic import PseudobondsArg
     # eventually this will handle more than just atoms, but for now...
-    class AtomPairArg(AtomsArg):
-        name = "an atom-pair specifier"
-
-        @classmethod
-        def parse(cls, text, session):
-            atoms, text, rest = super().parse(text, session)
-            if len(atoms) != 2:
-                raise AnnotationError("Expected two atoms to be specified (%d specified)"
-                    % len(atoms))
-            return atoms, text, rest
     d_desc = CmdDesc(
-        required = [('atoms', AtomPairArg)],
+        required = [('objects', ObjectsArg)],
         keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),
-            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg)],
+            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('signed', BoolArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=logger)
-    xd_desc = CmdDesc(
+    # command registration doesn't allow resuse of the sam CmdDesc, so...
+    xd_desc = lambda: CmdDesc(
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         synopsis = 'remove distance monitors')
-    register('~distance', xd_desc, xdistance, logger=logger)
+    register('~distance', xd_desc(), xdistance, logger=logger)
+    register('distance delete', xd_desc(), xdistance, logger=logger)
     df_desc = CmdDesc(
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),

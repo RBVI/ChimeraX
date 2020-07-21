@@ -311,7 +311,7 @@ class Region:
 
     def get_rmsd(self):
         num_d = sum_d2 = 0
-        from chimerax.core.geometry import distance_squared
+        from chimerax.geometry import distance_squared
         for block in self.blocks:
             line1, line2, pos1, pos2 = block
             all_seqs = self.seq_canvas.alignment.seqs
@@ -815,7 +815,7 @@ class RegionBrowser:
             if path is None:
                 return
             settings.scf_colors_structures = cbox.isChecked()
-            from chimerax.core.commands import quote_if_necessary as q_if, run
+            from chimerax.core.commands import quote_path_if_necessary as q_if, run
             from . import subcommand_name
             run(self.tool_window.session, "sequence %s %s scfLoad %s color %s"
                 % (subcommand_name, q_if(sv.alignment.ident),
@@ -826,8 +826,8 @@ class RegionBrowser:
             color_structures = self.settings.scf_colors_structures
 
         seqs = self.seq_canvas.alignment.seqs
-        from chimerax.core import io
-        scf_file = io.open_filename(path)
+        from chimerax.io import open_input
+        scf_file = open_input(path, 'utf-8')
         line_num = 0
         region_info = {}
         from chimerax.core.errors import UserError
@@ -857,11 +857,11 @@ class RegionBrowser:
                 else:
                     seq1 -= 1
                     seq2 -= 1
-            except:
+            except Exception:
                 try:
                     pos, seq, r, g, b = [int(x) for x in line.split()]
                     pos1 = pos2 = pos
-                except:
+                except Exception:
                     scf_file.close()
                     raise UserError("Bad format for line %d of %s [not 5 or 7 integers]"
                         % (line_num, path))
@@ -1550,9 +1550,10 @@ class RegionBrowser:
                 control_name = mod_key_info("control")[1]
                 self.seq_canvas.sv.status(
                     "%s-drag to add to region; "
-                    "%s-drag to start new region" % (shift_name.capitalize(), control_name),
-                    follow_with="Tools->Region Browser to change region colors; "
-                    "%s left/right arrow to realign region" % control_name, follow_time=15)
+                    "%s-drag to start new region" % (shift_name.capitalize(), control_name))
+                    #TODO:
+                    #follow_with="Info->Region Browser to change region colors; "
+                    #"%s left/right arrow to realign region" % control_name, follow_time=15)
             else:
                 sv = self.seq_canvas.sv
                 sv.status("Region RMSD: %.3f" % rmsd)

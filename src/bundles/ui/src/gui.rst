@@ -17,6 +17,7 @@
 .. automodule:: chimerax.ui.gui
     :show-inheritance:
     :members:
+    :exclude-members: closeEvent, customEvent, dragEnterEvent, dropEvent, keyPressEvent, moveEvent, resizeEvent, event, quit
 
 .. automodule:: chimerax.ui.htmltool
     :show-inheritance:
@@ -42,8 +43,10 @@
 
 .. automodule:: chimerax.ui.options.containers
     :members:
+    :exclude-members: sizeHint
     :show-inheritance:
 
 .. automodule:: chimerax.ui.options.options
     :members:
+    :exclude-members: pyqtSignal
     :show-inheritance:

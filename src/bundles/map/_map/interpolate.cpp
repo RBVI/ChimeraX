@@ -52,18 +52,18 @@ inline bool data_cell(float xyz[3], float vtransform[3][4], int dsize[3],
 // ----------------------------------------------------------------------------
 //
 template <class T>
-static void interpolate_volume(float vertices[][3], int n,
+static void interpolate_volume(float vertices[][3], int64_t n,
 			       float vtransform[3][4],
 			       const Reference_Counted_Array::Array<T> &data,
 			       Interpolation_Method method,
 			       float *values, std::vector<int> &outside)
 {
-  int dsize[3] = {data.size(2), data.size(1), data.size(0)};
-  long si = data.stride(2), sj = data.stride(1), sk = data.stride(0);
+  int dsize[3] = {(int)data.size(2), (int)data.size(1), (int)data.size(0)};
+  int64_t si = data.stride(2), sj = data.stride(1), sk = data.stride(0);
   T *d = data.values();
   int bijk[3];
   float fijk[3];
-  for (int m = 0 ; m < n ; ++m)
+  for (int64_t m = 0 ; m < n ; ++m)
     {
       float *xyz = vertices[m];
       if (!data_cell(xyz, vtransform, dsize, bijk, fijk, 0))
@@ -72,7 +72,7 @@ static void interpolate_volume(float vertices[][3], int n,
 	  outside.push_back(m);
 	  continue;
 	}
-      long offset = bijk[0]*si + bijk[1]*sj + bijk[2]*sk;
+      int64_t offset = bijk[0]*si + bijk[1]*sj + bijk[2]*sk;
       T *dc = d + offset;
       if (method == INTERP_LINEAR)
 	{
@@ -92,7 +92,7 @@ static void interpolate_volume(float vertices[][3], int n,
 
 // ----------------------------------------------------------------------------
 //
-void interpolate_volume_data(float vertices[][3], int n,
+void interpolate_volume_data(float vertices[][3], int64_t n,
 			     float vtransform[3][4],
 			     const Reference_Counted_Array::Numeric_Array &data,
 			     Interpolation_Method method,
@@ -106,19 +106,19 @@ void interpolate_volume_data(float vertices[][3], int n,
 // ----------------------------------------------------------------------------
 //
 template <class T>
-static void interpolate_gradient(float vertices[][3], int n,
+static void interpolate_gradient(float vertices[][3], int64_t n,
 				 float vtransform[3][4],
 				 const Reference_Counted_Array::Array<T> &data,
 				 Interpolation_Method method,
 				 float gradients[][3],
 				 std::vector<int> &outside)
 {
-  int dsize[3] = {data.size(2), data.size(1), data.size(0)};
-  long stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
+  int dsize[3] = {(int)data.size(2), (int)data.size(1), (int)data.size(0)};
+  int64_t stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
   T *d = data.values();
   int bijk[3];
   float fijk[3];
-  for (int m = 0 ; m < n ; ++m)
+  for (int64_t m = 0 ; m < n ; ++m)
     {
       float *xyz = vertices[m];
       float *grad = gradients[m];
@@ -128,7 +128,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 	  outside.push_back(m);
 	  continue;
 	}
-      long offset = bijk[0]*stride[0] + bijk[1]*stride[1] + bijk[2]*stride[2];
+      int64_t offset = bijk[0]*stride[0] + bijk[1]*stride[1] + bijk[2]*stride[2];
       T *dc = d + offset;
       float gijk[3] = {0, 0, 0};
       if (method == INTERP_LINEAR)    // Average gradients at 8 cell corners.
@@ -141,7 +141,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 		for (int ok = 0 ; ok < 2 ; ++ok)
 		  {
 		    float wijk = .5 * wij * (ok ? fijk[2] : 1-fijk[2]);
-		    long oijk = oi*stride[0] + oj*stride[1] + ok*stride[2];
+		    int64_t oijk = oi*stride[0] + oj*stride[1] + ok*stride[2];
 		    T *dijk = dc + oijk;
 		    for (int a = 0 ; a < 3 ; ++a)
 		      gijk[a] += wijk * (*(dijk+stride[a]) - *(dijk-stride[a]));
@@ -166,7 +166,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 
 // ----------------------------------------------------------------------------
 //
-void interpolate_volume_gradient(float vertices[][3], int n,
+void interpolate_volume_gradient(float vertices[][3], int64_t n,
 				 float vtransform[3][4],
 				 const Reference_Counted_Array::Numeric_Array &data,
 				 Interpolation_Method method,
@@ -180,14 +180,14 @@ void interpolate_volume_gradient(float vertices[][3], int n,
     
 // ----------------------------------------------------------------------------
 //
-void interpolate_colormap(float values[], int n,
+void interpolate_colormap(float values[], int64_t n,
 			  float color_data_values[], int m,
 			  float rgba_colors[][4],
 			  float rgba_above_value_range[4],
 			  float rgba_below_value_range[4],
 			  float rgba[][4])
 {
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float v = values[k];
       float *rgbak = rgba[k];
@@ -203,7 +203,7 @@ void interpolate_colormap(float values[], int n,
 	  while (v > color_data_values[j])
 	    j += 1;
 	  float v0 = color_data_values[j-1], v1 = color_data_values[j];
-	  float f1 = (v - v0) / (v1 - v0);
+	  float f1 = (v1 > v0 ? (v - v0) / (v1 - v0) : 0);
 	  float f0 = 1 - f1;
 	  float *c0 = rgba_colors[j-1], *c1 = rgba_colors[j];
 	  for (int a = 0 ; a < 4 ; ++a)
@@ -214,11 +214,11 @@ void interpolate_colormap(float values[], int n,
             
 // ----------------------------------------------------------------------------
 //
-void set_outside_volume_colors(int *outside, int n,
+void set_outside_volume_colors(int *outside, int64_t n,
 			       float rgba_outside_volume[4],
 			       float rgba[][4])
 {
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *rgbak = rgba[outside[k]];
       for (int a = 0 ; a < 4 ; ++a)

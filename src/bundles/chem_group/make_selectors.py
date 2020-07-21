@@ -44,8 +44,8 @@ group_info = {
     "phosphate": "PO4",
     "phosphinyl": "R2PO2-",
     "phosphonate": "RPO3-",
-    "purine": "purine",
-    "pyrimidine": "pyrimidine",
+    "purines": "purine-like rings",
+    "pyrimidines": "pyrimidine-like rings",
     "sulfate": "SO4",
     "sulfonamide": "RSO2NR2",
     "sulfonate": "RSO3-",
@@ -84,7 +84,8 @@ amines = ["all"] + ['aliphatic' + ending for ending in amine_endings] + ['aromat
     for ending in amine_endings]
 bases = []
 base_names = set(['adenine', 'cytosine', 'guanine', 'thymine', 'uracil'])
-menu_info = [('&amine', amines), ('&nucleoside base', bases)]
+# ribose is from atomic, but is more natural in this menu
+menu_info = [('&amine', amines), ('&nucleoside base', bases), ('ribose', None)]
 for name in group_names:
     if name.endswith('amine'):
         continue

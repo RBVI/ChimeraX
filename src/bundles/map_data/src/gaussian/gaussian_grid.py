@@ -24,7 +24,7 @@ class GaussianGrid(GridData):
     self.gc = gc
     self.component_number = component_number
 
-    from chimerax.core.geometry import matrix
+    from chimerax.geometry import matrix
     ca, rot = matrix.cell_angles_and_rotation(gc.grid_axes)
 
     GridData.__init__(self, gc.grid_size,

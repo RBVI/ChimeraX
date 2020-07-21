@@ -1,0 +1,306 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Build Structure</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Build Structure</h3>
+<p>
+The <b>Build Structure</b> tool is for building and modifying atomic structures.
+It is implemented as the
+<a href="../commands/build.html"><b>build</b></a> command.
+See also:
+<a href="rotamers.html"><b>Rotamers</b></a>,
+<a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="../commands/rna.html"><b>rna</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>
+</p><p>
+<b>Build Structure</b> can be opened from the 
+<b>Structure Editing</b> section of the <b>Tools</b> menu and 
+manipulated like other panels (<a href="../window.html#panels">more...</a>).
+Sections:
+</p>
+</ul>
+<li><a href="#start"><b>Start Structure</b></a>
+<li><a href="#modify"><b>Modify Structure</b></a>
+</ul>
+
+<p class="nav">
+<a name="start"></a>
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Start Structure</h3>
+<p>
+The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+adds new atoms or molecules independent of any pre-existing atoms.
+See also:
+<a href="../commands/open.html#fetch"><b>open</b></a>
+</p><p>
+Options are to <b>Add</b>:
+<ul>
+<li> <b>atom</b> &ndash; a single atom of helium (used as the initial type
+since it exists as a singleton), with placement options:
+  <ul>
+  <li><b>Center of view</b>
+  <li><b>x</b>, <b>y</b> and <b>z</b> coordinates in the
+  <a href="#startmodel">model</a> coordinate system (same as
+  <a href="../commands/view.html#scenecoords">scene coordinates</a>
+  unless the model has been moved separately)
+  </ul>
+<b>Select placed atom</b> &ndash; whether to
+<a href="../selection.html">select</a> the new atom, such as for
+subsequent <a href="#modify">modification</a>
+<p>
+Clicking <b>Apply</b>
+adds the atom(s) with the specified <b>Residue name</b>, in either
+<a name="startmodel"></a>
+an existing molecule model or a <b>new model</b> with a specified name.
+</p>
+<!--
+<li><b>fragment</b> 
+&ndash; the specified fragment, placed in the center of view.
+Several planar ring systems are available; a small diagram of the
+chosen <b>Fragment</b> is displayed.
+<br><br>
+-->
+<li><b>peptide</b> &ndash; a peptide specified by
+one-letter amino acid codes (capitalization does not matter)
+<p>
+The peptide can be added to an existing molecule model or 
+generated as a <b>new model</b> with a specified name.
+</p><p>
+Clicking <b>Apply</b> brings up another dialog for specifying backbone
+&phi; (phi) and &psi; (psi) angles and other parameters.
+One or more rows can be <a href="#chosen">chosen</a>
+with the mouse and <b>Set</b> to values either entered manually
+or supplied for various types of secondary structure:
+</p>
+<table border cellpadding="2" cellspacing="0" style="margin:8px 8px 8px 8px">
+<tr><th align="center">description</th>
+<th align="center">&phi; (&deg;)</th><th align="center">&psi; (&deg;)</th>
+</tr><tr>
+<tr><td align="center">&alpha; helix</td>
+<td align="center">-57</td><td align="center">-47</td>
+</tr><tr>
+<td align="center">antiparallel &beta; strand</td>
+<td align="center">-139</td><td align="center">135</td>
+</tr><tr>
+<td align="center">parallel &beta; strand </td>
+<td align="center">-119</td><td align="center">113</td>
+</tr><tr>
+<tr><td align="center">3<sub>10</sub> helix</td>
+<td align="center">-49</td><td align="center">-26</td>
+</tr><tr>
+<tr><td align="center">&pi; helix</td>
+<td align="center">-57</td><td align="center">-70</td>
+</tr>
+</table>
+<p>
+<a name="chosen"></a>
+A block of rows can be chosen by dragging, or by
+clicking on the first (or last) line in the desired block
+and then <b>Shift</b>-clicking on its last (or first) line.
+</p><p>
+Sidechain conformations will be taken from the specified <b>Rotamer library</b>
+(see <a href="../commands/swapaa.html#rotLib"><b>swapaa</b></a> for 
+literature citations):
+<ul>
+  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
+target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+(5% stepdown; for chain-terminal residues,
+the Dunbrack 2002 backbone-independent version is used instead)
+  <li><b>Dynameomics</b> &ndash;
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
+target="_blank">Dyameomics rotamer library</a>
+ <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
+from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>
+ <li><b>Richardson.mode</b> &ndash; mode values from the
+<a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>
+</ul>
+<p>
+The rotamer at each position will be chosen as described for the command
+<a href="../commands/swapaa.html"><b>swapaa</b></a> with the
+<a href="../commands/swapaa.html#criteria">criteria</a> <b>cp</b>, 
+meaning the rotamer with the fewest clashes, and if a tie, then the
+highest probability according to the rotamer library.
+The residues are added in N&rarr;C order, so only clashes with more
+N-terminal residues are evaluated.
+The peptide will be assigned the specified <b>chain ID</b>.
+</p><p>
+Clicking <b>OK</b> dismisses the dialog and creates the peptide.
+Hydrogen atoms are not included.
+Backbone bond lengths and angles are taken from the
+<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+ff99 parameters. Sidechain bond lengths and angles are taken from the
+<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+parameter files <b>all*94.lib</b>.
+</p>
+<li><b>PubChem CID</b> &ndash; a modeled structure from
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank"><b>PubChem3D</b></a>, specified by
+<a href="http://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+compound identifier (CID).
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank"><b>PubChem3D</b></a>
+includes most but not all PubChem Compound entries.
+Hydrogens are included, although it
+may be necessary to <a href="../commands/addh.html">add</a> or
+<a href="#deletion">delete</a> hydrogens
+to generate the desired protonation state.
+<br><br>
+<li><b>SMILES string</b> &ndash; a 3D structure for the specified
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string. The structure is generated using the
+<a href="http://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="http://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>, or if that does not produce a structure, the
+<i>smi23d</i> web service provided by the
+cheminformatics group at Indiana University.
+The <i>smi23d</i> service deploys the same procedure
+as described for <b>Pub3D</b> in
+<a href="http://www.biomedcentral.com/1471-2105/8/487"
+target="_blank">Willighagen <i>et al.</i></a>, <i>BMC Bioinformatics</i>
+<b>8</b>:487 (2007).
+Hydrogens are included, although it
+may be necessary to <a href="../commands/addh.html">add</a> or
+<a href="#deletion">delete</a> hydrogens
+to generate the desired protonation state.
+</ul>
+
+<a name="modify"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Modify Structure</h3>
+<p>
+The <b>Modify Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+can change the element, valence (number of directly attached atoms),
+and/or geometry (spatial arrangement of attached atoms) of a single
+<a href="../selection.html">selected</a> atom at a time.
+Hydrogens are appended as needed to fill the valence.
+Building outward can be done by successive cycles
+of modifying a hydrogen attached to the previously modified atom.
+<!--
+</p><p>
+The <b>Modify Structure</b> dialog can be opened directly
+by doubleclick-<a href="../../UsersGuide/selection.html#pickselect">picking</a>
+an atom when 0 or &gt;3 other atoms are already
+<a href="../../UsersGuide/selection.html">selected</a>, then choosing
+<b>Modify Atom</b> from the resulting
+<a href="../../UsersGuide/mouse.html#contextmenus">context menu</a>.
+-->
+</p><p>
+Clicking <b>Apply</b> changes the 
+<a href="../selection.html">selected</a> atom as specified:
+<ul>
+<li><b>Element</b> &ndash; desired element
+<li><b>Bonds</b> &ndash; desired total number of substituents on the atom
+(0-4 allowed); cannot be fewer than the current number of 
+substituents other than hydrogen.
+Atoms can be <a href="#deletion">deleted</a> beforehand.
+<li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
+  <ul>
+  <li><b>linear</b> &ndash; allowed for 2 bonds, target bond angle 180&deg;
+  <li><b>trigonal</b> &ndash; allowed for 2-3 bonds,
+  target bond angle(s) 120&deg; in a plane
+  <li><b>tetrahedral</b> &ndash; allowed for 2-4 bonds,
+  target bond angle(s) 109.5&deg;
+  </ul>
+<p>
+There is no checking as to whether the specified number of bonds 
+and geometry are chemically reasonable.
+Hydrogens will be added to the atom to generate the indicated
+total number of bonds. They are added to form the idealized bond angles for 
+the specified geometry, or if the atom already has two or more substituents,
+to maximally avoid those substituents.
+The default geometry is the same as for the atom's
+current <a href="../atomtypes.html">type</a>.
+Since the geometry around the atom may be changing, any
+pre-existing directly attached hydrogens are removed beforehand.
+No other atoms are removed automatically.
+If the atom is already bonded to one (and only one) other nonhydrogen atom,
+the bond will be adjusted to an approximate length depending on
+the elements involved. No other atoms are moved.
+Bond lengths for X-H (X = C/N/O/S) are taken from the
+<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+parm99 parameters.
+</p><p>
+<li style="list-style-type:none">Choices for atom name:
+  <ul>
+  <li><b>Retain current atom name</b>
+  <li><b>Set atom name to [<i>name</i>]</b>
+  </ul>
+<p>
+In <a href="http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
+an atom name can be up to four characters long and should be unique
+within a residue. An atom name normally starts with the element symbol.
+</p>
+<li><b>Connect to pre-existing atoms if appropriate</b>
+(default <b>on</b>)
+&ndash; if a newly added hydrogen would be very close to
+an existing atom in the same model as the
+<a href="../selection.html">selected</a> atom, discard
+the hydrogen and form a bond to the existing atom instead
+<li><b>Focus view on modified residue</b>
+(default <b>off</b>) &ndash; 
+<a href="../commands/view.html#initial">focus the view</a> on the
+the residue containing the modified atom
+<li><b>Color new atoms by element</b> 
+(default <b>on</b>) &ndash; 
+color-code the modified atom and any newly added hydrogens
+<a href="../commands/colortables.html#element">by element</a>
+</ul><ul>
+<li style="list-style-type:none">Choices for <b>Residue Name</b>:
+  <ul>
+  <li><b>Leave unchanged</b>
+  <li><b>Change modified residue's name to [<i>resname</i>]</b>
+&ndash; change the residue name to <i>resname</i>
+for all atoms in the residue, not just the modified atom
+(appropriate when a standard residue is modified; for example,
+a methylated lysine should no longer be named LYS)
+  <li><b>Put just changed atoms in new residue named [<i>resname</i>]</b>
+&ndash; put the modified atom and any new hydrogens
+in a new residue named <i>resname</i>;
+otherwise, they will be included in the atom's current residue
+  </ul>
+<p>
+In <a href="http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
+residue names are normally three characters long and chain identifiers a
+single character.
+</p>
+</ul>
+<p>
+<a name="deletion"></a>
+Clicking the <b>Delete</b> button at the bottom of
+<a href="#modify"><b>Modify Structure</b></a> removes any
+<a href="../selection.html">selected</a> atoms and bonds.
+See also command: <a href="../commands/delete.html"><b>delete</b></a>, 
+menu: <a href="../menu.html#actions"><b>Actions... Delete</b></a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2020</address>
+</body></html>

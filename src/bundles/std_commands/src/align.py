@@ -20,7 +20,7 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
           sequence = None, cutoff_distance = None, report_matrix = False):
     """Move atoms to minimize RMSD with to_atoms.
     Returns matched atoms and matched to_atoms, matched atom rmsd, paired atom rmsd, and a
-    chimerax.core.geometry.Place instance (i.e. the transform to place the match atoms onto
+    chimerax.geometry.Place instance (i.e. the transform to place the match atoms onto
     the "to" atoms).  The matched atoms can be fewer than the paired atoms if cutoff distance
     is specified.  If "each" is not None then nothing is returned.
 
@@ -113,7 +113,7 @@ def align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
 
     xyz_from = patoms.scene_coords
     if cutoff_distance is None:
-        from chimerax.core.geometry import align_points
+        from chimerax.geometry import align_points
         tf, rmsd = align_points(xyz_from, xyz_to)
         full_rmsd = rmsd
         matched_patoms, matched_pto_atoms = patoms, pto_atoms
@@ -147,7 +147,7 @@ def align_and_prune(xyz, ref_xyz, cutoff_distance, indices = None):
     if indices is None:
         indices = numpy.arange(len(xyz))
     axyz, ref_axyz = xyz[indices], ref_xyz[indices]
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     p, rms = align_points(axyz, ref_axyz)
     dxyz = p*axyz - ref_axyz
     d2 = (dxyz*dxyz).sum(axis=1)
@@ -304,9 +304,9 @@ def extend_to_chains(atoms):
 def register_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, FloatArg, IntArg
-    from chimerax.atomic import AtomsArg
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
-                   keyword = [('to_atoms', AtomsArg),
+    from chimerax.atomic import OrderedAtomsArg
+    desc = CmdDesc(required = [('atoms', OrderedAtomsArg)],
+                   keyword = [('to_atoms', OrderedAtomsArg),
                               ('move', EnumOf(('atoms', 'residues', 'chains', 'structures',
                                                'structure atoms', 'nothing'))),
                               ('each', EnumOf(('chain', 'structure', 'coordset'))),

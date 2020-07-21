@@ -61,7 +61,7 @@ def principle_axes_box(varray, tarray):
   weights = surface.vertex_areas(varray, tarray)
   from chimerax.std_commands.measure_inertia import moments_of_inertia
   axes, d2e, center = moments_of_inertia([(varray, weights)])
-  from chimerax.core.geometry import Place, point_bounds
+  from chimerax.geometry import Place, point_bounds
   axes_points = Place(axes = axes).inverse().transform_points(varray)
   bounds = point_bounds(axes_points)
   return axes, bounds
@@ -70,9 +70,17 @@ def principle_axes_box(varray, tarray):
 #
 from chimerax.core.models import Surface
 class BlobOutlineBox(Surface):
-    def __init__(self, session, axes, bounds, rgba = (0,255,0,255)):
+    def __init__(self, session):
         Surface.__init__(self, 'blob outline box', session)
 
+    @classmethod
+    def create_box(cls, session, axes, bounds, rgba = (0,255,0,255)):
+        '''Create a new outline box model.'''
+        bob = cls(session)
+        bob._create_outline(axes, bounds, rgba)
+        return bob
+        
+    def _create_outline(self, axes, bounds, rgba = (0,255,0,255)):        
         # Compute corners
         vlist = []
         b = (bounds.xyz_min, bounds.xyz_max)
@@ -96,6 +104,13 @@ class BlobOutlineBox(Surface):
         s.edge_mask = hide_diagonals
         s.color = rgba
 
+    def take_snapshot(self, session, flags):
+        return Surface.save_geometry(self, session, flags)
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return BlobOutlineBox(session).restore_geometry(session, data)
+    
 # -------------------------------------------------------------------------
 #
 def boundary_lengths(varray, tarray):
@@ -145,7 +160,7 @@ def measure_blob(session, surface, triangle_number, color = None,
     if outline:
         from chimerax.core.colors import Color
         rgba = outline_color.uint8x4() if isinstance(outline_color, Color) else outline_color
-        bob = BlobOutlineBox(session, axes, bounds, rgba = rgba)
+        bob = BlobOutlineBox.create_box(session, axes, bounds, rgba = rgba)
         surface.parent.add([bob])
 
 # -------------------------------------------------------------------------
@@ -173,11 +188,13 @@ class PickBlobs(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self.settings = None
         
+    @property
+    def settings(self):
+        return pick_blobs_panel(self.session)
+
     def enable(self):
-        self.settings = s = pick_blobs_panel(self.session)
-        s.show()
+        self.settings.show()
         
     def mouse_down(self, event):
         x,y = event.position()
@@ -214,10 +231,9 @@ class PickBlobs(MouseMode):
         from chimerax.core.commands import run
         run(surface.session, cmd)
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         self._pick_blob(pick)
 
 def hex_color(rgba8):
@@ -331,7 +347,7 @@ class PickBlobSettings(ToolInstance):
         
     def new_color(self):
         from random import random as r
-        from chimerax.core.geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         rgba = tuple(normalize_vector((r(), r(), r()))) + (1,)
         self._blob_color.color = rgba
 

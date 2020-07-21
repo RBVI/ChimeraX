@@ -268,7 +268,7 @@ class ContactPlot(Graph):
                 la.append((x,y,0))
         if len(gc) < 2:
             return
-        from chimerax.core.geometry import align_points, translation
+        from chimerax.geometry import align_points, translation
         from numpy import array, mean
         p, rms = align_points(array(gc), array(la))
         ra = p.zero_translation()
@@ -282,9 +282,12 @@ class ContactPlot(Graph):
         if 'display changed' in changes.atom_reasons():
             # Atoms shown or hidden.  Color hidden nodes gray.
             self.recolor_nodes()
+
+        # Close plot if any of its atoms were deleted since
+        # the contacts are then invalid, and Contact index lists
+        # are now incorrect.
         if changes.num_deleted_atoms() > 0:
             for g in self.groups:
-                if len(g.atoms) > 0:
+                if g.atoms_deleted:
+                    self.delete()
                     return
-            # Close plot.  All atoms have been closed.
-            self.delete()

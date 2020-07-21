@@ -37,7 +37,9 @@ def delete_atoms(session, atoms, attached_hyds=True):
         hyds = nbs.filter(nbs.elements.numbers == 1)
         atoms = atoms.merge(hyds)
     atoms.delete()
-    session.models.close([s for s in session.models if s.deleted])
+    from chimerax.atomic import StructureData
+    session.models.close([s for s in session.models
+        if isinstance(s, StructureData) and StructureData.deleted.fget(s)])
 
 def delete_bonds(session, bonds):
     '''Delete bonds.
@@ -48,8 +50,8 @@ def delete_bonds(session, bonds):
         Delete these bonds.
     '''
     if bonds is None:
-        from chimerax.atomic import all_structures
-        bonds = all_structures(session).bonds
+        from chimerax.atomic import all_structures, Structures
+        bonds = Structures(all_structures(session)).bonds
     bonds.delete()
 
 def delete_pbonds(session, pbonds, name=None):

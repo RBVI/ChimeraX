@@ -8,8 +8,8 @@ include $(TOP)/mk/config.make
 
 export PATH:=$(bindir):$(PATH)
 
-VERSION = 5.12
-MINOR_VERSION = 3
+VERSION = 5.13
+MINOR_VERSION = 2
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 DISTRIBUTION = qt-everywhere-src-$(FULL_VERSION).tar.xz
 SOURCE = $(tmpdir)/qt-everywhere-src-$(FULL_VERSION)
@@ -73,7 +73,11 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 $(SOURCE): $(DISTRIBUTION)
+ifeq ($(OS),Darwin)
+	tar -x -C $(tmpdir) -f $(DISTRIBUTION)
+else
 	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
+endif
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p1) < $$p ; \

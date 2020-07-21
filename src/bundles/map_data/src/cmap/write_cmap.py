@@ -57,11 +57,15 @@
 def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
 
     settings = {
+        'subsamples': [],	# e.g. [(2,2,1),(4,4,1)]
         'min_subsample_elements': 2**17,
         'chunk_shapes': ['zyx'],
         'chunk_size': 2**22,       # 4 Mbytes
         'append': False,
         'compress': False,
+        'compress_method': 'zlib',  # 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'
+        'compress_level': 5,	# 1-9
+        'compress_shuffle': True,
         }
     settings.update(options)
 
@@ -134,7 +138,7 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
     if grid_data.cell_angles != (90,90,90):
         g._v_attrs.cell_angles = array(grid_data.cell_angles, float32)
     if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-        from chimerax.core.geometry import matrix
+        from chimerax.geometry import matrix
         axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
         g._v_attrs.rotation_axis = array(axis, float32)
         g._v_attrs.rotation_angle = array(angle, float32)
@@ -169,9 +173,9 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
             kc = kchunk if k + kchunk <= ksz else ksz-k
             mc = grid_data.matrix((0,0,k), (isz,jsz,kc))
         mk = mc[k%kchunk,:,:]
-        for step, a in arrays:
-            if step == 1 or k % step == 0:
-                a[k//step,:,:] = mk[::step,::step]
+        for (istep,jstep,kstep), a in arrays:
+            if kstep == 1 or k % kstep == 0:
+                a[k//kstep,:,:] = mk[::jstep,::istep]
 
     # TODO: Use subsample arrays if available.
     # TODO: Optimize read write depending on chunk shapes.
@@ -198,11 +202,15 @@ def make_arrays(h5file, g, size, atom, settings):
 
     chunk_elements = settings['chunk_size'] // atom.itemsize
     chunk_shapes = settings['chunk_shapes']
+    subsamples = settings['subsamples']
     min_subsample_elements = settings['min_subsample_elements']
 
     if 'compress' in settings and settings['compress']:
+        method = settings.get('compress_method', 'zlib')
+        level = settings.get('compress_level', 5)
+        shuffle = settings.get('compress_shuffle', True)
         from tables import Filters
-        filters = Filters(complevel = 9)
+        filters = Filters(complevel = level, complib = method, shuffle = shuffle)
     else:
         filters = None
     
@@ -215,26 +223,35 @@ def make_arrays(h5file, g, size, atom, settings):
         if not cshape in cshapes:
             a = h5file.create_carray(g, 'data_' + csname, atom, shape,
                                      chunkshape = cshape, filters = filters)
-            arrays.append((1,a))
+            arrays.append(((1,1,1),a))
             cshapes[cshape] = True
 
-    # Make subsample arrays.
-    step = 2
+    # Compute step sizes to use.
+    steps = list(subsamples)
+    istep,jstep,kstep = tuple(2*s for s in subsamples[-1]) if subsamples else (2,2,2)
     from numpy import array, int32
-    while (isize >= step and jsize >= step and ksize >= step and
-           (isize//step)*(jsize//step)*(ksize//step) >= min_subsample_elements):
-        shape = (1+(ksize-1)//step, 1+(jsize-1)//step, 1+(isize-1)//step)
+    while (isize >= istep and jsize >= jstep and ksize >= kstep and
+           (isize//istep)*(jsize//jstep)*(ksize//kstep) >= min_subsample_elements):
+        steps.append((istep,jstep,kstep))
+        istep *= 2
+        jstep *= 2
+        kstep *= 2
+
+    # Make subsample arrays.
+    for step in steps:
+        istep,jstep,kstep = step
+        shape = (1+(ksize-1)//kstep, 1+(jsize-1)//jstep, 1+(isize-1)//istep)
         cshapes = {}    # Avoid duplicating chunk shapes
         for csname in chunk_shapes:
             cshape = chunk_shape(shape, csname, chunk_elements)
             if not cshape in cshapes:
-                a = h5file.create_carray(g, 'data_%s_%d' % (csname,step), atom,
+                sstep = '%d_%d_%d' % tuple(step)
+                a = h5file.create_carray(g, 'data_%s_%s' % (csname,sstep), atom,
                                          shape, chunkshape = cshape,
                                          filters = filters)
-                a._v_attrs.subsample_spacing = array((step,step,step), int32)
+                a._v_attrs.subsample_spacing = array(step, int32)
                 arrays.append((step, a))
                 cshapes[cshape] = True
-        step *= 2
 
     return arrays
 

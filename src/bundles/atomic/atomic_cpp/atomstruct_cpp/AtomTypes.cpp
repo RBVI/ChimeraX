@@ -311,6 +311,11 @@ find_best_assignment(std::vector<std::map<Bond*, int>>& assignments,
                     }
                     pi_electrons++;
                 } else if (valence_electrons > 4) {
+                    if (valence_electrons == 5 && sum != 3 && ring->size() == 5) {
+                        // nitrogen needs to feel 3 bonds (see residue YG in 6tna)
+                        pi_electrons = 0;
+                        break;
+                    }
                     pi_electrons += 2 - (sum != 2);
                 } else if (a->bonds().size() == 2 && sum == 2) {
                     pi_electrons++;
@@ -560,7 +565,7 @@ clock_t start_t = clock();
             "idatm", "templates", "idatmres"))
                 mapped_queue.push_back(a);
 #endif
-        } catch (tmpl::TA_NoTemplate) {
+        } catch (tmpl::TA_NoTemplate&) {
 #ifdef TRACK_UNTYPED
             for (auto ra: r->atoms()) {
                 untyped_atoms.push_back(ra);
@@ -840,7 +845,8 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if (sqlen <= p3c1c1 && bondee_type == "C1") {
+            if (sqlen <= p3c1c1 && bondee_type == "C1"
+            || sqlen <= p3n1c1 && bondee->element() == Element::N) {
                 a->set_computed_idatm_type("C1");
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
@@ -860,7 +866,7 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if ((sqlen <= p3n1c1 && bondee_type == "C1" ||
+            if ((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N) ||
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");
@@ -2016,7 +2022,14 @@ clock_t start_t = clock();
                     }
                 }
                 if (!remote_sp2) {
-                    a->set_computed_idatm_type("N2");
+                    int hvys = heavys[a];
+                    if (hvys > 1)
+                        a->set_computed_idatm_type("N2");
+                    else if (hvys == 1)
+                        a->set_computed_idatm_type(is_N3plus_okay(
+                            a->neighbors()) ? "N3+" : "N3");
+                    else
+                        a->set_computed_idatm_type("N3+");
                     break;
                 }
                 // a remote sp2 atom doesn't necessarily mean Npl

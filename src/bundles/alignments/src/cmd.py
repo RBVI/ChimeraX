@@ -136,7 +136,7 @@ def seqalign_chain(session, chains):
 
     if len(chains) == 1:
         chain = chains[0]
-        ident = ".".join([str(part) for part in chain.structure.id]) + "." + chain.chain_id
+        ident = ".".join([str(part) for part in chain.structure.id]) + "/" + chain.chain_id
         alignment = session.alignments.new_alignment([chain], ident, seq_viewer="sv",
             auto_associate=None, intrinsic=True)
     else:
@@ -231,7 +231,8 @@ def register_seqalign_command(logger):
         synopsis = 'disassociate chain(s) from alignment'
     )
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
-    create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger)
+    create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger,
+            url="help:user/commands/sequence.html#disassociate")
 
     from . import manager
     manager._register_viewer_subcommands(logger)

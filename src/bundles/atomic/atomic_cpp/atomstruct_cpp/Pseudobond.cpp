@@ -36,6 +36,17 @@ Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _g
 ChangeTracker*
 Pseudobond::change_tracker() const { return group()->manager()->change_tracker(); }
 
+void
+Pseudobond::copy_style(const Pseudobond* exemplar)
+{
+    set_color(exemplar->color());
+    set_display(exemplar->display());
+    set_halfbond(exemplar->halfbond());
+    set_hide(exemplar->hide());
+    set_radius(exemplar->radius());
+    set_selected(exemplar->selected());
+}
+
 GraphicsChanges*
 Pseudobond::graphics_changes() const { return static_cast<GraphicsChanges*>(group()); }
 

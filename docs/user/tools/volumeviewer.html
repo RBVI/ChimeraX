@@ -67,8 +67,7 @@ See also:
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p><p>
 Even without data, <b>Volume Viewer</b> can be started
-from the <b>Volume Data</b> section of the <b>Tools</b> menu
-or with the command <b>toolshed show</b>.
+from the <b>Volume Data</b> section of the <b>Tools</b> menu.
 The <b>Volume Viewer</b> window can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p><p>
@@ -101,17 +100,19 @@ most recently moved or clicked
 <li>the range of values in the <a href="#region">display region</a>
 <li>a pulldown menu with display settings:
   <ul>
-  <li><b>surface</b> (default) 
-  - solid isosurfaces, the
+  <li><b>surface</b> &ndash; solid isosurfaces, the
   <b>surface</b> <a href="../commands/volume.html#style">display style</a>
+(default for most types of data) 
   <li><b>mesh</b>
-  - mesh isosurfaces,
+  &ndash; mesh isosurfaces,
   the <b>mesh</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known
+  <li><b>volume</b> &ndash; cloudlike with varying intensity and opacity, also known
   as the <b>image</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>maximum</b> - image volume style,
+  <li><b>maximum</b>
+&ndash; image style,
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
-  <li><b>plane</b> - image volume style,
+  <li><b>plane</b> 
+&ndash; image style,
 a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
 a slider interface is shown below the histogram 
 and the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
@@ -128,18 +129,39 @@ is set to <b>move planes</b>
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
     <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
     </ul>
-  <li><b>orthoplanes</b> - image volume style,
+  <li><b>orthoplanes</b>
+&ndash; image style,
 <a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously;
 the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
 is set to <b>move planes</b>
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
     <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
-  <li><b>box</b> - image volume style, 
+  <li><b>box</b>
+&ndash; image style,
  <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>;
 the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
 is set to <b>crop volume</b> 
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/crop.png"></a>
+  <li><b>tilted slab</b>
+&ndash; image style,
+<a href="../commands/volume.html#tiltedslab">sliced at any angle</a>
+relative to the data axes; the slab can be rotated with the
+<b>rotate slab</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+    <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar">
+    <img class="icon" border=1 src="mouse-icons/rotateslab.png"></a>,
+translated along its axis with
+either the <b>rotate slab</b> button + <b>Shift</b> or the
+<b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
+and its thickness (single- or multi-plane) adjusted with the
+<b>crop volume</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/crop.png"></a>.
+The slab is initially perpendicular to the line of sight
+and placed at the center of the current <a href="#region">display region</a>
+(<a href="../commands/volume.html#tiltedslab">details...</a>).
   </ul>
 <li>a <b>minus-sign button</b> for closing the model
 </ul>
@@ -176,8 +198,8 @@ or by dragging in the graphics window with the
 <a href="../commands/ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/contour.png"></a>
-or <b>windowing</b>
-<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+or <b>windowing</b> <a href="mousemodes.html#multiwindowing" 
+title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/windowing.png"></a>.
 The <a href="../commands/volume.html#settings"><b>volume settings</b></a>
 command reports the current threshold levels.
@@ -222,9 +244,9 @@ The <b>Volume Viewer</b> <a href="../window.html#context-menu">context menu</a>
 includes:
 <ul>
 <li><b>Show Outline Box</b>
-- toggle <a href="../commands/volume.html#outline">outline box</a>
+&ndash; toggle <a href="../commands/volume.html#outline">outline box</a>
 <li><b>Show Full Region</b>
-- show the entire <a href="#region">region</a> (instead of a subregion or 
+&ndash; show the entire <a href="#region">region</a> (instead of a subregion or 
 a <a href="../commands/volume.html#planes">single plane</a>)
 <li><b>New Threshold</b>
 <li><b>Delete Threshold</b>
@@ -275,5 +297,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+May 2020</address>
 </body></html>

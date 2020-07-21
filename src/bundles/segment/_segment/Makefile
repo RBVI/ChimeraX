@@ -13,18 +13,19 @@ TOP = ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/segment
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 
 PYMOD_NAME	= _segment
-SRCS		= bin.cpp pysegment.cpp
+SRCS		= bin.cpp pysegment.cpp segment.cpp segsurf.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS)
+INCS 		+= $(PYTHON_INCLUDE_DIRS) -I$(ARRAYS_DIR)/include
 LIBS		+= $(PYTHON_LIB)
 
 ifdef WIN32
-LIBS	+= libarrays.lib
+LIBS	+= /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib
 else
-LIBS	+= -larrays
+LIBS	+= -L$(ARRAYS_DIR)/lib -larrays
 endif
 
 all: $(PYMOD)

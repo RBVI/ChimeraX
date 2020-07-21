@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-mmCIF" version="1.1"
-	    package="chimerax.atomic.mmcif" purePython="false"
+<BundleInfo name="ChimeraX-mmCIF" version="2.1"
+	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -35,21 +35,38 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-PDB" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.5"/>
+    <Dependency name="ChimeraX-PDB" build="true" version="~=2.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif"
+	    encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+    <Provider name="Chemical Component Dictionary" category="Molecular structure"
+	    nicknames="ccd" suffixes=".cif"
+	    encoding="utf-8" reference_url="http://www.wwpdb.org/data/ccd" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="mmCIF" want_path="true" />
+    <Provider name="pdb" type="fetch" format_name="mmcif" />
+    <Provider name="pdbe" type="fetch" format_name="mmcif" />
+    <Provider name="pdbj" type="fetch" format_name="mmcif" />
+    <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="mmCIF" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: mmCIF :: :: Molecular structure :: .cif,.mmcif :: chemical/x-mmcif :: http://mmcif.wwpdb.org/ :: :: :: Macromolecular CIF</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdb :: mmCIF :: pdb :: 1a0m :: true</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdbe :: mmCIF :: pdbe :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdbj :: mmCIF :: pdbj :: 1a0m :: false</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: mmCIF :: mmcif :: true :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool,combine_sym_atoms:Bool,structure_factors:Bool,over_sampling:Float</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: mmCIF :: mmcif :: true :: models:Models,rel_model:Model</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

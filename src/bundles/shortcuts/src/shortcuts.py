@@ -67,15 +67,15 @@ def standard_shortcuts(session):
         ('Qt', 'quit', 'Quit', ocat, noarg, fmenu),
 
         # Scene
-        ('va', 'view cofr false', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient cofr false', 'Default orientation', gcat, noarg, smenu),
+        ('va', 'view', 'View all', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
         ('vs', view_selected, 'View selected', gcat, sesarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', if_sel_models('show sel models'), 'Display selected models', ocat, sesarg, smenu),
-        ('hm', if_sel_models('hide sel models'), 'Hide selected models', ocat, sesarg, smenu),
+        ('dm', run_on_models('show %s models'), 'Display selected models', ocat, sesarg, smenu),
+        ('hm', run_on_models('hide %s models'), 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -103,46 +103,49 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-        ('sM', if_sel_maps('volume sel show'), 'Show map', mapcat, sesarg, mmenu),
-        ('hM', if_sel_maps('volume sel hide'), 'Hide map', mapcat, sesarg, mmenu),
+        ('sM', run_on_maps('volume %s show', visible_only=False), 'Show map', mapcat, sesarg, mmenu),
+        ('hM', run_on_maps('volume %s hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
-        ('fr', if_sel_maps('volume sel step 1'), 'Show map at full resolution', mapcat, sesarg, mmenu),
+        ('fr', run_on_maps('volume %s step 1'), 'Show map at full resolution', mapcat, sesarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, sesarg, mmenu, sep),
 
-        ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
-        ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
-        ('gs', if_sel_maps('volume sel style solid'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
+        ('fl', run_on_maps('volume %s style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
+        ('me', run_on_maps('volume %s style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
+        ('gs', run_on_maps('volume %s style image'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
 
-        ('s1', if_sel_maps('volume sel step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
-        ('s2', if_sel_maps('volume sel step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
-        ('s4', if_sel_maps('volume sel step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
+        ('s1', run_on_maps('volume %s step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
+        ('s2', run_on_maps('volume %s step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
+        ('s4', run_on_maps('volume %s step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
-        ('pl', if_sel_maps('volume sel plane z orthoplanes off style solid'), 'Show one plane', mapcat, sesarg, mmenu),
-        ('pa', if_sel_maps('volume sel region all orthoplanes off'), 'Show all planes', mapcat, sesarg, mmenu),
+        ('pl', run_on_maps('volume %s plane z style image imageMode full ; mousemode right "move planes"'), 'Show one plane', mapcat, sesarg, mmenu),
+        ('pa', run_on_maps('volume %s region all imageMode full ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
+        ('is', show_slab, 'Show slab', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
-        ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
-        ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
-        ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
-        ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
-        ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
+        ('aw', run_on_maps('volume %s appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
+        ('as', run_on_maps('volume %s appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('bc', run_on_maps('volume %s appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
+        ('ch', run_on_maps('volume %s appearance chest'), 'Chest CT scan coloring', mapcat, sesarg, mmenu),
+        ('dc', run_on_maps('volume %s appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
+        ('zs', run_on_maps('volume %s projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
+        ('ps', run_on_maps('volume %s projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
 
         # Molecules
-        ('da', if_sel_atoms('show sel atoms'), 'Show atoms', molcat, sesarg, mlmenu),
-        ('ha', if_sel_atoms('hide sel atoms'), 'Hide atoms', molcat, sesarg, mlmenu, sep),
+        ('da', run_on_atoms('show %s atoms'), 'Show atoms', molcat, sesarg, mlmenu),
+        ('ha', run_on_atoms('hide %s atoms'), 'Hide atoms', molcat, sesarg, mlmenu, sep),
 
-        ('bs', if_sel_atoms('style sel ball'), 'Display atoms in ball and stick', molcat, sesarg, mlmenu),
-        ('sp', if_sel_atoms('style sel sphere'), 'Display atoms in sphere style', molcat, sesarg, mlmenu),
-        ('st', if_sel_atoms('style sel stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
+        ('bs', run_on_atoms('style %s ball'), 'Display atoms in ball and stick', molcat, sesarg, mlmenu),
+        ('sp', run_on_atoms('style %s sphere'), 'Display atoms in sphere style', molcat, sesarg, mlmenu),
+        ('st', run_on_atoms('style %s stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
 
-        ('rb', if_sel_atoms('show sel cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
-        ('hr', if_sel_atoms('hide sel cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
+        ('rb', run_on_atoms('show %s cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
+        ('hr', run_on_atoms('hide %s cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -150,27 +153,27 @@ def standard_shortcuts(session):
         ('sw', 'show solvent', 'Show water atoms', molcat, noarg, mlmenu),
         ('hw', 'hide solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
 
-        ('sB', if_sel_atoms('show sel bonds'), 'Display bonds', molcat, sesarg, mlmenu),
-        ('hB', if_sel_atoms('hide sel bonds'), 'Hide bonds', molcat, sesarg, mlmenu),
-        ('hb', if_sel_atoms('hbonds sel'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
+        ('sB', run_on_atoms('show %s bonds'), 'Display bonds', molcat, sesarg, mlmenu),
+        ('hB', run_on_atoms('hide %s bonds'), 'Hide bonds', molcat, sesarg, mlmenu),
+        ('hb', run_on_atoms('hbonds %s'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
-        #        ('sq', if_sel_atoms('sequence chain sel', 'seq chain all'), 'Show polymer sequence', molcat, sesarg, mlmenu),
+        #        ('sq', run_on_atoms('sequence chain sel', 'seq chain all'), 'Show polymer sequence', molcat, sesarg, mlmenu),
         ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
-        ('if', if_sel_atoms('interfaces sel & ~solvent', 'interfaces ~solvent'), 'Chain interfaces diagram', molcat, sesarg, mlmenu),
+        ('if', run_on_atoms('interfaces %s & ~solvent', 'interfaces ~solvent'), 'Chain interfaces diagram', molcat, sesarg, mlmenu),
 
-        ('Hb', if_sel_atoms('color sel halfbond true'), 'Half bond coloring', molcat, sesarg, mlmenu),
-        ('Sb', if_sel_atoms('color sel halfbond false'), 'Single color bonds', molcat, sesarg, mlmenu),
+        ('Hb', run_on_atoms('color %s halfbond true'), 'Half bond coloring', molcat, sesarg, mlmenu),
+        ('Sb', run_on_atoms('color %s halfbond false'), 'Single color bonds', molcat, sesarg, mlmenu),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
-        ('cc', if_sel_atoms('color sel bychain'), 'Color chains', molcat, sesarg, mlmenu, sep),
-        ('ce', if_sel_atoms('color sel byhet'), 'Color non-carbon atoms by element', molcat, sesarg, mlmenu),
-        ('rc', if_sel_atoms('color sel random'), 'Random color atoms and residues', molcat, sesarg, mlmenu),
-        ('bf', if_sel_atoms('color bfactor sel'), 'Color by bfactor', molcat, sesarg, mlmenu),
-        ('rB', if_sel_atoms('rainbow sel'), 'Rainbow color N to C-terminus', molcat, sesarg, mlmenu),
+        ('cc', run_on_atoms('color %s bychain'), 'Color chains', molcat, sesarg, mlmenu, sep),
+        ('ce', run_on_atoms('color %s byhet'), 'Color non-carbon atoms by element', molcat, sesarg, mlmenu),
+        ('rc', run_on_atoms('color %s random'), 'Random color atoms and residues', molcat, sesarg, mlmenu),
+        ('bf', run_on_atoms('color bfactor %s'), 'Color by bfactor', molcat, sesarg, mlmenu),
+        ('rB', run_on_atoms('rainbow %s'), 'Rainbow color N to C-terminus', molcat, sesarg, mlmenu),
 
-        ('ms', if_sel_atoms('show sel surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
-        ('sa', if_sel_atoms('measure sasa sel'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
-        ('hp', if_sel_atoms('mlp sel'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
+        ('ms', run_on_atoms('show %s surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
+        ('sa', run_on_atoms('measure sasa %s'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
+        ('hp', run_on_atoms('mlp %s'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
@@ -181,7 +184,7 @@ def standard_shortcuts(session):
 
         # Surfaces
         ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
-        ('hs', if_sel_atoms('hide sel surface'), 'Hide surface', surfcat, sesarg, sfmenu),
+        ('hs', run_on_atoms('hide %s surface'), 'Hide surface', surfcat, sesarg, sfmenu),
 # TODO: hs used to also hide non-molecular surfaces.
 #        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
 # TODO: Show filled and mesh used to work on surfaces, now only maps.
@@ -475,41 +478,90 @@ def run(session, command, **kw):
   from chimerax.core.commands import run as run_command
   run_command(session, command, **kw)
   
-def if_sel_atoms(sel_cmd, all_cmd = None):
-    if all_cmd is None:
-        all_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_all(session):
-        from chimerax.atomic import selected_atoms, Structure
-        mspec = shown_models_spec(session, Structure)
-        if len(selected_atoms(session)) > 0 or mspec == '':
-            cmd = sel_cmd
-        else:
-            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
-        run(session, cmd)
-    return sel_or_all
+def run_on_atoms(command, all_command = None):
+    from chimerax.atomic import Structure
+    return run_on_models(command, all_command, model_class = Structure)
   
-def if_sel_maps(sel_cmd, all_cmd = None):
+def run_on_maps(command, all_command = None, visible_only = True):
     from chimerax.map import Volume
-    return if_sel_models(sel_cmd, all_cmd, model_class = Volume)
+    return run_on_models(command, all_command, model_class = Volume,
+                         visible_only = visible_only)
   
-def if_sel_models(sel_cmd, all_cmd = None, model_class = None):
-    if all_cmd is None:
-        all_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_all(session):
-        msel = [m for m in session.models.list(type = model_class) if m.selected]
-        mspec = shown_models_spec(session, model_class)
-        if msel:
-            cmd = sel_cmd
+def run_on_models(command, all_command = None, model_class = None, visible_only = True):
+    '''
+    Return a function that runs the command string with %s replaced with a model specifier.
+    The specifier should be for selected visible models determined when the
+    function is called, but if there are no such models then run on all visible models.
+    If running on all models then use all_command or if that is None substitute '' for '%s'.
+    If model_class is not None then only the specified model type is considered.
+    Example: "color %s blue" may translate to
+       "color blue"
+       "color sel blue",
+       "color #1,2 blue"
+       "color sel & #3 blue"
+    '''
+    if not visible_only:
+        return _run_on_hidden_models(command, all_command = all_command,
+                                     model_class = model_class)
+    
+    if all_command is None:
+        all_command = command.replace(' %s', '')
+        
+    def run_expanded_command(session):
+        mall = session.models.list(type = model_class)
+        msel = [m for m in mall if m.selected]
+        mselvis = [m for m in msel if m.visible]
+        if len(mselvis) == 0:
+            # No selected visible models so run on all visible models.
+            mvis = [m for m in mall if m.visible]
+            if len(mvis) == len(mall):
+                target = 'all'
+            elif mvis:
+                # No selected models so target all visible models.
+                from chimerax.core.commands import concise_model_spec
+                target = concise_model_spec(session, mvis)
+            else:
+                # No visible models
+                target = None
+        elif len(msel) == len(mselvis):
+            # All selected models are visible.
+            target = 'sel'
         else:
-            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
+            # Some but not all selected models are visible.
+            from chimerax.core.commands import concise_model_spec
+            target = 'sel & %s' % concise_model_spec(session, mselvis)
+        if target is None:
+            return   # No visible models to run command on.
+        cmd = all_command if target == 'all' else command.replace(' %s', ' ' + target)
         run(session, cmd)
-    return sel_or_all
+        
+    return run_expanded_command
+  
+def _run_on_hidden_models(command, all_command = None, model_class = None):
+    '''
+    See run_on_models() description.  This version does not restrict to visible models.
+    '''
+    if all_command is None:
+        all_command = command.replace(' %s', '')
+    def run_expanded_command(session):
+        mall = session.models.list(type = model_class)
+        msel = [m for m in mall if m.selected]
+        if msel:
+            cmd = command.replace(' %s', ' sel')
+        elif mall:
+            cmd = all_command
+        else:
+            return  # Non models to run on
+        run(session, cmd)
+    return run_expanded_command
 
 def shown_models_spec(session, model_class = None):
     mlist = [m for m in session.models.list(type = model_class)]
     mshown = [m for m in mlist if m.visible]
     if len(mlist) == len(mshown):
         spec = 'all' if mshown else ''
+    elif len(mshown) == 0:
+        spec = ''
     else:
         from chimerax.core.commands import concise_model_spec
         spec = concise_model_spec(session, mshown)
@@ -534,14 +586,13 @@ def toggle_outline_box(session):
     maps = shortcut_maps(session, undisplayed = False)
     oshown = [v for v in maps if v.rendering_options.show_outline_box]
     show = 'false' if oshown else 'true'
-    if_sel_maps('volume sel showOutlineBox %s' % show)(session)
+    run_on_maps('volume %%s showOutlineBox %s' % show)(session)
 
 def show_one_plane(m):
   ijk_step = (1,1,1)
   ijk_min, ijk_max = [list(b) for b in m.region[:2]]
   ijk_min[2] = ijk_max[2] = (ijk_min[2] + ijk_max[2])//2
-  m.set_parameters(orthoplanes_shown = (False, False, False),
-                   box_faces = False)
+  m.set_parameters(image_mode == 'full region')
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
   m.set_display_style('image')
         
@@ -553,14 +604,27 @@ def show_all_planes(m):
 def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
   cmd = ('volume #%s ' % m.id_string +
-         'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
+         'orthoplanes xyz positionPlanes %d,%d,%d style image region all' % p)
+  cmd += ' ; mousemode right "move planes"'
+  run(m.session, cmd)
+
+def show_slab(m):
+  d = m.data
+  spacing = min(d.step)
+  ijk_center = tuple(s/2 for s in d.size)
+  center = d.ijk_to_xyz(ijk_center)
+  offset = center[2]
+  plane_count = 10
+  cmd = ('volume #%s ' % m.id_string +
+         ' style image region all imageMode "tilted slab"' +
+         ' tiltedSlabAxis 0,0,1 tiltedSlabOffset %.4g tiltedSlabSpacing %.4g tiltedSlabPlaneCount %d' % (offset, spacing, plane_count))
+  cmd += ' ; mousemode right "rotate slab"'
   run(m.session, cmd)
 
 def toggle_box_faces(m):
-  s = not m.rendering_options.box_faces
-  m.set_parameters(box_faces = s,
-                   color_mode = 'l8' if s else 'auto8',
-                   orthoplanes_shown = (False, False, False))
+  mode = 'full region' if m.rendering_options.image_mode == 'box faces' else 'box faces'
+  m.set_parameters(image_mode = mode,
+                   color_mode = 'opaque8' if mode == 'box faces' else 'auto8')
   m.set_display_style('image')
 
 def mark_map_surface_center(m):
@@ -585,24 +649,24 @@ def enable_mark_center_mouse_mode(session, button = 'right'):
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.map import series
-    m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
+    from chimerax.map_series import PlaySeriesMouseMode
+    m.bind_mouse_mode(button, PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
-    from chimerax.mouse_modes import RotateSelectedMouseMode, TranslateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode('left', RotateSelectedMouseMode(m.session))
-    m.bind_mouse_mode('middle', TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('left', RotateSelectedModelsMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedMOdelsMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import TranslateSelectedMouseMode
+    from chimerax.mouse_modes import TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, TranslateSelectedModelsMouseMode(m.session))
 
 def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import RotateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, RotateSelectedModelsMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateMouseMode, TranslateMouseMode
@@ -644,14 +708,14 @@ def fit_molecule_in_map(session):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimerax.map import fit
-    move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
+    from chimerax.map_fit import locate_maximum
+    move_tf, stats = locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
     log.status(msg)
-    from chimerax.map.fit import fitmap
+    from chimerax.map_fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def fit_subtract(session):
@@ -676,10 +740,10 @@ def fit_subtract(session):
 
     v = maps[0]
     res = 3*min(v.data.step)
-    from chimerax.map.fit.fitmap import simulated_map
+    from chimerax.map_fit.fitmap import simulated_map
     mfit = [simulated_map(m.atoms, res, session) for m in molfit]
     msub = [simulated_map(m.atoms, res, session) for m in molsub]
-    from chimerax.map.fit.fitcmd import fit_sequence
+    from chimerax.map_fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
 
@@ -729,7 +793,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
@@ -765,11 +829,11 @@ def toggle_surface_transparency(session):
     mtrans = [m for m in shortcut_surfaces(session) if m.showing_transparent()]
     trans = 0 if mtrans else 50
     from chimerax.core.models import Surface
-    if_sel_models('transparency sel %d' % trans, model_class = Surface)(session)
+    run_on_models('transparency %%s %d' % trans, model_class = Surface)(session)
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -804,7 +868,7 @@ def toggle_shadows(session):
 
 def toggle_silhouettes(session):
     v = session.main_view
-    run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
+    run(session, 'graphics silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
@@ -989,7 +1053,7 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from chimerax.core.graphics import MotionBlur
+    from chimerax.graphics import MotionBlur
     mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
@@ -997,10 +1061,10 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
 
 def start_oculus(session):
@@ -1071,7 +1135,8 @@ def minimize_crosslinks(atoms, session):
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
-    cmd = 'save %s supersample 3' % unused_file_name(directory, basename, suffix)
+    path = unused_file_name(directory, basename, suffix)
+    cmd = 'save %s supersample 3' % path
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
@@ -1096,7 +1161,7 @@ def unused_file_name(directory, basename, suffix):
         if f.startswith(basename) and f.endswith(suffix):
             try:
                 nums.append(int(f[len(basename):len(f)-len(suffix)]))
-            except:
+            except Exception:
                 pass
     n = max(nums, default = 0) + 1
     filename = '%s%d%s' % (basename, n, suffix)
@@ -1139,3 +1204,14 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def run_provider(session, name):
+    # run shortcut chosen via bundle provider interface
+    from chimerax.core.errors import NotABug
+    try:
+        keyboard_shortcuts(session).try_shortcut(name)
+    except NotABug as err:
+        from html import escape
+        from chimerax.core.logger import error_text_format
+        session.logger.info(error_text_format % escape(str(err)), is_html=True)
+

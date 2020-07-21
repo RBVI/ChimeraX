@@ -53,8 +53,16 @@ Its main purpose is to allow multi-person
 although it can also be used without VR. 
 Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
-so that participants can see each other pointing at atoms in the scene.
-See also: <a href="vr.html"><b>vr</b></a>
+so that participants can see each other pointing at objects in the scene.
+</p><p>
+A <a href="#limitations">limitation</a> is that the hub server is run
+on the initiator's local host, which may not be reachable through participants'
+firewalls.
+The related command <a href="conference.html"><b>conference</b></a>
+(or <a href="../tools/conferencecall.html"><b>Conference Call</b></a> tool)
+is under development to allow using a publicly accessible address/port 
+to run the hub server instead, but is not yet working.
+See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
 The meeting is initiated with <b>meeting start</b>, which reports the 
 hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -157,42 +165,55 @@ the position is only displayed to others when it hovers over an atom.
 </p>
 <h3>Limitations and Potential Developments</h3>
 <p>
-  <b>Synchronizing changes.</b>
-  After the initial scene is shared not all changes made by one participant will
-  be propagated to other participants.  Changes that are propagated
-  include moving and scaling the displayed structures and (by <a href="#relayCommands">default</a>) 
-  executing <a href="../index.html#commands">commands</a>.
-  If a participant makes any unshared changes or
-  introduces data for which the input file is not directly accessible 
-  to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
-  command will not work for everyone), <b>meeting send</b> 
-  is needed to share the updated session.
-  This may be slow for large amounts of data.
-</p>
-
-<p>
-  <b>More than two participants.</b>
-  The meeting command has had very limited testing with more than 2 participants.
-  Multiple participants may cause errors or slow display updating.
-</p>
-
-<p>
-  <b>No audio chat support.</b>
-An audio connection is not provided,
-so it is necessary to set up a separate audio link for remote participants.
-</p>
-
-<p>
-  <b>Firewalls block connections.</b>
+<b>Firewalls block connections.</b>
 Most academic institutions have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
-A more usable design for shared ChimeraX sessions
-would have all participants connect to a hub machine.
+Whereas the <b>meeting</b> command only allows running the hub
+server on the initiator's local host (and is thus susceptible to being
+blocked by participants' firewalls), the
+<a href="conference.html"><b>conference</b></a> command
+is being developed to allow using a publicly accessible address/port instead.
+However,
+the <a href="conference.html"><b>conference</b></a> command is not yet working.
+<!--
 To allow this to scale to hundreds of instances running simultaneously,
 ChimeraX could start a cloud-based server on demand using a commercial service
 that accepts the connections and forwards changes to all participants. 
 However, this is a complex undertaking that would require 
 accounts and payment for commercial services.
+Currently, the
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a> is providing a hub server for use with the
+<a href="conference.html"><b>conference</b></a> command at:
+<b>cxconference.rbvi.ucsf.edu:443</b>
+-->
+</p>
+
+<p>
+<b>Synchronizing changes.</b>
+After the initial scene is shared not all changes made by one participant will
+be propagated to other participants. Changes that are propagated include 
+moving and scaling the displayed structures and
+(by <a href="#relayCommands">default</a>) 
+executing <a href="../index.html#commands">commands</a>.
+If a participant makes any unshared changes or
+introduces data for which the input file is not directly accessible 
+to others (<i>i.e.</i>, the same <a href="open.html"><b>open</b></a>
+command will not work for everyone), <b>meeting send</b> 
+is needed to share the updated session.
+This may be slow for large amounts of data.
+</p>
+
+<p>
+<b>More than two participants.</b>
+The meeting command has had very limited testing with more than two
+participants. Multiple participants may cause errors or slow display updating.
+</p>
+
+<p>
+<b>No audio chat support.</b>
+An audio connection is not provided,
+so it is necessary to set up a separate audio link for remote participants.
 </p>
 
 <p>
@@ -222,5 +243,5 @@ way to make both computers use the same orientation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+July 2020</address>
 </body></html>

@@ -117,7 +117,7 @@ class MRC_Data:
     for lbl in v['labels']:
       if lbl.startswith(b'Chimera rotation: '):
         ax,ay,az,angle = [float(x) for x in lbl.rstrip(b'\0').split()[2:]]
-        from chimerax.core.geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation((ax,ay,az), angle).matrix[:,:3]
     self.rotation = r
     
@@ -318,10 +318,10 @@ class MRC_Data:
     try:
       usyms = [parse_symop(s[80*i:80*(i+1)].decode('utf-8').replace(' ', ''))
                for i in range(nsym)]
-    except:
+    except Exception:
       try:
         msg = 'Unable to parse symmetry operators of %s\n%s\n' % (self.name, s)
-      except:
+      except Exception:
         # Garbage in sym operator data can't be interpreted as text.
         msg = 'Unable to parse symmetry operators of %s\n' % (self.name,)
       print(msg)
@@ -338,7 +338,7 @@ class MRC_Data:
     u2r = unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma)
 
     r2u = u2r.inverse()
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     syms = Places([u2r*u2u*r2u for u2u in usyms])
   
     return syms

@@ -18,11 +18,14 @@ stl: STL format support
 Read and write little-endian STL binary format.
 """
 
-from chimerax.core.state import State, CORE_STATE_VERSION
+# If STL_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STL_STATE_VERSION = 1
 
 from chimerax.core.models import Surface
 class STLModel(Surface):
     clip_cap = True
+    SESSION_SAVE_DRAWING = True
 
     @property
     def num_triangles(self):
@@ -33,7 +36,7 @@ class STLModel(Surface):
         """Return information about triangle ``n``."""
         return TriangleInfo(self, n)
 
-
+from chimerax.core.state import State
 class TriangleInfo(State):
     """Information about an STL triangle."""
 
@@ -60,7 +63,7 @@ class TriangleInfo(State):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
+        return {'stl model': self._stl, 'triangle index': self._index, 'version':STL_STATE_VERSION}
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -87,7 +90,6 @@ def read_stl(session, filename, name):
 
     # First read 80 byte comment line
     comment = input.read(80)
-    del comment
 
     # Next read uint32 triangle count.
     from numpy import fromstring, uint32, float32, array, uint8
@@ -97,6 +99,11 @@ def read_stl(session, filename, name):
     
     if input != filename:
         input.close()
+
+    if len(geom) < tc*50:
+        from chimerax.core.errors import UserError
+        raise UserError('STL file is truncated.  Header says it contains %d triangles, but only %d were in file.'
+                        % (tc, len(geom) // 50))
 
     from ._stl import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
@@ -168,7 +175,8 @@ def write_stl(session, filename, models):
             pos = d.get_scene_positions(displayed_only = True)
             if len(pos) > 0:
                 geom.append((va, ta, pos))
-    va, ta = combine_geometry(geom)
+    from chimerax.surface import combine_geometry_vtp
+    va, ta = combine_geometry_vtp(geom)
     from ._stl import stl_pack
     stl_geom = stl_pack(va, ta)
     
@@ -189,31 +197,6 @@ def write_stl(session, filename, models):
     # Write triangles.
     file.write(stl_geom)
     file.close()
-
-# -----------------------------------------------------------------------------
-#
-def combine_geometry(geom):
-    vc = tc = 0
-    for va, ta, pos in geom:
-        n, nv, nt = len(pos), len(va), len(ta)
-        vc += n*nv
-        tc += n*nt
-
-    from numpy import empty, float32, int32
-    varray = empty((vc,3), float32)
-    tarray = empty((tc,3), int32)
-
-    v = t = 0
-    for va, ta, pos in geom:
-        n, nv, nt = len(pos), len(va), len(ta)
-        for p in pos:
-            varray[v:v+nv,:] = va if p.is_identity() else p*va
-            tarray[t:t+nt,:] = ta
-            tarray[t:t+nt,:] += v
-            v += nv
-            t += nt
-    
-    return varray, tarray
 
 # -----------------------------------------------------------------------------
 #
@@ -242,7 +225,7 @@ def stl_pack(varray, tarray):
 def triangle_normal(v0,v1,v2):
 
     e10, e20 = v1 - v0, v2 - v0
-    from chimerax.core.geometry import normalize_vector, cross_product
+    from chimerax.geometry import normalize_vector, cross_product
     n = normalize_vector(cross_product(e10, e20))
     return n
 

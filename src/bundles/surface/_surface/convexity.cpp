@@ -84,7 +84,7 @@ extern "C" PyObject *vertex_convexity(PyObject *, PyObject *args, PyObject *keyw
       convexity(varray, ndt, smoothing_iterations, carray);
       size_t n = varray.size(0);
       double *ca = carray.values();
-      long cs0 = carray.stride(0);
+      int64_t cs0 = carray.stride(0);
       for (size_t i = 0 ; i < n ; ++i)
 	ca[i*cs0] = ca[vmap[i]*cs0];
       delete [] vmap;
@@ -104,9 +104,9 @@ static void convexity(const FArray &varray, const IArray &tarray, int smoothing_
   edge_triangles(tarray, et);
 
   float *va = varray.values();
-  long vs0 = varray.stride(0), vs1 = varray.stride(1);
+  int64_t vs0 = varray.stride(0), vs1 = varray.stride(1);
   double *ca = cvalues.values();
-  long cs0 = cvalues.stride(0);
+  int64_t cs0 = cvalues.stride(0);
   float e[3];
   // Cone angle is sphere area which equals n*pi - sum of bend angles of spherical polygon.
   for (auto eti = et.begin() ; eti != et.end() ; ++eti)
@@ -149,12 +149,12 @@ static double bend_angle(float *n1, float *n2, float *e)
 static FArray triangle_normals(const FArray &varray, const IArray &tarray)
 {
   float *va = varray.values();
-  long vs0 = varray.stride(0), vs1 = varray.stride(1);
+  int64_t vs0 = varray.stride(0), vs1 = varray.stride(1);
   int *ta = tarray.values();
-  long ts0 = tarray.stride(0), ts1 = tarray.stride(1);
+  int64_t ts0 = tarray.stride(0), ts1 = tarray.stride(1);
 
-  int nt = tarray.size(0);
-  int size[2] = {nt, 3};
+  int64_t nt = tarray.size(0);
+  int64_t size[2] = {nt, 3};
   FArray tn(2, size);
   float *tna = tn.values();
   for (int t = 0 ; t < nt ; ++t)
@@ -184,7 +184,7 @@ static FArray triangle_normals(const FArray &varray, const IArray &tarray)
 static void edge_triangles(const IArray &tarray, EdgeTriangles &et)
 {
   int *ta = tarray.values();
-  long ts0 = tarray.stride(0), ts1 = tarray.stride(1);
+  int64_t ts0 = tarray.stride(0), ts1 = tarray.stride(1);
   int nt = tarray.size(0);
   int v[3];
   for (int t = 0 ; t < nt ; ++t)
@@ -224,7 +224,7 @@ static void smooth_surface_values(const FArray &varray, EdgeTriangles &edges,
     }
 
   double *vals = values.values();
-  long vs0 = values.stride(0);
+  int64_t vs0 = values.stride(0);
   double *values2 = new double [nv];
   for (int r = 0 ; r < smoothing_iterations ; ++r)
     {
@@ -262,7 +262,7 @@ static int *unique_vertices(FArray varray)
   size_t nv = varray.size(0);
   int *vmap = new int [nv];
   float *va = varray.values();
-  long vs0 = varray.stride(0), vs1 = varray.stride(1);
+  int64_t vs0 = varray.stride(0), vs1 = varray.stride(1);
   Vertex v;
   for (size_t i = 0 ; i < nv ; ++i, va += vs0)
     {
@@ -286,20 +286,20 @@ static int *unique_vertices(FArray varray)
 static IArray nondegenerate_triangles(IArray tarray, int *vmap)
 {
   int *ta = tarray.values();
-  long ts0 = tarray.stride(0), ts1 = tarray.stride(1);
-  long nt = tarray.size(0);
+  int64_t ts0 = tarray.stride(0), ts1 = tarray.stride(1);
+  int64_t nt = tarray.size(0);
   int nnd = 0;
-  for (long t = 0 ; t < nt ; ++t, ta += ts0)
+  for (int64_t t = 0 ; t < nt ; ++t, ta += ts0)
     {
       int v0 = vmap[ta[0]], v1 = vmap[ta[ts1]], v2 = vmap[ta[2*ts1]];
       if (v0 != v1 && v0 != v2 && v1 != v2)
 	nnd += 1;
     }
-  int size[2] = {nnd, 3};
+  int64_t size[2] = {nnd, 3};
   IArray tnd(2, size);
   int *tnda = tnd.values();
   ta = tarray.values();
-  for (long t = 0 ; t < nt ; ++t, ta += ts0)
+  for (int64_t t = 0 ; t < nt ; ++t, ta += ts0)
     {
       int v0 = vmap[ta[0]], v1 = vmap[ta[ts1]], v2 = vmap[ta[2*ts1]];
       if (v0 != v1 && v0 != v2 && v1 != v2)

@@ -70,7 +70,7 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
         raise UserError("Must specify exactly 4 atoms for 'torsion' command; you specified %d"
             % len(atoms))
     a1, a2, a3, a4 = atoms
-    from chimerax.core.geometry import dihedral
+    from chimerax.geometry import dihedral
     cur_torsion = dihedral(*[a.scene_coord for a in atoms])
     if value is None:
         session.logger.info("Torsion angle for atoms %s %s %s %s is %g\N{DEGREE SIGN}"
@@ -83,17 +83,15 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
     else:
         raise UserError("To set torsion, middle two atoms (%s %s) must be bonded;they aren't"
             % (a2, a3.string(relative_to=a2)))
+    move_smaller = move == "small"
     mgr = session.bond_rotations
     from .manager import BondRotationError
     try:
-        rotater = mgr.new_rotation(bond, move_smaller_side=(move == "small"))
+        rotater = mgr.new_rotation(bond, move_smaller_side=move_smaller)
     except BondRotationError as e:
         raise UserError(str(e))
 
-    if bond.smaller_side == a2:
-        rotater.angle += value - cur_torsion
-    else:
-        rotater.angle -= value - cur_torsion
+    rotater.angle += value - cur_torsion
     mgr.delete_rotation(rotater)
 
 

@@ -70,8 +70,8 @@ def alignseries_command(cmdname, args):
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     align_series(**kw)
 
-from Midas import midas_text as mt
-mt.addCommand('alignseries', alignseries_command, None)
+#from Midas import midas_text as mt
+#mt.addCommand('alignseries', alignseries_command, None)
 
 # To align a second channel to match alignment of first
 # perframe "matrixcopy #$1 #$2" frames 150 range 0,149 range 150,299

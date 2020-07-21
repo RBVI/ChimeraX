@@ -93,17 +93,6 @@ class VolumeViewer(ToolInstance):
           self.message_label.update_idletasks()
           self.message_time = time()
 
-    def set_step_cb(self, step):
-        s = step
-        self.volume.new_region(ijk_step = (s,s,s), adjust_step = False)
-        self.step.setText('%d' % s)
-
-    def set_level_cb(self):
-        level = float(self.level.text())
-        v = self.volume
-        v.set_parameters(surface_levels = [level])
-        v.show()
-
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools
@@ -329,7 +318,7 @@ class VolumeViewer(ToolInstance):
         self.redisplay_in_progress = True
         try:
           self.show_using_dialog_settings(self.active_volume)
-        except:
+        except Exception:
           # Need this to avoid disabling automatic volume redisplay when
           # user cancels file read cancel or out of memory exception raised.
           self.redisplay_in_progress = False
@@ -614,8 +603,8 @@ class Volume_Dialog:
   #
   def rendering_options_from_gui(self):
 
-    from volume import Rendering_Options
-    ro = Rendering_Options()
+    from volume import RenderingOptions
+    ro = RenderingOptions()
     dop = self.display_options_panel
     dop.rendering_options_from_gui(ro)
     imop = self.image_options_panel
@@ -1689,6 +1678,9 @@ class Histogram_Pane:
     self.volume = None
     self.histogram_data = None
     self.histogram_size = None
+    self._surface_levels_changed = False
+    self._image_levels_changed = False
+    self._log_moved_marker = False
     self.update_timer = None
 
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
@@ -1758,7 +1750,7 @@ class Histogram_Pane:
     self.data_step = dsm = QPushButton(df)
     dsm.setStyleSheet(menu_button_style)
     dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    sm = QMenu()
+    sm = QMenu(df)
     for step in (1,2,4,8,16):
         sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
     dsm.setMenu(sm)
@@ -1781,8 +1773,8 @@ class Histogram_Pane:
     self.style = stm = QPushButton(df)
     stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    sm = QMenu()
-    for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
+    sm = QMenu(df)
+    for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab'):
         sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -1824,7 +1816,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region())
+      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region(log=True))
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1853,8 +1845,17 @@ class Histogram_Pane:
   def show_outline_box(self, show):
       v = self.volume
       if v:
-          v.rendering_options.show_outline_box = show
-          v.show()
+          if show != v.rendering_options.show_outline_box:
+              v.rendering_options.show_outline_box = show
+              v.show()
+              self._log_outline_box(v, show)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _log_outline_box(self, v, show):
+      cmd = 'volume %s showOutlineBox %s' % (v.atomspec, show)
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
       
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
@@ -1905,7 +1906,7 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def show_full_region(self, volume = None, show_volume = True):
+  def show_full_region(self, volume = None, show_volume = True, log = False):
 
       # Show all planes
       v = self.volume if volume is None else volume
@@ -1916,6 +1917,22 @@ class Histogram_Pane:
       if volume is None:
           for vc in v.other_channels():
               vc.new_region(ijk_min, ijk_max)
+      self._log_full_region(v)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_full_region(self, v):
+      cmd = 'volume %s %s' % (_channel_volumes_spec(v), self._region_and_step_options(v.region))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _region_and_step_options(self, region):
+      r0,r1,r2 = region
+      ropt = 'region %d,%d,%d,%d,%d,%d' % (tuple(r0) + tuple(r1))
+      sopt = ('step %d' % r2[0]) if r2[1] == r2[0] and r2[2] == r2[0] else ('step %d,%d,%d' % tuple(r2))
+      return ropt + ' ' + sopt
 
   # ---------------------------------------------------------------------------
   #
@@ -1971,13 +1988,14 @@ class Histogram_Pane:
   def _planes_slider_moved_cb(self, event):
       k = self._planes_slider.value()
       self._update_plane(k)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      if self._planes_slider_shown:
-          self._planes_spinbox.setValue(k)
-          self._planes_slider.setValue(k)
+      self._update_plane_slider(k)
+      
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -1989,8 +2007,23 @@ class Histogram_Pane:
       v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step)
-      # Make sure this plane is shown before we show another plane.
-      self.dialog.session.update_loop.update_graphics_now()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_plane_slider(self, k):
+      '''Update plane slider gui without invoking callbacks.'''
+      if not self._planes_slider_shown:
+          return
+
+      psb = self._planes_spinbox
+      psb.blockSignals(True)	# Don't send valueChanged signal
+      psb.setValue(k)
+      psb.blockSignals(False)
+
+      psl = self._planes_slider
+      psl.blockSignals(True)	# Don't send valueChanged signal
+      psl.setValue(k)
+      psl.blockSignals(False)
 
   # ---------------------------------------------------------------------------
   # x,y in canvas coordinates
@@ -2000,6 +2033,7 @@ class Histogram_Pane:
       if markers:
           markers.add_marker(x, y)
           self.dialog.redisplay_needed_cb()
+          self._log_level_add_or_delete(markers)
 
   # ---------------------------------------------------------------------------
   # x,y in canvas coordinates
@@ -2011,6 +2045,7 @@ class Histogram_Pane:
           if m:
               markers.delete_marker(m)
               self.dialog.redisplay_needed_cb()
+              self._log_level_add_or_delete(markers)
     
   # ---------------------------------------------------------------------------
   #
@@ -2076,6 +2111,8 @@ class Histogram_Pane:
 
     v = self.volume
     if v:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(v.session, 'close #%s' % v.id_string)
         self.dialog.session.models.close([v])
 
   # ---------------------------------------------------------------------------
@@ -2094,17 +2131,24 @@ class Histogram_Pane:
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
+            self.mouse_down = False
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
             QGraphicsView.resizeEvent(self, event)
         def mousePressEvent(self, event):
+            self.mouse_down = True
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
+            self._drag(event)
+        def _drag(self, event):
             # Only process mouse move once per graphics frame.
             for cb in self.drag_callbacks:
                 cb(event)
+        def mouseReleaseEvent(self, event):
+            self.mouse_down = False
+            self._drag(event)
 
     self.canvas = gv = Canvas(frame)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -2171,6 +2215,7 @@ class Histogram_Pane:
   #
   def moved_marker_cb(self, marker):
 
+    self._log_moved_marker = True
     self.select_data_cb()	# Causes redisplay using GUI settings
     self.set_threshold_and_color_widgets()
     # Redraw graphics before more mouse drag events occur.
@@ -2196,11 +2241,24 @@ class Histogram_Pane:
     v.new_region(ijk_step = ijk_step, adjust_step = False)
     for vc in v.other_channels():
         vc.new_region(ijk_step = ijk_step, adjust_step = False)
-        
+
+    self._log_step_command(v, ijk_step)
+    
     d = self.dialog
     if v != d.active_volume:
       d.display_volume_info(v)
 #    d.redisplay_needed_cb()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_step_command(self, v, ijk_step):
+      if ijk_step[1] == ijk_step[0] and ijk_step[2] == ijk_step[0]:
+          step = '%d' % ijk_step[0]
+      else:
+          step = '%d,%d,%d' % tuple(ijk_step)
+      cmd = 'volume %s step %s' % (_channel_volumes_spec(v), step)
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
 
   # ---------------------------------------------------------------------------
   #
@@ -2270,15 +2328,17 @@ class Histogram_Pane:
 
   def _get_style(self):
       style = self.style.text()
-      repr = 'image' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box') else style
+      repr = 'image' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab') else style
       return repr
   def _set_style(self, style):
       if style == 'image':
           v = self.volume
-          if v.showing_orthoplanes():
+          if v.showing_image('orthoplanes'):
               mstyle = 'orthoplanes'
-          elif v.showing_box_faces():
+          elif v.showing_image('box faces'):
               mstyle = 'box'
+          elif v.showing_image('tilted slab'):
+              mstyle = 'tilted slab'
           elif v.rendering_options.maximum_intensity_projection:
               mstyle = 'maximum'
           elif min(v.matrix_size()) == 1:
@@ -2303,9 +2363,13 @@ class Histogram_Pane:
       
       self.style.setText(style)
 
+      settings_before = self._record_settings(v)
       self.set_map_style(v, style)
+      settings_after = self._record_settings(v)
       for vc in v.other_channels():
           self.set_map_style(vc, style)
+
+      self._log_style_change(v, settings_before, settings_after)
 
   # ---------------------------------------------------------------------------
   #
@@ -2318,26 +2382,22 @@ class Histogram_Pane:
           if v.showing_one_plane:
               self.show_full_region(v, show_volume = False)
               
-      if style != 'box' and v.showing_box_faces():
-          v.set_parameters(box_faces = False,
-                           color_mode = 'auto8')
+      if style != 'maximum':
+          v.set_parameters(maximum_intensity_projection = False)
           
       if style in ('surface', 'mesh'):
           v.set_display_style(style)
       elif style == 'volume':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
-                           color_mode = 'auto8',
-                           maximum_intensity_projection = False)
+          v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
           v.set_display_style('image')
       elif style == 'maximum':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'full region',
                            color_mode = 'auto8',
                            maximum_intensity_projection = True)
           v.set_display_style('image')
       elif style == 'plane':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'full region',
                            color_mode = 'auto8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           if v is self.volume:
               self.show_plane_slider(True)
@@ -2347,24 +2407,31 @@ class Histogram_Pane:
               self.show_one_plane(v, show_volume = False)
       elif style == 'orthoplanes':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
-          v.set_parameters(orthoplanes_shown = (True, True, True),
+          v.set_parameters(image_mode = 'orthoplanes',
+                           orthoplanes_shown = (True, True, True),
                            orthoplane_positions = middle,
                            color_mode = 'opaque8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.set_display_style('image')
           v.expand_single_plane()
           self.enable_move_planes()
       elif style == 'box':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
-          v.set_parameters(box_faces = True,
-                           orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'box faces',
                            color_mode = 'opaque8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.set_display_style('image')
           v.expand_single_plane()
           self.enable_crop_box()
+      elif style == 'tilted slab':
+          v.set_parameters(image_mode = 'tilted slab',
+                           color_mode = 'auto8',
+                           show_outline_box = True)
+          v.set_display_style('image')
+          v.expand_single_plane()
+          from .tiltedslab import set_initial_tilted_slab
+          set_initial_tilted_slab(v)
+          self.enable_rotate_slab()
       
   # ---------------------------------------------------------------------------
   #
@@ -2380,6 +2447,65 @@ class Histogram_Pane:
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('crop volume'))
       
+  # ---------------------------------------------------------------------------
+  #
+  def enable_rotate_slab(self):
+      # Bind crop box mouse mode
+      mm = self.dialog.session.ui.mouse_modes
+      mm.bind_mouse_mode('right', [], mm.named_mode('rotate slab'))
+
+  # ---------------------------------------------------------------------------
+  #
+  def _record_settings(self, v):
+      s = {
+          'surface_shown': v.surface_shown,
+          'has_mesh': v.has_mesh,
+          'image_shown': v.image_shown,
+          'region': v.region,
+          'rendering_options': v.rendering_options.copy()
+          }
+      return s
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_style_change(self, v, settings_before, settings_after):
+      b,a = settings_before, settings_after
+      bro,aro = b['rendering_options'], a['rendering_options']
+      extra_opts = []
+      if a['surface_shown'] and not b['surface_shown'] or a['has_mesh'] != b['has_mesh']:
+          extra_opts.append('style mesh' if v.has_mesh else 'style surface')
+      if (a['image_shown'] or v.image_will_show) and not b['image_shown']:
+          extra_opts.append('style image')
+      if a['region'] != b['region']:
+          extra_opts.append(self._region_and_step_options(a['region']))
+      if aro.maximum_intensity_projection != bro.maximum_intensity_projection:
+          extra_opts.append('maximumIntensityProjection %s' % aro.maximum_intensity_projection)
+      if aro.color_mode != bro.color_mode:
+          extra_opts.append('colorMode %s' % aro.color_mode)
+      if aro.show_outline_box != bro.show_outline_box:
+          extra_opts.append('showOutlineBox %s' % aro.show_outline_box)
+      if aro.orthoplanes_shown != bro.orthoplanes_shown:
+          op = ''.join(a for s,a in zip(aro.orthoplanes_shown, ('x','y','z')) if s)
+          if op == '':
+              op = 'off'
+          extra_opts.append('orthoplanes %s' % op)
+      if aro.orthoplane_positions != bro.orthoplane_positions:
+          extra_opts.append('positionPlanes %d,%d,%d' % tuple(aro.orthoplane_positions))
+      if aro.image_mode != bro.image_mode:
+          extra_opts.append('imageMode "%s"' % aro.image_mode)
+      if tuple(aro.tilted_slab_axis) != tuple(bro.tilted_slab_axis):
+          extra_opts.append('tiltedSlabAxis %.4g,%.4g,%.4g' % tuple(aro.tilted_slab_axis))
+      if aro.tilted_slab_offset != bro.tilted_slab_offset:
+          extra_opts.append('tiltedSlabOffset %.4g' % aro.tilted_slab_offset)
+      if aro.tilted_slab_spacing != bro.tilted_slab_spacing:
+          extra_opts.append('tiltedSlabSpacing %.4g' % aro.tilted_slab_spacing)
+      if aro.tilted_slab_plane_count != bro.tilted_slab_plane_count:
+          extra_opts.append('tiltedSlabPlaneCount %d' % aro.tilted_slab_plane_count)
+      
+      cmd = 'volume %s %s' % (_channel_volumes_spec(v), ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+  
   # ---------------------------------------------------------------------------
   #
   def image_mode(self, image):
@@ -2487,6 +2613,7 @@ class Histogram_Pane:
 
     self.plot_surface_levels()
     self.plot_image_levels()
+
     v = self.volume
     if v.surface_shown or v.has_mesh:
         style = 'mesh' if v.has_mesh else 'surface'
@@ -2494,8 +2621,10 @@ class Histogram_Pane:
         style = 'image'
     else:
         style = 'surface'
+
     self.display_style = style
     self.image_mode(style == 'image')
+
     self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
@@ -2548,7 +2677,10 @@ class Histogram_Pane:
 
     from .histogram import Marker
     image_markers = [Marker(ts, c) for ts, c in zip(v.image_levels, v.image_colors)]
-    self.image_thresholds.set_markers(image_markers)
+    imt = self.image_thresholds
+    ro = v.rendering_options
+    imt.set_markers(image_markers, extend_left = ro.colormap_extend_left,
+                    extend_right = ro.colormap_extend_right)
     
   # ---------------------------------------------------------------------------
   #
@@ -2634,29 +2766,125 @@ class Histogram_Pane:
       return
 
     # Update surface levels and colors
+    surf_levels_changed = surf_colors_changed = False
     markers = self.surface_thresholds.markers
     for m in markers:
         level, color = m.xy[0], m.rgba
-        if not hasattr(m, 'volume_surface'):
+        if not hasattr(m, 'volume_surface') or m.volume_surface.deleted:
             m.volume_surface = v.add_surface(level, color)
+            surf_levels_changed = surf_colors_changed = True
         else:
             s = m.volume_surface
-            s.level = level
+            if level != s.level:
+                s.level = level
+                surf_levels_changed = True
             if tuple(s.rgba) != tuple(color):
                 s.rgba = color
                 s.vertex_colors = None
+                surf_colors_changed = True
 
     # Delete surfaces when marker has been deleted.
     msurfs = set(m.volume_surface for m in markers)
     dsurfs = [s for s in v.surfaces if s not in msurfs]
-    v.remove_surfaces(dsurfs)
+    if dsurfs:
+        v.remove_surfaces(dsurfs)
+        surf_levels_changed = surf_colors_changed = True
+
+    self._log_surface_change(v, surf_levels_changed, surf_colors_changed)
     
+    image_levels_changed = image_colors_changed = False
     markers = self.image_thresholds.markers
-    v.image_levels = [m.xy for m in markers]
-    v.image_colors = [m.rgba for m in markers]
+    ilevels = [m.xy for m in markers]
+    if ilevels != v.image_levels:
+        v.image_levels = ilevels
+        image_levels_changed = True
+
+    icolors = [m.rgba for m in markers]
+    from numpy import array_equal
+    if not array_equal(icolors, v.image_colors):
+        v.image_colors = icolors
+        image_colors_changed = True
+
+    self._log_image_change(v, image_levels_changed, image_colors_changed)
+        
     if show and v.shown():
         v.show()
 
+  # ---------------------------------------------------------------------------
+  #
+  def _log_surface_change(self, v, levels_changed, colors_changed):
+      if self._log_moved_marker and self.canvas.mouse_down:
+          # Only log command when mouse drag ends.
+          if levels_changed:
+              self._surface_levels_changed = True
+          return
+
+      self._log_moved_marker = False
+      if self._surface_levels_changed:
+          levels_changed = True
+          self._surface_levels_changed = False
+          
+      if not levels_changed and not colors_changed:
+          return
+
+      extra_opts = []
+      if len(v.surfaces) == 0:
+          extra_opts.append('close surface')
+      else:
+          if not v.surface_shown or v.image_shown:
+              extra_opts.append('change surface')
+          if levels_changed:
+              extra_opts.append(' '.join('level %.4g' % s.level for s in v.surfaces))
+          if colors_changed:
+              from chimerax.core.colors import color_name
+              extra_opts.append(' '.join('color %s' % color_name(s.color) for s in v.surfaces))
+      cmd = 'volume %s %s' % (v.atomspec, ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_image_change(self, v, levels_changed, colors_changed):
+      if self._log_moved_marker and self.canvas.mouse_down:
+          # Only log command when mouse drag ends.
+          if levels_changed:
+              self._image_levels_changed = True
+          return
+
+      self._log_moved_marker = False
+      if self._image_levels_changed:
+          levels_changed = True
+          self._image_levels_changed = False
+          
+      if not levels_changed and not colors_changed:
+          return
+
+      extra_opts = []
+      if len(v.image_levels) == 0:
+          extra_opts.append('close image')
+      else:
+          if not v.image_shown or v.surface_shown:
+              extra_opts.append('change image')
+          if levels_changed:
+              extra_opts.append(' '.join('level %.4g,%.4g' % (l,h) for l,h in v.image_levels))
+          if colors_changed:
+              from chimerax.core.colors import color_name, rgba_to_rgba8
+              extra_opts.append(' '.join('color %s' % color_name(rgba_to_rgba8(c)) for c in v.image_colors))
+      cmd = 'volume %s %s' % (v.atomspec, ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_level_add_or_delete(self, markers):
+      return
+      v = self.volume
+      if v:
+          if markers is self.surface_thresholds:
+              self._log_surface_change(v, True, True, on_mouse_release = False)
+          elif markers is self.image_thresholds:
+              self._log_image_change(v, True, True, on_mouse_release = False)
+          
   # ---------------------------------------------------------------------------
   # Delete widgets and references to other objects.
   #
@@ -2679,6 +2907,25 @@ class Histogram_Pane:
     self.scene = None
     self.histogram = None
 
+# -----------------------------------------------------------------------------
+#
+def _channel_volumes_spec(v):
+    vo = v.other_channels()
+    if len(vo) == 0:
+        spec = v.atomspec
+    else:
+        spec = _volumes_spec([v] + list(vo))
+    return spec
+
+# -----------------------------------------------------------------------------
+#
+def _volumes_spec(volumes):
+    from chimerax.core.commands import concise_model_spec
+    from chimerax.map import Volume
+    spec = concise_model_spec(volumes[0].session, volumes, relevant_types = Volume,
+                              allow_empty_spec = False)
+    return spec
+    
 # -----------------------------------------------------------------------------
 # User interface for adjusting brightness and transparency.
 #
@@ -3027,7 +3274,7 @@ class Plane_Panel(PopupPanel):
     # Set number of planes shown.
     a = self.axis_number()
     s = ijk_step[a]
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       d = 1
     else:
       d = max(1, ijk_max[a]/s - (ijk_min[a]+s-1)/s + 1)
@@ -3047,7 +3294,7 @@ class Plane_Panel(PopupPanel):
   def update_axis(self, ijk_min, ijk_max, ijk_step):
 
     v = active_volume()
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       axis_i = v.shown_orthoplanes()
       if self.axis_number() in dict(axis_i):
         return
@@ -3078,8 +3325,7 @@ class Plane_Panel(PopupPanel):
     if v is None or v.region is None:
       return
 
-    v.set_parameters(orthoplanes_shown = (False, False, False),
-                     box_faces = False, color_mode = 'auto8')
+    v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
     self.depth_var.set(1, invoke_callbacks = False)
     ijk_min, ijk_max, ijk_step = v.region
     a = self.axis_number()
@@ -3098,8 +3344,8 @@ class Plane_Panel(PopupPanel):
     if v is None or v.region is None:
       return
 
-    if v.showing_orthoplanes():
-      v.set_parameters(orthoplanes_shown = (False, False, False))
+    if v.showing_image('orthoplanes'):
+      v.set_parameters(orthoplanes = False)
       v.show()
     ijk_min, ijk_max, ijk_step = v.region
     a = self.axis_number()
@@ -3123,7 +3369,7 @@ class Plane_Panel(PopupPanel):
     self.set_scale_range(max, step)
     p = (ijk_min[a] + ijk_max[a]) / 2
     p -= p % step
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       oaxes = dict(v.shown_orthoplanes())
       p = dict(v.shown_orthoplanes()).get(a, p)
     self.plane.set_value(p, invoke_callbacks = False)
@@ -3151,6 +3397,7 @@ class Plane_Panel(PopupPanel):
   #
   def preload_cb(self, event = None):
 
+    # TODO: Not yet ported
     v = active_volume()
     if v:
       step = v.region[2]
@@ -3271,7 +3518,7 @@ class Orthoplane_Panel(PopupPanel):
 
     image = volume.image_shown
     ro = volume.rendering_options
-    box_faces = ro.box_faces
+    box_faces = (ro.image_mode == 'box faces')
     shown = ro.orthoplanes_shown
     msize = volume.matrix_size()
     for axis in (0,1,2):
@@ -3302,12 +3549,11 @@ class Orthoplane_Panel(PopupPanel):
   def show_planes(self, volume, show_xyz):
 
     self.box_faces.set(False, invoke_callbacks = False)
-    volume.set_parameters(box_faces = False)
+    volume.set_parameters(image_mode = 'orthoplanes')
 
     n = show_xyz.count(True)
     if n == 0:          # No planes
-      volume.set_parameters(orthoplanes_shown = (False, False, False),
-                            color_mode = 'auto8')
+      volume.set_parameters(image_mode = 'full region', color_mode = 'auto8')
       volume.expand_single_plane()
     elif n == 1:        # Single plane
       axis = show_xyz.index(True)
@@ -3320,13 +3566,12 @@ class Orthoplane_Panel(PopupPanel):
         if a != axis and msize[a] == 1:
           ijk_min[a] = 0
           ijk_max[a] = volume.data.size[a]-1
-      volume.set_parameters(orthoplanes_shown = (False, False, False),
-                            color_mode = 'auto8',
+      volume.set_parameters(image_mode = 'full region', color_mode = 'auto8',
                             show_outline_box = True)
       volume.new_region(ijk_min, ijk_max)
     else:               # 2 or 3 planes
       ro = volume.rendering_options
-      if ro.any_orthoplanes_shown():
+      if ro.image_mode == 'orthoplanes':
         center = ro.orthoplane_positions
       else:
         ijk_min, ijk_max = volume.region[:2]
@@ -3349,16 +3594,15 @@ class Orthoplane_Panel(PopupPanel):
 
     if self.box_faces.get():
       v.set_display_style('image')
-      v.set_parameters(box_faces = True,
+      v.set_parameters(image_mode = 'box faces',
                        color_mode = 'opaque8',
-                       show_outline_box = True,
-                       orthoplanes_shown = (False, False, False))
+                       show_outline_box = True)
       v.expand_single_plane()
       v.show()
       for a in (0,1,2):
         self.planes[a].set(False, invoke_callbacks = False)
     else:
-      v.set_parameters(box_faces = False, color_mode = 'auto8')
+      v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
       v.show()
 
 # -----------------------------------------------------------------------------
@@ -4725,7 +4969,7 @@ def integer_variable_value(v, default = None):
 
   try:
     return int(v.get())
-  except:
+  except Exception:
     return default
   
 # -----------------------------------------------------------------------------
@@ -4737,7 +4981,7 @@ def integer_variable_values(v, default = None):
   for field in fields:
     try:
       value = int(field)
-    except:
+    except Exception:
       value = default
     values.append(value)
   return values
@@ -4754,7 +4998,7 @@ def string_to_float(v, default = None):
 
   try:
     return float(v)
-  except:
+  except Exception:
     return default
     
 # -----------------------------------------------------------------------------

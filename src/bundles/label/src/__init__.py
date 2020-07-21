@@ -21,12 +21,20 @@ class _LabelBundle(BundleAPI):
             mouselabel.register_mousemode(session)
             movelabel.register_mousemode(session)
 
+        # Register preferences
+        from . import settings
+        settings.settings = settings._LabelSettings(session, "label")
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready',
+                lambda *args, ses=session: settings.register_settings_options(ses))
+
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import label2d, label3d
+        from . import label2d, label3d, arrows
         label2d.register_label_command(logger)
         label3d.register_label_command(logger)
+        arrows.register_arrow_command(logger)
 
     @staticmethod
     def get_class(class_name):
@@ -37,6 +45,12 @@ class _LabelBundle(BundleAPI):
         elif class_name == 'Labels':
             from .label2d import Labels
             return Labels
+        elif class_name == 'LabelModel':
+            from .label2d import LabelModel
+            return LabelModel
+        elif class_name == 'Arrows':
+            from .arrows import Arrows
+            return Arrows
         return None
 
 bundle_api = _LabelBundle()

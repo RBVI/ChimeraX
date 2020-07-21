@@ -65,14 +65,14 @@ class DistanceTool(ToolInstance):
         panel = SettingsPanel()
         from chimerax.dist_monitor.settings import settings
         from chimerax.core.commands import run
-        from chimerax.ui.widgets import hex_color_name
+        from chimerax.core.colors import color_name
         for opt_name, attr_name, opt_class, opt_class_kw, cmd_arg in [
                 ("Color", 'color', ColorOption, {}, 'color %s'),
                 ("Number of dashes", 'dashes', IntOption, {'min': 0}, 'dashes %d'),
                 ("Decimal places", 'decimal_places', IntOption, {'min': 0}, 'decimalPlaces %d'),
                 ("Radius", 'radius', FloatOption, {'min': 'positive', 'decimal_places': 3}, 'radius %g'),
                 ("Show \N{ANGSTROM SIGN} symbol", 'show_units', BooleanOption, {}, 'symbol %s')]:
-            converter = hex_color_name if opt_class == ColorOption else None
+            converter = color_name if opt_class == ColorOption else None
             panel.add_option(opt_class(opt_name, None,
                 lambda opt, run=run, converter=converter, ses=self.session, cmd_suffix=cmd_arg:
                 run(ses, "distance style " + cmd_suffix

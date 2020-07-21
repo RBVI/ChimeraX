@@ -54,7 +54,7 @@ class TemplateResidues:
         tres = self._residues
         if tres:
             return
-        from chimerax.atomic.mmcif import open_mmcif
+        from chimerax.mmcif import open_mmcif
         from os.path import join, dirname
         path = join(dirname(__file__), self._template_file)
         models, status = open_mmcif(session, path, log_info = False)
@@ -132,7 +132,7 @@ def _backbone_alignment(r, new_r, align_atom_names = ['N', 'C', 'CA']):
         log.status('Fewer than 3 backbone atoms (%s) in residue %s (%s), swapaa cannot align'
                    % (', '.join(align_atom_names), str(r), ', '.join(ra.keys())), log = True)
         return None, None
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     from numpy import array
     xyz = array([a2.scene_coord for a1,a2 in apairs])
     ref_xyz = array([a1.scene_coord for a1,a2 in apairs])

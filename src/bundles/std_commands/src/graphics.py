@@ -11,19 +11,85 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def graphics(session, atom_triangles = None, bond_triangles = None,
-             total_atom_triangles = None, total_bond_triangles = None,
-             ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
-             frame_rate = None, wait_for_vsync = None, color_depth = None):
-    '''
-    Set graphics rendering parameters.
+def graphics(session, bg_color=None, background_color=None):
+    '''Set graphics parameters.  With no options reports the current settings.
 
     Parameters
     ----------
-    atom_triangles : integer
+    background_color : Color
+        Set the graphics window background color.
+    bg_color : Color
+        Synonym for background_color.
+    '''
+    had_arg = False
+    view = session.main_view
+    bgc = (background_color or bg_color)
+    if bgc is not None:
+        had_arg = True
+        view.background_color = bgc.rgba
+        view.redraw_needed = True
+
+    if not had_arg:
+        msg = 'Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3])
+        session.logger.info(msg)
+
+def graphics_rate(session, report_frame_rate = None,
+                  max_frame_rate = None, wait_for_vsync = None):
+    '''
+    Set graphics rendering rate parameters.
+
+    Parameters
+    ----------
+    report_frame_rate : bool
+        Whether to show status message with average frame rate each second.
+    max_frame_rate : float
+        Set maximum graphics frame rate (default 60).
+    wait_for_vsync : bool
+        Whether drawing is synchronized to the display vertical refresh rate,
+        typically 60 Hz.  Disabling wait allows frame rates faster than vsync
+        but can exhibit image tearing.  Currently only supported on Windows.
+    '''
+
+    change = False
+    if max_frame_rate is not None:
+        msec = 1000.0 / max_frame_rate
+        session.update_loop.set_redraw_interval(msec)
+        change = True
+    if report_frame_rate is not None:
+        show_frame_rate(session, report_frame_rate)
+        change = True
+    if wait_for_vsync is not None:
+        r = session.main_view.render
+        r.make_current()
+        if not r.wait_for_vsync(wait_for_vsync):
+            session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
+        change = True
+
+    if not change and session.ui.is_gui:
+        msec = session.update_loop.redraw_interval
+        rate = 1000.0 / msec if msec > 0 else 1000.0
+        msg = ('Maximum framerate %.3g' % rate)
+        session.logger.status(msg, log = True)
+
+def graphics_quality(session, quality = None, subdivision = None,
+                     atom_triangles = None, bond_triangles = None,
+                     total_atom_triangles = None, total_bond_triangles = None,
+                     ribbon_divisions = None, ribbon_sides = None, color_depth = None):
+    '''
+    Set graphics quality parameters.
+
+    Parameters
+    ----------
+    quality : float
+        Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
+        Default value is 1, higher values give smoother spheres and cylinders by increasing
+        the maximum number of triangles rendered by the quality factor.
+    subdivision : float
+        Deprecated.  Same as quality.
+    atom_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
-    bond_triangles : integer
+    bond_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 12.
         If 0, then automatically compute number of triangles.
     total_atom_triangles : integer
@@ -32,37 +98,35 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
     total_bond_triangles : integer
         Target number of triangles for all shown bonds when automatically
         triangles per bond.
-    ribbon_divisions : integer
-        Number of segments to use for one residue of a ribbon, minimum 2 (default 20).
+    ribbon_divisions : integer or "default"
+        Number of segments to use for one residue of a ribbon, minimum 2.
+        If default then automatically determine value (20 for less than 20,000 residues).
     ribbon_sides : integer
         Number of segments to use around circumference of ribbon, minimum 4 (default 12).
-    max_frame_rate : float
-        Set maximum graphics frame rate (default 60).
-    frame_rate : bool
-        Whether to show status message with average frame rate each second.
-    wait_for_vsync : bool
-        Whether drawing is synchronized to the display vertical refresh rate,
-        typically 60 Hz.  Disabling wait allows frame rates faster than vsync
-        but can exhibit image tearing.  Currently only supported on Windows.
     color_depth : 8 or 16
         Number of bits per color channel (red, green, blue, alpha) in framebuffer.
         If 16 is specified then offscreen rendering is used since it is not easy or
         possible to switch on-screen framebuffer depth.
     '''
-    from chimerax.atomic.structure import structure_graphics_updater
+    from chimerax.atomic import structure_graphics_updater
     gu = structure_graphics_updater(session)
     lod = gu.level_of_detail
     change = False
     from chimerax.core.errors import UserError
+    if subdivision is not None:
+        quality = subdivision
+    if quality is not None:
+        gu.set_quality(quality)
+        change = True
     if atom_triangles is not None:
-        if atom_triangles != 0 and atom_triangles < 4:
+        if isinstance(atom_triangles, int) and atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
-        lod.atom_fixed_triangles = atom_triangles if atom_triangles > 0 else None
+        lod.atom_fixed_triangles =  None if atom_triangles in ('default', 0) else atom_triangles
         change = True
     if bond_triangles is not None:
-        if bond_triangles != 0 and bond_triangles < 12:
+        if isinstance(bond_triangles, int) and bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
-        lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
+        lod.bond_fixed_triangles = None if bond_triangles in ('default', 0) else bond_triangles
         change = True
     if total_atom_triangles is not None:
         lod.total_atom_triangles = total_atom_triangles
@@ -71,9 +135,10 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         lod.total_bond_triangles = total_bond_triangles
         change = True
     if ribbon_divisions is not None:
-        if ribbon_divisions < 2:
+        if isinstance(ribbon_divisions, int) and ribbon_divisions < 2:
             raise UserError('Minimum number of ribbon divisions is 2')
-        lod.ribbon_divisions = ribbon_divisions
+        div = None if ribbon_divisions in (0, 'default') else ribbon_divisions
+        gu.set_ribbon_divisions(div)
         change = True
     if ribbon_sides is not None:
         if ribbon_sides < 4:
@@ -81,21 +146,9 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         from .cartoon import cartoon_style
         cartoon_style(session, sides = 2*(ribbon_sides//2))
         change = True
-    if max_frame_rate is not None:
-        msec = 1000.0 / max_frame_rate
-        session.update_loop.set_redraw_interval(msec)
-        change = True
-    if frame_rate is not None:
-        show_frame_rate(session, frame_rate)
-        change = True
-    if wait_for_vsync is not None:
-        r = session.main_view.render
-        r.make_current()
-        if not r.wait_for_vsync(wait_for_vsync):
-            session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
-        change = True
     if color_depth is not None:
         if color_depth not in (8, 16):
+            from chimerax.core.errors import UserError
             raise UserError('Only color depths 8 or 16 allowed, got %d' % color_depth)
         v = session.main_view
         r = v.render
@@ -108,16 +161,83 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        if session.ui.is_gui:
-            msec = session.update_loop.redraw_interval
-            rate = 1000.0 / msec if msec > 0 else 1000.0
-        else:
-            rate = 0
-        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d, max framerate %.3g' %
-               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions,
-                rate))
+        msg = ('Quality %.3g, atom triangles %d, bond triangles %d' %
+               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na)))
+        div = [lod.ribbon_divisions(s.num_ribbon_residues) for s in gu.structures]
+        dmin, dmax = min(div), max(div)
+        drange = '%d-%d' % (dmin, dmax) if dmin < dmax else '%d' % dmin
+        msg += ', ribbon divisions %s' % drange
         session.logger.status(msg, log = True)
-    
+
+def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jump=None):
+    '''Set graphics silhouette parameters.  With no options reports the current settings.
+
+    Parameters
+    ----------
+    enable : bool
+        Enable or disable silhouette edges (black lines drawn at boundaries of objects
+        where the depth of the scene jumps.
+    width : float
+        Width in pixels of silhouette edges. Minimum width is 1 pixel.
+    color : Color
+        Color of silhouette edges.
+    depth_jump : float
+        Fraction of scene depth giving minimum depth change to draw a silhouette edge. Default 0.03.
+    '''
+    had_arg = False
+    view = session.main_view
+    silhouette = view.silhouette
+    if enable is not None:
+        had_arg = True
+        silhouette.enabled = enable
+        view.redraw_needed = True
+    if width is not None:
+        had_arg = True
+        silhouette.thickness = width
+        view.redraw_needed = True
+    if color is not None:
+        had_arg = True
+        silhouette.color = color.rgba
+        view.redraw_needed = True
+    if depth_jump is not None:
+        had_arg = True
+        silhouette.depth_jump = depth_jump
+        view.redraw_needed = True
+
+    if not had_arg:
+        msg = '\n'.join(('Current silhouette settings:',
+                         '  enabled: ' + str(silhouette.enabled),
+                         '  width: %.3g' % silhouette.thickness,
+                         '  color: %d,%d,%d' % tuple(100*r for r in silhouette.color[:3]),
+                         '  depth jump: %.3g' % silhouette.depth_jump))
+        session.logger.info(msg)
+
+
+def graphics_selection(session, color=None, width=None):
+    '''Set selection outline parameters.  With no options reports the current settings.
+
+    Parameters
+    ----------
+    color : Color
+        Color to use when outlining selected objects.  Initially green.
+    width : float
+        Width in pixels of the selection outline.  Initially 1 (or 2 for high DPI screens).
+    '''
+    had_arg = False
+    view = session.main_view
+    if color is not None:
+        had_arg = True
+        view.highlight_color = color.rgba
+    if width is not None:
+        had_arg = True
+        view.highlight_thickness = width
+
+    if not had_arg:
+        msg = '\n'.join(('Current selection outline settings:',
+                         '  color: %d,%d,%d' % tuple(100*r for r in view.highlight_color[:3]),
+                         '  width: %.3g' % view.highlight_thickness))
+        session.logger.info(msg)
+        
 def graphics_restart(session):
     '''
     Restart graphics rendering after it has been stopped due to an error.
@@ -129,22 +249,57 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, TopModelsArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg, Or, EnumOf
+
     desc = CmdDesc(
-        keyword=[('atom_triangles', IntArg),
-                 ('bond_triangles', IntArg),
-                 ('total_atom_triangles', IntArg),
-                 ('total_bond_triangles', IntArg),
-                 ('ribbon_divisions', IntArg),
-                 ('ribbon_sides', IntArg),
-                 ('max_frame_rate', FloatArg),
-                 ('frame_rate', BoolArg),
-                 ('wait_for_vsync', BoolArg),
-                 ('color_depth', IntArg),
-                 ],
-        synopsis='Set graphics rendering parameters'
+        keyword=[('background_color', ColorArg),
+                 ('bg_color', ColorArg)],
+        hidden = ['background_color'],	# Deprecated in favor of bg_color
+        synopsis="set graphics parameters"
     )
     register('graphics', desc, graphics, logger=logger)
+
+    desc = CmdDesc(
+        optional = [('report_frame_rate', BoolArg)],
+        keyword=[('max_frame_rate', FloatArg),
+                 ('wait_for_vsync', BoolArg),
+                 ],
+        synopsis='Set graphics rendering rate parameters'
+    )
+    register('graphics rate', desc, graphics_rate, logger=logger)
+
+    IntOrDefaultArg = Or(EnumOf(['default']), IntArg)
+    desc = CmdDesc(
+        optional = [('quality', FloatArg)],
+        keyword=[('subdivision', FloatArg),
+                 ('atom_triangles', IntOrDefaultArg),
+                 ('bond_triangles', IntOrDefaultArg),
+                 ('total_atom_triangles', IntArg),
+                 ('total_bond_triangles', IntArg),
+                 ('ribbon_divisions', IntOrDefaultArg),
+                 ('ribbon_sides', IntArg),
+                 ('color_depth', IntArg),
+                 ],
+        hidden = ['subdivision'], # Deprecated in favor of quality
+        synopsis='Set graphics quality parameters'
+    )
+    register('graphics quality', desc, graphics_quality, logger=logger)
+
+    desc = CmdDesc(
+        optional=[('enable', BoolArg)],
+        keyword=[('width', FloatArg),
+                 ('color', ColorArg),
+                 ('depth_jump', FloatArg)],
+        synopsis="set silhouette parameters"
+    )
+    register('graphics silhouettes', desc, graphics_silhouettes, logger=logger)
+
+    desc = CmdDesc(
+        keyword=[('width', FloatArg),
+                 ('color', ColorArg)],
+        synopsis="set selection outline parameters"
+    )
+    register('graphics selection', desc, graphics_selection, logger=logger)
 
     desc = CmdDesc(synopsis='Restart graphics drawing after an error')
     register('graphics restart', desc, graphics_restart, logger=logger)

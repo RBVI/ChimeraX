@@ -721,7 +721,14 @@ def log_version(logger):
     '''Show version information.'''
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
-    logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
+    from . import toolshed
+    t = toolshed.get_toolshed()
+    if t:
+        b = t.find_bundle('ChimeraX-Core', logger, True)
+        version = b.version
+    else:
+        version = ad.version
+    logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, version, buildinfo.date.split()[0]))
     logger.info(buildinfo.copyright)
 
 def probably_chimera1_session(exc_info):

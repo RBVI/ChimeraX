@@ -42,6 +42,7 @@ class Objects:
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
         from .orderedset import OrderedSet
         self._models = OrderedSet() if models is None else OrderedSet(models)
+        self._models.discard(None)
         self._model_instances = {}	# Maps Model to boolean array of length equal to number of instances
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]
@@ -168,6 +169,7 @@ class Objects:
                 if m not in self._models:
                     self._handlers[m].remove()
                     del self._handlers[m]
+
     @property
     def atoms(self):
         ca = self._cached_atoms
@@ -180,6 +182,14 @@ class Objects:
     @property
     def num_atoms(self):
         return sum(len(a) for a in self._atoms) if self._cached_atoms is None else len(self._cached_atoms)
+
+    @property
+    def residues(self):
+        return self.atoms.unique_residues
+
+    @property
+    def num_residues(self):
+        return len(self.residues)
 
     @property
     def bonds(self):
@@ -229,20 +239,11 @@ class Objects:
 
     def displayed(self):
         '''Return Objects containing only displayed atoms, bonds, pseudobonds and models.'''
-	# Displayed models
-        from .orderedset import OrderedSet
-        dmodels = OrderedSet(m for m in self.models if m.display and m.parents_displayed)
-        bonds, pbonds = self.bonds, self.pseudobonds
-        d = Objects(atoms = self.atoms.shown_atoms, bonds = bonds[bonds.displays],
-                    pseudobonds = pbonds[pbonds.displays], models = dmodels)
-        from numpy import logical_and
-        for m, minst in self.model_instances.items():
-            d.add_model_instances(m, logical_and(minst, m.display_positions))
-        return d
+        return _displayed_objects(self)
 
     def bounds(self):
         '''Bounds of objects including undisplayed ones in scene coordinates.'''
-        from .geometry import union_bounds, copies_bounding_box
+        from chimerax.geometry import union_bounds, copies_bounding_box
 
         # Model bounds excluding structures and pseudobond groups.
         from chimerax.atomic import Structure, PseudobondGroup
@@ -257,7 +258,92 @@ class Objects:
             bm.append(sb)
 
         # Atom bounds
-        bm.append(self.atoms.scene_bounds)
+        atoms = self.atoms
+        if len(atoms) > 0:
+            bm.append(atoms.scene_bounds)
 
+        # Bond bounds (Objects could have bonds but no atoms).
+        bonds = self.bonds
+        if len(bonds) > 0:
+            a1, a2 = bonds.atoms
+            bm.append(a1.scene_bounds)
+            bm.append(a2.scene_bounds)
+        
         b = union_bounds(bm)
         return b
+
+def _displayed_objects(objects):
+    o = objects
+    from .orderedset import OrderedSet
+    dmodels = OrderedSet(m for m in o.models if m.display and m.parents_displayed)
+    bonds, pbonds = o.bonds, o.pseudobonds
+    d = Objects(atoms = o.atoms.shown_atoms, bonds = bonds[bonds.displays],
+                pseudobonds = pbonds[pbonds.displays], models = dmodels)
+    from numpy import logical_and
+    for m, minst in o.model_instances.items():
+        d.add_model_instances(m, logical_and(minst, m.display_positions))
+    return d
+
+class AllObjects:
+    '''
+    Represent all objects in a session.
+    This is a more efficent than Objects, is read-only,
+    and only assembles atoms, bonds, pseudobonds, ...
+    when those attributes are used.
+    '''
+    
+    def __init__(self, session):
+        self._session = session
+
+    @property
+    def atoms(self):
+        from chimerax.atomic import all_atoms
+        return all_atoms(self._session)
+
+    @property
+    def num_atoms(self):
+        return len(self.atoms)
+    
+    @property
+    def residues(self):
+        from chimerax.atomic import all_residues
+        return all_residues(self._session)
+
+    @property
+    def num_residues(self):
+        return len(self.residues)
+
+    @property
+    def bonds(self):
+        from chimerax.atomic import all_bonds
+        return all_bonds(self._session)
+
+    @property
+    def num_bonds(self):
+        return len(self.bonds)
+
+    @property
+    def pseudobonds(self):
+        from chimerax.atomic import all_pseudobonds
+        return all_pseudobonds(self._session)
+
+    @property
+    def num_pseudobonds(self):
+        return len(self.pseudobonds)
+
+    @property
+    def models(self):
+        return self._session.models.list()
+
+    @property
+    def model_instances(self):
+        return {}
+
+    def empty(self):
+        return len(self.models) == 0
+
+    def displayed(self):
+        return _displayed_objects(self)
+        
+def all_objects(session):
+    return AllObjects(session)

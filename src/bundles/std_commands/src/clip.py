@@ -122,11 +122,11 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
             origin = plane_origin(view)
         plane_point = origin + offset * n
         if camera_normal is None or view is None:
-            from chimerax.core.graphics import SceneClipPlane
+            from chimerax.graphics import SceneClipPlane
             p = SceneClipPlane(name, n, plane_point)
         else:
             camera_plane_point = cpos.inverse() * plane_point
-            from chimerax.core.graphics import CameraClipPlane
+            from chimerax.graphics import CameraClipPlane
             p = CameraClipPlane(name, camera_normal, camera_plane_point, view)
         planes.add_plane(p)
     else:
@@ -165,13 +165,19 @@ def report_clip_info(viewer, log):
     if planes:
         b = viewer.drawing_bounds()
         c0 = b.center() if b else (0,0,0)
-        pinfo = ['%s %.5g' % (p.name,  -p.offset(c0) if p.name in ('far', 'back') else p.offset(c0))
-                 for p in planes]
-        msg = 'Using %d clip planes: %s' % (len(planes), ', '.join(pinfo))
+        pinfo = [_clip_plane_info(p, c0) for p in planes]
+        msg = 'Using %d clip planes:\n%s' % (len(planes), '\n'.join(pinfo))
     else:
         msg = 'Clipping is off'
     log.info(msg)
     log.status(msg)
+
+def _clip_plane_info(plane, center):
+    offset = -plane.offset(center) if plane.name in ('far', 'back') else plane.offset(center)
+    axis = '%.3f,%.3f,%.3f' % tuple(plane.normal)
+    point = '%.4g,%.4g,%.4g' % tuple(plane.plane_point)
+    info = '%s offset %.5g, axis %s, point %s)' % (plane.name,  offset, axis, point)
+    return info
 
 def warn_on_zero_spacing(session, near, far, front, back):
     p = session.main_view.clip_planes

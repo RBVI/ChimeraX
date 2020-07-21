@@ -15,7 +15,7 @@
  *   3. Redistributions must acknowledge that this software was
  *      originally developed by the UCSF Resource for Biocomputing,
  *      Visualization, and Informatics with support from the National
- *      Institute of General Medical Sciences, grant P41-GM103311.
+ *      Institutes of Health R01-GM129325.
  *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY
  *   EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE

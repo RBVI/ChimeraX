@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -14,10 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class _ColorGlobeAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, name, **kw):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import dres
-        return dres.read_directional_resolution(session, stream, name, **kw)
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class CGOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import dres
+                return dres.read_directional_resolution(session, data, file_name, **kw)
+        return CGOpenerInfo()
 
 bundle_api = _ColorGlobeAPI()

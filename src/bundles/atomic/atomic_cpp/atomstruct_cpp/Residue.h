@@ -72,13 +72,11 @@ private:
     char  _insertion_code;
     ChainID  _mmcif_chain_id;
     ResName  _name;
-    PolymerType  _polymer_type;
     int  _number;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
-    bool  _ribbon_selected = false;
     int  _ss_id;
     SSType _ss_type;
     Structure *  _structure;
@@ -103,8 +101,10 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
-      _name = name;
-      change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
+        if (name != _name) {
+            _name = name;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
+        }
     }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
@@ -119,12 +119,24 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
-    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
-    void  set_insertion_code(char ic) { _insertion_code = ic; }
+    void  set_chain_id(ChainID chain_id);
+    void  set_insertion_code(char insertion_code) {
+        if (insertion_code != _insertion_code) {
+            _insertion_code = insertion_code;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_INSERTION_CODE);
+        }
+    }
     void  set_is_helix(bool ih);
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
+    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
+    void  set_number(int number) {
+        if (number != _number) {
+            _number = number;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
+        }
+    }
     static void  set_templates_dir(const std::string&);
     int  ss_id() const;
     SSType  ss_type() const;
@@ -150,6 +162,7 @@ public:
     static std::set<ResName>  std_water_names;
     static std::map<ResName, std::map<AtomName, char>>  ideal_chirality; // populated by mmCIF CCDs
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
+    const std::vector<AtomName>*  ordered_min_backbone_atom_names() const;
     const std::set<AtomName>*  ribose_atom_names() const;
     const std::set<AtomName>*  side_connector_atom_names() const;
 
@@ -161,7 +174,7 @@ public:
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
-    bool  ribbon_selected() const { return _ribbon_selected; }
+    bool  selected() const;  // True if any atom selected
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
@@ -169,7 +182,6 @@ public:
     }
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
-    void  set_ribbon_selected(bool s);
     void  ribbon_clear_hide();
 
     const Rgba&  ring_color() const { return _ring_rgba; }
@@ -207,6 +219,17 @@ Residue::backbone_atom_names(BackboneExtent bbe) const
         if (bbe == BBE_MAX) return &na_max_backbone_names;
         return &na_min_backbone_names;
     }
+    return nullptr;
+}
+
+inline const std::vector<AtomName>*
+Residue::ordered_min_backbone_atom_names() const
+{
+    if (!structure()->_polymers_computed) structure()->polymers();
+    if (polymer_type() == PT_AMINO)
+        return &aa_min_ordered_backbone_names;
+    if (polymer_type() == PT_NUCLEIC)
+        return &na_min_ordered_backbone_names;
     return nullptr;
 }
 
@@ -296,7 +319,7 @@ Residue::set_ribbon_color(const Rgba& rgba) {
     if (rgba == _ribbon_rgba)
         return;
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_COLOR);
-    _structure->set_gc_ribbon();
+    _structure->set_gc_color();
     _ribbon_rgba = rgba;
 }
 
@@ -408,6 +431,14 @@ Residue::ribbon_clear_hide() {
         for (auto bond: atom->bonds())
             bond->set_hide(bond->hide() & ~Atom::HIDE_RIBBON);
     }
+}
+    
+inline bool
+Residue::selected() const {
+    for (auto atom: atoms())
+      if (atom->selected())
+	return true;
+    return false;
 }
 
 }  // namespace atomstruct

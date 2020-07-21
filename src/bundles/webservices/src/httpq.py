@@ -113,7 +113,7 @@ class HTTPQueueSlot:
         func, args = self.request_data
         try:
             func(*args)
-        except:
+        except Exception:
             def exception_reporting(ses, exc_info):
                 ses.logger.report_exception(preface="Error generating/processing HTTP request",
                     exc_info=exc_info)

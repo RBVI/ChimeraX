@@ -21,12 +21,14 @@
 #include <vector>
 #include "../imex.h"
 #include "../string_types.h"
+#include "../polymer.h"
 
 namespace tmpl {
 
 using atomstruct::AtomName;
 using atomstruct::AtomType;
 using atomstruct::ResName;
+using atomstruct::PolymerType;
 
 class Atom;
 class Molecule;
@@ -56,6 +58,8 @@ public:
     void    link(Atom *a) { _link = a; }
     const std::string    &description() const { return _description; }
     void    description(const std::string &d) { _description = d; }
+    PolymerType  polymer_type() const { return _polymer_type; }
+    void    polymer_type(PolymerType pt) { _polymer_type = pt; }
 
     // alternative to chief/link for mmCIF templates
     typedef std::vector<Atom *> AtomList;
@@ -74,6 +78,7 @@ private:
     std::string _description;
     AtomList    _link_atoms;
     bool        _has_metal;
+    PolymerType _polymer_type;
 };
 
 }  // namespace tmpl

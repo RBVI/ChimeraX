@@ -76,8 +76,6 @@ def view_objects(objects, v, clip, cofr, pad):
         raise UserError('No displayed objects specified.')
     v.view_all(b, pad = pad)
     c, r = b.center(), b.radius()
-    if cofr:
-        v.center_of_rotation = c
 
     cp = v.clip_planes
     if clip:
@@ -88,6 +86,10 @@ def view_objects(objects, v, clip, cofr, pad):
         cp.remove_plane('near')
         cp.remove_plane('far')
 
+    if cofr:
+        v.center_of_rotation_method = 'center of view'
+        if not clip:
+            v.set_rotation_depth(c)
 
 def view_name(session, name):
     """Save current view as given name.
@@ -98,6 +100,15 @@ def view_name(session, name):
       Name the current camera view and model positions so they can be shown
       later with the "show" option.
     """
+    reserved = ('clip', 'cofr', 'delete', 'frames', 'initial',
+                'list', 'matrix', 'orient', 'pad', 'position')
+    matches = [r for r in reserved if r.startswith(name)]
+    if matches:
+        from chimerax.core.errors import UserError
+        raise UserError('view name "%s" conflicts with "%s" view option.\n' % (name, matches[0]) +
+                        'Names cannot be option names or their abbreviations:\n %s'
+                        % ', '.join('"%s"' % n for n in reserved))
+    
     nv = _named_views(session).views
     v = session.main_view
     models = session.models.list()
@@ -213,7 +224,9 @@ class NamedView(State):
     ]
     def take_snapshot(self, session, flags):
         self.remove_deleted_models()
-        data = {'view attrs': {a:getattr(self,a) for a in self.save_attrs},
+        vattrs = {a:getattr(self,a) for a in self.save_attrs}
+        vattrs['positions'] = {m:p for m,p in self.positions.items() if m.SESSION_SAVE}
+        data = {'view attrs': vattrs,
                 'version': self.version}
         return data
 
@@ -261,8 +274,11 @@ class _InterpolateViews:
         self.view2 = v2
         self.frames = frames
         self.centers = _model_motion_centers(v1.positions, v2.positions)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(self.frame_cb, frames, session)
+        if frames == 1:
+            self.frame_cb(session, 0)
+        else:
+            from chimerax.core.commands import motion
+            motion.CallForNFrames(self.frame_cb, frames, session)
 
     def frame_cb(self, session, frame):
         v1, v2 = self.view1, self.view2
@@ -285,7 +301,7 @@ def _interpolate_camera(v1, v2, f, camera):
     c1, c2 = v1.camera, v2.camera
 
     # Interpolate camera position
-    from chimerax.core.geometry import interpolate_rotation, interpolate_points
+    from chimerax.geometry import interpolate_rotation, interpolate_points
     p1, p2 = c1['position'], c2['position']
     r = interpolate_rotation(p1, p2, f)
     la = interpolate_points(v1.look_at, v2.look_at, f)
@@ -295,7 +311,7 @@ def _interpolate_camera(v1, v2, f, camera):
     cla = interpolate_points(cl1, cl2, f)
     # Make camera translation so that camera coordinate look-at point
     # maps to scene coordinate look-at point r*cla + t = la.
-    from chimerax.core.geometry import translation
+    from chimerax.geometry import translation
     t = translation(la - r * cla)
     camera.position = t * r
 
@@ -334,7 +350,7 @@ def _interpolate_model_positions(v1, v2, centers, f):
 
 
 def _interpolated_positions(places1, places2, center, f):
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     pf = Places([p1.interpolate(p2, p1.inverse() * center, f)
                  for p1, p2 in zip(places1, places2)])
     return pf
@@ -355,7 +371,7 @@ def _model_motion_centers(mpos1, mpos2):
                 blist.append(b)
                 bounds[m] = blist
 
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     centers = {m: union_bounds(blist).center() for m, blist in bounds.items()}
     return centers
 
@@ -398,7 +414,7 @@ def view_initial(session, models=None):
 
     if models is None:
         models = session.models.list()
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     for m in models:
         m.position = Place()
 

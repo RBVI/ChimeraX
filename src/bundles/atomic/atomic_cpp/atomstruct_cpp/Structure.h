@@ -187,6 +187,8 @@ protected:
         _chains->emplace_back(chain);
         return chain;
     }
+    void  _per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
+    void  _per_structure_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
     void  remove_chain(Chain* chain) {
         _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
     }
@@ -217,6 +219,8 @@ public:
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
+        bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
     void  combine_sym_atoms();
@@ -237,6 +241,7 @@ public:
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
+    bool  idatm_valid() const { return _idatm_valid; }
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
@@ -257,6 +262,7 @@ public:
     size_t  num_bonds() const { return bonds().size(); }
     size_t  num_hyds() const { return _num_hyds; }
     size_t  num_residues() const { return residues().size(); }
+    size_t  num_ribbon_residues() const;
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
@@ -274,6 +280,7 @@ public:
         }
     const PositionMatrix&  position() const { return _position; }
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
+    void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
@@ -304,8 +311,10 @@ public:
         set_gc_shape(); _display = d;
         change_tracker()->add_modified(this, this, ChangeTracker::REASON_DISPLAY);
     }
+    void  set_idatm_valid(bool valid) { _idatm_valid = valid; }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
-        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE);
+        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
+        bool one_letter_names = false);
     void  set_position_matrix(double* pos);
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }

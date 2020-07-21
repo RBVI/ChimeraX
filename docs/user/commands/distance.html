@@ -26,48 +26,52 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: distance</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance</b>
-&nbsp;<a href="atomspec.html"><i>atom1</i></a>&nbsp;
-&nbsp;<a href="atomspec.html"><i>atom2</i></a>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="atomspec.html"><i>object1</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>object2</i></a>&nbsp;
+[&nbsp;<b>signed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#options"><i>display-options</i></a>&nbsp;]
 </h3>
+<a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>~distance</b>
+<br><b>distance delete</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br>&ndash; or &ndash;
+<br><b>~distance</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance style</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>setDefaults</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#options"><i>display-options</i></a>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance save</b> &nbsp;<i>distance-file</i>
 </h3>
 <p>
-The <b>distance</b> command
-(see also the <a href="../tools/distances.html"><b>Distances</b></a>
-graphical interface) adds a <b><i>distance monitor</i></b>
-<a href="../pseudobonds.html">pseudobond</a>
-between the specified atoms and labels it with the distance. The current 
-distance is also reported in the <a href="../tools/log.html"><b>Log</b></a>.
-Although subsequent changes in distance are not logged, 
-distance labels and the values shown in 
-the <a href="../tools/distances.html"><b>Distances</b></a> tool 
-will update automatically.
-For click-to-measure, see 
+The <b>distance</b> command measures distances between two objects,
+which can be:
+<ul>
+<li>two atoms 
+(where a <a href="../markers.html">marker</a> is equivalent to an atom)
+<li>an atom and a plane created previously with
+<a href="define.html#plane"><b>define plane</b></a>;
+the plane can be specified by model number
+<li>two planes
+</ul>
+<p>
+The current distance is reported in the 
+<a href="../tools/log.html"><b>Log</b></a>. For click-to-measure, see 
 <a href="../selection.html#context">selection context menus</a>
-and <a href="ui.html#mousemode"><b>mousemode</b></a>
+and the <b>distance</b> <a href="ui.html#mousemode">mouse mode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/distance.png"></a>.
+The <b>tape measure</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/tape.png"></a> 
+adds a different type of distance measurement 
+with <a href="../markers.html">markers and links</a>
+(<a href="../tools/mousemodes.html#tapemeasure">details...</a>).
 See also: 
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -80,12 +84,51 @@ See also:
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
+In the case of two atoms, 
+a <b><i>distance monitor</i></b> <a href="../pseudobonds.html">pseudobond</a>
+(see also the <a href="../tools/distances.html"><b>Distances</b></a>
+graphical interface) is added and labeled according to the
+<a href="#options">display options</a>.
+Although subsequent changes in distance are not logged, 
+distance labels on a distance monitor and the values shown in 
+the <a href="../tools/distances.html"><b>Distances</b></a> tool 
+will update automatically.
+</p><p>
+No distance monitors are added for distances to planes.
+The <b>signed</b> option (default <b>false</b>) allows reporting 
+positive and negative distances for objects on opposite sides of a plane.
+</p><p>
 Distance-monitor <a href="../pseudobonds.html">pseudobonds</a>
 are added to a model named <b>distances</b>, with properties matching
 the first monitor in the model unless different values are given.
 The defaults can be changed in the
 <a href="../preferences.html#distances"><b>Distances</b> preferences</a>
 or by using the <b>distance style</b> command with <b>setDefaults true</b>.
+</p><p>
+The <b>distance delete</b>
+or <b>~distance</b> command removes any distance monitors between
+specified atoms, or if nothing is specified, all distance monitors.
+</p><p>
+The <b>distance style</b> command changes the style of
+existing distance monitors, and <b>setDefaults true</b>
+(default <b>false</b>) indicates saving the specified values in the 
+<a href="../preferences.html#distances"><b>Distances</b> preferences</a>
+as defaults for subsequently created monitors.
+</p><p>
+The <b>distance save</b> command writes all current distance information
+(sorted from shortest to longest)
+to a text file with pathname <i>distance-file</i>.
+The word <a href="usageconventions.html#browse"><b>browse</b></a>
+can be substituted for <i>distance-file</i> to raise a file browser window
+for specifying the name and location interactively.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: distance</a>]
+</p>
+<h3>Display Options</h3>
+
 <blockquote>
 <a name="color"></a>
 <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
@@ -126,25 +169,8 @@ Whether to show the angstrom symbol &Aring; (initial default <b>true</b>);
 affects all distance monitors and is instantly saved as the default.
 Distances are assumed to be in &Aring;.
 </blockquote>
-<p>
-The <b>~distance</b> command removes any distance monitors between
-specified atoms, or if nothing is specified, all distance monitors.
-</p><p>
-The <b>distance style</b> command changes the style of
-existing distance monitors, and <b>setDefaults true</b>
-(default <b>false</b>) indicates saving the specified values in the 
-<a href="../preferences.html#distances"><b>Distances</b> preferences</a>
-as defaults for subsequently created monitors.
-</p><p>
-The <b>distance save</b> command writes all current distance information
-(sorted from shortest to longest)
-to a text file with pathname <i>distance-file</i>.
-The word <a href="usageconventions.html#browse"><b>browse</b></a>
-can be substituted for <i>distance-file</i> to raise a file browser window
-for specifying the name and location interactively.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+June 2020</address>
 </body></html>

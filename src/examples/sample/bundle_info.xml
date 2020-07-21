@@ -30,16 +30,36 @@ Implements command "sample count" to report number of atoms and bonds.
   <!-- Compiled modules in bundle
        CModule gives the name of the module
        Source files are listed in one or more SourceFile elements -->
-  <CModule name="_sample">
-    <SourceFile>src/_sample.cpp</SourceFile>
+
+<!-- Module created using raw Python C API for bindings -->
+  <CModule name="_sample_pyapi">
+    <SourceFile>src/_sample_pyapi.cpp</SourceFile>
     <Library>atomstruct</Library>
   </CModule>
+
+  <!-- Module created using PyBind11 for bindings -->
+    <CModule name="_sample_pybind11">
+      <SourceFile>src/_sample_pybind11.cpp</SourceFile>
+      <Library>atomstruct</Library>
+    </CModule>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.1"/>
     <Dependency name="ChimeraX-Atomic" version=">=0.1"/>
   </Dependencies>
+
+    <!-- Register XYZ format as one of the supported input file formats -->
+  <Providers manager="data formats">
+    <Provider name="XYZ" suffixes=".xyz" category="Molecular structure"
+		reference_url="https://en.wikipedia.org/wiki/XYZ_file_format"
+		encoding="utf-8" mime_types="chemical/x-xyz" />
+  </Providers>
+
+    <!-- Inform the "open command" manager that we can open XYZ files -->
+  <Providers manager="open command">
+    <Provider name="XYZ" />
+  </Providers>
 
   <!-- Python and ChimeraX-specific classifiers
        From https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -59,8 +79,6 @@ Implements command "sample count" to report number of atoms and bonds.
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

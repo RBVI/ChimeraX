@@ -21,6 +21,7 @@ from chimerax.core.commands import (
     CmdDesc, EnumOf, TupleOf, BoolArg, FloatArg, DynamicEnum, Or,
     EmptyArg, StringArg, ObjectsArg, all_objects
 )
+from chimerax.core.undo import UndoAction, UndoAggregateAction, UndoState
 
 AnchorArg = EnumOf(("base", "ribose"))
 Float4Arg = TupleOf(FloatArg, 4, name="lower left x, y, upper right x, y")
@@ -96,7 +97,7 @@ def nucleotides(session, representation, *,
                 thickness=default.THICKNESS, hide_atoms=default.HIDE,
                 shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=None,
                 show_stubs=default.SHOW_STUBS, base_only=default.BASE_ONLY,
-                stubs_only=default.STUBS_ONLY, objects=None):
+                stubs_only=default.STUBS_ONLY, objects=None, create_undo=True):
 
     if objects is None:
         objects = all_objects(session)
@@ -106,13 +107,25 @@ def nucleotides(session, representation, *,
     if len(residues) == 0:
         return
 
+    if create_undo:
+        undo_state = UndoState('nucleotides %s' % representation)
+        nucleic_undo = _NucleicUndo(
+                'nucleotides %s' % representation, session, representation, glycosidic,
+                show_orientation, thickness, hide_atoms, shape, dimensions, radius,
+                show_stubs, base_only, stubs_only, residues)
+        undo = UndoAggregateAction('nucleotides %s' % representation, [undo_state, nucleic_undo])
+
     if representation == 'atoms':
         # hide filled rings
+        if create_undo:
+            undo_state.add(residues, "ring_displays", residues.ring_displays, False)
         residues.ring_displays = False
         # reset nucleotide info
         NA.set_normal(residues)
     elif representation == 'fill':
         # show filled rings
+        if create_undo:
+            undo_state.add(residues, "ring_displays", residues.ring_displays, True)
         residues.ring_displays = True
         # set nucleotide info
         if show_orientation:
@@ -128,6 +141,8 @@ def nucleotides(session, representation, *,
             else:
                 dimensions = 'long'
         if representation == 'slab':
+            if create_undo:
+                undo_state.add(residues, "ring_displays", residues.ring_displays, True)
             residues.ring_displays = True
             show_gly = True
         else:
@@ -146,29 +161,68 @@ def nucleotides(session, representation, *,
         NA.set_ladder(residues, rung_radius=radius, stubs_only=stubs_only,
                       show_stubs=show_stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
 
+    if create_undo:
+        session.undo.register(undo)
+
+
+class _NucleicUndo(UndoAction):
+
+    def __init__(self, name, session, representation, glycosidic, show_orientation,
+                 thickness, hide_atoms, shape, dimensions, radius, show_stubs,
+                 base_only, stubs_only, residues, can_redo=True):
+        super().__init__(name, can_redo)
+        self.session = session
+        self.representation = representation
+        self.glycosidic = glycosidic
+        self.show_orientation = show_orientation
+        self.thickness = thickness
+        self.hide_atoms = hide_atoms
+        self.shape = shape
+        self.dimensions = dimensions
+        self.radius = radius
+        self.show_stubs = show_stubs
+        self.base_only = base_only
+        self.stubs_only = stubs_only
+        self.residues = residues
+        ns = NA._nucleotides(session)
+        self.before_state = ns.take_snapshot(session, NA.NucleotideState.SCENE)
+
+    def undo(self):
+        NA.NucleotideState.restore_snapshot(self.session, self.before_state)
+
+    def redo(self):
+        nucleotides(
+            self.session, self.representation,
+            glycosidic=self.glycosidic, show_orientation=self.show_orientation,
+            thickness=self.thickness, hide_atoms=self.hide_atoms,
+            shape=self.shape, dimensions=self.dimensions, radius=self.radius,
+            show_stubs=self.show_stubs, base_only=self.base_only,
+            stubs_only=self.stubs_only, objects=self.residues,
+            create_undo=False)
+
 
 def run_provider(session, name, display_name):
-    from chimerax.shortcuts.shortcuts import if_sel_atoms
+    from chimerax.shortcuts.shortcuts import run_on_atoms
     if display_name == "Plain":
-        if_sel_atoms("nucleotides sel atoms; style nucleic & sel stick",
-                          "nucleotides atoms; style nucleic stick")(session)
+        run_on_atoms("nucleotides %s atoms; style nucleic & %s stick",
+                     "nucleotides atoms; style nucleic stick")(session)
     elif display_name == "Filled":
-        if_sel_atoms("nucleotides sel fill; style nucleic & sel stick",
-                           "nucleotides fill; style nucleic stick")(session)
+        run_on_atoms("nucleotides %s fill; style nucleic & %s stick",
+                     "nucleotides fill; style nucleic stick")(session)
     elif display_name == "Slab":
-        if_sel_atoms("nucleotides sel slab; style nucleic & sel stick",
-                           "nucleotides slab; style nucleic stick")(session)
+        run_on_atoms("nucleotides %s slab; style nucleic & %s stick",
+                     "nucleotides slab; style nucleic stick")(session)
     elif display_name == "Tube/\nSlab":
-        if_sel_atoms("nucleotides sel tube/slab shape box")(session)
+        run_on_atoms("nucleotides %s tube/slab shape box")(session)
     elif display_name == "Tube/\nEllipsoid":
-        if_sel_atoms("nucleotides sel tube/slab shape ellipsoid")(session)
+        run_on_atoms("nucleotides %s tube/slab shape ellipsoid")(session)
     elif display_name == "Tube/\nMuffler":
-        if_sel_atoms("nucleotides sel tube/slab shape muffler")(session)
+        run_on_atoms("nucleotides %s tube/slab shape muffler")(session)
     elif display_name == "Ladder":
-        if_sel_atoms("nucleotides sel ladder")(session)
+        run_on_atoms("nucleotides %s ladder")(session)
     elif display_name == "Stubs":
-        if_sel_atoms("nucleotides sel stubs")(session)
+        run_on_atoms("nucleotides %s stubs")(session)
     elif display_name == "nucleotide":
-        if_sel_atoms("color sel bynuc")(session)
+        run_on_atoms("color %s bynuc")(session)
     else:
         session.logger.warning("Unknown nucleotides provider: %r" % name)

@@ -1,85 +1,100 @@
 # The "make" targets are:
-#    wheel: build a Python wheel in "dist" directory
-#    install: build wheel and install
-#    test: run ChimeraX with test commands
-#    debug: run ChimeraX with debugging flag set
-#    clean: remove files used in building wheel
+# 	wheel: build a Python wheel in "dist" directory.
+# 	app-install: build wheel (if needed) and install in ChimeraX.
+# 	test: run ChimeraX
+# 	debug: run ChimeraX with debugging flag set
+# 	clean: remove files used in building wheel
+# 	distclean: remove files used in building wheel and license file
 
-# Theoretically, you should only need to change
-# 1. the CHIMERAX_APP definition (or define in environment),
-# 2. the "devel build" and "devel install" commands in the
-#    "install" and "wheel" targets, (e.g., if you want to
-#    install into ChimeraX.app instead of for the current
-#    user, add "user false"), and
-# 3. the "generated_files" and "clean_generated_files" targets
-#    (e.g., if you need to generate files such as self-signed
-#    certificates or data files from template expansion)
+# These parameters may be changed as needed.
+
+# ChimeraX bundle names must start with "ChimeraX_"
+# to avoid clashes with package names in pypi.python.org.
+# When uploaded to the ChimeraX toolshed, the bundle
+# will be displayed without the ChimeraX- prefix.
+# BUNDLE_NAME = ChimeraX-Clipper
+# BUNDLE_VERSION = 0.9.4-dev1
+# ChimeraX bundles should only include packages
+# that install as chimerax.package_name.
+# General Python packages should be uploaded to
+# pypi.python.org rather than the ChimeraX toolshed.
+# PKG_NAME = chimerax.clipper
 
 # Define where ChimeraX is installed.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # CHIMERAX_APP is the ChimeraX install folder
-# We use ?= to let CHIMERAX_APP environment variable override
+
 ifeq ($(OS),CYGWIN_NT)
+ifndef RELEASE
 # Windows
-CHIMERAX_APP ?= "c:/Program Files/ChimeraX.app"
+CHIMERAX_APP = "/c/Program Files/ChimeraX_Daily"
+else
+CHIMERAX_APP = "/c/Program Files/ChimeraX"
 endif
+endif
+
 ifeq ($(OS),Darwin)
 # Mac
-CHIMERAX_APP ?= /Applications/ChimeraX.app
+ifndef RELEASE
+CHIMERAX_APP = /Applications/ChimeraX_Daily.app
+else
+CHIMERAX_APP = /Applications/ChimeraX.app
 endif
+endif
+
+ifeq ($(OS),Linux)
+ifndef RELEASE
+CHIMERAX_APP = /opt/UCSF/ChimeraX-daily
+else
+CHIMERAX_APP = /opt/UCSF/ChimeraX
+endif
+endif
+
+# ==================================================================
+# Theoretically, no changes are needed below this line
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(shell which chimerax)
-#CHIMERAX_EXE = $(shell which chimerax-daily)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
-RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 
-PYSRCS = $(wildcard src/*.py)
-CSRCS = $(wildcard src/*.cpp)
-SRCS = $(PYSRCS) $(CSRCS)
+BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
+SOURCE = src
+SRCS = $(SOURCE)/*.py #$(SOURCE)/*.cpp
 
-# If you want to install into ChimeraX.app, add "user false"
-# to the "devel build" and "devel install" commands.
-# By default, we install for just the current user.
 
-install:	bundle_info.xml $(SRCS) generated_files
-	$(RUN) "devel install . exit true"
+:DEFAULT_GOAL := wheel
 
-wheel:	bundle_info.xml $(SRCS) generated_files
-	$(RUN) "devel build . exit true"
+#
+# Actual make dependencies!
+#
+
+wheel $(WHEEL): bundle_info.xml $(SRCS)
+	$(CHIMERAX_EXE) --nogui --cmd "devel build . ; exit"
+
+install app-install:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "devel install . ; exit"
+
+uninstall app-uninstall:	$(WHEEL)
+	$(CHIMERAX_EXE) --nogui --cmd "toolshed uninstall $(BUNDLE_BASE_NAME) ; exit"
+
+docs:
+	$(CHIMERAX_EXE) -m sphinx docs/source src/docs/user
 
 test:
-	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
-	done
+	$(CHIMERAX_EXE)
 
 debug:
 	$(CHIMERAX_EXE) --debug
 
-clean:	clean_generated_files
-	if [ -x $(CHIMERAX_EXE) ]; then \
-		$(RUN) "devel clean . exit true" ; \
-	else \
-		rm -rf build dist *.egg-info src/__pycache__ ; \
-	fi
+clean:
+	$(CHIMERAX_EXE) --nogui --cmd "devel clean . ; exit"
 
-pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(SRCS))
-
-# Modify targets below if you have files that need
-# to be generated before building the bundle and/or
-# removed when cleaning the bundle
-
-generated_files:
-	# Generate files
-
-clean_generated_files:
-	# Remove generated files
+.PHONY: docs

@@ -18,5 +18,7 @@ def get_triggers(session=None):
     if _triggers is None:
         from chimerax.core.triggerset import TriggerSet
         _triggers = TriggerSet()
+        _triggers.add_trigger("atoms transformed")
         _triggers.add_trigger("changes")
+        _triggers.add_trigger("changes done")
     return _triggers

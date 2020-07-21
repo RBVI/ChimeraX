@@ -15,16 +15,58 @@
 # Handle Horos medical imaging 3d preset .plist files and color lookup table
 # .plist files for setting 3d image rendering colors, brightness and transparency.
 #
-    
+
+_appearances = {
+    'chest':
+    {
+        'image_levels':((-683, 0.0), (-634, 0.985), (-479, 1.0), (-426, 0.0),
+                        (34, 0.0), (38, 1.0), (86, 0.985), (97, 0.0),
+                        (321, 0.0), (343, 1.0), (3012, 1.0)),
+
+        'image_colors':((0.0, 0.605, 0.705, 1), (0.0, 0.605, 0.705, 1), (0.0, 0.605, 0.705, 1), (0.0, 0.605, 0.705, 1),
+                        (1.0, 0.764, 0.964, 1.0), (1.0, 0.764, 0.964, 1.0), (1.0, 0.764, 0.964, 1.0), (1.0, 0.764, 0.964, 1.0),
+                        (0.909, 1.0, 0.647, 1.0), (0.909, 1.0, 0.647, 1.0), (0.909, 1.0, 0.647, 1.0)),
+
+        'dim_transparent_voxels': True,
+    },
+    'airways':
+    {
+        'image_levels':((-700, 0), (-500, 0.98), (-300, 0)),
+        'image_colors':((0.0, 0.60, 0.70, 1), (0.0, 0.60, 0.70, 1), (0.0, 0.60, 0.70, 1)),
+        'dim_transparent_voxels': True,
+        'transparency_depth': 0.1,
+        'image_brightness_factor': 1,
+    },
+    'brain':
+    {
+        'image_levels':((-100, 0), (-50, 1), (-1, 0),
+                        (0, 0), (60, 1), (300,1), (301,0),
+                        (500, 0), (1500, 1)),
+        'image_colors':((1.0, 1.0, 0.5, 1), (1.0, 1.0, 0.5, 1), (1.0, 1.0, 0.5, 1),
+                        (1.0, 1.0, 1.0, 1), (1.0, 1.0, 1.0, 1), (1.0, 1.0, 1.0, 1), (1.0, 1.0, 1.0, 1),
+                        (0.8, 1.0, 1.0, 1), (0.8, 1.0, 1.0, 1)),
+        'dim_transparent_voxels': True,
+        'transparency_depth': 0.5,
+        'image_brightness_factor': 1,
+    },
+ }
+
 # -----------------------------------------------------------------------------
 #
-def appearance_names():
+def appearance_names(session):
+    nset = set(_appearances.keys())
     from os import listdir
-    names = [filename[:-6] for filename in listdir(preset_directory()) if filename.endswith('.plist')]
-    names.extend([filename[:-5] for filename in listdir(clut_directory()) if filename.endswith('.clut')])
-    names.append('initial')
-    return names
-     
+    nset.update([filename[:-6] for filename in listdir(preset_directory())
+                 if filename.endswith('.plist')])
+    nset.update([filename[:-5] for filename in listdir(clut_directory())
+                 if filename.endswith('.clut')])
+    ap = _custom_appearance_settings(session)
+    nset.update(ap.appearances.keys())
+    nset.add('initial')
+    names = list(nset)
+    names.sort()
+    return tuple(names)
+
 # -----------------------------------------------------------------------------
 #
 def preset_directory():
@@ -38,12 +80,70 @@ def clut_directory():
    from os.path import dirname, join
    dir = join(dirname(__file__), 'cluts')
    return dir
-     
+
+# -----------------------------------------------------------------------------
+#
+def add_appearance(name, v):
+    ap = _custom_appearance_settings(v.session)
+    # Must copy dictionary value or Settings object decides
+    # the value has not changed and does not save it.
+    appearances = dict(ap.appearances)
+    appearances[name] = _volume_appearance(v)
+    ap.appearances = appearances
+    ap.save()
+
+# -----------------------------------------------------------------------------
+#
+def _volume_appearance(v):
+    return {
+        'image_levels':v.image_levels,
+        'image_colors':v.image_colors,
+        'dim_transparent_voxels': v.rendering_options.dim_transparent_voxels,
+        'transparency_depth': v.transparency_depth,
+        'image_brightness_factor': v.image_brightness_factor,
+    }
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import DynamicEnum
+class AppearanceArg(DynamicEnum):
+    def __init__(self, session):
+        values = lambda s=session: appearance_names(s)
+        DynamicEnum.__init__(self, values, case_sensitive = True)
+
+# -----------------------------------------------------------------------------
+#
+def delete_appearance(name, session):
+    ap = _custom_appearance_settings(session)
+    if name in ap.appearances:
+        # Must copy dictionary value or Settings object decides
+        # the value has not changed and does not save it.
+        appearances = dict(ap.appearances)
+        del appearances[name]
+        ap.appearances = appearances
+        ap.save()
+
+# -----------------------------------------------------------------------------
+#
+def _custom_appearance_settings(session):
+    ap = getattr(session, '_volume_appearances', None)
+    if ap is None:
+        from chimerax.core.settings import Settings
+        class _VolumeAppearanceSettings(Settings):
+            EXPLICIT_SAVE = {'appearances': {}}
+        session._volume_appearances = ap = _VolumeAppearanceSettings(session, 'volume_appearance')
+    return ap
+
 # -----------------------------------------------------------------------------
 #
 def appearance_settings(name, v):
     if name == 'initial':
         return initial_settings(v)
+    cap = _custom_appearance_settings(v.session)
+    if name in cap.appearances:
+        return cap.appearances[name]
+    if name in _appearances:
+        return _appearances[name]
     from os.path import join
     hpath = join(preset_directory(), name + '.plist')
     from os.path import isfile

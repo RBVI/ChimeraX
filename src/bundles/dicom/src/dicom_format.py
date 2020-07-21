@@ -191,7 +191,7 @@ class Series:
     self._validate_time_series()
 
     files = self._file_info
-    files.sort()
+    self._sort_by_z_position(files)
 
     self.paths = tuple(fi.path for fi in files)
 
@@ -248,7 +248,7 @@ class Series:
     
     if self.multiframe and self._reverse_frames:
       zoffset = files[0]._num_frames * -self.z_plane_spacing()
-      zaxis = self._patient_axes()[2]
+      zaxis = self.plane_normal()
       pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
       
     return pos
@@ -260,13 +260,24 @@ class Series:
   def _patient_axes(self):
     files = self._file_info
     if files:
+      # TODO: Different files can have different orientations.
+      #   For example, study 02ef8f31ea86a45cfce6eb297c274598/series-000004.
+      #   These should probably be separated into different series.
       orient = files[0]._orientation
       if orient is not None:
         x_axis, y_axis = orient[0:3], orient[3:6]
-        from chimerax.core.geometry import cross_product
+        from chimerax.geometry import cross_product
         z_axis = cross_product(x_axis, y_axis)
         return (x_axis, y_axis, z_axis)
     return ((1,0,0),(0,1,0),(0,0,1))
+
+  def plane_normal(self):
+    return self._patient_axes()[2]
+
+  def _sort_by_z_position(self, series_files):
+    z_axis = self.plane_normal()
+    from chimerax.geometry import inner_product
+    series_files.sort(key = lambda sf: (sf._time, inner_product(sf._position, z_axis)))
     
   def pixel_spacing(self):
     pspacing = self.attributes.get('PixelSpacing')
@@ -308,7 +319,9 @@ class Series:
             dz = self._spacing(gfov)
         else:
           # TODO: Need to reverse order if z decrease as frame number increases
-          z = [fp[2] for fp in fpos]
+          z_axis = self.plane_normal()
+          from chimerax.geometry import inner_product
+          z = [inner_product(fp, z_axis) for fp in fpos]
           dz = self._spacing(z)
         if dz is not None and dz < 0:
           self._reverse_frames = True
@@ -317,7 +330,9 @@ class Series:
         dz = None
       else:
         nz = self.grid_size()[2]  # For time series just look at first time point.
-        z = [f._position[2] for f in files[:nz]]
+        z_axis = self.plane_normal()
+        from chimerax.geometry import inner_product
+        z = [inner_product(f._position, z_axis) for f in files[:nz]]
         dz = self._spacing(z)
       self._z_spacing = dz
       
@@ -329,8 +344,10 @@ class Series:
     tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
     if dzmax-dzmin > tolerance:
       if self._log:
-        from os.path import basename
+        from os.path import basename, dirname
         msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
+               'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) + 
+               'Directory %s\n' % dirname(self._file_info[0].path) +
                '\n'.join(['%s %s' % (basename(f.path), f._position) for f in self._file_info]))
         self._log.warning(msg)
     dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin

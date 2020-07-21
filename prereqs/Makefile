@@ -29,7 +29,7 @@ endif
 
 ifeq ($(OS),Darwin)
 NEED_EXPAT=1
-NEED_HDF5=1
+# NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_PKGCONFIG=1
 NEED_P7ZIP=1
@@ -41,8 +41,13 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
+ifndef CENTOS_DIST
 NEED_MESA=1
-NEED_HDF5=1
+endif
+ifeq ($(CENTOS_DIST),7)
+NEED_MESA=1
+endif
+# NEED_HDF5=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 NEED_EXPAT=1
@@ -62,8 +67,8 @@ endif
 ifdef NEED_FFMPEG
 SUBDIRS += ffmpeg
 ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
 NEED_LIBTOOL=1
+NEED_PKGCONFIG=1
 endif
 else
 ffmpeg.install:
@@ -143,10 +148,10 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex lineprofiler numpy openmm \
+SUBDIRS	+= cxservices gdcm imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
-	   scipy tables
+	   scipy
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -160,6 +165,12 @@ build-dirs:
 build-app-dirs:
 	$(MAKE) -C $(TOP) build-app-dirs
 
+ifdef NO_PREBUILT
+prebuilt:
+
+install-prebuilt:
+
+else
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
 PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
@@ -172,11 +183,7 @@ PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
-ifndef UBUNTU_DIST
-ifndef CENTOS_DIST
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
-endif
-endif
 
 install-prebuilt:
 	@echo 'Started prereq install at' `date` on `hostname`
@@ -187,15 +194,11 @@ install-prebuilt:
 		$(MAKE) install && $(MAKE) prebuilt; \
 	fi
 	@echo 'Finished prereq install at' `date`
+endif
 
 SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
 .PHONY: $(SUBDIR_APP_INSTALL)
 app-install: $(SUBDIR_APP_INSTALL)
-#	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
-#	cd $(APP_PYSITEDIR); \
-#		(echo "import sys; sys.__plen = len(sys.path)"; \
-#		ls -d ./*egg; \
-#		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
 
 $(SUBDIR_APP_INSTALL):
 	$(MAKE) -C $(subst .app-install,,$@) app-install
@@ -213,11 +216,16 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+cxservices.install: pips.install
+cxservices.app-install: pips.app-install
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
+gdcm.app-install: Python.app-install
+gdcm.install: Python.install
 hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
+libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install

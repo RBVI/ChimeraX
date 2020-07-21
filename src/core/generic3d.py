@@ -16,17 +16,20 @@ from .models import Model
 from . import toolshed
 CATEGORY = toolshed.GENERIC3D
 
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+GENERIC3D_STATE_VERSION = 1
+
 
 class Generic3DModel(Model):
     """Commom base class for generic 3D data"""
 
     def take_snapshot(self, session, flags):
-        from .state import CORE_STATE_VERSION
-        from .graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {
             'model state': Model.take_snapshot(self, session, flags),
             'drawing state': DrawingState().take_snapshot(self, session, flags),
-            'version': CORE_STATE_VERSION,
+            'version': GENERIC3D_STATE_VERSION,
         }
         return data
 
@@ -34,6 +37,18 @@ class Generic3DModel(Model):
     def restore_snapshot(cls, session, data):
         m = cls('name', session)
         m.set_state_from_snapshot(session, data['model state'])
-        from .graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         DrawingState().set_state_from_snapshot(m, session, data['drawing state'])
         return m
+
+    def geometry_bounds(self):
+        '''
+        Unlike Drawing.geometry_bounds, return union of bounds of non-Model children.
+        '''
+        from chimerax.geometry import union_bounds, copies_bounding_box
+        from .models import Model
+        bm = [copies_bounding_box(d.geometry_bounds(), d.get_scene_positions())
+              for d in self.child_drawings() if not isinstance(d, Model)]
+        bm.append(super().geometry_bounds())  # get bounds of any geometry in this drawing
+        b = union_bounds(bm)
+        return b

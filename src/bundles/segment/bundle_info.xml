@@ -16,16 +16,20 @@
   <CModule name="_segment">
     <SourceFile>_segment/bin.cpp</SourceFile>
     <SourceFile>_segment/pysegment.cpp</SourceFile>
+    <SourceFile>_segment/segment.cpp</SourceFile>
+    <SourceFile>_segment/segsurf.cpp</SourceFile>
     <Library>arrays</Library>
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: segmentation :: Volume data :: color and surface segmentations</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

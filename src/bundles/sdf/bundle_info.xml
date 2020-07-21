@@ -1,0 +1,38 @@
+<BundleInfo name="ChimeraX-SDF" version="2.0"
+	    package="chimerax.sdf"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>SDF file reader</Synopsis>
+  <Description>The ChimeraX-SDF bundle provides support for reading structures from MDL SDF/MOL files</Description>
+
+  <Categories>
+    <Category name="Atomic Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="MDL MOL/SDF" synopsis="MOL/SDF" nicknames="sdf"
+		category="Molecular structure"
+		reference_url="https://en.wikipedia.org/wiki/Chemical_table_file"
+		suffixes=".sdf,.mol" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="MDL MOL/SDF" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

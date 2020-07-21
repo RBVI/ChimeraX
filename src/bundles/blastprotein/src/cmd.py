@@ -16,13 +16,13 @@ from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf,
 from chimerax.seqalign import AlignSeqPairArg
 
 DBs = ["pdb", "nr"]
-Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
-            "PAM30", "PAM70"]
+Matrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
+            "PAM30", "PAM70", "PAM250", "IDENTITY"]
 
 # Use camel-case variable names for displaying keywords in help/usage
 
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", maxSeqs=500, log=None, *, toolId=None):
+                 matrix="BLOSUM62", maxSeqs=500, log=None, *, name=None):
     from .job import BlastProteinJob
     if isinstance(atoms, tuple):
         # Must be alignment:seq
@@ -53,12 +53,9 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             # Make sure we have a structure spec in there so
             # the atomspec remains unique when we load structures later
             chain_spec = str_chain.structure.atomspec + chain_spec
-    if toolId is None:
-        tool = None
-    else:
-        tool = session.tools.find_by_id(toolId)
     BlastProteinJob(session, chain.ungapped(), chain_spec,
-                    database, cutoff, matrix, maxSeqs, log, tool)
+                    database=database, cutoff=cutoff, matrix=matrix,
+                    max_seqs=maxSeqs, log=log, tool_inst_name=name)
 blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                                    AlignSeqPairArg))],
                         keyword=[("database", EnumOf(DBs)),
@@ -66,9 +63,17 @@ blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                  ("matrix", EnumOf(Matrices)),
                                  ("maxSeqs", IntArg),
                                  ("log", BoolArg),
-                                 ("toolId", IntArg),
+                                 ("name", StringArg),
                                  ],
                         synopsis="Search PDB/NR using BLAST")
+
+
+def blastprotein_mav(session, name=None, selected=True):
+    from . import tool
+    tool.find_match(name).show_mav_cmd(selected)
+blastprotein_mav_desc = CmdDesc(optional=[("name", StringArg)],
+                                keyword=[("selected", BoolArg)])
+
 
 def ccd(session, name):
     from .job import CCDJob

@@ -14,13 +14,27 @@
 from chimerax.core.toolshed import BundleAPI
 
 
-class _MyAPI(BundleAPI):
+class _VTKBundleAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import vtk
-        return vtk.read_vtk(session, stream, file_name)
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class VtkInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import vtk
+                    return vtk.read_vtk(session, data, file_name)
+        else:
+            from chimerax.save_command import SaverInfo
+            class VtkInfo(SaverInfo):
+                def save(self, session, path, *, models=None, **kw):
+                    from .export_vtk import write_scene_as_vtk
+                    write_scene_as_vtk(session, path, models)
 
-bundle_api = _MyAPI()
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import ModelsArg
+                    return { 'models': ModelsArg }
+        return VtkInfo()
+
+bundle_api = _VTKBundleAPI()

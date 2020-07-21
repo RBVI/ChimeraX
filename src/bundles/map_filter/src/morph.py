@@ -64,11 +64,11 @@ class Interpolated_Map:
     if self.adjust_thresholds:
       self.record_threshold_ranks(v)
 
-    f1, f2, v1, v2 = self.coefficients(f)
+    f1, f2, sf1, sf2, v1, v2 = self.coefficients(f)
     if v.data is None or v1.data is None or v2.data is None:
       return False
 
-    linear_combination(f1, v1, f2, v2, v, self.subregion, self.step)
+    linear_combination(sf1, v1, sf2, v2, v, self.subregion, self.step)
     self.f = f
 
     if self.adjust_thresholds:
@@ -94,10 +94,10 @@ class Interpolated_Map:
       f2 = (f-f0)*(n-1)
       f1 = 1-f2
     sf = self.scale_factors
-    f1 *= sf[i0]
-    f2 *= sf[i0+1]
+    sf1 = f1 * sf[i0]
+    sf2 = f2 * sf[i0+1]
 
-    return f1, f2, vlist[i0], vlist[i0+1]
+    return f1, f2, sf1, sf2, vlist[i0], vlist[i0+1]
   
   # ---------------------------------------------------------------------------
   #
@@ -233,7 +233,7 @@ def linear_combination(f1, v1, f2, v2, v, subregion, step):
       m1.dtype == m.dtype and m2.dtype == m.dtype):
     # Optimize calculation of linear combination of matrices.
     # C++ routine is 7x faster (.1 vs .7 sec) than numpy on 256^3 matrix.
-    from .. import linear_combination
+    from chimerax.map import linear_combination
     linear_combination(f1, m1, f2, m2, m)
   else:
     m[:,:,:] = f1*m1[:,:,:] + f2*m2[:,:,:]
@@ -246,13 +246,13 @@ def interpolate_colors(f1, v1, f2, v2, v):
 
   nc = len(v.surfaces)
   if len(v1.surfaces) == nc and len(v2.surfaces) == nc:
-    from chimerax.core.geometry import linear_combination
+    from chimerax.geometry import linear_combination
     for s, s1, s2 in zip(v.surfaces, v1.surfaces, v2.surfaces):
       s.rgba = linear_combination(f1, s1.rgba, f2, s2.rgba)
 
   nc = len(v.image_colors)
   if len(v1.image_colors) == nc and len(v2.image_colors) == nc:
-    from chimerax.core.geometry import linear_combination
+    from chimerax.geometry import linear_combination
     scolors = [linear_combination(f1, v1.image_colors[c], f2, v2.image_colors[c])
                for c in range(nc)]
     v.set_parameters(image_colors = scolors)
@@ -274,3 +274,5 @@ def morph_maps(volumes, play_steps, play_start, play_step, play_direction,
     im.play(play_start, fmin, fmax, play_step, None, play_direction, play_steps)
   else:
     im.interpolate(play_start)
+
+  return im

@@ -24,79 +24,148 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: graphics</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>graphics</b> 
-[&nbsp;<b>atomTriangles</b>&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
-[&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
+<p>
+The <b>graphics</b> command sets graphical rendering parameters,
+with additional options detailed below:
+</p>
+<ul>
+<li><a href="#bgColor"><b>graphics bgColor</b></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/whitebg.png"></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/graybg.png"></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
+&ndash; set background color
+<li><a href="#driver"><b>graphics driver</b></a>
+&ndash; report graphics driver
+<li><a href="#quality"><b>graphics quality</b></a>
+&ndash; set/report triangulation fineness
+<li><a href="#rate"><b>graphics rate</b></a>
+&ndash; set/report frame rate
+<li><a href="#restart"><b>graphics restart</b></a>
+<li><a href="#selection"><b>graphics selection</b></a>
+&ndash; set/report <a href="../selection.html">selection</a> outline parameters
+<li><a href="#silhouettes"><b>graphics silhouettes</b></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+&ndash; set/report border outline parameters
+<li><a href="#triangles"><b>graphics triangles</b></a>
+&ndash; report total numbers of triangles
+</ul>
+<p>
+Given without options, <b>graphics</b> reports the 
+current background color
+in the <a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="set.html"><b>set</b></a>, 
+<a href="preset.html"><b>preset</b></a>, 
+<a href="../tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="../images.html">making images</a>
+</p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="bgColor"></a>
+<b>graphics bgColor</b>
+&nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<blockquote>
+Set background color.
+Any transparency in the color is ignored; however, images can be saved
+with a (completely) transparent background using the
+<a href="save.html#image"><b>save</b></a> command option
+<b>transparentBackground true</b>.
+Background color can also be changed with
+<a href="set.html#bgColor"><b>set bgColor</b></a>.
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/whitebg.png"></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/graybg.png"></a>
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="driver"></a>
+<b>graphics driver</b>
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Report system graphics (OpenGL) information to the
+<a href="../tools/log.html"><b>Log</b></a>
+in terse (default) or verbose fashion.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="quality"></a>
+<b>graphics quality</b>
+[&nbsp;<i>quality</i>&nbsp;]
+[&nbsp;<b>atomTriangles</b>&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+[&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>totalAtomTriangles</b>&nbsp;&nbsp;<i>max<sub>a</sub></i>&nbsp;]
 [&nbsp;<b>totalBondTriangles</b>&nbsp;&nbsp;<i>max<sub>b</sub></i>&nbsp;]
-[&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;]
+[&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>ribbonSides</b>&nbsp;&nbsp;<i>sides</i>&nbsp;]
-[&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>frameRate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>waitForVsync</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>colorDepth</b>&nbsp;&nbsp;8&nbsp;|&nbsp;16&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>graphics</b> &nbsp;<b>driver</b> 
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>graphics</b> &nbsp;<b>restart</b> 
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>graphics</b> &nbsp;<b>triangles</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-</h3>
-<p>
-The <b>graphics</b> command sets graphical rendering parameters
-and allows detailed control over object triangulation.
-Normally, the fineness of atom and bond triangulation is adjusted automatically 
-depending on the display contents (<i>e.g.</i>, the number of atoms displayed),
+<blockquote>
+Control triangulation fineness and bits per color. 
+Higher numbers of atom and bond triangles increase the smoothness of 
+<a href="style.html">atomic displays</a>,
+whereas higher numbers of ribbon divisions and sides increase the smoothness
+of <a href="cartoon.html">ribbons</a> (cartoons).
+The tradeoff for smoother displays is potentially 
+slower rendering of very large structures.
+</p><p>
+By default, triangulation fineness is adjusted automatically depending 
+on how many atoms and bonds are displayed,
 within the ranges of 10-2000 triangles per atom and 24-160 per bond,
 up to maximum totals for atoms and bonds set with
 <b>totalAtomTriangles</b> and <b>totalBondTriangles</b>, respectively
 (initial default five million each, <b>5000000</b>).
-Automatic adjustment can be tuned in either direction with
-<a href="set.html#subdivision"><b>set subdivision</b></a>,
-and by default, <a href="device.html#vr"><b>vr</b></a>
-temporarily lowers the limits on total triangles for faster rendering. 
-See also: <a href="cartoon.html#style"><b>cartoon style</b></a>
+The <a href="device.html#vr"><b>vr</b></a> command temporarily lowers
+these limits on total triangles for faster rendering. 
+Ribbon divisions per residue along the path of the ribbon are 
+automatically set per structure within the range 2-20,
+using 20 for structures with &lt;20,000 residues.
+(Ribbon sides are not adjusted automatically.)
 </p><p>
-As an alternative to automatic adjustment,
-the <b>graphics</b> command allows using fixed numbers of triangles
-per atom and bond:
+Automatic adjustment can be tuned in either direction by changing the
+<i>quality</i> value, a scale factor applied to the individual parameters
+(initial default <b>1</b>).
+For example, a <i>quality</i> setting of 2 gives twice as many
+atom triangles as <i>quality</i> 1, providing the total number
+does not exceed the limit.
+The <i>quality</i> can also be controlled with the command
+<a href="set.html#subdivision"><b>set subdivision</b></a>.
+</p><p>
+Fixed values can be specified with the individual options:
 </p>
 <ul>
-<li><b>atomTriangles</b> <i>N<sub>a</sub></i> - triangles per atom
-(minimum 4, except that 0 specifies going back to automatic adjustment)
-<li><b>bondTriangles</b> <i>N<sub>b</sub></i> - triangles per bond
-(minimum 12, except that 0 specifies going back to automatic adjustment)
-<li><b>ribbonDivisions</b> <i>N<sub>d</sub></i> - divisions per residue 
-lengthwise along the cartoon (initial default <b>20</b>, minimum 2)
+<li><b>atomTriangles</b> <i>N<sub>a</sub></i> &ndash; triangles per atom
+(minimum 4; specifying 0 or <b>default</b> returns to automatic adjustment)
+<li><b>bondTriangles</b> <i>N<sub>b</sub></i> &ndash; triangles per bond
+(minimum 12; specifying 0 or <b>default</b> returns to automatic adjustment)
+<li><b>ribbonDivisions</b> <i>N<sub>d</sub></i> &ndash; divisions per residue 
+lengthwise along the cartoon (initial default <b>20</b>, minimum 2;
+specifying <b>default</b> returns to automatic adjustment)
 <li><b>ribbonSides</b> <i>N<sub>s</sub></i>
-- number of sides used to approximate an oval or round cartoon cross-section
-(initial default <b>12</b>, minimum 4)
+&ndash; number of sides used to approximate an oval or round 
+cartoon cross-section (initial default <b>12</b>, minimum 4; not adjusted
+automatically)
 </ul>
 <p>
-The <b>maxFrameRate</b> option sets the target
-<a href="../movies.html#framerate">frame rate</a> in ChimeraX
-to <i>N<sub>f</sub></i>&nbsp; frames per second (initial default <b>60</b>).
-The actual redraw rate may be lower than the target, depending on the 
-rendering speed of the computer and the complexity of the scene.
+Specifying a <i>quality</i> value returns to the automatic adjustment 
+of atom triangles, bond triangles, and ribbon divisions.
+Fixed values can be specified subsequently, or even in the same command.
 </p><p>
-The <b>frameRate</b> option indicates whether to report the average frame
-rate each second in the <a href="../window.html">status line</a>
-(initial default <b>false</b>).
+Given without options, <b>graphics quality</b> reports the current settings
+for quality, atom triangles, bond triangles, and ribbon divisions
+in the <a href="../tools/log.html"><b>Log</b></a>.
+Total numbers of triangles per model 
+can be reported with <a href="#triangles"><b>graphics triangles</b></a>.
+The number of ribbon sides and divisions can also be set or reported with
+<a href="cartoon.html#style"><b>cartoon style</b></a>.
+For molecular surface subdivisions, see the
+<a href="surface.html#parameters"><b>gridSpacing</b></a>
+option of <a href="surface.html"><b>surface</b></a>.
 </p><p>
-<a name="waitForVsync"></a>
-The <b>waitForVsync</b> option
-indicates whether to synchronize drawing to the display vertical 
-refresh rate, typically 60 Hz (initial default usually <b>true</b>, 
-but depends on the graphics driver settings). 
-Without synchronization, the frame rate can exceed the vertical refresh rate 
-and the display can exhibit image tearing.
-</p><p>
-<a name="colorDepth"></a>
 The <b>colorDepth</b> option sets the number of bits used per color component
 (red, green, blue, and alpha) in offscreen framebuffers, with
 initial default <b>8</b>. Switching to 16 bits causes all rendering to
@@ -106,27 +175,106 @@ The 16-bit setting may improve the appearance of
 <a href="volume.html#dispsolid">volume solid rendering</a> 
 if the color mode is also set to 16 bits, <i>e.g.</i>, 
 <b><a href="volume.html#cmode">volume colorMode</a> auto16</b>.
-</p><p>
-Given without options, <b>graphics</b> reports the 
-current triangles per atom and bond, 
-ribbon divisions per residue, and maximum frame rate
-in the <a href="../tools/log.html"><b>Log</b></a>.
-The number of ribbon sides and divisions can be reported (or changed) with
-<a href="cartoon.html#style"><b>cartoon style</b></a>, and
-the maximum frame rate can also be reported/changed with 
-<a href="set.html"><b>set</b></a>.
-</p><p>
-Graphics subcommands:
 </p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="rate"></a>
+<b>graphics rate</b> [&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>maxFrameRate</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>waitForVsync</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+<p>
+Setting <b>graphics rate</b> true or false 
+indicates whether to report the average frame
+rate each second in the <a href="../window.html">status line</a>
+(initial default <b>false</b>).
+Given without options, <b>graphics rate</b> reports the 
+current maximum frame rate in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+The <b>maxFrameRate</b> option sets the target
+<a href="../movies.html#framerate">frame rate</a> in ChimeraX
+to <i>N<sub>f</sub></i>&nbsp; frames per second (initial default <b>60</b>).
+The actual redraw rate may be lower than the target, depending on the 
+rendering speed of the computer and the complexity of the scene.
+</p><p>
+<a name="waitForVsync"></a>
+The <b>waitForVsync</b> option
+indicates whether to synchronize drawing to the display vertical 
+refresh rate, typically 60 Hz (initial default usually <b>true</b>, 
+but depends on the graphics driver settings). 
+Without synchronization, the frame rate can exceed the vertical refresh rate 
+and the display can exhibit image tearing.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="restart"></a>
+<b>graphics restart</b>
+<blockquote>
+Reinitiate graphics drawing after an error.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="selection"></a>
+<b>graphics selection</b>
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>linewidth</i>&nbsp;]
+<blockquote>
+Set <a href="../selection.html">selection</a> outline <b>color</b>
+(initial default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>)
+and <b>width</b> in pixels (initial default is the system display scaling factor,
+typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina).
+Given without options, <b>graphics selection</b> reports the 
+current settings in the <a href="../tools/log.html"><b>Log</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="silhouettes"></a>
+<b>graphics silhouettes</b> [&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>linewidth</i>&nbsp;]
+[&nbsp;<b>depthJump</b>&nbsp;&nbsp;<i>depth</i>&nbsp;]
+<blockquote>
+Setting <b>graphics silhouettes</b> true or false 
+specifies whether to show <b><i>silhouettes</i></b>,
+outlines that emphasize borders and discontinuities.
+<a href="../tools/graphics.html" title="Graphics icons...">
+<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+Additional options:
 <ul>
-<li><b>graphics driver</b> &ndash; report system graphics (OpenGL) information
-in the <a href="../tools/log.html"><b>Log</b></a>
-<li><b>graphics restart</b> &ndash; reinitiate graphics drawing after an error
-<li><b>graphics triangles</b> &ndash; report the current total number of 
-triangles, with breakdowns per model and per representation type within a model
+<li><b>color</b> (initial default <b>black</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=black width="10px" title="lime"></td></tr></table>)
+<li><b>width</b> in pixels (initial default is the system display scaling factor,
+typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina)
+<li><b>depthJump</b> &ndash; change in depth needed to trigger 
+drawing silhouettes, expressed as a fraction of the distance between the
+<a href="clip.html">near and far clipping planes</a>
+(initial default <b>0.03</b>, but changed to <b>0.01</b> by the
+<a href="lighting.html#preset"><b>flat</b> lighting preset</a>)
 </ul>
+Given without options, <b>graphics silhouettes</b> reports the 
+current settings in the <a href="../tools/log.html"><b>Log</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="triangles"></a>
+<b>graphics triangles</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<blockquote>
+Report in the <a href="../tools/log.html"><b>Log</b></a>
+the total number of triangles used to draw the specified model(s),
+with breakdowns per model and per representation type within a model.
+Triangulation fineness can be controlled with 
+<a href="#quality"><b>graphics quality</b></a>.
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2019</address>
+April 2020</address>
 </body></html>

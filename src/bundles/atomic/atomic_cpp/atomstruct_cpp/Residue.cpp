@@ -23,6 +23,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "destruct.h"
+#include "PBGroup.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
 
@@ -52,17 +53,17 @@ const std::set<AtomName> Residue::na_ribbon_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
 const std::set<AtomName> Residue::ribose_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
-const std::set<AtomName> Residue::na_side_connector_names = ribose_names;
+const std::set<AtomName> Residue::na_side_connector_names = {
+    "C3'", "C4'", "O2'", "C2'", "O4'", "C1'"};
 std::set<ResName> Residue::std_water_names = { "HOH", "WAT", "DOD", "H2O", "D2O", "TIP3" };
 std::set<ResName> Residue::std_solvent_names = std_water_names;
 std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
-    _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
-    _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ss_id(-1), _ss_type(SS_COIL), _structure(as),
+    _mmcif_chain_id(chain), _name(name), _number(num),
+    _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
+    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
 {
     change_tracker()->add_created(_structure, this);
@@ -81,6 +82,36 @@ Residue::add_atom(Atom* a)
 {
     a->_residue = this;
     _atoms.push_back(a);
+
+    // if this is the first atom of a residue being introduced into a chain gap,
+    // possibly adjust missing-structure pseudobonds; try to do this work only if
+    // we are not in initial structure creation
+    if (!structure()->_polymers_computed)
+        return;
+    if (structure()->residues().back() == this || structure()->residues()[0] == this || _atoms.size() > 1)
+        return;
+    auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+    if (pbg == nullptr)
+        return;
+    // Okay, make residue-index map so that we can see if missing-structure bonds "cross" our residue
+    std::map<Residue*, Structure::Residues::size_type> res_map;
+    Structure::Residues::size_type i = 0;
+    for (auto r: structure()->residues()) {
+        res_map[r] = i++;
+    }
+    auto my_index = res_map[this];
+    for (auto pb: pbg->pseudobonds()) {
+        auto a1 = pb->atoms()[0];
+        auto a2 = pb->atoms()[1];
+        auto i1 = res_map[a1->residue()];
+        auto i2 = res_map[a2->residue()];
+        if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
+            pbg->delete_pseudobond(pb);
+            pbg->new_pseudobond(a1, a);
+            pbg->new_pseudobond(a, a2);
+            break;
+        }
+    }
 }
 
 Residue::AtomsMap
@@ -194,7 +225,7 @@ Residue::session_restore(int version, int** ints, float** floats)
             _ss_type = SS_STRAND;
         _ribbon_display = int_ptr[5];
         _ribbon_hide_backbone = int_ptr[6];
-        _ribbon_selected = int_ptr[7];
+	// int_ptr[7] unused ribbon selected
         _ss_id = int_ptr[8];
         num_atoms = int_ptr[9];
     } else if (version < 10) {
@@ -202,7 +233,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         // was is_het
         _ribbon_display = int_ptr[3];
         _ribbon_hide_backbone = int_ptr[4];
-        _ribbon_selected = int_ptr[5];
+        // int_ptr[5] unused ribbon selected
         _ss_id = int_ptr[6];
         _ss_type = (SSType)int_ptr[7];
         num_atoms = int_ptr[8];
@@ -211,7 +242,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         // was is_het
         _ribbon_display = int_ptr[2];
         _ribbon_hide_backbone = int_ptr[3];
-        _ribbon_selected = int_ptr[4];
+        // int_ptr[4] unused ribbon selected
         _ss_id = int_ptr[5];
         _ss_type = (SSType)int_ptr[6];
         num_atoms = int_ptr[7];
@@ -219,7 +250,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _alt_loc = int_ptr[0];
         _ribbon_display = int_ptr[1];
         _ribbon_hide_backbone = int_ptr[2];
-        _ribbon_selected = int_ptr[3];
+        // int_ptr[3] unused ribbon selected
         _ss_id = int_ptr[4];
         _ss_type = (SSType)int_ptr[5];
         num_atoms = int_ptr[6];
@@ -227,7 +258,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _alt_loc = int_ptr[0];
         _ribbon_display = int_ptr[1];
         _ribbon_hide_backbone = int_ptr[2];
-        _ribbon_selected = int_ptr[3];
+        // int_ptr[3] unused ribbon selected
         _ss_id = int_ptr[4];
         _ss_type = (SSType)int_ptr[5];
         _ring_display = int_ptr[6];
@@ -257,7 +288,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[0] = (int)_alt_loc;
     int_ptr[1] = (int)_ribbon_display;
     int_ptr[2] = (int)_ribbon_hide_backbone;
-    int_ptr[3] = (int)_ribbon_selected;
+    int_ptr[3] = 0; // Unused, former ribbon selected
     int_ptr[4] = (int)_ss_id;
     int_ptr[5] = (int)_ss_type;
     int_ptr[6] = (int)_ring_display;
@@ -305,6 +336,17 @@ Residue::set_alt_loc(char alt_loc)
 }
 
 void
+Residue::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        if (_chain != nullptr)
+            throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
+        _chain_id = chain_id;
+        change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
+    }
+}
+
+void
 Residue::set_templates_dir(const std::string& templates_dir)
 {
     using tmpl::TemplateCache;
@@ -317,9 +359,10 @@ Residue::str() const
     std::stringstream num_string;
     std::string ret = _name;
     ret += ' ';
-    if (_chain_id != " ") {
+    auto cid = chain_id();
+    if (cid != " ") {
         ret += '/';
-        ret += _chain_id;
+        ret += cid;
     }
     ret += ':';
     num_string << _number;
@@ -400,16 +443,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
         }
     }
     return assigned;
-}
-
-void
-Residue::set_ribbon_selected(bool s)
-{
-    if (s == _ribbon_selected)
-        return;
-    _structure->set_gc_select();
-    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_SELECTED);
-    _ribbon_selected = s;
 }
 
 }  // namespace atomstruct

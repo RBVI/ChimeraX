@@ -12,11 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 import re
-from . import cli
 from ..colors import Color
+from . import Annotation, AnnotationError, next_token, Or, TupleOf, FloatArg, EnumOf
 
 
-class ColorArg(cli.Annotation):
+class ColorArg(Annotation):
     """Support color names and CSS3 color specifications.
 
     The CSS3 color specifications supported are: rgb, rgba, hsl, hsla, and
@@ -40,14 +40,14 @@ class ColorArg(cli.Annotation):
     @staticmethod
     def parse(text, session):
         if not text:
-            raise ValueError("Missing color name or specifier")
+            raise AnnotationError("Missing color name or specifier")
         if text[0] == '#':
-            token, text, rest = cli.next_token(text)
+            token, text, rest = next_token(text)
             c = Color(token)
             c.explicit_transparency = (len(token) in (5, 9, 17))
             return c, text, rest
         if text[0].isdigit():
-            token, text, rest = cli.next_token(text)
+            token, text, rest = next_token(text)
             c = _parse_rgba_values(token)
             return c, text, rest
         m = _color_func.match(text)
@@ -59,8 +59,8 @@ class ColorArg(cli.Annotation):
                 from ..colors import BuiltinColors
                 name, color, rest = find_named_color(BuiltinColors, text)
             if color is None:
-                raise ValueError("Invalid color name or specifier")
-            return color, cli.quote_if_necessary(name), rest
+                raise AnnotationError("Invalid color name or specifier")
+            return color, name, rest
         color_space = m.group(1)
         numbers = _parse_numbers(m.group(2))
         rest = text[m.end():]
@@ -72,24 +72,24 @@ class ColorArg(cli.Annotation):
                     alpha = _convert_number(numbers[1], 'alpha', maximum=1)
                 else:
                     alpha = 1
-            except cli.AnnotationError as err:
+            except AnnotationError as err:
                 err.offset += m.end(1)
                 raise
             c = Color([x, x, x, alpha])
             c.explicit_transparency = (len(numbers) == 2)
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'rgb' and len(numbers) == 3:
             # rgb( number [%], number [%], number [%])
             try:
                 red = _convert_number(numbers[0], 'red')
                 green = _convert_number(numbers[1], 'green')
                 blue = _convert_number(numbers[2], 'blue')
-            except cli.AnnotationError as err:
+            except AnnotationError as err:
                 err.offset += m.end(1)
                 raise
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'rgba' and len(numbers) == 4:
             # rgba( number [%], number [%], number [%], number [%])
             try:
@@ -97,26 +97,26 @@ class ColorArg(cli.Annotation):
                 green = _convert_number(numbers[1], 'green')
                 blue = _convert_number(numbers[2], 'blue')
                 alpha = _convert_number(numbers[3], 'alpha', maximum=1)
-            except cli.AnnotationError as err:
+            except AnnotationError as err:
                 err.offset += m.end(1)
                 raise
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'hsl' and len(numbers) == 3:
             # hsl( number [%], number [%], number [%])
             try:
                 hue = _convert_angle(numbers[0], 'hue angle')
                 sat = _convert_number(numbers[1], 'saturation', maximum=1)
                 light = _convert_number(numbers[2], 'lightness', maximum=1)
-            except cli.AnnotationError as err:
+            except AnnotationError as err:
                 err.offset += m.end(1)
                 raise
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'hsla' and len(numbers) == 4:
             # hsla( number [%], number [%], number [%], number [%])
             try:
@@ -124,26 +124,36 @@ class ColorArg(cli.Annotation):
                 sat = _convert_number(numbers[1], 'saturation', maximum=1)
                 light = _convert_number(numbers[2], 'lightness', maximum=1)
                 alpha = _convert_number(numbers[3], 'alpha', maximum=1)
-            except cli.AnnotationError as err:
+            except AnnotationError as err:
                 err.offset += m.end(1)
                 raise
             import colorsys
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, cli.quote_if_necessary(m.group()), rest
-        raise cli.AnnotationError(
+            return c, m.group(), rest
+        raise AnnotationError(
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
 
+    @staticmethod
+    def unparse(color, session):
+        for name, c in session.user_colors.items():
+            if color is c:
+                return name
+        if color.opaque():
+            return color.hex()
+        return color.hex_with_alpha()
+
+
 def _parse_rgba_values(text):
     values = text.split(',')
-    if len(values) not in (3,4):
-        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
+    if len(values) not in (3, 4):
+        raise AnnotationError('Color must be 3 or 4 comma-separated numbers 0-100')
     try:
-        rgba = tuple(float(v)/100.0 for v in values)
-    except:
-        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
+        rgba = tuple(float(v) / 100.0 for v in values)
+    except Exception:
+        raise AnnotationError('Color must be 3 or 4 comma-separated numbers 0-100')
     transparent = (len(rgba) == 4)
     if len(rgba) == 3:
         rgba += (1.0,)
@@ -151,16 +161,18 @@ def _parse_rgba_values(text):
     c.explicit_transparency = transparent
     return c
 
+
 class Color8Arg(ColorArg):
     @staticmethod
     def parse(text, session):
         c, text, rest = ColorArg.parse(text, session)
         return c.uint8x4(), text, rest
 
-from . import Or, TupleOf, FloatArg, EnumOf
+
 ColormapRangeArg = Or(TupleOf(FloatArg, 2), EnumOf(['full']))
 
-class ColormapArg(cli.Annotation):
+
+class ColormapArg(Annotation):
     """Support color map names and value-color pairs specifications.
 
     Accepts name of a standard color map::
@@ -185,7 +197,7 @@ class ColormapArg(cli.Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = cli.next_token(text)
+        token, text, rest = next_token(text)
         if token[0] == "^":
             reversed = True
             token = token[1:]
@@ -208,12 +220,12 @@ class ColormapArg(cli.Annotation):
                     # Handle RGB color spec with commas
                     try:
                         color, t, r = ColorArg.parse(p, session)
-                    except:
+                    except Exception:
                         val, col = p.split(',', maxsplit=1)
                         try:
                             values.append(float(val))
                             color, t, r = ColorArg.parse(col, session)
-                        except:
+                        except Exception:
                             raise ValueError("Could not parse colormap color %s" % p)
                 if r:
                     raise ValueError("Bad color in colormap")
@@ -250,21 +262,45 @@ class ColormapArg(cli.Annotation):
             raise UserError("Cannot find palette named %r" % token)
         return cmap.reversed() if reversed else cmap, consumed, rest
 
+
 def find_named_color(color_dict, name):
     # handle color names with spaces
     # returns key, value, part of name that was unused
     num_colors = len(color_dict)
+    if num_colors == 0:
+        return None, None, name
     # extract up to 10 words from name
-    from chimerax.core.commands import cli
+    from . import cli
     first = True
-    text = name
+    if name[0] == '"':
+        m = cli._double_quote.match(name)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if name[end - 1].isspace():
+            end -= 1
+        text = name[1:end - 1]
+        quoted = name[end:]
+    elif name[0] == "'":
+        quoted = True
+        m = cli._single_quote.match(name)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if name[end - 1].isspace():
+            end -= 1
+        text = name[1:end - 1]
+        quoted = name[end:]
+    else:
+        quoted = None
+        text = name
     words = []
     while len(words) < 10:
         m = cli._whitespace.match(text)
         text = text[m.end():]
         if not text:
             break
-        word, _, rest = cli.next_token(text, no_raise=True)
+        word, _, rest = next_token(text)
         if not word or word == ';':
             break
         if first and ' ' in word:
@@ -305,9 +341,11 @@ def find_named_color(color_dict, name):
     if last_real_name:
         w -= 1
         real_name = last_real_name
-    if first and w + 1 != len(words):
+    if (first or quoted) and w + 1 != len(words):
         return None, None, name
     if real_name:
+        if quoted is not None:
+            return real_name, color_dict[real_name], quoted
         return real_name, color_dict[real_name], words[w][1]
     return None, None, name
 
@@ -316,17 +354,19 @@ _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
 _number = re.compile(r"\s*[-+]?([0-9]+(\.[0-9]*)?|\.[0-9]+)")
 _units = re.compile(r"\s*(%|deg|grad|rad|turn|)\s*")
 
+
 def _fetch_colormap(session, palette_id):
     '''Fetch color map from colourlovers.com'''
     try:
         palette_id = int(palette_id)
-    except:
+    except Exception:
         pass
     if isinstance(palette_id, int):
         cmap = _colourlovers_fetch_by_id(session, palette_id)
     else:
         cmap = _colourlovers_fetch_by_name(session, palette_id)
     return cmap
+
 
 def _colourlovers_fetch_by_id(session, palette_id):
     url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
@@ -345,6 +385,7 @@ def _colourlovers_fetch_by_id(session, palette_id):
     from ..colors import Colormap
     cmap = Colormap(None, rgba)
     return cmap
+
 
 def _colourlovers_fetch_by_name(session, palette_name):
     bi = palette_name.find(' by ')
@@ -370,7 +411,7 @@ def _colourlovers_fetch_by_name(session, palette_name):
         raise UserError('Could not find palette %s at COLOURlovers.com using keyword search'
                         % (name if author is None else '%s author %s' % (name, author)))
     if len(pals) > 1:
-        pals.sort(key = lambda p: p['numViews'], reverse=True)
+        pals.sort(key=lambda p: p['numViews'], reverse=True)
         session.logger.info('Found %d ColourLover palettes with name "%s", '
                             'using palette id %d by author %s with most views (%d). '
                             'To choose a different one use "name by author" or id number.'
@@ -383,28 +424,29 @@ def _colourlovers_fetch_by_name(session, palette_name):
     cmap = Colormap(None, rgba)
     return cmap
 
+
 def _parse_numbers(text):
     # parse comma separated list of number [units]
     result = []
     start = 0
-    while 1:
+    while True:
         m = _number.match(text, start)
         if not m:
-            raise cli.AnnotationError("Expected a number", start)
+            raise AnnotationError("Expected a number", start)
         n = m.group()
         n_pos = start
         start = m.end()
         m = _units.match(text, start)
         u = m.group(1)
         if not m:
-            raise cli.AnnotationError("Unknown units", start)
+            raise AnnotationError("Unknown units", start)
         u_pos = start
         start = m.end()
         result.append((n, n_pos, u, u_pos))
         if start == len(text):
             return result
         if text[start] != ',':
-            raise cli.AnnotationError("Expected a comma", start)
+            raise AnnotationError("Expected a comma", start)
         start += 1
 
 
@@ -414,7 +456,7 @@ def _convert_number(number, name, *, maximum=255, clamp=True,
     n_str, n_pos, u, u_pos = number
     n = float(n_str)
     if require_percent and u != '%':
-        raise cli.AnnotationError("%s must be a percentage" % name, u_pos)
+        raise AnnotationError("%s must be a percentage" % name, u_pos)
     if u == '%':
         n = n / 100
     elif '.' in n_str:
@@ -422,7 +464,7 @@ def _convert_number(number, name, *, maximum=255, clamp=True,
     elif u == '':
         n = n / maximum
     else:
-        raise cli.AnnotationError("Unexpected units for %s" % name, u_pos)
+        raise AnnotationError("Unexpected units for %s" % name, u_pos)
     if clamp:
         if n < 0:
             n = 0
@@ -443,8 +485,8 @@ def _convert_angle(number, name):
         return n / 400
     if u == 'turn':
         return n
-    raise cli.AnnotationError("'%s' doesn't make sense for %s" % (u, name),
-                              offset=u_pos)
+    raise AnnotationError("'%s' doesn't make sense for %s" % (u, name),
+                          offset=u_pos)
 
 
 def test():
