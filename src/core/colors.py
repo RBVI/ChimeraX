@@ -485,7 +485,7 @@ def distinguish_from(rgbs, *, num_candidates=3, seed=None, save_state=True):
 
 def contrast_with(rgb):
     """Depending on which contrasts best with the given RGB(A), return white or black (RGB)"""
-    if rgb[0] * 2 + rgb[1] * 3 + rgb[2] < 0.417:
+    if rgb[0] * 0.59 + rgb[1] < 0.826:
         return (1.0, 1.0, 1.0)
     return (0.0, 0.0, 0.0)
 
