@@ -273,6 +273,8 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
+        if len(db_name) < 2:
+            return None
     elif database_name:
         db_name = database_name
         ident = file_arg
