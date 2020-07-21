@@ -340,8 +340,6 @@ class Alignment(State):
         if reassoc:
             return
         if not demotion:
-            self._notify_observers("remove association", [match_map])
-
             # if the structure seq hasn't been demoted/destroyed, log the disassociation
             struct = sseq.structure
             struct_name = struct.name
@@ -355,7 +353,7 @@ class Alignment(State):
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
-        atomic.get_triggers().add_handler('changes', _delay_disassoc)
+        atomic.get_triggers().add_handler('changes done', _delay_disassoc)
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated

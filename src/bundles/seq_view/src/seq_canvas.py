@@ -1698,6 +1698,8 @@ class SeqBlock:
             if aseq in self.label_rects:
                 self.label_scene.removeItem(self.label_rects[aseq])
                 del self.label_rects[aseq]
+                from PyQt5.QtCore import Qt
+                label_text.setBrush(Qt.black)
         line_items = self.line_items[aseq]
         for i in range(len(line_items)):
             item = line_items[i]
