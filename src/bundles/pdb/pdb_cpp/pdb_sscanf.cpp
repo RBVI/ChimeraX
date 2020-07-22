@@ -170,6 +170,7 @@ PDB::sscanf(const char *buffer, const char *fmt, ...)
             break;
 
         case 's':           // string
+        case 'S':
             // if we've already seen the end of the buffer, don't
             // try to get anymore characters
             if (endbuf(buffer)) {
@@ -184,6 +185,8 @@ PDB::sscanf(const char *buffer, const char *fmt, ...)
                 *s++ = *buffer++;
             }
             *s = '\0';
+            if (*fmt == 'S')
+                break;
             // remove trailing spaces
             while (s > t && isspace(*--s))
                 *s = '\0';

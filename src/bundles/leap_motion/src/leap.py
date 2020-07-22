@@ -15,6 +15,7 @@
 # Command to view models in HTC Vive or Oculus Rift for ChimeraX.
 #
 def leapmotion(session, enable = None,
+               pointer_size = None, mode_left = None, mode_right = None,
                width = None, center = None, facing = None, cord = None,
                pinch_thresholds = None, max_delay = None,
                head_mounted = False, debug = False):
@@ -25,6 +26,17 @@ def leapmotion(session, enable = None,
 
     Parameters
     ----------
+    enable: bool
+      Whether to turn the device on or off.  Default on.
+    pointer_size: float
+      Diameter of cross pointer indicating hand position.  Default 1.0.
+    mode_left, mode_right: "mouse" or "vr"
+      Whether pinching emulates a mouse clicks (2D) or VR clicks (3D).
+      When emulating the mouse the left or right hand emulates a left button
+      click or right button click at the position of the hand pointer.
+      In VR mode it emulates a 3D button click.  In mouse mode the hand
+      pointer is shown in front of the models and moves in 2D while in
+      VR mode the hand pointer moves in 3D.
     width: float
       Hand motion range that corresponds to graphics window width.
       Millimeters.  Default 250.
@@ -57,9 +69,12 @@ def leapmotion(session, enable = None,
         lm = None
     if enable:
         if lm is None:
-            session._leap_motion = lm = LeapMotion(session,
-                                                   head_mounted=head_mounted,
-                                                   debug=debug)
+            opts = {name:value for name, value in (('pointer_size',  pointer_size),
+                                                   ('mode_left', mode_left),
+                                                   ('mode_right', mode_right),
+                                                   ('head_mounted', head_mounted),
+                                                   ('debug', debug)) if value is not None}
+            session._leap_motion = lm = LeapMotion(session, **opts)
             session.models.add([lm])
         if head_mounted:
             if facing is None:
@@ -79,9 +94,13 @@ def leapmotion(session, enable = None,
 #
 def register_leapmotion_command(logger):
     from chimerax.core.commands import register, create_alias, CmdDesc
-    from chimerax.core.commands import BoolArg, FloatArg, Float3Arg, Float2Arg
+    from chimerax.core.commands import BoolArg, FloatArg, Float3Arg, Float2Arg, EnumOf
+    ModeArg = EnumOf(('mouse', 'vr'))
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('width', FloatArg),
+                   keyword = [('pointer_size', FloatArg),
+                              ('mode_left', ModeArg),
+                              ('mode_right', ModeArg),
+                              ('width', FloatArg),
                               ('center', Float3Arg),
                               ('facing', Float3Arg),
                               ('cord', Float3Arg),
@@ -170,19 +189,20 @@ class LeapMotion(Model):
     pickable = False
     SESSION_SAVE = False
     
-    def __init__(self, session, tracking_space = TrackingSpace(),
+    def __init__(self, session, pointer_size = 1.0,
+                 mode_left = 'mouse', mode_right = 'vr',
                  pinch_thresholds = (0.9,0.6), max_delay = 0.2,
-                 head_mounted = False, debug = False):
+                 tracking_space = TrackingSpace(), head_mounted = False,
+                 debug = False):
         Model.__init__(self, 'Leap Motion', session)
 
         self._tracking_space = tracking_space
         self._max_delay = max_delay	# Don't use hand positions older than this (seconds).
-        self._hands = [LeapHand(session, hand = 'left', emulate = 'mouse',
+        self._hands = [LeapHand(session, hand = hand, emulate = mode,
+                                pointer_size = pointer_size,
                                 tracking_space = tracking_space,
-                                pinch_thresholds = pinch_thresholds),
-                       LeapHand(session, hand = 'right', emulate = 'vr',
-                                tracking_space = tracking_space,
-                                pinch_thresholds = pinch_thresholds)]
+                                pinch_thresholds = pinch_thresholds)
+                       for hand, mode in (('left', mode_left), ('right', mode_right))]
         self.add(self._hands)	# Add hand models as children
         
         from ._leap import leap_open
@@ -232,7 +252,7 @@ class LeapHand(Model):
     pickable = False
     SESSION_SAVE = False
     
-    def __init__(self, session, hand = 'right', emulate = 'mouse',
+    def __init__(self, session, pointer_size = 1.0, hand = 'right', emulate = 'mouse',
                  tracking_space = TrackingSpace(), pinch_thresholds = (0.9, 0.6)):
         self._emulate = emulate			# 'mouse' or 'vr' for 2d or 3d mouse mode events
         self._hand = hand			# 'left' or 'right'
@@ -245,7 +265,8 @@ class LeapHand(Model):
         name = self._hand + ' hand'
         Model.__init__(self, name, session)
 
-        self._set_pointer_shape()
+        self._set_pointer_shape(cross_diameter = pointer_size,
+                                stick_diameter = 0.1*pointer_size)
 
         if hand == 'right':
             self._unpinch_color = (0,255,0,255)
@@ -265,14 +286,6 @@ class LeapHand(Model):
         va, na, ta = combine_geometry_vnt([(vax,nax,cta), (vay,nay,cta)])
         self.set_geometry(va, na, ta)
 
-    def _update_pinch(self, pinch_strength, hand_position):
-        if self._pinch_changed(pinch_strength):
-            self._send_pinch_event()
-            self.color = self._pinch_color if self._pinch else self._unpinch_color
-        if self._pinch:
-            self._send_motion_event(hand_position)
-            self._last_position = hand_position
-
     def _position_pointer(self, hand_position):
         '''Hand position is in millimeters in Leap Motion coordinate system.'''
         self.position = self._scene_position(hand_position)
@@ -291,7 +304,19 @@ class LeapHand(Model):
             scene_pos = t.scene_position_3d(hand_position, view)
         return scene_pos
 
-    def _pinch_changed(self, pinch_strength):
+    def _in_view(self, hand_position):
+        spos = self._scene_position(hand_position).origin()
+        return point_in_view(spos, self.session.main_view)
+    
+    def _update_pinch(self, pinch_strength, hand_position):
+        if self._pinch_changed(pinch_strength, hand_position):
+            self._send_pinch_event()
+            self.color = self._pinch_color if self._pinch else self._unpinch_color
+        if self._pinch:
+            self._send_motion_event(hand_position)
+            self._last_position = hand_position
+
+    def _pinch_changed(self, pinch_strength, hand_position):
         pon, poff = self._pinch_thresholds
         if pinch_strength >= pon:
             pinch = True
@@ -300,6 +325,10 @@ class LeapHand(Model):
         else:
             pinch = self._pinch
         if pinch == self._pinch:
+            return False
+        if pinch and not self._in_view(hand_position):
+            # Suppress pinches out of view to reduce noise pinches
+            # when hand is near edge of device field of view.
             return False
         self._pinch = pinch
         return True
@@ -345,7 +374,25 @@ class LeapHand(Model):
     def _mouse_mode(self):
         button = self._hand # left button for left hand, right button for right hand.
         return self.session.ui.mouse_modes.mode(button)
-        
+
+def point_in_view(point, view):
+    w, h = view.window_size
+    cam = view.camera
+    # Compute planes bounding view
+    planes = cam.rectangle_bounding_planes((0,0), (w,h), (w,h))
+    from chimerax.geometry import inner_product
+    for p in planes:
+        if inner_product(point, p[:3]) + p[3] < 0:
+            return False
+
+    # Check near/far planes
+    near, far = view.near_far_distances(cam, view_num=0)
+    dist = inner_product(point - cam.position.origin(), cam.view_direction())
+    if dist < near or dist > far:
+        return False
+
+    return True
+    
 class LeapPinchEvent:
     def __init__(self, position):
         self._position = position
