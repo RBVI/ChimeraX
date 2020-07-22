@@ -94,6 +94,8 @@ class _mmCIFioAPI(BundleAPI):
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
+                        'fixed_width': BoolArg,
+                        'best_guess': BoolArg,
                     }
 
         return Info()
