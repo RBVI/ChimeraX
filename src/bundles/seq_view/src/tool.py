@@ -441,7 +441,8 @@ class SequenceViewer(ToolInstance):
         self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "modify association":
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
             for match_map in note_data[-1]:
                 aseq = match_map.align_seq
@@ -453,11 +454,11 @@ class SequenceViewer(ToolInstance):
                 self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
-        elif note_name == "pre-remove seqs":
+        elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_browser._pre_remove_lines(note_data)
-        elif note_name == "destroyed":
+        elif note_name == alignment.NOTE_DESTROYED:
             self.delete()
-        elif note_name == "command":
+        elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
 

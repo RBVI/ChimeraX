@@ -22,6 +22,13 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
+    NOTE_ADD_ASSOC    = "add association"
+    NOTE_MOD_ASSOC    = "modify association"
+    NOTE_DEL_ASSOC    = "remove association"
+    NOTE_PRE_DEL_SEQS = "pre-remove seqs"
+    NOTE_DESTROYED    = "destroyed"
+    NOTE_COMMAND      = "command"
+
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic):
         self.session = session
@@ -262,10 +269,10 @@ class Alignment(State):
 
         if new_match_maps:
             if reassoc:
-                note_name = "modify association"
-                note_data = ("add association", new_match_maps)
+                note_name = self.NOTE_MOD_ASSOC
+                note_data = (self.NOTE_ADD_ASSOC, new_match_maps)
             else:
-                note_name = "add association"
+                note_name = self.NOTE_ADD_ASSOC
                 note_data = new_match_maps
             self._notify_observers(note_name, note_data)
 
@@ -349,7 +356,7 @@ class Alignment(State):
             self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
         # delay notifying the observers until all chain demotions/deletions have been received
         def _delay_disassoc(_, __, match_map=match_map):
-            self._notify_observers("remove association", [match_map])
+            self._notify_observers(self.NOTE_DEL_ASSOC, [match_map])
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
@@ -489,14 +496,14 @@ class Alignment(State):
         self._observer_notification_suspended += 1
 
     def _atomic_changes_done(self, *args):
-        self._notify_observers("modify association", ("modify association", self._modified_mmaps))
+        self._notify_observers(self.NOTE_MOD_ASSOC, (self.NOTE_MOD_ASSOC, self._modified_mmaps))
         self._modified_mmaps = []
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _destroy(self):
         self._in_destroy = True
-        self._notify_observers("destroyed", None)
+        self._notify_observers(self.NOTE_DESTROYED, None)
         self.viewers = []
         self.observers = []
         aseqs = set()
@@ -515,7 +522,7 @@ class Alignment(State):
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
                 % (viewer_keyword, self.ident))
-        self._notify_observers("command", subcommand_text, viewer_criteria=viewer_keyword)
+        self._notify_observers(self.NOTE_COMMAND, subcommand_text, viewer_criteria=viewer_keyword)
 
     def _mmap_mod_cb(self, trig_name, match_map):
         if len(match_map) == 0:
