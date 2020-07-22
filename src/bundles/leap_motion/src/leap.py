@@ -265,14 +265,6 @@ class LeapHand(Model):
         va, na, ta = combine_geometry_vnt([(vax,nax,cta), (vay,nay,cta)])
         self.set_geometry(va, na, ta)
 
-    def _update_pinch(self, pinch_strength, hand_position):
-        if self._pinch_changed(pinch_strength):
-            self._send_pinch_event()
-            self.color = self._pinch_color if self._pinch else self._unpinch_color
-        if self._pinch:
-            self._send_motion_event(hand_position)
-            self._last_position = hand_position
-
     def _position_pointer(self, hand_position):
         '''Hand position is in millimeters in Leap Motion coordinate system.'''
         self.position = self._scene_position(hand_position)
@@ -291,7 +283,19 @@ class LeapHand(Model):
             scene_pos = t.scene_position_3d(hand_position, view)
         return scene_pos
 
-    def _pinch_changed(self, pinch_strength):
+    def _in_view(self, hand_position):
+        spos = self._scene_position(hand_position).origin()
+        return point_in_view(spos, self.session.main_view)
+    
+    def _update_pinch(self, pinch_strength, hand_position):
+        if self._pinch_changed(pinch_strength, hand_position):
+            self._send_pinch_event()
+            self.color = self._pinch_color if self._pinch else self._unpinch_color
+        if self._pinch:
+            self._send_motion_event(hand_position)
+            self._last_position = hand_position
+
+    def _pinch_changed(self, pinch_strength, hand_position):
         pon, poff = self._pinch_thresholds
         if pinch_strength >= pon:
             pinch = True
@@ -300,6 +304,10 @@ class LeapHand(Model):
         else:
             pinch = self._pinch
         if pinch == self._pinch:
+            return False
+        if pinch and not self._in_view(hand_position):
+            # Suppress pinches out of view to reduce noise pinches
+            # when hand is near edge of device field of view.
             return False
         self._pinch = pinch
         return True
@@ -345,7 +353,25 @@ class LeapHand(Model):
     def _mouse_mode(self):
         button = self._hand # left button for left hand, right button for right hand.
         return self.session.ui.mouse_modes.mode(button)
-        
+
+def point_in_view(point, view):
+    w, h = view.window_size
+    cam = view.camera
+    # Compute planes bounding view
+    planes = cam.rectangle_bounding_planes((0,0), (w,h), (w,h))
+    from chimerax.geometry import inner_product
+    for p in planes:
+        if inner_product(point, p[:3]) + p[3] < 0:
+            return False
+
+    # Check near/far planes
+    near, far = view.near_far_distances(cam, view_num=0)
+    dist = inner_product(point - cam.position.origin(), cam.view_direction())
+    if dist < near or dist > far:
+        return False
+
+    return True
+    
 class LeapPinchEvent:
     def __init__(self, position):
         self._position = position
