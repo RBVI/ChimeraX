@@ -541,7 +541,7 @@ class SeqCanvas:
             if header in self.builtinHeaders:
                 raise ValueError("Cannot delete builtin header"
                             " sequence")
-        self.hideHeaders(headers)
+        self.hide_headers(headers)
         for hd in headers:
             del self.display_header[hd]
             self.headers.remove(hd)
@@ -653,8 +653,9 @@ class SeqCanvas:
     """
     def headerDisplayOrder(self):
         return self.lead_block.lines[:-len(self.alignment.seqs)]
+    """
 
-    def hideHeaders(self, headers, fromMenu=False):
+    def hide_headers(self, headers):
         headers = [hd for hd in headers if self.display_header[hd]]
         if not headers:
             return
@@ -670,21 +671,15 @@ class SeqCanvas:
                     break
             if not continuous:
                 jump = headers.index(header)
-                self.hideHeaders(headers[:jump], fromMenu=fromMenu)
-                self.hideHeaders(headers[jump:], fromMenu=fromMenu)
+                self.hide_headers(headers[:jump])
+                self.hide_headers(headers[jump:])
                 return
         for header in headers:
             header.hide()
-        if fromMenu and len(self.alignment.seqs) > 1:
-            startHeaders = set(self.sv.prefs[STARTUP_HEADERS])
-            startHeaders -= set([hd.name for hd in headers])
-            self.sv.prefs[STARTUP_HEADERS] = startHeaders
         self.display_header.update({}.fromkeys(headers, False))
-        self.sv.region_browser._preDelLines(headers)
-        self.lead_block.hideHeaders(headers)
-        self.sv.region_browser.redraw_regions(cull_empty=True)
-        self.sv.triggers.activateTrigger(HIDE_HEADERS, headers)
-        """
+        self.lead_block.hide_headers(headers)
+        self.sv.region_browser.redraw_regions()
+        #TODO if necessary: self.sv.triggers.activateTrigger(HIDE_HEADERS, headers)
         
     def layout_alignment(self):
         aln_mgr = self.alignment.session.alignments
@@ -1055,7 +1050,8 @@ class SeqCanvas:
                     self._reformat()
             elif reason == hdr.CALLBACK_RELEVANCE:
                 relevant, = args
-                #TODO
+                if not relevant and self.display_header[hdr]:
+                    self.hide_headers([hdr])
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.headers and not seq.shown:
@@ -1669,7 +1665,7 @@ class SeqBlock:
                 labelChange + numberingChanges[0], pushDown)
         self.bottom_ruler_y += pushDown
 
-        self._moveLines(self.lines[:insertIndex], labelChange,
+        self._move_lines(self.lines[:insertIndex], labelChange,
                         numberingChanges[0], pushDown)
 
         for i, seq in enumerate(seqs):
@@ -1677,7 +1673,7 @@ class SeqBlock:
                         line_index=insertIndex+i, adding=True)
         push = len(seqs) * (self.font_pixels[1] + self.letter_gaps[1])
         pushDown += push
-        self._moveLines(self.lines[insertIndex+len(seqs):],
+        self._move_lines(self.lines[insertIndex+len(seqs):],
                 labelChange, numberingChanges[0], pushDown)
         self.bottom_y += pushDown
         if self.next_block:
@@ -2083,53 +2079,50 @@ class SeqBlock:
             return True
         return False
 
-    """TODO
-    def hideHeaders(self, headers, pushDown=0, delIndex=None):
-        self.top_y += pushDown
+    def hide_headers(self, headers, push_down=0, del_index=None):
+        self.top_y += push_down
         if self.prev_block:
-            newLabelWidth = self.prev_block.label_width
+            new_label_width = self.prev_block.label_width
         else:
             # assuming parent function passes us a continuous block
-            delIndex = self.line_index[headers[0]]
-            del self.lines[delIndex:delIndex+len(headers)]
+            del_index = self.line_index[headers[0]]
+            del self.lines[del_index:del_index+len(headers)]
             for line in headers:
                 del self.line_index[line]
-            for line in self.lines[delIndex:]:
+            for line in self.lines[del_index:]:
                 self.line_index[line] -= len(headers)
-            newLabelWidth = self.find_label_width(self.font,
-                            self.emphasis_font)
-        labelChange = newLabelWidth - self.label_width
-        self.label_width = newLabelWidth
+            new_label_width = self.find_label_width(self.font, self.emphasis_font)
+        label_change = new_label_width - self.label_width
+        self.label_width = new_label_width
 
         for ruler_text in self.ruler_texts:
-            self.main_scene.move(ruler_text, labelChange, pushDown)
-        self.bottom_ruler_y += pushDown
+            ruler_text.moveBy(label_change, push_down)
+        self.bottom_ruler_y += push_down
 
-        self._moveLines(self.lines[:delIndex], labelChange, 0, pushDown)
+        self._move_lines(self.lines[:del_index], label_change, 0, push_down)
 
         for line in headers:
             label_text = self.label_texts[line]
             del self.label_texts[line]
-            self.label_scene.delete(label_text)
+            self.label_scene.removeItem(label_text)
 
             line_items = self.line_items[line]
             del self.line_items[line]
             for item in line_items:
                 if item is not None:
-                    item.delete()
+                    self.main_scene.removeItem(item)
             del self.item_aux_info[line]
-        pull = len(headers) * (self.font_pixels[1]
-                            + self.letter_gaps[1])
-        pushDown -= pull
-        self._moveLines(self.lines[delIndex:], labelChange, 0, pushDown)
-        self._moveTree(pushDown)
+        pull = len(headers) * (self.font_pixels[1] + self.letter_gaps[1])
+        push_down -= pull
+        self._move_lines(self.lines[del_index:], label_change, 0, push_down)
+        self._move_tree(push_down)
 
-        self.label_width = newLabelWidth
-        self.bottom_y += pushDown
+        self.label_width = new_label_width
+        self.bottom_y += push_down
         if self.next_block:
-            self.next_block.hideHeaders(headers, pushDown=pushDown,
-                            delIndex=delIndex)
+            self.next_block.hide_headers(headers, push_down=push_down, del_index=del_index)
 
+    """TODO
     def highlightName(self, line):
         if self.highlighted_name:
             self.label_scene.itemconfigure(self.highlighted_name,
@@ -2394,32 +2387,31 @@ class SeqBlock:
 
         return res_text
 
-    """TODO
-    def _moveLines(self, lines, overLabel, overNumber, down):
-        over = overLabel + overNumber
+    def _move_lines(self, lines, over_label, over_number, down):
+        over = over_label + over_number
         for line in lines:
-            self.label_scene.move(self.label_texts[line], 0, down)
+            self.label_texts[line].moveBy(0, down)
 
             lnum, rnum = self.numbering_texts[line]
             if lnum:
-                self.main_scene.move(lnum, overLabel, down)
+                lnum.moveBy(over_label, down)
             if rnum:
-                self.main_scene.move(rnum, over, down)
+                rnum.moveBy(over, down)
             for item in self.line_items[line]:
                 if item is not None:
-                    item.move(over, down)
+                    item.moveBy(over, down)
             item_aux_info = []
             for oldx, oldy in self.item_aux_info[line]:
                 item_aux_info.append((oldx+over, oldy+down))
             self.item_aux_info[line] = item_aux_info
             if line in self.label_rects:
-                self.label_scene.move(self.label_rects[line],
-                                0, down)
-    def _moveTree(self, down):
-        for itemType, itemList in self.tree_items.items():
-            for item in itemList:
-                self.label_scene.move(item, 0, down)
+                self.label_rects[line].moveBy(0, down)
+    def _move_tree(self, down):
+        for item_type, item_list in self.tree_items.items():
+            for item in item_list:
+                item.moveBy(0, down)
 
+    """TODO
     def numBlocks(self):
         if self.next_block:
             return self.next_block.numBlocks() + 1
@@ -2676,7 +2668,7 @@ class SeqBlock:
             for line in numberedLines:
                 self.numbering_texts[line][0] = \
                         self._make_numbering(line, 0)
-            self._moveLines(self.lines, 0, delta, 0)
+            self._move_lines(self.lines, 0, delta, 0)
         else:
             delta = 0 - self.numbering_widths[0]
             for ruler_text in self.ruler_texts:
@@ -2686,7 +2678,7 @@ class SeqBlock:
                     continue
                 self.main_scene.delete(texts[0])
                 texts[0] = None
-            self._moveLines(self.lines, 0, delta, 0)
+            self._move_lines(self.lines, 0, delta, 0)
             if not self.next_block:
                 self.numbering_widths[0] = 0
         if self.next_block:
@@ -2732,8 +2724,8 @@ class SeqBlock:
             pushDown -= pull
             self.bottom_ruler_y = self.top_y
             self.bottom_y -= pull
-        self._moveLines(self.lines, 0, 0, pushDown)
-        self._moveTree(pushDown)
+        self._move_lines(self.lines, 0, 0, pushDown)
+        self._move_tree(pushDown)
         if self.next_block:
             self.next_block.setRulerDisplay(show_ruler, pushDown=pushDown)
 
@@ -2759,7 +2751,7 @@ class SeqBlock:
             self.main_scene.move(ruler_text, labelChange, pushDown)
         self.bottom_ruler_y += pushDown
 
-        self._moveLines(self.lines[:insertIndex], labelChange, 0,
+        self._move_lines(self.lines[:insertIndex], labelChange, 0,
                                 pushDown)
 
         for i in range(len(headers)):
@@ -2768,9 +2760,9 @@ class SeqBlock:
         push = len(headers) * (self.font_pixels[1]
                             + self.letter_gaps[1])
         pushDown += push
-        self._moveLines(self.lines[insertIndex+len(headers):],
+        self._move_lines(self.lines[insertIndex+len(headers):],
                         labelChange, 0, pushDown)
-        self._moveTree(pushDown)
+        self._move_tree(pushDown)
         self.label_width = newLabelWidth
         self.bottom_y += pushDown
         if self.next_block:

@@ -31,11 +31,15 @@ class HeaderSequence(list):
     CALLBACK_RELEVANCE = "header's relevance to alignment changed"
 
     def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
-        """ 'refresh_callback' is called with a single argument, which can be:
-              1) A two-tuple of indices into the header sequence, indicating the limits (inclusive)
-                 needing refreshing
-              2) None, indicating the entire (non-name) contents needs refreshing
-              3) "name", indicating the name has changed
+        """ 'refresh_callback' is called with a variable number of arguments, the first two of which always
+            are:
+              1) The reason for the callback, one of the CALLBACK_* constants above.
+              2) This header
+
+            CALLBACK_VALUES has an additional argument indicating the bounds on the sequence of the changed
+            values.  It is either a 2-tuple of zero-based indices, or None to indicate the whole sequence.
+            CALLBACK_NAME has no additional arguments.  CALLBACK_RELEVANCE has an additional boolean
+            argument indicating whether the header is currently relevant or not.
         """
         if name is None:
             if not hasattr(self, 'name'):

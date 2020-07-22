@@ -30,7 +30,7 @@
   <Providers manager="alignments">
     <Provider name="Consensus" type="header"/>
     <Provider name="Conservation" type="header"/>
-    <!-- <Provider name="RMSD" type="header"/> -->
+    <Provider name="RMSD" type="header"/>
   </Providers>
 
   <Classifiers>
