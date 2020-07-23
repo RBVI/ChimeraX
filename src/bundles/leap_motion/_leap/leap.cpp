@@ -106,7 +106,8 @@ public:
   ~Leap() { LeapCloseConnection(connection); }
 
   bool hand_state(int hand, float max_age,
-			float palm_pos[3], float *pinch_strength)
+		  float palm_pos[3], float palm_normal[3], float finger_dir[3],
+		  float *pinch_strength)
   {
     bool got_state = false;
     lock();
@@ -115,8 +116,13 @@ public:
 	LEAP_HAND *h = last_hands.hand(hand);
 	if (h)
 	  {
+	    LEAP_PALM &palm = h->palm;
 	    for (int a = 0 ; a < 3 ; ++a)
-	      palm_pos[a] = h->palm.position.v[a];
+	      {
+		palm_pos[a] = palm.position.v[a];
+		palm_normal[a] = palm.normal.v[a];
+		finger_dir[a] = palm.direction.v[a];
+	      }
 	    *pinch_strength = h->pinch_strength;
 	    got_state = true;
 	  }
@@ -267,11 +273,14 @@ leap_hand_state(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   Leap *l = static_cast<Leap *>(leap);
-  float palm_pos[3], pinch_strength;
-  if (!l->hand_state(hand, max_age, palm_pos, &pinch_strength))
+  float palm_pos[3], palm_normal[3], finger_dir[3], pinch_strength;
+
+  if (!l->hand_state(hand, max_age, palm_pos, palm_normal, finger_dir, &pinch_strength))
     return python_none();
 
   return python_tuple(c_array_to_python(palm_pos, 3),
+		      c_array_to_python(palm_normal, 3),
+		      c_array_to_python(finger_dir, 3),
 		      PyFloat_FromDouble(pinch_strength));
 }
 
@@ -329,6 +338,8 @@ static PyMethodDef leap_methods[] = {
    "\n"
    "Return hand position info for hand (0 = left, 1 = right):\n"
    "  palm position as length 3 float numpy array)\n"
+   "  palm normal vector as length 3 float numpy array)\n"
+   "  finger direction vector as length 3 float numpy array)\n"
    "  pinch, whether index finger and thumb touch, boolean\n"
    "If no hand tracking data for last max_age seconds return None.\n"
    "Implemented in C++.\n"
