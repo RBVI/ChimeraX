@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Command to view models in HTC Vive or Oculus Rift for ChimeraX.
+# Command to use Leap Motion hand tracking with mouse and VR modes.
 #
 def leapmotion(session, enable = None,
                pointer_size = None, mode_left = None, mode_right = None,
@@ -31,12 +31,12 @@ def leapmotion(session, enable = None,
     pointer_size: float
       Diameter of cross pointer indicating hand position.  Default 1.0.
     mode_left, mode_right: "mouse" or "vr"
-      Whether pinching emulates a mouse clicks (2D) or VR clicks (3D).
+      Whether pinching emulates a mouse clicks (2D) or VR clicks (6D).
+      In VR mode it emulates a VR button click including 3D position and
+      rotation and the pointer (cross) moves and rotates in 3D.
       When emulating the mouse the left or right hand emulates a left button
-      click or right button click at the position of the hand pointer.
-      In VR mode it emulates a 3D button click.  In mouse mode the hand
-      pointer is shown in front of the models and moves in 2D while in
-      VR mode the hand pointer moves in 3D.
+      click or right button click at the position of the hand pointer and
+      the pointer is shown in front of the models and moves in 2D.  Default "vr".
     width: float
       Hand motion range that corresponds to graphics window width.
       Millimeters.  Default 250.
@@ -56,9 +56,9 @@ def leapmotion(session, enable = None,
       Don't use hand positions older than this many seconds.  Default 0.2.
     head_mounted: bool
       Whether device is head mounted (ie facing forward) or up facing.  Default True.
-      CLeap 4.0 is optimized for head mounted, tracks considerably better than up facing.
+      LeapC 4.0 is optimized for head mounted, tracks considerably better than up facing.
     debug: bool
-      Whether to send CLeap library debugging messages to console stderr.
+      Whether to send LeapC library debugging messages to console stderr.
     '''
     
     if enable is None:
@@ -120,41 +120,42 @@ class TrackingSpace:
     def __init__(self, width = 250, center = (0,250,0),
                  facing = (0,1,0), cord = (-1,0,0)):
         self._width = width	# Hand range corresponding to screen width.  Millimeters
-        self._center = center	# Center in leap motion device coordinates.
-        self._facing = facing	# Sensor facing direction in screen coordinates.
-        self._cord = cord	# Cord exit direction in screen coordinates.
+        from numpy import array, float64
+        self._center = array(center, float64)	# Center in leap motion device coordinates.
+        self._facing = array(facing, float64)	# Sensor facing direction in screen coordinates.
+        self._cord = array(cord, float64)	# Cord exit direction in screen coordinates.
         
-    def scene_position_3d(self, hand_position, view):
+    def scene_position_6d(self, hand_pose, view):
+        from chimerax.geometry import translation, cross_product
+        from chimerax.geometry import orthonormal_frame, inner_product
+        
         # Adjust origin
-        cpos = hand_position - self._center
+        cpos = translation(-self._center) * hand_pose
 
         # Scale millimeters to scene units
         scene_center = view.center_of_rotation
         cam = view.camera
-        scale = cam.view_width(scene_center) / self._width
-        cpos *= scale			# millimeters to scene units
+        factor = cam.view_width(scene_center) / self._width
+        cpos = cpos.scale_translation(factor)		# millimeters to scene units
 
         # Rotate to screen orientation
-        from chimerax.geometry import cross_product, orthonormal_frame
         yaxis = self._facing
         zaxis = cross_product(yaxis, self._cord)
         cpos = orthonormal_frame(zaxis, ydir=yaxis) * cpos
         
         # Adjust depth origin to center of rotation.
         cam_pos = cam.position
-        from chimerax.geometry import inner_product
         depth = inner_product(scene_center - cam_pos.origin(), -cam_pos.z_axis())
-        cpos[2] -= depth		# Center in front of camera (-z axis).
+        cpos = translation((0,0,-depth)) * cpos	# Center in front of camera (-z axis).
 
         # Convert camera coordinates to scene coordinates
-        from chimerax.geometry import translation
-        scene_pos = cam_pos * translation(cpos)      # Map from camera to scene coordinates
+        scene_pos = cam_pos * cpos      # Map from camera to scene coordinates
         
         return scene_pos
 
-    def scene_position_2d(self, hand_position, view):
+    def scene_position_2d(self, hand_pose, view):
         # Adjust origin
-        cpos = hand_position - self._center
+        cpos = hand_pose.origin() - self._center
 
         # Scale millimeters to scene units
         cpos /= self._width			# millimeters to unit width
@@ -190,7 +191,7 @@ class LeapMotion(Model):
     SESSION_SAVE = False
     
     def __init__(self, session, pointer_size = 1.0,
-                 mode_left = 'mouse', mode_right = 'vr',
+                 mode_left = 'vr', mode_right = 'vr',
                  pinch_thresholds = (0.9,0.6), max_delay = 0.2,
                  tracking_space = TrackingSpace(), head_mounted = False,
                  debug = False):
@@ -239,9 +240,10 @@ class LeapMotion(Model):
                 h.display = False
             else:
                 h.display = True
-                hand_position, pinch_strength = state
-                h._position_pointer(hand_position)
-                h._update_pinch(pinch_strength, hand_position)
+                palm_position, palm_normal, finger_direction, pinch_strength = state
+                hand_pose = h._hand_pose(palm_position, palm_normal, finger_direction)
+                h._position_pointer(hand_pose)
+                h._update_pinch(pinch_strength, hand_pose)
 
 # -----------------------------------------------------------------------------
 #
@@ -254,12 +256,12 @@ class LeapHand(Model):
     
     def __init__(self, session, pointer_size = 1.0, hand = 'right', emulate = 'mouse',
                  tracking_space = TrackingSpace(), pinch_thresholds = (0.9, 0.6)):
-        self._emulate = emulate			# 'mouse' or 'vr' for 2d or 3d mouse mode events
+        self._emulate = emulate			# 'mouse' or 'vr' for 2d or 6d mouse mode events
         self._hand = hand			# 'left' or 'right'
         self._tracking_space = tracking_space	# Maps device hand position to screen.
         self._pinch = False			# Are thumb and index finger touching?
         self._pinch_thresholds = pinch_thresholds	# Pinch strength on and off thresholds
-        self._last_position = None		# Used for mouse mode drag events, leap device coordinates
+        self._last_hand_pose = None		# Used for mouse mode drag events, leap device coordinates
         self._window_xy = None
         
         name = self._hand + ' hand'
@@ -281,16 +283,24 @@ class LeapHand(Model):
         cva, cna, cta = cylinder_geometry(radius = 0.5*stick_diameter, height = cross_diameter)
         from chimerax.geometry import rotation
         rx90, ry90 = rotation((1,0,0),90), rotation((0,1,0),90)
-        vax, nax =  ry90 * cva, ry90.transform_vectors(cna)
-        vay, nay =  rx90 * cva, rx90.transform_vectors(cna)
-        va, na, ta = combine_geometry_vnt([(vax,nax,cta), (vay,nay,cta)])
+        vax, nax = ry90 * cva, ry90.transform_vectors(cna)
+        vay, nay = rx90 * cva, rx90.transform_vectors(cna)
+        geom = [(vax,nax,cta), (vay,nay,cta)]
+        if self._emulate == 'vr':
+            geom.append((cva,cna,cta))  # z-axis
+        va, na, ta = combine_geometry_vnt(geom)
         self.set_geometry(va, na, ta)
 
-    def _position_pointer(self, hand_position):
+    def _hand_pose(self, palm_position, palm_normal, finger_direction):
+        from chimerax.geometry import orthonormal_frame
+        hp = orthonormal_frame(finger_direction, ydir = -palm_normal, origin = palm_position)
+        return hp
+        
+    def _position_pointer(self, hand_pose):
         '''Hand position is in millimeters in Leap Motion coordinate system.'''
-        self.position = self._scene_position(hand_position)
+        self.position = self._scene_position(hand_pose)
 
-    def _scene_position(self, hand_position):
+    def _scene_position(self, hand_pose):
         '''
         Hand position is in millimeters in Leap Motion coordinate system.
         Scale hand range in millimeters to fill camera view.
@@ -298,25 +308,25 @@ class LeapHand(Model):
         t = self._tracking_space
         view = self.session.main_view
         if self._emulate == 'mouse':
-            scene_pos, win_xy = t.scene_position_2d(hand_position, view)
+            scene_pos, win_xy = t.scene_position_2d(hand_pose, view)
             self._window_xy = win_xy
         elif self._emulate == 'vr':
-            scene_pos = t.scene_position_3d(hand_position, view)
+            scene_pos = t.scene_position_6d(hand_pose, view)
         return scene_pos
 
-    def _in_view(self, hand_position):
-        spos = self._scene_position(hand_position).origin()
+    def _in_view(self, hand_pose):
+        spos = self._scene_position(hand_pose).origin()
         return point_in_view(spos, self.session.main_view)
     
-    def _update_pinch(self, pinch_strength, hand_position):
-        if self._pinch_changed(pinch_strength, hand_position):
+    def _update_pinch(self, pinch_strength, hand_pose):
+        if self._pinch_changed(pinch_strength, hand_pose):
             self._send_pinch_event()
             self.color = self._pinch_color if self._pinch else self._unpinch_color
         if self._pinch:
-            self._send_motion_event(hand_position)
-            self._last_position = hand_position
+            self._send_motion_event(hand_pose)
+            self._last_hand_pose = hand_pose
 
-    def _pinch_changed(self, pinch_strength, hand_position):
+    def _pinch_changed(self, pinch_strength, hand_pose):
         pon, poff = self._pinch_thresholds
         if pinch_strength >= pon:
             pinch = True
@@ -326,7 +336,7 @@ class LeapHand(Model):
             pinch = self._pinch
         if pinch == self._pinch:
             return False
-        if pinch and not self._in_view(hand_position):
+        if pinch and not self._in_view(hand_pose):
             # Suppress pinches out of view to reduce noise pinches
             # when hand is near edge of device field of view.
             return False
@@ -336,7 +346,7 @@ class LeapHand(Model):
     def _send_pinch_event(self):
         pinch = self._pinch
         if not pinch:
-            self._last_position = None
+            self._last_hand_pose = None
         mode = self._mouse_mode()
         if mode is None:
             return
@@ -348,12 +358,27 @@ class LeapHand(Model):
             else:
                 mode.mouse_up(event)
         elif self._emulate == 'vr':
+            pos = self.position.origin()
+            e = LeapPinchEvent(pos, self._far_clip_point(pos))
             if pinch and hasattr(mode, 'vr_press'):
-                mode.vr_press(LeapPinchEvent(self.position.origin()))
+                mode.vr_press(e)
             elif not pinch and hasattr(mode, 'vr_release'):
-                mode.vr_release(LeapPinchEvent(self.position.origin()))
+                mode.vr_release(e)
 
-    def _send_motion_event(self, pos):
+    def _far_clip_point(self, pos):
+        view = self.session.main_view
+        cam = view.camera
+        view_num = 0
+        cam_pos = cam.get_position(view_num).origin()
+        cam_dir = cam.view_direction(view_num)
+        pick_dir = pos - cam_pos
+        near, far = view.near_far_distances(cam, view_num)
+        from chimerax.geometry import inner_product
+        denom = inner_product(pick_dir, cam_dir)
+        d = (far - inner_product(cam_pos, cam_dir)) / denom if denom != 0 else 1000
+        return cam_pos + d*pick_dir
+
+    def _send_motion_event(self, hand_pose):
         mode = self._mouse_mode()
         if mode:
             if self._emulate == 'mouse':
@@ -361,15 +386,14 @@ class LeapHand(Model):
                 event = MouseEvent(position = self._window_xy)
                 mode.mouse_drag(event)
             elif self._emulate == 'vr' and hasattr(mode, 'vr_motion'):
-                lpos = self._last_position
+                lpos = self._last_hand_pose
                 if lpos is not None:
-                    lspos = self._scene_position(lpos).origin()
-                    from chimerax.geometry import translation
-                    spos = self.position.origin()
-                    shift = spos - lspos
-                    move = translation(shift)
-                    vert = pos[1] - lpos[1]
-                    mode.vr_motion(LeapMoveEvent(spos, move, vert))
+                    lspos = self._scene_position(lpos)
+                    spos = self.position
+                    move = spos * lspos.inverse()
+                    vert = hand_pose.origin()[1] - lpos.origin()[1]
+                    event = LeapMoveEvent(spos.origin(), move, vert)
+                    mode.vr_motion(event)
             
     def _mouse_mode(self):
         button = self._hand # left button for left hand, right button for right hand.
@@ -394,18 +418,19 @@ def point_in_view(point, view):
     return True
     
 class LeapPinchEvent:
-    def __init__(self, position):
+    def __init__(self, position, pick_end_position):
         self._position = position
         self.tip_position = position
+        self._pick_end_position = pick_end_position
     def picked_object(self, view):
         '''Return pick for object under position.'''
-        # TODO: Compute clipped ray.
-        xyz1 = self._position
-        xyz2 = xyz1 + 100 * (xyz1 - view.camera.position.origin())
+        xyz1, xyz2 = self.picking_segment()
         from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, view)
         return pick
-
+    def picking_segment(self):
+        return (self._position, self._pick_end_position)
+    
 class LeapMoveEvent:
     def __init__(self, position, move, room_vertical_motion):
         self.tip_position = position
