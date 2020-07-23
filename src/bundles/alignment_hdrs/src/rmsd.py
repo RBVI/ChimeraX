@@ -20,11 +20,12 @@ from .header_sequence import DynamicStructureHeaderSequence
 class RMSD(DynamicStructureHeaderSequence):
 
     settings_name = "RMSD"
+    min_structure_relevance = 2
 
     def __init__(self, alignment, *args, **kw):
         from math import log
         self.scaling = log(0.5) / (-3.0)
-        super().__init__(alignment, *args, eval_while_hidden=True, **kw)
+        super().__init__(alignment, *args, **kw)
         from chimerax.atomic import get_triggers
         self.handlers = [
             self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
@@ -106,6 +107,9 @@ class RMSD(DynamicStructureHeaderSequence):
         return "RMSD sequence header", defaults
 
     def reevaluate(self, pos1=0, pos2=None):
+        if not self._shown and not self.eval_while_hidden:
+            self._update_needed = True
+            return
         if self.chain_matching == "all":
             self._eval_chains = self.alignment.associations.keys()
         elif pos1 == 0 and pos2 == None:
@@ -216,7 +220,7 @@ class RMSD(DynamicStructureHeaderSequence):
         if attr_name == "atoms":
             self.reevaluate()
             self._set_name()
-            self.refresh_callback(self, "name")
+            self.refresh_callback(self.CALLBACK_NAME, self)
         elif attr_name == "chain_matching":
             self.reevaluate()
 

@@ -25,7 +25,12 @@ class Alignment(State):
     NOTE_ADD_ASSOC    = "add association"
     NOTE_MOD_ASSOC    = "modify association"
     NOTE_DEL_ASSOC    = "remove association"
+    NOTE_ADD_SEQS     = "add seqs"
     NOTE_PRE_DEL_SEQS = "pre-remove seqs"
+    NOTE_DEL_SEQS     = "remove seqs"
+    NOTE_ADD_DEL_SEQS = "add or remove seqs"
+    NOTE_EDIT_START   = "editing started"
+    NOTE_EDIT_END     = "editing finished"
     NOTE_DESTROYED    = "destroyed"
     NOTE_COMMAND      = "command"
 
@@ -355,8 +360,22 @@ class Alignment(State):
                 struct_name += " (" + struct.id_string + ")"
             self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
         # delay notifying the observers until all chain demotions/deletions have been received
-        def _delay_disassoc(_, __, match_map=match_map):
-            self._notify_observers(self.NOTE_DEL_ASSOC, [match_map])
+        num_unknown = 0
+        structures = set()
+        for sseq in self.associations:
+            try:
+                structures.add(sseq.structure)
+            except AttributeError:
+                # demoted
+                num_unknown += 1
+        data = {
+            'match map': match_map,
+            'num remaining associations': len(self.associations),
+            'max previous structures': len(structures) + num_unknown,
+            'num remaining structures': len(structures)
+        }
+        def _delay_disassoc(_, __, data=data):
+            self._notify_observers(self.NOTE_DEL_ASSOC, data)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
@@ -544,10 +563,10 @@ class Alignment(State):
             recipients = self.viewers_by_subcommand.get(viewer_criteria, [])
         for recipient in recipients:
             recipient.alignment_notification(note_name, note_data)
-            if note_name in ["add association", "remove association"]:
-                recipient.alignment_notification("modify association", (note_name, note_data))
-            elif note_name in ["add sequences", "remove sequences"]:
-                recipient.alignment_notification("add or remove sequences", (note_name, note_data))
+            if note_name in [self.NOTE_ADD_ASSOC, self.NOTE_DEL_ASSOC]:
+                recipient.alignment_notification(self.NOTE_MOD_ASSOC, (note_name, note_data))
+            elif note_name in [self.NOTE_ADD_SEQS, self.NOTE_DEL_SEQS]:
+                recipient.alignment_notification(self.NOTE_ADD_DEL_SEQS, (note_name, note_data))
 
     @staticmethod
     def restore_snapshot(session, data):

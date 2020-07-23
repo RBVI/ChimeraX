@@ -444,7 +444,11 @@ class SequenceViewer(ToolInstance):
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
-            for match_map in note_data[-1]:
+            if note_data[0] == alignment.NOTE_ADD_ASSOC:
+                match_maps = note_data[1]
+            else:
+                match_maps = [note_data[1]['match map']]
+            for match_map in match_maps:
                 aseq = match_map.align_seq
                 assoc_aseqs.add(aseq)
             for aseq in assoc_aseqs:
@@ -524,6 +528,18 @@ class SequenceViewer(ToolInstance):
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
 
+        headers_menu = menu.addMenu("Headers")
+        headers = self.headers()
+        headers.sort(key=lambda hdr: hdr.name.casefold())
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            action.triggered.connect(lambda checked, hdr=hdr, self=self: setattr(hdr, 'shown', checked))
+            headers_menu.addAction(action)
+
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info")
 
@@ -551,11 +567,8 @@ class SequenceViewer(ToolInstance):
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
 
-    def headers(self, shown_only=False):
-        headers = self.seq_canvas.headers
-        if shown_only:
-            return [hd for hd in headers if self.seq_canvas.display_header[hd]]
-        return headers
+    def headers(self):
+        return self.seq_canvas.headers[:]
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""
