@@ -34,7 +34,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  nucleotides open_command pdb pick_blobs positions preset_mgr pubchem \
+	  neuron nucleotides open_command \
+	  pdb pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
 	  sdf segger segment seq_view sequences shape \
