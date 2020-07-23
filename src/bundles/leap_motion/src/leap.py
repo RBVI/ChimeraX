@@ -56,9 +56,9 @@ def leapmotion(session, enable = None,
       Don't use hand positions older than this many seconds.  Default 0.2.
     head_mounted: bool
       Whether device is head mounted (ie facing forward) or up facing.  Default True.
-      CLeap 4.0 is optimized for head mounted, tracks considerably better than up facing.
+      LeapC 4.0 is optimized for head mounted, tracks considerably better than up facing.
     debug: bool
-      Whether to send CLeap library debugging messages to console stderr.
+      Whether to send LeapC library debugging messages to console stderr.
     '''
     
     if enable is None:
