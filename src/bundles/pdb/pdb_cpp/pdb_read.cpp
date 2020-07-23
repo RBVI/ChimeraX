@@ -58,8 +58,8 @@ void PDB::parse_line(const char *buf)
     case HETATM: {
         // '73' in order to pick up element column if provided
         fmt = (input_version == 2 && strlen(buf) >= 73)
-            ? "%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f%6 %4s%2s%2s"
-            : "%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%6f%6f";
+            ? "%6 %5d %4s%c%4S%c%4d%c   %8f%8f%8f%6f%6f%6 %4s%2s%2s"
+            : "%6 %5d %4s%c%4S%c%4d%c   %8f%8f%8f%6f%6f";
         if (0 <= sscanf(buf, fmt,
                 &atom.serial, atom.name,
                 &atom.alt_loc, atom.res.name,
@@ -79,7 +79,7 @@ void PDB::parse_line(const char *buf)
         if (isdigit(buf[11])) {
             // serial numbers overflowing to the right?
             char altfmt[80];
-            strcpy(altfmt, "%6 %6d%4s%c%4s%c%5d   %8f%8f%8f%6f%6f");
+            strcpy(altfmt, "%6 %6d%4s%c%4S%c%5d   %8f%8f%8f%6f%6f");
             if (input_version == 2 && strlen(buf) >= 80)
                 strcat(altfmt, "%6 %4s%2s%2s");
             if (0 <= sscanf(buf, fmt,
@@ -115,7 +115,7 @@ void PDB::parse_line(const char *buf)
         }
 atomqr:
         if (0 <= sscanf(buf,
-                "%6 %5d %4s%c%4s%c%4d%c   %8f%8f%8f%8f%8f",
+                "%6 %5d %4s%c%4S%c%4d%c   %8f%8f%8f%8f%8f",
                 &atomqr.serial, atomqr.name,
                 &atomqr.alt_loc, atomqr.res.name,
                 &atomqr.res.chain_id, &atomqr.res.seq_num,
@@ -131,7 +131,7 @@ atomqr:
 
     case ANISOU:
         if (0 > sscanf(buf,
-            "%6 %5d %4s%c%4s%c%4d%c %7d%7d%7d%7d%7d%7d  %4s%2s%2s",
+            "%6 %5d %4s%c%4S%c%4d%c %7d%7d%7d%7d%7d%7d  %4s%2s%2s",
                 &anisou.serial, anisou.name,
                 &anisou.alt_loc, anisou.res.name,
                 &anisou.res.chain_id, &anisou.res.seq_num,

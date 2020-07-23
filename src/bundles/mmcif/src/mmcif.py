@@ -395,6 +395,8 @@ def load_mmCIF_templates(filename):
 def quote(s, max_len=60):
     """Return CIF 1.1 data value version of string"""
     # max_len is for mimicing the output from the PDB (see #2230)
+    if isinstance(s, (int, float)):
+        return str(s)
     s = str(s)
     examine = s[0:1]
     sing_quote = examine == "'"
@@ -1021,17 +1023,17 @@ class CIFTable:
             file = sys.stdout
         if n == len(self._data):
             for t, v in zip(self._tags, self._data):
-                print('_%s.%s %s' % (self.table_name, t, quote(v)), file=file)
+                print(f'_{self.table_name}.{t}', quote(v), file=file)
         else:
             print('loop_', file=file)
             for t in self._tags:
-                print('_%s.%s' % (self.table_name, t), file=file)
+                print(f'_{self.table_name}.{t}', file=file)
+            data = [quote(x) for x in self._data]
             if not fixed_width:
                 for i in range(0, len(self._data), n):
-                    print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
+                    print(' '.join(data[i:i + n]), file=file)
             else:
                 bad_fixed_width = False
-                data = [quote(x) for x in self._data]
                 columns = [data[i::n] for i in range(n)]
                 try:
                     widths = [max(len(f) if f[0] != '\n' else sys.maxsize for f in c) for c in columns]
@@ -1065,7 +1067,6 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     """Get structure for CCD component"""
     from .. import AtomicStructure
     # TODO: support ignore_cache
-    from itertools import chain
     ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
     try:
         ccd = find_template_residue(session, ccd_id)
