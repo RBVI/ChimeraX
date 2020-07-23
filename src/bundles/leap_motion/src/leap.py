@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Command to view models in HTC Vive or Oculus Rift for ChimeraX.
+# Command to use Leap Motion hand tracking with mouse and VR modes.
 #
 def leapmotion(session, enable = None,
                pointer_size = None, mode_left = None, mode_right = None,
