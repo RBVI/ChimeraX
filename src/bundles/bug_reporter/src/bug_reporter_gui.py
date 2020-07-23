@@ -117,6 +117,7 @@ class BugReporter(ToolInstance):
         elif sys.platform == 'darwin':
             info += _darwin_info()
         info += _qt_info(session)
+        info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
@@ -504,3 +505,19 @@ def _qt_info(session):
         f"Compiled Qt version: {Qt.QT_VERSION_STR}\n"
         f"Runtime Qt version: {Qt.qVersion()}\n"
     )
+
+
+def _package_info():
+    import pkg_resources
+    dists = list(pkg_resources.WorkingSet())
+    dists.sort(key=lambda d: d.project_name.casefold())
+
+    info = "Installed Packages:"
+    for d in dists:
+        name = d.project_name
+        if d.has_version():
+            version = d.version
+        else:
+            version = "unknown"
+        info += f"\n    {name}: {version}"
+    return info
