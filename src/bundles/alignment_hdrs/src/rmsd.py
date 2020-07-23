@@ -46,16 +46,6 @@ class RMSD(DynamicStructureHeaderSequence):
             return
         self.settings.atoms = domain
 
-    @property
-    def chain_matching(self):
-        return self.settings.chain_matching
-
-    @chain_matching.setter
-    def chain_matching(self, matching):
-        if self.settings.chain_matching == matching:
-            return
-        self.settings.chain_matching = matching
-
     def destroy(self):
         for handler in self.handlers:
             handler.remove()
@@ -89,10 +79,6 @@ class RMSD(DynamicStructureHeaderSequence):
         return super().option_data() + [
             ("Atoms used for RMSD", 'atoms', RmsdDomainOption, {},
                 "The atoms from each residue that are used in computing the RMSD"),
-            ("Chain matching", 'chain_matching', ChainMatchingOption, {},
-                "Which associated chains to use in the matching:\nif 'smart' then "
-                "use one chain per structure and try to find the set with the lowest overall RMSD;\n"
-                "if 'all' simply use all associated chains."),
         ]
 
     def position_color(self, pos):
@@ -102,7 +88,6 @@ class RMSD(DynamicStructureHeaderSequence):
         name, defaults = super().settings_info()
         defaults.update({
             'atoms': carbon_alpha,
-            'chain_matching': "smart",
         })
         return "RMSD sequence header", defaults
 
@@ -110,9 +95,7 @@ class RMSD(DynamicStructureHeaderSequence):
         if not self._shown and not self.eval_while_hidden:
             self._update_needed = True
             return
-        if self.chain_matching == "all":
-            self._eval_chains = self.alignment.associations.keys()
-        elif pos1 == 0 and pos2 == None:
+        if pos1 == 0 and pos2 == None:
             original_eval_chains = getattr(self, '_eval_chains', [])
             by_struct = {}
             for chain in self.alignment.associations:
@@ -221,12 +204,7 @@ class RMSD(DynamicStructureHeaderSequence):
             self.reevaluate()
             self._set_name()
             self.refresh_callback(self.CALLBACK_NAME, self)
-        elif attr_name == "chain_matching":
-            self.reevaluate()
 
 from chimerax.ui.options import EnumOption
 class RmsdDomainOption(EnumOption):
     values = [carbon_alpha, "backbone"]
-
-class ChainMatchingOption(EnumOption):
-    values = ["all", "smart"]
