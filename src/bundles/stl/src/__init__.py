@@ -28,9 +28,9 @@ class _STLAPI(BundleAPI):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
             class STLInfo(OpenerInfo):
-                def open(self, session, data, file_name, **kw):
+                def open(self, session, path, file_name, **kw):
                     from . import stl
-                    return stl.read_stl(session, data, file_name)
+                    return stl.read_stl(session, path, file_name)
         else:
             from chimerax.save_command import SaverInfo
             class STLInfo(SaverInfo):

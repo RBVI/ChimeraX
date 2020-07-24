@@ -180,10 +180,11 @@ AtomicStructure::_compute_structure_cats() const
     }
     
     std::vector<Atom*> ligands;
-    auto ligand_cutoff = std::min(longest->size()/4, (size_t)250);
+    // CDL has 256 atoms
+    auto ligand_cutoff = std::min(longest->size()/4, (size_t)256);
     for (auto root: root_set) {
         auto grp = group_lookup[root];
-        if (grp->size() < ligand_cutoff) {
+        if (grp->size() <= ligand_cutoff) {
             // fewer than 10 residues?
             std::set<Residue*> residues;
             for (auto a: *grp) {

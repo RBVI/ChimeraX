@@ -441,9 +441,14 @@ class SequenceViewer(ToolInstance):
         self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "modify association":
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
-            for match_map in note_data[-1]:
+            if note_data[0] == alignment.NOTE_ADD_ASSOC:
+                match_maps = note_data[1]
+            else:
+                match_maps = [note_data[1]['match map']]
+            for match_map in match_maps:
                 aseq = match_map.align_seq
                 assoc_aseqs.add(aseq)
             for aseq in assoc_aseqs:
@@ -453,11 +458,11 @@ class SequenceViewer(ToolInstance):
                 self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
-        elif note_name == "pre-remove seqs":
+        elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_browser._pre_remove_lines(note_data)
-        elif note_name == "destroyed":
+        elif note_name == alignment.NOTE_DESTROYED:
             self.delete()
-        elif note_name == "command":
+        elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
 
@@ -523,6 +528,18 @@ class SequenceViewer(ToolInstance):
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
 
+        headers_menu = menu.addMenu("Headers")
+        headers = self.headers()
+        headers.sort(key=lambda hdr: hdr.name.casefold())
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            action.triggered.connect(lambda checked, hdr=hdr, self=self: setattr(hdr, 'shown', checked))
+            headers_menu.addAction(action)
+
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info")
 
@@ -550,11 +567,8 @@ class SequenceViewer(ToolInstance):
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
 
-    def headers(self, shown_only=False):
-        headers = self.seq_canvas.headers
-        if shown_only:
-            return [hd for hd in headers if self.seq_canvas.display_header[hd]]
-        return headers
+    def headers(self):
+        return self.seq_canvas.headers[:]
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""

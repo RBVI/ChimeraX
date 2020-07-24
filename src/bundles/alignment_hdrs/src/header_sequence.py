@@ -29,8 +29,18 @@ class HeaderSequence(list):
     CALLBACK_VALUES = "values changed"
     CALLBACK_NAME = "header name changed"
     CALLBACK_RELEVANCE = "header's relevance to alignment changed"
+    CALLBACK_SHOWN = "'shown' attribute changed"
 
     def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
+        """ 'refresh_callback' is called with a variable number of arguments, the first two of which always
+            are:
+              1) The reason for the callback, one of the CALLBACK_* constants above.
+              2) This header
+
+            CALLBACK_VALUES has an additional argument indicating the bounds on the sequence of the changed
+            values.  It is either a 2-tuple of zero-based indices, or None to indicate the whole sequence.
+            CALLBACK_NAME, CALLBACK_SHOWN, and CALLBACK_RELEVANCE have no additional arguments.
+        """
         if name is None:
             if not hasattr(self, 'name'):
                 self.name = ""
@@ -67,9 +77,9 @@ class HeaderSequence(list):
             self.reevaluate()
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "editing started":
+        if note_name == self.alignment.NOTE_EDIT_START:
             self._alignment_being_edited = True
-        if note_name == "editing finished":
+        if note_name == self.alignment.NOTE_EDIT_END:
             self._alignment_being_edited = False
 
     def destroy(self):
@@ -212,11 +222,16 @@ class HeaderSequence(list):
         if show == self._shown:
             return
         self._shown = show
+        # suppress the refresh callback
+        cb = self.refresh_callback
+        self.refresh_callback = None
         if show:
             if self._edit_bounds:
-                self.reevaluate(*self._edit_bounds)
+                self.reevaluate(*self._edit_bounds, suppress_callback=True)
             elif self._update_needed:
                 self.reevaluate()
+        self.refresh_callback = cb
+        self.refresh_callback(HeaderSequence.CALLBACK_SHOWN, self)
 
     def _add_options(self, options_container, category, verbose_labels, option_data):
         for base_label, attr_name, opt_class, opt_kw, balloon in option_data:
@@ -229,7 +244,7 @@ class HeaderSequence(list):
 
     def _final_option_label(self, base_label, verbose_labels):
         if verbose_labels:
-            return "%s: %s" % (self.name, base_label)
+            return "%s: %s" % (getattr(self, "settings_name", self.name), base_label)
         return base_label[0].upper() + base_label[1:]
 
 
@@ -281,10 +296,10 @@ class DynamicHeaderSequence(HeaderSequence):
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
         if not self.single_sequence_relevant:
-            if note_name == "add sequences" and len(self.alignment.seqs) - len(note_data) == 1:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
-            elif note_name == "remove sequences" and len(self.alignment.seqs) == 1:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+            if note_name == self.alignment.NOTE_ADD_SEQS and len(self.alignment.seqs) - len(note_data) == 1:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+            elif note_name == self.alignment.NOTE_DEL_SEQS and len(self.alignment.seqs) == 1:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
 
     @property
     def relevant(self):
@@ -292,19 +307,51 @@ class DynamicHeaderSequence(HeaderSequence):
 
 class DynamicStructureHeaderSequence(HeaderSequence):
 
+    min_chain_relevance = min_structure_relevance = None
+
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
-        if note_name == "modify association":
+        if note_name == self.alignment.NOTE_MOD_ASSOC:
             self.reevaluate()
-        elif note_name == "add association":
-            if len(self.alignment.associations) == len(note_data):
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
-        elif note_name == "remove association":
-            if len(self.alignment.associations) == 0:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+        elif note_name == self.alignment.NOTE_ADD_ASSOC:
+            if self.min_chain_relevance is not None:
+                cur_assocs = len(self.alignment.associations)
+                prev_assocs = cur_assocs - len(note_data)
+                if prev_assocs < self.min_chain_relevance \
+                and cur_assocs >= self.min_chain_relevance:
+                    self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+            elif self.min_structure_relevance is not None:
+                added_sseqs = set([x.struct_seq for x in note_data])
+                prev_structs = len(set([x.structure
+                    for x in self.alignment.associations if x not in added_sseqs]))
+                cur_structs = len(set([x.structure for x in self.alignment.associations]))
+                if prev_structs < self.min_structure_relevance \
+                and cur_structs >= self.min_structure_relevance:
+                    self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+            else:
+                if len(note_data) == len(self.alignment.associations):
+                    self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+        elif note_name == self.alignment.NOTE_DEL_ASSOC:
+            if self.min_chain_relevance is not None:
+                if note_data['num remaining associations'] == self.min_chain_relevance - 1:
+                    self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+            elif self.min_structure_relevance is not None:
+                # can't be completely sure relevance changed in all cases, but be overly cautious
+                if note_data['max previous structures'] >= self.min_structure_relevance \
+                and note_data['num remaining structures'] < self.min_structure_relevance:
+                    self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
+        else:
+            if note_data['num remaining associations'] == 0:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self)
 
+    @property
     def relevant(self):
-        return bool(self.alignment.associations)
+        if self.min_chain_relevance is not None:
+            return len(self.alignment.association) >= self.min_chain_relevance
+        if self.min_structure_relevance is not None:
+            return len(set([x.structure
+                for x in self.alignment.associations])) >= self.min_structure_relevance
+        return len(self.alignment.associations) > 0
 
 registered_headers = []
 def register_header(header_class, default_on=True):

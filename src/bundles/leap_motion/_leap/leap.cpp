@@ -98,14 +98,16 @@ private:
 class Leap : LeapPolling 
 {
 public:
-  Leap(LEAP_CONNECTION connection) : LeapPolling(connection), connection(connection)
+  Leap(LEAP_CONNECTION connection, bool messages = false)
+    : LeapPolling(connection, messages), connection(connection)
     {
       start_polling();
     }
   ~Leap() { LeapCloseConnection(connection); }
 
   bool hand_state(int hand, float max_age,
-			float palm_pos[3], float *pinch_strength)
+		  float palm_pos[3], float palm_normal[3], float finger_dir[3],
+		  float *pinch_strength)
   {
     bool got_state = false;
     lock();
@@ -114,13 +116,19 @@ public:
 	LEAP_HAND *h = last_hands.hand(hand);
 	if (h)
 	  {
+	    LEAP_PALM &palm = h->palm;
 	    for (int a = 0 ; a < 3 ; ++a)
-	      palm_pos[a] = h->palm.position.v[a];
+	      {
+		palm_pos[a] = palm.position.v[a];
+		palm_normal[a] = palm.normal.v[a];
+		finger_dir[a] = palm.direction.v[a];
+	      }
 	    *pinch_strength = h->pinch_strength;
 	    got_state = true;
 	  }
       }
     unlock();
+
     return got_state;
   }
 
@@ -189,6 +197,12 @@ void LeapPolling::poll()
 	    for (uint32_t e = 0 ; e < le->nEvents ; ++e)
 	      std::cerr << le->events[e].message << std::endl;
 	  }
+      else if (msg.type == eLeapEventType_Policy)
+	if (_messages)
+	  {
+	    const LEAP_POLICY_EVENT *pe = msg.policy_event;
+	    std::cerr << "leap policy flags = 0x" << std::hex << pe->current_policy << std::endl;
+	  }
     }
 }
 
@@ -197,9 +211,12 @@ void LeapPolling::poll()
 extern "C" PyObject *
 leap_open(PyObject *, PyObject *args, PyObject *keywds)
 {
-  const char *kwlist[] = {NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>(""),
-				   (char **)kwlist))
+  int head_mounted = 0, messages = 0;
+  const char *kwlist[] = {"head_mounted", "debug", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("|bb"),
+				   (char **)kwlist,
+				   &head_mounted,
+				   &messages))
     return NULL;
 
   LEAP_CONNECTION connection;
@@ -214,7 +231,12 @@ leap_open(PyObject *, PyObject *args, PyObject *keywds)
     return PyErr_Format(PyExc_ConnectionError,
 			"leap_open(): Failed to open, error %s %x",
 			result_string(oresult), (int)oresult);
-  Leap *leap = new Leap(connection);
+
+  uint64_t set_policy = (head_mounted ? eLeapPolicyFlag_OptimizeHMD : 0);
+  uint64_t clear_policy = (head_mounted ? 0 : eLeapPolicyFlag_OptimizeHMD);
+  eLeapRS presult = LeapSetPolicyFlags(connection, set_policy, clear_policy);
+  
+  Leap *leap = new Leap(connection, (messages != 0));
   return python_voidp(leap);
 }
 
@@ -251,10 +273,14 @@ leap_hand_state(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   Leap *l = static_cast<Leap *>(leap);
-  float palm_pos[3], pinch_strength;
-  if (!l->hand_state(hand, max_age, palm_pos, &pinch_strength))
+  float palm_pos[3], palm_normal[3], finger_dir[3], pinch_strength;
+
+  if (!l->hand_state(hand, max_age, palm_pos, palm_normal, finger_dir, &pinch_strength))
     return python_none();
+
   return python_tuple(c_array_to_python(palm_pos, 3),
+		      c_array_to_python(palm_normal, 3),
+		      c_array_to_python(finger_dir, 3),
 		      PyFloat_FromDouble(pinch_strength));
 }
 
@@ -312,6 +338,8 @@ static PyMethodDef leap_methods[] = {
    "\n"
    "Return hand position info for hand (0 = left, 1 = right):\n"
    "  palm position as length 3 float numpy array)\n"
+   "  palm normal vector as length 3 float numpy array)\n"
+   "  finger direction vector as length 3 float numpy array)\n"
    "  pinch, whether index finger and thumb touch, boolean\n"
    "If no hand tracking data for last max_age seconds return None.\n"
    "Implemented in C++.\n"
