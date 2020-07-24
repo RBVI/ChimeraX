@@ -47,7 +47,7 @@ PyObject*   extract_CIF_tables(const char* filename,
 
 #ifndef WrapPy
 const tmpl::Residue*
-            find_template_residue(const ResName& name);
+            find_template_residue(const ResName& name, bool start = false, bool stop = false);
 typedef std::function<std::string (const ResName& residue_type)>
             LocateFunc;
 void        set_locate_template_function(LocateFunc func);
