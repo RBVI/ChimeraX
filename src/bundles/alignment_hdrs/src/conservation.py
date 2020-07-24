@@ -18,6 +18,7 @@ from chimerax.seqalign import clustal_strong_groups, clustal_weak_groups
 
 class Conservation(DynamicHeaderSequence):
     name = "Conservation"
+    ident = "conservation"
     sort_val = 1.7
 
     STYLE_PERCENT = "identity histogram"
@@ -218,7 +219,7 @@ class Conservation(DynamicHeaderSequence):
         sane_seqs = [copy(seq) for seq in self.alignment.seqs]
         for i, sseq in enumerate(sane_seqs):
             sseq.name = str(i)
-        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp")
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
         temp_alignment.save(temp_stream, format_name="aln")

@@ -17,11 +17,13 @@ from .header_sequence import DynamicHeaderSequence
 
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
+    ident = "consensus"
     sort_val = 1.3
-    def __init__(self, alignment, refresh_callback):
+    def __init__(self, alignment, *args, **kw):
         self.conserved = [False] * len(alignment.seqs[0])
-        super().__init__(alignment, refresh_callback)
-        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
+        super().__init__(alignment, *args, **kw)
+        self.handler_ID = self.settings.triggers.add_handler('setting changed',
+            lambda *args: self.reevaluate())
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
         self._add_options(options_container, category, verbose_labels, self.option_data())

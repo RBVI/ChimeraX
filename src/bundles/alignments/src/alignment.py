@@ -22,20 +22,45 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
-    NOTE_ADD_ASSOC    = "add association"
-    NOTE_MOD_ASSOC    = "modify association"
-    NOTE_DEL_ASSOC    = "remove association"
-    NOTE_ADD_SEQS     = "add seqs"
-    NOTE_PRE_DEL_SEQS = "pre-remove seqs"
-    NOTE_DEL_SEQS     = "remove seqs"
-    NOTE_ADD_DEL_SEQS = "add or remove seqs"
-    NOTE_EDIT_START   = "editing started"
-    NOTE_EDIT_END     = "editing finished"
-    NOTE_DESTROYED    = "destroyed"
-    NOTE_COMMAND      = "command"
+    NOTE_ADD_ASSOC     = "add association"
+    NOTE_DEL_ASSOC     = "remove association"
+    NOTE_MOD_ASSOC     = "modify association"
+    NOTE_ADD_SEQS      = "add seqs"
+    NOTE_PRE_DEL_SEQS  = "pre-remove seqs"
+    NOTE_DEL_SEQS      = "remove seqs"
+    NOTE_ADD_DEL_SEQS  = "add or remove seqs"
+    NOTE_EDIT_START    = "editing started"
+    NOTE_EDIT_END      = "editing finished"
+    NOTE_DESTROYED     = "destroyed"
+    NOTE_COMMAND       = "command"
+
+    # associated note_data for the above is None except for:
+    #   NOTE_ADD_ASSOC: list of new matchmaps
+    #   NOTE_DEL_ASSOC: a dictionary with information about an association being deleted.  Because of the
+    #           way structure deletion works, one of the values of the dictionary is an estimate.  The
+    #           key/values are:
+    #       'match map': the deleted association's matchmap
+    #       'num remaining associations': number of chains still associated immediately after the deletion
+    #       'max previous structures': estimate of the number of associated _structures_ just before deletion
+    #       'num remaining structures': number of associated _structures just after deletion
+    #   NOTE_MOD_ASSOC: a 2-tuple of the the specific type of modification and associated data.  The type
+    #       can be NOTE_ADD_ASSOC or NOTE_DEL_ASSOC, in which case the second value of the tuple is the
+    #       data normally provided with that notification, or NOTE_MOD_ASSOC, for which the second value
+    #       is a list of modified matchmaps.
+    #   NOTE_COMMAND: the observer subcommand text
+    #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
+
+    NOTE_HDR_VALUES    = "header values changed"
+    NOTE_HDR_NAME      = "header name changed"
+    NOTE_HDR_RELEVANCE = "header's relevance to alignment changed"
+    NOTE_HDR_SHOWN     = "header's 'shown' attribute changed"
+
+    # associated note_data for the above is just the header except for:
+    #   NOTE_HDR_VALUES: a 2-tuple of the header and where the values changed (either a 2-tuple of 0-based
+    #       indices into the header, or None -- which indicates the entire header)
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic):
+            description, intrinsic, *, create_headers=True):
         self.session = session
         if isinstance(seqs, tuple):
             seqs = list(seqs)
@@ -79,6 +104,13 @@ class Alignment(State):
             self.auto_associate = True
         else:
             self._auto_associate = False
+        if create_headers:
+            self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
+            self._headers.sort(key=lambda hdr: hdr.name.casefold())
+            for header in self._headers:
+                header.shown = header.settings.initially_shown and header.relevant
+        else:
+            self._headers = []
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
@@ -381,6 +413,10 @@ class Alignment(State):
         from chimerax import atomic
         atomic.get_triggers().add_handler('changes done', _delay_disassoc)
 
+    @property
+    def headers(self):
+        return self._headers[:]
+
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
            with the alignment.
@@ -457,6 +493,22 @@ class Alignment(State):
                 return_vals.append((None, None, None, None, None))
         return return_vals
 
+    def notify(self, note_name, note_data):
+        """Used by headers to issue notifications, but theoretically could be used by anyone"""
+        self._notify_observers(note_name, note_data)
+        if note_name == self.NOTE_HDR_RELEVANCE:
+            hdr = note_data
+            if hdr.shown and not hdr.relevant:
+                hdr.shown = False
+        elif note_name == self.NOTE_HDR_SHOWN:
+            hdr = note_data
+            if hdr.shown:
+                msg = 'Showing %s header ("%s" residue attribute) for alignment %s' % (hdr.ident,
+                    hdr.residue_attr_name, self)
+            else:
+                msg = 'Hiding %s header for alignment %s' % (hdr.ident, self)
+            self.session.logger.info(msg)
+
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
            you would use this call directly instead of the more usual associate() call
@@ -525,6 +577,8 @@ class Alignment(State):
         self._notify_observers(self.NOTE_DESTROYED, None)
         self.viewers = []
         self.observers = []
+        for header in self._headers:
+            header.destroy()
         aseqs = set()
         for sseq, aseq in self.associations.items():
             aseq.match_maps[sseq].mod_handler.remove()
