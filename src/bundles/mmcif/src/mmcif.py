@@ -1065,7 +1065,7 @@ def get_mmcif_tables(filename, table_names):
 
 def fetch_ccd(session, ccd_id, ignore_cache=False):
     """Get structure for CCD component"""
-    from .. import AtomicStructure
+    from chimerax.atomic.structure import AtomicStructure
     # TODO: support ignore_cache
     ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
     try:
