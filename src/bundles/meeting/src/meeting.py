@@ -589,10 +589,13 @@ class MouseTracking(PointerModels):
     def make_pointer_model(self, session):
         return MousePointerModel(self._session, 'my pointer')
 
-    def _mouse_hover_cb(self, trigger_name, xyz):
+    def _mouse_hover_cb(self, trigger_name, pick):
         if _vr_camera(self._session):
             return
 
+        xyz = getattr(pick, 'xyz', None)
+        if xyz is None:
+            return
         c = self._session.main_view.camera
         axis = c.view_direction()
         msg = {'name': self._meeting._name,
