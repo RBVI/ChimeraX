@@ -2220,7 +2220,7 @@ def _residue_mouse_hover(pick, log):
             log.status(res.structure._hetnam_descriptions[res.name])
             
 def _register_hover_trigger(session):
-    if not hasattr(session, '_residue_hover_handler'):
+    if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:
         def res_hover(tname, pick, session=session):
             _residue_mouse_hover(pick, session.logger)
         session._residue_hover_handler = session.triggers.add_handler('mouse hover', res_hover)
