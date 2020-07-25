@@ -2093,8 +2093,8 @@ def qimage_to_numpy(qi):
     bgra = frombuffer(buf, uint8).reshape(shape)
     # Swap red and blue and flip vertically.
     rgba = bgra[::-1].copy()
-    rgba[:,:,0] = bgra[:,:,2]
-    rgba[:,:,2] = bgra[:,:,0]
+    rgba[:,:,0] = rgba[:,:,2]
+    rgba[:,:,2] = bgra[::-1,:,0]
     return rgba
 
 # -----------------------------------------------------------------------------
