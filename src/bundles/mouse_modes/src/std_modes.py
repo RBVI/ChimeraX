@@ -180,15 +180,13 @@ class SelectToggleMouseMode(SelectMouseMode):
 
 def mouse_select(event, mode, session, view):
     x,y = event.position()
-    from . import picked_object
-    pick = picked_object(x, y, view)
+    pick = view.picked_object(x, y)
     select_pick(session, pick, mode)
 
 def mouse_drag_select(start_xy, event, mode, session, view):
     sx, sy = start_xy
     x,y = event.position()
-    from .mousemodes import unpickable
-    pick = view.rectangle_intercept(sx,sy,x,y,exclude=unpickable)
+    pick = view.rectangle_pick(sx,sy,x,y)
     select_pick(session, pick, mode)
 
 def select_pick(session, pick, mode = 'replace'):
@@ -583,8 +581,7 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
 
     def mouse_down(self, event):
         x,y = event.position()
-        from . import picked_object
-        pick = picked_object(x, y, self.view)
+        pick = self.view.picked_object(x, y)
         self._pick_model(pick)
         TranslateMouseMode.mouse_down(self, event)
 
@@ -696,8 +693,7 @@ class ObjectIdMouseMode(MouseMode):
         if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position
-        from . import picked_object
-        p = picked_object(x, y, self.view)
+        p = self.view.picked_object(x, y)
 
         # Show atom spec balloon
         pu = ui.main_window.graphics_window.popup
@@ -720,8 +716,7 @@ class AtomCenterOfRotationMode(MouseMode):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         view = self.session.main_view
-        from . import picked_object
-        pick = picked_object(x, y, view)
+        pick = view.picked_object(x, y)
         from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
         if hasattr(pick, 'atom'):
             xyz = pick.atom.scene_coord

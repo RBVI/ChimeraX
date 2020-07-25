@@ -425,8 +425,7 @@ class LeapPinchEvent:
     def picked_object(self, view):
         '''Return pick for object under position.'''
         xyz1, xyz2 = self.picking_segment()
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, view)
+        pick = view.picked_object_on_segment(xyz1, xyz2)
         return pick
     def picking_segment(self):
         return (self._position, self._pick_end_position)

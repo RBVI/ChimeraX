@@ -593,7 +593,7 @@ class MouseTracking(PointerModels):
         if _vr_camera(self._session):
             return
 
-        xyz = getattr(pick, 'xyz', None)
+        xyz = getattr(pick, 'position', None)
         if xyz is None:
             return
         c = self._session.main_view.camera

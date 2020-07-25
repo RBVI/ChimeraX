@@ -53,6 +53,7 @@ class Drawing:
 
     Rendering of drawings is done with OpenGL.
     '''
+   
     def __init__(self, name):
 
         self._redraw_needed = None
@@ -162,6 +163,9 @@ class Drawing:
         self.allow_depth_cue = True
         '''False means not show depth cue on this Drawing even if global depth cueing is on.'''
 
+        self.allow_clipping = True
+        '''False means not to clip this Drawing even if global clipping is on.'''
+
         self.accept_shadow = True
         '''False means not to show shadow on this Drawing even if global shadow is on.'''
 
@@ -182,6 +186,15 @@ class Drawing:
 
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
+
+    pickable = True
+    '''Whether this drawing can be picked by View.picked_object().'''
+
+    casts_shadows = True
+    '''Whether this drawing creates shadows when shadows are enabled.'''
+
+    skip_bounds = False
+    '''Whether this drawing is included in calculation by bounds().'''
 
     def redraw_needed(self, **kw):
         """Function called when the drawing has been changed to indicate
@@ -285,7 +298,7 @@ class Drawing:
             self.redraw_needed(shape_changed=True)
 
     def _inherit_lighting_settings(self, drawing):
-        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+        for attr in ['allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']:
             value = getattr(drawing, attr)
             if value == False:
                 # Only propagate disabling settings.
@@ -828,6 +841,8 @@ class Drawing:
                 sopt |= Render.SHADER_NO_MULTISHADOW
             if not self.allow_depth_cue:
                 sopt |= Render.SHADER_NO_DEPTH_CUE
+            if not self.allow_clipping:
+                sopt |= Render.SHADER_NO_CLIP_PLANES
             self._shader_opt = sopt
         if transparent_only:
             from .opengl import Render
@@ -840,7 +855,7 @@ class Drawing:
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
          'ambient_texture', '_positions',
-         'allow_depth_cue', 'accept_shadow', 'accept_multishadow'))
+         'allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
     #  arrays have changed.
@@ -901,13 +916,14 @@ class Drawing:
     def bounds(self):
         '''
         The bounds of all displayed parts of a drawing and its children and all descendants, including
-        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True are not included.
+        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True
+        are not included.
         '''
 
         # Get child drawing bounds
         from chimerax.geometry.bounds import union_bounds, copies_bounding_box
         dbounds = [d.bounds() for d in self.child_drawings()
-                   if d.display and not getattr(d, 'skip_bounds', False)]
+                   if d.display and not d.skip_bounds]
         nc = len(dbounds)
         if nc == 0:
             cb = None
@@ -966,8 +982,9 @@ class Drawing:
         of this drawing and its children.  The end points are in the parent
         drawing coordinates and do not take account of this Drawings positions.
         If the exclude option is given it is a function that takes a drawing
-        and returns true if this drawing and its children should be excluded.
-        Return a Pick object for the intercepted item.
+        and returns true if this drawing should be excluded, 'all' if this drawing
+        and its children should be excluded, or false to include this drawing
+        and chidren.  Returns a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
         For no intersection None is returned.  This routine is used for
@@ -977,17 +994,27 @@ class Drawing:
         '''
         if not self.display:
             return None
-        if exclude is not None and exclude(self):
-            return None
+
+        if exclude is None:
+            include_self = True
+        else:
+            e = exclude(self)
+            if e == 'all':
+                return None
+            else:
+                include_self = not e
 
         pclosest = None
-        if not self.empty_drawing():
+        if include_self and not self.empty_drawing():
             p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
+
+        # Intercepts with children
         p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude=exclude)
         if p and (pclosest is None or p.distance < pclosest.distance):
             pclosest = p
+            
         return pclosest
 
     def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
@@ -1108,6 +1135,16 @@ class Drawing:
                 pplanes = transform_planes(p, planes)
                 picks.extend(d.planes_pick(pplanes, exclude))
         return picks
+
+    def all_allow_clipping(self, displayed_only = True):
+        if displayed_only and not self.display:
+            return True
+        if not self.allow_clipping:
+            return False
+        for d in self.child_drawings():
+            if not d.all_allow_clipping(displayed_only = displayed_only):
+                return False
+        return True
 
     def __del__(self):
         if not self.was_deleted:

@@ -37,16 +37,13 @@ class ContourLevelMouseMode(MouseMode):
         for m in shown_maps:
             ppos = (m.scene_position * m.position.inverse()).inverse() # Map scene to parent coordinates
             mxyz1, mxyz2 =  ppos * xyz1, ppos * xyz2
-            p = m.first_intercept(mxyz1, mxyz2, exclude = self._is_outline_box)
+            p = m.first_intercept(mxyz1, mxyz2)
             if p and (dist is None or p.distance < dist):
                 if hasattr(p, 'triangle_pick'):
                     closest = (m, p.triangle_pick.drawing())	# Remember which surface
                 else:
                     closest = m
         return shown_maps if closest is None else [closest]
-
-    def _is_outline_box(self, d):
-        return d.name == 'outline box'
     
     def mouse_drag(self, event):
 
