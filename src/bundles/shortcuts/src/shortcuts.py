@@ -1155,7 +1155,14 @@ def unused_file_name(directory, basename, suffix):
     from os import path, listdir
     dir = path.expanduser(directory)
     from os import listdir
-    files = listdir(dir)
+    try:
+        files = listdir(dir)
+    except PermissionError:
+        from chimerax.core.errors import UserError
+        raise UserError('Permission denied reading directory "%s"' % dir +
+                        ' while trying to determine next unused file name %s#%s.'
+                        % (basename, suffix))
+    
     nums = []
     for f in files:
         if f.startswith(basename) and f.endswith(suffix):
@@ -1207,11 +1214,4 @@ def register_shortcut_command(logger):
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
-    from chimerax.core.errors import NotABug
-    try:
-        keyboard_shortcuts(session).try_shortcut(name)
-    except NotABug as err:
-        from html import escape
-        from chimerax.core.logger import error_text_format
-        session.logger.info(error_text_format % escape(str(err)), is_html=True)
-
+    keyboard_shortcuts(session).try_shortcut(name)
