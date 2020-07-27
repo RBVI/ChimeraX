@@ -29,6 +29,8 @@ class HeaderSequence(list):
     single_column_updateable = True # can a single column be updated, or only the entire header?
     ident = None    # should be string, used to identify header in commands and as part of the
                     # generated residue attribute name, so the string should be "attribute friendly"
+    value_type = float
+    value_none_okay = True
 
     ATTR_PREFIX = "seq_"
 

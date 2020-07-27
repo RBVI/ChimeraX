@@ -108,8 +108,10 @@ class Alignment(State):
         if create_headers:
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
             self._headers.sort(key=lambda hdr: hdr.name.casefold())
+            attr_headers = []
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
+            self._set_residue_attributes()
         else:
             self._headers = []
 
@@ -503,6 +505,8 @@ class Alignment(State):
                 hdr.shown = False
         elif note_name == self.NOTE_HDR_SHOWN:
             hdr = note_data
+            if not hdr.eval_while_hidden:
+                self._set_residue_attributes(headers=[hdr])
             if not self._session_restore:
                 if hdr.shown:
                     msg = 'Showing %s header ("%s" residue attribute) for alignment %s' % (hdr.ident,
@@ -510,6 +514,9 @@ class Alignment(State):
                 else:
                     msg = 'Hiding %s header for alignment %s' % (hdr.ident, self)
                 self.session.logger.info(msg)
+        elif note_name == self.NOTE_HDR_VALUES:
+            hdr, bounds = note_data
+            self._set_residue_attributes(headers=[hdr])
 
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
@@ -524,6 +531,7 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
+        self._set_residue_attributes(match_maps=[match_map])
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
@@ -662,6 +670,24 @@ class Alignment(State):
                     session.logger.warning("Could not find alignment header class %s" % class_name)
         aln._session_restore = False
         return aln
+
+    def _set_residue_attributes(self, *, headers=None, match_maps=None):
+        if headers is None:
+            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
+        if match_maps is None:
+            match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
+        from chimerax.atomic import AtomicStructure
+        for header in headers:
+            attr_name = header.residue_attr_name
+            AtomicStructure.register_attr(self.session, attr_name, "sequence alignment",
+                attr_type=header.value_type, can_return_none=header.value_none_okay)
+            for match_map in match_maps:
+                for i, val in enumerate(header):
+                    try:
+                        r = match_map[i]
+                    except KeyError:
+                        continue
+                    setattr(r, attr_name, val)
 
     def __str__(self):
         return self.ident

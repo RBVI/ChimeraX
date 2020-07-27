@@ -19,6 +19,8 @@ class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     ident = "consensus"
     sort_val = 1.3
+    value_type = None # since Clustal style is characters
+
     def __init__(self, alignment, *args, **kw):
         self.conserved = [False] * len(alignment.seqs[0])
         super().__init__(alignment, *args, **kw)
