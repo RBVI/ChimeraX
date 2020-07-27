@@ -147,7 +147,7 @@ class HeaderSequence(list):
     def option_data(self):
         from chimerax.ui.options import BooleanOption
         return [
-            ("show at startup", 'initially_shown', BooleanOption, {},
+            ("show initially", 'initially_shown', BooleanOption, {},
                 "Show this header when sequence/alignment initially shown")
         ]
 

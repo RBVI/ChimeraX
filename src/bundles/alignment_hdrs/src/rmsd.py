@@ -85,7 +85,7 @@ class RMSD(DynamicStructureHeaderSequence):
 
     def option_data(self):
         return super().option_data() + [
-            ("Atoms used for RMSD", 'atoms', RmsdDomainOption, {},
+            ("atoms used for RMSD", 'atoms', RmsdDomainOption, {},
                 "The atoms from each residue that are used in computing the RMSD"),
         ]
 
