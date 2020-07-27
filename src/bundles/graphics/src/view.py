@@ -286,12 +286,10 @@ class View:
         elif corm == 'center of view' and cp.changed:
             self._update_center_of_rotation = True
 
-        if dm.shape_changed or cp.changed or dm.transparency_changed:
-            # TODO: If model transparency effects multishadows, will need to detect those changes.
-            if dm.shadows_changed():
-                r = self.render
-                if r:
-                    r.multishadow.multishadow_update_needed = True
+        if dm.shadows_changed() or cp.changed:
+            r = self.render
+            if r:
+                r.multishadow.multishadow_update_needed = True
 
         c.redraw_needed = False
         dm.clear_changes()
