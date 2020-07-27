@@ -69,6 +69,14 @@ class Consensus(DynamicHeaderSequence):
             retlet = let.lower()
         return retlet
 
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'capitalize_threshold': self.settings.capitalize_threshold,
+            'ignore_gaps': self.settings.ignore_gaps,
+        }
+        return state
+
     @property
     def ignore_gaps(self):
         return self.settings.ignore_gaps
@@ -104,6 +112,11 @@ class Consensus(DynamicHeaderSequence):
             r1, r2 = pos1, (len(self.conserved) if pos2 is None else pos2+1)
             self.conserved[r1:r2] = [False] * (r2-r1)
         super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        self.settings.capitalize_threshold = state['capitalize_threshold']
+        self.settings.ignore_gaps = state['ignore_gaps']
 
     def settings_info(self):
         name, defaults = super().settings_info()

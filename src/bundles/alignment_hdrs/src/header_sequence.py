@@ -32,13 +32,13 @@ class HeaderSequence(list):
 
     ATTR_PREFIX = "seq_"
 
-    def __init__(self, alignment, name=None, eval_while_hidden=False):
+    def __init__(self, alignment, name=None, *, eval_while_hidden=False, session_restore=False):
         if name is None:
             if not hasattr(self, 'name'):
                 self.name = ""
         else:
             self.name = name
-        if self.ident is None:
+        if not session_restore and self.ident is None:
             raise AssertionError("%s header class failed to define 'ident' attribute"
                 % self.__class__.__name__)
         from weakref import proxy
@@ -100,7 +100,8 @@ class HeaderSequence(list):
         state = {
             'name': self.name,
             'shown': self._shown,
-            'eval_while_hidden': self.eval_while_hidden
+            'eval_while_hidden': self.eval_while_hidden,
+            'contents': self[:]
         }
         return state
 
@@ -206,9 +207,9 @@ class HeaderSequence(list):
     def residue_attr_name(self):
         return self.ATTR_PREFIX + self.ident
 
-    @staticmethod
-    def session_restore(session, alignment, refresh_callback, state):
-        inst = HeaderSequence(alignment, refresh_callback)
+    @classmethod
+    def session_restore(cls, session, alignment, state):
+        inst = cls(alignment, session_restore=True)
         inst.set_state(state)
         return inst
 
@@ -216,6 +217,7 @@ class HeaderSequence(list):
         self.name = state['name']
         self._shown = state.get('shown', state.get('visible', None))
         self.eval_while_hidden = state['eval_while_hidden']
+        self[:] = state['contents']
 
     def settings_info(self):
         """This method needs to return a (name, dict) tuple where 'name' is used to distingush

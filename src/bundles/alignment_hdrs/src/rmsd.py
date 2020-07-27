@@ -73,6 +73,13 @@ class RMSD(DynamicStructureHeaderSequence):
         from math import sqrt
         return sqrt(sum / n)
 
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'atoms': self.settings.atoms,
+        }
+        return state
+
     def num_options(self):
         return 1
 
@@ -84,6 +91,10 @@ class RMSD(DynamicStructureHeaderSequence):
 
     def position_color(self, pos):
         return 'dark gray'
+
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        self.settings.atoms = state['atoms']
 
     def settings_info(self):
         name, defaults = super().settings_info()

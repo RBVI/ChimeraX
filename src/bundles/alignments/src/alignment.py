@@ -60,8 +60,9 @@ class Alignment(State):
     #       indices into the header, or None -- which indicates the entire header)
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True):
+            description, intrinsic, *, create_headers=True, session_restore=False):
         self.session = session
+        self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
         self._seqs = seqs
@@ -502,12 +503,13 @@ class Alignment(State):
                 hdr.shown = False
         elif note_name == self.NOTE_HDR_SHOWN:
             hdr = note_data
-            if hdr.shown:
-                msg = 'Showing %s header ("%s" residue attribute) for alignment %s' % (hdr.ident,
-                    hdr.residue_attr_name, self)
-            else:
-                msg = 'Hiding %s header for alignment %s' % (hdr.ident, self)
-            self.session.logger.info(msg)
+            if not self._session_restore:
+                if hdr.shown:
+                    msg = 'Showing %s header ("%s" residue attribute) for alignment %s' % (hdr.ident,
+                        hdr.residue_attr_name, self)
+                else:
+                    msg = 'Hiding %s header for alignment %s' % (hdr.ident, self)
+                self.session.logger.info(msg)
 
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
@@ -626,10 +628,12 @@ class Alignment(State):
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
         ident = data['ident'] if 'ident' in data else data['name']
+        create_headers = data['version'] < 2
         aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
             "session" if data['auto_associate'] else False,
-            data.get('description', ident), data.get('intrinsic', False))
+            data.get('description', ident), data.get('intrinsic', False), create_headers=create_headers,
+            session_restore=True)
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
@@ -637,19 +641,44 @@ class Alignment(State):
                 match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
         if 'sseq to chain' in data:
             aln._sseq_to_chain = data['sseq to chain']
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        if not create_headers:
+            for bundle_name, class_name, header_state in data['headers']:
+                bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
+                if not bundle:
+                    bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
+                    if bundle:
+                        session.logger.error("You need to install bundle %s in order to restore"
+                            " alignment header of type %s" % (bundle_name, class_name))
+                    else:
+                        session.logger.error("Cannot restore alignment header of type %s due to"
+                            " being unable to find any bundle named %s" % (class_name, bundle_name))
+                    continue
+                header_class = bundle.get_class(class_name, session.logger)
+                if header_class:
+                    aln._headers.append(header_class.session_restore(session, aln, header_state))
+                else:
+                    session.logger.warning("Could not find alignment header class %s" % class_name)
+        aln._session_restore = False
         return aln
 
     def __str__(self):
         return self.ident
 
     def take_snapshot(self, session, flags):
-        """For session/scene saving"""
-        return { 'version': 1, 'seqs': self._seqs, 'ident': self.ident,
+        """For session saving"""
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        return { 'version': 2, 'seqs': self._seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
             'description' : self.description, 'intrinsic' : self.intrinsic,
-            'sseq to chain': self._sseq_to_chain }
+            'sseq to chain': self._sseq_to_chain,
+            'headers': [(ts.find_bundle_for_class(hdr.__class__).name,
+                hdr.__class__.__name__, hdr.get_state()) for hdr in self.headers]
+            }
 
 
 def nw_assoc(session, align_seq, struct_seq):

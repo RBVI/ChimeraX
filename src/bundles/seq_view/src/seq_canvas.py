@@ -1079,26 +1079,8 @@ class SeqCanvas:
     """
 
     def restore_state(self, session, state):
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        headers = []
-        for bundle_name, class_name, header_state in state['headers']:
-            bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
-            if not bundle:
-                bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
-                if bundle:
-                    session.logger.error("You need to install bundle %s in order to restore"
-                        " alignment header of type %s" % (bundle_name, class_name))
-                else:
-                    session.logger.error("Cannot restore alignment header of type %s due to"
-                        " being unable to find any bundle named %s" % (class_name, bundle_name))
-                continue
-            header_class = bundle.get_class(class_name, session.logger)
-            if header_class:
-                headers.append(
-                    header_class.session_restore(session, self.alignment, self.refresh_header, header_state))
-            else:
-                session.logger.warning("Could not find alignment header class %s" % class_name)
+        '''Used to restore header state, now done by alignment'''
+        pass
 
     """TODO
     def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):
@@ -1151,14 +1133,8 @@ class SeqCanvas:
     """
 
     def save_state(self):
-        state = {}
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        state['headers'] = [
-            (ts.find_bundle_for_class(hdr.__class__).name,
-            hdr.__class__.__name__, hdr.get_state())
-                for hdr in self.headers]
-        return state
+        '''Used to save header state, now done by alignment'''
+        return {}
 
     """TODO
     def seeBlocks(self, blocks):
