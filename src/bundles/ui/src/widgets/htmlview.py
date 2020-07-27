@@ -426,7 +426,10 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
             prev_dir = None
             try:
                 if from_dir:
-                    prev_dir = os.getcwd()
+                    try:
+                        prev_dir = os.getcwd()
+                    except OSError:
+                        prev_dir = None
                     try:
                         os.chdir(from_dir)
                     except OSError as e:

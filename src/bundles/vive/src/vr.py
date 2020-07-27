@@ -3093,9 +3093,8 @@ class HandButtonEvent(HandEvent):
         return self._released
     def picked_object(self, view):
         '''Return pick for object pointed at, along ray from cone.'''
-        from chimerax.mouse_modes import picked_object_on_segment
         xyz1, xyz2 = self.picking_segment()
-        pick = picked_object_on_segment(xyz1, xyz2, view)
+        pick = view.picked_object_on_segment(xyz1, xyz2)
         return pick
     
 class HandMotionEvent(HandEvent):

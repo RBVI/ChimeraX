@@ -88,6 +88,37 @@ def clip_list(session):
     '''
     report_clip_info(session.main_view, session.logger)
 
+def clip_model(session, models, clipping = None):
+    '''
+    Allow disabling clipping for specific models.
+
+    Parameters
+    ----------
+    models : list of Models
+    clipping : bool
+      Whether models will be clipped by scene clip planes.
+      This setting does not effect clipping by near and far camera planes.
+    '''
+    if clipping is None:
+        lines = ['Model #%s clipping %s' % (m.id_string, m.allow_clipping)
+                 for m in models]
+        session.logger.info('\n'.join(lines))
+    else:
+        for m in models:
+            m.allow_clipping = clipping
+        for d in _non_model_descendants(models):
+            d.allow_clipping = clipping
+
+def _non_model_descendants(models):
+    dlist = []
+    from chimerax.core.models import Model
+    for m in models:
+        for d in m.child_drawings():
+            if not isinstance(d, Model):
+                dlist.append(d)
+                dlist.extend(_non_model_descendants([d]))
+    return dlist
+
 def plane_origin(view):
     b = view.drawing_bounds()
     if b is None:
@@ -191,8 +222,9 @@ def warn_on_zero_spacing(session, near, far, front, back):
             session.logger.warning('clip back plane is in front of front plane')
         
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, AxisArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, Or, EnumOf, create_alias
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import CenterArg, CoordSysArg, Or, EnumOf, FloatArg, AxisArg
+    from chimerax.core.commands import ModelsArg, BoolArg
     offset_arg = Or(EnumOf(['off']), FloatArg)
     desc = CmdDesc(
         optional=[],
@@ -208,4 +240,9 @@ def register_command(logger):
     register('clip', desc, clip, logger=logger)
     register('clip off', CmdDesc(synopsis = 'Turn off all clip planes'), clip_off, logger=logger)
     register('clip list', CmdDesc(synopsis = 'List active clip planes'), clip_list, logger=logger)
+    model_desc = CmdDesc(
+        required = [('models', ModelsArg)],
+        optional = [('clipping', BoolArg)],
+        synopsis="Turn off clipping for individual models.")
+    register('clip model', model_desc, clip_model, logger=logger)
     create_alias('~clip', 'clip off', logger=logger)

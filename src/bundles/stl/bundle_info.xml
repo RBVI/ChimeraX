@@ -31,11 +31,11 @@ StereoLithography (STL) files.</Description>
   <Providers manager="data formats">
     <Provider name="Stereolithography" synopsis="STL (3D printing)" category="Generic 3D objects"
 		suffixes=".stl" nicknames="stl"
-		reference_url="http://en.wikipedia.org/wiki/STL_(file_format)#Binary_STL" />
+		reference_url="http://en.wikipedia.org/wiki/STL_(file_format)" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Stereolithography" />
+    <Provider name="Stereolithography" want_path="true" />
   </Providers>
 
   <Providers manager="save command">

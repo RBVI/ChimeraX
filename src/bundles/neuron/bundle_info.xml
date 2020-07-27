@@ -1,0 +1,38 @@
+<BundleInfo name="ChimeraX-Neuron" version="1.0"
+	    package="chimerax.neuron"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Read SWC neuron trace files</Synopsis>
+  <Description>Read SWC neuron trace files.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="SWC neurons" synopsis="SWC neuron traces"
+	      category="Generic 3D objects"
+	      suffixes=".swc" nicknames="swc"
+	      reference_url="http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="SWC neurons" want_path="true" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

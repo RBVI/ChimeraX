@@ -198,7 +198,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void finished_parse();
     void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
-    const tmpl::Residue* find_template_residue(const ResName& name);
+    const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
     void parse_audit_conform();
     void parse_audit_syntax();
     void parse_atom_site();
@@ -475,7 +475,7 @@ ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_i
 }
 
 const tmpl::Residue*
-ExtractMolecule::find_template_residue(const ResName& name)
+ExtractMolecule::find_template_residue(const ResName& name, bool start, bool stop)
 {
     if (my_templates) {
         auto tr = my_templates->find_residue(name);
@@ -484,7 +484,7 @@ ExtractMolecule::find_template_residue(const ResName& name)
     }
     if (missing_residue_templates.find(name) != missing_residue_templates.end())
         return nullptr;
-    auto tr =  mmcif::find_template_residue(name);
+    auto tr =  mmcif::find_template_residue(name, start, stop);
     if (tr == nullptr) {
         // skipped warning if already given for this molecule
         logger::warning(_logger,
@@ -681,26 +681,12 @@ ExtractMolecule::finished_parse()
                 acs->fill(prev_cs);
         }
 
-        // connect residues in molecule with all_residues information
-        bool has_metal = false;
-        for (auto&& r : mol->residues()) {
-            auto tr = find_template_residue(r->name());
-            if (tr == nullptr) {
-                if (model_num == first_model_num) {
-                    // Warning already given about missing template
-                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
-                    has_metal = true;   // it's okay to do extra work
-                }
-                pdb_connect::connect_residue_by_distance(r);
-            } else {
-                has_metal = has_metal || tr->has_metal();
-                connect_residue_by_template(r, tr, model_num);
-            }
-        }
-
         // Connect residues in entity_poly_seq.
         // Because some positions are heterogeneous, delay connecting
         // until next group of residues is found.
+        // typedef unordered_set<Residue*, hash_ResidueKey> ResidueSet;
+        typedef set<Residue*> ResidueSet;
+        ResidueSet start_residues, stop_residues;
         bool no_polymer = true;
         for (auto& chain: all_residues[model_num]) {
             ResidueMap& residue_map = chain.second;
@@ -720,6 +706,8 @@ ExtractMolecule::finished_parse()
             residues.reserve(entity_poly.seq.size());
             no_polymer = no_polymer && entity_poly.seq.empty();
             auto& entity_poly_seq = poly.at(entity_id).seq;
+            bool first = true;
+            Residue* stop_residue = nullptr;
             for (auto pi = entity_poly_seq.begin(); pi != entity_poly_seq.end();) {
                 auto p = *pi;
                 auto pit = entity_poly_seq.equal_range(p);
@@ -768,9 +756,11 @@ ExtractMolecule::finished_parse()
                     if (!lastp || lastp->seq_id != p.seq_id) {
                         seqres.push_back(p.mon_id);
                         residues.push_back(nullptr);
+                        stop_residue = nullptr;
                     }
                     if (current.empty()) {
                         pi = pit.second;
+                        first = false;
                         continue;
                     }
                     if (!previous.empty())
@@ -782,11 +772,16 @@ ExtractMolecule::finished_parse()
                     }
                     lastp = &*pi;
                     pi = pit.second;
+                    first = false;
                     continue;
                 }
                 Residue* r = ri->second;
                 seqres.push_back(p.mon_id);
                 residues.push_back(r);
+                if (first)
+                    start_residues.insert(r);
+                else
+                    stop_residue = r;
                 if (auth_chain_id.empty())
                     auth_chain_id = r->chain_id();
                 if (!previous.empty() && !current.empty()) {
@@ -800,7 +795,10 @@ ExtractMolecule::finished_parse()
                 current.push_back(r);
                 lastp = &*pi;
                 pi = pit.second;
+                first = false;
             }
+            if (stop_residue != nullptr)
+                stop_residues.insert(stop_residue);
             if (!previous.empty() && !current.empty())
                 connect_polymer_pair(previous[0], current[0], gap, nstd);
             if (has_poly_seq.find(entity_id) == has_poly_seq.end())
@@ -814,6 +812,26 @@ ExtractMolecule::finished_parse()
                     mol->input_seq_source = "mmCIF entity_poly_seq table";
             }
         }
+
+        // connect residues in molecule with all_residues information
+        bool has_metal = false;
+        for (auto&& r : mol->residues()) {
+            bool start = start_residues.find(r) != start_residues.end();
+            bool stop = stop_residues.find(r) != stop_residues.end();
+            auto tr = find_template_residue(r->name(), start, stop);
+            if (tr == nullptr) {
+                if (model_num == first_model_num) {
+                    // Warning already given about missing template
+                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
+                    has_metal = true;   // it's okay to do extra work
+                }
+                pdb_connect::connect_residue_by_distance(r);
+            } else {
+                has_metal = has_metal || tr->has_metal();
+                connect_residue_by_template(r, tr, model_num);
+            }
+        }
+
         if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
             logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
         if (has_metal)

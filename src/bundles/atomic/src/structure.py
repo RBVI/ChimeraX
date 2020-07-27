@@ -70,7 +70,8 @@ class Structure(Model, StructureData):
         from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         self.triggers.add_trigger("changes")
-
+        _register_hover_trigger(session)
+        
         self._make_drawing()
 
         self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
@@ -1781,11 +1782,16 @@ class PromoteAtomSelection(SelectionPromotion):
         self._prev_atom_sel_mask = prev_atom_sel_mask
         self._prev_bond_sel_mask = prev_bond_sel_mask
     def promote(self):
-        atoms = self._structure.atoms
+        s = self._structure
+        if s.deleted:
+            return
+        atoms = s.atoms
         atoms.selected = asel = self._atom_sel_mask
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
+        if s.deleted:
+            return
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 
@@ -2205,3 +2211,22 @@ def structure_residues(structures):
     for m in structures:
         res = res | m.residues
     return res
+
+def _residue_mouse_hover(pick, log):
+    res = getattr(pick, 'residue', None)
+    if res is None:
+        return
+    from .molobject import Residue
+    if isinstance(res, Residue):
+        chain = res.chain
+        if chain and chain.description:
+            log.status("chain %s: %s" % (chain.chain_id, chain.description))
+        elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+            log.status(res.structure._hetnam_descriptions[res.name])
+            
+def _register_hover_trigger(session):
+    if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:
+        def res_hover(tname, pick, session=session):
+            _residue_mouse_hover(pick, session.logger)
+        session._residue_hover_handler = session.triggers.add_handler('mouse hover', res_hover)
+
