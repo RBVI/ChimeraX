@@ -1782,11 +1782,16 @@ class PromoteAtomSelection(SelectionPromotion):
         self._prev_atom_sel_mask = prev_atom_sel_mask
         self._prev_bond_sel_mask = prev_bond_sel_mask
     def promote(self):
-        atoms = self._structure.atoms
+        s = self._structure
+        if s.deleted:
+            return
+        atoms = s.atoms
         atoms.selected = asel = self._atom_sel_mask
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
+        if s.deleted:
+            return
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 
