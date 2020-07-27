@@ -41,14 +41,15 @@ def bonds(atoms):
 
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
-    from chimerax.core.commands.open import open
+    from chimerax.pdb.pdb import fetch_pdb
+    from chimerax.mmcif.mmcif import fetch_mmcif
     try:
-        pdb_models = open(session, pdb_id, format='pdb', log_info=False)
+        pdb_models, _ = fetch_pdb(session, pdb_id, log_info=False)
     except Exception as e:
         session.logger.error("%s: unable to open pdb format %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = open(session, pdb_id, format='mmcif', log_info=False)
+        mmcif_models, _ = fetch_mmcif(session, pdb_id, log_info=False)
     except Exception as e:
         session.logger.error("%s: unable to open mmcif format %s" % (pdb_id, e))
         return
