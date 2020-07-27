@@ -38,6 +38,10 @@ fi
 CHIMERAX=`dirname "$bindir"`
 
 app="$CHIMERAX/OS_BIN/APP_NAME"
+if [ -e "${app}-console" ]
+then
+	app="${app}-console"
+fi
 if test $# -gt 0
 then
 	exec "$app" -m chimerax.MOD_NAME "$@"

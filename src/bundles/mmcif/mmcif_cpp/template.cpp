@@ -63,7 +63,7 @@ tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
 const tmpl::Residue*
-find_template_residue(const ResName& name)
+find_template_residue(const ResName& name, bool start, bool stop)
 {
     if (name.empty())
         return nullptr;
@@ -71,8 +71,21 @@ find_template_residue(const ResName& name)
         templates = new tmpl::Molecule();
     else {
         tmpl::Residue* tr = templates->find_residue(name);
-        if (tr)
+        if (tr) {
+            if (tr->polymer_type() == PolymerType::PT_AMINO) {
+                tmpl::Residue* ttr = nullptr;
+                if (start) {
+                    ResName terminus = name + "_LSN3";
+                    ttr = templates->find_residue(terminus);
+                } else if (stop) {
+                    ResName terminus = name + "_LEO2H";
+                    ttr = templates->find_residue(terminus);
+                }
+                if (ttr)
+                    return ttr;
+            }
             return tr;
+        }
     }
     if (locate_func == nullptr)
         return nullptr;

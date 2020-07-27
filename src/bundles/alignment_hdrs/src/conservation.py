@@ -18,6 +18,7 @@ from chimerax.seqalign import clustal_strong_groups, clustal_weak_groups
 
 class Conservation(DynamicHeaderSequence):
     name = "Conservation"
+    ident = "conservation"
     sort_val = 1.7
 
     STYLE_PERCENT = "identity histogram"
@@ -107,6 +108,21 @@ class Conservation(DynamicHeaderSequence):
         values = [' ', '.', ':', '*']
         return values[self.clustal_type(pos)]
 
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'style': self.style,
+            'al2co params': {
+                'freq': self.settings.al2co_freq,
+                'cons': self.settings.al2co_cons,
+                'window': self.settings.al2co_window,
+                'gap': self.settings.al2co_gap,
+                'matrix': self.settings.al2co_matrix,
+                'transform': self.settings.al2co_transform,
+            }
+        }
+        return state
+
     def num_options(self):
         return 1
 
@@ -147,6 +163,12 @@ class Conservation(DynamicHeaderSequence):
                 delattr(self, 'depiction_val')
         evaluation_func = self._reeval_al2co if self.style == self.STYLE_AL2CO else evaluation_func
         return super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        for param, val in state['al2co params'].items():
+            setattr(self.settings, 'al2co_' + param, val)
+        self.style = state['style']
 
     def settings_info(self):
         name, defaults = super().settings_info()
@@ -218,7 +240,7 @@ class Conservation(DynamicHeaderSequence):
         sane_seqs = [copy(seq) for seq in self.alignment.seqs]
         for i, sseq in enumerate(sane_seqs):
             sseq.name = str(i)
-        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp")
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
         temp_alignment.save(temp_stream, format_name="aln")

@@ -20,6 +20,7 @@ from .header_sequence import DynamicStructureHeaderSequence
 class RMSD(DynamicStructureHeaderSequence):
 
     settings_name = "RMSD"
+    ident = "rmsd"
     min_structure_relevance = 2
 
     def __init__(self, alignment, *args, **kw):
@@ -72,17 +73,28 @@ class RMSD(DynamicStructureHeaderSequence):
         from math import sqrt
         return sqrt(sum / n)
 
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'atoms': self.settings.atoms,
+        }
+        return state
+
     def num_options(self):
         return 1
 
     def option_data(self):
         return super().option_data() + [
-            ("Atoms used for RMSD", 'atoms', RmsdDomainOption, {},
+            ("atoms used for RMSD", 'atoms', RmsdDomainOption, {},
                 "The atoms from each residue that are used in computing the RMSD"),
         ]
 
     def position_color(self, pos):
         return 'dark gray'
+
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        self.settings.atoms = state['atoms']
 
     def settings_info(self):
         name, defaults = super().settings_info()
@@ -104,45 +116,43 @@ class RMSD(DynamicStructureHeaderSequence):
             if len(chain_lists) < 2:
                 self._eval_chains = [cl[0] for cl in chain_lists]
             else:
-                cb = self.refresh_callback
-                self.refresh_callback = None
-                chain_lists.sort(key=lambda x: len(x))
-                cl1, cl2 = chain_lists[:2]
-                lowest = None
-                for c1 in cl1:
-                    for c2 in cl2:
-                        self._eval_chains = [c1, c2]
-                        super().reevaluate()
-                        vals = [v for v in self[:] if v is not None]
-                        if not vals:
-                            continue
-                        avg = sum(vals) / len(vals)
-                        if lowest is None or avg < lowest:
-                            lowest = avg
-                            best_chains = [c1, c2]
-                if lowest is None:
-                    best_chains = [cl1[0], cl2[0]]
-                for cl in chain_lists[2:]:
+                with self.alignment_notifications_suppressed():
+                    chain_lists.sort(key=lambda x: len(x))
+                    cl1, cl2 = chain_lists[:2]
                     lowest = None
-                    for c in cl:
-                        self._eval_chains = best_chains + [c]
-                        super().reevaluate()
-                        vals = [v for v in self[:] if v is not None]
-                        if not vals:
-                            continue
-                        avg = sum(vals) / len(vals)
-                        if lowest is None or avg < lowest:
-                            lowest = avg
-                            best_chain = c
+                    for c1 in cl1:
+                        for c2 in cl2:
+                            self._eval_chains = [c1, c2]
+                            super().reevaluate()
+                            vals = [v for v in self[:] if v is not None]
+                            if not vals:
+                                continue
+                            avg = sum(vals) / len(vals)
+                            if lowest is None or avg < lowest:
+                                lowest = avg
+                                best_chains = [c1, c2]
                     if lowest is None:
-                        best_chains.append(cl[0])
-                    else:
-                        best_chains.append(best_chain)
-                self._eval_chains = best_chains
-                if set(best_chains) != set(original_eval_chains):
-                    self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment %s: %s"
-                        % (self.alignment, ', '.join(str(c) for c in sorted(best_chains))))
-                self.refresh_callback = cb
+                        best_chains = [cl1[0], cl2[0]]
+                    for cl in chain_lists[2:]:
+                        lowest = None
+                        for c in cl:
+                            self._eval_chains = best_chains + [c]
+                            super().reevaluate()
+                            vals = [v for v in self[:] if v is not None]
+                            if not vals:
+                                continue
+                            avg = sum(vals) / len(vals)
+                            if lowest is None or avg < lowest:
+                                lowest = avg
+                                best_chain = c
+                        if lowest is None:
+                            best_chains.append(cl[0])
+                        else:
+                            best_chains.append(best_chain)
+                    self._eval_chains = best_chains
+                    if set(best_chains) != set(original_eval_chains):
+                        self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment"
+                            " %s: %s" % (self.alignment, ', '.join(str(c) for c in sorted(best_chains))))
                 # to force the refresh callback to happen...
                 self.clear()
         super().reevaluate(pos1, pos2)
@@ -203,7 +213,7 @@ class RMSD(DynamicStructureHeaderSequence):
         if attr_name == "atoms":
             self.reevaluate()
             self._set_name()
-            self.refresh_callback(self.CALLBACK_NAME, self)
+            self.notify_alignment(self.alignment.NOTE_HDR_NAME)
 
 from chimerax.ui.options import EnumOption
 class RmsdDomainOption(EnumOption):

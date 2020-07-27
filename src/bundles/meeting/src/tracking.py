@@ -83,6 +83,9 @@ class MouseTracking(PointerModels):
         if _vr_camera(self._session):
             return
 
+        xyz = getattr(pick, 'position', None)
+        if xyz is None:
+            return
         c = self._session.main_view.camera
         axis = c.view_direction()
         msg = {'name': self._meeting._name,

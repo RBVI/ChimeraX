@@ -666,7 +666,8 @@ class Render:
             orig_cap = capabilities
             cap_pairs = ((self.SHADER_NO_SHADOW, self.SHADER_SHADOW),
                          (self.SHADER_NO_MULTISHADOW, self.SHADER_MULTISHADOW),
-                         (self.SHADER_NO_DEPTH_CUE, self.SHADER_DEPTH_CUE))
+                         (self.SHADER_NO_DEPTH_CUE, self.SHADER_DEPTH_CUE),
+                         (self.SHADER_NO_CLIP_PLANES, self.SHADER_CLIP_PLANES))
             for nc, c in cap_pairs:
                 if capabilities & nc:
                     capabilities &= ~(c | nc)
@@ -1915,6 +1916,7 @@ shader_options = (
     'SHADER_OPAQUE_ONLY',
     'SHADER_STEREO_360',
     'SHADER_CLIP_PLANES',
+    'SHADER_NO_CLIP_PLANES',
     'SHADER_ALPHA_DEPTH',
     'SHADER_ALL_WHITE',
 )

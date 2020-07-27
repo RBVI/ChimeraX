@@ -51,7 +51,7 @@ class SettingsTool:
                 appearance_panel.add_option(app_cat, opt)
             else:
                 settings_panel.add_option(category, opt)
-        for hdr in self.sv.headers():
+        for hdr in self.sv.alignment.headers:
             hdr.add_options(settings_panel, category="Headers")
         from PyQt5.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()

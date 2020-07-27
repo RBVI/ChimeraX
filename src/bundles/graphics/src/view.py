@@ -16,7 +16,6 @@ View
 ====
 '''
 
-
 class View:
     '''
     A View is the graphics windows that shows 3-dimensional drawings.
@@ -287,12 +286,10 @@ class View:
         elif corm == 'center of view' and cp.changed:
             self._update_center_of_rotation = True
 
-        if dm.shape_changed or cp.changed or dm.transparency_changed:
-            # TODO: If model transparency effects multishadows, will need to detect those changes.
-            if dm.shadows_changed():
-                r = self.render
-                if r:
-                    r.multishadow.multishadow_update_needed = True
+        if dm.shadows_changed() or cp.changed:
+            r = self.render
+            if r:
+                r.multishadow.multishadow_update_needed = True
 
         c.redraw_needed = False
         dm.clear_changes()
@@ -580,7 +577,7 @@ class View:
             sdrawings = [self.drawing]
         else:
             # TODO: This code is incorrectly including child drawings in bounds calculation.
-            sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
+            sdrawings = [d for d in drawings if d.casts_shadows]
             from chimerax.geometry import bounds
             b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
             # TODO: Need to transform drawing bounds if they have different positions.
@@ -770,13 +767,16 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.first_intercept(0.5 * w, 0.5 * h,
-                                 exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
+        p = self.picked_object(0.5 * w, 0.5 * h, max_transparent_layers = 0,
+                               exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y, exclude=None, beyond = None):
+    unpickable = lambda drawing: not drawing.pickable
+
+    def picked_object(self, win_x, win_y, exclude=unpickable, beyond=None,
+                      max_transparent_layers=3):
         '''
-        Return a Pick object for the front-most object below the given
+        Return a Pick object for the frontmost object below the given
         screen window position (specified in pixels).  This Pick object will
         have an attribute position giving the point where the intercept occurs.
         This is used when hovering the mouse over an object (e.g. an atom)
@@ -785,11 +785,29 @@ class View:
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
-            return None
-        p = self.first_intercept_on_segment(xyz1, xyz2, exclude=exclude, beyond=beyond)
+            p = None
+        else:
+            p = self.picked_object_on_segment(xyz1, xyz2, exclude = exclude, beyond = beyond,
+                                              max_transparent_layers = max_transparent_layers)
+
+        # If scene clipping and some models disable clipping, try picking those.
+        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
+            ucxyz1, ucxyz2 = self.clip_plane_points(win_x, win_y, include_scene_clipping = False)
+            if ucxyz1 is not None and ucxyz2 is not None:
+                def exclude_clipped(d, exclude=exclude):
+                    return exclude(d) or d.allow_clipping
+                ucp = self.picked_object_on_segment(ucxyz1, ucxyz2,
+                                                    max_transparent_layers = max_transparent_layers,
+                                                    exclude = exclude_clipped)
+                if ucp:
+                    from chimerax.geometry import distance
+                    if p is None or ucp.distance * distance(ucxyz1, ucxyz2) < distance(ucxyz1, xyz1):
+                        p = ucp
+            
         return p
 
-    def first_intercept_on_segment(self, xyz1, xyz2, exclude=None, beyond = None):
+    def picked_object_on_segment(self, xyz1, xyz2, exclude=unpickable, beyond=None,
+                                 max_transparent_layers=3):
         '''
         Return a Pick object for the first object along line segment from xyz1
         to xyz2 in specified in scene coordinates. This Pick object will
@@ -800,17 +818,28 @@ class View:
         if beyond is not None:
             fb = beyond + 1e-5
             xyz1 = (1-fb)*xyz1 + fb*xyz2
+
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
+        
+        if max_transparent_layers > 0:
+            if getattr(p, 'pick_through', False) and p.distance is not None:
+                p2 = self.picked_object_on_segment(xyz1, xyz2, exclude=exclude, beyond=p.distance,
+                                                   max_transparent_layers = max_transparent_layers-1)
+                if p2:
+                    p = p2
+            
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
+
         if beyond:
             # Correct distance fraction to refer to clip planes.
             p.distance = fb + f*(1-fb)
+            
         return p
 
-    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2, exclude=None):
+    def rectangle_pick(self, win_x1, win_y1, win_x2, win_y2, exclude=unpickable):
         '''
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
@@ -888,7 +917,8 @@ class View:
             far = 2 * near
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
+    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None,
+                          include_scene_clipping = True):
         '''
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
@@ -901,7 +931,8 @@ class View:
         near, far = self.near_far_distances(c, view_num, include_clipping = False)
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
-        cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
+        if include_scene_clipping:
+            cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
         from chimerax.geometry import ray_segment
         f0, f1 = ray_segment(origin, direction, cplanes)
         if f1 is None or f0 > f1:
@@ -1013,7 +1044,6 @@ class View:
         c.eye_separation_scene *= f
         c.redraw_needed = True
 
-
 class _RedrawNeeded:
 
     def __init__(self):
@@ -1040,7 +1070,7 @@ class _RedrawNeeded:
         if self.transparency_changed:
             return True
         for d in self.shape_changed_drawings:
-            if getattr(d, 'casts_shadows', True):
+            if d.casts_shadows:
                 return True
         return False
 

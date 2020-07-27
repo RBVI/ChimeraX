@@ -29,7 +29,7 @@ class MinimizeMode(MouseMode):
     def mouse_down(self, event):
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y)
+        pick = view.picked_object(x,y)
         self._pick_atom(pick)
 
     def _pick_atom(self, pick):
