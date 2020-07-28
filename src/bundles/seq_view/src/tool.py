@@ -531,7 +531,7 @@ class SequenceViewer(ToolInstance):
 
         headers_menu = menu.addMenu("Headers")
         headers = self.alignment.headers
-        headers.sort(key=lambda hdr: hdr.name.casefold())
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
         for hdr in headers:
             action = QAction(hdr.name, headers_menu)
             action.setCheckable(True)

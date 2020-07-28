@@ -153,6 +153,12 @@ class HeaderSequence(list):
                 "Show this header when sequence/alignment initially shown")
         ]
 
+    def option_sorting(self, option):
+        for base_label, attr_name, opt_class, opt_kw, balloon in HeaderSequence.option_data(self):
+            if option.attr_name == attr_name:
+                return (0, option.name.casefold())
+        return (1, option.name.casefold())
+
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
 
