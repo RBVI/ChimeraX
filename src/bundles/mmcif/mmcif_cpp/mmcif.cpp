@@ -669,6 +669,23 @@ ExtractMolecule::finished_parse()
     if (molecules.empty())
         return;
 
+    if (my_templates) {
+        // small optimization (1% for 3j3q)
+        bool has_atoms = false;
+        for (auto& tri: my_templates->residues_map()) {
+            auto tr = tri.second;
+            if (tr->atoms_map().size() > 0) {
+                has_atoms = true;
+                break;
+            }
+        }
+        if (!has_atoms) {
+            // none of the templates have atoms, so get rid of them to speed things up
+            delete my_templates;
+            my_templates = nullptr;
+        }
+    }
+
     for (auto& mi: molecules) {
         auto model_num = mi.first;
         auto mol = mi.second;
