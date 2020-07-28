@@ -125,6 +125,5 @@ class Consensus(DynamicHeaderSequence):
         defaults.update({
             'capitalize_threshold': 0.8,
             'ignore_gaps': False,
-            'initially_shown': True
         })
         return "consensus sequence header", defaults
