@@ -236,11 +236,14 @@ class Conservation(DynamicHeaderSequence):
         session = self.alignment.session
         self[:] = []
         # sequence names in the alignment may contain characters that cause AL2CO to barf,
-        # so make a temporary alignment with sanitized names
+        # so make a temporary alignment with sanitized names.
+        # Also, AL2CO doesn't like spaces in the alignment (which occur in HSSP files), replace with gap
         from copy import copy
         sane_seqs = [copy(seq) for seq in self.alignment.seqs]
         for i, sseq in enumerate(sane_seqs):
             sseq.name = str(i)
+            sseq.characters = sseq.characters.replace(' ', '.')
+
         temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
