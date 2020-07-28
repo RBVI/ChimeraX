@@ -298,7 +298,7 @@ class Drawing:
             self.redraw_needed(shape_changed=True)
 
     def _inherit_lighting_settings(self, drawing):
-        for attr in ['allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']:
+        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
             value = getattr(drawing, attr)
             if value == False:
                 # Only propagate disabling settings.
@@ -1088,18 +1088,25 @@ class Drawing:
         instance (self.positions has length 1) then the pick lists the individual
         triangles which have at least one vertex within all of the planes.
         If exclude is not None then it is a function called with a Drawing argument
-        that returns true if this drawing and its children should be excluded
-        from the pick.
+        that returns 'all' if this drawing and its children should be excluded
+        from the pick, or true if just this drawing should be excluded.
         Return a list of Pick objects for the contained items.
         This routine is used for highlighting objects in a frustum.
         '''
         if not self.display:
             return []
-        if exclude is not None and exclude(self):
-            return []
+
+        if exclude is None:
+            include_self = True
+        else:
+            e = exclude(self)
+            if e == 'all':
+                return None
+            else:
+                include_self = not e
 
         picks = []
-        if not self.empty_drawing():
+        if include_self and not self.empty_drawing():
             from chimerax.geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
@@ -1129,11 +1136,14 @@ class Drawing:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
                         picks.append(PickedTriangles(tmask, self))
+
+        # Pick child drawings
         from chimerax.geometry import transform_planes
         for d in self.child_drawings():
             for p in self.positions:
                 pplanes = transform_planes(p, planes)
                 picks.extend(d.planes_pick(pplanes, exclude))
+
         return picks
 
     def all_allow_clipping(self, displayed_only = True):

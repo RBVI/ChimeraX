@@ -854,9 +854,22 @@ class View:
         cplanes = self.clip_planes.planes()
         if cplanes:
             from numpy import concatenate, array, float32
-            planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+            all_planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+        else:
+            all_planes = planes
 
-        picks = self.drawing.planes_pick(planes, exclude=exclude)
+        # If scene clipping and some models disable clipping, try picking those.
+        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
+            def exclude_unclipped(d, exclude=exclude):
+                return exclude(d) or not d.allow_clipping
+            cpicks = self.drawing.planes_pick(all_planes, exclude=exclude_unclipped)
+            def exclude_clipped(d, exclude=exclude):
+                return exclude(d) or d.allow_clipping
+            upicks = self.drawing.planes_pick(planes, exclude=exclude_clipped)
+            picks = cpicks + upicks
+        else:
+            picks = self.drawing.planes_pick(all_planes, exclude=exclude)
+            
         return picks
 
     def _update_projection(self, camera, view_num):
