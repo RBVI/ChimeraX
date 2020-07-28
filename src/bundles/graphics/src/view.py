@@ -767,8 +767,7 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.picked_object(0.5 * w, 0.5 * h, max_transparent_layers = 0,
-                               exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
+        p = self.picked_object(0.5 * w, 0.5 * h, max_transparent_layers = 0, exclude=View.unpickable)
         return p.position if p else None
 
     unpickable = lambda drawing: not drawing.pickable

@@ -2444,7 +2444,6 @@ class OutlineBox:
     d.use_lighting = False
     d.casts_shadows = False
     d.pickable = False
-    d.no_cofr = True
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array
