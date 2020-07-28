@@ -682,9 +682,13 @@ class Alignment(State):
             Residue.register_attr(self.session, attr_name, "sequence alignment",
                 attr_type=header.value_type, can_return_none=header.value_none_okay)
             for match_map in match_maps:
+                aseq = match_map.align_seq
                 for i, val in enumerate(header):
+                    ui = aseq.gapped_to_ungapped(i)
+                    if ui is None:
+                        continue
                     try:
-                        r = match_map[i]
+                        r = match_map[ui]
                     except KeyError:
                         continue
                     setattr(r, attr_name, val)
