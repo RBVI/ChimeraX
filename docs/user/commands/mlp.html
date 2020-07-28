@@ -173,7 +173,8 @@ except 40% transparent:
 <br><a href="surface.html">surface</a>
 <br><a href="#top">mlp</a> map true
 <br><a href="show.html">hide</a> #2
-<br><a href="clip.html">clip</a>; <a href="wait.html">wait</a> 1
+<br><a href="clip.html">clip</a>
+<br><a href="wait.html">wait</a> 1
 <br><a href="color.html#map">color sample</a> 
 #1.1.1 map #2 palette lipophilicity range -20,20 transparency 40
 <br><a href="clip.html#model">clip model</a> #!1 off
@@ -181,11 +182,15 @@ except 40% transparent:
 </b>
 </blockquote>
 <p>
-The <b><a href="wait.html">wait</a></b> command ensures that the cap is drawn
-before it is colored by the map values. The last two commands make the clipping 
-apply only to the surface (not to the atomic model)
-and hide all but the <a href="atomspec.html#builtin">ligand</a>
-atoms in the atomic model.
+The <b><a href="wait.html">wait</a></b> command is only needed in the context 
+of a script (<a href="usageconventions.html#cxc-files">command file</a>),
+to force drawing the graphics to create the surface cap
+before it is colored by the map values. 
+The wait can be omitted if the commands are entered one by one. 
+The subsequent commands color the cap,
+make clipping apply only to the surface (not to the atomic model),
+and hide ribbons and atoms not classified as
+<a href="atomspec.html#builtin">ligand</a>.
 </p>
 
 <hr>
