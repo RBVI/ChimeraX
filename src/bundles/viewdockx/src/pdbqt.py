@@ -1,14 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def open_pdbqt(session, path, file_name, auto_style, atomic):
-    structures = session.models.open(path, format="pdb", log_errors=False)
-    with open(path) as f:
+    structures, _status = session.open_command.open_data(path, format="pdb", log_errors=False)
+    from chimerax.io import open_input
+    with open_input(path, encoding='utf-8') as f:
         _extract_metadata(session, f, structures)
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
                     file_name, len(structures),
                     sum([s.num_atoms for s in structures]),
                     sum([s.num_bonds for s in structures]))
-    return [], status
+    return structures, status
 
 
 def _extract_metadata(session, f, structures):

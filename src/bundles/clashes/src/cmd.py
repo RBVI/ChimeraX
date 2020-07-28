@@ -177,7 +177,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
             if hasattr(a, attr_name):
                 delattr(a, attr_name)
         for a in clash_atoms:
-            clash_vals = clashes[a].values()
+            clash_vals = list(clashes[a].values())
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
     if reveal:
@@ -229,8 +229,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
 def _file_output(file_name, info, naming_style):
     overlap_cutoff, hbond_allowance, bond_separation, intra_res, intra_mol, \
                         clashes, output_grouping, test_type, res_separation = info
-    from chimerax.core.io import open_filename
-    out_file = open_filename(file_name, 'w')
+    from chimerax.io import open_output
+    out_file = open_output(file_name, 'utf-8')
     if test_type != "distances":
         print("Allowed overlap: %g" % overlap_cutoff, file=out_file)
         print("H-bond overlap reduction: %g" % hbond_allowance, file=out_file)
@@ -243,7 +243,7 @@ def _file_output(file_name, info, naming_style):
     print("Detect intra-molecule %s:" % test_type, intra_mol, file=out_file)
     seen = set()
     data = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for a, aclashes in clashes.items():
         for c, val in aclashes.items():
             if (c, a) in seen:

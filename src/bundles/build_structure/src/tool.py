@@ -38,7 +38,7 @@ class BuildStructureTool(ToolInstance):
 
         self.category_button = QPushButton()
         layout.addWidget(self.category_button, alignment=Qt.AlignCenter)
-        cat_menu = QMenu()
+        cat_menu = QMenu(parent)
         self.category_button.setMenu(cat_menu)
         cat_menu.triggered.connect(self._cat_menu_cb)
 
@@ -92,14 +92,14 @@ class BuildStructureTool(ToolInstance):
             params_layout.addWidget(QLabel(title), 0, col, alignment=Qt.AlignHCenter | Qt.AlignBottom)
         self.ms_elements_button = ebut = QPushButton()
         from chimerax.atomic.widgets import make_elements_menu
-        elements_menu = make_elements_menu()
+        elements_menu = make_elements_menu(parent)
         elements_menu.triggered.connect(lambda act, but=ebut: but.setText(act.text()))
         ebut.setMenu(elements_menu)
         ebut.setText("C")
         params_layout.addWidget(ebut, 1, 0)
 
         self.ms_bonds_button = bbut = QPushButton()
-        bonds_menu = QMenu()
+        bonds_menu = QMenu(parent)
         for nb in range(5):
             bonds_menu.addAction(str(nb))
         bonds_menu.triggered.connect(lambda act, but=bbut: but.setText(act.text()))
@@ -108,7 +108,7 @@ class BuildStructureTool(ToolInstance):
         params_layout.addWidget(bbut, 1, 1)
 
         self.ms_geom_button = gbut = QPushButton()
-        geom_menu = QMenu()
+        geom_menu = QMenu(parent)
         geom_menu.triggered.connect(lambda act, but=gbut: but.setText(act.text()))
         bonds_menu.triggered.connect(lambda act: self._ms_geom_menu_update())
         gbut.setMenu(geom_menu)
@@ -203,6 +203,7 @@ class BuildStructureTool(ToolInstance):
         ui_names = list(self.ss_u_to_p_names.keys())
         ui_names.sort(key=lambda x: x.lower())
         provider_layout = QGridLayout()
+        provider_layout.setVerticalSpacing(5)
         layout.addLayout(provider_layout)
         provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names)+2, 1)
 
@@ -356,8 +357,12 @@ class BuildStructureTool(ToolInstance):
         ui_name = self.ss_button_group.checkedButton().text()
         provider_name = self.ss_u_to_p_names[ui_name]
 
+        from chimerax.core.errors import CancelOperation
         from .manager import manager
-        subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        try:
+            subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        except CancelOperation:
+            return
         if manager.new_model_only(provider_name):
             # provider needs to provide its own command in this case
             run(self.session, subcmd_string)
@@ -378,13 +383,19 @@ class BuildStructureTool(ToolInstance):
         self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
         from .manager import manager
         provider_name = self.ss_u_to_p_names[ui_name]
-        hidden = manager.new_model_only(provider_name)
+        hide_model_choice = manager.new_model_only(provider_name)
         if manager.is_indirect(provider_name):
             self.ss_apply_button.setHidden(True)
-            hidden = True
+            hide_model_choice = True
         else:
             self.ss_apply_button.setHidden(False)
-        for widget in self.ss_struct_widgets:
+        # hincky code to avoid flashing up widgets that end up hidden
+        num_widgets = len(self.ss_struct_widgets)
+        hiddens = [hide_model_choice] * num_widgets
+        if not hide_model_choice and self.ss_struct_menu.value != "new model":
+            hiddens[2:] = [True] * (num_widgets - 2)
+
+        for widget, hidden in zip(self.ss_struct_widgets, hiddens):
             widget.setHidden(hidden)
 
     def _ss_struct_changed(self):

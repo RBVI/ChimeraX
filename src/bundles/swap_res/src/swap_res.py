@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import LimitationError, UserError
-from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
+from chimerax.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
     UnsupportedResTypeError
 from chimerax.atomic import AtomicStructure
 
@@ -21,7 +21,7 @@ from .settings import defaults
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None,
         clash_score_method="sum", clash_overlap_cutoff=None, criteria=default_criteria, density=None,
         hbond_angle_slop=None, hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False,
-        lib=defaults['library'], log=True, preserve=None, retain=False):
+        rot_lib=defaults['library'], log=True, preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
     rotamers = {}
     destroy_list = []
@@ -39,9 +39,9 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             for alt_loc in alt_locs:
                 CA.alt_loc = alt_loc
                 try:
-                    rots = get_rotamers(session, res, res_type=r_type, lib=lib, log=log)
+                    rots = get_rotamers(session, res, res_type=r_type, rot_lib=rot_lib, log=log)
                 except UnsupportedResTypeError:
-                    raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
+                    raise LimitationError("%s rotamer library does not support %s" %(rot_lib, r_type))
                 except NoResidueRotamersError:
                     if log:
                         session.logger.info("Swapping %s to %s\n" % (res, r_type))
@@ -51,7 +51,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                         raise UserError(str(e))
                     continue
                 except NoRotamerLibraryError:
-                    raise UserError("No rotamer library named '%s'" % lib)
+                    raise UserError("No rotamer library named '%s'" % rot_lib)
                 if preserve is not None:
                     rots = prune_by_chis(session, rots, res, preserve, log=log)
                 by_alt_loc[alt_loc] = rots
@@ -88,7 +88,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             elif char == "c":
                 # clash
                 if clash_hbond_allowance is None or clash_overlap_cutoff is None:
-                    from chimerax.atomic.clashes.settings import defaults
+                    from chimerax.clashes.settings import defaults
                     if clash_hbond_allowance is None:
                         clash_hbond_allowance = defaults['clash_hbond_allowance']
                     if clash_overlap_cutoff is None:
@@ -101,7 +101,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             elif char == 'h':
                 # H bonds
                 if hbond_angle_slop is None or hbond_dist_slop is None:
-                    from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
+                    from chimerax.hbonds import rec_angle_slop, rec_dist_slop
                     if hbond_angle_slop is None:
                         hbond_angle_slop = rec_angle_slop
                     if hbond_dist_slop is None:
@@ -111,7 +111,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
                     hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
                 session.logger.status("")
-                from chimerax.atomic.hbonds import flush_cache
+                from chimerax.hbonds import flush_cache
                 flush_cache()
                 fetch = lambda r: r.num_hbonds
                 test = cmp
@@ -184,7 +184,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for rot in destroy_list:
         rot.delete()
 
-def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib="Dunbrack", log=False):
+def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot_lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
        type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
        AtomicStructure).  The AtomicStructure are each a single residue (a rotamer) and are in descending
@@ -195,8 +195,8 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     if res_type == "ALA" or res_type == "GLY":
         raise NoResidueRotamersError("No rotamers for %s" % res_type)
 
-    if not isinstance(lib, RotamerLibrary):
-        lib = session.rotamers.library(lib)
+    if not isinstance(rot_lib, RotamerLibrary):
+        rot_lib = session.rotamers.library(rot_lib)
 
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
@@ -222,13 +222,13 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
                 al_info = ""
             session.logger.info("%s%s: phi %s, psi %s %s" % (res, al_info, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
-    session.logger.status("Retrieving rotamers from %s library" % lib.display_name)
-    res_template_func = lib.res_template_func
-    params = lib.rotamer_params(res_type, phi, psi, cis=cis)
-    session.logger.status("Rotamers retrieved from %s library" % lib.display_name)
+    session.logger.status("Retrieving rotamers from %s library" % rot_lib.display_name)
+    res_template_func = rot_lib.res_template_func
+    params = rot_lib.rotamer_params(res_type, phi, psi, cis=cis)
+    session.logger.status("Rotamers retrieved from %s library" % rot_lib.display_name)
 
-    mapped_res_type = lib.res_name_mapping.get(res_type, res_type)
-    template = lib.res_template_func(mapped_res_type)
+    mapped_res_type = rot_lib.res_name_mapping.get(res_type, res_type)
+    template = rot_lib.res_template_func(mapped_res_type)
     tmpl_N = template.find_atom("N")
     tmpl_CA = template.find_atom("CA")
     tmpl_C = template.find_atom("C")
@@ -239,7 +239,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     else:
         res_match_atoms, tmpl_match_atoms = [match_atoms[x]
             for x in ("N", "CA", "C")], [tmpl_N, tmpl_CA, tmpl_C]
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     from numpy import array
     xform, rmsd = align_points(array([fa.coord for fa in tmpl_match_atoms]),
         array([ta.coord for ta in res_match_atoms]))
@@ -288,7 +288,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
             add_atom(tnnb.name, tnnb.element, r, tnnb_coord, bonded_to=rot_N)
 
         # fill out bonds and remaining heavy atoms
-        from chimerax.core.geometry import distance, align_points
+        from chimerax.geometry import distance, align_points
         done = set([rot_N, rot_CA])
         while todo:
             a = todo.pop(0)
@@ -382,7 +382,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             a4 = res.find_atom(prev_name)
             if a4 and a3 in a4.neighbors:
                 p4 = a4.coord
-                from chimerax.core.geometry import dihedral
+                from chimerax.geometry import dihedral
                 preserve_dihed = dihedral(p1, p2, p3, p4)
             else:
                 preserve_dihed = None
@@ -475,7 +475,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
                 placed_positions.append(na.coord)
                 tmpl_positions.append(tmpl_res.find_atom(na.name).coord)
             import numpy
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             xf = align_points(numpy.array(tmpl_positions),
                 numpy.array(placed_positions))[0]
 
@@ -551,7 +551,7 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
 
     xyz = a.coord
     blen = b.length
-    from chimerax.core.geometry import angle, dihedral
+    from chimerax.geometry import angle, dihedral
     ang = angle(xyz, xyz0, xyz1)
     if dihed is None:
         dihed = dihedral(xyz, xyz0, xyz1, xyz2)
@@ -728,7 +728,7 @@ def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_me
         if pbg:
             session.models.close([pbg])
     from chimerax.atomic import concatenate
-    from chimerax.atomic.clashes import find_clashes
+    from chimerax.clashes import find_clashes
     CA = residue.find_atom("CA")
     alt_locs = CA.alt_locs if CA.alt_locs else [' ']
     res_atoms = set(residue.atoms)
@@ -764,7 +764,7 @@ def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_me
 
 def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius, relax,
             dist_slop, angle_slop, two_colors, relax_color, ignore_other_models, *, cache_da=False):
-    from chimerax.atomic.hbonds import find_hbonds
+    from chimerax.hbonds import find_hbonds
     CA = residue.find_atom("CA")
     alt_locs = CA.alt_locs if CA.alt_locs else [' ']
     with CA.suppress_alt_loc_change_notifications():
@@ -854,7 +854,7 @@ def bfactor_for_res(res, bfactor):
     return bfactor
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
-    from chimerax.core.geometry import distance, angle
+    from chimerax.geometry import distance, angle
     bond_key = (n1, new)
     angle_key = (n2, n1, new)
     try:

@@ -27,7 +27,8 @@ class Image3d(Model):
     Model.__init__(self, name, session)
 
     self._data = grid_data
-    self._region = region
+    self._region_unaligned = region
+    self._region = _step_aligned_region(region)
     self._last_ijk_to_xyz_transform = grid_data.ijk_to_xyz_transform
     self._colormap = colormap
     self._rendering_options = rendering_options.copy()
@@ -38,6 +39,8 @@ class Image3d(Model):
 
     self._session = session
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
+    self._mask_colors = None			# Method for segmentation color modulation
+    self._segment_colors = None			# Color lookup table for segmentations
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
     self._p_mode = self._auto_projection_mode() # Explicit mode, not "auto"
@@ -61,13 +64,16 @@ class Image3d(Model):
   # ---------------------------------------------------------------------------
   #
   def set_region(self, region):
-      if region == self._region and self._data.ijk_to_xyz_transform == self._last_ijk_to_xyz_transform:
+      if (region == self._region_unaligned and
+          self._data.ijk_to_xyz_transform == self._last_ijk_to_xyz_transform):
         return
 
       self._last_ijk_to_xyz_transform = self._data.ijk_to_xyz_transform
+
+      same_step = (region[2] == self._region_unaligned[2])
+      self._region_unaligned = region
+      self._region = _step_aligned_region(region)
       
-      same_step = (region[2] == self._region[2])
-      self._region = region
       if self._rendering_options.full_region_on_gpu and same_step:
         self._update_planes_for_new_region()
       else:
@@ -226,7 +232,7 @@ class Image3d(Model):
     if self._rendering_options.colormap_on_gpu and not require_color:
       return m
 
-    if hasattr(self, 'segment_colors'):
+    if self.segment_colors is not None:
       cmap = self.segment_colors
       colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
       from ._map import indices_to_colors
@@ -240,12 +246,30 @@ class Image3d(Model):
       from . import _map
       _map.data_to_colors(m, dmin, dmax, cmap, cm.extend_left, cm.extend_right, colors)
     
-    if hasattr(self, 'mask_colors'):
+    if self.mask_colors is not None:
       region = self._plane_region(plane, axis)
       self.mask_colors(colors, region)
 
     return colors
 
+  # ---------------------------------------------------------------------------
+  #
+  def _get_mask_colors(self):
+    return self._mask_colors
+  def _set_mask_colors(self, mask_colors):
+    self._mask_colors = mask_colors
+    self._need_color_update()	# Adjust color mode to rgb or rgba
+  mask_colors = property(_get_mask_colors, _set_mask_colors)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_segment_colors(self):
+    return self._segment_colors
+  def _set_segment_colors(self, segment_colors):
+    self._segment_colors = segment_colors
+    self._need_color_update()	# Adjust color mode to rgb or rgba
+  segment_colors = property(_get_segment_colors, _set_segment_colors)
+  
   # ---------------------------------------------------------------------------
   # Reuse current volume color array if it has correct size.
   # This gives 2x speed-up over allocating a new array when flipping
@@ -462,7 +486,7 @@ class Image3d(Model):
       cmap = self._colormap
       from numpy import array
       tf = array(cmap.transfer_function)
-      if len(tf) == 0 or hasattr(self, 'mask_colors') or hasattr(self, 'segment_colors'):
+      if len(tf) == 0 or self.mask_colors is not None or self.segment_colors is not None:
         m = 'rgb' if opaque else 'rgba'
       else:
         single_color = _colinear(tf[:,2:5], 0.99)
@@ -665,7 +689,7 @@ class Image3d(Model):
     bx *= gs[0]
     by *= gs[1]
     bz *= gs[2]
-    from chimerax.core.geometry import cross_product, inner_product
+    from chimerax.geometry import cross_product, inner_product
     box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
     
     pmode = self._p_mode
@@ -712,7 +736,7 @@ class Image3d(Model):
 
     corners = _box_corners(self._region, self._ijk_to_xyz)
     positions = self.get_scene_positions(displayed_only = True)
-    from chimerax.core.geometry import point_bounds
+    from chimerax.geometry import point_bounds
     b = point_bounds(corners, positions)
     return b
 
@@ -747,7 +771,7 @@ class Image3d(Model):
       return
 
     transparent = not self._opaque
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not transparent)
     dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and transparent)
     if not dopaq and not dtransp:
@@ -800,11 +824,13 @@ class Image3d(Model):
     bd = self._backing_drawing
     if bd is None:
       self._backing_drawing = bd = BackingDrawing(self.name + ' backing', self)
+    if bd.position != self.scene_position:
+      bd.position = self.scene_position
     bd.draw_backing(renderer)
     
 # ---------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class BackingDrawing(Drawing):
   def __init__(self, name, image):
     self._image = image			# Parent Image3D
@@ -836,7 +862,7 @@ class BackingDrawing(Drawing):
       self.color = bcolor
       
     renderer.enable_backface_culling(True)
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     self.draw(renderer, self.OPAQUE_DRAW_PASS)
     renderer.enable_backface_culling(False)
 
@@ -846,7 +872,7 @@ class BackingDrawing(Drawing):
     ijk_min = tuple(i-0.5 for i in imin)
     ijk_max = tuple(i+0.5 for i in imax)
     xyz_min, xyz_max = im._last_ijk_to_xyz_transform * (ijk_min, ijk_max)
-    from .data import box_corners
+    from chimerax.map_data import box_corners
     corners = box_corners(xyz_min, xyz_max)
 
     ro = im._rendering_options
@@ -896,7 +922,7 @@ class Colormap:
   
 # ---------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class PlanesDrawing(Drawing):
   def __init__(self, name, image_render, axis = None):
     Drawing.__init__(self, name)
@@ -925,7 +951,7 @@ class PlanesDrawing(Drawing):
     cmap, cmap_range = ir._color_table(self._axis)
     t = self.colormap
     if t is None:
-      from chimerax.core.graphics import Texture
+      from chimerax.graphics import Texture
       self.colormap = Texture(cmap, dimension = 1, clamp_to_edge = True)
     else:
       t.reload_texture(cmap)
@@ -1038,7 +1064,7 @@ class Texture2dPlanes(PlanesDrawing):
   def _make_plane_texture(self):
     ir = self._image_render
     lo = ir._rendering_options.linear_interpolation
-    from chimerax.core.graphics import Texture
+    from chimerax.graphics import Texture
     t = Texture(linear_interpolation = lo)
     if isinstance(ir, BlendedImage):
       t.initialize_rgba(ir._plane_size)
@@ -1179,7 +1205,7 @@ class Texture3dPlanes(PlanesDrawing):
 
   def _tilted_slab_plane_parameters(self, view_direction, scene_position,
                                      axis, offset, spacing, plane_count):
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     if scene_position.is_identity():
       flip = (inner_product(view_direction, axis) > 0)
     else:
@@ -1217,7 +1243,7 @@ class Texture3dPlanes(PlanesDrawing):
     # Create texture but do not fill in texture data values.
     ir = self._image_render
     lo = ir._rendering_options.linear_interpolation
-    from chimerax.core.graphics import Texture
+    from chimerax.graphics import Texture
     t = Texture(dimension = 3, linear_interpolation = lo)
     if isinstance(ir, BlendedImage):
       t.initialize_rgba(ir._region_size)
@@ -1231,14 +1257,11 @@ class Texture3dPlanes(PlanesDrawing):
     k0,k1 = kstep*(k0//kstep), kstep*(k1//kstep)
     p = ir._color_plane(k0, z_axis, color_3d=True)
     sz = (k1 - k0 + kstep)//kstep
-    if sz == 1:
-      td = p	# Single z plane
-    else:
-      from numpy import empty
-      td = empty((sz,) + tuple(p.shape), p.dtype)
-      td[0,:] = p
-      for i in range(1,sz):
-        td[i,:] = ir._color_plane(k0+i*kstep, z_axis, color_3d=True)
+    from numpy import empty
+    td = empty((sz,) + tuple(p.shape), p.dtype)
+    td[0,:] = p
+    for i in range(1,sz):
+      td[i,:] = ir._color_plane(k0+i*kstep, z_axis, color_3d=True)
     return td
 
   def _fill_texture_blend(self, texture):
@@ -1299,7 +1322,7 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   ijk_min, ijk_max, ijk_step = ijk_region
   ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
   i0,j0,k0 = ijk_min
-  from chimerax.core.geometry.place import scale, translation
+  from chimerax.geometry.place import scale, translation
   # Map i0 to texture coord 0.5/ei and i1 to (ei-0.5)/ei, the texel centers.
   v_to_tc = scale((1/ei, 1/ej, 1/ek)) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
   return v_to_tc
@@ -1577,3 +1600,11 @@ def _value_type_range(numpy_type):
     int16: (-32768, 32767),
     }
   return tsize.get(numpy_type, (None, None))
+
+# -----------------------------------------------------------------------------
+#
+def _step_aligned_region(region):
+  ijk_min, ijk_max, ijk_step = region
+  ijk_min_aligned = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
+  ijk_max_aligned = [max(s*(i//s),min) for i,s,min in zip(ijk_max, ijk_step, ijk_min_aligned)]
+  return ijk_min_aligned, ijk_max_aligned, ijk_step

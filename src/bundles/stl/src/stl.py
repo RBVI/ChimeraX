@@ -15,14 +15,17 @@
 stl: STL format support
 =======================
 
-Read and write little-endian STL binary format.
+Read and write STL files in binary (little-endian) or ascii format.
 """
 
-from chimerax.core.state import State, CORE_STATE_VERSION
+# If STL_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STL_STATE_VERSION = 1
 
 from chimerax.core.models import Surface
 class STLModel(Surface):
     clip_cap = True
+    SESSION_SAVE_DRAWING = True
 
     @property
     def num_triangles(self):
@@ -33,7 +36,7 @@ class STLModel(Surface):
         """Return information about triangle ``n``."""
         return TriangleInfo(self, n)
 
-
+from chimerax.core.state import State
 class TriangleInfo(State):
     """Information about an STL triangle."""
 
@@ -60,43 +63,65 @@ class TriangleInfo(State):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
+        return {'stl model': self._stl, 'triangle index': self._index, 'version':STL_STATE_VERSION}
 
     @staticmethod
     def restore_snapshot(session, data):
         return TriangleInfo(data['stl model'], data['triangle index'])
 
-
-def read_stl(session, filename, name):
+# -----------------------------------------------------------------------------
+#
+def read_stl(session, path, name):
     """Populate the scene with the geometry from a STL file
 
-    :param filename: either the name of a file or a file-like object
-
-    Extra arguments are ignored.
+    Parameters
+    ----------
+    path : string
+       Path to file
+    name : string
+       Name of model that will be returned.
     """
 
-    if hasattr(filename, 'read'):
-        # it's really a file-like object
-        input = filename
+    if stl_is_ascii(path):
+        va, na, ta = read_ascii_stl_geometry(path)
     else:
-        input = open(filename, 'rb')
+        va, na, ta = read_binary_stl_geometry(path)
 
     model = STLModel(name, session)
+    model.set_geometry(va, na, ta)
+    cur_color = [0.7, 0.7, 0.7, 1.0]
+    from numpy import array, uint8
+    cur_color = (array(cur_color) * 255).astype(uint8)
+    model.color = cur_color
 
-    # parse input:
+    from os.path import basename
+    msg = ("Opened STL file %s containing %d triangles"
+           % (basename(path), len(model.triangles)))
+    
+    return [model], msg
 
-    # First read 80 byte comment line
+# -----------------------------------------------------------------------------
+#
+def stl_is_ascii(path):
+    '''ASCII STL files start with "solid".'''
+    f = open(path, 'rb')
+    start = f.read(5)
+    f.close()
+    return start == b'solid'
+
+# -----------------------------------------------------------------------------
+#
+def read_binary_stl_geometry(path):
+    input = open(path, 'rb')
     comment = input.read(80)
-
+    
     # Next read uint32 triangle count.
     from numpy import fromstring, uint32, float32, array, uint8
     tc = fromstring(input.read(4), uint32)[0]        # triangle count
 
     geom = input.read(tc*50)	# 12 floats per triangle, plus 2 bytes padding.
+    input.close()
     
-    if input != filename:
-        input.close()
-
     if len(geom) < tc*50:
         from chimerax.core.errors import UserError
         raise UserError('STL file is truncated.  Header says it contains %d triangles, but only %d were in file.'
@@ -104,15 +129,106 @@ def read_stl(session, filename, name):
 
     from ._stl import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
-    model.set_geometry(va, na, ta)
-    cur_color = [0.7, 0.7, 0.7, 1.0]
-    cur_color = (array(cur_color) * 255).astype(uint8)
-    model.color = cur_color
+    return va, na, ta
 
-    return [model], ("Opened STL file containing %d triangles"
-                     % len(model.triangles))
+# -----------------------------------------------------------------------------
+#
+def read_ascii_stl_geometry(path):
+    '''
+solid name
+facet normal ni nj nk
+    outer loop
+        vertex v1x v1y v1z
+        vertex v2x v2y v2z
+        vertex v3x v3y v3z
+    endloop
+endfacet
+endsolid name
+    '''
 
+    f = open(path, 'r')
+    lines = f.readlines()
+    f.close()
 
+    vlist = []
+    nlist = []
+
+    for i in range(1,len(lines)):
+        line = lines[i].strip()
+        if line == '':
+            continue
+        
+        if line.startswith('facet normal '):
+            n = tuple(float(x) for x in line.split()[2:5])
+        elif line.startswith('vertex '):
+            v = tuple(float(x) for x in line.split()[1:4])
+            vlist.append(v)
+            nlist.append(n)
+        elif line in ('outer loop', 'endloop', 'endfacet') or line.startswith('endsolid'):
+            pass
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError('STL file line %d, bad format "%s"' % (i+1, line))
+
+    nlist = replace_zero_normals(nlist, vlist)
+    va, na, ta = merge_triangle_vertices(vlist, nlist)
+    
+    return va, na, ta
+
+def replace_zero_normals(nlist, vlist):
+    if have_zero_normals(nlist):
+        na = triangle_normals(vlist)
+        zero = (0,0,0)
+        nlist = [(tuple(n2) if n1 == zero else n1) for n1,n2 in zip(nlist, na)]
+    return nlist
+
+def have_zero_normals(nlist):
+    zero = (0,0,0)
+    for n in nlist:
+        if n == zero:
+            return True
+    return False
+
+def triangle_normals(vlist):
+    nt = len(vlist)//3
+    from numpy import array, int32
+    ta = array(range(3*nt), int32).reshape((nt,3))
+    from chimerax.surface import calculate_vertex_normals
+    na = calculate_vertex_normals(vlist, ta)
+    return na
+
+def merge_triangle_vertices(vlist, nlist):
+    '''
+    Combine duplicate vertices.
+    '''
+    uvlist = []
+    vnlist = []
+    tlist = []
+    vindex = {}		# Map vertex float 3-tuple to unique index
+    for v,n in zip(vlist, nlist):
+        if v in vindex:
+            vi = vindex[v]
+            vnlist[vi].append(n)
+        else:
+            vindex[v] = vi = len(vindex)
+            uvlist.append(v)
+            vnlist.append([n])
+        tlist.append(vi)
+
+    # Use average normal at each vertex from all joining triangles.
+    from numpy import array, float32, int32
+    unlist = [array(vn, float32).mean(axis=0) for vn in vnlist]
+
+    # Convert to numpy arrays
+    va = array(uvlist, float32)
+    na = array(unlist, float32)
+    from chimerax.geometry import normalize_vectors
+    normalize_vectors(na)
+    nt = len(tlist)//3
+    ta = array(tlist, int32).reshape((nt,3))
+    
+    return va, na, ta
+        
 # -----------------------------------------------------------------------------
 #
 def stl_unpack(geom):
@@ -222,7 +338,7 @@ def stl_pack(varray, tarray):
 def triangle_normal(v0,v1,v2):
 
     e10, e20 = v1 - v0, v2 - v0
-    from chimerax.core.geometry import normalize_vector, cross_product
+    from chimerax.geometry import normalize_vector, cross_product
     n = normalize_vector(cross_product(e10, e20))
     return n
 

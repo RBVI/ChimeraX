@@ -11,28 +11,67 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+_color_geom_args_doc = '''
+
+    surfaces : list of models
+      Surfaces to color.
+    center : :class:`.Center`
+      Center point for geometric coloring.
+    axis : :class:`.Axis`
+      Axis vector for cylinder or height coloring.
+    coordinate_system : Place
+      Transform of center and axis to scene coordinates.
+    palette : :class:`.Colormap`
+      Color map.
+    range : 2 comma-separated floats or "full"
+      Specifies the range of map values used for sampling from a palette.
+    update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+'''
+
 # -----------------------------------------------------------------------------
 #
 def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None,
                  update = True):
+    '''
+    Color surfaces by distance from a center point to each surface vertex
+    with distances mapped to colors by a color palette.
+    '''
+
     _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
                     palette = palette, range = range, auto_update = update)
+
+color_radial.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
                       palette = None, range = None, update = True):
+    '''
+    Color surfaces by distance from a cylinder axis to each surface vertex
+    with distances mapped to colors by a color palette.
+    '''
+
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
                     palette = palette, range = range, auto_update = update)
+
+color_cylindrical.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
                  palette = None, range = None, update = True):
+    '''
+    Color surfaces by distance parallel an axis to each surface vertex
+    with distances mapped to colors by a color palette.
+    '''
+
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
                     palette = palette, range = range, auto_update = update)
+
+color_height.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
@@ -215,7 +254,7 @@ def distances_along_axis(points, origin, axis):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core import geometry
+    from chimerax import geometry
     geometry.distances_parallel_to_axis(points, origin, axis, d)
 
     return d
@@ -242,7 +281,7 @@ def distances_from_origin(points, origin):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core.geometry import distances_from_origin
+    from chimerax.geometry import distances_from_origin
     distances_from_origin(points, origin, d)
 
     return d
@@ -267,7 +306,7 @@ def distances_from_axis(points, origin, axis):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core import geometry
+    from chimerax import geometry
     geometry.distances_perpendicular_to_axis(points, origin, axis, d)
 
     return d

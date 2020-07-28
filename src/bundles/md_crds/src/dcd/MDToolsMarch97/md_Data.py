@@ -251,7 +251,7 @@ See also: http://www.ks.uiuc.edu/Research/namd/
 			l = map(None,(self.names))
 			l.remove('TIME')
 			try: l.remove('TS')
-			except: pass
+			except Exception: pass
 			l[0:0] = ['TIME']
 			Data.plot(self,tuple(l))
 		else:

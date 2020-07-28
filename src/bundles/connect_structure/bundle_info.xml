@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-Connect_Structure" version="1.0"
-	    package="chimerax.atomic.connect_structure"
+<BundleInfo name="ChimeraX-ConnectStructure" version="2.0"
+	    package="chimerax.connect_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -22,9 +22,9 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomSearch" build="true" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

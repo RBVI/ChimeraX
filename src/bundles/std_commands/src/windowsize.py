@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.graphics.windowsize import window_size
+from chimerax.graphics.windowsize import window_size
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, PositiveIntArg

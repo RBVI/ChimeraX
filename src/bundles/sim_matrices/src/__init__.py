@@ -72,7 +72,7 @@ def matrix(session, mat_name):
 	try:
 		return _matrices[mat_name]
 	except KeyError:
-		raise ValueError("Cannot find similarity matrix '%s'" ^ mat_name)
+		raise ValueError("Cannot find similarity matrix '%s'" % mat_name)
 
 def matrix_name_key_func(mat_name):
 	# sorts matrix names numerically where appropriate

@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
+from .cmd import SimpleMeasurable, ComplexMeasurable
 
 class _DistMonitorBundleAPI(BundleAPI):
 

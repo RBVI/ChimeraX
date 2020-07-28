@@ -334,7 +334,7 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 
-  from .data import SubsampledGrid
+  from chimerax.map_data import SubsampledGrid
   if isinstance(dt, SubsampledGrid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
@@ -355,7 +355,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     if not a.flags.writeable:
       a = a.copy()
     array = a.reshape(s['size'][::-1])
-    from .data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
@@ -409,7 +409,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
-    from .data import SubsampledGrid
+    from chimerax.map_data import SubsampledGrid
     dslist = []
     for data in dlist:
       if not isinstance(data, SubsampledGrid):
@@ -437,7 +437,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     return dlist
 
   if dbfetch is None:
-    from .data import opendialog
+    from chimerax.map_data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
                                                       stack_images = False,
@@ -537,7 +537,7 @@ def state_from_map(volume):
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 2
-  from .series import MapSeries
+  from chimerax.map_series import MapSeries
   if isinstance(v.parent, MapSeries):
     s['in_map_series'] = True
   return s
@@ -586,7 +586,7 @@ def set_map_state(s, volume, notify = True):
       style = 'image'
     v.set_display_style(style)
       
-  from chimerax.core.geometry import Place
+  from chimerax.geometry import Place
   v.position = Place(s['place'])
 
   v.new_region(*s['region'], adjust_step = False)

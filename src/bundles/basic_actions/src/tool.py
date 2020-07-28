@@ -195,9 +195,12 @@ class BasicActionsTool(HtmlToolInstance):
         except KeyError:
             # Happens when chain id is blank
             selector = ""
+        self.session.ui.main_window.select_by_mode(selector)
+        """
         cmd = "select %s" % selector
         from chimerax.core.commands import run
         run(self.session, cmd)
+        """
 
     def _cb_builtin(self, query):
         """shows builtin names"""

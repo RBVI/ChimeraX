@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-MD-crds" version="1.0"
-	    package="chimerax.atomic.md_crds"
+<BundleInfo name="ChimeraX-MDcrds" version="2.0"
+	    package="chimerax.md_crds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -26,20 +26,37 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Gromacs full-precision coordinates" category="Molecular trajectory"
+		nicknames="trr" suffixes=".trr" encoding="utf-8"
+		synopsis="Gromacs trr format" reference_url="http://manual.gromacs.org/documentation/current/reference-manual/file-formats.html#trr" />
+    <Provider name="Gromacs compressed coordinates" category="Molecular trajectory"
+		nicknames="xtc" suffixes=".xtc" encoding="utf-8"
+		synopsis="Gromacs xtc format" reference_url="http://manual.gromacs.org/documentation/current/reference-manual/file-formats.html#xtc" />
+    <Provider name="DCD coordinates" category="Molecular trajectory"
+		nicknames="dcd" suffixes=".dcd" encoding="utf-8" synopsis="DCD trajectory format" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="trr" want_path="true" />
+    <Provider name="xtc" want_path="true" />
+    <Provider name="dcd" want_path="true" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="dcd" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: Gromacs full-precision coordinates :: trr :: Molecular trajectory :: .trr :: :: http://manual.gromacs.org/online/trr.html :: :: :: Gromacs trr format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: Gromacs compressed coordinates :: xtc :: Molecular trajectory :: .xtc :: :: http://manual.gromacs.org/online/xtc.html :: :: :: Gromacs xtc format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: DCD coordinates :: dcd :: Molecular trajectory :: .dcd :: :: :: :: :: DCD trajectory format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Gromacs full-precision coordinates :: trr :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Gromacs compressed coordinates :: xtc :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: DCD coordinates :: dcd :: true :: structure_model:Structure,replace:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: DCD coordinates :: dcd :: true :: models:Models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

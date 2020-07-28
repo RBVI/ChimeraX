@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 #
 def segmentation_colors(session, segmentations, color = None,
-                        map = None, surface = None,
+                        map = None, surfaces = None,
                         by_attribute = None, outside_color = None,
                         step = None,  # Step is just used for surface coloring interpolation.
                         max_segment_id = None):
@@ -36,7 +36,7 @@ def segmentation_colors(session, segmentations, color = None,
     if outside_color is not None:
         outside_color = outside_color.uint8x4()
         
-    if map is None and surface is None:
+    if map is None and surfaces is None:
         for seg in segmentations:
             _color_segmentation(seg, by_attribute, color, outside_color)
 
@@ -48,55 +48,63 @@ def segmentation_colors(session, segmentations, color = None,
         seg = segmentations[0]
         if tuple(map.data.size) != tuple(seg.data.size):
             from chimerax.core.errors import UserError
-            raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
-                            ' does not match segmentation size %s' % tuple(seg.data.size))
+            raise UserError('segmentation colors: Volume size %d,%d,%d' % tuple(map.data.size) +
+                            ' does not match segmentation size %d,%d,%d' % tuple(seg.data.size))
 
         _color_map(map, seg, by_attribute, color, outside_color)
 
-    if surface is not None:
+    if surfaces is not None:
         if len(segmentations) != 1:
             from chimerax.core.errors import UserError
             raise UserError('segmentation colors: Can only specify one segmentation'
                             ' when coloring a surface, got %d' % len(segmentations))
         seg = segmentations[0]
-        _color_surface(surface, seg, by_attribute,
-                       color=color, outside_color=outside_color, step=step)
+        for surface in surfaces:
+            _color_surface(surface, seg, by_attribute,
+                           color=color, outside_color=outside_color, step=step)
         
 # -----------------------------------------------------------------------------
 #
 def _color_segmentation(segmentation, attribute_name, color = None, outside_color = None):
     seg = segmentation
-    c = _attribute_colors(seg, attribute_name)
+    ac = _attribute_colors(seg, attribute_name)
     zc = (0,0,0,0) if outside_color is None else outside_color
-    seg_colors = c.segment_colors(color, zc)
+    seg_colors = ac.segment_colors(color, zc)
+    if outside_color is None and seg.segment_colors is not None:
+        seg_mask = (ac._segment_attribute_values == 0)
+        seg_colors[seg_mask] = seg.segment_colors[seg_mask]
     seg.segment_colors = seg_colors
-    i = seg._image 
-    if i:
-        i.segment_colors = seg_colors
-        i._need_color_update()
-        
+
 # -----------------------------------------------------------------------------
 #
 def _color_map(map, segmentation, attribute_name, color = None, outside_color = None):
     ac = _attribute_colors(segmentation, attribute_name)
     zc = (255,255,255,255) if outside_color is None else outside_color
     seg_rgba = ac.segment_colors(color, zc)
-    seg_rgb = seg_rgba[:3].copy()	# Make contiguous
-    def seg_color(color_plane, region, seg=segmentation,
-                  segment_rgba = seg_rgba, segment_rgb = seg_rgb):
+    if outside_color is None and isinstance(map.mask_colors, SegmentationMapColor):
+         # Blend with existing colors
+        seg_mask = (ac._segment_attribute_values == 0)
+        cur_rgba = map.mask_colors._segment_rgba
+        seg_rgba[seg_mask] = cur_rgba[seg_mask]
+    map.mask_colors = SegmentationMapColor(segmentation, seg_rgba)
+
+# -----------------------------------------------------------------------------
+#
+class SegmentationMapColor:
+    def __init__(self, segmentation, segment_rgba):
+        self._segmentation = segmentation
+        self._segment_rgba = segment_rgba
+        self._segment_rgb = segment_rgba[:,:3].copy()	# Make contiguous
+
+    def __call__(self, color_plane, region):
+        seg = self._segmentation
         seg_matrix = seg.region_matrix(region)
-        segment_ids = seg_matrix.reshape(color_plane.shape[:-1]) # Squeeze out single plane dimension
+        shape = color_plane.shape[:-1]
+        segment_ids = seg_matrix.reshape(shape) # Squeeze out single plane dimension
         nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
-        segment_colors = segment_rgba if nc == 4 else segment_rgb
+        segment_colors = self._segment_rgba if nc == 4 else self._segment_rgb
         from chimerax.map import indices_to_colors
         indices_to_colors(segment_ids, segment_colors, color_plane, modulate = True)
-
-    map.mask_colors = seg_color
-
-    i = map._image 
-    if i:
-        i.mask_colors = map.mask_colors
-        i._need_color_update()
         
 # -----------------------------------------------------------------------------
 #
@@ -240,32 +248,72 @@ def _which_segments(segmentation, conditions):
     for condition in conditions:
         if '=' in condition:
             # All segments with attribute with specified value ("neuron_id=1")
-            attribute_name, val = condition.split('=', maxsplit = 1)
-            value = int(val)
+            attribute_name, vals = condition.split('=', maxsplit = 1)
             av = _attribute_values(segmentation, attribute_name)
-            mask = (av == value)
+            values = _parse_integers(vals)
+            if values is None:
+                from chimerax.core.errors import UserError
+                raise UserError('Require integer values "%s"' % condition)
+            from numpy import isin
+            mask = isin(av, values)
             logical_and(mask, group, mask)
             group[:] = 0
-            group[mask] = value
+            group[mask] = av[mask]
+        elif condition == 'segment':
+            pass
         else:
-            try:
-                # One specific segment ("5")
-                attribute_name = 'segment'
-                seg_id = int(condition)
-                if group[seg_id]:
-                    group[:] = 0
-                    group[seg_id] = seg_id
-                else:
-                    group[:] = 0
-            except:
-                # All segments with non-zero attribute value ("neuron_id").
+            seg_ids = _parse_integers(condition)
+            if seg_ids is None:
+                # Condition is just an attribute name, e.g. "neuron_id".
+                # Take all segments with non-zero attribute value.
                 attribute_name = condition
-                mask = (group != 0)
                 av = _attribute_values(segmentation, attribute_name)
+                mask = (group != 0)
                 group[mask] = av[mask]
+            else:
+                # One or more segments, e.g. "5-12,23,70-102"
+                attribute_name = 'segment'
+                try:
+                    keep_seg_ids = seg_ids[group[seg_ids] != 0]
+                except IndexError:
+                    from chimerax.core.errors import UserError
+                    raise UserError('Segment ids (%d - %d) out of range (0 - %d)'
+                                    % (seg_ids.min(), seg_ids.max(), max_seg_id))
+                group[:] = 0
+                group[keep_seg_ids] = keep_seg_ids
 
     return group, attribute_name
 
+# -----------------------------------------------------------------------------
+#
+def _parse_integers(ids_string):
+    '''
+    Parse integers, that can be comma-separated numbers and ranges
+    such as 5,9,15-32,7.  Return an array of integer values.
+    If the string does not contain integers return None.
+    '''
+    ids = []
+    groups = ids_string.split(',')
+    for g in groups:
+        r = g.split('-')
+        if len(r) == 1:
+            try:
+                r0 = int(r[0])
+            except ValueError:
+                return None
+            ids.append(r0)
+        elif len(r) == 2:
+            try:
+                r0,r1 = int(r[0]), int(r[1])
+            except ValueError:
+                return None
+            ids.extend(range(r0,r1+1))
+        else:
+            return None
+    from numpy import array, int32
+    idsa = array(ids, int32)
+    return idsa
+    
 # -----------------------------------------------------------------------------
 #
 def segmentation_surfaces(session, segmentations,
@@ -399,7 +447,9 @@ def _maximum_segment_id(segmentation):
     else:
         try:
             max_seg_id = seg.data.find_attribute('maximum_segment_id')
-        except:
+        except Exception:
+            max_seg_id = None
+        if max_seg_id is None:
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 
@@ -412,9 +462,9 @@ def _attribute_values(seg, attribute_name):
     if hasattr(seg, attribute_name):
         g = getattr(seg, attribute_name)
     else:
-        g = seg.data.find_attribute(attribute_name)
-        if g is None and not attribute_name.endswith('_id'):
-            g = seg.data.find_attribute(attribute_name + '_id')
+        g = None
+        if hasattr(seg.data, 'find_attribute'):
+            g = seg.data.find_attribute(attribute_name)
         if g is None:
             raise UserError('Segmentation %s (#%s) has no attribute %s'
                             % (seg.name, seg.id_string, attribute_name))
@@ -450,14 +500,14 @@ def _attribute_values(seg, attribute_name):
 # -----------------------------------------------------------------------------
 #
 def register_segmentation_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg, SurfaceArg, ColorArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg, SurfacesArg, ColorArg, RepeatOf
     from chimerax.map import MapsArg, MapArg, MapRegionArg, MapStepArg
 
     desc = CmdDesc(
         required = [('segmentations', MapsArg)],
         optional = [('color', ColorArg)],
         keyword = [('map', MapArg),
-                   ('surface', SurfaceArg),
+                   ('surfaces', SurfacesArg),
                    ('by_attribute', StringArg),
                    ('outside_color', ColorArg),
                    ('max_segment_id', IntArg),

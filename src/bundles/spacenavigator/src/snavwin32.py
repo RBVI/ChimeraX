@@ -60,7 +60,7 @@ class Space_Device_Win32:
     def KeyDown(self, code):     # Event callback
         try:
             name = self.keyboard.GetKeyName(code)
-        except:
+        except Exception:
             name = code
         self.buttons.append(name)
 

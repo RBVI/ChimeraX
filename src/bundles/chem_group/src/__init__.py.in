@@ -68,4 +68,9 @@ class ChemGroupAPI(BundleAPI):
                 if not amine:
                     add_selector(menu, "All the Above",
                         "|".join([e.replace(' ', '-') for e in submenu]))
+        # put some "atomic" selectors in our menus because they are a better fit
+        chemistry_menu = add_submenu([], parent_menus[0])
+        add_selector(chemistry_menu, "Protein", "protein")
+        add_selector(chemistry_menu, "Nucleic Acid", "nucleic-acid")
+
 bundle_api = ChemGroupAPI()

@@ -49,7 +49,23 @@ def combine_geometry_vnt(geoms):
         cta[toffset:toffset+len(ta)] += voffset
         voffset += len(va)
         toffset += len(ta)
-    return va,na,ta
+    return cva,cna,cta
+
+# -----------------------------------------------------------------------------
+#
+def combine_geometry_vntc(geoms):
+    from numpy import concatenate
+    cva = concatenate([va for va,na,ta,ca in geoms])
+    cna = concatenate([na for va,na,ta,ca in geoms])
+    cta = concatenate([ta for va,na,ta,ca in geoms])
+    cca = concatenate([ca for va,na,ta,ca in geoms])
+    voffset = 0
+    toffset = 0
+    for va,na,ta,ca in geoms:
+        cta[toffset:toffset+len(ta)] += voffset
+        voffset += len(va)
+        toffset += len(ta)
+    return cva,cna,cta,cca
 
 # -----------------------------------------------------------------------------
 #

@@ -49,6 +49,8 @@ def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAU
         can_return_none=False):
     cls._attr_registration.register(session, attr_name, registerer, default_value, (attr_type, can_return_none))
 
+class RegistrationConflict(ValueError):
+    pass
 # used within the class to hold the registration info
 class AttrRegistration:
     def __init__(self, class_):
@@ -74,8 +76,21 @@ class AttrRegistration:
             prev_registrant, prev_default, prev_type_info = self.reg_attr_info[attr_name]
             if prev_default == default_value and prev_type_info == type_info:
                 return
-            raise ValueError("Registration of attr '%s' with %s by %s conflicts with previous"
-                " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
+            if prev_default != default_value:
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s due to differing default values (%s vs. %s)" % (attr_name,
+                    self.class_.__name__, registrant, prev_registrant, prev_default, default_value))
+            prev_attr_type, prev_can_return_none = prev_type_info
+            attr_type, can_return_none = type_info
+            if prev_attr_type != attr_type:
+                type_str = lambda t: "None" if t is None else t.__name__
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s due to differing value types (%s vs. %s)" % (attr_name,
+                    self.class_.__name__, registrant, prev_registrant,
+                    type_str(prev_attr_type), type_str(attr_type)))
+            raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                " registration by %s due to one allowing None as a value and the other not allowing it"
+                % (attr_name, self.class_.__name__, registrant, prev_registrant))
         self.reg_attr_info[attr_name] = (registrant, default_value, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:

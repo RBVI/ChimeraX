@@ -23,7 +23,7 @@ def fetch_cellpack(session, cellpack_id, database = default_autopack_database, i
         surf = fetch_autopack(session, path, cellpack_id, database, ignore_cache)
     except IOError as e:
         from chimerax.core.errors import UserError
-        raise UserError('Unknown cellPACK id "%s"\n\n%s' % (results_name, str(e)))
+        raise UserError('Unknown cellPACK id "%s"\n\n%s' % (cellpack_id, str(e)))
     return [surf], 'Opened %s' % cellpack_id
 
 # -----------------------------------------------------------------------------

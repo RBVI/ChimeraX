@@ -367,6 +367,18 @@ public:
     }
 };
 
+void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let)
+{
+    for (auto r: chain_residues) {
+        auto name = r->name();
+        name.pop_back();
+        r->set_name(name);
+        auto cid = r->chain_id();
+        cid.insert(0, 1, second_chain_id_let);
+        r->set_chain_id(cid);
+    }
+}
+
 #ifdef CLOCK_PROFILING
 #include <ctime>
 static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
@@ -384,7 +396,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res)
+    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res, bool segid_chains)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -399,10 +411,12 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     bool        recent_TER = false;
     bool        break_hets = false;
     bool        redo_elements = false;
-    unsigned char  let;
+    unsigned char  let, second_chain_id_let = '\0';
     ChainID  seqres_cur_chain;
     int         seqres_cur_count;
     bool        dup_MODEL_numbers = false;
+    bool        second_chain_let_okay = true;
+    std::vector<Residue*> chain_residues;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -555,6 +569,11 @@ start_t = end_t;
             start_connect = true;
             recent_TER = true;
             break_hets = false;
+            if (second_chain_let_okay)
+                correct_chain_ids(chain_residues, second_chain_id_let);
+            second_chain_let_okay = true;
+            second_chain_id_let = '\0';
+            chain_residues.clear();
             break;
 
         case PDB::HETATM:
@@ -564,7 +583,7 @@ start_t = end_t;
 
             AtomName aname;
             ResName rname;
-            auto cid = ChainID({record.atom.res.chain_id});
+            auto cid = segid_chains ? ChainID(record.atom.seg_id) : ChainID({record.atom.res.chain_id});
             if (islower(record.atom.res.chain_id))
                 as->lower_case_chains = true;
             if (islower(record.atom.res.i_code))
@@ -579,6 +598,13 @@ start_t = end_t;
             }
             MolResId rid(cid, seq_num, i_code);
             rname = record.atom.res.name;
+            if (second_chain_let_okay) {
+                if (rname.size() < 4) {
+                    second_chain_let_okay = false;
+                } else {
+                    let = rname[3];
+                }
+            }
             canonicalize_res_name(rname);
             if (recent_TER && cur_residue != nullptr && cur_residue->chain_id() == rid.chain)
                 // HETATMs following a TER in the middle of
@@ -664,11 +690,27 @@ start_t = end_t;
                         end_residues->pop_back();
                     }
                 }
+                if (start_connect) {
+                    if (second_chain_let_okay)
+                        correct_chain_ids(chain_residues, second_chain_id_let);
+                    second_chain_let_okay = true;
+                    second_chain_id_let = '\0';
+                    chain_residues.clear();
+                }
 
                 if (start_connect && cur_residue != nullptr)
                     end_residues->push_back(cur_residue);
                 cur_rid = rid;
                 cur_residue = as->new_residue(rname, rid.chain, rid.number, rid.insert);
+                if (second_chain_let_okay) {
+                    chain_residues.push_back(cur_residue);
+                    if (let == ' ')
+                        second_chain_let_okay = false;
+                    else if (second_chain_id_let == '\0')
+                        second_chain_id_let = let;
+                    else if (let != second_chain_id_let)
+                        second_chain_let_okay = false;
+                }
                 if (record.type() == PDB::HETATM)
                     het_res.insert(cur_residue);
                 cur_res_index = as->residues().size() - 1;
@@ -929,6 +971,8 @@ start_t = clock();
         end_residues->push_back(cur_residue);
     }
     as->pdb_version = record.pdb_input_version();
+    if (second_chain_let_okay)
+        correct_chain_ids(chain_residues, second_chain_id_let);
 
     if (redo_elements) {
         char test_name[3];
@@ -1218,7 +1262,7 @@ read_fileno(void *f)
 }
 
 static PyObject *
-read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains)
 {
     std::vector<Structure *> file_structs;
     bool reached_end;
@@ -1310,7 +1354,7 @@ start_t = clock();
         std::set<Residue*> het_res;
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res);
+          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res, segid_chains);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1485,6 +1529,23 @@ aniso_u_to_int(Real aniso_u_val)
         10000.0 * aniso_u_val - 0.5 : 10000.0 * aniso_u_val + 0.5);
 }
 
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+{
+    if (res->chain_id().size() == 2) {
+        std::string adjusted_name;
+        int num_spaces = res->name().size() - 3;
+        if (num_spaces > 0)
+            adjusted_name.insert(0, num_spaces, ' ');
+        adjusted_name.append(res->name());
+        adjusted_name.append(1, res->chain_id()[0]);
+        strcpy(out_rn, adjusted_name.c_str());
+        *out_cid = res->chain_id()[1];
+    } else {
+        strcpy(out_rn, res->name().c_str());
+        *out_cid = res->chain_id()[0];
+    }
+}
+
 static void
 write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
@@ -1510,8 +1571,7 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
         }
         if (need_ter) {
             p_ter.ter.serial = ++serial;
-            strcpy(p_ter.ter.res.name, prev_res->name().c_str());
-            p_ter.ter.res.chain_id = prev_res->chain_id()[0];
+            set_res_name_and_chain_id(prev_res, p_ter.ter.res.name, &p_ter.ter.res.chain_id);
             int seq_num = prev_res->number();
             char i_code = prev_res->insertion_code();
             if (seq_num > 9999) {
@@ -1580,8 +1640,7 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, aname.c_str());
                 }
             }
-            strcpy(res->name, r->name().c_str());
-            res->chain_id = r->chain_id()[0];
+            set_res_name_and_chain_id(r, res->name, &res->chain_id);
             auto seq_num = r->number();
             auto i_code = r->insertion_code();
             if (seq_num > 9999) {
@@ -1927,7 +1986,7 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
 
 static const char*
 docstr_read_pdb_file = 
-"read_pdb_file(f, log=None, explode=True, atomic=True)\n"
+"read_pdb_file(f, log=None, explode=True, atomic=True, segid_chains=False)\n"
 "\n"
 "'f' is a file-like object open for reading containing the PDB info\n"
 "'log' is a file-like object open for writing warnings/errors and other"
@@ -1937,6 +1996,7 @@ docstr_read_pdb_file =
 "'atomic' controls whether models are treated as atomic models with"
 " standard chemical properties (default True) or as graphical models"
 " (False)\n"
+"'segid_chains' controls whether the segment ID is used in lieu of the chain ID\n"
 "\n"
 "Returns a numpy array of C++ pointers to AtomicStructure objects"
 " (if 'atomic' is True, otherwise Structure objects)";
@@ -1946,10 +2006,10 @@ read_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *pdb_file;
     PyObject *py_logger;
-    int explode, atomic;
-    if (!PyArg_ParseTuple(args, "OOpp", &pdb_file, &py_logger, &explode, &atomic))
+    int explode, atomic, segid_chains;
+    if (!PyArg_ParseTuple(args, "OOppp", &pdb_file, &py_logger, &explode, &atomic, &segid_chains))
         return nullptr;
-    return read_pdb(pdb_file, py_logger, explode, atomic);
+    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains);
 }
 
 static const char*

@@ -131,7 +131,7 @@ def minimize_link_lengths(mols, pbonds, iterations, frames, session):
     if not frames is None:
         pos0 = dict((m,m.position) for m in mols)
     from numpy import array, float64
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     for i in range(iterations):
         for m in mols:
             if m in mol_links:
@@ -194,7 +194,7 @@ class interpolate_position:
             return DEREGISTER
         else:
             f = fr / self.frames
-            from chimerax.core.geometry import translation, rotation
+            from chimerax.geometry import translation, rotation
             m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
             self.frame += 1
 

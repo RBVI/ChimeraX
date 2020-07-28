@@ -40,15 +40,15 @@ static inline int clamp(int x, int limit)
 static void sphere_surface_distance(const FArray &centers, const FArray &radii,
 				    float maxrange, FArray &matrix)
 {
-  const int *msize = matrix.sizes();
-  int n = centers.size(0);
+  const int64_t *msize = matrix.sizes();
+  int64_t n = centers.size(0);
   const float *ca = centers.values();
-  long cs0 = centers.stride(0), cs1 = centers.stride(1);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1);
   const float *ra = radii.values();
-  long rs0 = radii.stride(0);
+  int64_t rs0 = radii.stride(0);
   float *ma = matrix.values();
-  long ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
-  for (int c = 0 ; c < n ; ++c)
+  int64_t ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
+  for (int64_t c = 0 ; c < n ; ++c)
     {
       float r = ra[c*rs0];
       if (r == 0)

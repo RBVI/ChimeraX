@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/gopenmol
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/gopenmol
 
 PYSRCS = __init__.py plt_format.py plt_grid.py
 

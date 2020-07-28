@@ -16,7 +16,7 @@ def median_filter(volume, bin_size = 3, iterations = 1,
                   step = 1, subregion = None, modelId = None):
 
   mg = median_grid(volume, bin_size, iterations, step, subregion)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   mv = volume_from_grid_data(mg, volume.session, model_id = modelId)
   mv.copy_settings_from(volume, copy_region = False)
   
@@ -40,7 +40,7 @@ def median_grid(volume, bin_size = 3, iterations = 1,
   for i in range(iterations):
     m = median_array(m, bin_size)
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   d = v.data
   if v.name.endswith('median'): name = v.name
   else:                         name = '%s median' % v.name
@@ -93,9 +93,9 @@ def sphere_volume(session, n, r, noise = 1.0):
     from numpy.random import normal
     a += normal(0, noise, a.shape)
 
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   g = ArrayGridData(a, origin = (-o,-o,-o), step = (1,1,1), name = 'sphere')
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   v = volume_from_grid_data(g, session)
   return v
 

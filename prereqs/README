@@ -61,6 +61,8 @@ line_profiler
 	used to profile python code, see ChimeraX application documentaion
 llvm/
 	Compiler libraries used by offscreen-mesa to compile opengl shaders for image rendering in nogui mode.
+lxml
+	for nogui logger
 markupsafe
 	used by jinja2 for sphinx
 mccabe

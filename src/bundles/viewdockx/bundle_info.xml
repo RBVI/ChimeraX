@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ViewDockX" version="0.1"
+<BundleInfo name="ChimeraX-ViewDockX" version="1.0"
 	    package="chimerax.viewdockx"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -39,16 +39,28 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-Mol2" version=">=1.0"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
 
   <Providers manager="url_schemes">
     <Provider name="vdxchart"/>
     <Provider name="vdxplot"/>
     <Provider name="vdxtable"/>
+  </Providers>
+
+  <Providers manager="data formats">
+    <Provider name="AutoDock PDBQT" nicknames="pdbqt" category="Molecular structure"
+		suffixes=".pdbqt" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
   </Providers>
 
   <Classifiers>
@@ -59,10 +71,6 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <ChimeraXClassifier>Command :: viewdockx :: General :: specify models as docking results </ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx down :: General :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx up :: General :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: mol2 :: :: Molecular structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: mol2 :: mol2 ::</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: pdbqt :: :: Molecular structure :: .pdbqt :: :: :: :: :: pdbqt format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: pdbqt :: pdbqt ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

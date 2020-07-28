@@ -31,44 +31,39 @@ class _MyAPI(BundleAPI):
             desc.synopsis = ci.synopsis
         register(command_name, desc, func)
 
-    # Override method for opening file
+    # Implement provider method for opening file
     @staticmethod
-    def open_file(session, stream, format_name):
-        # 'open_file' is called by session code to open a file;
-        # returns (list of models, status message).
+    def run_provider(session, name, mgr):
+        # 'run_provider' is called by a manager to invoke the 
+        # functionality of the provider.  Since the "data formats"
+        # manager never calls run_provider (all the info it needs
+        # is in the Provider tag), we know that only the "open
+        # command" manager will call this function, and customize
+        # it accordingly.
         #
-        # The first argument must be named 'session'.
-        # The second argument must be named either 'path' or 'stream'.
-        # A 'path' argument will be bound to the path to the input file, 
-        # which may be a temporary file; a 'stream' argument will be
-        # bound to an file-like object in text or binary mode, depending
-        # on the DataFormat ChimeraX classifier in bundle_info.xml.
-        # If you want both, use 'stream' as the second argument and
-        # add a 'file_name' argument, which will be bound to the
-        # last (file) component of the path.
-        from .io import open_xyz
-        return open_xyz(session, stream)
-
-    # Override method for saving file
-    @staticmethod
-    def save_file(session, path, format_name):
-        """ 'save_file' is called by session code to save a file
-        """
-        raise NotImplementedError
-        # Additional keywords may be added by listing them
-        # in the "Save" ChimeraX classifier in bundle_info.xml.
-        # Keywords listed there should match additional arguments
-        # to this function.
-
-    # Override method for retrieving entries from databases
-    @staticmethod
-    def fetch_from_database(session, identifier,
-                            format=None,
-                            ignore_cache=False,
-                            **kw):
-        # 'fetch_from_database' is called by session code to fetch
-        # data with give identifier.
-        raise NotImplementedError     # FIXME: remove method if unneeded
+        # The 'name' arg will be the same as the 'name' attribute
+        # of your Provider tag, and mgr will be the corresponding
+        # Manager instance
+        #
+        # For the "open command" manager, this method must return
+        # a chimerax.open_command.OpenerInfo subclass instance.
+        #
+        # If your bundle also saved or fetched files, then it
+        # need to distinguish what to do based on the 'name'
+        # argument or by testing the 'mgr' argument against
+        # session.open_command or session.fetch_command.  See
+        # the developer tutorial here: 
+        #   http://www.cgl.ucsf.edu/chimerax/docs/devel/tutorials/introduction.html#writing-bundles-in-seven-easy-steps
+        # for more info
+        from chimerax.open_command import OpenerInfo
+        class XyzOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                # The 'open' method is called to open a file,
+                # and must return a (list of models created,
+                # status message) tuple.
+                from .io import open_xyz
+                return open_xyz(session, data)
+        return XyzOpenerInfo()
 
     # Override method for initialization function called each time
     # ChimeraX starts.  Only invoked if the custom initialization

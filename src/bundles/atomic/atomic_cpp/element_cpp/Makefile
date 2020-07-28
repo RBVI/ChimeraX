@@ -49,5 +49,5 @@ ifdef WIN32
 	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
-Element.o: Element.h ../pyinstance_cpp/PythonInstance.declare.h \
-	../pyinstance_cpp/PythonInstance.instantiate.h
+$(OBJS): Element.h ../pyinstance_cpp/PythonInstance.declare.h \
+	../pyinstance_cpp/PythonInstance.instantiate.h imex.h

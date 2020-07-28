@@ -46,7 +46,7 @@ def _qurl2text(qurl):
 class _HelpWebView(ChimeraXHtmlView):
 
     def __init__(self, session, tool, profile):
-        super().__init__(session, tool.tabs, size_hint=(800, 800), profile=profile)
+        super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
 
     def createWindow(self, win_type):  # noqa
@@ -467,14 +467,13 @@ class HelpUI(ToolInstance):
     def page_loaded(self, w, okay):
         if self.tabs.currentWidget() != w:
             return
-        history = w.history()
-        self.back.setEnabled(history.canGoBack())
-        self.forward.setEnabled(history.canGoForward())
+        self.update_back_forward(w)
 
     def url_changed(self, w, url):
         if self.tabs.currentWidget() != w:
             return
         self.url.setText(_qurl2text(url))
+        self.update_back_forward(w)
 
     def title_changed(self, w, title):
         if self.tabs.currentWidget() == w:
@@ -498,11 +497,13 @@ class HelpUI(ToolInstance):
         else:
             # no more tabs
             self.display(False)
+        self.update_back_forward()
 
     def close_tab(self, i):
         w = self.tabs.widget(i)
         self.tabs.removeTab(i)
         w.deleteLater()
+        self.update_back_forward()
 
     def close_current_tab(self):
         i = self.tabs.currentIndex()
@@ -526,6 +527,13 @@ class HelpUI(ToolInstance):
         elif n < count:
             self.tabs.setCurrentIndex(n)
 
+    def update_back_forward(self, w=None):
+        if w is None:
+            w = self.tabs.currentWidget()
+        history = w.history()
+        self.back.setEnabled(history.canGoBack())
+        self.forward.setEnabled(history.canGoForward())
+
     @classmethod
     def get_viewer(cls, session, target=None):
         global _singleton
@@ -535,6 +543,9 @@ class HelpUI(ToolInstance):
 
 
 def _installable(w, logger):
+    return True
+    # TODO: check if installable to give better error message than
+    #       downstream use of pip.
     import re
     from distutils.version import LooseVersion as Version
     import chimerax.core

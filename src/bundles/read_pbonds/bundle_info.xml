@@ -14,17 +14,29 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Pseudobonds" category="Generic 3D objects" suffixes=".pb"
+		synopsis="Interatomic pseudobonds" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Pseudobonds" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Pseudobonds" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    
-    <ChimeraXClassifier>DataFormat :: Pseudobonds :: pseudobonds :: Generic 3D objects :: .pb :: :: :: :: :: Interatomic pseudobonds :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Pseudobonds :: ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: Pseudobonds :: Pseudobonds :: :: models:Models,selected_only:Bool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

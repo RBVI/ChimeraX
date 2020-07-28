@@ -61,7 +61,7 @@ class AtomPairRestrictOption(Option):
         layout.setSpacing(2)
         self.__push_button = QPushButton(display_value, **kw)
         self.__push_button.setAttribute(Qt.WA_LayoutUsesWidgetRect)
-        menu = QMenu()
+        menu = QMenu(self.__push_button)
         self.__push_button.setMenu(menu)
         for label in self.fixed_kw_menu_texts + (self.atom_spec_menu_text,):
             action = QAction(label, self.__push_button)

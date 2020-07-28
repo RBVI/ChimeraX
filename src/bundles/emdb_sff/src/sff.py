@@ -17,29 +17,29 @@ EMDB SFF: Segmentation file reader
 
 Read EMDB SFF segmentation files
 """
-def read_sff(session, path):
+def read_sff(session, path, max_surfaces = 100, debug = False):
     """
     Create a model that is either polygon traces or a volume index map.
     """
 
-    from sfftkrw.schema.adapter import SFFSegmentation
+    from sfftkrw import SFFSegmentation
     seg = SFFSegmentation.from_file(path)
 
-    report_segmentation_info(seg)
-    lmodels = lattice_models(session, seg)
+    if debug:
+        report_segmentation_info(seg)
+    lmodels = lattice_models(session, seg, max_surfaces)
     mmodels = mesh_models(session, seg)
 
     models = lmodels + mmodels
     
-    msg = 'Read segmentation file %s' % path
+    msg = 'Read segmentation file %s\n%s' % (path, seg.name)
+    if len(models) == 0:
+        msg += '\nSegmentation file contains no lattices or meshes.'
     return models, msg
-
-def len_or_none(seq):
-    return 'none' if seq is None else len(seq)
 
 def report_segmentation_info(seg):
     print ('seg name', seg.name)
-    print('software', seg.software.name)
+    print('software', [software.name for software in seg.software_list])
     print('num transforms', len(seg.transforms))
     print('num segments', len(seg.segments))
     print('num lattices', len(seg.lattices))
@@ -49,12 +49,12 @@ def report_segmentation_info(seg):
         print('transform', tf.id, 'data', tf.data_array)
 
     for segment in seg.segments:
-        v = segment.volume
+        v = segment.three_d_volume
         print ('segment id', segment.id)
-        print('num meshes', len_or_none(segment.meshes))
+        print('num meshes', len(segment.mesh_list))
         print('descrip', segment.biological_annotation.name)
         print('color', segment.colour)
-        print('num shapes', len_or_none(segment.shapes))
+        print('num shapes', len(segment.shape_primitive_list))
         print('parent', segment.parent_id)
         if v is None:
             print ('no volume')
@@ -62,48 +62,61 @@ def report_segmentation_info(seg):
             print('lattice id', v.lattice_id)
             print('transform id', v.transform_id)
             print('value', v.value)
-        if segment.meshes:
-            for i,m in enumerate(segment.meshes):
+        if segment.mesh_list:
+            for i,m in enumerate(segment.mesh_list):
                 print('mesh', i+1)
                 print('nv', m.num_vertices)
                 print('npoly', m.num_polygons)
                 print('transf id', m.transform_id)
 
-def lattice_models(session, seg):
-    lattice_segs = {}	# Map lattice id to dictionary mapping segment index to (descrip, color)
+    for lattice in seg.lattices:
+        print('lattice', lattice.id,
+              'shape', lattice.data_array.shape,
+              'value type', lattice.mode)
+
+def lattice_models(session, seg, max_surfaces = 100):
+    # Map lattice id to dictionary mapping segment index to (descrip, color)
+    lattice_segs = {}
     for segment in seg.segments:
-        v = segment.volume
+        v = segment.three_d_volume
         if v is not None:
             lseg = lattice_segs.setdefault(v.lattice_id, {})
             if v.value is not None:
                 lseg[int(v.value)] = (segment.biological_annotation, segment.colour)
 
     scale, shift = guess_scale_and_shift(seg)
-    
+
+    # Create Volume model of segment indices for each lattice.
     models = []
-    for lattice in seg.lattices:
+    lattices = seg.lattices
+    for i,lattice in enumerate(lattices):
         d = lattice.data_array	# Docs say number array, but emd 1547 gives bytes
-        print('lattice', lattice.id, 'shape', d.shape, 'value type', lattice.mode)
-        name = seg.name + ' segmentation'
-        from chimerax.map.data import ArrayGridData
+        name = 'region map' if len(lattices) == 1 else 'region map %d' % i
+        from chimerax.map_data import ArrayGridData
         g = ArrayGridData(d, step=scale, origin=shift, name = name)
         from chimerax.map import volume_from_grid_data
-        v = volume_from_grid_data(g, session)
+        v = volume_from_grid_data(g, session, open_model = False)
+        v.display = False
         if lattice.id in lattice_segs:
             v.segments = lseg = lattice_segs[lattice.id]
             set_segmentation_image_colors(v, lseg)
             # Make a surface for each segment.
+            regions = list(lseg.items())
+            regions.sort()
             surfs = [segment_surface(v, sindex, descrip, color)
-                     for sindex, (descrip, color) in lseg.items()]
-            from chimerax.core.models import Model
-            surf_group = Model('segment surfaces', v.session)
-            surf_group.add(surfs)
-            v.add([surf_group])
+                     for sindex, (descrip, color) in regions[:max_surfaces]]
+            if surfs:
+                ns, nr = len(surfs), len(regions)
+                sname = ('%d surfaces' % ns) if ns == nr else ('%d of %d surfaces' % (ns,nr))
+                from chimerax.core.models import Model
+                surf_group = Model(sname, v.session)
+                surf_group.add(surfs)
+                models.append(surf_group)
         # TODO: Don't see how to get the transform id for the lattice.
         #  EMD 1547 segmentation has two transforms, identity and the
         #  map transform (2.8A voxel size, shift to center) but I didn't
         #  find any place where transform 1 is associated with the lattice.
-        #  Appears it should be in segment.volume.transform_id but this
+        #  Appears it should be in segment.three_d_volume.transform_id but this
         #  attribute is optional and is None in this case.
         models.append(v)
 
@@ -170,9 +183,9 @@ def mesh_models(session, seg):
     from chimerax.core.models import Surface
     from chimerax.surface import combine_geometry_vnt
     for segment in seg.segments:
-        if segment.meshes is None:
+        if segment.mesh_list is None:
             continue
-        geoms = [mesh_geometry(mesh, seg) for mesh in segment.meshes]
+        geoms = [mesh_geometry(mesh, seg) for mesh in segment.mesh_list]
         if len(geoms) == 0:
             continue
         va,na,ta = combine_geometry_vnt(geoms)
@@ -216,7 +229,7 @@ def mesh_geometry(mesh, seg):
     '''
 
     if mesh.transform_id is None:
-        from chimerax.core.geometry import Place, scale
+        from chimerax.geometry import Place, scale
 #        transform = scale((160,160,160)) * Place(seg.transforms[0].data_array)
         transform = Place(seg.transforms[0].data_array) * scale((160,160,160))
     else:
@@ -248,7 +261,7 @@ def mesh_geometry(mesh, seg):
     return va,na,ta
 
 def transform_by_id(seg, tf_id):
-    from chimerax.core.geometry import Place, scale
+    from chimerax.geometry import Place, scale
     for tf in seg.transforms:
         if tf.id == tf_id:
             return scale((160,160,160)) * Place(tf.data_array)

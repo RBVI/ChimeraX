@@ -31,24 +31,23 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       Whether to create the attribute if the object doesn't already have it
     """
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-    atoms = objects.atoms
 
     from chimerax.core.errors import UserError
     if "atoms".startswith(target):
-        items = atoms
+        items = objects.atoms
         target = "atoms"
     elif "residues".startswith(target):
-        items = atoms.unique_residues
+        items = objects.residues
         target = "residues"
     elif "chains".startswith(target):
-        items = atoms.residues.unique_chains
+        items = objects.residues.unique_chains
     elif "structures".startswith(target):
         if "surfaces".startswith(target):
             raise UserError("Must provide enough attribute-target characters to distinguish"
                 " 'structures' from 'surfaces'")
-        items = atoms.unique_structures
+        items = objects.residues.unique_structures
         target = "structures"
     elif "models".startswith(target):
         items = objects.models
@@ -119,16 +118,21 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
     try:
         setattr(item, attr_name, value)
-    except:
+    except Exception:
         try:
             setattr(item, attr_name, value_string)
-        except:
+        except Exception:
             from chimerax.core.errors import UserError
             raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
 
 def register_attr(session, class_obj, attr_name, attr_type):
     if hasattr(class_obj, 'register_attr'):
-        class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        from chimerax.atomic.attr_registration import RegistrationConflict
+        try:
+            class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        except RegistrationConflict as e:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError(str(e))
     else:
         session.logger.warning("Class %s does not support attribute registration; '%s' attribute"
             " will not be preserved in sessions." % (class_obj.__name__, attr_name))

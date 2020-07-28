@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SwapRes" version="1.0" package="chimerax.atomic.rotamers.command"
+<BundleInfo name="ChimeraX-SwapRes" version="2.0" package="chimerax.swap_res"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -18,9 +18,13 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Clashes" version="~=2.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Hbonds" version="~=2.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

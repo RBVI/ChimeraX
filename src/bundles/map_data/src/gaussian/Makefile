@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/gaussian
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/gaussian
 
 PYSRCS = __init__.py gaussian_format.py gaussian_grid.py
 

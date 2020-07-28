@@ -31,14 +31,14 @@ ifdef WIN32
 ICONS	+= $(APP_NAME).ico
 endif
 SHARED_SRCS	= launcher.c
+RCSRCS	= icon.rc
 ifdef WIN32
-SHARED_OBJS	= $(SHARED_SRCS:.c=.obj)
+SHARED_OBJS	= $(SHARED_SRCS:.c=.obj) $(RCSRCS:.rc=.$(OBJ_EXT))
 ifeq ($(DESKTOP),1)
 SRCS	= $(SHARED_SRCS) main_desktop.c
 else
 SRCS	= $(SHARED_SRCS) main_console.c
 endif
-RCSRCS	= icon.rc
 OBJS	= $(SRCS:.c=.$(OBJ_EXT)) $(RCSRCS:.rc=.$(OBJ_EXT))
 else
 SRCS	= $(SHARED_SRCS) main_console.c
@@ -50,7 +50,7 @@ LIBS	+= $(PYTHON_LIB)
 all: $(PROG)
 
 ifdef WIN32
-install:	install-desktop install-console
+install:	install-desktop install-console install-others
 
 install-desktop:	$(SHARED_OBJS)
 	$(MAKE) real-install DESKTOP=1
@@ -60,12 +60,8 @@ install-console:	$(SHARED_OBJS)
 
 real-install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
-	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
-		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 ifdef DEBUG
 	$(RSYNC) *.pdb $(bindir)
@@ -73,6 +69,14 @@ ifdef DEBUG
 		$(RSYNC) *.pdb $(app_bindir); \
 	fi
 endif
+
+install-others:
+	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+	$(RSYNC) $(ICONS) $(datadir)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+		$(RSYNC) $(ICONS) $(app_datadir); \
+	fi
 else
 install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
@@ -96,6 +100,13 @@ ifeq ($(OS),Darwin)
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
+
+reinstall-plist:
+	rm Info.plist
+# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
+#	$(MAKE) Info.plist
+	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
+	$(RSYNC) Info.plist $(app_prefix)/Info.plist
 endif
 endif
 
@@ -174,12 +185,11 @@ ChimeraX-icon16.png:
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-ifeq (,$(wildcard $(TOP)/last-commit))
+RELEASE =  $(shell $(PYTHON_EXE) geticoninfo.py -r)
+ifeq ($(RELEASE),prerelease)
 FLAGS = VS_FF_PRERELEASE
-else ifeq (master,$(shell awk '$$1 == "branch:" { print $$2; }' $(TOP)/last-commit))
-FLAGS = 0
 else
-FLAGS = VS_FF_PRERELEASE
+FLAGS = 0
 endif
 
 $(APP_NAME).ico: $(APP_NAME)-icon512.png

@@ -129,7 +129,7 @@ def brace(atoms, max_length, max_loop_length, model, log):
 
     # Add connections between close atom pairs which are distantly connected.
     struts = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for c, (d12, i1, i2) in enumerate(apairs):
         if log and c > 0 and c % 1000 == 0:
             log.status('Evaluating struts %d of %d' % (c, len(apairs)))
@@ -203,7 +203,7 @@ def short_connection(i1, i2, dmax, strut_connections):
 def pseudobond_connections(structures):
     pcon = {}
     from chimerax.atomic import concatenate, Atoms, interatom_pseudobonds
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     satoms = concatenate([s.atoms for s in structures], Atoms)
     for pb in interatom_pseudobonds(satoms):
         a1, a2 = pb.atoms

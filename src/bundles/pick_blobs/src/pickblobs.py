@@ -61,7 +61,7 @@ def principle_axes_box(varray, tarray):
   weights = surface.vertex_areas(varray, tarray)
   from chimerax.std_commands.measure_inertia import moments_of_inertia
   axes, d2e, center = moments_of_inertia([(varray, weights)])
-  from chimerax.core.geometry import Place, point_bounds
+  from chimerax.geometry import Place, point_bounds
   axes_points = Place(axes = axes).inverse().transform_points(varray)
   bounds = point_bounds(axes_points)
   return axes, bounds
@@ -72,6 +72,7 @@ from chimerax.core.models import Surface
 class BlobOutlineBox(Surface):
     def __init__(self, session):
         Surface.__init__(self, 'blob outline box', session)
+        self.pickable = False
 
     @classmethod
     def create_box(cls, session, axes, bounds, rgba = (0,255,0,255)):
@@ -188,23 +189,19 @@ class PickBlobs(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self.settings = None
         
+    @property
+    def settings(self):
+        return pick_blobs_panel(self.session)
+
     def enable(self):
-        self.settings = s = pick_blobs_panel(self.session)
-        s.show()
+        self.settings.show()
         
     def mouse_down(self, event):
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x, y, exclude = self._unpickable)
+        pick = view.picked_object(x, y, max_transparent_layers = 0)
         self._pick_blob(pick)
-
-    def _unpickable(self, m):
-        from chimerax.core.models import Model
-        return (isinstance(m,BlobOutlineBox) or
-                not getattr(m, 'pickable', True) or
-                not isinstance(m, Model))
     
     def _pick_blob(self, pick):
         from chimerax.map.volume import PickedMap
@@ -345,7 +342,7 @@ class PickBlobSettings(ToolInstance):
         
     def new_color(self):
         from random import random as r
-        from chimerax.core.geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         rgba = tuple(normalize_vector((r(), r(), r()))) + (1,)
         self._blob_color.color = rgba
 

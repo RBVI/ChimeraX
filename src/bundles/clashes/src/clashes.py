@@ -94,7 +94,7 @@ def find_clashes(session, test_atoms,
         else:
             test_coords = test_atoms.coords
             other_coords = other_atoms.coords
-        from chimerax.core.geometry import find_close_points
+        from chimerax.geometry import find_close_points
         t_close, o_close = find_close_points(test_coords, other_coords, cutoff)
         test_atoms = test_atoms[t_close]
         search_atoms = other_atoms[o_close]
@@ -110,10 +110,10 @@ def find_clashes(session, test_atoms,
                 for i, r in enumerate(c.residues):
                     if r:
                         chain_pos[r] = i
-    from chimerax.atomic.search import AtomSearchTree
+    from chimerax.atom_search import AtomSearchTree
     tree = AtomSearchTree(search_atoms, scene_coords=inter_model)
     clashes = {}
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     intra_mol_map = {}
     for a in test_atoms:
         if distance_only:

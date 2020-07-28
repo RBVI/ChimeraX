@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxDistance</b>&nbsp;&nbsp;<i>D</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
@@ -46,8 +47,11 @@ ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to
 See also: 
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
+<a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
-the <a href="../preferences.html#startup">custom preset example</a>,
+<a href="../preferences.html#startup">custom presets</a>,
+<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a>,
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
 target="_blank">ChimeraX MLP highlight</a>,
 <a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
@@ -120,13 +124,17 @@ The <b>spacing</b> <i>s</i> of the map grid can be
 specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
 Decreasing the spacing increases map size and calculation time.
 </p><p>
-With <b>color true</b> (default),
-<a href="surface.html">molecular surfaces</a> for the protein chains 
-containing the specified atoms are generated
-if they do not already exist and colored by the MLP,
-and the surface patches for those atoms displayed.
-A separate MLP map is computed for each surface (protein chain), and its 
+With <b>color true</b> (default), a
+<a href="surface.html">molecular surface</a> is generated as needed
+for each protein chain that contains any of the specified atoms,
+colored by the MLP, and the surface patches for those atoms are displayed.
+Alternatively, one or more pre-existing 
+<a href="surface.html">molecular surfaces</a> for the atoms
+(for example, a surface that encloses all protein chains collectively)
+can be specified with the <b>surfaces</b> option.
+A separate MLP map is computed for each surface, and its 
 value ranges reported in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 <a name="palette-options"></a>
 Defaults for the coloring
 <a href="color.html#palette-options"><i>palette-options</i></a> are
@@ -150,13 +158,41 @@ and no surface calculations or coloring will be performed.
 This is only useful in combination with <b>map true</b>.
 </p><p>
 With <b>map true</b> (default <b>false</b>), MLP maps will be
-opened as volume models. This allows subsequently recoloring surfaces 
-by the map values (without having to recalculate them on the fly) 
-using <a href="color.html#map"><b>color sample</b></a>,
-and/or <a href="save.html#map">saving the maps</a> to files.
+opened as volume models. This allows 
+<a href="save.html#map">saving the map</a> to a file and/or
+subsequently coloring surfaces by the map values using 
+<a href="color.html#map"><b>color sample</b></a>
+without having to recalculate the map on the fly.
+The following example colors a <a href="surface.html#cap">surface cap</a> 
+(#1.1.1, from <a href="clip.html">clipping</a> surface #1.1) by MLP map #2
+with the same coloring parameters as used for the rest of the surface,
+except 40% transparent:
+</p>
+<blockquote>
+<b><a href="open.html">open</a> 1g74
+<br><a href="#top">mlp</a> map true
+<br><a href="show.html">hide</a> #2
+<br><a href="clip.html">clip</a>
+<br><a href="wait.html">wait</a> 1
+<br><a href="color.html#map">color sample</a> 
+#1.1.1 map #2 palette lipophilicity range -20,20 transparency 40
+<br><a href="clip.html#model">clip model</a> #!1 off
+<br><a href="show.html">hide</a> ~ligand targ ar
+</b>
+</blockquote>
+<p>
+The <b><a href="wait.html">wait</a></b> command is only needed in the context 
+of a script (<a href="usageconventions.html#cxc-files">command file</a>),
+to force drawing the graphics to create the surface cap
+before it is colored by the map values. 
+The wait can be omitted if the commands are entered one by one. 
+The subsequent commands color the cap,
+make clipping apply only to the surface (not to the atomic model),
+and hide ribbons and atoms not classified as
+<a href="atomspec.html#builtin">ligand</a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+July 2020</address>
 </body></html>

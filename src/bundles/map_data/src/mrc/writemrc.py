@@ -113,7 +113,7 @@ def mrc2000_header(grid_data, value_type, stats = None):
     labels = [ver_stamp[:80]]
 
     if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-        from chimerax.core.geometry import matrix
+        from chimerax.geometry import matrix
         axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
         r = 'Hydra rotation: %12.8f %12.8f %12.8f %12.8f' % (axis + (angle,))
         labels.append(r)
@@ -163,10 +163,10 @@ class Matrix_Statistics:
         from numpy import ravel, minimum, maximum, add, multiply, array, float32
         matrix_1d = matrix.ravel()
         dmin = minimum.reduce(matrix_1d)
-        if self.min == None or dmin < self.min:
+        if self.min is None or dmin < self.min:
             self.min = dmin
         dmax = maximum.reduce(matrix_1d)
-        if self.max == None or dmax > self.max:
+        if self.max is None or dmax > self.max:
             self.max = dmax
         self.sum += add.reduce(matrix_1d)
         # TODO: Don't copy array to get standard deviation.

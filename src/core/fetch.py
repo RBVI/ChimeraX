@@ -25,6 +25,8 @@ and tries to create models from the content.
 
 _database_fetches = {}
 _cache_dirs = []
+_timeout_cache = {}
+TIMEOUT_CACHE_VALID = 600  # 10 minutes in seconds
 
 
 # -----------------------------------------------------------------------------
@@ -46,12 +48,28 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :raises UserError: if unsuccessful
     """
     from os import path, makedirs
+    from urllib.request import URLError, urlparse
+    from .errors import UserError
+    import time
+    in_timeout_cache = False
+    if _timeout_cache:
+        hostname = urlparse(url).hostname
+        if hostname in _timeout_cache:
+            cur_time = time.time()
+            prev_time = _timeout_cache[hostname]
+            if prev_time + TIMEOUT_CACHE_VALID < cur_time:
+                del _timeout_cache[hostname]
+            else:
+                in_timeout_cache = True
+                ignore_cache = False
     cache_dirs = cache_directories()
     if not ignore_cache and save_dir is not None:
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
                 return filename
+    if in_timeout_cache:
+        raise UserError(f'{hostname} failed to respond')
 
     if save_dir is None:
         import tempfile
@@ -63,13 +81,11 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         filename = path.join(dirname, save_name)
         makedirs(dirname, exist_ok=True)
 
-    from urllib.request import URLError
     try:
         retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
-    except (URLError, EOFError) as e:
-        from .errors import UserError
-        raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
+    except (URLError, EOFError) as err:
+        raise UserError('Fetching url %s failed:\n%s' % (url, str(err)))
     return filename
 
 
@@ -99,8 +115,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
     :returns: None if an existing file, otherwise the content type
-    :raises urllib.request.URLError or EOFError if unsuccessful
-
+    :raises urllib.request.URLError or EOFError: if unsuccessful
 
     If 'update' and the filename already exists, fetch the HTTP headers for
     the URL and check the last modified date to see if there is a newer
@@ -110,10 +125,21 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     the HTTP last modified date, and return the filename.
     """
     import os
+    import time
+    from urllib.request import Request, urlopen, urlparse, URLError
+    from chimerax import app_dirs
+    from .errors import UserError
     if name is None:
         name = os.path.basename(filename)
-    from urllib.request import Request, urlopen
-    from chimerax import app_dirs
+    hostname = urlparse(url).hostname
+    if _timeout_cache:
+        if hostname in _timeout_cache:
+            cur_time = time.time()
+            prev_time = _timeout_cache[hostname]
+            if prev_time + TIMEOUT_CACHE_VALID < cur_time:
+                del _timeout_cache[hostname]
+            else:
+                raise UserError(f'{hostname} failed to respond')
     headers = {"User-Agent": html_user_agent(app_dirs)}
     request = Request(url, unverifiable=True, headers=headers)
     last_modified = None
@@ -122,13 +148,16 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             logger.status('check for newer version of %s' % name, secondary=True)
         info = os.stat(filename)
         request.method = 'HEAD'
-        with urlopen(request, timeout=timeout) as response:
-            d = response.headers['Last-modified']
-            last_modified = _convert_to_timestamp(d)
-        if last_modified is None and logger:
-            logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
-        if last_modified is None or last_modified <= info.st_mtime:
-            return
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                d = response.headers['Last-modified']
+                last_modified = _convert_to_timestamp(d)
+            if last_modified is None and logger:
+                logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
+            if last_modified is None or last_modified <= info.st_mtime:
+                return
+        except URLError:
+            pass
         request.method = 'GET'
     try:
         request.headers['Accept-encoding'] = 'gzip, identity'
@@ -169,11 +198,14 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
         if logger:
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return ct
-    except:
+    except Exception as err:
         if os.path.exists(filename):
             os.remove(filename)
         if logger:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
+        if isinstance(err, URLError) and isinstance(err.reason, TimeoutError):
+            _timeout_cache[hostname] = time.time()
+            raise UserError(f'{hostname} failed to respond')
         raise
 
 
@@ -215,6 +247,7 @@ def read_and_report_progress(file_in, file_out, name, content_length, logger, ch
         # In ChimeraX bug #2747 zero bytes were read and no error reported.
         from urllib.request import URLError
         raise URLError('Got %d bytes when %d were expected' % (tb, content_length))
+
 
 # -----------------------------------------------------------------------------
 #
@@ -288,88 +321,6 @@ def html_user_agent(app_dirs):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
-    # TODO: deal with content encoding for text formats
-    # TODO: how would "ignore_cache" work?
-    import os
-    from urllib import parse
-    from . import io
-    cache_dir = os.path.expanduser(os.path.join('~', 'Downloads'))
-    o = parse.urlparse(url)
-    path = parse.unquote(o.path)
-    basename = os.path.basename(path)
-    nominal_format, basename, compression_ext = io.deduce_format(basename, no_raise=True)
-    if nominal_format is None or (nominal_format is not None and nominal_format.name == 'HTML'):
-        # Let the help viewer fetch it's own files
-        try:
-            import chimerax.help_viewer as browser
-        except ImportError:
-            from .errors import UserError
-            raise UserError('Help viewer is not installed')
-        browser.show_url(session, url, new_tab=new_tab)
-        return [], "Opened %r in browser" % url
-    base, ext = os.path.splitext(basename)
-    filename = os.path.join(cache_dir, '%s%s' % (base, ext))
-    count = 0
-    while os.path.exists(filename):
-        count += 1
-        filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, ext))
-    uncompress = compression_ext is not None
-    content_type = retrieve_url(url, filename, logger=session.logger, uncompress=uncompress)
-    session.logger.info('Downloaded %s to %s' % (basename, filename))
-    mime_format = None
-    if 'format' in kw:
-        format_name = kw['format']
-        del kw['format']
-        mime_format = io.format_from_name(format_name)
-    if mime_format is None:
-        for mime_format in io.formats():
-            if content_type in mime_format.mime_types:
-                break
-        else:
-            if content_type != 'application/octet-stream':
-                session.logger.info('Unrecognized mime type: %s' % content_type)
-            mime_format = nominal_format
-    if mime_format is None:
-        from .errors import UserError
-        raise UserError('Unable to deduce format of %s' % url)
-    if mime_format != nominal_format:
-        session.logger.info('mime type (%s), does not match file name extension (%s)' % (content_type, ext))
-        new_ext = mime_format.extensions[0]
-        new_filename = os.path.join(cache_dir, '%s%s' % (base, new_ext))
-        count = 0
-        while os.path.exists(new_filename):
-            count += 1
-            new_filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, new_ext))
-        session.logger.info('renaming "%s" to "%s"' % (filename, new_filename))
-        os.rename(filename, new_filename)
-        nominal_format = mime_format
-        filename = new_filename
-    return io.open_data(session, filename, format=nominal_format.name, **kw)
-
-
-# -----------------------------------------------------------------------------
-#
-def register_web_fetch():
-    from .commands import BoolArg
-    from .commands.cli import add_keyword_arguments
-    add_keyword_arguments("open", {'new_tab': BoolArg})
-
-    def fetch_http(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'http:' + scheme_specific_part, **kw)
-    register_fetch('http', fetch_http, None, prefixes=['http'])
-
-    def fetch_https(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'https:' + scheme_specific_part, **kw)
-    register_fetch('https', fetch_https, None, prefixes=['https'])
-
-    def fetch_ftp(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'ftp:' + scheme_specific_part, **kw)
-    register_fetch('ftp', fetch_ftp, None, prefixes=['ftp'])
-
-
-# -----------------------------------------------------------------------------
-#
 def _convert_to_timestamp(date):
     # covert HTTP date to POSIX timestamp
     from email.utils import parsedate_to_datetime
@@ -377,125 +328,3 @@ def _convert_to_timestamp(date):
         return parsedate_to_datetime(date).timestamp()
     except TypeError:
         return None
-
-
-# -----------------------------------------------------------------------------
-#
-def register_fetch(database_name, fetch_function, file_format,
-                   prefixes=(), is_default_format=False, example_id=None):
-    d = fetch_databases()
-    df = d.get(database_name, None)
-    if df is None:
-        d[database_name] = df = DatabaseFetch(database_name, file_format)
-    df.add_format(file_format, fetch_function)
-    if is_default_format:
-        df.default_format = file_format
-    if example_id:
-        df.example_id = example_id
-    for p in prefixes:
-        df.prefix_format[p] = file_format
-
-
-# -----------------------------------------------------------------------------
-#
-def deregister_fetch(database_name, file_format, prefixes=()):
-    d = fetch_databases()
-    try:
-        df = d[database_name]
-    except KeyError:
-        return
-    df.remove_format(file_format)
-    if not df.fetch_function:
-        # No more fetch options, just delete
-        del d[database_name]
-    else:
-        # Still have options, get rid of what we registered
-        if df.default_format == file_format:
-            df.default_format = None
-        for p in prefixes:
-            del df.prefix_format[p]
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_databases():
-    return _database_fetches
-
-
-# -----------------------------------------------------------------------------
-#
-def database_formats(from_database):
-    return fetch_databases()[from_database].fetch_function.keys()
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False, **kw):
-    d = fetch_databases()
-    df = d[from_database]
-    from .logger import Collator
-    with Collator(session.logger, "Summary of feedback from opening %s fetched from %s" % (id, from_database)):
-        models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
-    if name is not None:
-        for m in models:
-            m.name = name
-    return models, status
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_prefix(prefix):
-    d = fetch_databases()
-    for db in d.values():
-        if prefix in db.prefix_format:
-            return db.database_name, db.prefix_format[prefix]
-    return None, None
-
-
-# -----------------------------------------------------------------------------
-#
-def prefixes():
-    d = fetch_databases()
-    return sum((tuple(db.prefix_format.keys()) for db in d.values()), ())
-
-
-# -----------------------------------------------------------------------------
-#
-class DatabaseFetch:
-
-    def __init__(self, database_name, default_format=False, example_id=None):
-        self.database_name = database_name
-        self.default_format = default_format
-        self.fetch_function = {}		# Map format to fetch function
-        self.prefix_format = {}
-
-    def add_format(self, format_name, fetch_function):
-        # fetch_function() takes session and database id arguments, returns model list.
-        from . import io
-        f = io.format_from_name(format_name)
-        if f is None:
-            self.fetch_function[format_name] = fetch_function
-        else:
-            self.fetch_function[f.name] = fetch_function
-            for name in f.nicknames:
-                self.fetch_function[name] = fetch_function
-
-    def remove_format(self, format_name):
-        from . import io
-        f = io.format_from_name(format_name)
-        if f is None:
-            try:
-                del self.fetch_function[format_name]
-            except KeyError:
-                pass
-        else:
-            for name in f.nicknames:
-                try:
-                    del self.fetch_function[name]
-                except KeyError:
-                    pass
-
-    def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
-        f = self.default_format if format is None else format
-        fetch = self.fetch_function[f]
-        return fetch(session, database_id, ignore_cache=ignore_cache, **kw)

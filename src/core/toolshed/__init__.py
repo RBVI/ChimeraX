@@ -89,7 +89,7 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
-4: ``atomic`` : str
+4. ``atomic`` : str
     An optional boolean specifying whether the selector applies to
     atoms and bonds.  Defaults to 'true' and should be set to
     'false' if selector should not appear in Basic Actions tool,
@@ -218,11 +218,10 @@ def _debug(*args, file=None, flush=True, **kw):
 # Package constants
 
 
-# Default URL of remote toolshed
-# If testing, use
-# _RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
-# But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
-_RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of remote toolshed
+_DefaultRemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of experimental remote toolshed
+_PreviewRemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -296,7 +295,7 @@ class Toolshed:
         # Initialize with defaults
         _debug("__init__", rebuild_cache, check_remote, remote_url)
         if remote_url is None:
-            self.remote_url = _RemoteURL
+            self.remote_url = _DefaultRemoteURL
         else:
             self.remote_url = remote_url
         self._safe_mode = None
@@ -304,6 +303,9 @@ class Toolshed:
         self._installed_bundle_info = None
         self._available_bundle_info = None
         self._installed_packages = {}   # cache mapping packages to bundles
+        # map from manager name to manager instance
+        from weakref import WeakValueDictionary
+        self._manager_instances = WeakValueDictionary()
 
         # Compute base directories
         import os
@@ -320,7 +322,9 @@ class Toolshed:
         # Insert directories to sys.path to take precedence over
         # installed distribution.  addsitedir checks and does not
         # add the directory a second time.
-        import site, os, sys
+        import site
+        import os
+        import sys
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         os.makedirs(self._site_dir, exist_ok=True)
@@ -421,7 +425,6 @@ class Toolshed:
                                                      self._installed_packages)
         if check_remote:
             self.reload_available(logger)
-        self.register_available_formats(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
         return changes
 
@@ -455,6 +458,32 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
+        # log newer versions of installed bundles
+        from packaging.version import Version
+        out_of_date = []
+        installed_name = None
+        installed_version = None
+        # TODO: sort abc?
+        for available in abc:
+            if available.name != installed_name:
+                bi = self.find_bundle(available.name, logger)
+                if bi is None:
+                    continue
+                installed_name = available.name
+                installed_version = Version(bi.version)
+            new_version = Version(available.version)
+            if new_version > installed_version:
+                out_of_date.append((installed_name, new_version, installed_version))
+        if out_of_date:
+            from chimerax.core.commands import plural_form
+            bundles = plural_form(out_of_date, 'bundle')
+            info = (
+                f"{plural_form(out_of_date, 'An', 'Some')} installed {bundles}"
+                f" {plural_form(out_of_date, 'is', 'are')} out of date."
+                f"  Please update the following {bundles}:<ul>")
+            for name, new_version, installed_version in out_of_date:
+                info += f"<li>{self.bundle_link(name)} to version {new_version} (currently {installed_version})"
+            logger.info(info + "</ul>", is_html=True)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
@@ -470,7 +499,7 @@ class Toolshed:
         from sortedcontainers import SortedDict
         available = SortedDict()
         for bi in self._get_available_bundles(logger):
-            #bi.register_available_commands(logger)
+            # bi.register_available_commands(logger)
             for ci in bi.commands:
                 a = available.get(ci.name, None)
                 if a is None:
@@ -486,8 +515,9 @@ class Toolshed:
             cd = CmdDesc(
                 optional=[('unknown_arguments', WholeRestOfLine)],
                 synopsis=synopsis)
-            def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
-                s._available_cmd(n, b, l)
+
+            def cb(session, s=self, name=name, bundles=bundles, logger=logger, unknown_arguments=None):
+                s._available_cmd(name, bundles, logger)
             try:
                 cli.register_available(name, cd, function=cb, logger=logger)
             except Exception as e:
@@ -527,70 +557,21 @@ class Toolshed:
             bundle_refs.append(ref)
         return bundle_names, bundle_refs
 
-    def register_available_formats(self, logger):
-        available = {}
-        for bi in self._get_available_bundles(logger):
-            for fi in bi.formats:
-                try:
-                    a = available[fi.name]
-                except KeyError:
-                    a = {
-                        "has_open": set(),
-                        "has_save": set(),
-                        "suffixes": set(fi.suffixes),
-                        "nicknames": set(fi.nicknames),
-                        "mime_types": set(fi.mime_types),
-                        "synopsis": fi.synopsis,
-                        "category": fi.category,
-                    }
-                    available[fi.name] = a
-                else:
-                    a["suffixes"].update(fi.suffixes)
-                    a["nicknames"].update(fi.nicknames)
-                    a["mime_types"].update(fi.mime_types)
-                    a["synopsis"] = fi.synopsis
-                    a["category"] = fi.category
-                    # TODO: use synopsis and category from newest version
-                if fi.has_open:
-                    a["has_open"].add((bi.name, bi.version))
-                if fi.has_save:
-                    a["has_save"].add((bi.name, bi.version))
-        from chimerax.core import io
-        for name, a in available.items():
-            if io.format_from_name(name) is not None:
-                # Do not register formats that are already handled
-                continue
-            try:
-                format = io.register_format(name, a["category"], a["suffixes"], a["nicknames"],
-                                            mime=a["mime_types"], synopsis=a["synopsis"])
-            except Exception as e:
-                logger.warning("Unable to register available format %s: %s" % (name, str(e)))
-            bundles = a["has_open"]
-            if bundles:
-                def format_open(session, path, name=name, ts=self, bundles=bundles):
-                    return ts._available_format(name, bundles, "Reading", session.logger)
-                format._open_func = format_open
-            bundles = a["has_save"]
-            if bundles:
-                def format_export(session, path, name=name, ts=self, bundles=bundles):
-                    return ts._available_format(name, bundles, "Writing", session.logger)
-                format._export_func = format_export
-
-    def _available_format(self, name, bundles, mode, logger):
-        from chimerax.core.commands import commas, plural_form
-        from chimerax.core.errors import UserError
-        bundle_names, bundle_refs = self._bundle_names_and_refs(bundles)
-        log_msg = "You should install %s" % commas(bundle_refs, 'or')
-        logger.info(log_msg, is_html=True)
-        status_msg = '%s "%s" format is provided by the uninstalled %s %s' % (
-           mode, name, plural_form(bundle_names, "bundle"),
-           commas(['"%s"' % b for b in bundle_names], 'and')
-        )
-        raise UserError(status_msg)
-
     def set_install_timestamp(self, per_user=False):
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
+
+    def bundle_url(self, bundle_name):
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        return f"{self.remote_url}/apps/{app_name}"
+
+    def bundle_link(self, bundle_name):
+        from html import escape
+        if bundle_name.startswith("ChimeraX-"):
+            short_name = bundle_name[len("ChimeraX-"):]
+        else:
+            short_name = bundle_name
+        return f'<a href="{self.bundle_url(bundle_name)}">{escape(short_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
@@ -622,7 +603,7 @@ class Toolshed:
         else:
             return []
 
-    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None):
+    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
         """Supported API. Install the bundle by retrieving it from the remote shed.
 
         Parameters
@@ -662,6 +643,7 @@ class Toolshed:
         if isinstance(bundle, str):
             # If the name ends with .whl, it must be a path.
             if bundle.endswith(".whl"):
+                bundle = os.path.expanduser(bundle)
                 basename = os.path.split(bundle)[1]
                 name = basename.split('-')[0]
             else:
@@ -688,11 +670,13 @@ class Toolshed:
                 args.append("--user")
             if reinstall:
                 args.append("--force-reinstall")
+            if no_deps:
+                args.append("--no-deps")
             self._add_restart_action("install", bundle_name, args, logger)
             return
         try:
             results = self._pip_install(bundle_name, logger,
-                                        per_user=per_user, reinstall=reinstall)
+                                        per_user=per_user, reinstall=reinstall, no_deps=no_deps)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
@@ -707,7 +691,8 @@ class Toolshed:
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
         if not self._safe_mode:
-            # Initialize managers and call custom init
+            # Initialize managers, notify other managers about newly
+            # installed providers, and call custom init.
             # There /may/ be a problem with the order in which we call
             # these if multiple bundles were installed, but we hope for
             # the best.  We do /not/ call initialization functions for
@@ -718,6 +703,7 @@ class Toolshed:
             except KeyError:
                 pass
             else:
+                # managers
                 failed = []
                 done = set()
                 initializing = set()
@@ -728,6 +714,18 @@ class Toolshed:
                                                   initializing, failed)
                 for name in failed:
                     logger.warning("%s: manager initialization failed" % name)
+
+                # providers
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        for name, kw in bi.providers.items():
+                            mgr_name, pvdr_name = name.split('/', 1)
+                            mgr = self._manager_instances.get(mgr_name, None)
+                            if mgr:
+                                mgr.add_provider(bi, pvdr_name, **kw)
+
+                # custom inits
                 failed = []
                 done = set()
                 initializing = set()
@@ -840,6 +838,27 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from pkg_resources import parse_version
+        # put the below kludge in to allow sessions saved before some
+        # bundles got renamed to restore
+        name = {
+            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
+            "ChimeraX-Bug-Reporter": "ChimeraX-BugReporter",
+            "ChimeraX-Cage-Builder": "ChimeraX-CageBuilder",
+            "ChimeraX-Connect-Structure": "ChimeraX-ConnectStructure",
+            "ChimeraX-Dist-Monitor": "ChimeraX-DistMonitor",
+            "ChimeraX-Dist-UI": "ChimeraX-DistUI",
+            "ChimeraX-List-Info": "ChimeraX-ListInfo",
+            "ChimeraX-MD-crds": "ChimeraX-MDcrds",
+            "ChimeraX-Preset-Mgr": "ChimeraX-PresetMgr",
+            "ChimeraX-Read-Pbonds": "ChimeraX-ReadPbonds",
+            "ChimeraX-Rotamer-Lib-Mgr": "ChimeraX-RotamerLibMgr",
+            "ChimeraX-Rotamer-Libs-Dunbrack": "ChimeraX-RotamerLibsDunbrack",
+            "ChimeraX-Rotamer-Libs-Dynameomics": "ChimeraX-RotamerLibsDynameomics",
+            "ChimeraX-Rotamer-Libs-Richardson": "ChimeraX-RotamerLibsRichardson",
+            "ChimeraX-Scheme-Mgr": "ChimeraX-SchemeMgr",
+            "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
+            "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
+        }.get(name, name)
         lc_name = name.casefold().replace('_', '-')
         lc_names = [lc_name]
         if not lc_name.startswith("chimerax-"):
@@ -887,9 +906,8 @@ class Toolshed:
         for bi in self._installed_bundle_info:
             for tool in bi.tools:
                 tname = tool.name.casefold()
-                if (tname == lc_name or
-                    (prefix_okay and tname.startswith(lc_name))):
-                        tools.append((bi, tool.name))
+                if tname == lc_name or (prefix_okay and tname.startswith(lc_name)):
+                    tools.append((bi, tool.name))
         return tools
 
     def find_bundle_for_command(self, cmd):
@@ -1011,11 +1029,13 @@ class Toolshed:
                 if m is None:
                     logger = session.logger
                     if logger:
-                        logger.error("Manager %r failed to initialize" % mgr)
+                        logger.error("Manager initialization for %r failed to return the manager instance"
+                                     % mgr)
                     continue
+                self._manager_instances[mgr] = m
                 for pbi in all_bundles:
-                    for pvdr, params in pbi.providers.items():
-                        p_mgr, kw = params
+                    for name, kw in pbi.providers.items():
+                        p_mgr, pvdr = name.split('/', 1)
                         if p_mgr == mgr:
                             m.add_provider(pbi, pvdr, **kw)
                 m.end_providers()
@@ -1138,7 +1158,7 @@ class Toolshed:
         import os.path
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
-    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False):
+    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False, no_deps=False):
         # Run "pip" with our standard arguments (index location, update
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
@@ -1150,6 +1170,8 @@ class Toolshed:
                    ]
         if per_user:
             command.append("--user")
+        if no_deps:
+            command.append("--no-deps")
         if reinstall:
             # XXX: Not sure how this interacts with "only-if-needed"
             command.append("--force-reinstall")
@@ -1217,7 +1239,7 @@ class Toolshed:
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import os, os.path
+        import os
         import sys
         if sys.platform.startswith('win'):
             # Windows
@@ -1270,6 +1292,8 @@ class Toolshed:
 
 
 import abc
+
+
 class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles
 
@@ -1382,51 +1406,6 @@ class BundleAPI:
             selector to be registered.
         """
         raise NotImplementedError("BundleAPI.register_selector")
-
-    @staticmethod
-    def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
-        """Supported API. Called to open a file.
-
-        Second arg must be 'stream' or 'path'.  Depending on the name, either an open
-        data stream or a filesystem path will be provided.  The third and fourth
-        arguments are optional (remove ``optional_`` from their names if you provide them).
-        'format-name' will be the first nickname of the format if it has any, otherwise
-        the full format name, but all lower case.  'file_name' if the name of input file,
-        with path and compression suffix components stripped.
-
-        You shouldn't actually use 'kw' but instead use the actual keyword args that
-        your format declares that it accepts (in its bundle_info.xml file).
-
-        Returns
-        -------
-        tuple
-            The return value is a 2-tuple whose first element is a list of
-            :py:class:`~chimerax.core.models.Model` instances and second
-            element is a string containing a status message, such as the
-            number of atoms and bonds found in the open models.
-        """
-        raise NotImplementedError("BundleAPI.open_file")
-
-    @staticmethod
-    def save_file(session, stream, name, **kw):
-        """Supported API. Called to save a file.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.io`.
-        The format name will be in the **format_name** keyword.
-        """
-        raise NotImplementedError("BundleAPI.save_file")
-
-    @staticmethod
-    def fetch_from_database(session, identifier, **kw):
-        """Supported API. Called to fetch an entry from a network resource.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.fetch`.
-        The format name will be in the **format_name** keyword.
-        Whether a cache may be used will be in the **ignore_cache** keyword.
-        """
-        raise NotImplementedError("BundleAPI.fetch_from_database")
 
     @staticmethod
     def initialize(session, bundle_info):
@@ -1595,13 +1574,9 @@ class BundleAPI:
 #
 # _CallBundleAPI is used to call a bundle method with the
 # correct arguments depending on the API version used by the
-# bundle.  Note that open_file, save_file, fetch_from_database,
-# and get_class are not called via this mechanism.
-# ../io.py handles the argument passing for open_file and
-# save_file using introspection.
-# ../fetch.py handles the argument passing for fetch_from_database.
+# bundle.  Note that get_class is not called via this mechanism.
 # get_class() is more of a lookup than an invocation and the
-# calling convertion should not change.
+# calling convention should not change.
 #
 class _CallBundleAPIv0:
 
@@ -1748,11 +1723,16 @@ def get_help_directories():
 
 
 def default_toolshed_url():
-    return _RemoteURL
+    return _DefaultRemoteURL
+
+
+def preview_toolshed_url():
+    return _PreviewRemoteURL
 
 
 def restart_action_info():
-    import chimerax, os.path
+    import chimerax
+    import os
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file

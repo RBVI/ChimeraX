@@ -16,9 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None, format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch data with give identifier
-        from .fetch_cellpack import fetch_cellpack
-        return fetch_cellpack(session, identifier, ignore_cache=ignore_cache)
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import FetcherInfo
+        class CellpackFetcherInfo(FetcherInfo):
+            def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                from .fetch_cellpack import fetch_cellpack
+                return fetch_cellpack(session, ident, ignore_cache=ignore_cache)
+        return CellpackFetcherInfo()
 
 bundle_api = _MyAPI()

@@ -28,7 +28,7 @@ def save_fit_list_state(fit_list, file):
   file.write(' try:\n')
   file.write('  from FitMap import session\n')
   file.write('  session.restore_fit_list_state(fit_list_state)\n')
-  file.write(' except:\n')
+  file.write(' except Exception:\n')
   file.write("  reportRestoreError('Error restoring fit list')\n")
   file.write('\n')
   file.write('registerAfterModelsCB(restore_fit_list)\n')
@@ -143,7 +143,7 @@ def model_id(model):
   from SimpleSession import sessionID
   try:
     id = sessionID(model)
-  except:
+  except Exception:
     id = (model.id, model.subid, model.name)
   return id
 

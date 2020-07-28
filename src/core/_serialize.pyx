@@ -41,7 +41,7 @@ MSGPACK_MAX_LEN = 2 ** 32 - 1
 
 PRIMITIVE_TYPES = frozenset((
     # supported types natively by msgpack
-    bool, int, float, bytes, bytearray, unicode, dict, list, memoryview, type(None),
+    bool, int, float, bytes, bytearray, str, dict, list, memoryview, type(None),
     # additionally supported types
     complex, tuple, range, _UniqueName,
     numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,
@@ -256,7 +256,7 @@ cdef inline object _decode_bytes(bytes buf):
 
 
 cdef object _decode_bytes_as_tuple(bytes buf):
-    unpacker = Unpacker(None, **_unpacker_args)
+    unpacker = Unpacker(None, max_buffer_size=len(buf), **_unpacker_args)
     unpacker.feed(buf)
     cdef size_t n = unpacker.read_array_header()
     unpack = unpacker.unpack
@@ -324,11 +324,8 @@ _packer_args = {
 _unpacker_args = {
     'ext_hook': _decode_ext,
     'raw': False,
-    'max_str_len': MSGPACK_MAX_LEN,
-    'max_bin_len': MSGPACK_MAX_LEN,
-    'max_array_len': MSGPACK_MAX_LEN,
-    'max_map_len': MSGPACK_MAX_LEN,
-    'max_ext_len': MSGPACK_MAX_LEN,
+    'use_list': True,
+    'strict_map_key': False,
 }
 
 
@@ -338,5 +335,5 @@ def msgpack_serialize_stream(stream):
 
 
 def msgpack_deserialize_stream(stream):
-    unpacker = Unpacker(stream, **_unpacker_args)
+    unpacker = Unpacker(stream, max_buffer_size=2**32 - 1, **_unpacker_args)
     return unpacker

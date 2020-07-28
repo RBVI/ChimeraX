@@ -157,7 +157,7 @@ Residue::add_link_atom(Atom *element)
     _link_atoms.push_back(element);
 }
 
-Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0), _has_metal(false)
+Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0), _has_metal(false), _polymer_type(PolymerType::PT_NONE)
 {
 }
 

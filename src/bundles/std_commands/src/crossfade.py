@@ -19,7 +19,7 @@ def crossfade(session, frames=30):
     frames : integer
         Linear interpolate between the current and next image over this number of frames.
     '''
-    from chimerax.core.graphics import CrossFade
+    from chimerax.graphics import CrossFade
     CrossFade(session, frames)
 
 

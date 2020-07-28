@@ -73,12 +73,10 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     int  _number;
-    PolymerType  _polymer_type;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
     Rgba  _ribbon_rgba;
-    bool  _ribbon_selected = false;
     int  _ss_id;
     SSType _ss_type;
     Structure *  _structure;
@@ -176,7 +174,7 @@ public:
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
-    bool  ribbon_selected() const { return _ribbon_selected; }
+    bool  selected() const;  // True if any atom selected
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
@@ -184,7 +182,6 @@ public:
     }
     void  set_ribbon_display(bool d);
     void  set_ribbon_hide_backbone(bool d);
-    void  set_ribbon_selected(bool s);
     void  ribbon_clear_hide();
 
     const Rgba&  ring_color() const { return _ring_rgba; }
@@ -322,7 +319,7 @@ Residue::set_ribbon_color(const Rgba& rgba) {
     if (rgba == _ribbon_rgba)
         return;
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_COLOR);
-    _structure->set_gc_ribbon();
+    _structure->set_gc_color();
     _ribbon_rgba = rgba;
 }
 
@@ -434,6 +431,14 @@ Residue::ribbon_clear_hide() {
         for (auto bond: atom->bonds())
             bond->set_hide(bond->hide() & ~Atom::HIDE_RIBBON);
     }
+}
+    
+inline bool
+Residue::selected() const {
+    for (auto atom: atoms())
+      if (atom->selected())
+	return true;
+    return false;
 }
 
 }  // namespace atomstruct

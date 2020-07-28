@@ -14,6 +14,8 @@
 #
 def open(paths, log=None):
 
+  set_maximum_pil_image_size(None)	# No Python Image Library image size limit.
+  
   if isinstance(paths, str):
     paths = [paths]
 
@@ -227,3 +229,15 @@ default_channel_colors = [
     (0,.5,1,1),
     (0,1,.5,1),
 ]
+
+# -----------------------------------------------------------------------------
+#
+def set_maximum_pil_image_size(pixels):
+  '''
+  Maximum image pixels in Pillow 7.1.1 single image is 89 million = (2**30/12)
+  which is an image size of only 9459 x 9459.  Pillow raises an exception 
+  DecompressionBombWarning on larger images. I tried setting it to 2**32 and
+  it opened a 1.2 billion pixel image (Bennu asteroid terrain).
+  '''
+  from PIL import Image
+  Image.MAX_IMAGE_PIXELS = pixels

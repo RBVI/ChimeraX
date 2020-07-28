@@ -11,27 +11,48 @@
 
 TOP = ../..
 SUBDIR_SYNC = 1
+SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
-	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
-	  bumps bundle_builder buttons cage_builder \
-	  cellpack chem_group clashes cmd_line \
-	  color_globe connect_structure crosslinks crystal \
-	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
-	  gltf hbonds help_viewer ihm interfaces label list_info log \
+SYNC_DIR = $(wildcard $(TOP)/build/sync)
+
+BUNDLE_BUILDER_SUBDIR = bundle_builder
+
+REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
+	  axes_planes basic_actions bild blastprotein \
+	  bond_rot bug_reporter build_structure \
+	  bumps buttons cage_builder \
+	  cellpack centroids chem_group clashes cmd_line color_actions \
+	  color_globe connect_structure core_formats \
+	  crosslinks crystal data_formats \
+	  dicom dist_monitor dist_ui dssp \
+	  emdb_sff exp_cmd file_history function_key \
+	  geometry gltf graphics \
+	  hbonds help_viewer hkcage ihm image_formats imod \
+	  interfaces io label list_info log looking_glass \
 	  map map_data map_eraser map_filter map_fit map_series \
-	  markers mask match_maker md_crds medical_toolbar meeting mlp model_series \
+	  markers mask match_maker md_crds \
+	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  nucleotides pdb pick_blobs preset_mgr pub_chem read_pbonds \
-	  registration remote_control rest_server \
-	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
-	  sdf segger segment seq_view sim_matrices \
-	  shell shortcuts show_attr sideview smiles \
+	  neuron nucleotides open_command \
+	  pdb pick_blobs positions preset_mgr pubchem \
+	  read_pbonds registration remote_control rest_server \
+	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
+	  sdf segger segment seq_view sequences shape \
+	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
-	  tape_measure test texture toolbar tug ui uniprot \
-	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+	  tape_measure test toolbar tug ui uniprot \
+	  viewdockx vive volume_menu vtk wavefront_obj \
+	  webcam webservices zone
+
+ifeq ($(OS),Linux)
+REST_SUBDIRS += linux_support
+endif
+
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
+
+NO_SUBDIR_INSTALL = 1
 
 include $(TOP)/mk/subdir.make
 
@@ -40,7 +61,12 @@ PKG_DIR = $(PYSITEDIR)/chimerax
 dir:	Makefile.dependencies
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
-$(SUBDIR_INSTALL): dir bundle_builder.install
+$(SUBDIR_BUILD): dir
+
+install:
+	$(MAKE) build
+	cd $(SYNC_DIR) && $(APP_PYTHON_EXE) -m pip install --upgrade --upgrade-strategy only-if-needed */*.whl
+	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))
@@ -49,10 +75,36 @@ endif
 
 clean:
 	rm -rf __pycache__ Makefile.dependencies
+ifneq (,$(wildcard $(SYNC_DIR)))
+	cd $(SYNC_DIR) && rm */*.whl
+endif
 
-Makefile.dependencies: */bundle_info.xml*
+#
+# Build Time Dependencies
+# -----------------------
+#
+# Most bundles have no build time dependencies, since only the wheel is
+# built, and the declared dependencies are resolved later during a "pip
+# install" of all of the wheels.  This allows for circular installation
+# dependencies.
+#
+# But some bundles need other bundles built and installed before they can be
+# built (usually for including C++ header files and linking).  Two things have
+# to be done for that to work: (1) the bundle needs to declare the build
+# dependency by adding build="true" to the Dependency tag on that other bundle
+# in their bundle_info.xml file.  And (2), the other bundle needs to put
+# BUILD_AND_INSTALL=1 in their Makefile before including ../Makefile.bundle.
+#
+# The build time dependencies are automatically updated by scanning the bundle
+# bundle_info.xml files, and are placed in to the Makefile.dependencies file.
+#
+
+Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
+
+# Make sure bundle_builder bundle is installed before all others.
+$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build
 
 include Makefile.dependencies
 endif

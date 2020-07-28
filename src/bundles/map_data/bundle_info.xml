@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-MapData" version="1.0"
-	    package="chimerax.map.data"
+<BundleInfo name="ChimeraX-MapData" version="2.0"
+	    package="chimerax.map_data"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -14,8 +14,55 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Amira mesh" nicknames="amira" category="Volume data" suffixes=".am" />
+    <Provider name="APBS potential" nicknames="apbs" category="Volume data" suffixes=".dx" />
+    <Provider name="BRIX density map" nicknames="brix" category="Volume data" suffixes=".brix" />
+    <Provider name="CCP4 density map" nicknames="ccp4" category="Volume data"
+		suffixes=".ccp4,.map" />
+    <Provider name="Chimera map" nicknames="cmap" category="Volume data" suffixes=".cmap,.cmp" />
+    <Provider name="CNS or XPLOR density map" nicknames="xplor" category="Volume data"
+		suffixes=".cns,.xplor" />
+    <Provider name="DelPhi or GRASP potential" nicknames="delphi" category="Volume data"
+		suffixes=".phi" />
+    <Provider name="DeltaVision map" nicknames="dv" category="Volume data" suffixes=".dv" />
+    <Provider name="DSN6 density map" nicknames="dsn6" category="Volume data" suffixes=".omap" />
+    <Provider name="DOCK scoring grid" nicknames="dock" category="Volume data"
+		suffixes=".bmp,.cnt,.nrg" />
+    <Provider name="EMAN HDF map" nicknames="emanhdf" category="Volume data"
+		suffixes=".hdf,.hdf5,.h5" />
+    <Provider name="Gaussian cube grid" nicknames="cube" category="Volume data"
+		suffixes=".cube,.cub" />
+    <Provider name="gOpenMol grid" nicknames="gopenmol" category="Volume data" suffixes=".plt" />
+    <Provider name="HDF map" nicknames="hdf" category="Volume data" />
+    <Provider name="Image stack" nicknames="images" category="Volume data"
+		suffixes=".tif,.tiff,.png,.pgm" />
+    <Provider name="IMAGIC density map" nicknames="imagic" category="Volume data"
+		suffixes=".hed,.img" />
+    <Provider name="Imaris map" nicknames="ims" category="Volume data" suffixes=".ims" />
+    <Provider name="IMOD map" nicknames="imodmap" category="Volume data" suffixes=".rec" />
+    <Provider name="MacMolPlt grid" nicknames="macmolplt" category="Volume data" suffixes=".mmp" />
+    <Provider name="MRC density map" nicknames="mrc" category="Volume data" suffixes=".mrc" />
+    <Provider name="NetCDF generic array" nicknames="netcdf" category="Volume data"
+		suffixes=".nc" />
+    <Provider name="Priism microscope image" nicknames="priism" category="Volume data"
+		suffixes=".xyzw,.xyzt" />
+    <Provider name="PROFEC free energy grid" nicknames="profec" category="Volume data"
+		suffixes=".profec" />
+    <Provider name="Purdue image format" nicknames="pif" category="Volume data" suffixes=".pif" />
+    <Provider name="SITUS map file" nicknames="situs" category="Volume data"
+		suffixes=".sit,.situs" />
+    <Provider name="SPIDER volume data" nicknames="spider" category="Volume data"
+		suffixes=".spi,.vol" />
+    <Provider name="TOM toolbox EM density map" nicknames="tom_em" category="Volume data"
+		suffixes=".em" />
+    <Provider name="UHBD grid, binary" nicknames="uhbd" category="Volume data" suffixes=".grd" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

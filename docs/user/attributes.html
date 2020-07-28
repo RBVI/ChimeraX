@@ -26,7 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3>Attributes</h3>
 <p>
 <b><i>Attributes</i></b>
-are properties of atoms, residues, models, and other entities in ChimeraX.
+are properties of atoms, residues, chains, models, 
+and other entities in ChimeraX.
 Each attribute has a <a href="#attrnames">name</a> and a data type: 
 Boolean, integer, floating-point (real), character string, or color.
 For example, atomic B-factors read from mmCIF or PDB input are assigned
@@ -38,6 +39,7 @@ Attributes can be:
 <li>used in
 <a href="commands/atomspec.html#attributes">command-line specification</a>
 <li>shown with <a href="commands/color.html#byattribute">coloring</a>
+<li>shown in <a href="commands/label.html">labels</a>
 <li>reported with the command <a href="commands/info.html"><b>info</b></a>
 <li>assigned new values or created arbitarily with
 the command <a href="commands/setattr.html"><b>setattr</b></a>
@@ -58,6 +60,7 @@ See also: <a href="tools/modeller.html#output"><b>Modeller Results</b></a>
 <ul class="none">
 <li><a href="#atom"><b>Atom</b></a>
 <li><a href="#residue"><b>Residue</b></a>
+<li><a href="#chain"><b>Chain</b></a>
 <li><a href="#model"><b>Atomic-Model</b></a>
 </ul>
 <!--
@@ -125,6 +128,9 @@ is the <a href="commands/style.html">style</a> of an atom,
 <td align=center><b>name=</b><i>name</i></td>
 <td class="text"><i>name</i> is the atom name</td>
 </tr><tr>
+<td align=center><b>num_bonds=</b><i>N</i></td>
+<td class="text"><i>N</i> is the total number of atoms bonded to the atom</td>
+</tr><tr>
 <td align=center><b>occupancy=</b><i>occupancy</i></td>
 <td class="text"><i>occupancy</i> is the occupancy value of the atom</td>
 </tr><tr>
@@ -148,6 +154,10 @@ of the atom in &Aring;</td>
 <td class="text"><i>sasa</i> 
 is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
+</tr><tr>
+<td align=center><b>chain_id=</b><i>ID</i></td>
+<td class="text"><i>ID</i> is the chain identifier of the residue;
+see also <a href="#chain">chain attributes</a></td>
 </tr><tr>
 <td align=center><b>is_helix</i></td>
 <td class="text">whether peptide secondary structure type is helix</td>
@@ -192,7 +202,8 @@ when there are chemically identical substituents
 </tr><tr>
 <td align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 0 for nonpolymer, 
-1 for protein, 2 for nucleic acid</td>
+1 for protein, 2 for nucleic acid;
+see also <a href="#chain">chain attributes</a></td>
 </tr><tr>
 <td align=center><b>ribbon_color=</b><i>ribcolor</i></td>
 <td class="text"><i>ribcolor</i> is the color of the residue's ribbon segment
@@ -227,11 +238,25 @@ and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 </tr>
 </table>
 <br>
+<a name="chain"></a>
+<table border width="95%" cellpadding="4" cellspacing="0">
+<tr><td colspan="2" align="center" style="background-color:#eaeaea">
+<a href="#attrnames" class="nounder">&larr;</a>
+<b>Selected Chain Attributes</b></td>
+</tr><tr>
+<td width="150px" align=center><b>chain_id=</b><i>ID</i></td>
+<td class="text"><i>ID</i> is the chain identifier</td>
+</tr><tr>
+<td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
+<td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
+</tr>
+</table>
+<br>
 <a name="model"></a>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><td colspan="2" align="center" style="background-color:#eaeaea">
 <a href="#attrnames" class="nounder">&larr;</a>
-<b>Selected Atomic-Model Attributes</td></tr>
+<b>Selected Atomic-Model Attributes</b></td></tr>
 <tr>
 <td align=center><b>autochain</b></td>
 <td class="text">whether &ldquo;chain trace&rdquo; 
@@ -264,5 +289,5 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2019</address>
+May 2020</address>
 </body></html>

@@ -31,14 +31,14 @@ def fit_search(models, points, point_weights, volume, n,
     bounds = volume.surface_bounds()
     if bounds is None:
         xyz_min, xyz_max = volume.xyz_bounds(step = 1)
-        from chimerax.core.geometry import Bounds
+        from chimerax.geometry import Bounds
         bounds = Bounds(xyz_min, xyz_max)
 
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f
                         for x0, x1, f in zip(bounds.xyz_min, bounds.xyz_max, asym_center_f)) 
 
-    from chimerax.core.geometry import translation, identity
+    from chimerax.geometry import translation, identity
     center = points.mean(axis=0)
     ctf = translation(-center)
     ijk_to_xyz_tf = volume.matrix_indices_to_xyz_transform(step = 1)
@@ -50,7 +50,7 @@ def fit_search(models, points, point_weights, volume, n,
     flist = []
     outside = 0
     from math import pi
-    from chimerax.core.geometry import bins
+    from chimerax.geometry import bins
     b = bins.Binned_Transforms(angle_tolerance*pi/180, shift_tolerance, center)
     fo = {}
     from .fitmap import locate_maximum
@@ -214,7 +214,7 @@ class Fit:
             return None
 
         # Look for exactly one map that was fit into volume.
-        from .. import Volume
+        from chimerax.map import Volume
         vtf = [(m,tf) for m, tf in zip(self.models, self.transforms)
                if m and not m.was_deleted and isinstance(m, Volume)]
         if len(vtf) != 1:
@@ -268,7 +268,7 @@ class Fit:
     #
     def fit_map(self):
 
-        from .. import Volume
+        from chimerax.map import Volume
         vols = [m for m in self.models if isinstance(m, Volume)]
         mmap = vols[0] if vols else None
         return mmap
@@ -349,7 +349,7 @@ def random_translation_step(center, radius):
     v = random_direction()
     from random import random
     r = radius * random()
-    from chimerax.core.geometry import translation
+    from chimerax.geometry import translation
     tf = translation(center + r*v)
     return tf
 
@@ -359,7 +359,7 @@ def random_translation(bounds):
 
     from random import random
     shift = [x0+random()*(x1-x0) for x0,x1 in zip(bounds.xyz_min, bounds.xyz_max)]
-    from chimerax.core.geometry import translation
+    from chimerax.geometry import translation
     tf = translation(shift)
     return tf
 
@@ -368,7 +368,7 @@ def random_translation(bounds):
 def random_rotation():
 
     y, z = random_direction(), random_direction()
-    from chimerax.core.geometry import orthonormal_frame
+    from chimerax.geometry import orthonormal_frame
     f = orthonormal_frame(z, y)
     return f
 
@@ -377,7 +377,7 @@ def random_rotation():
 def random_direction():
 
     z = (1,1,1)
-    from chimerax.core.geometry import norm, normalize_vector
+    from chimerax.geometry import norm, normalize_vector
     from random import random
     while norm(z) > 1:
         z = (1-2*random(), 1-2*random(), 1-2*random())
@@ -399,7 +399,7 @@ def unique_symmetry_position(tf, center, ref_point, sym_list):
     if sym_list is None or len(sym_list) == 0:
         return tf
 
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     import numpy as n
     i = n.argmin([distance(sym*tf*center, ref_point) for sym in sym_list])
     if sym_list[i].is_identity():

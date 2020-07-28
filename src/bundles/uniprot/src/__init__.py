@@ -16,9 +16,12 @@ from chimerax.core.toolshed import BundleAPI
 class _UniprotBundleAPI(BundleAPI):
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, **kw):
-        # 'fetch_from_database' is called to fetch data with give identifier
-        from .fetch_uniprot import fetch_uniprot
-        return fetch_uniprot(session, identifier, ignore_cache=ignore_cache)
+    def run_provider(session, name, mgr, *, widget_info=None, **kw):
+        from chimerax.open_command import FetcherInfo
+        class UniprotFetcherInfo(FetcherInfo):
+            def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                from .fetch_uniprot import fetch_uniprot
+                return fetch_uniprot(session, ident, ignore_cache=ignore_cache)
+        return UniprotFetcherInfo()
 
 bundle_api = _UniprotBundleAPI()

@@ -220,15 +220,36 @@ class InstalledBundleCache(list):
         # map to bundles.  This is so we can ignore dependencies
         # that are not bundles.
         dist_names = set([d.project_name for d in dist_bundle_map.keys()])
+        # build a dependency-exclusion map from the bi.inits value
+        # [built from Initialization tags], and prevent the reverse
+        # dependency from being used to determine initialization order.
+        # This "should" break all circular dependencies.
+        bundle_name_to_dist_key = {}
+        for d, bi in dist_bundle_map.items():
+            bundle_name_to_dist_key[bi.name] = d.key
+        explicit_reverse_order = {}
+        for d, bi in dist_bundle_map.items():
+            if not bi.inits:
+                continue
+            for bundle_names in bi.inits.values():
+                for bundle_name in bundle_names:
+                    try:
+                        dist_key = bundle_name_to_dist_key[bundle_name]
+                    except KeyError:
+                        logger.warning("Unknown bundle name '%s' listed in Initializations"
+                            " section for bundle %s" % (bundle_name, bi.name))
+                    explicit_reverse_order.setdefault(dist_key, set()).add(d.key)
         # Then we build a dependency map where the key is a
         # distribution instance and the value is a list of
         # bundle distribution names that it depends on.
         # Non-bundle distributions are dropped here.
         dist_needs = {}
-        for d in dist_bundle_map.keys():
+        for d, bi in dist_bundle_map.items():
             dist_needs[d] = needs = []
             for r in d.requires():
                 if r.project_name in dist_names:
+                    if r.key in explicit_reverse_order.get(d.key, []):
+                        continue
                     needs.append(r.key)
         # Now we start with all bundle distributions in the
         # "to_be_done" list and nothing in the "ready" list.
@@ -253,8 +274,12 @@ class InstalledBundleCache(list):
                 to_be_done.difference_update(can_move)
                 seen.update([d.key for d in can_move])
             else:
-                logger.warning("Unexpected circular dependencies:",
-                               ', '.join([str(d) for d in to_be_done]))
+                # dependency declaration are not necessarily install-time,
+                # so it's okay for there to be circular dependencies.  The
+                # build system now handles true install/build-time dependencies
+                # and check for incompatibilities afterward
+                #logger.warning("Unexpected circular dependencies: " +
+                #               ', '.join([str(d) for d in to_be_done]))
                 ready.extend(to_be_done)
                 to_be_done.clear()
         return [dist_bundle_map[d] for d in ready]
@@ -578,7 +603,7 @@ def _make_bundle_info(d, installed, logger):
                 else:
                     v = unescape(v)
                 kw[k] = v
-            bi.providers[name] = (mgr, kw)
+            bi.providers[mgr + '/' + name] = kw
         elif parts[1] == 'InitAfter':
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')

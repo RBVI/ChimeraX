@@ -266,7 +266,7 @@ class Series:
       orient = files[0]._orientation
       if orient is not None:
         x_axis, y_axis = orient[0:3], orient[3:6]
-        from chimerax.core.geometry import cross_product
+        from chimerax.geometry import cross_product
         z_axis = cross_product(x_axis, y_axis)
         return (x_axis, y_axis, z_axis)
     return ((1,0,0),(0,1,0),(0,0,1))
@@ -276,7 +276,7 @@ class Series:
 
   def _sort_by_z_position(self, series_files):
     z_axis = self.plane_normal()
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     series_files.sort(key = lambda sf: (sf._time, inner_product(sf._position, z_axis)))
     
   def pixel_spacing(self):
@@ -320,7 +320,7 @@ class Series:
         else:
           # TODO: Need to reverse order if z decrease as frame number increases
           z_axis = self.plane_normal()
-          from chimerax.core.geometry import inner_product
+          from chimerax.geometry import inner_product
           z = [inner_product(fp, z_axis) for fp in fpos]
           dz = self._spacing(z)
         if dz is not None and dz < 0:
@@ -331,7 +331,7 @@ class Series:
       else:
         nz = self.grid_size()[2]  # For time series just look at first time point.
         z_axis = self.plane_normal()
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         z = [inner_product(f._position, z_axis) for f in files[:nz]]
         dz = self._spacing(z)
       self._z_spacing = dz

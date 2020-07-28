@@ -29,10 +29,10 @@ class GraphicsWindow(QWindow):
         self.setSurfaceType(QSurface.OpenGLSurface)
 
         if opengl_context is None:
-            from chimerax.core.graphics import OpenGLContext
+            from chimerax.graphics import OpenGLContext
             oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
         else:
-            from chimerax.core.graphics import OpenGLError
+            from chimerax.graphics import OpenGLError
             try:
                 opengl_context.enable_stereo(stereo, window = self)
             except OpenGLError as e:
@@ -59,7 +59,7 @@ class GraphicsWindow(QWindow):
     def _check_opengl(self):
         r = self.view.render
         log = self.session.logger
-        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
+        from chimerax.graphics import OpenGLVersionError, OpenGLError
         try:
             mc = r.make_current()
         except (OpenGLVersionError, OpenGLError) as e:
@@ -87,9 +87,9 @@ class GraphicsWindow(QWindow):
             ver = r.opengl_version()
             try:
                 build = int(ver.split('.')[-1])
-            except:
+            except Exception:
                 return
-            if build > 6708:
+            if 6708 < build < 8280:
                 # This is to work around ChimeraX bug #2537 where the entire
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 
@@ -129,7 +129,7 @@ class GraphicsWindow(QWindow):
             return	# Window is not yet exposed so can't use opengl
 
         # Avoid flickering when resizing by drawing immediately.
-        from chimerax.core.graphics import OpenGLVersionError
+        from chimerax.graphics import OpenGLVersionError
         try:
             self.session.update_loop.update_graphics_now()
         except OpenGLVersionError as e:

@@ -62,8 +62,7 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
         log = s.logger
-        from chimerax.mouse_modes import picked_object_on_segment
-        p = picked_object_on_segment(xyz1, xyz2, s.main_view)
+        p = s.main_view.picked_object_on_segment(xyz1, xyz2, max_transparent_layers = 0)
         if p is None:
             c = None
         elif self.marker_mode == 'mark center' and hasattr(p, 'triangle_pick'):
@@ -140,8 +139,8 @@ class MarkerMouseMode(MouseMode):
     
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
+        view = self.session.main_view
+        pick = view.picked_object_on_segment(xyz1, xyz2)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet
@@ -353,7 +352,7 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
 
     line = (xyz_in, xyz_out)	# Scene coords
     hits = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for v in vlist:
         if not v.shown():
             continue
@@ -385,7 +384,7 @@ def volume_plane_intercept(xyz_in, xyz_out, vlist):
 
     line = (xyz_in, xyz_out) # Scene coords
     hits = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for v in vlist:
         if not v.shown():
             continue
@@ -499,7 +498,7 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
 def _log_place_marker(mset, center, color, radius):
     c = '%.4g,%.4g,%.4g' % tuple(center)
     from chimerax.core.colors import color_name
-    cmd = 'marker %s %s color %s radius %.4g' % (mset.atomspec, c, color_name(color), radius)
+    cmd = 'marker %s position %s color %s radius %.4g' % (mset.atomspec, c, color_name(color), radius)
     from chimerax.core.commands import log_equivalent_command
     log_equivalent_command(mset.session, cmd)
 

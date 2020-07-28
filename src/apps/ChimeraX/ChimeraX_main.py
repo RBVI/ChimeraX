@@ -119,6 +119,7 @@ def parse_arguments(argv):
     opts.version = -1
     opts.get_available_bundles = True
     opts.safe_mode = False
+    opts.toolshed = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -142,6 +143,7 @@ def parse_arguments(argv):
         "--usedefaults",
         "--version",
         "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -261,6 +263,8 @@ def parse_arguments(argv):
             opts.version += 1
         elif opt == "--qtscalefactor":
             os.environ["QT_SCALE_FACTOR"] = optarg
+        elif opt == "--toolshed":
+            opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -307,48 +311,21 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
-    # for modules that moved out of core, allow the old imports to work for awhile...
-    from importlib.abc import MetaPathFinder, Loader
-    class CoreCompatFinder(MetaPathFinder):
-        def find_spec(self, full_name, path, target=None):
-            unmoved_modules = []
-            moved_modules = ["ui", "atomic"]
-            for umod in unmoved_modules:
-                future_name = "chimerax." + umod
-                if full_name.startswith(future_name):
-                    current_name = "chimerax.core." + umod
-                    from importlib import util, import_module
-                    real_name = full_name.replace(future_name, current_name)
-                    # ensure real module has been imported...
-                    import_module(real_name)
-                    real_spec = util.find_spec(real_name)
-                    class FakeLoader(Loader):
-                        def create_module(self, spec, real_name=real_name):
-                            return sys.modules[real_name]
-                        def exec_module(self, module):
-                            pass
-                    from importlib.machinery import ModuleSpec
-                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
-                    return fake_spec
-            for mmod in moved_modules:
-                old_name = "chimerax.core." + mmod
-                if full_name.startswith(old_name):
-                    new_name = "chimerax." + mmod
-                    from importlib import util, import_module
-                    real_name = full_name.replace(old_name, new_name)
-                    # ensure real module has been imported...
-                    import_module(real_name)
-                    real_spec = util.find_spec(real_name)
-                    class FakeLoader(Loader):
-                        def create_module(self, spec, real_name=real_name):
-                            return sys.modules[real_name]
-                        def exec_module(self, module):
-                            pass
-                    from importlib.machinery import ModuleSpec
-                    fake_spec = ModuleSpec(full_name, FakeLoader(), origin=real_spec.origin)
-                    return fake_spec
-            return None
-    sys.meta_path.append(CoreCompatFinder())
+    opts, args = parse_arguments(argv)
+
+    # install line_profile decorator, and install it before
+    # initialize_ssl_cert_dir() in case the line profiling is in the
+    # core (which would cause initialize_ssl_cert_dir() to fail)
+    import builtins
+    if not opts.line_profile:
+        builtins.__dict__['line_profile'] = lambda x: x
+    else:
+        # write profile results on exit
+        import atexit
+        import line_profiler
+        prof = line_profiler.LineProfiler()
+        builtins.__dict__['line_profile'] = prof
+        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
@@ -362,20 +339,6 @@ def init(argv, event_loop=True):
     except ImportError:
         print("error: unable to figure out %s's version" % app_name)
         return os.EX_SOFTWARE
-
-    opts, args = parse_arguments(argv)
-
-    # install line_profile decorator
-    import builtins
-    if not opts.line_profile:
-        builtins.__dict__['line_profile'] = lambda x: x
-    else:
-        # write profile results on exit
-        import atexit
-        import line_profiler
-        prof = line_profiler.LineProfiler()
-        builtins.__dict__['line_profile'] = prof
-        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     if opts.use_defaults:
         from chimerax.core import configinfo
@@ -511,7 +474,7 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-
+        
     # initialize qt
     if opts.gui:
         from chimerax.ui import initialize_qt
@@ -585,8 +548,15 @@ def init(argv, event_loop=True):
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
+    if opts.toolshed is None:
+        toolshed_url = None
+    elif opts.toolshed == "preview":
+        toolshed_url = toolshed.preview_toolshed_url()
+    else:
+        toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
-                  check_available=opts.get_available_bundles)
+                  check_available=opts.get_available_bundles,
+                  remote_url=toolshed_url)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
@@ -615,8 +585,27 @@ def init(argv, event_loop=True):
 
     if opts.list_io_formats:
         sess.silent = False
-        from chimerax.core import io
-        io.print_file_suffixes()
+        collate = {}
+        for fmt in sess.data_formats.formats:
+            collate.setdefault(fmt.category, []).append(fmt)
+        categories = list(collate.keys())
+        categories.sort(key=str.casefold)
+        print("Supported file suffixes:")
+        print("  o = open, s = save")
+        openers = set(sess.open_command.open_data_formats)
+        savers = set(sess.save_command.save_data_formats)
+        for cat in categories:
+            print("\n%s:" % cat)
+            fmts = collate[cat]
+            fmts.sort(key=lambda fmt: fmt.name.casefold())
+            for fmt in fmts:
+                o = 'o' if fmt in openers else ' '
+                s = 's' if fmt in savers else ' '
+                if fmt.suffixes:
+                    exts = ': ' + ', '.join(fmt.suffixes)
+                else:
+                    exts = ''
+                print("%c%c  %s%s" % (o, s, fmt.name, exts))
         # TODO: show database formats
         # TODO: show mime types?
         # TODO: show compression suffixes?
@@ -740,16 +729,32 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import errors, commands
     for arg in args:
-        try:
-            from chimerax.core.commands import quote_if_necessary
-            commands.run(sess, 'open %s' % quote_if_necessary(arg))
-        except (IOError, errors.NotABug) as e:
-            sess.logger.error(str(e))
-            return os.EX_SOFTWARE
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return os.EX_SOFTWARE
+        if opts.safe_mode:
+            # 'open' command unavailable; only open Python files
+            if not arg.endswith('.py'):
+                sess.logger.error("Can only open Python scripts in safe mode, not '%s'" % arg)
+                return os.EX_SOFTWARE
+            from chimerax.core.scripting import open_python_script
+            try:
+                open_python_script(sess, open(arg, 'rb'), arg)
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
+        else:
+            from chimerax.core.commands import StringArg
+            try:
+                commands.run(sess, 'open %s' % StringArg.unparse(arg))
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
 
     # Open files dropped on application
     if opts.gui:
@@ -799,7 +804,7 @@ def uninstall(sess):
         if os.path.basename(exe_dir) != 'bin':
             sys.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
-        from chimerax.core import _xdg
+        from chimerax.linux import _xdg
         _xdg.uninstall(sess)
         # parent = os.path.dirname(exe_dir)
         # rm_rf_path(parent, sess)

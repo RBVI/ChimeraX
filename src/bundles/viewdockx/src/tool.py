@@ -464,23 +464,23 @@ class TableTool(_BaseTool):
 
     def _cb_export(self, query):
         from chimerax.ui.open_save import SaveDialog
-        sd = SaveDialog(add_extension="mol2")
+        sd = SaveDialog(self.session, data_formats=[self.session.data_formats["mol2"]])
         if not sd.exec():
             return
         path = sd.get_path()
         if path is None:
             return
         prefix = "##########"
-        from chimerax.mol2.io import write_mol2
+        from chimerax.mol2 import write_mol2
         with open(path, "w") as outf:
             for s in self.structures:
                 with OutputCache() as sf:
                     write_mol2(self.session, sf, models=[s])
-                    for item in s.viewdockx_data.items():
-                        print(prefix, "%s: %s\n" % item, end='', file=outf)
-                    print("\n", end='', file=outf)
-                    print(sf.saved_output, end='', file=outf)
-                    print("\n\n", end='', file=outf)
+                for item in s.viewdockx_data.items():
+                    print(prefix, "%s: %s\n" % item, end='', file=outf)
+                print("\n", end='', file=outf)
+                print(sf.saved_output, end='', file=outf)
+                print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
         stars = int(query["stars"][0])

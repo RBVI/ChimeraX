@@ -17,9 +17,6 @@ models: Displayed data
 
 """
 
-import weakref
-from .graphics.drawing import Drawing
-from .state import State, StateManager, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
@@ -30,12 +27,18 @@ RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+MODEL_STATE_VERSION = 1
+MODELS_STATE_VERSION = 1
 
+from .state import State
+from chimerax.graphics import Drawing
 class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
-    Model subclasses can be saved session files.
+    Model subclasses can be saved in session files.
 
     Parameters
     ----------
@@ -59,6 +62,7 @@ class Model(State, Drawing):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    SESSION_SAVE_DRAWING = False
     SESSION_WARN = False
 
     def __init__(self, name, session):
@@ -79,11 +83,11 @@ class Model(State, Drawing):
         self.delete()
 
     def delete(self):
-        '''Delete this model.'''
+        '''Supported API.  Delete this model.'''
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
         models = self.session.models
-        if models.have_id(self.id) and self in models.list(model_id = self.id):
+        if models.have_model(self):
             models.close([self])	# Remove from open models list.
             return
         self._deleted = True
@@ -119,7 +123,7 @@ class Model(State, Drawing):
     def _set_id(self, val):
         if val == self._id:
             return
-        fire_trigger = self._id != None and val != None
+        fire_trigger = self._id is not None and val is not None
         self._id = val
         if fire_trigger:
             self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
@@ -159,7 +163,7 @@ class Model(State, Drawing):
         if val == self._name:
             return
         self._name = val
-        if self._id != None:  # model actually open
+        if self._id is not None:  # model actually open
             self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
 
@@ -269,7 +273,7 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
-        if om.have_id(self.id):
+        if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)
         else:
@@ -327,13 +331,19 @@ class Model(State, Drawing):
             'allow_depth_cue': self.allow_depth_cue,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
-            'version': CORE_STATE_VERSION,
+            'version': MODEL_STATE_VERSION,
         }
+        if hasattr(self, 'clip_cap'):
+            data['clip_cap'] = self.clip_cap
+        if self.SESSION_SAVE_DRAWING:
+            from chimerax.graphics.gsession import DrawingState
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags,
+                                                               include_children = False)
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        if cls is Model and data['id'] is ():
+        if cls is Model and data['id'] == ():
             return session.models.scene_root_model
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
@@ -353,7 +363,7 @@ class Model(State, Drawing):
         if pa.dtype == float32:
             # Fix old sessions that saved array as float32
             pa = pa.astype(float64)
-        from .geometry import Places
+        from chimerax.geometry import Places
         self.positions = Places(place_array=pa)
         self.display_positions = data['display_positions']
         for d in self.all_drawings():
@@ -361,12 +371,20 @@ class Model(State, Drawing):
                 if attr in data:
                     setattr(d, attr, data[attr])
 
+        if 'clip_cap' in data:
+            self.clip_cap = data['clip_cap']
+
+        if 'drawing state' in data:
+            from chimerax.graphics.gsession import DrawingState
+            DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
+            self.SESSION_SAVE_DRAWING = True
+            
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
         with restore_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'drawing state': DrawingState.take_snapshot(self, session, flags),
                 'version': 1
@@ -377,7 +395,7 @@ class Model(State, Drawing):
         '''
         Restore model and drawing state saved with save_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState            
+        from chimerax.graphics.gsession import DrawingState
         Model.set_state_from_snapshot(self, session, data['model state'])
         DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
         return self
@@ -468,9 +486,36 @@ class Surface(Model):
     '''
     pass
 
+    
+from .state import StateManager
 class Models(StateManager):
+    '''
+    Models manages the Model instances shown in the scene belonging to a session.
+    It makes a root model (attribute scene_root_model) that the graphics View uses
+    to render the scene.
 
+    Another major function of Models is to assign the id numbers to each Model.
+    An id number is a non-empty tuple of positive integers.  A Model can have
+    child models (m.child_models()) and usually has a parent model (m.parent).
+    The id number of a child is a tuple one longer than the parent and equals
+    the parent id except for the last integer.  For instance a model with id
+    (2,5) could have a child model with id (2,5,1).  Every model has a unique
+    id number.  The id of the scene_root_model is the empty tuple, and is not
+    used in commands as it has no number representation.
+
+    While most models are children at some depth below the scene_root_model it is
+    allowed to have other models with single integer id that have no parent.
+    This is currently used for 2D labels which are overlay drawings and are not
+    part of the 3D scene. These models are added using Models.add(models, root_model = True).
+    Their id numbers can be used by commands.
+
+    Most Model instances are added to the scene with Models.add().  In some
+    instances a Model might be created for doing a calculation and is never drawn,
+    is never added to the scene, and is never assigned an id number, so cannot
+    be referenced in user typed commands.
+    '''
     def __init__(self, session):
+        import weakref
         self._session = weakref.ref(session)
         t = session.triggers
         t.add_trigger(ADD_MODELS)
@@ -498,7 +543,7 @@ class Models(StateManager):
                 continue
             models[id] = model
         data = {'models': models,
-                'version': CORE_STATE_VERSION}
+                'version': MODELS_STATE_VERSION}
         if not_saved:
             mwarn = [m for m in not_saved
                      if m.SESSION_WARN and (m.parent is None or m.parent.SESSION_SAVE)]
@@ -542,39 +587,81 @@ class Models(StateManager):
 
     def add(self, models, parent=None, minimum_id = 1, root_model = False,
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
+        '''
+        Assigns id numbers to the specified models and their child models.
+        An id number is a tuple of positive integers.
+        Each model has exactly one parent (except the scene root model).
+        The id number of a parent is id number number of a child with
+        the last integer removed.  So the parent of a model with id (2,1,5)
+        would have id (2,1).
+
+        In the typical case the specified models have model.id = None and
+        model.parent = None.
+        If the parent option is not given, each of these models are given an
+        unused top level id number (tuple containing 1 integer), and child
+        models are also given id numbers to all depths.  If the parent argument
+        is specified then each model is made a child of that parent.
+
+        There are other unusual cases.  A specified model that has not been
+        added may have model.id not None.  This is a request to use this id for
+        the model. The model with the parent id must already have been added.
+        If the parent option is given and does not have the parent id, it is
+        an error.
+
+        Another unusual case is that a specified model has already been added.
+        This is a request to add the model to the specified parent, changing its
+        id as needed.  All children to all depths will also be assigned new ids.
+        If the parent option is not specified it is an error.  If the specified
+        parent is the model itself or one of its descendants it is an error.
+
+        The specified models cannot contain a model which is a descendant of
+        another specified model.  That is an error.
+
+        In all cases if the parent option is given it must be a model that has
+        already been added.
+
+        After a model has been added, model.id should not be changed except by
+        this routine, or Models.assign_id(), or Models.remove() which sets model.id = None.
+
+        The root_model option allows adding a Model that has no parent.  It will
+        not be added as a child of the scene_root_model.  This is currently used
+        for 2D labels which are not part of the 3D scene, but instead are overlays
+        drawn on top of the graphics.  A root model has an id that is unique among
+        all model ids so it can be specified in user typed commands.
+        '''
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
 
         if len(self._models) == 0:
             self._initialize_camera = True
 
-        if parent is None and not root_model:
-            parent = self.scene_root_model
-
-        # Add models to parent
-        if parent is not None:
-            for m in models:
-                if m.parent is None or m.parent is not parent:
-                    parent.add_drawing(m)
-
-        # Handle already added models being moved to a new parent.
+        # Add models to parents and assign model ids.
         for model in models:
-            if model.id and (parent is None or model.id[:-1] != parent.id) and model.id in self._models:
-                # Model has id that is not a subid of parent, so assign new id.
-                _need_fire_id_trigger.append(model)
-                del self._models[model.id]
-                model.id = None
-                if model.parent is not None:
-                    model.parent._next_unused_id = None
+            if self.have_model(model):
+                # Model is already added and is being reparented.
+                if parent is None:
+                    raise ValueError('Attempted to add model %s to scene twice' % model)
+                if model.parent is not parent:
+                    # Model is being moved to a new parent
+                    _need_fire_id_trigger.extend(model.all_models())
+                    self._reparent_model(model, parent, minimum_id = minimum_id)
+            else:
+                # Model has not yet been added.
+                p = self._parent_for_added_model(model, parent, root_model = root_model)
+                if p:
+                    p.add_drawing(model)
 
-        # Assign new model ids
-        for model in models:
-            if model.id is None:
-                model.id = self.next_id(parent = parent, minimum_id = minimum_id)
-            self._models[model.id] = model
-            children = model.child_models()
-            if children:
-                self.add(children, parent=model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
+                # Set model id
+                if model.id is None:
+                    # Assign a new model id.
+                    model.id = self.next_id(parent = p, minimum_id = minimum_id)
+                self._models[model.id] = model
+
+                # Add child models
+                children = model.child_models()
+                if children:
+                    self.add(children, parent=model, _notify=False,
+                             _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -601,16 +688,98 @@ class Models(StateManager):
 
         if _from_session:
             self._initialize_camera = False
+
+    def have_model(self, model):
+        return model.id is not None and (self._models.get(model.id) is model
+                                         or model is self.scene_root_model)
+    
+    def _parent_for_added_model(self, model, parent, root_model = False):
+        if root_model:
+            if parent is not None:
+                raise ValueError('Tried to add model %s as a root model but specified parent %s'
+                                 % (model, parent))
+            if model.id is not None and len(model.id) != 1:
+                raise ValueError('Tried to add model %s as a root model but id is not a single integer'
+                                 % model)
+            p = None
+        elif model.id is None:
+            p = self.scene_root_model if parent is None else parent
+        else:
+            par_id = model.id[:-1]
+            p = self._models.get(par_id) if par_id else self.scene_root_model
+            if p is None:
+                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                                 % (model, '.'.join('%d'% i for i in par_id)))
+            if parent is not None and parent is not p:
+                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                                 % (model, parent))
+            if model.id in self._models:
+                raise ValueError('Tried to add model %s with the same id as another model %s'
+                                 % (model, self._models[model.id]))
+        return p
+
+    def _reparent_model(self, model, parent, minimum_id = 1):
+        # Remove old model id from table
+        mt = self._models
+        del mt[model.id]
+        p = model.parent
+        if p is not None:
+            p._next_unused_id = None
+
+        # Set new model id
+        id = self.next_id(parent = parent, minimum_id = minimum_id)
+        mt[id] = model
+        model.id = id
+
+        # Update model parent.
+        # This also removes drawing from former parent.
+        parent.add_drawing(model)
+
+        # Change child model ids.
+        self._update_child_ids(model)
+
+    def _update_child_ids(self, model):
+        id = model.id
+        mt = self._models
+        for child in model.all_models():
+            if child is not model:
+                del mt[child.id]
+                child.id = id + child.id[len(id):]
+                mt[child.id] = child
             
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
+        cm = self._models.get(id)
+        if cm:
+            if cm is model:
+                return
+            else:
+                raise ValueError('Tried to change model %s id to one in use by %s'
+                                 % (model, cm))
+
+        # Remove old id
         mt = self._models
         del mt[model.id]
+        if model.parent:
+            model.parent._next_unused_id = None
+
+        # Set new id.
         model.id = id
         mt[id] = model
-        p = mt[id[:-1]] if len(id) > 1 else self.scene_root_model
-        p._next_unused_id = None
-        self.add([model], parent = p)
+
+        # Set parent model.
+        if len(id) > 1:
+            p = mt[id[:-1]]
+        elif model.parent is None:
+            p = None 		# Root model
+        else:
+            p = self.scene_root_model
+
+        if p:
+            p.add_drawing(model)
+
+        # Update child model ids.
+        self._update_child_ids(model)
 
     def have_id(self, id):
         return id in self._models
@@ -670,26 +839,37 @@ class Models(StateManager):
         return group
 
     def remove(self, models):
+        '''
+        Remove the specified models from the scene as well as all their
+        children to all depths.  The models are not deleted.  Their model
+        id numbers are set to None and they are removed as children from
+        parent models that are still in the scene.
+        '''
         # Also remove all child models, and remove deepest children first.
         dset = descendant_models(models)
         dset.update(models)
         mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
+
+        # Call remove_from_session() methods.
         session = self._session()  # resolve back reference
         for m in mlist:
             m._added_to_session = False
             m.removed_from_session(session)
+
+        # Remove model ids
         for model in mlist:
             model_id = model.id
             if model_id is not None:
                 del self._models[model_id]
                 model.id = None
-                parent = model.parent
-                if parent is not None:
-                    parent.remove_drawing(model, delete=False)
-                    parent._next_unused_id = None
-                else:
-                    self.scene_root_model._next_unused_id = None             
+
+        # Remove models from parent if parent was not removed.
+        for model in models:
+            parent = model.parent
+            if parent is not None and self.have_model(parent):
+                parent.remove_drawing(model, delete=False)
+                parent._next_unused_id = None
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last
@@ -698,48 +878,17 @@ class Models(StateManager):
         return mlist
 
     def close(self, models):
-        # Removed models include children of specified models.
-        mremoved = self.remove(models)
-        for m in mremoved:
-            m.delete()
-
-    def open(self, filenames, id=None, format=None, name=None, **kw):
-        from . import io, toolshed
-        session = self._session()  # resolve back reference
-        collation_okay = True
-        if isinstance(filenames, str):
-            fns = [filenames]
-        else:
-            fns = filenames
-        for fn in fns:
-            fmt = io.deduce_format(fn, has_format=format)[0]
-            if fmt and fmt.category in [toolshed.SCRIPT]:
-                collation_okay = False
-                break
-        from .logger import Collator
-        log_errors = kw.pop('log_errors', True)
-        if collation_okay:
-            descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger,
-                    "Summary of feedback from opening " + descript, log_errors):
-                models, status = io.open_multiple_data(
-                    session, filenames, format=format, name=name, **kw)
-        else:
-            models, status = io.open_multiple_data(
-                session, filenames, format=format, name=name, **kw)
-        if status:
-            log = session.logger
-            log.status(status, log=True)
-        if models:
-            if len(models) > 1:
-                from . import io
-                name = io.model_name_from_path(filenames[0])
-                if len(filenames) > 1:
-                    name += '...'
-                self.add_group(models, name=name)
-            else:
-                self.add(models)
-        return models
+        '''
+        Remove the models from the scene as well as all child models
+        to all depths, and delete the models.  Models that are not
+        part of the scene are deleted, and models that have already
+        been deleted are ignored.
+        '''
+        mopen = [m for m in models if self.have_model(m)]
+        self.remove(mopen)
+        for m in models:
+            if not Model.deleted.fget(m):
+                m.delete()
 
 
 def descendant_models(models):

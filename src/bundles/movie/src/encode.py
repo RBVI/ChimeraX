@@ -191,7 +191,7 @@ class ffmpeg_encoder:
         import os
         try:
             os.remove(self.output_file)
-        except:
+        except Exception:
             pass
 
     def killEncoder(self, pop_obj):
@@ -227,8 +227,8 @@ class ffmpeg_encoder:
         # be redirected if one is, so stdout is a pipe too
         from io import StringIO
         out = StringIO()
-        from subprocess import Popen, PIPE
-        p = Popen(self.arg_list, stdout=PIPE, stderr=PIPE)
+        from subprocess import Popen, PIPE, DEVNULL
+        p = Popen(self.arg_list, stdin=DEVNULL, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
         exit_code = p.returncode
 

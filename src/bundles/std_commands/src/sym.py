@@ -116,7 +116,7 @@ def sym_clear(session, structures = None):
         from chimerax.atomic import all_structures
         structures = all_structures(session)
     for m in structures:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         m.positions = Places([m.position])	# Keep only first position.
         for s in m.surfaces():
             s.positions = Places([s.position])
@@ -204,7 +204,7 @@ def mmcif_assemblies(model):
     table_names = ('pdbx_struct_assembly',
                    'pdbx_struct_assembly_gen',
                    'pdbx_struct_oper_list')
-    from chimerax.atomic import mmcif
+    from chimerax import mmcif
     assem, assem_gen, oper = mmcif.get_mmcif_tables_from_metadata(model, table_names)
     if not assem or not assem_gen or not oper:
         return []
@@ -223,7 +223,7 @@ def mmcif_assemblies(model):
                        'matrix[1][1]', 'matrix[1][2]', 'matrix[1][3]', 'vector[1]',
                        'matrix[2][1]', 'matrix[2][2]', 'matrix[2][3]', 'vector[2]',
                        'matrix[3][1]', 'matrix[3][2]', 'matrix[3][3]', 'vector[3]'))
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     for id, m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34 in mat:
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
@@ -300,11 +300,11 @@ class Assembly:
         included_atoms, excluded_atoms = self._partition_atoms(m.atoms, self._chain_ids())
         if new_model:
             excluded_atoms.delete()
-        from chimerax.surface import surface, surface_hide
+        from chimerax.surface import surface, surface_hide_patches
         surfs = surface(session, included_atoms, grid_spacing = grid_spacing, resolution = res)
         if not new_model and len(excluded_atoms) > 0:
             from chimerax.core.objects import Objects
-            surface_hide(session, Objects(atoms = excluded_atoms))
+            surface_hide_patches(session, Objects(atoms = excluded_atoms))
         for s in surfs:
             mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.from_mmcif)[0]
             s.positions = self._chain_operators(mmcif_cid)
@@ -349,7 +349,7 @@ class Assembly:
         for chain_ids, operator_expr, ops in self.chain_ops:
             if chain_id in chain_ids:
                 cops.extend(ops)
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         return Places(cops)
 
     def _molecule_copies(self, mol, new_model, session):
@@ -416,7 +416,7 @@ class Assembly:
 def is_integer(s):
     try:
         int(s)
-    except:
+    except Exception:
         return False
     return True
 
@@ -449,7 +449,7 @@ def mmcif_chain_ids(atoms, from_mmcif):
     return cids
 
 def operator_products(products, oper_table):
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     p = Places(tuple(oper_table[e] for e in products[0]))
     if len(products) > 1:
         p = p * operator_products(products[1:], oper_table)

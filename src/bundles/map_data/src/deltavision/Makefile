@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/deltavision
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/deltavision
 
 PYSRCS = __init__.py deltavision_format.py deltavision_grid.py
 

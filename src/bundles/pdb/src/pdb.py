@@ -19,13 +19,13 @@ Read Protein DataBank (PDB) files.
 """
 
 def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True, combine_sym_atoms=True):
+             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False):
 
     path = stream.name if hasattr(stream, 'name') else None
 
     from . import _pdbio
     try:
-        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic)
+        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains)
     except ValueError as e:
         if 'non-ASCII' in str(e):
             from chimerax.core.errors import UserError
@@ -122,14 +122,14 @@ _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
     "rcsb": "http://files.rcsb.org/download/%s.pdb",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/pdb%s.ent",
-    # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
+    "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }
 
 def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
         structure_factors=False, over_sampling=1.5, # for ChimeraX-Clipper plugin
         **kw):
+    from chimerax.core.errors import UserError
     if len(pdb_id) != 4:
-        from chimerax.core.errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
     if structure_factors:
         try:
@@ -155,11 +155,11 @@ def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
                               ignore_cache=ignore_cache)
 
     session.logger.status("Opening PDB %s" % (pdb_id,))
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
+    models, status = session.open_command.open_data(filename, format='pdb',
+        name=pdb_id, **kw)
     if structure_factors:
-        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
-            ignore_cache=ignore_cache)
+        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id,
+            fetch_source=fetch_source, ignore_cache=ignore_cache)
         from chimerax.clipper import get_map_mgr
         mmgr = get_map_mgr(models[0], create=True)
         if over_sampling < 1:
@@ -176,30 +176,6 @@ def fetch_pdb_pdbe(session, pdb_id, **kw):
 
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
-
-def register_pdb_format():
-    from chimerax.core import io
-    from chimerax.atomic import structure
-    io.register_format(
-        "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
-        mime=("chemical/x-pdb", "chemical/x-spdbv"),
-        reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb, export_func=save_pdb)
-    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, IntArg, EnumOf
-    from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg,
-                                   'atomic': BoolArg, 'max_models':IntArg, 'log_info':BoolArg})
-    add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
-        'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
-        'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
-
-def register_pdb_fetch():
-    from chimerax.core import fetch
-    fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
-    fetch.register_fetch('pdbe', fetch_pdb_pdbe, 'pdb', prefixes = [])
-    # PDBj is unreliable for PDB format, mmCIF seemed okay - CH 2dec16
-    # fetch.register_fetch('pdbj', fetch_pdb_pdbj, 'pdb', prefixes = [])
-
 
 def collate_records_text(records, multiple_results=False):
     if multiple_results:
@@ -251,7 +227,7 @@ def _get_formatted_res_info(model, *, standalone=True):
 
 # also used by mmcif
 def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
-    from chimerax.atomic.pdb import process_chem_name
+    from chimerax.pdb import process_chem_name
     html = ""
     nonstd_res_names = model.nonstandard_residue_names
     if nonstd_res_names:
@@ -268,8 +244,10 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)
-            else:
+            elif syns:
                 text += process_chem_name(syns)
+            else:
+                text += "(no full residue name provided)"
             return text
         if standalone:
             from chimerax.core.logger import html_table_params

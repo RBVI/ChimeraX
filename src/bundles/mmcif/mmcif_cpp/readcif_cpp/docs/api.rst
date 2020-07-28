@@ -218,7 +218,7 @@ C++ API
             A null callback function, removes the category.
             Dependencies must be registered first.
             A category callback function can find out which category
-            it is processing with :cpp:func:`category`.
+            it is processing with :cpp:func:`CIFFile::category`.
 
         .. cpp:function:: void set_unregistered_callback(ParseCategory callback)
 
@@ -287,7 +287,7 @@ C++ API
             Return if the current category has fixed width columns.
             See :cpp:func:`set_PDBx_fixed_width_columns`.
 
-        .. cpp:function:: int get_column(const char \*name, bool required=false)
+        .. cpp:function:: int get_column(const char *name, bool required=false)
             
             :param tag: column name to search for
             :param required: true if tag is required

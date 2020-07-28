@@ -63,15 +63,14 @@ See also:
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Window</a>]
 </p>
-<h3>Panels and Context Menus</h3>
+<h3>Panels and General Window Controls</h3>
 <p>
 A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>:
 </p>
 <ul>
 <li>when a tool is started (for example, from the
 <a href="menu.html#tools"><b>Tools</b> menu</a>
-or with the command <b>toolshed show</b>)
-<!-&ndash; start/show will be migrated to ui command instead of toolshed -->
+or with the command <a href="commands/ui.html#tool"><b>tool show</b></a>)
 <li>as the result of a calculation (for example,
 the <a href="commands/interfaces.html"><b>interfaces</b></a> command
 shows a chain-chain network diagram) 
@@ -79,36 +78,31 @@ shows a chain-chain network diagram)
 a certain type of data (for example, opening a density map starts 
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 </ul>
+<p>
 Panels may include clickable icons, interactive 2D representations 
 like network diagrams, and (rendered) HTML with links and images, as in the 
 <a href="tools/helpviewer.html"><b>Help Viewer</b></a>.
 Users can define custom panels of buttons with the 
 <a href="commands/buttonpanel.html"><b>buttonpanel</b></a> command.
-</p><p>
-<a name="context-menu"></a>
-A <b><i>context menu</i></b> is raised by right-clicking*
-parts of the interface.
-See also: <a href="selection.html#context">selection context menus</a>,
-<a href="tools/mousemodes.html"><b>Right Mouse</b></a> icons
-</p><p>
-<a name="mac-context"></a>
-<font size="+2"><b>*</b></font>for Mac trackpad or single-button mouse,
-Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
-</p><p>
 A panel can be:
 </p>
 <ul>
 <li>dismissed by clicking the &ldquo;x&rdquo; button <img src="x.png">
 on its title bar (if the panel is docked; a generic close-window button 
-if the panel is undocked) or by unchecking its name in the context menu 
-from right-clicking* any docked panel's title bar
+if the panel is undocked) or by unchecking its name in the 
+<a href="#context-menu">context menu</a> of any docked panel's title bar
 <li>shown (if active but hidden) by checking its name in
 the bottom section of the <a href="menu.html#tools"><b>Tools</b> menu</a>
-or in the context menu from right-clicking* any docked panel's title bar;
+or in the
+<a href="#context-menu">context menu</a> of any docked panel's title bar;
 some panels remain active when dismissed, others do not
 <li>undocked from the main ChimeraX window
 by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png">
-on its title bar or by dragging or double-clicking its title bar
+on its title bar or by dragging or double-clicking its title bar;
+tools without a title bar
+(the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+and <a href="tools/cli.html"><b>Command Line</b></a>) have a
+<a href="#context-menu">context menu</a> option to <b>Undock</b>
 <li>if <a href="#tool-context">dockable</a>,
 redocked by dragging or double-clicking its title bar, with the
 dragged location controlling where and how the panel will be inserted
@@ -135,9 +129,28 @@ without losing the overall window configuration.
 The <a href="tools/toolbar.html"><b>Toolbar</b></a>
 and <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
-</p><p>
+</p>
+
+<a name="context-menu"></a>
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Window</a>]
+</p>
+<h3>Context Menus</h3>
+<p>
+A <b><i>context menu</i></b> is raised by right-clicking*
+parts of the interface.
+See also: <a href="selection.html#context">selection context menus</a>,
+<a href="tools/mousemodes.html"><b>Right Mouse</b></a> icons
+</p>
+<blockquote style="background-color:#f0f0f0; border:solid black 1px; padding:5px">
+<a name="mac-context"></a>
+<font size="+2"><b>*</b></font>for Mac trackpad or single-button mouse,
+Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
 <a name="tool-context"></a>
-Panels may have their own specific <a href="#context-menu">context menus</a>
+</blockquote>
+<p>
+A general context menu can be accessed from the title bar of any docked panel. 
+In addition, panels may have their own specific context menus
 (away from the title-bar area), typically including:
 </p>
 <ul>
@@ -146,7 +159,7 @@ Panels may have their own specific <a href="#context-menu">context menus</a>
 &ndash; show documentation in the 
 <a href="tools/helpviewer.html"><b>Help Viewer</b></a>
 </ul>
-&nbsp;...and certain tool-specific 
+&nbsp;...and certain tool
 <a href="preferences.html#other">preferences</a>, when applicable:
 <ul>
 <li><b>Start at ChimeraX Startup</b>
@@ -167,15 +180,10 @@ whether it is on the left, right, top, or bottom side of the main window
 if undocked, save panel size and screen position
 </ul>
 <p>
-Tool autostart behavior and dockability can also be set with the
+Tool <a href="preferences.html#other">preferences</a> can also be set with the
 <a href="commands/ui.html"><b>ui</b></a> command.
-</p><p>
-The <a href="tools/toolbar.html"><b>Toolbar</b></a>
-and <a href="tools/cli.html"><b>Command Line</b></a> lack title bars
-when docked, but the other methods of control are still available,
-as well as a context-menu option to <b>Undock</b> the tool without
-changing its dockability preference.
 </p>
+
 <a name="fullscreen"></a>
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Window</a>]
@@ -187,7 +195,7 @@ To use ChimeraX graphics fullscreen with controls on a separate screen:
 <ul>
 <li>the <a href="tools/cli.html"><b>Command Line</b></a> and icon
 <a href="tools/toolbar.html"><b>Toolbar</b></a> can be undocked
-from the graphics window by un-checking <b>Dockable Tool</b> in their
+from the graphics window by choosing <b>Undock</b> from their
 respective <a href="#context-menu">context menus</a>,
 then dragged to the other display
 <li>other <a href="#panels">tool panels</a> can also be
@@ -204,5 +212,5 @@ hides the menus (on Windows)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+May 2020</address>
 </body></html> 

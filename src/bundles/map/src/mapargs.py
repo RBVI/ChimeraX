@@ -43,7 +43,7 @@ class Int1or3Arg(Annotation):
         token, text, rest = next_token(text)
         try:
             s = tuple(int(f) for f in token.split(','))
-        except:
+        except Exception:
             raise UserError('Must specify integer or 3 comma-separated integers, got %s' % token)
         if len(s) == 1:
             s = (s[0],s[0],s[0])
@@ -61,7 +61,7 @@ class Float1or3Arg(Annotation):
         token, text, rest = next_token(text)
         try:
             s = tuple(float(f) for f in token.split(','))
-        except:
+        except Exception:
             raise UserError('Must specify float or 3 comma-separated floats, got %s' % token)
         if len(s) == 1:
             s = (s[0],s[0],s[0])
@@ -76,7 +76,7 @@ class Float2Arg(Annotation):
         token, text, rest = next_token(text)
         try:
             s = tuple(float(f) for f in token.split(','))
-        except:
+        except Exception:
             raise UserError('Must specify 2 comma-separated floats, got %s' % token)
         if len(s) != 2:
             raise UserError('Must specify 2 comma-separated floats, got %s' % token)
@@ -91,7 +91,7 @@ class MapRegionArg(Annotation):
             return token, text, rest
         try:
             s = tuple(int(f) for f in token.split(','))
-        except:
+        except Exception:
             raise UserError('Must specify 6 comma-separated integers, got %s' % token)
         if len(s) != 6:
             raise UserError('Must specify 6 comma-separated integers, got %s' % token)
@@ -109,7 +109,7 @@ class BoxArg(Annotation):
         token, text, rest = next_token(text)
         try:
             s = tuple(float(f) for f in token.split(','))
-        except:
+        except Exception:
             raise UserError('Must specify 6 comma-separated floats, got %s' % token)
         if len(s) != 6:
             raise UserError('Must specify 6 comma-separated floats, got %s' % token)
@@ -138,7 +138,7 @@ class IntRangeArg(Annotation):
         token, text, rest = next_token(text)
         try:
             s = tuple(int(f) for f in token.split(','))
-        except:
+        except Exception:
             s = ()
         n = len(s)
         if n < 2 or n > 3:

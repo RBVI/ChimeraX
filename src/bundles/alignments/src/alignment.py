@@ -22,9 +22,47 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
+    NOTE_ADD_ASSOC     = "add association"
+    NOTE_DEL_ASSOC     = "remove association"
+    NOTE_MOD_ASSOC     = "modify association"
+    NOTE_ADD_SEQS      = "add seqs"
+    NOTE_PRE_DEL_SEQS  = "pre-remove seqs"
+    NOTE_DEL_SEQS      = "remove seqs"
+    NOTE_ADD_DEL_SEQS  = "add or remove seqs"
+    NOTE_EDIT_START    = "editing started"
+    NOTE_EDIT_END      = "editing finished"
+    NOTE_DESTROYED     = "destroyed"
+    NOTE_COMMAND       = "command"
+
+    # associated note_data for the above is None except for:
+    #   NOTE_ADD_ASSOC: list of new matchmaps
+    #   NOTE_DEL_ASSOC: a dictionary with information about an association being deleted.  Because of the
+    #           way structure deletion works, one of the values of the dictionary is an estimate.  The
+    #           key/values are:
+    #       'match map': the deleted association's matchmap
+    #       'num remaining associations': number of chains still associated immediately after the deletion
+    #       'max previous structures': estimate of the number of associated _structures_ just before deletion
+    #       'num remaining structures': number of associated _structures just after deletion
+    #   NOTE_MOD_ASSOC: a 2-tuple of the the specific type of modification and associated data.  The type
+    #       can be NOTE_ADD_ASSOC or NOTE_DEL_ASSOC, in which case the second value of the tuple is the
+    #       data normally provided with that notification, or NOTE_MOD_ASSOC, for which the second value
+    #       is a list of modified matchmaps.
+    #   NOTE_COMMAND: the observer subcommand text
+    #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
+
+    NOTE_HDR_VALUES    = "header values changed"
+    NOTE_HDR_NAME      = "header name changed"
+    NOTE_HDR_RELEVANCE = "header's relevance to alignment changed"
+    NOTE_HDR_SHOWN     = "header's 'shown' attribute changed"
+
+    # associated note_data for the above is just the header except for:
+    #   NOTE_HDR_VALUES: a 2-tuple of the header and where the values changed (either a 2-tuple of 0-based
+    #       indices into the header, or None -- which indicates the entire header)
+
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic):
+            description, intrinsic, *, create_headers=True, session_restore=False):
         self.session = session
+        self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
         self._seqs = seqs
@@ -67,6 +105,15 @@ class Alignment(State):
             self.auto_associate = True
         else:
             self._auto_associate = False
+        if create_headers:
+            self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
+            self._headers.sort(key=lambda hdr: hdr.name.casefold())
+            attr_headers = []
+            for header in self._headers:
+                header.shown = header.settings.initially_shown and header.relevant
+            self._set_residue_attributes()
+        else:
+            self._headers = []
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
@@ -262,10 +309,10 @@ class Alignment(State):
 
         if new_match_maps:
             if reassoc:
-                note_name = "modify association"
-                note_data = ("add association", new_match_maps)
+                note_name = self.NOTE_MOD_ASSOC
+                note_data = (self.NOTE_ADD_ASSOC, new_match_maps)
             else:
-                note_name = "add association"
+                note_name = self.NOTE_ADD_ASSOC
                 note_data = new_match_maps
             self._notify_observers(note_name, note_data)
 
@@ -340,8 +387,6 @@ class Alignment(State):
         if reassoc:
             return
         if not demotion:
-            self._notify_observers("remove association", [match_map])
-
             # if the structure seq hasn't been demoted/destroyed, log the disassociation
             struct = sseq.structure
             struct_name = struct.name
@@ -350,12 +395,30 @@ class Alignment(State):
                 struct_name += " (" + struct.id_string + ")"
             self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
         # delay notifying the observers until all chain demotions/deletions have been received
-        def _delay_disassoc(_, __, match_map=match_map):
-            self._notify_observers("remove association", [match_map])
+        num_unknown = 0
+        structures = set()
+        for sseq in self.associations:
+            try:
+                structures.add(sseq.structure)
+            except AttributeError:
+                # demoted
+                num_unknown += 1
+        data = {
+            'match map': match_map,
+            'num remaining associations': len(self.associations),
+            'max previous structures': len(structures) + num_unknown,
+            'num remaining structures': len(structures)
+        }
+        def _delay_disassoc(_, __, data=data):
+            self._notify_observers(self.NOTE_DEL_ASSOC, data)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
-        atomic.get_triggers().add_handler('changes', _delay_disassoc)
+        atomic.get_triggers().add_handler('changes done', _delay_disassoc)
+
+    @property
+    def headers(self):
+        return self._headers[:]
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
@@ -433,6 +496,28 @@ class Alignment(State):
                 return_vals.append((None, None, None, None, None))
         return return_vals
 
+    def notify(self, note_name, note_data):
+        """Used by headers to issue notifications, but theoretically could be used by anyone"""
+        self._notify_observers(note_name, note_data)
+        if note_name == self.NOTE_HDR_RELEVANCE:
+            hdr = note_data
+            if hdr.shown and not hdr.relevant:
+                hdr.shown = False
+        elif note_name == self.NOTE_HDR_SHOWN:
+            hdr = note_data
+            if not hdr.eval_while_hidden:
+                self._set_residue_attributes(headers=[hdr])
+            if not self._session_restore:
+                if hdr.shown:
+                    msg = 'Showing %s header ("%s" residue attribute) for alignment %s' % (hdr.ident,
+                        hdr.residue_attr_name, self)
+                else:
+                    msg = 'Hiding %s header for alignment %s' % (hdr.ident, self)
+                self.session.logger.info(msg)
+        elif note_name == self.NOTE_HDR_VALUES:
+            hdr, bounds = note_data
+            self._set_residue_attributes(headers=[hdr])
+
     def prematched_assoc_structure(self, match_map, errors, reassoc):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
            you would use this call directly instead of the more usual associate() call
@@ -446,6 +531,7 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
+        self._set_residue_attributes(match_maps=[match_map])
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
@@ -475,12 +561,12 @@ class Alignment(State):
                 self._notify_observers(cur_note, cur_data, viewer_criteria=viewer_criteria)
             self._ob_note_suspended_data = []
 
-    def save(self, path_or_stream, format_name="fasta"):
+    def save(self, output, format_name="fasta"):
         import importlib
-        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
-        from chimerax.core.io import open_filename
-        stream = open_filename(path_or_stream, "w")
-        with stream:
+        mod = importlib.import_module(".io.save%s" % format_name.upper(),
+            "chimerax.seqalign")
+        from chimerax import io
+        with io.open_output(output, 'utf-8') as stream:
             mod.save(self.session, self, stream)
 
     @property
@@ -491,16 +577,18 @@ class Alignment(State):
         self._observer_notification_suspended += 1
 
     def _atomic_changes_done(self, *args):
-        self._notify_observers("modify association", ("modify association", self._modified_mmaps))
+        self._notify_observers(self.NOTE_MOD_ASSOC, (self.NOTE_MOD_ASSOC, self._modified_mmaps))
         self._modified_mmaps = []
         from chimerax.core.triggerset import DEREGISTER
         return DEREGISTER
 
     def _destroy(self):
         self._in_destroy = True
-        self._notify_observers("destroyed", None)
+        self._notify_observers(self.NOTE_DESTROYED, None)
         self.viewers = []
         self.observers = []
+        for header in self._headers:
+            header.destroy()
         aseqs = set()
         for sseq, aseq in self.associations.items():
             aseq.match_maps[sseq].mod_handler.remove()
@@ -517,7 +605,7 @@ class Alignment(State):
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
                 % (viewer_keyword, self.ident))
-        self._notify_observers("command", subcommand_text, viewer_criteria=viewer_keyword)
+        self._notify_observers(self.NOTE_COMMAND, subcommand_text, viewer_criteria=viewer_keyword)
 
     def _mmap_mod_cb(self, trig_name, match_map):
         if len(match_map) == 0:
@@ -539,19 +627,21 @@ class Alignment(State):
             recipients = self.viewers_by_subcommand.get(viewer_criteria, [])
         for recipient in recipients:
             recipient.alignment_notification(note_name, note_data)
-            if note_name in ["add association", "remove association"]:
-                recipient.alignment_notification("modify association", (note_name, note_data))
-            elif note_name in ["add sequences", "remove sequences"]:
-                recipient.alignment_notification("add or remove sequences", (note_name, note_data))
+            if note_name in [self.NOTE_ADD_ASSOC, self.NOTE_DEL_ASSOC]:
+                recipient.alignment_notification(self.NOTE_MOD_ASSOC, (note_name, note_data))
+            elif note_name in [self.NOTE_ADD_SEQS, self.NOTE_DEL_SEQS]:
+                recipient.alignment_notification(self.NOTE_ADD_DEL_SEQS, (note_name, note_data))
 
     @staticmethod
     def restore_snapshot(session, data):
         """For restoring scenes/sessions"""
         ident = data['ident'] if 'ident' in data else data['name']
+        create_headers = data['version'] < 2
         aln = Alignment(session, data['seqs'], ident, data['file attrs'],
             data['file markups'], data['auto_destroy'],
             "session" if data['auto_associate'] else False,
-            data.get('description', ident), data.get('intrinsic', False))
+            data.get('description', ident), data.get('intrinsic', False), create_headers=create_headers,
+            session_restore=True)
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
@@ -559,19 +649,62 @@ class Alignment(State):
                 match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
         if 'sseq to chain' in data:
             aln._sseq_to_chain = data['sseq to chain']
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        if not create_headers:
+            for bundle_name, class_name, header_state in data['headers']:
+                bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
+                if not bundle:
+                    bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
+                    if bundle:
+                        session.logger.error("You need to install bundle %s in order to restore"
+                            " alignment header of type %s" % (bundle_name, class_name))
+                    else:
+                        session.logger.error("Cannot restore alignment header of type %s due to"
+                            " being unable to find any bundle named %s" % (class_name, bundle_name))
+                    continue
+                header_class = bundle.get_class(class_name, session.logger)
+                if header_class:
+                    aln._headers.append(header_class.session_restore(session, aln, header_state))
+                else:
+                    session.logger.warning("Could not find alignment header class %s" % class_name)
+        aln._session_restore = False
         return aln
+
+    def _set_residue_attributes(self, *, headers=None, match_maps=None):
+        if headers is None:
+            headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
+        if match_maps is None:
+            match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
+        from chimerax.atomic import AtomicStructure
+        for header in headers:
+            attr_name = header.residue_attr_name
+            AtomicStructure.register_attr(self.session, attr_name, "sequence alignment",
+                attr_type=header.value_type, can_return_none=header.value_none_okay)
+            for match_map in match_maps:
+                for i, val in enumerate(header):
+                    try:
+                        r = match_map[i]
+                    except KeyError:
+                        continue
+                    setattr(r, attr_name, val)
 
     def __str__(self):
         return self.ident
 
     def take_snapshot(self, session, flags):
-        """For session/scene saving"""
-        return { 'version': 1, 'seqs': self._seqs, 'ident': self.ident,
+        """For session saving"""
+        from chimerax.core.toolshed import get_toolshed
+        ts = get_toolshed()
+        return { 'version': 2, 'seqs': self._seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
             'description' : self.description, 'intrinsic' : self.intrinsic,
-            'sseq to chain': self._sseq_to_chain }
+            'sseq to chain': self._sseq_to_chain,
+            'headers': [(ts.find_bundle_for_class(hdr.__class__).name,
+                hdr.__class__.__name__, hdr.get_state()) for hdr in self.headers]
+            }
 
 
 def nw_assoc(session, align_seq, struct_seq):
@@ -582,7 +715,7 @@ def nw_assoc(session, align_seq, struct_seq):
     sseq = struct_seq
     aseq = Sequence(name=align_seq.name, characters=align_seq.ungapped())
     aseq.circular = align_seq.circular
-    from chimerax.seqalign.align_algs.NeedlemanWunsch import nw
+    from chimerax.alignment_algs.NeedlemanWunsch import nw
     score, match_list = nw(sseq, aseq)
 
     errors = 0

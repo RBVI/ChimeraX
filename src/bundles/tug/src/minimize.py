@@ -29,7 +29,7 @@ class MinimizeMode(MouseMode):
     def mouse_down(self, event):
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y)
+        pick = view.picked_object(x,y)
         self._pick_atom(pick)
 
     def _pick_atom(self, pick):
@@ -85,7 +85,7 @@ class MinimizeMode(MouseMode):
 def _zone_atoms(atoms, near_atoms, distance):
     axyz = atoms.scene_coords
     naxyz = near_atoms.scene_coords
-    from chimerax.core.geometry import find_close_points
+    from chimerax.geometry import find_close_points
     i1,i2 = find_close_points(axyz, naxyz, distance)
     za = atoms[i1]
     return za

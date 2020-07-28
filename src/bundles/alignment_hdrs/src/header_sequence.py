@@ -16,6 +16,8 @@
 # Since the ChimeraX Sequence class only supports sequences of characters,
 # implement our own class that can also contain numbers or other values.
 
+from contextlib import contextmanager
+
 class HeaderSequence(list):
     # sort_val determines the default ordering of headers.
     # Built-in headers change their sort_val to a value in the range
@@ -25,21 +27,26 @@ class HeaderSequence(list):
     numbering_start = None
     fast_update = True # can header be updated quickly if only a few columns are changed?
     single_column_updateable = True # can a single column be updated, or only the entire header?
+    ident = None    # should be string, used to identify header in commands and as part of the
+                    # generated residue attribute name, so the string should be "attribute friendly"
+    value_type = float
+    value_none_okay = True
 
-    CALLBACK_VALUES = "values changed"
-    CALLBACK_NAME = "header name changed"
-    CALLBACK_RELEVANCE = "header's relevance to alignment changed"
+    ATTR_PREFIX = "seq_"
 
-    def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
+    def __init__(self, alignment, name=None, *, eval_while_hidden=False, session_restore=False):
         if name is None:
             if not hasattr(self, 'name'):
                 self.name = ""
         else:
             self.name = name
+        if not session_restore and self.ident is None:
+            raise AssertionError("%s header class failed to define 'ident' attribute"
+                % self.__class__.__name__)
         from weakref import proxy
         self.alignment = proxy(alignment)
         self.alignment.add_observer(self)
-        self.refresh_callback = refresh_callback
+        self._notifications_suppressed = 0
         self._shown = False
         self.eval_while_hidden = eval_while_hidden
         self._update_needed = True
@@ -67,10 +74,18 @@ class HeaderSequence(list):
             self.reevaluate()
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "editing started":
+        if note_name == self.alignment.NOTE_EDIT_START:
             self._alignment_being_edited = True
-        if note_name == "editing finished":
+        if note_name == self.alignment.NOTE_EDIT_END:
             self._alignment_being_edited = False
+
+    @contextmanager
+    def alignment_notifications_suppressed(self):
+        self._notifications_suppressed += 1
+        try:
+            yield
+        finally:
+            self._notifications_suppressed -= 1
 
     def destroy(self):
         if not self.alignment.being_destroyed:
@@ -87,7 +102,8 @@ class HeaderSequence(list):
         state = {
             'name': self.name,
             'shown': self._shown,
-            'eval_while_hidden': self.eval_while_hidden
+            'eval_while_hidden': self.eval_while_hidden,
+            'contents': self[:]
         }
         return state
 
@@ -119,15 +135,29 @@ class HeaderSequence(list):
             EXPLICIT_SAVE = settings_defaults
         return HeaderSettings(session, settings_name)
 
+    def notify_alignment(self, note_name, *args):
+        if not self._notifications_suppressed:
+            if args:
+                note_data = (self, *args)
+            else:
+                note_data = self
+            self.alignment.notify(note_name, note_data)
+
     def num_options(self):
         return 0
 
     def option_data(self):
         from chimerax.ui.options import BooleanOption
         return [
-            ("show at startup", 'initially_shown', BooleanOption, {},
+            ("show initially", 'initially_shown', BooleanOption, {},
                 "Show this header when sequence/alignment initially shown")
         ]
+
+    def option_sorting(self, option):
+        for base_label, attr_name, opt_class, opt_kw, balloon in HeaderSequence.option_data(self):
+            if option.attr_name == attr_name:
+                return (0, option.name.casefold())
+        return (1, option.name.casefold())
 
     def positive_hist_infinity(self, position):
         """Convenience function to map arbitrary positive number to 0-1 range
@@ -159,7 +189,7 @@ class HeaderSequence(list):
             evaluation_func(pos1, pos2)
         self._update_needed = False
         self._edit_bounds = None
-        if self._shown and self.refresh_callback:
+        if self._shown and not self._notifications_suppressed:
             cur_vals = self[:]
             if len(prev_vals) != len(cur_vals):
                 bounds = None
@@ -175,15 +205,19 @@ class HeaderSequence(list):
                         if first_mismatch is None:
                             first_mismatch = i
                 bounds = (first_mismatch, last_mismatch)
-            self.refresh_callback(HeaderSequence.CALLBACK_VALUES, self, bounds)
+            self.notify_alignment(self.alignment.NOTE_HDR_VALUES, bounds)
 
     @property
     def relevant(self):
         return True
 
-    @staticmethod
-    def session_restore(session, alignment, refresh_callback, state):
-        inst = HeaderSequence(alignment, refresh_callback)
+    @property
+    def residue_attr_name(self):
+        return self.ATTR_PREFIX + self.ident
+
+    @classmethod
+    def session_restore(cls, session, alignment, state):
+        inst = cls(alignment, session_restore=True)
         inst.set_state(state)
         return inst
 
@@ -191,6 +225,7 @@ class HeaderSequence(list):
         self.name = state['name']
         self._shown = state.get('shown', state.get('visible', None))
         self.eval_while_hidden = state['eval_while_hidden']
+        self[:] = state['contents']
 
     def settings_info(self):
         """This method needs to return a (name, dict) tuple where 'name' is used to distingush
@@ -212,11 +247,14 @@ class HeaderSequence(list):
         if show == self._shown:
             return
         self._shown = show
-        if show:
-            if self._edit_bounds:
-                self.reevaluate(*self._edit_bounds)
-            elif self._update_needed:
-                self.reevaluate()
+        # suppress the alignment notification
+        with self.alignment_notifications_suppressed():
+            if show:
+                if self._edit_bounds:
+                    self.reevaluate(*self._edit_bounds, suppress_callback=True)
+                elif self._update_needed:
+                    self.reevaluate()
+        self.notify_alignment(self.alignment.NOTE_HDR_SHOWN)
 
     def _add_options(self, options_container, category, verbose_labels, option_data):
         for base_label, attr_name, opt_class, opt_kw, balloon in option_data:
@@ -229,7 +267,7 @@ class HeaderSequence(list):
 
     def _final_option_label(self, base_label, verbose_labels):
         if verbose_labels:
-            return "%s: %s" % (self.name, base_label)
+            return "%s: %s" % (getattr(self, "settings_name", self.name), base_label)
         return base_label[0].upper() + base_label[1:]
 
 
@@ -279,11 +317,12 @@ class DynamicHeaderSequence(HeaderSequence):
     single_sequence_relevant = False
 
     def alignment_notification(self, note_name, note_data):
+        super().alignment_notification(note_name, note_data)
         if not self.single_sequence_relevant:
-            if note_name == "add sequences" and len(self.alignment.seqs) - len(note_data) == 1:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
-            elif note_name == "remove sequences" and len(self.alignment.seqs) == 1:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+            if note_name == self.alignment.NOTE_ADD_SEQS and len(self.alignment.seqs) - len(note_data) == 1:
+                self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+            elif note_name == self.alignment.NOTE_DEL_SEQS and len(self.alignment.seqs) == 1:
+                self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
 
     @property
     def relevant(self):
@@ -291,19 +330,51 @@ class DynamicHeaderSequence(HeaderSequence):
 
 class DynamicStructureHeaderSequence(HeaderSequence):
 
+    min_chain_relevance = min_structure_relevance = None
+
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
-        if note_name == "modify association":
+        if note_name == self.alignment.NOTE_MOD_ASSOC:
             self.reevaluate()
-        elif note_name == "add association":
-            if len(self.alignment.associations) == len(note_data):
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
-        elif note_name == "remove association":
-            if len(self.alignment.associations) == 0:
-                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+        elif note_name == self.alignment.NOTE_ADD_ASSOC:
+            if self.min_chain_relevance is not None:
+                cur_assocs = len(self.alignment.associations)
+                prev_assocs = cur_assocs - len(note_data)
+                if prev_assocs < self.min_chain_relevance \
+                and cur_assocs >= self.min_chain_relevance:
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+            elif self.min_structure_relevance is not None:
+                added_sseqs = set([x.struct_seq for x in note_data])
+                prev_structs = len(set([x.structure
+                    for x in self.alignment.associations if x not in added_sseqs]))
+                cur_structs = len(set([x.structure for x in self.alignment.associations]))
+                if prev_structs < self.min_structure_relevance \
+                and cur_structs >= self.min_structure_relevance:
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+            else:
+                if len(note_data) == len(self.alignment.associations):
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+        elif note_name == self.alignment.NOTE_DEL_ASSOC:
+            if self.min_chain_relevance is not None:
+                if note_data['num remaining associations'] == self.min_chain_relevance - 1:
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+            elif self.min_structure_relevance is not None:
+                # can't be completely sure relevance changed in all cases, but be overly cautious
+                if note_data['max previous structures'] >= self.min_structure_relevance \
+                and note_data['num remaining structures'] < self.min_structure_relevance:
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
+            else:
+                if note_data['num remaining associations'] == 0:
+                    self.notify_alignment(self.alignment.NOTE_HDR_RELEVANCE)
 
+    @property
     def relevant(self):
-        return bool(self.alignment.associations)
+        if self.min_chain_relevance is not None:
+            return len(self.alignment.association) >= self.min_chain_relevance
+        if self.min_structure_relevance is not None:
+            return len(set([x.structure
+                for x in self.alignment.associations])) >= self.min_structure_relevance
+        return len(self.alignment.associations) > 0
 
 registered_headers = []
 def register_header(header_class, default_on=True):

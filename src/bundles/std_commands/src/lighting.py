@@ -192,7 +192,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         else:
             try:
                 size = int(quality_of_shadows)
-            except:
+            except Exception:
                 from chimerax.core.errors import UserError
                 raise UserError('qualityOfShadows value must be an integer or one of %s'
                                 % ', '.join('%s (%d)' % (nm,s) for nm,s in sizes.items()))

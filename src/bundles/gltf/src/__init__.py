@@ -24,19 +24,34 @@ class _gltfBundle(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import gltf
-        return gltf.read_gltf(session, stream, file_name)
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class Info(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import gltf
+                    return gltf.read_gltf(session, data, file_name)
+        else:
+            from chimerax.save_command import SaverInfo
+            class Info(SaverInfo):
+                def save(self, session, path, models=None, **kw):
+                    from . import gltf
+                    gltf.write_gltf(session, path, models, **kw)
 
-    @staticmethod
-    def save_file(session, path, models=None, center=None, size=None,
-                  short_vertex_indices=False, float_colors=False, preserve_transparency=True):
-        # 'save_file' is called by session code to save a file
-        from . import gltf
-        return gltf.write_gltf(session, path, models, center=center, size=size,
-                               short_vertex_indices=short_vertex_indices,
-                               float_colors=float_colors, preserve_transparency=preserve_transparency)
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import BoolArg, ModelsArg, Float3Arg, \
+                        FloatArg
+                    return {
+                        'center': Float3Arg,
+                        'float_colors': BoolArg,
+                        'models': ModelsArg,
+                        'preserve_transparency': BoolArg,
+                        'short_vertex_indices': BoolArg,
+                        'size': FloatArg,
+                    }
+                    
+        return Info()
+
 
 bundle_api = _gltfBundle()

@@ -23,7 +23,9 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3>ChimeraX Tutorial: DICOM in Virtual Reality</h3>
+<h3><a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html"
+target="_blank">ChimeraX Tutorial</a>:
+DICOM in Virtual Reality</h3>
 
 <blockquote><b>
 <a href="#data">Sample Data</a>
@@ -43,8 +45,8 @@ already installed and set up for the room.
 ChimeraX works with virtual reality (VR) systems
 supported by <a href="http://steamvr.com" target="_blank">SteamVR</a>,
 such as HTC Vive, Oculus Rift and Samsung Odyssey headsets. 
-Descriptions below are mainly for Vive hand controllers, but other systems 
-have hand-controller buttons that are generally similar in position and function.
+Descriptions below are mainly for Vive hand controllers, but other systems have 
+hand-controller buttons that are generally similar in position and function.
 </p><p>
 Aside from the manipulation in VR, the tutorial can be done 
 without VR just using your computer and mouse (or trackpad)
@@ -54,8 +56,6 @@ See a
 <a href="https://www.rbvi.ucsf.edu/chimera/data/dicom-feb2019/images/dicomvr.mp4" 
 target="_blank">video of this tutorial</a> (Feb 2019).
 See also: <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
-<a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html"
-target="_blank">ChimeraX tutorials</a>,
 <a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
@@ -145,15 +145,20 @@ Try moving the model around:
 trackpad + <b>Alt</b>
 </td>
 </tr><tr>
+<td colspan="2" align="center">
++ <b>Shift</b> switches from rotate to translate and <i>vice versa</i>
+</td>
+</tr><tr>
 <td align="center" rowspan="2">zoom
 <br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
 <td>mouse scroll wheel</td>
 </tr><tr>
 <td class="text">
-trackpad 2-finger drag (except pinch on Mac)
-</td>
+trackpad 2-finger drag (except pinch on Mac as per
+<a href="../preferences.html#trackpad">Trackpad preferences</a>)</td>
 </tr></table>
 <p>
+</p><p>
 Some useful commands for viewing DICOM data outside of VR:
 </p>
 <blockquote>
@@ -252,12 +257,12 @@ panels may have been vertically compressed; drag to make the
 tall enough to show the full height of the histogram.
 </p><p>
 Put on the headset, and try moving the model. 
+<a name="default-controller"></a>
 The hand-controller positions are shown in the headset as cones,
 and icons on the cones indicate button assignments.
 Default assignments:
 </p>
 
-<a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" width="30%">rotate
 <br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
@@ -292,12 +297,11 @@ to reflect the different physical positions of the buttons on the controllers.
 together with both <b><i>triggers</i></b> pressed
 <br>&nbsp;&nbsp;&ndash; or &ndash;<br>
 &nbsp;move hand controller vertically with
-Vive <b><i>trackpad</i></b> pressed (Oculus A/X button)
-</td>
+Vive <b><i>trackpad</i></b> pressed (Oculus A button)</td>
 </tr><tr>
 <td align="center">center and rescale
 <br><img src="../tools/shortcut-icons/viewall.png" class="icon2"></td>
-<td class="text">&nbsp;Vive <b><i>grip</i></b> button</td>
+<td class="text">&nbsp;Vive <b><i>grip</i></b> button (Oculus X button)</td>
 </tr><tr>
 <td align="center" class="text">
 collectively show, hide, move tool panels
@@ -307,8 +311,7 @@ click-dragging with any button on its title bar,
 or on a blank area in the panel if no title bar)
 </td>
 <td class="text">
-&nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)
-</td>
+&nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)</td>
 </tr></table>
 <p>
 The Oculus <b><i>grip</i></b> buttons have the same defaults as the
@@ -467,15 +470,9 @@ to return to the full volume.
 src="../tools/shortcut-icons/step1.png">&nbsp; to use step 1, full resolution.
 <br><br>
 <li>Click <img class="icon3" src="../tools/shortcut-icons/airways.png">
-to apply the &ldquo;Airways II&rdquo; 3D preset (threshold settings) 
-for viewing lung tissue.
+to apply the &ldquo;airways&rdquo; preset for viewing lung tissue.
 </ul>
 <p>
-The <a href="../commands/volume.html#appearance">3D presets</a> are based on
-definitions in the <a href="https://horosproject.org/about/"
-target="_blank">Horos</a> program for medical image
-visualization and analysis. Several are available from the command line,
-but only &ldquo;Airways II&rdquo; is currently available as an icon.
 If you later go back to viewing planes or thin slabs,
 it may be helpful to restore the initial thresholds by clicking
 <img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
@@ -534,8 +531,8 @@ instead.)
 <h3><a href="#top" class="nounder">&larr;</a>
 Windowing</h3>
 <p>
-A <a href="../commands/volume.html#appearance">3D preset</a>
-like &ldquo;Airways II&rdquo; sets the thresholds to specific values.
+Image-rendering <a href="../dicom-quickref.html#presets">presets</a>
+such as &ldquo;airways&rdquo; set the thresholds to specific values.
 They can also be adjusted continuously by hand:
 <ul>
 <li>Individually by dragging in the
@@ -556,22 +553,25 @@ it may help to first pierce the panel, then draw back slightly.
   the <b><i>trackpad</i></b> pressed.
   </ul>
 <p>
-Using this mode, vertical motions shift all the thresholds in parallel
-to higher or lower values (left &harr; right on the histogram) and 
-horizontal motions move the thresholds symmetrically farther apart
-or closer together (broadening or narrowing their range of values).
+Using this mode, vertical motions shift the thresholds of a display
+&ldquo;window&rdquo; in parallel to higher or lower data values 
+(left &harr; right on the histogram) and 
+horizontal motions move them symmetrically farther apart
+or closer together (broadening or narrowing the window).
 The threshold positions on the histogram do not update until the button
 is released.
+For adjusting multiple windows within a single histogram,
+see <a href="../tools/mousemodes.html#multiwindowing">details</a>.
 </p>
 </ul>
 <p> 
-If you want to return to the &ldquo;Airways II&rdquo; threshold settings, click 
+If you want to return to the &ldquo;airways&rdquo; threshold settings, click 
 <img class="icon3" src="../tools/shortcut-icons/airways.png">.
-For settings better suited to planes or thin slabs, click
+To restore the initial thresholds, click
 <img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2019</address>
+March 2020</address>
 </body></html>

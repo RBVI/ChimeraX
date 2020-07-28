@@ -187,6 +187,8 @@ protected:
         _chains->emplace_back(chain);
         return chain;
     }
+    void  _per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
+    void  _per_structure_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
     void  remove_chain(Chain* chain) {
         _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
     }
@@ -260,6 +262,7 @@ public:
     size_t  num_bonds() const { return bonds().size(); }
     size_t  num_hyds() const { return _num_hyds; }
     size_t  num_residues() const { return residues().size(); }
+    size_t  num_ribbon_residues() const;
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }

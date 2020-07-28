@@ -39,13 +39,13 @@ static void transfer_function_colors(const Transfer_Function &transfer_func,
 				     float bcf, float bcl,
 				     RGBA_Float_Array &colormap,
 				     int extend_left, int extend_right,
-				     int bins, int bin_step, bool blend);
+				     int64_t bins, int64_t bin_step, bool blend);
 static bool check_color_array_size(const Reference_Counted_Array::Untyped_Array &colors,
-			    const Numeric_Array &data, int nc);
+			    const Numeric_Array &data, int64_t nc);
 extern "C" int parse_colormap(PyObject *arg, void *cmap);
 extern "C" int parse_float_colormap(PyObject *arg, void *cmap);
 static bool colormap_value(float d, float bcf, float bcl,
-			   float *cmap, int nc, int ncc, float *color);
+			   float *cmap, int64_t nc, int ncc, float *color);
 static bool float_colormap(PyObject *py_colormap,
 			   Color_Float_Array *carray,				
 			   bool require_contiguous = false,
@@ -56,7 +56,7 @@ static bool colormap(PyObject *py_colormap, Color_Array *cmap,
 static void resample_colormap(float bcf1, float bcl21,
 			      const Color_Float_Array &cmap1,
 			      float bcf2, float bcl2, Color_Float_Array &cmap2,
-			      int bins, int bin_step, bool blend);
+			      int64_t bins, int64_t bin_step, bool blend);
 
 // ----------------------------------------------------------------------------
 //
@@ -66,11 +66,11 @@ static bool transfer_function_value(const Transfer_Function &transfer_func,
 				    float *r, float *g, float *b, float *a)
 {
   float *tf = transfer_func.values();
-  int m6 = 6 * transfer_func.size(0);
+  int64_t m6 = 6 * transfer_func.size(0);
   if (m6 == 0)
     return false;
 
-  int j = 0;
+  int64_t j = 0;
   while (j < m6 && value >= tf[j])
     j += 6;
 
@@ -122,11 +122,11 @@ static void data_to_rgba(const Reference_Counted_Array::Array<T> &data,
 {
   Reference_Counted_Array::Array<T> cdata = data.contiguous_array();
 
-  int n = cdata.size();
+  int64_t n = cdata.size();
   T *d = cdata.values();
   float *rgba_values = rgba.values();
   float r = 0, g = 0, b = 0, a = 0;		// Avoid compiler warnings.
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     if (transfer_function_value(transfer_func, (float)d[k],
 				extend_left, extend_right,
 				&r, &g, &b, &a))
@@ -194,19 +194,20 @@ static void data_to_colormap_colors(const Reference_Counted_Array::Array<T> &dat
   Reference_Counted_Array::Array<T> cdata = data.contiguous_array();
   const Color_Float_Array &ccolormap = colormap.contiguous_array();
 
-  int n = cdata.size();
+  int64_t n = cdata.size();
   T *d = cdata.values();
-  int nc = ccolormap.size(0), ncc = ccolormap.size(1), nca = ncc-1;
+  int64_t nc = ccolormap.size(0);
+  int ncc = ccolormap.size(1), nca = ncc-1;
   float *cmap = ccolormap.values();
   float *color_values = colors.values();
   if (blend)
     {
       float *cmk = new float[ncc];
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	if (colormap_value((float)d[k], bcf, bcl, cmap, nc, ncc, cmk))
 	  {
 	    float *ck = color_values + ncc*k;
-	    for (int c = 0 ; c < nca ; ++c)
+	    for (int64_t c = 0 ; c < nca ; ++c)
 	      ck[c] += cmk[c];	// color channel (r,g,b, or l)
 	    if (ncc > 1)
 	      ck[nca] = 1 - (1-cmk[nca]) * (1-ck[nca]); // Alpha
@@ -214,20 +215,20 @@ static void data_to_colormap_colors(const Reference_Counted_Array::Array<T> &dat
       delete [] cmk;
     }
   else
-    for (int k = 0 ; k < n ; ++k)
+    for (int64_t k = 0 ; k < n ; ++k)
       colormap_value((float)d[k], bcf, bcl, cmap, nc, ncc, color_values+ncc*k);
 }
 
 // ----------------------------------------------------------------------------
 //
 static bool colormap_value(float d, float bcf, float bcl,
-			   float *cmap, int nc, int ncc, float *cmd)
+			   float *cmap, int64_t nc, int ncc, float *cmd)
 {
   float c = (nc-1) * ((d - bcf) / (bcl - bcf));
   if (c < 0 || c > nc-1)
     return false;	// Out of colormap range.
 
-  int ci = static_cast<int>(c);
+  int64_t ci = static_cast<int>(c);
   float *c0 = cmap + ncc*ci;
   float *c1 = (ci == nc-1 ? c0 : c0 + 4);
   float f = c - ci;
@@ -268,12 +269,13 @@ data_to_colormap_colors(PyObject *, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 static bool check_color_array_size(const Reference_Counted_Array::Untyped_Array &colors,
-				   const Numeric_Array &data, int nc)
+				   const Numeric_Array &data, int64_t nc)
 {
   int d = data.dimension();
   if (d + 1 != colors.dimension())
     {
-      PyErr_Format(PyExc_TypeError, "Color array dimension (%d) is not one more than data array dimension (%d).",
+      PyErr_Format(PyExc_TypeError,
+		   "Color array dimension (%d) is not one more than data array dimension (%d).",
 		   colors.dimension(), d);
       return false;
     }
@@ -281,21 +283,15 @@ static bool check_color_array_size(const Reference_Counted_Array::Untyped_Array 
   for (int k = 0 ; k < d ; ++k)
     if (data.size(k) != colors.size(k))
       {
-	if (d == 1)
-	  PyErr_Format(PyExc_TypeError, "Color array size %d does not match data array size %d",
-		       colors.size(0), data.size(0));
-	else if (d == 2)
-	  PyErr_Format(PyExc_TypeError, "Color array size (%d,%d) does not match data array size (%d,%d)",
-		       colors.size(0), colors.size(1), data.size(0), data.size(1));
-	else
-	  PyErr_Format(PyExc_TypeError, "Color array size (%d,%d,%d) does not match data array size (%d,%d,%d)",
-		       colors.size(0), colors.size(1), colors.size(2), data.size(0), data.size(1), data.size(2));
+	PyErr_Format(PyExc_TypeError, "Color array size (%s) does not match data array size (%s)",
+		     colors.size_string().c_str(), data.size_string().c_str());
 	return false;
       }
 
   if (colors.size(d) != nc)
     {
-      PyErr_Format(PyExc_TypeError, "Must have %d color components, got %d", nc, colors.size(d));
+      PyErr_Format(PyExc_TypeError, "Color array (%s) does not have %d color components",
+		   colors.size_string().c_str(), nc);
       return false;
     }
 
@@ -321,13 +317,13 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
   Reference_Counted_Array::Array<T> cdata = data.contiguous_array();
   const Color_Array &ccolormap = colormap.contiguous_array();
 
-  int n = cdata.size();
+  int64_t n = cdata.size();
   T *d = cdata.values();
-  int nc = ccolormap.size(0);
+  int64_t nc = ccolormap.size(0);
   if (nc == 0)
     extend_left = extend_right = false;
   float scale = nc / (dmax - dmin);
-  int ncb = ccolormap.size(1) * ccolormap.element_size();
+  int64_t ncb = ccolormap.size(1) * ccolormap.element_size();
   bool data_is_index = (dmin == 0 && dmax == nc-1);
   if (ncb == 4)
     {
@@ -339,17 +335,17 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
       if (data_is_index)
 	{
 	  // Optimize common case where data value = color map index.
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)d[k];
+	      int64_t i = (int64_t)d[k];
 	      cv[k] = (i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
       else
 	{
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)((d[k]-dmin)*scale);
+	      int64_t i = (int64_t)((d[k]-dmin)*scale);
 	      cv[k] =(i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
@@ -364,17 +360,17 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
       if (data_is_index)
 	{
 	  // Optimize common case where data value = color map index.
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)d[k];
+	      int64_t i = (int64_t)d[k];
 	      cv[k] = (i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
       else
 	{
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)((d[k]-dmin)*scale);
+	      int64_t i = (int64_t)((d[k]-dmin)*scale);
 	      cv[k] = (i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
@@ -389,17 +385,17 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
       if (data_is_index)
 	{
 	  // Optimize common case where data value = color map index.
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)d[k];
+	      int64_t i = (int64_t)d[k];
 	      cv[k] = (i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
       else
 	{
-	  for (int k = 0 ; k < n ; ++k)
+	  for (int64_t k = 0 ; k < n ; ++k)
 	    {
-	      int i = (int)((d[k]-dmin)*scale);
+	      int64_t i = (int64_t)((d[k]-dmin)*scale);
 	      cv[k] = (i >= 0 ? (i < nc ? cmap[i] : c1) : c0);
 	    }
 	}
@@ -410,21 +406,21 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
       char *c0 = (extend_left ? cmap : (char *)0);
       char *c1 = (extend_right ? cmap + (nc-1)*ncb : (char *)0);
       char *cv = (char *)colors.values();
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	{
-	  int i = (int)(data_is_index ? d[k] : (d[k]-dmin)*scale);
-	  int kc = ncb*k, ic = ncb*i;
+	  int64_t i = (int64_t)(data_is_index ? d[k] : (d[k]-dmin)*scale);
+	  int64_t kc = ncb*k, ic = ncb*i;
 	  if (i >= 0 && i < nc)
-	    for (int c = 0 ; c < ncb ; ++c)
+	    for (int64_t c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = cmap[ic+c];
 	  else if (i < 0 && extend_left)
-	    for (int c = 0 ; c < ncb ; ++c)
+	    for (int64_t c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = c0[c];
 	  else if (i >= nc && extend_right)
-	    for (int c = 0 ; c < ncb ; ++c)
+	    for (int64_t c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = c1[c];
 	  else
-	    for (int c = 0 ; c < ncb ; ++c)
+	    for (int64_t c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = (char) 0;
 	}
     }
@@ -514,11 +510,11 @@ colors_float_to_uint(PyObject *, PyObject *args, PyObject *keywds)
     }
 
   float *f = colors_float.values();
-  int n = colors_float.size();
+  int64_t n = colors_float.size();
   if (t == colors_uint.Unsigned_Char)
     {
       unsigned char *i8 = (unsigned char *)colors_uint.values();
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	{
 	  float c = f[k];
 	  if (c > 1) c = 1;
@@ -529,7 +525,7 @@ colors_float_to_uint(PyObject *, PyObject *args, PyObject *keywds)
   else if (t == colors_uint.Unsigned_Short_Int)
     {
       unsigned short *i16 = (unsigned short *)colors_uint.values();
-      for (int k = 0 ; k < n ; ++k)
+      for (int64_t k = 0 ; k < n ; ++k)
 	{
 	  float c = f[k];
 	  if (c > 1) c = 1;
@@ -557,7 +553,7 @@ inline void scale_8_bit_rgba(unsigned int *rgba, unsigned int s)
 // ----------------------------------------------------------------------------
 //
 template <class I>
-static void index_colors(I *indices, int n, void *colormap, int nc,
+static void index_colors(I *indices, int64_t n, void *colormap, int64_t nc,
 			 void *colors, bool modulate)
 {
   if (nc == 4)
@@ -566,10 +562,10 @@ static void index_colors(I *indices, int n, void *colormap, int nc,
       unsigned int *cm = (unsigned int *)colormap;
       unsigned int *c = (unsigned int *)colors;
       if (modulate)
-	for (int i = 0 ; i < n ; ++i)
+	for (int64_t i = 0 ; i < n ; ++i)
 	  scale_8_bit_rgba(c+i, cm[indices[i]]);
       else
-	for (int i = 0 ; i < n ; ++i)
+	for (int64_t i = 0 ; i < n ; ++i)
 	  c[i] = cm[indices[i]];
     }
   else if (nc == 2 && !modulate)
@@ -577,7 +573,7 @@ static void index_colors(I *indices, int n, void *colormap, int nc,
       // Optimize 2 byte colors (e.g. 8-bit LA).
       unsigned short *cm = (unsigned short *)colormap;
       unsigned short *c = (unsigned short *)colors;
-      for (int i = 0 ; i < n ; ++i)
+      for (int64_t i = 0 ; i < n ; ++i)
 	c[i] = cm[indices[i]];
     }
   else
@@ -585,17 +581,17 @@ static void index_colors(I *indices, int n, void *colormap, int nc,
       unsigned char *cmap = (unsigned char *)colormap;
       unsigned char *cl = (unsigned char *)colors;
       if (modulate)
-	for (int i = 0 ; i < n ; ++i)
+	for (int64_t i = 0 ; i < n ; ++i)
 	  {
 	    unsigned char *ci = cl + i*nc, *cmi = cmap + indices[i]*nc;
-	    for (int c = 0 ; c < nc ; ++c)
+	    for (int64_t c = 0 ; c < nc ; ++c)
 	      ci[c] = (((int)ci[c]*(int)cmi[c]) >> 8);
 	  }
       else
-	for (int i = 0 ; i < n ; ++i)
+	for (int64_t i = 0 ; i < n ; ++i)
 	  {
 	    unsigned char *ci = cl + i*nc, *cmi = cmap + indices[i]*nc;
-	    for (int c = 0 ; c < nc ; ++c)
+	    for (int64_t c = 0 ; c < nc ; ++c)
 	      ci[c] = cmi[c];
 	  }
     }
@@ -654,7 +650,7 @@ indices_to_colors(PyObject *, PyObject *args, PyObject *keywds)
   void *cmapv = cmap.values();
   void *ca = colors.values();
   Index_Array ci = indices.contiguous_array();
-  int n = ci.size(), nc = cmap.size(1)*cmap.element_size();
+  int64_t n = ci.size(), nc = cmap.size(1)*cmap.element_size();
   Index_Array::Value_Type it = indices.value_type();
   if (it == ci.Unsigned_Char || it == ci.Signed_Char || it == ci.Char)
     index_colors((unsigned char *)ci.values(), n, cmapv, nc, ca, modulate);
@@ -702,7 +698,7 @@ namespace
   
 template <class T, class I>
 void data_to_index(const Reference_Counted_Array::Array<T> &data,
-		   float bcf, float bcl, int bins, int bin_step,
+		   float bcf, float bcl, int64_t bins, int64_t bin_step,
 		   I *indices, bool add)
 {
   if (bins == 0)
@@ -717,11 +713,11 @@ void data_to_index(const Reference_Counted_Array::Array<T> &data,
 
   Reference_Counted_Array::Array<T> cdata = data.contiguous_array();
 
-  int n = cdata.size();
+  int64_t n = cdata.size();
   T *d = cdata.values();
   I b;
   if (bin_step == 1 && !add)	// Optimize most common case.
-    for (int k = 0 ; k < n ; ++k)
+    for (int64_t k = 0 ; k < n ; ++k)
       {
 	float v = d[k] - bcf;
 	if (v < 0) b = 0;
@@ -733,7 +729,7 @@ void data_to_index(const Reference_Counted_Array::Array<T> &data,
 	indices[k] = b;
       }
   else
-    for (int k = 0 ; k < n ; ++k)
+    for (int64_t k = 0 ; k < n ; ++k)
       {
 	float v = d[k] - bcf;
 	if (v < 0) b = 0;
@@ -755,7 +751,7 @@ void data_to_index(const Reference_Counted_Array::Array<T> &data,
 //
 template <class T>
 static void data_to_bin_index(const Reference_Counted_Array::Array<T> &data,
-			      float bcf, float bcl, int bins, int bin_step,
+			      float bcf, float bcl, int64_t bins, int64_t bin_step,
 			      Index_Array &index_values, bool add)
 {
   if (index_values.value_type() == index_values.Unsigned_Short_Int)
@@ -938,11 +934,11 @@ static void transfer_function_colors(const Transfer_Function &transfer_func,
 				     float bcf, float bcl,
 				     RGBA_Float_Array &colormap,
 				     int extend_left, int extend_right,
-				     int bins, int bin_step, bool blend)
+				     int64_t bins, int64_t bin_step, bool blend)
 {
-  int bb_step = colormap.size(0) / (bins * bin_step);
+  int64_t bb_step = colormap.size(0) / (bins * bin_step);
   float *cmap = colormap.values();
-  for (int bi = 0 ; bi < bins ; ++bi)
+  for (int64_t bi = 0 ; bi < bins ; ++bi)
     {
       float bc = (bi == 0 ? bcf :
 		  (bi == bins-1 ? bcl :
@@ -950,10 +946,10 @@ static void transfer_function_colors(const Transfer_Function &transfer_func,
       float r = 0, g = 0, b = 0, a = 0;		// Avoid compiler warnings.
       if (transfer_function_value(transfer_func, bc, extend_left, extend_right, &r, &g, &b, &a))
 	{
-	  for (int i = 0 ; i < bin_step ; ++i)
-	    for (int j = 0 ; j < bb_step ; ++j)
+	  for (int64_t i = 0 ; i < bin_step ; ++i)
+	    for (int64_t j = 0 ; j < bb_step ; ++j)
 	      {
-		int offset = 4 * (i + bi*bin_step + j*bins*bin_step);
+		int64_t offset = 4 * (i + bi*bin_step + j*bins*bin_step);
 		float *cmap_rgba = cmap + offset;
 		if (blend)
 		  {
@@ -1019,36 +1015,37 @@ resample_colormap(PyObject *, PyObject *args, PyObject *keywds)
 static void resample_colormap(float bcf1, float bcl1,
 			      const Color_Float_Array &cmap1,
 			      float bcf2, float bcl2, Color_Float_Array &cmap2,
-			      int bins, int bin_step, bool blend)
+			      int64_t bins, int64_t bin_step, bool blend)
 {
   Color_Float_Array ccmap1 = cmap1.contiguous_array();
-  int nc1 = ccmap1.size(0), ncc = ccmap1.size(1), nca = ncc-1;
+  int64_t nc1 = ccmap1.size(0);
+  int ncc = ccmap1.size(1), nca = ncc-1;
   float *cv1 = ccmap1.values();
     
-  int bb_step = cmap2.size(0) / (bins * bin_step);
+  int64_t bb_step = cmap2.size(0) / (bins * bin_step);
   float *cmap = cmap2.values();
   float *cmc = new float[ncc];
-  for (int bi = 0 ; bi < bins ; ++bi)
+  for (int64_t bi = 0 ; bi < bins ; ++bi)
     {
       float bc = (bi == 0 ? bcf2 :
 		  (bi == bins-1 ? bcl2 :
 		   bcf2 + (bcl2 - bcf2) * bi/(bins-1.0)));
       if (colormap_value(bc, bcf1, bcl1, cv1, nc1, ncc, cmc))
 	{
-	  for (int i = 0 ; i < bin_step ; ++i)
-	    for (int j = 0 ; j < bb_step ; ++j)
+	  for (int64_t i = 0 ; i < bin_step ; ++i)
+	    for (int64_t j = 0 ; j < bb_step ; ++j)
 	      {
-		int offset = ncc * (i + bi*bin_step + j*bins*bin_step);
+		int64_t offset = ncc * (i + bi*bin_step + j*bins*bin_step);
 		float *cmap_rgba = cmap + offset;
 		if (blend)
 		  {
-		    for (int k = 0 ; k < nca ; ++k)
+		    for (int64_t k = 0 ; k < nca ; ++k)
 		      cmap_rgba[k] += cmc[k];
 		    if (ncc > 1) // Alpha
 		      cmap_rgba[nca] = 1 - (1-cmc[nca]) * (1-cmap_rgba[nca]);
 		  }
 		else
-		  for (int k = 0 ; k < ncc ; ++k)
+		  for (int64_t k = 0 ; k < ncc ; ++k)
 		    cmap_rgba[k] = cmc[k];
 	      }
 	}

@@ -24,34 +24,33 @@ _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {
     'UserAliases': '.session',
-    'CameraClipPlane': '.graphics',
-    'ClipPlane': '.graphics',
+    'CameraClipPlane': 'chimerax.graphics',
+    'ClipPlane': 'chimerax.graphics',
     'Color': '.colors',
     'Colormap': '.colors',
-    'Drawing': '.graphics',
+    'Drawing': 'chimerax.graphics',
     'Generic3DModel': '.generic3d',
     'Job': '.tasks',
-    'Lighting': '.graphics',
-    'Material': '.graphics',
+    'Lighting': 'chimerax.graphics',
+    'Material': 'chimerax.graphics',
     'Model': '.models',
     'Models': '.models',
-    'MonoCamera': '.graphics',
-    'OrthographicCamera': '.graphics',
-    'Place': '.geometry',
-    'Places': '.geometry',
-    'SceneClipPlane': '.graphics',
+    'MonoCamera': 'chimerax.graphics',
+    'OrthographicCamera': 'chimerax.graphics',
+    'Place': 'chimerax.geometry',
+    'Places': 'chimerax.geometry',
+    'SceneClipPlane': 'chimerax.graphics',
     'Surface': '.models',
     'Tasks': '.tasks',
     'Tools': '.tools',
-    'TriangleInfo': '.stl',
     'Undo': '.undo',
     'UserColors': '.colors',
     'UserColormaps': '.colors',
-    'View': '.graphics',
+    'View': 'chimerax.graphics',
     '_Input': '.nogui',
     # atomic classes moved to a separate bundle; listed here
     # for backwards compatibility
-    # (perhaps remove at 1.0?)
+    # (perhaps remove at 1.0? No. Removing breaks loading old sessions.)
     "Atom": 'chimerax.atomic',
     "AtomicStructure": 'chimerax.atomic',
     "AtomicStructures": 'chimerax.atomic',
@@ -76,7 +75,7 @@ _class_class_init = {
     "AttrRegistration": '.attributes',
     "_NoDefault": '.attributes',
     "RegAttrManager": '.attributes',
-     "XSectionManager": 'chimerax.atomic.ribbon',
+    "XSectionManager": 'chimerax.atomic.ribbon',
 }
 
 
@@ -136,9 +135,19 @@ def copy_distinfo_file(cmd, basename, filename, binary=''):
             if not cmd.dry_run:
                 with open(filename, 'w' + binary) as fo:
                     fo.write(value)
-    except IOError as e:
+    except IOError:
         # Missing file is okay
         pass
 
+
 def copy_distinfo_binary_file(cmd, basename, filename):
     copy_distinfo_file(cmd, basename, filename, binary='b')
+
+
+def is_daily_build():
+    """Supported API. Return if ChimeraX Core is from a daily build."""
+    # Daily builds are development releases
+    from packaging.version import Version
+    from chimerax import core
+    ver = Version(core.version)
+    return ver.is_devrelease

@@ -16,8 +16,10 @@
 // ----------------------------------------------------------------------------
 // Pack triangles in Stereo Lithography (STL) file format.
 //
+#define PY_SSIZE_T_CLEAN 1		// Use Py_ssize_t for parsing y# format
 #include <Python.h>			// use PyObject
 
+#include <cstdint>			// use std::int64_t
 //include <iostream>			// use std::cerr for debugging
 #include <map>				// use std::map
 #include <vector>			// use std::vector
@@ -28,24 +30,26 @@
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use FArray, IArray
 
+using std::int64_t;
+
 // ----------------------------------------------------------------------------
 //
 static void pack_triangles(const FArray &va, const IArray &ta, unsigned char *data)
 {
-  int nt = ta.size(0);
-  long t0 = ta.stride(0), t1 = ta.stride(1);
+  int64_t nt = ta.size(0);
+  int64_t t0 = ta.stride(0), t1 = ta.stride(1);
   int *tv = ta.values();
   int *tv0 = tv, *tv1 = tv + t1, *tv2 = tv + 2*t1;
-  long vs0 = va.stride(0), vs1 = va.stride(1);
+  int64_t vs0 = va.stride(0), vs1 = va.stride(1);
   float *vv = va.values();
   float *vv0 = vv, *vv1 = vv + vs1, *vv2 = vv + 2*vs1;
   float f[12];
-  for (int t = 0 ; t < nt ; ++t)
+  for (int64_t t = 0 ; t < nt ; ++t)
     {
       // Get 3 triangle vertices
-      int ti = t*t0;
+      int64_t ti = t*t0;
       int v0 = tv0[ti], v1 = tv1[ti], v2 = tv2[ti];
-      int v0i = v0*vs0, v1i = v1*vs0, v2i = v2*vs0;
+      int64_t v0i = v0*vs0, v1i = v1*vs0, v2i = v2*vs0;
       float v0x = vv0[v0i], v0y = vv1[v0i], v0z = vv2[v0i];
       float v1x = vv0[v1i], v1y = vv1[v1i], v1z = vv2[v1i];
       float v2x = vv0[v2i], v2y = vv1[v2i], v2z = vv2[v2i];
@@ -74,7 +78,7 @@ static void pack_triangles(const FArray &va, const IArray &ta, unsigned char *da
   if (!little_endian)
     {
       unsigned short *s = (unsigned short *)(data);
-      for (int t = 0 ; t < nt ; ++t)
+      for (int64_t t = 0 ; t < nt ; ++t)
 	{
 	  unsigned short *d = s + t*25;
 	  for (int i = 0 ; i < 25 ; i += 2)
@@ -101,7 +105,7 @@ stl_pack(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_int_n3_array, &tarray))
     return NULL;
 
-  int nt = tarray.size(0);
+  int64_t nt = tarray.size(0);
   unsigned char *data;
   PyObject *a = python_uint8_array(nt, 50, &data);	// 50 bytes per triangle.
 
@@ -126,15 +130,15 @@ public:
 // followed three float32 vertices, followed by two "attribute bytes"
 // sometimes used to hold color information, but ignored by this reader.
 //
-static void unpack(const char *geom, int ntri,
+static void unpack(const char *geom, int64_t ntri,
 		   int *tri, std::vector<float> &v, std::vector<float> &n)
 {
   // Find unique vertices and record triangle vertex indices.
   std::map<Vertex,int> vertices; // Map unique vertices to index.
   float tv[12];
   Vertex vxyz;
-  int vi;
-  for (int t = 0 ; t < ntri ; ++t)
+  int64_t vi;
+  for (int64_t t = 0 ; t < ntri ; ++t)
     {
       memcpy(&tv[0], geom + t*50 + 12, 36);
       for (int c = 0 ; c < 3 ; ++c)
@@ -163,7 +167,7 @@ static void unpack(const char *geom, int ntri,
 
   // Compute vertex normals as average of triangle normals.
   float nxyz[3];
-  for (int t = 0 ; t < ntri ; ++t)
+  for (int64_t t = 0 ; t < ntri ; ++t)
     {
       memcpy(&nxyz[0], geom + t*50, 12);
       for (int c = 0 ; c < 3 ; ++c)
@@ -175,7 +179,7 @@ static void unpack(const char *geom, int ntri,
     }
 
   // Normalize normals.
-  int nv = v.size() / 3;
+  int64_t nv = v.size() / 3;
   for (vi = 0 ; vi < nv ; ++vi)
     {
       float nx = n[3*vi], ny = n[3*vi+1], nz = n[3*vi+2];
@@ -191,19 +195,19 @@ extern "C" PyObject *
 stl_unpack(PyObject *, PyObject *args, PyObject *keywds)
 {
   const char *data;
-  int nbytes;
+  int64_t nbytes;
   const char *kwlist[] = {"data", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y#"),
 				   (char **)kwlist,
 				   &data, &nbytes))
     return NULL;
 
-  int ntri = nbytes / 50;
+  int64_t ntri = nbytes / 50;
   int *tri;
   PyObject *tpy = python_int_array(ntri, 3, &tri);
   std::vector<float> v, n;
   unpack(data, ntri, tri, v, n);
-  int nv = v.size() / 3;
+  int64_t nv = v.size() / 3;
   PyObject *vpy = c_array_to_python(v, nv, 3);
   PyObject *npy = c_array_to_python(n, nv, 3);
   

@@ -51,8 +51,8 @@ def register_volume_filtering_subcommands(logger):
     from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg
     from chimerax.core.commands import AxisArg, CenterArg, CoordSysArg
     from chimerax.atomic import AtomsArg
-    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
-    from ..mapargs import BoxArg, Float2Arg
+    from chimerax.map.mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
+    from chimerax.map.mapargs import BoxArg, Float2Arg
 
     varg = [('volumes', MapsArg)]
     ssm_kw = [
@@ -91,6 +91,11 @@ def register_volume_filtering_subcommands(logger):
                          required_arguments = ['centers'],
                          synopsis = 'Extract maps for boxes around selected atoms')
     register('volume boxes', boxes_desc, volume_boxes, logger=logger)
+
+    copy_desc = CmdDesc(required = varg,
+                         keyword = [('value_type', ValueTypeArg)] + ssm_kw,
+                         synopsis = 'Copy a map or a map subregio')
+    register('volume copy', copy_desc, volume_copy, logger=logger)
 
     cover_desc = CmdDesc(required = varg,
         keyword = [('atom_box', AtomsArg),
@@ -286,7 +291,7 @@ def register_volume_filtering_subcommands(logger):
                                    ('minimal_bounds', BoolArg),
                                    ('new_map', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
-                        required_arguments=('near_atoms', 'range'),
+                        required_arguments=('near_atoms',),
                         synopsis = 'Zero map values beyond a distance range from atoms')
     register('volume zone', zone_desc, volume_zone, logger=logger)
 
@@ -306,10 +311,11 @@ def volume_add(session, volumes, on_grid = None, bounding_grid = None,
                in_place = False, scale_factors = None, model_id = None,
                hide_maps = True):
     '''Add maps.'''
-    combine_op(volumes, 'add', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session,
-               hide_maps = hide_maps)
+    rv = combine_op(volumes, 'add', on_grid, bounding_grid, subregion, step,
+                    grid_subregion, grid_step, spacing, value_type,
+                    in_place, scale_factors, model_id, session,
+                    hide_maps = hide_maps)
+    return rv
 
 # -----------------------------------------------------------------------------
 #
@@ -319,10 +325,11 @@ def volume_maximum(session, volumes, on_grid = None, bounding_grid = None,
                    in_place = False, scale_factors = None, model_id = None,
                    hide_maps = True):
     '''Pointwise maximum of maps.'''
-    combine_op(volumes, 'maximum', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session,
-               hide_maps = hide_maps)
+    rv = combine_op(volumes, 'maximum', on_grid, bounding_grid, subregion, step,
+                    grid_subregion, grid_step, spacing, value_type,
+                    in_place, scale_factors, model_id, session,
+                    hide_maps = hide_maps)
+    return rv
 
 # -----------------------------------------------------------------------------
 #
@@ -332,10 +339,11 @@ def volume_minimum(session, volumes, on_grid = None, bounding_grid = None,
                    in_place = False, scale_factors = None, model_id = None,
                    hide_maps = True):
     '''Pointwise minimum of maps.'''
-    combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session,
-               hide_maps = hide_maps)
+    rv = combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
+                    grid_subregion, grid_step, spacing, value_type,
+                    in_place, scale_factors, model_id, session,
+                    hide_maps = hide_maps)
+    return rv
 
 # -----------------------------------------------------------------------------
 #
@@ -345,10 +353,11 @@ def volume_multiply(session, volumes, on_grid = None, bounding_grid = None,
                     in_place = False, scale_factors = None, model_id = None,
                     hide_maps = True):
     '''Pointwise multiply maps.'''
-    combine_op(volumes, 'multiply', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session,
-               hide_maps = hide_maps)
+    rv = combine_op(volumes, 'multiply', on_grid, bounding_grid, subregion, step,
+                    grid_subregion, grid_step, spacing, value_type,
+                    in_place, scale_factors, model_id, session,
+                    hide_maps = hide_maps)
+    return rv
 
 # -----------------------------------------------------------------------------
 #
@@ -372,11 +381,14 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                 raise CommandError("Can't change grid in place")
     if not scale_factors is None and len(scale_factors) != len(volumes):
         raise CommandError('Number of scale factors does not match number of volumes')
-    for gv in on_grid:
-        combine_operation(volumes, operation, subregion, step,
-                          gv, grid_subregion, grid_step, spacing, value_type,
-                          bounding_grid, in_place, scale_factors, model_id, session,
-                          hide_maps = hide_maps)
+
+    cv = [combine_operation(volumes, operation, subregion, step,
+                            gv, grid_subregion, grid_step, spacing, value_type,
+                            bounding_grid, in_place, scale_factors, model_id, session,
+                            hide_maps = hide_maps)
+          for gv in on_grid]
+
+    return _volume_or_list(cv)
 
 # -----------------------------------------------------------------------------
 #
@@ -423,7 +435,7 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume product'
         else:
             rg.name = 'volume sum'
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         rv = volume_from_grid_data(rg, session, model_id = model_id,
                                    show_dialog = False)
         rv.position = gv.position
@@ -442,11 +454,13 @@ def combine_operation(volumes, operation, subregion, step,
             if not v is rv:
                 v.display = False
 
+    return rv
+
 # -----------------------------------------------------------------------------
 #
 def same_grids(volumes, subregion, step, gv, gr):
 
-    from ..volume import same_grid
+    from chimerax.map.volume import same_grid
     for v in volumes:
         if not same_grid(v, v.subregion(step, subregion), gv, gr):
             return False
@@ -456,7 +470,7 @@ def same_grids(volumes, subregion, step, gv, gr):
 #
 def volume_corners(volumes, subregion, step, place):
 
-    from ..data import box_corners
+    from chimerax.map_data import box_corners
     corners = []
     for v in volumes:
         xyz_min, xyz_max = v.xyz_bounds(step = step, subregion = subregion)
@@ -471,8 +485,9 @@ def volume_bin(session, volumes, subregion = 'all', step = 1,
            bin_size = (2,2,2), model_id = None):
     '''Reduce map by averaging over rectangular bins.'''
     from .bin import bin
-    for v in volumes:
-        bin(v, bin_size, step, subregion, model_id, session)
+    bv = [bin(v, bin_size, step, subregion, model_id, session)
+          for v in volumes]
+    return _volume_or_list(bv)
 
 # -----------------------------------------------------------------------------
 #
@@ -482,9 +497,22 @@ def volume_boxes(session, volumes, centers, size = 0, isize = None, use_marker_s
     if size <= 0 and isize is None and not use_marker_size:
         raise CommandError('Must specify size or isize or enable use_marker_size')
 
+    vlist = []
     from .boxes import boxes
     for v in volumes:
-        boxes(session, v, centers, size, isize, use_marker_size, step, subregion, model_id)
+        bv = boxes(session, v, centers, size, isize, use_marker_size, step, subregion, model_id)
+        vlist.extend(bv)
+    return vlist
+
+# -----------------------------------------------------------------------------
+#
+def volume_copy(session, volumes, value_type = None, subregion = 'all', step = 1, model_id = None):
+    '''Copy a map or map subregion.'''
+    copies = [v.writable_copy(require_copy = True,
+                              subregion = subregion, step = step,
+                              value_type = value_type, model_id = model_id)
+              for v in volumes]
+    return _volume_or_list(copies)
 
 # -----------------------------------------------------------------------------
 #
@@ -503,8 +531,9 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
     if bc > 1:
         raise CommandError('Specify covering box in one way')
 
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     from .cover import cover_box_bounds, map_covering_box
+    cvlist = []
     for v in volumes:
         ijk_min, ijk_max = cover_box_bounds(v, step,
                                             atom_box, pad, box, f_box, i_box)
@@ -516,6 +545,9 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
         cv = volume_from_grid_data(cg, session, model_id = model_id)
         cv.copy_settings_from(v, copy_region = False, copy_colors = False,
                               copy_zone = False)
+        cvlist.append(cv)
+
+    return _volume_or_list(cvlist)
 
 # -----------------------------------------------------------------------------
 #
@@ -547,8 +579,9 @@ def volume_falloff(session, volumes, iterations = 10, in_place = False,
             raise CommandError('Require subregion "all" to modify data in place')
 
     from .falloff import falloff
-    for v in volumes:
-        falloff(v, iterations, in_place, step, subregion, model_id, session)
+    fv = [falloff(v, iterations, in_place, step, subregion, model_id, session)
+          for v in volumes]
+    return _volume_or_list(fv)
 
 # -----------------------------------------------------------------------------
 #
@@ -561,16 +594,18 @@ def volume_flatten(session, volumes, method = 'multiplyLinear',
     method = {'multiplyLinear': 'multiply linear',
               'divideLinear': 'divide linear'}[method]
     from .flatten import flatten
-    for v in volumes:
-        flatten(v, method, step, subregion, fitregion, model_id)
+    fv = [flatten(v, method, step, subregion, fitregion, model_id)
+          for v in volumes]
+    return _volume_or_list(fv)
 
 # -----------------------------------------------------------------------------
 #
 def volume_fourier(session, volumes, subregion = 'all', step = 1, model_id = None, phase = False):
     '''Fourier transform a map'''
     from .fourier import fourier_transform
-    for v in volumes:
-        fourier_transform(v, step, subregion, model_id, phase)
+    fv = [fourier_transform(v, step, subregion, model_id, phase)
+          for v in volumes]
+    return _volume_or_list(fv)
 
 # -----------------------------------------------------------------------------
 #
@@ -586,16 +621,18 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
         s_dev = (sd,sd,sd)
         
     from .gaussian import gaussian_convolve
-    for v in volumes:
-        gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
+    gv = [gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
+          for v in volumes]
+    return _volume_or_list(gv)
 
 # -----------------------------------------------------------------------------
 #
 def volume_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None):
     '''Detect map edges with Laplacian filter.'''
     from .laplace import laplacian
-    for v in volumes:
-        laplacian(v, step, subregion, model_id)
+    lv = [laplacian(v, step, subregion, model_id)
+          for v in volumes]
+    return _volume_or_list(lv)
 
 # -----------------------------------------------------------------------------
 #
@@ -626,8 +663,9 @@ def volume_median(session, volumes, bin_size = (3,3,3), iterations = 1,
             raise CommandError('Bin size must be positive odd integer, got %d' % b)
 
     from .median import median_filter
-    for v in volumes:
-        median_filter(v, bin_size, iterations, step, subregion, model_id)
+    mv = [median_filter(v, bin_size, iterations, step, subregion, model_id)
+          for v in volumes]
+    return _volume_or_list(mv)
 
 # -----------------------------------------------------------------------------
 #
@@ -656,16 +694,18 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
         sizes = ' and '.join([str(s) for s in vs])
         raise CommandError("Volume grid sizes don't match: %s" % sizes)
     from .morph import morph_maps
-    morph_maps(volumes, frames, start, play_step, play_direction, prange,
-               add_mode, constant_volume, scale_factors,
-               hide_original_maps, interpolate_colors, subregion, step, model_id)
+    im = morph_maps(volumes, frames, start, play_step, play_direction, prange,
+                    add_mode, constant_volume, scale_factors,
+                    hide_original_maps, interpolate_colors, subregion, step, model_id)
+    return im
 
 # -----------------------------------------------------------------------------
 #
 def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
             origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
             value_type = None, model_id = None):
-
+    '''Create a new volume with specified bounds filled with zeros.'''
+    
     from numpy import zeros
     shape = list(size)
     shape.reverse()
@@ -673,10 +713,10 @@ def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,
         from numpy import float32
         value_type = float32
     a = zeros(shape, dtype = value_type)
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     grid = ArrayGridData(a, origin = origin, step = grid_spacing,
                          cell_angles = cell_angles, name = name)
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     v = volume_from_grid_data(grid, session, model_id = model_id)
     return v
 
@@ -699,9 +739,10 @@ def volume_octant(session, volumes, center = None, i_center = None,
     '''Extract an octant from a map.'''
     check_in_place(in_place, volumes)
     outside = True
-    for v in volumes:
-        octant_operation(v, outside, center, i_center, subregion, step,
-                         in_place, fill_value, model_id)
+    ov = [octant_operation(v, outside, center, i_center, subregion, step,
+                           in_place, fill_value, model_id)
+          for v in volumes]
+    return _volume_or_list(ov)
 
 # -----------------------------------------------------------------------------
 #
@@ -711,9 +752,10 @@ def volume_octant_complement(session, volumes, center = None, i_center = None,
     '''Zero an octant of a map.'''
     check_in_place(in_place, volumes)
     outside = False
-    for v in volumes:
-        octant_operation(v, outside, center, i_center, subregion, step,
-                         in_place, fill_value, model_id)
+    ov = [octant_operation(v, outside, center, i_center, subregion, step,
+                           in_place, fill_value, model_id)
+          for v in volumes]
+    return _volume_or_list(ov)
 
 # -----------------------------------------------------------------------------
 #
@@ -727,6 +769,7 @@ def octant_operation(v, outside, center, i_center,
     ijk_max = [i-1 for i in vc.data.size]
     set_box_value(vc.data, fill_value, ic, ijk_max, outside)
     vc.data.values_changed()
+    return vc
 
 # -----------------------------------------------------------------------------
 #
@@ -768,8 +811,9 @@ def volume_permute_axes(session, volumes, axis_order = 'xyz',
     ao = {'xyz':(0,1,2), 'xzy':(0,2,1), 'yxz':(1,0,2), 
           'yzx':(1,2,0), 'zxy':(2,0,1), 'zyx':(2,1,0)}
     from .permute import permute_axes
-    for v in volumes:
-        permute_axes(v, ao[axis_order], step, subregion, model_id)
+    pv = [permute_axes(v, ao[axis_order], step, subregion, model_id)
+          for v in volumes]
+    return _volume_or_list(pv)
 
 # -----------------------------------------------------------------------------
 #
@@ -780,35 +824,40 @@ def volume_resample(session, volumes, on_grid = None, bounding_grid = False,
     '''Interoplate a map on a new grid.'''
     if on_grid is None and spacing is None:
             raise CommandError('volume resample must specify onGrid option or spacing option')
+    rv = []
     for v in volumes:
         if on_grid is None:
             on_grid = [v]
         for gv in on_grid:
-            combine_operation([v], 'add', subregion, step,
-                              gv, grid_subregion, grid_step, spacing, value_type,
-                              bounding_grid, False, None, model_id, session,
-                              hide_maps = hide_maps)
+            cv = combine_operation([v], 'add', subregion, step,
+                                   gv, grid_subregion, grid_step, spacing, value_type,
+                                   bounding_grid, False, None, model_id, session,
+                                   hide_maps = hide_maps)
+            rv.append(cv)
+    return _volume_or_list(rv)
 
 # -----------------------------------------------------------------------------
 #
 def volume_ridges(session, volumes, level = None, subregion = 'all', step = 1, model_id = None):
     '''Find ridges in a map.'''
     from .ridges import ridges
-    for v in volumes:
-        ridges(v, level, step, subregion, model_id)
+    rv = [ridges(v, level, step, subregion, model_id)
+          for v in volumes]
+    return _volume_or_list(rv)
 
 # -----------------------------------------------------------------------------
 #
 def volume_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
-             value_type = None, subregion = 'all', step = 1, model_id = None):
+                 value_type = None, subregion = 'all', step = 1, model_id = None):
     '''Scale, shift and convert number type of map values.'''
     if not sd is None and not rms is None:
         raise CommandError('volume scale: Cannot specify both sd and rms options')
 
     from .scale import scaled_volume
-    for v in volumes:
-        scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id,
-                      session = session)
+    sv = [scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, model_id,
+                        session = session)
+          for v in volumes]
+    return _volume_or_list(sv)
 
 # -----------------------------------------------------------------------------
 #
@@ -824,10 +873,11 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
         raise CommandError('volume subtract cannot specify both minRMS and scaleFactors options.')
     mult = (1,'minrms') if min_rms else scale_factors
 
-    combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, spacing, value_type,
-               in_place, mult, model_id, session,
-               hide_maps = hide_maps)
+    sv = combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
+                    grid_subregion, grid_step, spacing, value_type,
+                    in_place, mult, model_id, session,
+                    hide_maps = hide_maps)
+    return sv
 
 # -----------------------------------------------------------------------------
 #
@@ -836,9 +886,10 @@ def volume_threshold(session, volumes, minimum = None, set = None,
                  subregion = 'all', step = 1, model_id = None):
     '''Set map values below or above a threshold to a constant.'''
     from .threshold import threshold
-    for v in volumes:
-        threshold(v, minimum, set, maximum, set_maximum,
-                  step, subregion, model_id, session)
+    tv = [threshold(v, minimum, set, maximum, set_maximum,
+                    step, subregion, model_id, session)
+          for v in volumes]
+    return _volume_or_list(tv)
 
 # -----------------------------------------------------------------------------
 #
@@ -847,11 +898,14 @@ def volume_tile(session, volumes, axis = 'z', pstep = 1, trim = 0,
             subregion = 'shown', step = 1, model_id = None):
     '''Concatenate maps along an axis.'''
     from .tile import tile_planes
+    tv = []
     for v in volumes:
         t = tile_planes(v, axis, pstep, trim, rows, columns, fill_order,
                         step, subregion, model_id)
         if t is None:
             raise CommandError('volume tile: no planes')
+        tv.append(t)
+    return _volume_or_list(tv)
 
 # -----------------------------------------------------------------------------
 #
@@ -865,12 +919,15 @@ def volume_unbend(session, volumes, path, yaxis = None, xsize = None, ysize = No
         yaxis = Axis((0,1,0))
     from .unbend import atom_path, unbend_volume
     p = atom_path(path)
+    rv = []
     for v in volumes:
         gs = min(v.data.step) if grid_spacing is None else grid_spacing
         yax = yaxis.scene_coordinates(v.position)
         xs = 10*gs if xsize is None else xsize
         ys = 10*gs if ysize is None else ysize
-        unbend_volume(v, p, yax, xs, ys, gs, subregion, step, model_id)
+        uv = unbend_volume(v, p, yax, xs, ys, gs, subregion, step, model_id)
+        rv.append(uv)
+    return _volume_or_list(rv)
 
 # -----------------------------------------------------------------------------
 #
@@ -878,14 +935,17 @@ def volume_unroll(session, volumes, inner_radius = None, outer_radius = None, le
               grid_spacing = None, axis = None, center = None, coordinate_system = None,
               subregion = 'all', step = (1,1,1), model_id = None):
     '''Flatten a cylindrical shell within a map.'''
+    rv = []
     for v in volumes:
         a, c = axis_and_center(axis, center, coordinate_system, v.position)
         r0, r1, h = parse_cylinder_size(inner_radius, outer_radius, length,
                                         c, a, v, subregion, step)
         gsp = parse_grid_spacing(grid_spacing, v, step)
         from . import unroll
-        unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
-                                subregion, step, model_id)
+        uv = unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
+                                     subregion, step, model_id)
+        rv.append(uv)
+    return _volume_or_list(rv)
 
 # -----------------------------------------------------------------------------
 #
@@ -946,8 +1006,9 @@ def parse_grid_spacing(grid_spacing, v, step):
 def volume_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
             in_place = False, model_id = None):
     '''Flip a map axis reversing the hand.'''
-    for v in volumes:
-        flip_operation(v, axis, subregion, step, in_place, model_id)
+    fv = [flip_operation(v, axis, subregion, step, in_place, model_id)
+          for v in volumes]
+    return _volume_or_list(fv)
         
 # -----------------------------------------------------------------------------
 #
@@ -959,12 +1020,14 @@ def flip_operation(v, axes, subregion, step, in_place, model_id):
         m = g.full_matrix()
         flip.flip_in_place(m, axes)
         v.data.values_changed()
+        return v
     else:
         fg = flip.FlipGrid(g, axes)
-        from .. import volume_from_grid_data
+        from chimerax.map import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
         v.display = False
+        return fv
 
 # -----------------------------------------------------------------------------
 # Return center in submatrix index units.
@@ -986,8 +1049,8 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
-                minimal_bounds = False, new_map = True, invert = False,
+def volume_zone(session, volumes, near_atoms, range = 3, bond_point_spacing = None,
+                minimal_bounds = False, new_map = False, invert = False,
                 subregion = 'all', step = 1, model_id = None):
 
     '''Mask a map keeping only parts close to specified atoms.'''
@@ -997,17 +1060,22 @@ def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_sp
     if invert and not new_map:
         raise CommandError('volume zone command currently does not support invert True with newMap False')
     from .zone import zone_operation
-    for v in volumes:
-        zone_operation(v, near_atoms, range, bond_point_spacing,
-                       minimal_bounds, new_map, invert, subregion, step, model_id)
+    zv = [zone_operation(v, near_atoms, range, bond_point_spacing,
+                         minimal_bounds, new_map, invert, subregion, step, model_id)
+          for v in volumes]
+    return _volume_or_list(zv)
 
 # -----------------------------------------------------------------------------
 #
 def volume_unzone(session, volumes):
-
+    '''Stop restricting volume surface display to a zone.'''
+    
     from chimerax.surface.zone import surface_unzone
     for v in volumes:
         r = v.full_region()
         v.new_region(r[0], r[1])
         for s in v.surfaces:
             surface_unzone(s)
+
+def _volume_or_list(volumes):
+    return volumes[0] if len(volumes) == 1 else volumes

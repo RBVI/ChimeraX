@@ -28,7 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapaa</b> 
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type</i> 
-[&nbsp;<a href="#lib"><b>lib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
+[&nbsp;<a href="#rotLib"><b>rotLib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
 [&nbsp;<a href="#criteria"><b>criteria</b></a>&nbsp;&nbsp;<i>method</i>&nbsp;|&nbsp;<i>N</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
@@ -36,7 +36,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapaa interactive</b> 
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type</i>
-[&nbsp;<a href="#lib"><b>lib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
+[&nbsp;<a href="#rotLib"><b>rotLib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
 [&nbsp;<a href="#log"><b>log</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <a name="mousemode"></a>
@@ -83,7 +83,7 @@ Except for <b>swapaa mousemode</b>, <i>new-type</i> may also be given as:
 </p>
 <ul>
 <li> the word <b>same</b> to keep the existing type(s)
-<li> as detailed below, depending on the <a href="#lib">rotamer library</a>,
+<li> as detailed below, depending on the <a href="#rotLib">rotamer library</a>,
 any of certain nonstandard names to indicate the oxidation or protonation state 
 for which conformational data were collected. However, the resulting
 rotamers do not include hydrogens and will be given the corresponding
@@ -108,13 +108,13 @@ parameter files <b>all*94.lib</b>, and hydrogens are not included.
 <p>
 The following options apply to the main <b>swapaa</b> command.
 The <b>swapaa interactive</b> command to show rotamers
-without swapping only uses the <a href="#lib"><b>lib</b></a>
+without swapping only uses the <a href="#rotLib"><b>rotLib</b></a>
 and <a href="#log"><b>log</b></a> options,
 and <b>swapaa mousemode</b> does not have any options.
 </p>
 <blockquote>
-<a name="lib"></a>
-<b>lib</b> &nbsp;<i>rotamer-library</i>
+<a name="rotLib"></a>
+<b>rotLib</b> &nbsp;<i>rotamer-library</i>
 <br>
 What rotamer library to use; the source of rotamer torsion angles and 
 probabilities. Possible values of <i>rotamer-library</i>
@@ -205,7 +205,7 @@ without spaces, of one or more of the following letters (default <b>dchp</b>):
 <li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
 <li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
 <li><b>p</b> &ndash; by highest probability according to the 
-<a href="#lib">rotamer library</a> 
+<a href="#rotLib">rotamer library</a> 
 (probabilities are simply taken from the library and are not
 affected by the structural environment,
 except by phi and psi angles when the Dunbrack library is used)
@@ -270,7 +270,7 @@ highest bfactor value found in the residue before the swap.
 <a name="log"></a>
 <b>log</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Whether to report the <a href="#lib">rotamer library</a>
+Whether to report the <a href="#rotLib">rotamer library</a>
 and various torsion angle values in the
 <a href="../tools/log.html"><b>Log</b></a>.
 Torsion angle values are given for the backbone 
@@ -352,5 +352,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2019</address>
+April 2020</address>
 </body></html>

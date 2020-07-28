@@ -84,26 +84,21 @@ see :doc:`tutorial_hello`, :doc:`tutorial_command` and
 .. literalinclude:: ../../../src/examples/tutorials/tut_fetch/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-24,41-47
+    :emphasize-lines: 8-10,17-24,37-44
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-24).
 
-**WARNING: the DataFormat, Open, and Fetch classifiers are all deprecated and will be replaced
-by the more flexible Manager/Provider bundle_info mechanism in the
-future.  This example will be updated when implementation is complete.**
+The ``Providers`` sections on lines 42 through 44 use the
+:ref:`Manager <Manager>`/:ref:`Provider <Provider>` protocol to inform
+the "open command" manager that this bundle supports fetching data from
+a database named ``homologene`` (really `HomoloGene`_,
+but the user will type "homologene").
 
-The ``ChimeraXClassifier`` tags on lines 41-47 informs ChimeraX that
-this bundle supports fetching data from a source named ``HomoloGene``.
-Note that there is no **DataFormat** or **Open** classifiers
-because HomoloGene data can be read using the built-in **FASTA**
-format parser.  The fields after **Fetch** are:
+The attributes usable with the "open command" manager (with ``type="fetch"``)
+are described in detail in :ref:`fetch command`.
 
-- the name of the source (**HomoloGene**),
-- the format of the fetched data (**FASTA**),
-- a prefix for the format if reading from a file (**homologene**),
-- an example identifier for fetching data from the source (**87131**).
 
 ``src``
 -------
@@ -124,22 +119,48 @@ overridden for registering commands, tools, etc.
 .. literalinclude:: ../../../src/examples/tutorials/tut_fetch/src/__init__.py
     :language: python
     :linenos:
-    :emphasize-lines: 13-26
+    :emphasize-lines: 13-32
 
-The ``fetch_from_database`` method is called by ChimeraX to
-retrieve the content associated with an identifier from
-a network source.
-The first two arguments are **session**, a
-:py:class:`chimerax.core.session.Session` instance; and
-**identifier**, a string.
-Optionally provided arguments include:
+The :py:meth:`run_provider` method is called by a ChimeraX manager
+when it needs additional information from a provider or it needs a
+provider to execute a task.
+The *session* argument is a :py:class:`~chimerax.core.session.Session` instance,
+the *name* argument is the same as the ``name`` attribute in your Provider
+tag, and the *mgr* argument is the manager instance.
+These arguments can be used to decide what to do when your bundle offers
+several Provider tags (to possibly several managers), but since this bundle
+only declares one provider to one manager, we know it will be called by the
+"open command" manager to fetch HomoloGene data and don't need to check
+the :py:meth:`run_provider` arguments.
 
-- **format**, the data format name, and
-- **ignore_cache**, whether to use any cached information.
+When called by the "open command" manager (that was given the ``type="fetch"`` Provider tag),
+:py:meth:`run_provider` must return an instance of a subclass of
+:py:class:`chimerax.open_command.FetcherInfo`.
+The methods of the class are thoroughly documented if you click the preceding
+link, but briefly:
 
-For this example, the optional arguments are omitted because
-the bundle only supports FASTA format and does no caching.
-All arguments are passed through to ``fetch.fetch_homologene``
+1. The :py:meth:`fetch` method is called to actually fetch the data and
+   should return a (models, status message) tuple.  Do *not* add the models
+   to the session — that will done by the calling function.
+2. The *ignore_cache* argument indicates whether your routine should use locally
+   cached data (if any) or instead ignore the cache and fetch the data again.
+   Some types of data fetches may not amenable to caching at all, but for those
+   that are the caching is usually implemented automatically by having the fetching
+   function use the :py:func:`chimerax.core.fetch.fetch_file` routine, which takes an
+   *ignore_cache* keyword argument.
+3. If there are fetch-specific keyword arguments that the ``open`` command should
+   handle, then a :py:meth:`fetch_args` property should be implemented, which
+   returns a dictionary mapping **Python** keyword names to :ref:`Annotation <Type Annotations>`
+   subclasses.  Such keywords will be passed to your :py:meth:`open` method,
+   along with format-specific keywords.
+   Note that format-specific keywords are known from the :py:meth:`open_args` property
+   of the bundle that opens the data's format, and should *not* be included in the
+   dictionary returned by :py:meth:`fetch_args`, so therefore it is rarely necessary
+   to actually implement the :py:meth:`fetch_args` property.
+
+For this example, the *format_name* argument is omitted because
+the bundle only supports FASTA format.
+All other arguments are passed through to ``fetch.fetch_homologene``
 to actually retrieve and process the data.
 
 
@@ -152,17 +173,16 @@ to actually retrieve and process the data.
 
 The ``fetch_homologene`` function performs the following steps:
 
-- create a URL for fetching content for the given identifier
+- create an URL for fetching content for the given identifier
   and an output file name where the content will be saved
-  (lines 18-20),
+  (lines 17-19),
 - call :py:func:`chimerax.core.fetch.fetch_file` to retrieve
-  the actual contents (lines 21-24),
-- update status line (line 26),
-- open the saved file using :py:func:`chimerax.core.io.open_data`
-  (lines 27-29), where the default format is ``FASTA`` but may
-  be overridden by caller,
-- finally, return the list of models created and status message
-  from :py:func:`~chimerax.core.io.open_data` (lines 147-149).
+  the actual contents (lines 20-22),
+- update status line (line 24),
+- open the saved file using the "open command" manager's
+  :py:func:`~chimerax.open_command.manager.OpenManager.open_data`
+  method (line 25), which return a (models, status message) tuple.
+- return the list of models created and status message (line 26)
 
 
 .. include:: build_test_distribute.rst

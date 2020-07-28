@@ -117,7 +117,7 @@ class Gaussian_Cube:
   #
   def matrix(self, component_number, progress):
 
-    if self.matrices == None:
+    if self.matrices is None:
       size = self.grid_size + (self.num_components,)
       from ..readarray import read_text_floats
       self.matrices = read_text_floats(self.path, self.data_offset, size,
@@ -140,6 +140,6 @@ def read_line_values(line, types, descrip):
   try:
     fields = line.split()[:len(types)]
     values = [t(f) for t,f in zip(types, fields)]
-  except:
+  except Exception:
     raise FileFormatError('Error parsing %s on line:\n %s' % (descrip, line))
   return values

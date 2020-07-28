@@ -191,7 +191,7 @@ def add_select_menu_items(session):
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
     from .widgets import make_elements_menu
-    elements_menu = make_elements_menu(_session=session, _parent_menus=["Che&mistry", "&Element"])
+    elements_menu = make_elements_menu(mw, _session=session, _parent_menus=["Che&mistry", "&Element"])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
 
     parent_menus = ["Che&mistry", "&IDATM Type"]
@@ -216,9 +216,7 @@ def add_select_menu_items(session):
     select_structure_menu.addAction(QAction("Ions", mw))
     select_structure_menu.addAction(QAction("Ligand", mw))
     select_structure_menu.addAction(QAction("Main", mw))
-    select_structure_menu.addAction(QAction("Nucleic Acid", mw))
-    select_structure_menu.addAction(QAction("Protein", mw))
-    select_structure_menu.addAction(QAction("Ribose", mw))
+    # Nucleic Acid/Protein/Ribose move to Chemistry menu (chem_group bundle)
     parent_menus = ["&Structure", "&Secondary Structure"]
     ss_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     ss_menu.addAction(QAction("Coil", mw))

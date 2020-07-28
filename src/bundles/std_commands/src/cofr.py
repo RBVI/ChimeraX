@@ -101,7 +101,7 @@ def show_cofr_indicator(session, show = True, axis_length = 2.0, axis_radius = 0
         for pi in i:
             v.drawing.remove_drawing(pi)
 
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class PivotIndicator(Drawing):
     skip_bounds = True
     casts_shadows = False
@@ -113,7 +113,6 @@ class PivotIndicator(Drawing):
         self._center = None
         Drawing.__init__(self, 'Pivot indicator')
         self.pickable = False    # Don't set depth in frontCenter mode.
-        self.no_cofr = True	# Don't include in cofr calculation.
         self._create_geometry(axis_length, axis_radius, axis_colors)
         h = session.triggers.add_handler('graphics update', self._update_position)
         self._update_handler = h
@@ -131,7 +130,7 @@ class PivotIndicator(Drawing):
             center = tuple(v.center_of_rotation)
         if center != self._center:
             self._center = center
-            from chimerax.core.geometry import Place
+            from chimerax.geometry import Place
             self.position = Place(origin = center)
 
     def _create_geometry(self, axis_length, axis_radius, axis_colors):
@@ -143,7 +142,7 @@ class PivotIndicator(Drawing):
         vaz, naz, taz = cylinder_geometry(radius = axis_radius, height = axis_length)
         vcz, ncz, tcz = cone_geometry(radius = axis_radius * 2, height = axis_length * 0.2, 
                                         caps = True)
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         vct = Place(origin = (0,0,axis_length/2))
         vcz = vct.transform_points(vcz)
         nv = len(vaz)

@@ -12,10 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mousemodes import MouseMode, MouseModes, mod_key_info
-from .mousemodes import picked_object, picked_object_on_segment, unpickable
 from .std_modes import SelectMouseMode, select_pick, SelectContextMenuAction, \
-                RotateMouseMode, TranslateMouseMode, RotateSelectedMouseMode, \
-                TranslateSelectedMouseMode, ZoomMouseMode
+                RotateMouseMode, TranslateMouseMode, RotateSelectedModelsMouseMode, \
+                TranslateSelectedModelsMouseMode, ZoomMouseMode
 
 from chimerax.core.toolshed import BundleAPI
 

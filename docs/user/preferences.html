@@ -14,7 +14,7 @@ or derivations thereof.
 -->
 
 <head>
-<title>ChimeraX Preferences (Settings)</title>
+<title>ChimeraX Settings (Preferences)</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="userdocs.css" />
 </head><body>
@@ -24,12 +24,12 @@ or derivations thereof.
 <img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h2>ChimeraX Preferences (Settings)</h2>
+<h2>ChimeraX Settings (Preferences)</h2>
 <p>
 The <b>ChimeraX Settings</b> dialog is listed in a 
-standard platform-dependent location in the menu 
-(for example, <b>UCSF ChimeraX... Preferences</b> on a Mac),
-and contains sections:
+standard platform-dependent location in the <a href="menu.html">menu</a> 
+(for example, <b>Favorites...&nbsp;Settings</b> on Windows and Linux,
+<b>UCSF&nbsp;ChimeraX...&nbsp;Preferences</b> on a Mac) and contains sections:
 </p>
 <blockquote><b>
 <a href="#background">Background</a>
@@ -77,7 +77,7 @@ and are not created until nondefault settings are saved.
 
 <a name="background"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Background</h3>
 <ul>
@@ -97,7 +97,7 @@ See also: <a href="commands/set.html#bgColor"><b>set bgColor</b></a>
 </ul>
 <a name="clipping"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Clipping</h3>
 <ul>
@@ -127,7 +127,7 @@ are enabled by the <b>clip</b>
 
 <a name="distances"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <!-- <h3><a href="#top" class="nounder"><b>&larr;</b></a> -->
 <h3>Distances</h3>
@@ -160,7 +160,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <a name="labels"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Labels</h3>
 <ul>
@@ -191,7 +191,7 @@ the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 
 <a name="log"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Log</h3>
 <p>
@@ -208,11 +208,17 @@ should also generate a separate dialog window
 (initial default <b>false</b>)
 &ndash; whether warning messages in the <a href="tools/log.html"><b>Log</b></a>
 should also generate a separate dialog window
+<li><b>Restoring session clears log</b>
+(initial default <b>true</b>)
+&ndash; whether to clear the current contents from
+the <a href="tools/log.html"><b>Log</b></a> 
+before populating it with the contents from a 
+<a href="commands/save.html#session">session</a> that is being restored
 </ul>
 
 <a name="startup"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Startup</h3>
 <p>
@@ -222,14 +228,18 @@ should also generate a separate dialog window
 &ndash; where to look for user-defined <a href="menu.html#presets">presets</a>
 in the form of <a href="commands/usageconventions.html#cxc-files">ChimeraX 
 command files</a> (.cxc) and/or Python files (.py).
-Although &ldquo;presets&rdquo; were generally intended to be display settings, 
-in practice any <a href="index.html#commands">ChimeraX commands</a> could be used. 
+Although &ldquo;presets&rdquo; are generally intended to be display settings, 
+in practice any <a href="index.html#commands">ChimeraX commands</a> could be used.
 The presets will be named by filename, excluding the format suffix.
 Those directly in the specified folder will be in category <b>Custom</b>,
 and those in first-level subfolders will be in categories named according to 
-the folder names. Any underscores in file/folder names will be converted to spaces.
-Presets can be chosen from the <a href="menu.html#presets"><b>Presets</b> menu</a>
-or applied with the <a href="commands/preset.html"><b>preset</b></a> command.
+the folder names.
+Any underscores in file/folder names will be converted to spaces.
+Folders can be named to create new categories or to place custom presets
+in the already existing (built-in) categories.
+Presets can be applied by choosing them from the 
+<a href="menu.html#presets"><b>Presets</b> menu</a>
+or with the <a href="commands/preset.html"><b>preset</b></a> command.
 See also: <a href="commands/alias.html"><b>alias</b></a>
 <p>
 For example, putting the command file
@@ -256,13 +266,17 @@ See also: <a href="commands/alias.html"><b>alias</b></a>,
 
 <a name="toolshed"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Toolshed</h3>
 <p>
 The
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a>
-is the web repository of ChimeraX bundles.
+is the web repository of ChimeraX bundles. It can be shown from the 
+<a href="menu.html">menu</a> (<b>Tools... More Tools</b>) or with the 
+<a href="commands/toolshed.html"><b>toolshed</b></a> command.
+The command can also be used to list, install, or remove bundles, 
+and to control how the toolshed manages bundle information.
 </p>
 <ul>
 <li><b>Toolshed update interval</b> &ndash; how often to check for updates
@@ -275,7 +289,7 @@ is the web repository of ChimeraX bundles.
 
 <a name="trackpad"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Trackpad</h3>
 <ul>
@@ -314,7 +328,7 @@ is 3 times that of three-finger drag (XY translation)
 
 <a name="webaccess"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Web Access</h3>
 <p>
@@ -331,7 +345,7 @@ these settings should be the same as for web browsers.
 
 <a name="window"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Window</h3>
 <ul>
@@ -351,6 +365,9 @@ size of the overall <a href="window.html">ChimeraX window</a>
   <li><b>last used</b> (initial default)
   <li><b>proportional</b> &ndash; as a percentage of screen width and height
   <li><b>fixed</b> &ndash; width and height in pixels
+  <li><b>maximized</b> &ndash; screen width and height 
+(different from <a href="commands/ui.html#fullscreen">fullscreen</a> in that
+the title bar is retained)
   </ul>
 <li><b>Resize graphics window on session restore</b>
 &ndash; whether to restore the graphics window size of a 
@@ -364,7 +381,7 @@ See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
 
 <a name="other"></a>
 <p class="nav">
-[<a href="#top">back to top: ChimeraX Preferences</a>]
+[<a href="#top">back to top: ChimeraX Settings</a>]
 </p>
 <h3>Other Preferences</h3>
 <p>
@@ -375,7 +392,7 @@ commands. Examples include:
 </p>
 <ul>
 <li>Generic <a href="window.html#tool-context">tool-interface preferences</a>:
-autostart, panel dockability, panel position 
+autostart, panel dockability, <i>etc.</i>
 (see also <a href="commands/ui.html"><b>ui</b></a>)
 <li>Tool-specific preferences:
   <ul>
@@ -385,6 +402,8 @@ autostart, panel dockability, panel position
   &ndash; whether command links should be executable or show help
   <li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
   &ndash; several aspects of appearance and contents
+  <li><a href="tools/toolbar.html#settings"><b>Toolbar</b></a> 
+  &ndash; <a href="tools/toolbar.html#home"><b>Home</b></a> tab customization
   </ul>
 <li><a href="commands/ui.html#functionkey">Function key assignments</a>
 </ul>
@@ -397,5 +416,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+June 2020</address>
 </body></html> 

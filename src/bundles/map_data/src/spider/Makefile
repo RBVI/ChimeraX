@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/spider
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/spider
 
 PYSRCS = __init__.py spider_format.py spider_grid.py
 

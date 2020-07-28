@@ -30,8 +30,8 @@ def cmd_start_structure(session, method, model_info, subargs):
     else:
         model = model_info
     try:
-        manager.execute_command(method, model, subargs)
-    except:
+        ret_val = manager.execute_command(method, model, subargs)
+    except BaseException:
         if isinstance(model_info, str):
             model.delete()
         raise
@@ -39,6 +39,7 @@ def cmd_start_structure(session, method, model_info, subargs):
         model.delete()
     elif isinstance(model_info, str):
         session.models.add([model])
+    return ret_val
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, IntArg, EnumOf, StringArg

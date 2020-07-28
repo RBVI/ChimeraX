@@ -20,7 +20,7 @@ import platform
 from chimerax import app_dirs
 import sys
 
-WRITER_VERSION = 'v8'  # TODO: update after any change
+WRITER_VERSION = 'v9'  # TODO: update after any change
 
 # chains only keep the single letter for missing residues, but entity_poly_seq
 # wants the multiletter version, so fake the names for the missing residues
@@ -80,7 +80,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -133,10 +133,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         print("# mmCIF", file=f)
         for g, models in grouped.items():
             if is_ensemble[g]:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -152,79 +152,48 @@ ChimeraX_audit_conform = mmcif.CIFTable(
     )
 )
 
-ChimeraX_audit_syntax = mmcif.CIFTable(
-    "audit_syntax",
-    (
-        "case_sensitive_flag",
-        "fixed_width"
-    ), (
-        "Y",
-        "atom_site atom_site_anisotrop"
-    )
+ChimeraX_audit_syntax_info = {
+    "case_sensitive_flag": "Y",
+    "fixed_width": "atom_site atom_site_anisotrop"
+}
+
+ChimeraX_citation_id = "chimerax"
+ChimeraX_citation_info = {
+    'title': "UCSF ChimeraX: Meeting Modern Challenges in Visualization and Analysis",
+    'journal_abbrev': "Protein Sci.",
+    'journal_volume': '27',
+    'year': '2018',
+    'page_first': '14',
+    'page_last': '25',
+    'journal_issue': '1',
+    'pdbx_database_id_PubMed': '28710774',
+    'pdbx_database_id_DOI': '10.1002/pro.3235',
+}
+
+ChimeraX_authors = (
+    'Goddard TD',
+    'Huang CC',
+    'Meng EC',
+    'Pettersen EF',
+    'Couch GS',
+    'Morris JH',
+    'Ferrin TE',
 )
 
-ChimeraX_citation = mmcif.CIFTable(
-    "citation",
-    (
-        'id', 'title', 'journal_abbrev', 'journal_volume', 'year',
-        'page_first', 'page_last',
-        'journal_issue', 'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'
-    ), [
-        'chimerax',
-        "UCSF ChimeraX: Meeting Modern Challenges in Visualization and Analysis",
-        "Protein Sci.",
-        '27',
-        '2018',
-        '14',
-        '25',
-        '1',
-        '28710774',
-        '10.1002/pro.3235',
-    ],
-)
-
-ChimeraX_authors = mmcif.CIFTable(
-    "citation_author",
-    (
-        'citation_id', 'name', 'ordinal'
-    ), [
-        'chimerax', 'Goddard TD', '1',
-        'chimerax', 'Huang CC', '2',
-        'chimerax', 'Meng EC', '3',
-        'chimerax', 'Pettersen EF', '4',
-        'chimerax', 'Couch GS', '5',
-        'chimerax', 'Morris JH', '6',
-        'chimerax', 'Ferrin TE', '7',
-    ]
-)
 _CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 system = platform.system()
 if system == 'Darwin':
     system = 'macOS'  # TODO? Mac OS X (thru 10.7)/OS X thru 10.11/macOS
-ChimeraX_software_values = [
-    '%s %s' % (app_dirs.appauthor, app_dirs.appname),
-    "%s/%s" % (app_dirs.version, WRITER_VERSION),
-    'https://www.rbvi.ucsf.edu/chimerax/',
-    'model building',
-    system,
-    'package',
-    'chimerax',
-    'ORIDINAL',
-]
-ChimeraX_software = mmcif.CIFTable(
-    "software",
-    (
-        'name',
-        'version',
-        'location',
-        'classification',
-        'os',
-        'type',
-        'citation_id',
-        'pdbx_ordinal',
-    ), ChimeraX_software_values
-)
+ChimeraX_software_info = {
+    'name': '%s %s' % (app_dirs.appauthor, app_dirs.appname),
+    'version': "%s/%s" % (app_dirs.version, WRITER_VERSION),
+    'location': 'https://www.rbvi.ucsf.edu/chimerax/',
+    'classification': 'model building',
+    'os': system,
+    'type': 'package',
+    'citation_id': ChimeraX_citation_id,
+}
 del system
 
 
@@ -250,8 +219,8 @@ def _mmcif_chain_id(i):
     return ''.join(output)
 
 
-def _save_metadata(model, categories, file):
-    tables = mmcif.get_mmcif_tables_from_metadata(model, categories)
+def _save_metadata(model, categories, file, metadata):
+    tables = mmcif.get_mmcif_tables_from_metadata(model, categories, metadata=metadata)
     printed = False
     for t in tables:
         if t is None:
@@ -261,7 +230,7 @@ def _save_metadata(model, categories, file):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
@@ -310,41 +279,41 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     print('data_%s' % nonblank_chars(name), file=file)
     print('#', file=file)
 
-    _save_metadata(best_m, ['entry'], file)
+    best_metadata = best_m.metadata  # get once from C++ layer
 
-    ChimeraX_audit_conform.print(file=file, fixed_width=True)
-    ChimeraX_audit_syntax.print(file=file, fixed_width=True)
+    _save_metadata(best_m, ['entry'], file, best_metadata)
 
-    citation, citation_author, software = mmcif.get_mmcif_tables_from_metadata(
-        best_m, ['citation', 'citation_author', 'software'])
-    if not citation:
-        citation = ChimeraX_citation
-        citation_author = ChimeraX_authors
-    elif not citation.field_has('id', 'chimerax'):
-        citation.extend(ChimeraX_citation)
-        if citation_author is None:
-            citation_author = ChimeraX_authors
-        else:
-            citation_author.extend(ChimeraX_authors)
-    citation.print(file, fixed_width=True)
-    citation_author.print(file, fixed_width=True)
-    if not software:
-        ChimeraX_software_values[-1] = '1'
-        software = ChimeraX_software
-    elif software.field_has('citation_id', 'chimerax'):
-        pass  # TODO: update with current version
-    else:
-        ChimeraX_software_values[-1] = str(software.num_rows() + 1)
-        software.extend(ChimeraX_software)
-    software.print(file, fixed_width=True)
-    del citation, citation_author, software
+    ChimeraX_audit_conform.print(file=file, fixed_width=fixed_width)
 
-    save_components(best_m, file)
+    audit_syntax_info = ChimeraX_audit_syntax_info.copy()
+    if not fixed_width:
+        audit_syntax_info["fixed_width"] = ""
+    tags, data = zip(*audit_syntax_info.items())
+    audit_syntax = mmcif.CIFTable("audit_syntax", tags, data)
+    audit_syntax.print(file=file, fixed_width=fixed_width)
 
-    _save_metadata(best_m, ['exptl'], file)
+    from .mmcif import _add_citation, _add_software
+
+    citation, citation_author, citation_editor = _add_citation(
+            best_m, ChimeraX_citation_id, ChimeraX_citation_info,
+            ChimeraX_authors, metadata=best_metadata, return_existing=True)
+    software = _add_software(
+            best_m, ChimeraX_software_info['name'], ChimeraX_software_info,
+            metadata=best_metadata, return_existing=True)
+    citation.print(file, fixed_width=fixed_width)
+    citation_author.print(file, fixed_width=fixed_width)
+    if citation_editor is not None:
+        citation_editor.print(file, fixed_width=fixed_width)
+    software.print(file, fixed_width=fixed_width)
+    del citation, citation_author, citation_editor, software
+
+    save_components(best_m, file, best_metadata, fixed_width)
+
+    _save_metadata(best_m, ['exptl'], file, best_metadata)
 
     from chimerax.atomic import Residue
-    old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(best_m, ['entity', 'struct_asym'])
+    old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(
+        best_m, ['entity', 'struct_asym'], metadata=best_metadata)
     try:
         if not old_entity or not old_asym:
             raise ValueError
@@ -384,7 +353,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if not c.from_seqres:
+            if not best_guess and not c.from_seqres:
                 skipped_sequence_info = True
                 _1to3 = None
             else:
@@ -488,25 +457,25 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         het_entities[n][mcid] = (eid, label_asym_id)
 
     entity = mmcif.CIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
-    entity.print(file, fixed_width=True)
+    entity.print(file, fixed_width=fixed_width)
     entity_poly = mmcif.CIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
-    entity_poly.print(file, fixed_width=True)
+    entity_poly.print(file, fixed_width=fixed_width)
     entity_poly_seq = mmcif.CIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
-    entity_poly_seq.print(file, fixed_width=True)
+    entity_poly_seq.print(file, fixed_width=fixed_width)
     import itertools
     struct_asym = mmcif.CIFTable(
         'struct_asym', ['id', 'entity_id'],
         flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
-    struct_asym.print(file, fixed_width=True)
+    struct_asym.print(file, fixed_width=fixed_width)
     pdbx_poly_seq = mmcif.CIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
-    pdbx_poly_seq.print(file, fixed_width=True)
+    pdbx_poly_seq.print(file, fixed_width=fixed_width)
     del entity, entity_poly_seq, pdbx_poly_seq, struct_asym
 
     elements = list(set(best_m.atoms.elements))
     elements.sort(key=lambda e: e.number)
     atom_type_data = [e.name for e in elements]
     atom_type = mmcif.CIFTable("atom_type", ["symbol"], atom_type_data)
-    atom_type.print(file, fixed_width=True)
+    atom_type.print(file, fixed_width=fixed_width)
     del atom_type_data, atom_type
 
     atom_site_data = []
@@ -598,9 +567,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
 
     atom_site_data[:] = flattened(atom_site_data)
-    atom_site.print(file, fixed_width=True)
+    atom_site.print(file, fixed_width=fixed_width)
     atom_site_anisotrop_data[:] = flattened(atom_site_anisotrop_data)
-    atom_site_anisotrop.print(file, fixed_width=True)
+    atom_site_anisotrop.print(file, fixed_width=fixed_width)
     del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
 
     struct_conn_data = []
@@ -769,9 +738,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         struct_conn_bond('covale', b, a0, a1)
 
     struct_conn_data[:] = flattened(struct_conn_data)
-    struct_conn.print(file, fixed_width=True)
+    struct_conn.print(file, fixed_width=fixed_width)
     # struct_conn_type_data[:] = flattened(struct_conn_type_data)
-    struct_conn_type.print(file, fixed_width=True)
+    struct_conn_type.print(file, fixed_width=fixed_width)
     del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type
 
     # struct_conf
@@ -910,26 +879,26 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         struct_conf_type_data.append("HELX_P")
 
     struct_conf_data[:] = flattened(struct_conf_data)
-    struct_conf.print(file, fixed_width=True)
+    struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
-    struct_conf_type.print(file, fixed_width=True)
+    struct_conf_type.print(file, fixed_width=fixed_width)
     del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
     sheet_range_data[:] = flattened(sheet_range_data)
-    sheet_range.print(file, fixed_width=True)
+    sheet_range.print(file, fixed_width=fixed_width)
     del sheet_range_data, sheet_range
 
-    _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file)
-    _save_metadata(best_m, ['cell', 'symmetry'], file)
-    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file)
+    _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file, best_metadata)
+    _save_metadata(best_m, ['cell', 'symmetry'], file, best_metadata)
+    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file, best_metadata)
 
 
-def save_components(model, file):
+def save_components(model, file, metadata, fixed_width):
     residues = model.residues
     unique_names = residues.unique_names
     names = None
     chem_comp_fields = ['id', 'type']
 
-    old_chem_comp, = mmcif.get_mmcif_tables_from_metadata(model, ['chem_comp'])
+    old_chem_comp, = mmcif.get_mmcif_tables_from_metadata(model, ['chem_comp'], metadata=metadata)
     if not old_chem_comp:
         has_name = False
         existing_info = {}
@@ -962,7 +931,7 @@ def save_components(model, file):
             new_values.append('?')
 
     new_chem_comp = mmcif.CIFTable('chem_comp', chem_comp_fields, new_values)
-    new_chem_comp.print(file, fixed_width=True)
+    new_chem_comp.print(file, fixed_width=fixed_width)
 
     # TODO: chem_comp_atom
     # TODO: chem_comp_bond

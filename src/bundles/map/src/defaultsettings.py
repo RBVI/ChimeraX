@@ -80,7 +80,7 @@ class VolumeDefaultSettings:
         'outline_box_linewidth': 1.0,
         'color_mode': 'auto8',
         'colormap_on_gpu': False,
-        'colormap_size': 256,
+        'colormap_size': 2048,
         'colormap_extend_left': False,
         'colormap_extend_right': True,
         'blend_on_gpu': False,
@@ -119,7 +119,7 @@ class VolumeDefaultSettings:
       import psutil
       m = psutil.virtual_memory()
       msize = m.total
-    except:
+    except Exception:
       msize = 2**32
     csize = msize//2
     csize_mb = csize/(2**20)

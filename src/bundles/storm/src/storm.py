@@ -74,7 +74,8 @@ def read_storm(session, filename, name):
         sdev = xyzhwb[:,4] / fwhm_sdev
         sdev /= 20	# TODO: Seems the width column is not FWHM.
         add_gaussians(grid, xyz, weights, sdev, cutoff_range, normalize=False)
-        v = volume_from_grid_data(grid, session, representation = 'image', open_model = False)
+        v = volume_from_grid_data(grid, session, style = 'image')
+        v.show()
         maps.append(v)
         
     return maps, ("Opened STORM file %s containing %d channels, %d points"
@@ -83,6 +84,6 @@ def read_storm(session, filename, name):
 def matching_grid(grid):
     from numpy import zeros, float32
     matrix = zeros(grid.full_matrix().shape, float32)
-    from chimerax.map.data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(matrix, grid.origin, grid.step)
     return g

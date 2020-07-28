@@ -28,7 +28,7 @@ import os
 
 try:
 	ostype = os.environ['OSTYPE']
-except:
+except Exception:
 	ostype = '???'
 
 if ostype in ('IRIX','HP-UX','SunOS'):

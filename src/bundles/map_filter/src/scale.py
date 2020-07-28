@@ -17,7 +17,7 @@ def scaled_volume(v, scale = 1, sd = None, rms = None, shift = 0, type = None,
 
   if not sd is None or not rms is None:
     m = v.full_matrix()
-    from ..volume import mean_sd_rms
+    from chimerax.map.volume import mean_sd_rms
     mean, sdev, rmsv = mean_sd_rms(m)
     if not rms is None and rmsv > 0:
       scale = (1.0 if scale is None else scale) * rms / rmsv
@@ -26,7 +26,7 @@ def scaled_volume(v, scale = 1, sd = None, rms = None, shift = 0, type = None,
       scale = (1.0 if scale is None else scale) * sd / sdev
     
   sg = scaled_grid(v, scale, shift, type, subregion, step)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   sv = volume_from_grid_data(sg, session, model_id = model_id)
   sv.copy_settings_from(v, copy_thresholds = False)
 
@@ -41,14 +41,14 @@ def scaled_grid(v, scale, shift, type, subregion = None, step = 1,
   if region is None:
     d = v.grid_data(subregion, step, mask_zone = False)
   else:
-    from ..data import GridSubregion
+    from chimerax.map_data import GridSubregion
     d = GridSubregion(v.data, *region)
   sd = ScaledGrid(d, scale, shift, type)
   return sd
 
 # -----------------------------------------------------------------------------
 #
-from ..data import GridData
+from chimerax.map_data import GridData
 class ScaledGrid(GridData):
   
   def __init__(self, grid_data, scale, shift, value_type):

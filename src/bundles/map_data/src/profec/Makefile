@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/profec
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/profec
 
 PYSRCS = __init__.py profec_format.py profec_grid.py
 

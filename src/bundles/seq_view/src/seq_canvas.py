@@ -58,9 +58,11 @@ class SeqCanvas:
         """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
+        self.label_scene.setBackgroundBrush(Qt.white)
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
+        self.main_scene.setBackgroundBrush(Qt.white)
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from PyQt5.QtGui import QColor
@@ -539,7 +541,7 @@ class SeqCanvas:
             if header in self.builtinHeaders:
                 raise ValueError("Cannot delete builtin header"
                             " sequence")
-        self.hideHeaders(headers)
+        self.hide_headers(headers)
         for hd in headers:
             del self.display_header[hd]
             self.headers.remove(hd)
@@ -548,8 +550,6 @@ class SeqCanvas:
 
     def destroy(self):
         self._resize_timer.stop()
-        for header in self.headers:
-            header.destroy()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -563,8 +563,6 @@ class SeqCanvas:
             from MAViewer import MOD_ASSOC
             self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
-        for header in self.headers:
-            header.destroy()
         self.lead_block.destroy()
         
     def _editHdrCB(self):
@@ -651,46 +649,15 @@ class SeqCanvas:
     """
     def headerDisplayOrder(self):
         return self.lead_block.lines[:-len(self.alignment.seqs)]
+    """
 
-    def hideHeaders(self, headers, fromMenu=False):
-        headers = [hd for hd in headers if self.display_header[hd]]
-        if not headers:
-            return
-
-        # only handle headers in continuous blocks...
-        if len(headers) > 1:
-            continuous = True
-            li = self.lead_block.line_index[headers[0]]
-            for header in headers[1:]:
-                li += 1
-                if self.lead_block.line_index[header] != li:
-                    continuous = False
-                    break
-            if not continuous:
-                jump = headers.index(header)
-                self.hideHeaders(headers[:jump], fromMenu=fromMenu)
-                self.hideHeaders(headers[jump:], fromMenu=fromMenu)
-                return
-        for header in headers:
-            header.hide()
-        if fromMenu and len(self.alignment.seqs) > 1:
-            startHeaders = set(self.sv.prefs[STARTUP_HEADERS])
-            startHeaders -= set([hd.name for hd in headers])
-            self.sv.prefs[STARTUP_HEADERS] = startHeaders
-        self.display_header.update({}.fromkeys(headers, False))
-        self.sv.region_browser._preDelLines(headers)
-        self.lead_block.hideHeaders(headers)
-        self.sv.region_browser.redraw_regions(cull_empty=True)
-        self.sv.triggers.activateTrigger(HIDE_HEADERS, headers)
-        """
+    def hide_header(self, header):
+        self.lead_block.hide_header(header)
+        self.sv.region_browser.redraw_regions()
         
     def layout_alignment(self):
-        aln_mgr = self.alignment.session.alignments
-        self.headers = [hdr_class(self.alignment, self.refresh_header)
-            for hdr_class in aln_mgr.headers()]
-        self.headers.sort(key=lambda hdr: hdr.name)
         """
-        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
+        from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
             header = seq(self.alignment)
             self.headers.append(header)
@@ -698,10 +665,6 @@ class SeqCanvas:
                 startup_headers.add(header.name)
         if use_disp_default:
             self.sv.prefs[STARTUP_HEADERS] = startup_headers
-        """
-        for header in self.headers:
-            header.shown = header.settings.initially_shown and header.relevant
-        """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
             self.labelBindings[seq] = {
@@ -738,7 +701,7 @@ class SeqCanvas:
             try:
                 self._clustalCategories, self._clustalColorings\
                         = clustalInfo(prefResColor)
-            except:
+            except Exception:
                 schemes = self.sv.prefs[RC_CUSTOM_SCHEMES]
                 if prefResColor in schemes:
                     schemes.remove(prefResColor)
@@ -750,7 +713,7 @@ class SeqCanvas:
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
-        initial_headers = [hd for hd in self.headers if hd.shown]
+        initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
@@ -774,8 +737,9 @@ class SeqCanvas:
         self.main_view.setAlignment(
             Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
         self.lead_block = SeqBlock(label_scene, self.main_scene, None, self.font,
-            self.emphasis_font, 0, initial_headers, self.alignment, self.line_width,
-            {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
+            self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, 0, initial_headers,
+            self.alignment, self.line_width, {},
+            lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
 
@@ -811,7 +775,7 @@ class SeqCanvas:
 
     @property
     def lines(self):
-        return [hdr for hdr in self.headers if hdr.shown] + self.alignment.seqs
+        return [hdr for hdr in self.alignment.headers if hdr.shown] + self.alignment.seqs
 
     """TODO
     def _molChange(self, trigger, myData, changes):
@@ -1001,7 +965,7 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
-        initial_headers = [hd for hd in self.headers if hd.shown]
+        initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
@@ -1011,8 +975,9 @@ class SeqCanvas:
         self.main_view.setAlignment(
             Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
         self.lead_block = SeqBlock(label_scene, self.main_scene,
-            None, self.font, self.emphasis_font, 0, initial_headers, self.alignment,
-            self.line_width, {}, lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
+            None, self.font, self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, 0,
+            initial_headers, self.alignment, self.line_width, {},
+            lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
         """TODO
@@ -1034,23 +999,37 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_header(self, reason, hdr, *args):
-        if reason == hdr.CALLBACK_VALUES:
-            bounds, = args
-            if bounds is None:
-                bounds = (0, len(hdr)-1)
-            if hasattr(self, 'lead_block'):
-                self.lead_block.refresh(hdr, *bounds)
-                self.main_scene.update()
-        elif reason == hdr.CALLBACK_NAME:
-            #TODO
-            pass
-        elif reason == hdr.CALLBACK_RELEVANCE:
-            relevant, = args
-            #TODO
+    def alignment_notification(self, note_name, note_data):
+        if hasattr(self, 'lead_block'):
+            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
+                    self.alignment.NOTE_HDR_NAME):
+                return
+            if type(note_data) == tuple:
+                hdr, bounds = note_data
+            else:
+                hdr = note_data
+            if note_name == self.alignment.NOTE_HDR_SHOWN:
+                if hdr.shown:
+                    self.show_header(hdr)
+                else:
+                    self.hide_header(hdr)
+            elif hdr.shown:
+                if note_name == self.alignment.NOTE_HDR_VALUES:
+                    if bounds is None:
+                        bounds = (0, len(hdr)-1)
+                    self.lead_block.refresh(hdr, *bounds)
+                    self.main_scene.update()
+                elif note_name == self.alignment.NOTE_HDR_NAME:
+                    if self.label_width == _find_label_width(self.alignment.seqs +
+                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
+                            self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+                        self.lead_block.replace_label(hdr)
+                        self.label_scene.update()
+                    else:
+                        self._reformat()
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
-        if seq in self.headers and not seq.shown:
+        if seq in self.alignment.headers and not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
@@ -1100,26 +1079,8 @@ class SeqCanvas:
     """
 
     def restore_state(self, session, state):
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        headers = []
-        for bundle_name, class_name, header_state in state['headers']:
-            bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
-            if not bundle:
-                bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
-                if bundle:
-                    session.logger.error("You need to install bundle %s in order to restore"
-                        " alignment header of type %s" % (bundle_name, class_name))
-                else:
-                    session.logger.error("Cannot restore alignment header of type %s due to"
-                        " being unable to find any bundle named %s" % (class_name, bundle_name))
-                continue
-            header_class = bundle.get_class(class_name, session.logger)
-            if header_class:
-                headers.append(
-                    header_class.session_restore(session, self.alignment, self.refresh_header, header_state))
-            else:
-                session.logger.warning("Could not find alignment header class %s" % class_name)
+        '''Used to restore header state, now done by alignment'''
+        pass
 
     """TODO
     def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):
@@ -1172,14 +1133,8 @@ class SeqCanvas:
     """
 
     def save_state(self):
-        state = {}
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        state['headers'] = [
-            (ts.find_bundle_for_class(hdr.__class__).name,
-            hdr.__class__.__name__, hdr.get_state())
-                for hdr in self.headers]
-        return state
+        '''Used to save header state, now done by alignment'''
+        return {}
 
     """TODO
     def seeBlocks(self, blocks):
@@ -1385,24 +1340,11 @@ class SeqCanvas:
     def wrap_okay(self):
         return _wrap_okay(len(self.alignment.seqs), self.sv.settings)
 
-        """TODO
-    def showHeaders(self, headers, fromMenu=False):
-        headers = [hd for hd in headers if not self.display_header[hd]]
-        if not headers:
-            return
-        for header in headers:
-            header.show()
-        if fromMenu and len(self.alignment.seqs) > 1:
-            startHeaders = set(self.sv.prefs[STARTUP_HEADERS])
-            startHeaders |= set([hd.name for hd in headers])
-            self.sv.prefs[STARTUP_HEADERS] = startHeaders
-        self.display_header.update({}.fromkeys(headers, True))
-        self.sv.region_browser._preAddLines(headers)
-        self.lead_block.showHeaders(headers)
+    def show_header(self, header):
+        self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
-        self.sv.setResidueAttrs()
-        self.sv.triggers.activateTrigger(SHOW_HEADERS, headers)
 
+    """TODO
     def showNodes(self, show):
         if show == self.nodesShown:
             return
@@ -1506,16 +1448,18 @@ class SeqBlock:
     from PyQt5.QtGui import QPen
     qt_no_pen = QPen(Qt.NoPen)
 
-    def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font,
-            seq_offset, headers, alignment, line_width, label_bindings, status_func,
-            show_ruler, tree_balloon, show_numberings, settings, label_width, font_pixels,
-            numbering_widths, letter_gaps):
+    def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font, font_metrics,
+            emphasis_font_metrics, seq_offset, headers, alignment, line_width, label_bindings,
+            status_func, show_ruler, tree_balloon, show_numberings, settings, label_width,
+            font_pixels, numbering_widths, letter_gaps):
         self.label_scene = label_scene
         self.main_scene = main_scene
         self.prev_block = prev_block
         self.alignment = alignment
         self.font = font
         self.emphasis_font = emphasis_font
+        self.font_metrics = font_metrics
+        self.emphasis_font_metrics = emphasis_font_metrics
         self.label_bindings = label_bindings
         self.status_func = status_func
         """TODO
@@ -1611,9 +1555,9 @@ class SeqBlock:
                 label_scene.setSceneRect(lr.x(), mr.y(), lr.width(), mr.height())
         else:
             self.next_block = SeqBlock(label_scene, main_scene, self, self.font,
-                self.emphasis_font, seq_offset + line_width, headers, alignment, line_width,
-                label_bindings, status_func, show_ruler, tree_balloon, show_numberings,
-                settings, label_width, font_pixels, numbering_widths, letter_gaps)
+                self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width,
+                headers, alignment, line_width, label_bindings, status_func, show_ruler, tree_balloon,
+                show_numberings, settings, label_width, font_pixels, numbering_widths, letter_gaps)
 
     """TODO
     def activateNode(self, node, callback=None,
@@ -1661,7 +1605,7 @@ class SeqBlock:
                 labelChange + numberingChanges[0], pushDown)
         self.bottom_ruler_y += pushDown
 
-        self._moveLines(self.lines[:insertIndex], labelChange,
+        self._move_lines(self.lines[:insertIndex], labelChange,
                         numberingChanges[0], pushDown)
 
         for i, seq in enumerate(seqs):
@@ -1669,7 +1613,7 @@ class SeqBlock:
                         line_index=insertIndex+i, adding=True)
         push = len(seqs) * (self.font_pixels[1] + self.letter_gaps[1])
         pushDown += push
-        self._moveLines(self.lines[insertIndex+len(seqs):],
+        self._move_lines(self.lines[insertIndex+len(seqs):],
                 labelChange, numberingChanges[0], pushDown)
         self.bottom_y += pushDown
         if self.next_block:
@@ -1696,6 +1640,8 @@ class SeqBlock:
             if aseq in self.label_rects:
                 self.label_scene.removeItem(self.label_rects[aseq])
                 del self.label_rects[aseq]
+                from PyQt5.QtCore import Qt
+                label_text.setBrush(Qt.black)
         line_items = self.line_items[aseq]
         for i in range(len(line_items)):
             item = line_items[i]
@@ -2073,53 +2019,47 @@ class SeqBlock:
             return True
         return False
 
-    """TODO
-    def hideHeaders(self, headers, pushDown=0, delIndex=None):
-        self.top_y += pushDown
+    def hide_header(self, header, push_down=0, del_index=None):
+        self.top_y += push_down
         if self.prev_block:
-            newLabelWidth = self.prev_block.label_width
+            self.label_width = self.prev_block.label_width
         else:
-            # assuming parent function passes us a continuous block
-            delIndex = self.line_index[headers[0]]
-            del self.lines[delIndex:delIndex+len(headers)]
-            for line in headers:
-                del self.line_index[line]
-            for line in self.lines[delIndex:]:
-                self.line_index[line] -= len(headers)
-            newLabelWidth = self.find_label_width(self.font,
-                            self.emphasis_font)
-        labelChange = newLabelWidth - self.label_width
-        self.label_width = newLabelWidth
+            del_index = self.line_index[header]
+            del self.lines[del_index]
+            del self.line_index[header]
+            for line in self.lines[del_index:]:
+                self.line_index[line] -= 1
+            self.label_width = _find_label_width(self.lines, self.settings, self.font_metrics,
+                self.emphasis_font_metrics, self.label_pad)
 
         for ruler_text in self.ruler_texts:
-            self.main_scene.move(ruler_text, labelChange, pushDown)
-        self.bottom_ruler_y += pushDown
+            ruler_text.moveBy(0, push_down)
+        self.bottom_ruler_y += push_down
 
-        self._moveLines(self.lines[:delIndex], labelChange, 0, pushDown)
+        self._move_lines(self.lines[:del_index], 0, 0, push_down)
 
-        for line in headers:
-            label_text = self.label_texts[line]
-            del self.label_texts[line]
-            self.label_scene.delete(label_text)
+        label_text = self.label_texts[header]
+        del self.label_texts[header]
+        label_text.hide()
+        self.label_scene.removeItem(label_text)
 
-            line_items = self.line_items[line]
-            del self.line_items[line]
-            for item in line_items:
-                if item is not None:
-                    item.delete()
-            del self.item_aux_info[line]
-        pull = len(headers) * (self.font_pixels[1]
-                            + self.letter_gaps[1])
-        pushDown -= pull
-        self._moveLines(self.lines[delIndex:], labelChange, 0, pushDown)
-        self._moveTree(pushDown)
+        line_items = self.line_items[header]
+        del self.line_items[header]
+        for item in line_items:
+            if item is not None:
+                item.hide()
+                self.main_scene.removeItem(item)
+        del self.item_aux_info[header]
+        pull = self.font_pixels[1] + self.letter_gaps[1]
+        push_down -= pull
+        self._move_lines(self.lines[del_index:], 0, 0, push_down)
+        self._move_tree(push_down)
 
-        self.label_width = newLabelWidth
-        self.bottom_y += pushDown
+        self.bottom_y += push_down
         if self.next_block:
-            self.next_block.hideHeaders(headers, pushDown=pushDown,
-                            delIndex=delIndex)
+            self.next_block.hide_header(header, push_down=push_down, del_index=del_index)
 
+    """TODO
     def highlightName(self, line):
         if self.highlighted_name:
             self.label_scene.itemconfigure(self.highlighted_name,
@@ -2155,6 +2095,7 @@ class SeqBlock:
     def layout_ruler(self, rerule=False):
         if rerule:
             for text in self.ruler_texts:
+                text.hide()
                 self.main_scene.removeItem(text)
         self.ruler_texts = []
         if not self.show_ruler:
@@ -2384,32 +2325,31 @@ class SeqBlock:
 
         return res_text
 
-    """TODO
-    def _moveLines(self, lines, overLabel, overNumber, down):
-        over = overLabel + overNumber
+    def _move_lines(self, lines, over_label, over_number, down):
+        over = over_label + over_number
         for line in lines:
-            self.label_scene.move(self.label_texts[line], 0, down)
+            self.label_texts[line].moveBy(0, down)
 
             lnum, rnum = self.numbering_texts[line]
             if lnum:
-                self.main_scene.move(lnum, overLabel, down)
+                lnum.moveBy(over_label, down)
             if rnum:
-                self.main_scene.move(rnum, over, down)
+                rnum.moveBy(over, down)
             for item in self.line_items[line]:
                 if item is not None:
-                    item.move(over, down)
+                    item.moveBy(over, down)
             item_aux_info = []
             for oldx, oldy in self.item_aux_info[line]:
                 item_aux_info.append((oldx+over, oldy+down))
             self.item_aux_info[line] = item_aux_info
             if line in self.label_rects:
-                self.label_scene.move(self.label_rects[line],
-                                0, down)
-    def _moveTree(self, down):
-        for itemType, itemList in self.tree_items.items():
-            for item in itemList:
-                self.label_scene.move(item, 0, down)
+                self.label_rects[line].moveBy(0, down)
+    def _move_tree(self, down):
+        for item_type, item_list in self.tree_items.items():
+            for item in item_list:
+                item.moveBy(0, down)
 
+    """TODO
     def numBlocks(self):
         if self.next_block:
             return self.next_block.numBlocks() + 1
@@ -2459,67 +2399,6 @@ class SeqBlock:
         # on letter
         return self.seq_offset + offset
 
-    """TODO
-    def recolor(self, seq):
-        if self.next_block:
-            self.next_block.recolor(seq)
-
-        color_func = self._color_func(seq)
-
-        for i, line_item in enumerate(self.line_items[seq]):
-            if line_item is None:
-                continue
-            line_item.configure(fill=color_func(seq, self.seq_offset + i))
-    """
-
-    def refresh(self, seq, left, right):
-        if self.seq_offset + self.line_width <= right:
-            self.next_block.refresh(seq, left, right)
-        if left >= self.seq_offset + self.line_width:
-            return
-        my_left = max(left - self.seq_offset, 0)
-        my_right = min(right - self.seq_offset, self.line_width - 1)
-
-        half_x, left_rect_off, right_rect_off = self.base_layout_info()
-        line_items = self.line_items[seq]
-        item_aux_info = self.item_aux_info[seq]
-        if self._large_alignment():
-            res_status = hasattr(seq, "match_maps") and seq.match_maps
-        else:
-            res_status = seq in self.alignment.seqs
-        color_func = self._color_func(seq)
-        for i in range(my_left, my_right+1):
-            line_item = line_items[i]
-            if line_item is not None:
-                self.main_scene.removeItem(line_item)
-            x, y = item_aux_info[i]
-            line_items[i] = self.make_item(seq, self.seq_offset + i,
-                        x, y, half_x, left_rect_off,
-                        right_rect_off, color_func)
-            if res_status:
-                self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
-        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
-            self.main_scene.removeItem(self.numbering_texts[seq][0])
-            self.numbering_texts[seq][0] = self._make_numbering(seq,0)
-        if self.show_numberings[1] and seq.numbering_start != None \
-                    and my_right == self.line_width - 1:
-            self.main_scene.removeItem(self.numbering_texts[seq][1])
-            self.numbering_texts[seq][1] = self._make_numbering(seq,1)
-
-    def relative_y(self, rawY):
-        '''return the y relative to the block the y is in'''
-        if rawY < self.top_y:
-            if not self.prev_block:
-                return 0
-            else:
-                return self.prev_block.relative_y(rawY)
-        if rawY > self.bottom_y + self.block_gap:
-            if not self.next_block:
-                return self.bottom_y - self.top_y
-            else:
-                return self.next_block.relative_y(rawY)
-        return min(rawY - self.top_y, self.bottom_y - self.top_y)
-            
     """TODO
     def realign(self, prevLen):
         '''sequences globally realigned'''
@@ -2603,12 +2482,81 @@ class SeqBlock:
                 self.next_block.realign(prevLen)
             else:
                 self.next_block = SeqBlock(self.label_scene, self.main_scene, self, self.font,
-                    self.enphasis_font, self.seq_offset + self.line_width,
-                    self.lines[:0-len(self.alignment.seqs)], self.alignment.seqs, self.line_width,
-                    self.label_bindings, self.status_func, self.show_ruler, self.tree_balloon,
-                    self.show_numberings, self.settings, self.label_width, self.font_pixels,
-                    self.numbering_widths, self.letter_gaps)
+                    self.enphasis_font, self.font_metrics, self.emphasis_font_metrics,
+                    self.seq_offset + self.line_width, self.lines[:0-len(self.alignment.seqs)],
+                    self.alignment.seqs, self.line_width, self.label_bindings, self.status_func,
+                    self.show_ruler, self.tree_balloon, self.show_numberings, self.settings,
+                    self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps)
+
+    def recolor(self, seq):
+        if self.next_block:
+            self.next_block.recolor(seq)
+
+        color_func = self._color_func(seq)
+
+        for i, line_item in enumerate(self.line_items[seq]):
+            if line_item is None:
+                continue
+            line_item.configure(fill=color_func(seq, self.seq_offset + i))
     """
+
+    def refresh(self, seq, left, right):
+        if self.seq_offset + self.line_width <= right:
+            self.next_block.refresh(seq, left, right)
+        if left >= self.seq_offset + self.line_width:
+            return
+        my_left = max(left - self.seq_offset, 0)
+        my_right = min(right - self.seq_offset, self.line_width - 1)
+
+        half_x, left_rect_off, right_rect_off = self.base_layout_info()
+        line_items = self.line_items[seq]
+        item_aux_info = self.item_aux_info[seq]
+        if self._large_alignment():
+            res_status = hasattr(seq, "match_maps") and seq.match_maps
+        else:
+            res_status = seq in self.alignment.seqs
+        color_func = self._color_func(seq)
+        for i in range(my_left, my_right+1):
+            line_item = line_items[i]
+            if line_item is not None:
+                line_item.hide()
+                self.main_scene.removeItem(line_item)
+            x, y = item_aux_info[i]
+            line_items[i] = self.make_item(seq, self.seq_offset + i,
+                        x, y, half_x, left_rect_off,
+                        right_rect_off, color_func)
+            if res_status:
+                self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
+        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
+            item = self.numbering_texts[seq][0]
+            item.hide()
+            self.main_scene.removeItem(item)
+            self.numbering_texts[seq][0] = self._make_numbering(seq,0)
+        if self.show_numberings[1] and seq.numbering_start != None \
+                    and my_right == self.line_width - 1:
+            item = self.numbering_texts[seq][1]
+            item.hide()
+            self.main_scene.removeItem(item)
+            self.numbering_texts[seq][1] = self._make_numbering(seq,1)
+
+    def relative_y(self, rawY):
+        '''return the y relative to the block the y is in'''
+        if rawY < self.top_y:
+            if not self.prev_block:
+                return 0
+            else:
+                return self.prev_block.relative_y(rawY)
+        if rawY > self.bottom_y + self.block_gap:
+            if not self.next_block:
+                return self.bottom_y - self.top_y
+            else:
+                return self.next_block.relative_y(rawY)
+        return min(rawY - self.top_y, self.bottom_y - self.top_y)
+
+    def replace_label(self, line):
+        self.label_texts[line].setText(line.name)
+        if self.next_block:
+            self.next_block.replace_label(line)
 
     def row_index(self, y, bound=None):
         '''Given a relative y, return the row index'''
@@ -2663,7 +2611,7 @@ class SeqBlock:
             for line in numberedLines:
                 self.numbering_texts[line][0] = \
                         self._make_numbering(line, 0)
-            self._moveLines(self.lines, 0, delta, 0)
+            self._move_lines(self.lines, 0, delta, 0)
         else:
             delta = 0 - self.numbering_widths[0]
             for ruler_text in self.ruler_texts:
@@ -2673,7 +2621,7 @@ class SeqBlock:
                     continue
                 self.main_scene.delete(texts[0])
                 texts[0] = None
-            self._moveLines(self.lines, 0, delta, 0)
+            self._move_lines(self.lines, 0, delta, 0)
             if not self.next_block:
                 self.numbering_widths[0] = 0
         if self.next_block:
@@ -2719,50 +2667,42 @@ class SeqBlock:
             pushDown -= pull
             self.bottom_ruler_y = self.top_y
             self.bottom_y -= pull
-        self._moveLines(self.lines, 0, 0, pushDown)
-        self._moveTree(pushDown)
+        self._move_lines(self.lines, 0, 0, pushDown)
+        self._move_tree(pushDown)
         if self.next_block:
             self.next_block.setRulerDisplay(show_ruler, pushDown=pushDown)
+    """
 
-    def showHeaders(self, headers, pushDown=0):
-        self.top_y += pushDown
+    def show_header(self, header, push_down=0):
+        self.top_y += push_down
         if self.prev_block:
-            newLabelWidth = self.prev_block.label_width
-            insertIndex = len(self.lines) - len(self.alignment.seqs) - len(
-                                headers)
+            self.label_width = self.prev_block.label_width
+            insert_index = len(self.lines) - len(self.alignment.seqs) - 1
         else:
-            insertIndex = len(self.lines) - len(self.alignment.seqs)
-            self.lines[insertIndex:insertIndex] = headers
+            insert_index = len(self.lines) - len(self.alignment.seqs)
+            self.lines[insert_index:insert_index] = [header]
             for seq in self.alignment.seqs:
-                self.line_index[seq] += len(headers)
-            for i in range(len(headers)):
-                self.line_index[headers[i]] = insertIndex + i
-            newLabelWidth = self.find_label_width(self.font,
-                            self.emphasis_font)
-        labelChange = newLabelWidth - self.label_width
-        self.label_width = newLabelWidth
+                self.line_index[seq] += 1
+            self.line_index[header] = insert_index
+            self.label_width = _find_label_width(self.lines, self.settings, self.font_metrics,
+                self.emphasis_font_metrics, self.label_pad)
 
         for ruler_text in self.ruler_texts:
-            self.main_scene.move(ruler_text, labelChange, pushDown)
-        self.bottom_ruler_y += pushDown
+            ruler_text.moveBy(0, push_down)
+        self.bottom_ruler_y += push_down
 
-        self._moveLines(self.lines[:insertIndex], labelChange, 0,
-                                pushDown)
+        self._move_lines(self.lines[:insert_index], 0, 0, push_down)
 
-        for i in range(len(headers)):
-            self._layout_line(headers[i], self.header_label_color,
-                        line_index=insertIndex+i)
-        push = len(headers) * (self.font_pixels[1]
-                            + self.letter_gaps[1])
-        pushDown += push
-        self._moveLines(self.lines[insertIndex+len(headers):],
-                        labelChange, 0, pushDown)
-        self._moveTree(pushDown)
-        self.label_width = newLabelWidth
-        self.bottom_y += pushDown
+        self._layout_line(header, self.header_label_color, line_index=insert_index)
+        push = self.font_pixels[1] + self.letter_gaps[1]
+        push_down += push
+        self._move_lines(self.lines[insert_index+1:], 0, 0, push_down)
+        self._move_tree(push_down)
+        self.bottom_y += push_down
         if self.next_block:
-            self.next_block.showHeaders(headers, pushDown=pushDown)
+            self.next_block.show_header(header, push_down=push_down)
 
+    """TODO
     def showNodes(self, show):
         if show:
             state = 'normal'

@@ -49,22 +49,24 @@ a specified sequence or sequence pattern, use
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 </p><p>
-The sequence of a structure chain in ChimeraX can be shown by:
+Sequences for biopolymer structures in ChimeraX can be shown:
 </p>
 <ul>
+<li>using the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
+and choosing which chain sequence(s) to show
 <li>using the
 <a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
-<li>clicking the 
+<li>by clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
-<li>clicking the <a href="../modelinfo.html">chain description</a> 
+<li>by clicking the <a href="../modelinfo.html">chain description</a> 
 link that appears in the <a href="log.html"><b>Log</b></a> 
 when a structure is opened 
 </ul>
 <p>
-Sequences and sequence alignments can also be 
-<a href="../commands/open.html#local">opened</a> 
+Independent of structure, sequence alignments and individual sequences 
+can also be <a href="../commands/open.html#local">opened</a> 
 from <a href="../commands/open.html#sequence">files</a>
 or <a href="../commands/open.html#fetch">fetched</a>
 from <a href="http://www.uniprot.org/" target="_blank">UniProt</a>.
@@ -79,18 +81,42 @@ Each <b>Sequence Viewer</b> window has a
 with choices including:
 <p>
 <ul>
-<li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
-[various <a href="../commands/save.html#seqformats">sequence file formats</a>]
-&ndash;
-save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
+  &ndash; save to file; 
+  see also <a href="../commands/save.html#sequence"><b>save</b></a>
+  <li><b>Load Sequence Coloring File...</b> open a
+  <a href="../formats/scf.html">sequence coloring file</a>
+  to create <a href="#regions">regions</a> and color 
+  <a href="#association">associated</a> structure to match
+  </ul>
+<li><b>Structure</b>
+  <ul>
+  <li><b>Associations...</b> show dialog for controlling 
+  <a href="#association">sequence-structure association</a>
+  </ul>
+<li><b>Headers</b> 
+&ndash; which <a href="#headers">headers</a> are shown currently
+  <ul>
+  <li><b>Consensus</b>
+  <li><b>Conservation</b> 
+  <li><b>RMSD</b> (<b>C&alpha;</b> or <b>backbone</b> as per
+   the <a href="#settings-headers"><b>Headers</b> settings</a>)
+  </ul>
+<li><b>Tools</b>
+  <ul>
+  <li><b>Modeller Comparative Modeling...</b> 
+start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
+(requires a structure to be <a href="#association">associated</a> 
+with any sequence in the alignment, for use as a template in modeling)
+  <li><b>Blast Protein...</b> 
+run <a href="blastprotein.html"><b>Blast Protein</b></a>
+with default parameters on the specified sequence
+  </ul>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
-<li><b>Associations...</b> show dialog for controlling 
-<a href="#association">sequence-structure association</a>
-<li><b>Load Sequence Coloring File...</b> open a
-<a href="../formats/scf.html">sequence coloring file</a>
-to create <a href="#regions">regions</a> and color 
-<a href="#association">associated</a> structure to match
 </ul>
 
 <a name="headers"></a>
@@ -100,9 +126,14 @@ to create <a href="#regions">regions</a> and color
 <h3>Headers</h3>
 <p>
 Headers are the rows of information above the sequences: consensus sequence,
-conservation histogram, <i>etc.</i>
-Which headers are shown and how they are calculated can be controlled in the
+conservation histogram, and/or RMSD (root-mean-square displacement)
+histogram for multiple <a href="#associations">associated</a> structures.
+Which headers are shown initially and how they are calculated 
+can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
+Regardless of whether a header is shown initially, it can be shown and 
+hidden for a specific window using the <b>Sequence Viewer</b>
+<a href="../window.html#context-menu">context menu</a>.
 </p>
 
 <a name="regions"></a>
@@ -296,7 +327,6 @@ Headers</h4>
 <li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
 <li><b>Consensus: ignore gap characters</b> (<b>off</b>)
 <li><b>Consensus: show at startup</b> (<b>on</b>)
-<li><b>Conservation: show at startup</b> (<b>on</b>)
 </ul>
 The consensus sequence shows the residue type that is most common
 at each position in the alignment, even if it appears in less than 0.5
@@ -311,7 +341,8 @@ as one or more residue types, unless <b>ignore gap characters</b>
 is turned on. Regardless of this option, however,
 gap positions are always included in the denominator
 for calculating the consensus fraction.
-<ul>
+<ul class="none">
+<li><b>Conservation: show at startup</b> (<b>on</b>)
 <li><b>Conservation: style</b>
   <ul>
   <li><b>identity histogram</b> &ndash; what proportion of the sequences
@@ -346,60 +377,75 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
     Pei J, Grishin NV.
     <i>Bioinformatics.</i> 2001 Aug;17(8):700-12.
    </blockquote>
-  <b>AL2CO parameters</b>:
-  <ul>
-  <li><b>Averaging window</b> (initial default <b>1</b>)
-  &ndash; window width, or
-  how many alignment positions to average in a sliding window.
-  The result is assigned to the central column of the window
-  when the width is odd, the column left of center when the width is even
-  (<i>e.g.</i>, the fourth position in a window of 8),
-  with various adjustments at the termini.
-  The authors of AL2CO recommend a width of 3 for motif analyses.
-  <li><a name="al2comeas"><b>Conservation measure</b></a>
-  &ndash; which AL2CO conservation equation to use:
-    <ul>
-    <li><b>entropy-based</b> (initial default)
-    <li><b>variance-based</b>
-    <li><b>sum of pairs</b>
-    </ul>
-  <li><b>Frequency estimation method</b> 
-  &ndash; whether/how to weight the sequences
-    <ul>
-    <li><b>unweighted</b>
-    <li><b>modified Henikoff & Henikoff</b>
-    <li><b>independent counts</b> (initial default)
-    </ul>
-  <li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
-   &ndash; maximum fraction of sequences with gaps in a column
-  for conservation to still be calculated; for example, if the
-  <b>gap fraction</b> is 0.25, conservation values will only be calculated
-  for columns in which at least three-fourths of the sequences have residues
-  </ul><br>
-Additional settings if the AL2CO
-<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
-  <ul>
-  <li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
-  BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
-  BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
-  BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
-  PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
-  <li><b>Matrix transformation</b> 
-  &ndash; whether/how to modify the matrix
-     <ul>
-     <li><b>none</b> (initial default)
-     <li><b>normalization</b>
-     &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
-     <li><b>adjustment</b>
-     &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
-     </ul>
-  </ul>
-  <p>
   Conservation values from AL2CO are in standard deviations from the mean 
   (Z-scores) and can range from &ndash;&infin; (least conserved) to
-  +&infin; (most conserved).
-  </p>
+  +&infin; (most conserved). Detailed AL2CO parameters are in a separate
+  section <a href="#al2co-parameters">below</a>.
   </ul>
+</ul>
+<ul class="none">
+<li><b>RMSD: atoms used for RMSD</b>
+  <ul>
+  <li><b>C&alpha;</b> (initial default)
+  <li><b>backbone</b>
+  </ul>
+<li><b>RMSD: show at startup</b> (<b>off</b>)
+<p>
+When more than one chain per model is <a href="#associations">associated</a>
+with the same alignment, the RMSD (root-mean-square displacement) 
+calculation uses only the chain that gives the lowest overall RMSD.
+</p>
+<p>
+<a name="al2co-parameters"></a>
+<b>AL2CO parameters</b>:
+<ul>
+<li><b>Averaging window</b> (initial default <b>1</b>)
+&ndash; window width, or
+how many alignment positions to average in a sliding window.
+The result is assigned to the central column of the window
+when the width is odd, the column left of center when the width is even
+(<i>e.g.</i>, the fourth position in a window of 8),
+with various adjustments at the termini.
+The authors of AL2CO recommend a width of 3 for motif analyses.
+<li><a name="al2comeas"><b>Conservation measure</b></a>
+&ndash; which AL2CO conservation equation to use:
+  <ul>
+  <li><b>entropy-based</b> (initial default)
+  <li><b>variance-based</b>
+  <li><b>sum of pairs</b>
+  </ul>
+<li><b>Frequency estimation method</b> 
+&ndash; whether/how to weight the sequences
+  <ul>
+  <li><b>unweighted</b>
+  <li><b>modified Henikoff & Henikoff</b>
+  <li><b>independent counts</b> (initial default)
+  </ul>
+<li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+ &ndash; maximum fraction of sequences with gaps in a column
+for conservation to still be calculated; for example, if the
+<b>gap fraction</b> is 0.25, conservation values will only be calculated
+for columns in which at least three-fourths of the sequences have residues
+</ul><br>
+Additional settings if the AL2CO
+<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
+<ul>
+<li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
+BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
+BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
+BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
+PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
+<li><b>Matrix transformation</b> 
+&ndash; whether/how to modify the matrix
+   <ul>
+   <li><b>none</b> (initial default)
+   <li><b>normalization</b>
+   &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
+   <li><b>adjustment</b>
+   &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
+   </ul>
+</ul>
+</ul>
 </ul>
 
 <a name="settings-regions"></a>
@@ -492,5 +538,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+July 2020</address>
 </body></html>

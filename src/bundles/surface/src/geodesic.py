@@ -19,7 +19,7 @@ def surface_path(session, surface, length = 100, rgba = (255,255,0,255), radius 
         # Start in direction perpendicular to starting edge.
         eo = (e[1],e[0])
         ev = edge_vector(eo, vertices)
-        from chimerax.core.geometry import cross_product, normalize_vector
+        from chimerax.geometry import cross_product, normalize_vector
         direction = normalize_vector(cross_product(tnormals[eo], ev))
     else:
         direction, tnormals = None
@@ -48,7 +48,7 @@ def edge_pairs(triangles):
 
 def edge_triangle_normals(vertices, triangles):
     tn = {}
-    from chimerax.core.geometry import cross_product, normalize_vector
+    from chimerax.geometry import cross_product, normalize_vector
     for v1,v2,v3 in triangles:
         x1, x2, x3 = vertices[v1], vertices[v2], vertices[v3]
         n = normalize_vector(cross_product(x2-x1, x3-x1))
@@ -84,7 +84,7 @@ def make_surface_path(edge, edge_pairs, num_points, vertices,
     return points
 
 def next_edge(p, direction, edges, vertices):
-    from chimerax.core.geometry import cross_product, inner_product
+    from chimerax.geometry import cross_product, inner_product
     for e in edges:
         ev1,ev2 = vertices[e[0]]-p, vertices[e[1]]-p
         n = cross_product(ev1, ev2)
@@ -99,7 +99,7 @@ def next_edge(p, direction, edges, vertices):
 
 def next_direction(direction, e, vertices, normal1, normal2):
     ev = edge_vector(e, vertices)
-    from chimerax.core.geometry import cross_product, inner_product, normalize_vector
+    from chimerax.geometry import cross_product, inner_product, normalize_vector
     en1, en2 = cross_product(ev, normal1), cross_product(ev, normal2)
     d = inner_product(direction, ev) * ev + inner_product(direction, en1) * en2
     d = normalize_vector(d)

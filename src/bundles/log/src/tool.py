@@ -126,6 +126,7 @@ function init_menus() {
 class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
+    SESSION_SAVE = True
     help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_name):
@@ -144,7 +145,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy Selection", lambda:
-                    log_window.page().triggerAction(log_window.page().Copy))
+                    self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from PyQt5.QtWidgets import QAction
@@ -182,16 +183,6 @@ class Log(ToolInstance, HtmlLog):
                 s = page.settings()
                 s.setAttribute(s.LocalStorageEnabled, True)
                 self.log = log
-                # as of Qt 5.6.0, the keyboard shortcut for copying text
-                # from the QWebEngineView did nothing on Mac, the below
-                # gets it to work
-                import sys
-                if sys.platform == "darwin":
-                    from PyQt5.QtGui import QKeySequence
-                    from PyQt5.QtWidgets import QShortcut
-                    self.copy_sc = QShortcut(QKeySequence.Copy, self)
-                    self.copy_sc.activated.connect(
-                        lambda: self.page().triggerAction(self.page().Copy))
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
@@ -218,13 +209,9 @@ class Log(ToolInstance, HtmlLog):
                 self.session.ui.thread_safe(defer, self.log)
 
             def cm_save(self):
-                from chimerax.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import format_from_name
-                fmt = format_from_name("HTML")
-                ext = fmt.extensions[0]
-                save_dialog = SaveDialog(self, "Save Log",
-                                         name_filter=export_file_filter(format_name="HTML"),
-                                         add_extension=ext)
+                from chimerax.ui.open_save import SaveDialog
+                fmt = session.data_formats["HTML"]
+                save_dialog = SaveDialog(session, self, "Save Log", data_formats=[fmt])
                 if not save_dialog.exec():
                     return
                 filename = save_dialog.selectedFiles()[0]
@@ -234,6 +221,10 @@ class Log(ToolInstance, HtmlLog):
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
+        from PyQt5.QtCore import QTimer
+        self.regulating_timer = QTimer()
+        self.regulating_timer.timeout.connect(self._actually_show)
+
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
@@ -358,6 +349,11 @@ class Log(ToolInstance, HtmlLog):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
+        # start() is documented to stop the timer if it is running
+        self.regulating_timer.start(100)
+
+    def _actually_show(self):
+        self.regulating_timer.stop()
         if self.suppress_scroll:
             sp = self.log_window.page().scrollPosition()
             height = str(sp.y())
@@ -384,13 +380,18 @@ class Log(ToolInstance, HtmlLog):
         import lxml.html
         html = lxml.html.fromstring(self.page_source)
         for node in html.find_class("cxcmd"):
+            cxcmd_as_doc = False
             for child in node:
-                if (child.tag != 'div' or child.attrib.get('class', None)
-                        not in (None, 'cxcmd_as_cmd')):
+                cls = child.attrib.get('class', None)
+                if cls == 'cxcmd_as_doc':
+                    cxcmd_as_doc = True
                     node.remove(child)
                     continue
-                child.text = '> '
-                break
+                if cls == 'cxcmd_as_cmd':
+                    child.text = '> '
+                    break
+            if not cxcmd_as_doc:
+                node.text = '> '
         src = lxml.html.tostring(html, encoding='unicode')
         return h.handle(src)
 
@@ -447,3 +448,42 @@ class Log(ToolInstance, HtmlLog):
     def get_singleton(cls, session):
         from chimerax.core import tools
         return tools.get_singleton(session, Log, 'Log')
+
+    def set_state_from_snapshot(self, session, data):
+        super().set_state_from_snapshot(session, data)
+        log_data = data['log data']
+        prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
+            log_data['date'], log_data['contents'])
+        if self.settings.session_restore_clears:
+            # "retain" version info
+            class FakeLogger:
+                def __init__(self):
+                    self.msgs = []
+                def info(self, msg):
+                    self.msgs.append(msg)
+            fl = FakeLogger()
+            from chimerax.core.logger import log_version
+            log_version(fl)
+            version = "<br>".join(fl.msgs)
+
+            # look for the command that restored the session and include it
+            index = self.page_source.rfind('<div class="cxcmd">')
+            if index == -1:
+                retain = version
+            else:
+                retain = version + '<br>' + self.page_source[index:]
+            self.page_source = retain + prev_ses_html
+        else:
+            self.page_source += prev_ses_html
+        #self.show_page_source()
+
+    def take_snapshot(self, session, flags):
+        from datetime import datetime
+        data = super().take_snapshot(session, flags)
+        data['log data'] = {
+            'version': 1,
+            'date': datetime.now().ctime(),
+            'contents': self.page_source,
+        }
+        return data
+

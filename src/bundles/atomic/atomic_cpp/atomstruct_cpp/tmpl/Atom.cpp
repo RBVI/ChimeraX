@@ -89,8 +89,8 @@ Atom::set_coord(const Coord &c, CoordSet *cs)
     }
 }
 
-Atom::Atom(Molecule *_owner_, const AtomName& n, const Element& e):
-    _element(&e), _index(COORD_UNASSIGNED), _molecule(_owner_), _name(n),
+Atom::Atom(Molecule *_owner_, const AtomName& n, const Element& e, char c):
+    _chirality(c), _element(&e), _index(COORD_UNASSIGNED), _molecule(_owner_), _name(n),
     _residue(0)
 
 {

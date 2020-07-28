@@ -30,8 +30,7 @@ class DistMouseMode(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         x,y = event.position()
-        from chimerax.mouse_modes import picked_object
-        pick = picked_object(x, y, self.session.main_view)
+        pick = self.session.main_view.picked_object(x, y)
         self._picked_object(pick)
 
     def _picked_object(self, pick):
@@ -50,7 +49,7 @@ class DistMouseMode(MouseMode):
                     a1, a2 = self._first_atom, pick.atom
                     command = "dist %s %s" % (a1.string(style="command line"),
                         a2.string(style="command line"))
-                    from chimerax.core.geometry import distance
+                    from chimerax.geometry import distance
                     message("Distance from %s to %s is %g" % (a1, a2,
                         distance(a1.scene_coord, a2.scene_coord)))
                     self._first_atom = None
