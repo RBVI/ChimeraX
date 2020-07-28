@@ -73,7 +73,9 @@ def read_swc(session, path):
         color = tcolors.get(t, other_color)
         i2m[n] = m = mset.create_marker((x,y,z), color, r, id = n)
         if pid in i2m:
-            create_link(m, i2m[pid], color, r)
+            m2 = i2m[pid]
+            rlink = min(r, m2.radius)
+            create_link(m, m2, color, rlink)
     msg = 'Opened neuron traces %s' % name
     return [mset], msg
     
