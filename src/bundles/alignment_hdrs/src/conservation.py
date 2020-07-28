@@ -35,6 +35,8 @@ class Conservation(DynamicHeaderSequence):
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
+        from PyQt5.QtWidgets import QVBoxLayout
+        from PyQt5.QtCore import Qt
         option_data = self.option_data()
         self._add_options(options_container, category, verbose_labels, option_data)
         if category is None:
@@ -42,7 +44,7 @@ class Conservation(DynamicHeaderSequence):
         else:
             args = (category,)
         self.al2co_options_widget, al2co_options = options_container.add_option_group(*args,
-            group_label="AL2CO parameters")
+            group_label="AL2CO parameters", group_alignment=Qt.AlignLeft)
         from chimerax.sim_matrices import matrices, matrix_name_key_func
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
@@ -61,9 +63,8 @@ class Conservation(DynamicHeaderSequence):
                 "Conservations are computed for columns only if the fraction of gaps is less than this value"),
         ]
         self._add_options(al2co_options, None, False, al2co_option_data)
-        from PyQt5.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
-        layout.addWidget(al2co_options)
+        layout.addWidget(al2co_options, alignment=Qt.AlignLeft)
         from chimerax.ui.widgets import Citation
         layout.addWidget(Citation(self.alignment.session,
             "Pei, J. and Grishin, N.V. (2001)\n"
@@ -71,7 +72,7 @@ class Conservation(DynamicHeaderSequence):
             " protein sequence alignment\n"
             "Bioinformatics, 17, 700-712.", prefix="Publications"
             " using AL2CO conservation measures should cite:",
-            pubmed_id=11524371))
+            pubmed_id=11524371), alignment=Qt.AlignLeft)
         self.al2co_options_widget.setLayout(layout)
         self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
             group_label="Sum-of-pairs parameters")
