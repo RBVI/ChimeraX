@@ -47,6 +47,7 @@ ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to
 See also: 
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
+<a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../preferences.html#startup">custom presets</a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
@@ -157,13 +158,27 @@ and no surface calculations or coloring will be performed.
 This is only useful in combination with <b>map true</b>.
 </p><p>
 With <b>map true</b> (default <b>false</b>), MLP maps will be
-opened as volume models. This allows subsequently recoloring surfaces 
-by the map values (without having to recalculate them on the fly) 
-using <a href="color.html#map"><b>color sample</b></a>,
-and/or <a href="save.html#map">saving the maps</a> to files.
+opened as volume models. This allows 
+<a href="save.html#map">saving the map</a> to a file and/or
+subsequently coloring surfaces by the map values using 
+<a href="color.html#map"><b>color sample</b></a>
+without having to recalculate the map on the fly.
+The following example colors a <a href="surface.html#cap">surface cap</a> 
+(#1.1.1, from <a href="clip.html">clipping</a> surface #1.1) by MLP map #2
+with the same coloring parameters as used for the rest of the surface:
 </p>
+<blockquote>
+<b><a href="open.html">open</a> 1g74
+<br><a href="surface.html">surface</a>
+<br><a href="clip.html">clip</a>
+<br><a href="#top">mlp</a> map true; <a href="wait.html">wait</a> 1
+<br><a href="show.html">hide</a> #2
+<br><a href="color.html#map">color sample</a> 
+#1.1.1 map #2 palette lipophilicity range -20,20
+</b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+July 2020</address>
 </body></html>
