@@ -2032,7 +2032,8 @@ class Framebuffer:
             self.delete()
             # TODO: Need to rebind previous framebuffer.
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
-            return None
+            raise OpenGLError('Framebuffer %s creation failed, status %d, color buffer %s, depth buffer %s'
+                              % (self.name, status, color_buf, depth_buf))
 
         return fbo
 
