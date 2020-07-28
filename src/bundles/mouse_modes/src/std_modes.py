@@ -194,7 +194,7 @@ def select_pick(session, pick, mode = 'replace'):
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
     sel.undo_add_selected(undo_state, False)
-    if pick is None:
+    if pick is None or (isinstance(pick, list) and len(pick) == 0):
         if mode == 'replace':
             from chimerax.core.commands import run
             run(session, 'select clear')
@@ -206,7 +206,8 @@ def select_pick(session, pick, mode = 'replace'):
         if isinstance(pick, list):
             for p in pick:
                 p.select(mode)
-            session.logger.info('Drag select of %s' % _pick_description(pick))
+            if pick:
+                session.logger.info('Drag select of %s' % _pick_description(pick))
         else:
             spec = pick.specifier()
             if mode == 'add' and spec:
