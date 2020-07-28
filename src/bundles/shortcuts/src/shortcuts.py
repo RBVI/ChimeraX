@@ -1214,4 +1214,11 @@ def register_shortcut_command(logger):
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
-    keyboard_shortcuts(session).try_shortcut(name)
+    # run shortcut chosen via bundle provider interface
+    from chimerax.core.errors import NotABug
+    try:
+        keyboard_shortcuts(session).try_shortcut(name)
+    except NotABug as err:
+        from html import escape
+        from chimerax.core.logger import error_text_format
+        session.logger.info(error_text_format % escape(str(err)), is_html=True)
