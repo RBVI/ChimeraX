@@ -2827,6 +2827,7 @@ class Texture:
 
         self.id = t = GL.glGenTextures(1)
         self.size = size
+        self._check_maximum_texture_size(size)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, t)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
@@ -2893,6 +2894,15 @@ class Texture:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 
+    def _check_maximum_texture_size(self, size):
+        if not hasattr(Texture, 'MAX_TEXTURE_SIZE'):
+            Texture.MAX_TEXTURE_SIZE = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = Texture.MAX_TEXTURE_SIZE
+        for s in size:
+            if s > max_size:
+                raise OpenGLError('Texture size (%s) exceeds OpenGL driver maximum %d' %
+                                  (','.join(str(s) for s in size), max_size))
+        
     def __del__(self):
         if self.id is not None:
             raise OpenGLError('OpenGL texture was not deleted before graphics.Texture destroyed')
