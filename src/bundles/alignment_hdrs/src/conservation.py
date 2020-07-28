@@ -18,6 +18,7 @@ from chimerax.seqalign import clustal_strong_groups, clustal_weak_groups
 
 class Conservation(DynamicHeaderSequence):
     name = "Conservation"
+    ident = "conservation"
     sort_val = 1.7
 
     STYLE_PERCENT = "identity histogram"
@@ -34,6 +35,8 @@ class Conservation(DynamicHeaderSequence):
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
+        from PyQt5.QtWidgets import QVBoxLayout
+        from PyQt5.QtCore import Qt
         option_data = self.option_data()
         self._add_options(options_container, category, verbose_labels, option_data)
         if category is None:
@@ -41,7 +44,7 @@ class Conservation(DynamicHeaderSequence):
         else:
             args = (category,)
         self.al2co_options_widget, al2co_options = options_container.add_option_group(*args,
-            group_label="AL2CO parameters")
+            group_label="AL2CO parameters", group_alignment=Qt.AlignLeft)
         from chimerax.sim_matrices import matrices, matrix_name_key_func
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
@@ -60,9 +63,8 @@ class Conservation(DynamicHeaderSequence):
                 "Conservations are computed for columns only if the fraction of gaps is less than this value"),
         ]
         self._add_options(al2co_options, None, False, al2co_option_data)
-        from PyQt5.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
-        layout.addWidget(al2co_options)
+        layout.addWidget(al2co_options, alignment=Qt.AlignLeft)
         from chimerax.ui.widgets import Citation
         layout.addWidget(Citation(self.alignment.session,
             "Pei, J. and Grishin, N.V. (2001)\n"
@@ -70,7 +72,7 @@ class Conservation(DynamicHeaderSequence):
             " protein sequence alignment\n"
             "Bioinformatics, 17, 700-712.", prefix="Publications"
             " using AL2CO conservation measures should cite:",
-            pubmed_id=11524371))
+            pubmed_id=11524371), alignment=Qt.AlignLeft)
         self.al2co_options_widget.setLayout(layout)
         self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
             group_label="Sum-of-pairs parameters")
@@ -106,6 +108,21 @@ class Conservation(DynamicHeaderSequence):
             return self.percent_identity(pos)
         values = [' ', '.', ':', '*']
         return values[self.clustal_type(pos)]
+
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'style': self.style,
+            'al2co params': {
+                'freq': self.settings.al2co_freq,
+                'cons': self.settings.al2co_cons,
+                'window': self.settings.al2co_window,
+                'gap': self.settings.al2co_gap,
+                'matrix': self.settings.al2co_matrix,
+                'transform': self.settings.al2co_transform,
+            }
+        }
+        return state
 
     def num_options(self):
         return 1
@@ -147,6 +164,12 @@ class Conservation(DynamicHeaderSequence):
                 delattr(self, 'depiction_val')
         evaluation_func = self._reeval_al2co if self.style == self.STYLE_AL2CO else evaluation_func
         return super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        for param, val in state['al2co params'].items():
+            setattr(self.settings, 'al2co_' + param, val)
+        self.style = state['style']
 
     def settings_info(self):
         name, defaults = super().settings_info()
@@ -213,12 +236,15 @@ class Conservation(DynamicHeaderSequence):
         session = self.alignment.session
         self[:] = []
         # sequence names in the alignment may contain characters that cause AL2CO to barf,
-        # so make a temporary alignment with sanitized names
+        # so make a temporary alignment with sanitized names.
+        # Also, AL2CO doesn't like spaces in the alignment (which occur in HSSP files), replace with gap
         from copy import copy
         sane_seqs = [copy(seq) for seq in self.alignment.seqs]
         for i, sseq in enumerate(sane_seqs):
             sseq.name = str(i)
-        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp")
+            sseq.characters = sseq.characters.replace(' ', '.')
+
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp", create_headers=False)
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
         temp_alignment.save(temp_stream, format_name="aln")

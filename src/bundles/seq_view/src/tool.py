@@ -465,6 +465,7 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
     def consensus_capitalize_theshold(self):
@@ -529,8 +530,8 @@ class SequenceViewer(ToolInstance):
         structure_menu.addAction(assoc_action)
 
         headers_menu = menu.addMenu("Headers")
-        headers = self.headers()
-        headers.sort(key=lambda hdr: hdr.name.casefold())
+        headers = self.alignment.headers
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
         for hdr in headers:
             action = QAction(hdr.name, headers_menu)
             action.setCheckable(True)
@@ -566,9 +567,6 @@ class SequenceViewer(ToolInstance):
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-
-    def headers(self):
-        return self.seq_canvas.headers[:]
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""

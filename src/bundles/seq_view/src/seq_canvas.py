@@ -550,8 +550,6 @@ class SeqCanvas:
 
     def destroy(self):
         self._resize_timer.stop()
-        for header in self.headers:
-            header.destroy()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -565,8 +563,6 @@ class SeqCanvas:
             from MAViewer import MOD_ASSOC
             self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
-        for header in self.headers:
-            header.destroy()
         self.lead_block.destroy()
         
     def _editHdrCB(self):
@@ -658,13 +654,8 @@ class SeqCanvas:
     def hide_header(self, header):
         self.lead_block.hide_header(header)
         self.sv.region_browser.redraw_regions()
-        #TODO if necessary: self.sv.triggers.activateTrigger(HIDE_HEADERS, headers)
         
     def layout_alignment(self):
-        aln_mgr = self.alignment.session.alignments
-        self.headers = [hdr_class(self.alignment, self.refresh_header)
-            for hdr_class in aln_mgr.headers()]
-        self.headers.sort(key=lambda hdr: hdr.name)
         """
         from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
@@ -674,10 +665,6 @@ class SeqCanvas:
                 startup_headers.add(header.name)
         if use_disp_default:
             self.sv.prefs[STARTUP_HEADERS] = startup_headers
-        """
-        for header in self.headers:
-            header.shown = header.settings.initially_shown and header.relevant
-        """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
             self.labelBindings[seq] = {
@@ -726,7 +713,7 @@ class SeqCanvas:
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
-        initial_headers = [hd for hd in self.headers if hd.shown]
+        initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
@@ -788,7 +775,7 @@ class SeqCanvas:
 
     @property
     def lines(self):
-        return [hdr for hdr in self.headers if hdr.shown] + self.alignment.seqs
+        return [hdr for hdr in self.alignment.headers if hdr.shown] + self.alignment.seqs
 
     """TODO
     def _molChange(self, trigger, myData, changes):
@@ -978,7 +965,7 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
-        initial_headers = [hd for hd in self.headers if hd.shown]
+        initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
@@ -1012,35 +999,37 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_header(self, reason, hdr, *args):
+    def alignment_notification(self, note_name, note_data):
         if hasattr(self, 'lead_block'):
-            if reason == hdr.CALLBACK_SHOWN:
+            if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
+                    self.alignment.NOTE_HDR_NAME):
+                return
+            if type(note_data) == tuple:
+                hdr, bounds = note_data
+            else:
+                hdr = note_data
+            if note_name == self.alignment.NOTE_HDR_SHOWN:
                 if hdr.shown:
                     self.show_header(hdr)
                 else:
                     self.hide_header(hdr)
             elif hdr.shown:
-                if reason == hdr.CALLBACK_VALUES:
-                    bounds, = args
+                if note_name == self.alignment.NOTE_HDR_VALUES:
                     if bounds is None:
                         bounds = (0, len(hdr)-1)
-                    if hasattr(self, 'lead_block'):
-                        self.lead_block.refresh(hdr, *bounds)
-                        self.main_scene.update()
-                elif reason == hdr.CALLBACK_NAME:
+                    self.lead_block.refresh(hdr, *bounds)
+                    self.main_scene.update()
+                elif note_name == self.alignment.NOTE_HDR_NAME:
                     if self.label_width == _find_label_width(self.alignment.seqs +
-                            [hdr for hdr in self.headers if hdr.shown], self.sv.settings,
+                            [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
                             self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
                         self.lead_block.replace_label(hdr)
                         self.label_scene.update()
                     else:
                         self._reformat()
-                elif reason == hdr.CALLBACK_RELEVANCE:
-                    if not hdr.relevant:
-                        hdr.shown = False
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
-        if seq in self.headers and not seq.shown:
+        if seq in self.alignment.headers and not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1
@@ -1090,26 +1079,8 @@ class SeqCanvas:
     """
 
     def restore_state(self, session, state):
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        headers = []
-        for bundle_name, class_name, header_state in state['headers']:
-            bundle = ts.find_bundle(bundle_name, session.logger, installed=True)
-            if not bundle:
-                bundle = ts.find_bundle(bundle_name, session.logger, installed=False)
-                if bundle:
-                    session.logger.error("You need to install bundle %s in order to restore"
-                        " alignment header of type %s" % (bundle_name, class_name))
-                else:
-                    session.logger.error("Cannot restore alignment header of type %s due to"
-                        " being unable to find any bundle named %s" % (class_name, bundle_name))
-                continue
-            header_class = bundle.get_class(class_name, session.logger)
-            if header_class:
-                headers.append(
-                    header_class.session_restore(session, self.alignment, self.refresh_header, header_state))
-            else:
-                session.logger.warning("Could not find alignment header class %s" % class_name)
+        '''Used to restore header state, now done by alignment'''
+        pass
 
     """TODO
     def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):
@@ -1162,14 +1133,8 @@ class SeqCanvas:
     """
 
     def save_state(self):
-        state = {}
-        from chimerax.core.toolshed import get_toolshed
-        ts = get_toolshed()
-        state['headers'] = [
-            (ts.find_bundle_for_class(hdr.__class__).name,
-            hdr.__class__.__name__, hdr.get_state())
-                for hdr in self.headers]
-        return state
+        '''Used to save header state, now done by alignment'''
+        return {}
 
     """TODO
     def seeBlocks(self, blocks):
@@ -1378,8 +1343,6 @@ class SeqCanvas:
     def show_header(self, header):
         self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
-        #self.sv.setResidueAttrs()
-        #self.sv.triggers.activateTrigger(SHOW_HEADERS, headers)
 
     """TODO
     def showNodes(self, show):
