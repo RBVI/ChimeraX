@@ -676,10 +676,10 @@ class Alignment(State):
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
         if match_maps is None:
             match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
-        from chimerax.atomic import AtomicStructure
+        from chimerax.atomic import Residue
         for header in headers:
             attr_name = header.residue_attr_name
-            AtomicStructure.register_attr(self.session, attr_name, "sequence alignment",
+            Residue.register_attr(self.session, attr_name, "sequence alignment",
                 attr_type=header.value_type, can_return_none=header.value_none_okay)
             for match_map in match_maps:
                 for i, val in enumerate(header):
