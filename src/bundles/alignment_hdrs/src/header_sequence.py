@@ -130,7 +130,13 @@ class HeaderSequence(list):
     def make_settings(self, session):
         """For derived classes with their own settings, the settings_info()
            method must be overridden (which see)"""
-        settings_name, settings_defaults = self.settings_info()
+        settings_name, settings_info = self.settings_info()
+        settings_defaults = {}
+        self.__class__._setting_cmd_annotations = cmd_annotations = {}
+        for attr_name, info in settings_info.items():
+            annotation, default_value = info
+            settings_defaults[attr_name] = default_value
+            cmd_annotations[attr_name] = annotation
         from chimerax.core.settings import Settings
         class HeaderSettings(Settings):
             EXPLICIT_SAVE = settings_defaults
@@ -240,13 +246,16 @@ class HeaderSequence(list):
     def settings_info(self):
         """This method needs to return a (name, dict) tuple where 'name' is used to distingush
            this group of settings from settings of other headers or tools (e.g. "consensus sequence header"),
-           and 'dict' is a dictionary of (attr_name: default_value) key/value pairs.
+           and 'dict' is a dictionary of (attr_name: (Annotation subclass, default_value)) key/value pairs.
+           Annotation subclass will be used by the "seq header header_name setting" command to parse the
+           text for the value into the proper value type.
 
            The dictionary must include the base class settings, so super().settings_info() must be
            called and the returned dictionary updated with the derived class's settings"""
         # the code relies on the fact that the returned settings dict is a different object every
         # time (it gets update()d), so don't make it a class variable!
-        return "base header sequence", { 'initially_shown': False }
+        from chimerax.core.commands import BoolArg
+        return "base header sequence", { 'initially_shown': (BoolArg, False) }
 
     @property
     def shown(self):
@@ -268,8 +277,9 @@ class HeaderSequence(list):
 
     def _add_options(self, options_container, category, verbose_labels, option_data):
         for base_label, attr_name, opt_class, opt_kw, balloon in option_data:
-            option = opt_class(self._final_option_label(base_label, verbose_labels), None, None,
-                balloon=balloon, attr_name=attr_name, settings=self.settings, **opt_kw)
+            option = opt_class(self._final_option_label(base_label, verbose_labels), None,
+                self._setting_option_cb, balloon=balloon, attr_name=attr_name, settings=self.settings,
+                auto_set_attr=False, **opt_kw)
             if category is not None:
                 options_container.add_option(category, option)
             else:
@@ -280,12 +290,36 @@ class HeaderSequence(list):
             return "%s: %s" % (getattr(self, "settings_name", self.name), base_label)
         return base_label[0].upper() + base_label[1:]
 
+    def _process_setting_command(self, session, setting_arg_text):
+        from chimerax.core.commands import EnumOf
+        enum = EnumOf(list(self._setting_cmd_annotations.keys()))
+        attr_name, arg_text, remainder = enum.parse(setting_arg_text, session)
+        remainder = remainder.strip()
+        if not remainder:
+            from chimerax.core.errors import UserError
+            raise UserError("No value provided for setting")
+        val, val_text, remainder = self._setting_cmd_annotations[attr_name].parse(remainder, session)
+        if remainder and not remainder.isspace():
+            from chimerax.core.errors import UserError
+            raise UserError("Extraneous text after command")
+        setattr(self.settings, attr_name, val)
+
     def _register_commands(self, registry):
-        from chimerax.core.commands import register, CmdDesc
+        from chimerax.core.commands import register, CmdDesc, RestOfLine
         register("show", CmdDesc(synopsis='Show %s header' % self.ident),
             lambda session, hdr=self: setattr(hdr, "shown", True), registry=registry)
         register("hide", CmdDesc(synopsis='Hide %s header' % self.ident),
             lambda session, hdr=self: setattr(hdr, "shown", False), registry=registry)
+        register("setting", CmdDesc(required=[('setting_arg_text', RestOfLine)],
+            synopsis="change header setting"), self._process_setting_command, registry=registry)
+
+    def _setting_option_cb(self, opt):
+        from chimerax.core.commands import run, StringArg
+        session = self.alignment.session
+        align_arg = "%s " % StringArg.unparse(str(self.alignment)) \
+            if len(session.alignments.alignments) > 1 else ""
+        run(session, "seq header %s%s setting %s %s"
+            % (align_arg, self.ident, opt.attr_name, StringArg.unparse(str(opt.value))))
 
 
 class FixedHeaderSequence(HeaderSequence):

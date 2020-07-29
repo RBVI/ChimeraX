@@ -98,8 +98,9 @@ class RMSD(DynamicStructureHeaderSequence):
 
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import EnumOf
         defaults.update({
-            'atoms': carbon_alpha,
+            'atoms': (EnumOf(RmsdDomainOption.values), carbon_alpha),
         })
         return "RMSD sequence header", defaults
 
