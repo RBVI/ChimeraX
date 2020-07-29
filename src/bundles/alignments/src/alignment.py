@@ -599,7 +599,14 @@ class Alignment(State):
         if self._assoc_handler:
             self._assoc_handler.remove()
 
-    def _dispatch_viewer_command(self, session, viewer_keyword, subcommand_text):
+    def _dispatch_header_command(self, subcommand_text):
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import EnumOf
+        enum = EnumOf(self.headers, ids=[header.ident for header in self._headers])
+        header, ident_text, remainder = enum.parse(subcommand_text, self.session)
+        header.process_command(remainder)
+
+    def _dispatch_viewer_command(self, viewer_keyword, subcommand_text):
         from chimerax.core.errors import UserError
         viewers = self.viewers_by_subcommand.get(viewer_keyword, [])
         if not viewers:

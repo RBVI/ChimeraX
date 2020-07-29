@@ -532,13 +532,16 @@ class SequenceViewer(ToolInstance):
         headers_menu = menu.addMenu("Headers")
         headers = self.alignment.headers
         headers.sort(key=lambda hdr: hdr.ident.casefold())
+        from chimerax.core.commands import run
         for hdr in headers:
             action = QAction(hdr.name, headers_menu)
             action.setCheckable(True)
             action.setChecked(hdr.shown)
             if not hdr.relevant:
                 action.setEnabled(False)
-            action.triggered.connect(lambda checked, hdr=hdr, self=self: setattr(hdr, 'shown', checked))
+            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
+            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
+                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if checked else "hide")))
             headers_menu.addAction(action)
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to

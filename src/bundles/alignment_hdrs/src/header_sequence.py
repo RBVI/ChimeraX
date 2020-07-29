@@ -52,6 +52,7 @@ class HeaderSequence(list):
         self._update_needed = True
         self._edit_bounds = None
         self._alignment_being_edited = False
+        self._command_runner = None
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = self.make_settings(alignment.session)
         if self.eval_while_hidden:
@@ -170,6 +171,15 @@ class HeaderSequence(list):
         from math import exp
         return 1.0 - exp(-raw)
 
+    def process_command(self, command_text):
+        if self._command_runner is None:
+            from chimerax.core.commands import Command
+            from chimerax.core.commands.cli import RegisteredCommandInfo
+            command_registry = RegisteredCommandInfo()
+            self._register_commands(command_registry)
+            self._command_runner = Command(self.alignment.session, registry=command_registry)
+        self._command_runner.run(command_text, log=False)
+
     def reason_requires_update(self, reason):
         return False
 
@@ -269,6 +279,13 @@ class HeaderSequence(list):
         if verbose_labels:
             return "%s: %s" % (getattr(self, "settings_name", self.name), base_label)
         return base_label[0].upper() + base_label[1:]
+
+    def _register_commands(self, registry):
+        from chimerax.core.commands import register, CmdDesc
+        register("show", CmdDesc(synopsis='Show %s header' % self.ident),
+            lambda session, hdr=self: setattr(hdr, "shown", True), registry=registry)
+        register("hide", CmdDesc(synopsis='Hide %s header' % self.ident),
+            lambda session, hdr=self: setattr(hdr, "shown", False), registry=registry)
 
 
 class FixedHeaderSequence(HeaderSequence):
