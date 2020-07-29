@@ -528,8 +528,10 @@ class BundleBuilder:
                 self.datafiles[self.package] = binary_files
             else:
                 data_files.extend(binary_files)
+        import sys
+        vi = sys.version_info
         self.setup_arguments = {"name": self.name,
-                                "python_requires": ">= 3.6"}
+                                "python_requires": f">={vi.major}.{vi.minor}"}
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
         add_argument("long_description", self.description)
