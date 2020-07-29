@@ -190,6 +190,11 @@ class CommandLine(ToolInstance):
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
         menu.addAction(filter_action)
+        select_action = QAction("Leave Failed Command Highlighted", menu)
+        select_action.setCheckable(True)
+        select_action.setChecked(self.settings.select_failed)
+        select_action.toggled.connect(lambda arg, f=self._set_select_failed: f(arg))
+        menu.addAction(select_action)
 
     def on_combobox(self, event):
         val = self.text.GetValue()
@@ -228,7 +233,7 @@ class CommandLine(ToolInstance):
     def execute(self):
         from contextlib import contextmanager
         @contextmanager
-        def processing_command(line_edit, cmd_text, command_worked):
+        def processing_command(line_edit, cmd_text, command_worked, select_failed):
             line_edit.blockSignals(True)
             self._processing_command = True
             # as per the docs for contextmanager, the yield needs
@@ -239,7 +244,7 @@ class CommandLine(ToolInstance):
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
-                if command_worked[0]:
+                if command_worked[0] or select_failed:
                     line_edit.selectAll()
                 self._processing_command = False
         session = self.session
@@ -256,7 +261,8 @@ class CommandLine(ToolInstance):
             # an accidental keypress won't erase the command, which
             # probably needs to be edited to work
             command_worked = [False]
-            with processing_command(self.text.lineEdit(), cmd_text, command_worked):
+            with processing_command(self.text.lineEdit(), cmd_text, command_worked,
+                    self.settings.select_failed):
                 try:
                     self._just_typed_command = cmd_text
                     cmd = Command(session)
@@ -310,6 +316,9 @@ class CommandLine(ToolInstance):
             self._processing_command = False
             raise
         self._processing_command = False
+
+    def _set_select_failed(self, select_failed):
+        self.settings.select_failed = select_failed
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only
