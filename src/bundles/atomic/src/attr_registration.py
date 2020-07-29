@@ -146,10 +146,7 @@ class RegAttrManager(StateManager):
            then it is okay for the attribute to also possibly be None.
         """
         # builtin properties
-        if class_obj not in self._class_builtin_types:
-            self._class_builtin_types[class_obj] = builtin_types = {}
-            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
-                builtin_types[attr_name] = attr_return_types
+        self._process_builtin_types(class_obj)
         matching_attr_names = []
         for attr_name, types in self._class_builtin_types[class_obj].items():
             matched_one = False
@@ -176,6 +173,16 @@ class RegAttrManager(StateManager):
                 matching_attr_names.append(attr_name)
         return matching_attr_names
 
+    def has_attribute(self, class_obj, attr_name):
+        """Does the class have a builtin or registered attribute with the given name?"""
+        self._process_builtin_types(class_obj)
+        if attr_name in self._class_builtin_types[class_obj]:
+            return True
+        if hasattr(class_obj, '_attr_registration'):
+            if attr_name in class_obj._attr_registration.reg_attr_info:
+                return True
+        return False
+
     # session functions; there is one manager per session, and is only in charge of
     # remembering registrations from its session (atomic instances save their own
     # attrs)
@@ -199,6 +206,12 @@ class RegAttrManager(StateManager):
             bundle_api.get_class(class_name)._attr_registration.restore_session_data(
                 session, registration)
         return inst
+
+    def _process_builtin_types(self, class_obj):
+        if class_obj not in self._class_builtin_types:
+            self._class_builtin_types[class_obj] = builtin_types = {}
+            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
+                builtin_types[attr_name] = attr_return_types
 
 class CustomizedInstanceManager(StateManager):
     # This manager's only job is to remember instances that have
