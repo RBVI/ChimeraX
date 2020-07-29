@@ -127,13 +127,23 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 <p>
 Headers are the rows of information above the sequences: consensus sequence,
 conservation histogram, and/or RMSD (root-mean-square displacement)
-histogram for multiple <a href="#associations">associated</a> structures.
+histogram for multiple <a href="#association">associated</a> structures.
 Which headers are shown initially and how they are calculated 
 can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
 Regardless of whether a header is shown initially, it can be shown and 
 hidden for a specific window using the <b>Sequence Viewer</b>
 <a href="../window.html#context-menu">context menu</a>.
+</p><p>
+Per-column header values are assigned as 
+<a href="../attributes.html">attributes</a> of the structure residues
+<a href="#association">associated</a> with sequences in the alignment.
+The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
+is the name of the header, for example,
+<a href="../attributes.html#conservation">seq_conservation</a> or
+<a href="../attributes.html#rmsd">seq_rmsd</a>.
+These are of interest for
+<a href="../commands/color.html#byattribute">coloring by attribute</a>.
 </p>
 
 <a name="regions"></a>
@@ -265,11 +275,8 @@ shows its settings in a separate window, with sections:
 </p>
 <ul>
 <li><a href="#settings-appearance"><b>Appearance</b></a>
-&ndash; sequence display parameters
 <li><a href="#settings-headers"><b>Headers</b></a>
-&ndash; rows of information above the sequences in an alignment
 <li><a href="#settings-regions"><b>Regions</b></a>
-&ndash; creation and display of <a href="#regions">regions</a> (colored boxes)
 </ul>
 <p>
 The settings window can be manipulated like other panels in the
@@ -289,8 +296,10 @@ values for multiple <b>Sequence Viewer</b> windows,
 there can be only one set of saved preference values.
 </p>
 <a name="settings-appearance"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Appearance</h4>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Appearance</b> &ndash; how text is displayed in the 
+<b>Sequence Viewer</b> window
+</p>
 <ul class="none">
 <li><b>Single Sequence</b>
   <ul class="none">
@@ -321,13 +330,17 @@ Appearance</h4>
 </ul>
 
 <a name="settings-headers"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Headers</h4>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Headers</b> &ndash; rows of information above the sequences in an alignment
+(<a href="#headers">more...</a>)
+</p>
 <ul class="none">
-<li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
-<li><b>Consensus: ignore gap characters</b> (<b>off</b>)
-<li><b>Consensus: show at startup</b> (<b>on</b>)
-</ul>
+<li><b>Consensus</b>
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><b>Capitalization threshold</b> (initial default <b>0.8</b>)
+  <li><b>Ignore gap characters</b> (initial default <b>off</b>)
+  </ul>
 The consensus sequence shows the residue type that is most common
 at each position in the alignment, even if it appears in less than 0.5
 of the sequences; if a consensus type appears in at least the 
@@ -341,23 +354,22 @@ as one or more residue types, unless <b>ignore gap characters</b>
 is turned on. Regardless of this option, however,
 gap positions are always included in the denominator
 for calculating the consensus fraction.
-<ul class="none">
-<li><b>Conservation: show at startup</b> (<b>on</b>)
-<li><b>Conservation: style</b>
+</p>
+<li><b>Conservation</b>
   <ul>
-  <li><b>identity histogram</b> &ndash; what proportion of the sequences
+  <li><b>Show initially</b> (initial default <b>on</b>)
+  <li><b>Style</b>
+    <ul>
+    <li><b>identity histogram</b> &ndash; what proportion of the sequences
 have the most prevalent nongap character per alignment column.
 Histogram bar heights are proportional to (M-1)/(N-1), where
 M is the number of occurrences of the most prevalent residue type at
 a position in the alignment and N is the number of sequences in the
 alignment. Thus, if every sequence has a different residue at a
 given position, the bar height is zero, not 1/N.
-<!--
 However, M/N values (not the values used for display purposes) are
-used for the <a href="#mavAttributes"><b>mavConservation</b> attribute</a>
-and written out when conservation values are <a href="#saveheader">saved</a>.
--->
-  <li><b>Clustal characters</b> &ndash; as in Clustal format, 
+used for the <a href="#headers">seq_conservation attribute</a>.
+    <li><b>Clustal characters</b> &ndash; as in Clustal format, 
      <ul class="none"> 
      <li>* (asterisk) for complete identity
      <li>: (colon) for 
@@ -366,7 +378,7 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
      <a href="../formats/clustgroups.html">weak group conservation</a>
      <li> blank otherwise
      </ul>
-  <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+    <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
   initial default) &ndash; more sophisticated options
   for calculating conservation. Users should cite:
   <a name="al2coref"></a>
@@ -379,25 +391,13 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
    </blockquote>
   Conservation values from AL2CO are in standard deviations from the mean 
   (Z-scores) and can range from &ndash;&infin; (least conserved) to
-  +&infin; (most conserved). Detailed AL2CO parameters are in a separate
-  section <a href="#al2co-parameters">below</a>.
-  </ul>
-</ul>
-<ul class="none">
-<li><b>RMSD: atoms used for RMSD</b>
-  <ul>
-  <li><b>C&alpha;</b> (initial default)
-  <li><b>backbone</b>
-  </ul>
-<li><b>RMSD: show at startup</b> (<b>off</b>)
-<p>
-When more than one chain per model is <a href="#associations">associated</a>
-with the same alignment, the RMSD (root-mean-square displacement) 
-calculation uses only the chain that gives the lowest overall RMSD.
-</p>
-<p>
+  +&infin; (most conserved). For purposes of histogram display only,
+  the values are mapped to bar heights 0-1, with conservation values
+  of zero giving a histogram bar height of 0.5.
+</p><p>
 <a name="al2co-parameters"></a>
 <b>AL2CO parameters</b>:
+</p>
 <ul>
 <li><b>Averaging window</b> (initial default <b>1</b>)
 &ndash; window width, or
@@ -446,12 +446,30 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
    </ul>
 </ul>
 </ul>
+  </ul>
+<br>
+<li><b>RMSD</b> &ndash; per-column root-mean-square displacement among 
+<a href="#association">associated</a> structure residues
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><b>Atoms used for RMSD</b>
+    <ul>
+    <li><b>C&alpha;</b> (initial default)
+    <li><b>backbone</b>
+    </ul>
+  </ul>
+<p>
+When more than one chain per model is <a href="#associations">associated</a>
+with the same alignment, the RMSD
+calculation uses only the chain that gives the lowest overall RMSD.
+</p>
 </ul>
 
 <a name="settings-regions"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Regions</h4>
-<p>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Regions</b>
+&ndash; creation and display of <a href="#regions">regions</a> (colored boxes)
+</p><p>
 The <b>Regions</b> section of <a href="#settings">settings</a> controls
 whether different types of <a href="#regions">regions</a> should be shown,
 and if so, their initial colors.
