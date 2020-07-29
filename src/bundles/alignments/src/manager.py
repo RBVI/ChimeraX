@@ -295,7 +295,7 @@ def _register_viewer_subcommand(logger, viewer_sub):
         else:
             alignments = alignment_s
         for alignment in alignments:
-            alignment._dispatch_viewer_command(session, _viewer_keyword, subcommand_text)
+            alignment._dispatch_viewer_command(_viewer_keyword, subcommand_text)
     from .cmd import AlignmentArg
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, RestOfLine, ListOf
     desc = CmdDesc(
