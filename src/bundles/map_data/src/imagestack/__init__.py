@@ -14,6 +14,8 @@
 #
 def open(paths, log=None):
 
+  set_maximum_pil_image_size(None)	# No Python Image Library image size limit.
+  
   if isinstance(paths, str):
     paths = [paths]
 

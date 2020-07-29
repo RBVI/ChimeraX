@@ -1079,7 +1079,8 @@ class Volume(Model):
           # Report voxel under mouse and data value.
           ijk = tuple(int(round(i)) for i in self.data.xyz_to_ijk(0.5*(xyz_in + xyz_out)))
           detail = 'voxel %d,%d,%d' % ijk
-          v = self.region_matrix((ijk,ijk,(1,1,1)))
+          ijk_step = self.region[2]
+          v = self.region_matrix((ijk,ijk,ijk_step))
           if v.size == 1:
             detail += ' value %.4g' % v[0,0,0]
         else:
@@ -2444,7 +2445,6 @@ class OutlineBox:
     d.use_lighting = False
     d.casts_shadows = False
     d.pickable = False
-    d.no_cofr = True
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array

@@ -720,7 +720,6 @@ class TethersDrawing(Drawing):
         
         Drawing.__init__(self, name)
         self.skip_bounds = True   # Don't include in bounds calculation. Optimization.
-        self.no_cofr = True	# Don't use for finding center of rotation. Optimization.
         self.pickable = False	# Don't allow mouse picking.
 
         if tether_shape == TETHER_CYLINDER:
