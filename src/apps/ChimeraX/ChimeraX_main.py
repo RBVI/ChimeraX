@@ -173,6 +173,7 @@ def parse_arguments(argv):
         opts.get_available_bundles = False
         opts.module = sys.argv[2]
         opts.load_tools = False
+        opts.safe_mode = True
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
@@ -456,7 +457,7 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     try:
-        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
     except ImportError as err:
         if opts.offscreen and 'OpenGL' in err.args[0]:
             if sys.platform.startswith("linux"):

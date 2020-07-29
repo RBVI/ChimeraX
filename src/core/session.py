@@ -437,20 +437,27 @@ class Session:
         self.app_name = app_name
         self.debug = debug
         self.silent = silent
+        self._snapshot_methods = {}	# For saving classes with no State base class.
+        self._state_containers = {}     # stuff to save in sessions.
+        self.metadata = {}              # session metadata.
+        self.in_script = InScriptFlag()
+        self.session_file_path = None  # Last saved or opened session file.
+
         from . import logger
         self.logger = logger.Logger(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
-        self._state_containers = {}  # stuff to save in sessions
-        self.metadata = {}           #: session metadata
-        self.in_script = InScriptFlag()
-        self.session_file_path = None  # Last saved or opened session file.
+        
         if minimal:
-            return
-        if not _have_graphics():
             # During build process ChimeraX is run before graphics module is installed.
             return
 
+        # Register session save routines.
+        from chimerax.graphics.gsession import register_graphics_session_save
+        register_graphics_session_save(self)
+        from chimerax.geometry.psession import register_place_session_save
+        register_place_session_save(self)
+        
         # initialize state managers for various properties
         from . import models
         self.models = models.Models(self)
@@ -530,33 +537,19 @@ class Session:
             return None
         if issubclass(cls, base_type):
             return cls
-        elif not hasattr(self, '_snapshot_methods'):
-            try:
-                from chimerax import graphics as gr
-                from chimerax.graphics import gsession as g
-                from chimerax.geometry import Place, Places, psession as p
-            except ImportError:
-                # Session was created with no graphics or geometry modules.
-                # This happens during build process.
-                self._snapshot_methods = {}
-            else:
-                self._snapshot_methods = {
-                    gr.View: g.ViewState,
-                    gr.MonoCamera: g.CameraState,
-                    gr.OrthographicCamera: g.CameraState,
-                    gr.Lighting: g.LightingState,
-                    gr.Material: g.MaterialState,
-                    gr.ClipPlane: g.ClipPlaneState,
-                    gr.SceneClipPlane: g.SceneClipPlaneState,
-                    gr.CameraClipPlane: g.CameraClipPlaneState,
-                    gr.Drawing: g.DrawingState,
-                    Place: p.PlaceState,
-                    Places: p.PlacesState,
-                }
 
         methods = self._snapshot_methods.get(cls, None)
         return methods
 
+    def register_snapshot_methods(self, methods):
+        '''
+        For session saving objects that do not have a State base class.
+        Methods is a dictionary matching the class to be saved in sessions
+        to another class with static methods take_snapshot(instance, session, flags)
+        and restore_snapshot(session, data).
+        '''
+        self._snapshot_methods.update(methods)
+        
     def save(self, stream, version, include_maps=False):
         """Serialize session to binary stream."""
         from . import serialize
@@ -700,15 +693,6 @@ class Session:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
             mgr.cleanup()
-
-
-def _have_graphics():
-    # During build process ChimeraX is run before graphics module is installed.
-    try:
-        import chimerax.graphics  # noqa
-    except ImportError:
-        return False
-    return True
 
 
 class InScriptFlag:
@@ -1044,10 +1028,9 @@ def common_startup(sess):
 
     register_misc_commands(sess)
 
-    if not _have_graphics():
-        # During build process ChimeraX is run before graphics module is installed.
-        return
-
+    if not hasattr(sess, 'models'):
+        return  # Minimal session mode.
+    
     from .selection import Selection
     sess.selection = Selection(sess)
 
