@@ -214,7 +214,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         pir_seqs.append(pir_template)
     import os.path
     pir_file = os.path.join(temp_dir.name, "alignment.ali")
-    aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
+    aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
     aln.save(pir_file, format_name="pir")
     session.alignments.destroy_alignment(aln)
     input_file_map.append(("alignment.ali", "text_file", pir_file))

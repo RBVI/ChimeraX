@@ -13,7 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
     FileNameArg, BoolArg, StringArg, DynamicEnum
-from chimerax.core.commands.cli import RegisteredCommandInfo
+from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 # need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
@@ -43,55 +43,60 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         token, token_log, remainder = next_token(remainder)
         remainder = remainder.lstrip()
         tokens.append(token)
-    database_name = format_name = None
-    for i in range(len(tokens)-2, -1, -2):
-        test_token = tokens[i].lower()
-        if "format".startswith(test_token):
-            format_name = tokens[i+1]
-        elif "fromdatabase".startswith(test_token):
-            database_name = tokens[i+1]
-
-    from .manager import NoOpenerError
-    mgr = session.open_command
-    fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
-    if fetches:
-        try:
-            provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
-        except NoOpenerError as e:
-            raise LimitationError(str(e))
-    else:
-        data_format = file_format(session, files[0], format_name)
-        if data_format is None:
-            # let provider_open raise the error, which will show the command
-            provider_args = {}
-        else:
-            try:
-                provider_args = mgr.open_args(data_format)
-            except NoOpenerError as e:
-                raise LimitationError(str(e))
-
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
         for fn in file_names] + [StringArg.unparse(token) for token in tokens])
-    # register a private 'open' command that handles the provider's keywords
-    registry = RegisteredCommandInfo()
+    try:
+        database_name = format_name = None
+        for i in range(len(tokens)-2, -1, -2):
+            test_token = tokens[i].lower()
+            if "format".startswith(test_token):
+                format_name = tokens[i+1]
+            elif "fromdatabase".startswith(test_token):
+                database_name = tokens[i+1]
 
-    def database_names(mgr=mgr):
-        return mgr.database_names
+        from .manager import NoOpenerError
+        mgr = session.open_command
+        fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
+        if fetches:
+            try:
+                provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
+            except NoOpenerError as e:
+                raise LimitationError(str(e))
+        else:
+            data_format = file_format(session, files[0], format_name)
+            if data_format is None:
+                # let provider_open raise the error, which will show the command
+                provider_args = {}
+            else:
+                try:
+                    provider_args = mgr.open_args(data_format)
+                except NoOpenerError as e:
+                    raise LimitationError(str(e))
 
-    keywords = {
-        'format': DynamicEnum(lambda ses=session:format_names(ses)),
-        'from_database': DynamicEnum(database_names),
-        'ignore_cache': BoolArg,
-        'name': StringArg
-    }
-    for keyword, annotation in provider_args.items():
-        if keyword in keywords:
-            raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
-                " same name" % keyword)
-        keywords[keyword] = annotation
-    desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
-        synopsis="read and display data")
-    register("open", desc, provider_open, registry=registry)
+        # register a private 'open' command that handles the provider's keywords
+        registry = RegisteredCommandInfo()
+
+        def database_names(mgr=mgr):
+            return mgr.database_names
+
+        keywords = {
+            'format': DynamicEnum(lambda ses=session:format_names(ses)),
+            'from_database': DynamicEnum(database_names),
+            'ignore_cache': BoolArg,
+            'name': StringArg
+        }
+        for keyword, annotation in provider_args.items():
+            if keyword in keywords:
+                raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
+                    " same name" % keyword)
+            keywords[keyword] = annotation
+        desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
+            synopsis="read and display data")
+        register("open", desc, provider_open, registry=registry)
+    except BaseException as e:
+        # want to log command even for keyboard interrupts
+        log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
+        raise
     return Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
@@ -598,10 +603,12 @@ def format_names(session):
             fmt_names.add(session.data_formats[fmt_name].nicknames[0])
     return fmt_names
 
+_main_open_CmdDesc = None
 def register_command(command_name, logger):
-    register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
-        ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
-        self_logging=True), cmd_open, logger=logger)
+    global _main_open_CmdDesc
+    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+        ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files", self_logging=True)
+    register('open', _main_open_CmdDesc, cmd_open, logger=logger)
 
     uo_desc = CmdDesc(synopsis='show generic "open" command syntax')
     register('usage open', uo_desc, cmd_usage_open, logger=logger)
