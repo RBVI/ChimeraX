@@ -28,6 +28,7 @@ class Conservation(DynamicHeaderSequence):
 
     def __init__(self, alignment, *args, **kw):
         # need access to settings early, so replicate code in HeaderSequence
+        self.alignment = alignment
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = self.make_settings(alignment.session)
         self._set_update_vars(self.settings.style)
@@ -173,15 +174,18 @@ class Conservation(DynamicHeaderSequence):
 
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import EnumOf, FloatArg, IntArg, Bounded, PositiveIntArg, BoolArg
+        from chimerax.sim_matrices import matrices
+        matrix_names = list(matrices(self.alignment.session).keys())
         defaults.update({
-            'style': self.STYLE_AL2CO,
-            'al2co_freq': 2,
-            'al2co_cons': 0,
-            'al2co_window': 1,
-            'al2co_gap': 0.5,
-            'al2co_matrix': "BLOSUM-62",
-            'al2co_transform': 0,
-            'initially_shown': True
+            'style': (EnumOf(self.styles), self.STYLE_AL2CO),
+            'al2co_freq': (Bounded(IntArg, min=0, max=2), 2),
+            'al2co_cons': (Bounded(IntArg, min=0, max=2), 0),
+            'al2co_window': (PositiveIntArg, 1),
+            'al2co_gap': (Bounded(FloatArg, min=0, max=1), 0.5),
+            'al2co_matrix': (EnumOf(matrix_names), "BLOSUM-62"),
+            'al2co_transform': (Bounded(IntArg, min=0, max=2), 0),
+            'initially_shown': (BoolArg, True),
         })
         return "conservation sequence header", defaults
 
@@ -296,10 +300,11 @@ class Conservation(DynamicHeaderSequence):
 
     def _setting_changed_cb(self, trig_name, trig_data):
         attr_name, prev_val, new_val = trig_data
-        if attr_name == "style":
-            self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
-        elif attr_name == "al2co_cons":
-            self.al2co_sop_options_widget.setHidden(new_val != 2)
+        if hasattr(self, 'al2co_options_widget'):
+            if attr_name == "style":
+                self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
+            elif attr_name == "al2co_cons":
+                self.al2co_sop_options_widget.setHidden(new_val != 2)
         self.reevaluate()
 
 from chimerax.ui.options import EnumOption, SymbolicEnumOption

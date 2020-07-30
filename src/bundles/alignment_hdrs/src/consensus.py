@@ -122,8 +122,9 @@ class Consensus(DynamicHeaderSequence):
 
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import Bounded, FloatArg, BoolArg
         defaults.update({
-            'capitalize_threshold': 0.8,
-            'ignore_gaps': False,
+            'capitalize_threshold': (Bounded(FloatArg, min=0, max=1), 0.8),
+            'ignore_gaps': (BoolArg, False),
         })
         return "consensus sequence header", defaults
