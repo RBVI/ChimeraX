@@ -15,6 +15,7 @@
 from . import _debug
 
 _CACHE_FILE = "available.json"
+FORMAT_VERSION = 1
 
 
 class AvailableBundleCache(list):
@@ -29,8 +30,13 @@ class AvailableBundleCache(list):
         # json interface.
         #
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
+        from chimerax import app_dirs
         from urllib.parse import urljoin, urlencode
-        params = [("uuid", self.uuid())]
+        params = [
+            ("uuid", self.uuid()),
+            ("app_version", app_dirs.version),
+            ("format_version", FORMAT_VERSION),
+        ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
         _debug("AvailableBundleCache.load: url", url)
         from urllib.request import urlopen

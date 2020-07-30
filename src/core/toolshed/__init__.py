@@ -1143,6 +1143,7 @@ class Toolshed:
                     # logger.warning("could not retrieve bundle list from toolshed")
                 from .available import AvailableBundleCache
                 self._available_bundle_info = AvailableBundleCache(self._cache_dir)
+                # TODO: trigger have available bundle information
             elif self._abc_updating:
                 logger.warning("still updating bundle list from toolshed")
             return self._available_bundle_info
