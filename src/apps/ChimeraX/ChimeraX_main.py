@@ -868,7 +868,7 @@ def restart_action(line, inst_dir, msgs):
     # Options should match those in toolshed
     # Do not want to import toolshed yet, so we duplicate the code
     if action == "install":
-        command = ["install", "--upgrade",
+        command = ["install", "--use-feature=2020-resolver", "--upgrade",
                    "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
                    "--upgrade-strategy", "only-if-needed"]
     elif action == "uninstall":
