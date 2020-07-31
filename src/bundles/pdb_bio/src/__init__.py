@@ -18,13 +18,16 @@ class _PDBBioAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            if name == 'pdbbio':
+            if name in ('pdbe_bio', 'rcsb_bio'):
+                if name == 'pdbe_bio':
+                    site = 'pdbe'
+                elif name == 'rcsb_bio':
+                    site = 'rcsb'
                 from chimerax.open_command import FetcherInfo
                 class PDBBioFetcherInfo(FetcherInfo):
-                    def fetch(self, session, id, format_name, ignore_cache, **kw):
+                    def fetch(self, session, id, format_name, ignore_cache, site=site, **kw):
                         from .fetch_pdb_bio import fetch_pdb_biological_assemblies
-                        models, status = fetch_pdb_biological_assemblies(session, id,
-                                                                         format_name=format_name,
+                        models, status = fetch_pdb_biological_assemblies(session, id, site=site,
                                                                          ignore_cache=ignore_cache, **kw)
                         return models, status
                     @property

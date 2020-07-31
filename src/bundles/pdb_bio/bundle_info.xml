@@ -20,8 +20,8 @@
   </Dependencies>
 
   <Providers manager="open command">
-    <Provider name="pdbbio" type="fetch" format_name="pdb" example_ids="2d2n" is_default="false" />
-    <Provider name="pdbbio" type="fetch" format_name="mmcif" example_ids="6ts0" />
+    <Provider name="pdbe_bio" type="fetch" format_name="mmcif" example_ids="6ts0" />
+    <Provider name="rcsb_bio" type="fetch" format_name="mmcif" example_ids="6ts0" />
   </Providers>
 
   <Classifiers>

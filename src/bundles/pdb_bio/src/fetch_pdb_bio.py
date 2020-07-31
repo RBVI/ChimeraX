@@ -18,26 +18,29 @@ pdb_bio: Fetch biological assemblies from PDB
 # --------------------------------------------------------------------------------------
 #
 def fetch_pdb_biological_assemblies(session, pdb_id, *,
-                                    max_assemblies=None, format_name=None,
+                                    max_assemblies=None, site='pdbe',
                                     ignore_cache=False, **kw):
     from chimerax.core.errors import UserError
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters, got "%s"' % pdb_id)
 
-    # TODO: Manager provider code is always giving mmCIF.  Ask Eric how to make this work.
-    format_name = None
-    
-    models = []
-    if format_name is None or format_name.lower() == 'mmcif':
-        models = _fetch_mmcif_assemblies(session, pdb_id,
-                                         max_assemblies = max_assemblies,
-                                         ignore_cache = ignore_cache, **kw)
-    if len(models) == 0 and (format_name is None or format_name.lower() == 'pdb'):
-        models = _fetch_pdb_assemblies(session, pdb_id,
-                                       max_assemblies = max_assemblies,
-                                       ignore_cache = ignore_cache, **kw)
+    if site == 'pdbe':
+        models = _fetch_pdbe_assemblies(session, pdb_id,
+                                        max_assemblies = max_assemblies,
+                                        ignore_cache = ignore_cache, **kw)
+    elif site == 'rcsb':
+        # First try to get mmCIF biological assemblies.
+        models = _fetch_rcsb_mmcif_assemblies(session, pdb_id,
+                                              max_assemblies = max_assemblies,
+                                              ignore_cache = ignore_cache, **kw)
+        if len(models) == 0:
+            # No mmCIF format biological assemblies so try pdb format.
+            models = _fetch_rcsb_pdb_assemblies(session, pdb_id,
+                                                max_assemblies = max_assemblies,
+                                                ignore_cache = ignore_cache, **kw)
+
     if len(models) == 0:
-        msg = 'No biogical assemblies for %s' % pdb_id
+        msg = 'No biogical assemblies available for %s' % pdb_id
     else:
         msg = 'Opened %d biological assemblies for %s' % (len(models), pdb_id)
     session.logger.status(msg)
@@ -45,27 +48,65 @@ def fetch_pdb_biological_assemblies(session, pdb_id, *,
     return models, msg
 
 # --------------------------------------------------------------------------------------
+# https://www.ebi.ac.uk/pdbe/static/entry/download/6ts0-assembly-1.cif.gz
 #
-def _fetch_mmcif_assemblies(session, pdb_id, *,
-                            max_assemblies=None, ignore_cache=False, **kw):
-    id = pdb_id.upper()
+def _fetch_pdbe_assemblies(session, pdb_id, *,
+                           max_assemblies=None, ignore_cache=False, **kw):
+    mmcif_file = '%s-assembly-%d.cif.gz'
+    save_name = '%s-assembly-%d.cif'
+    mmcif_url = 'https://www.ebi.ac.uk/pdbe/static/entry/download/%s'
+    models = _fetch_assemblies(session, pdb_id, mmcif_url, mmcif_file,
+                               save_template=save_name,
+                               max_assemblies=max_assemblies,
+                               ignore_cache=ignore_cache, **kw)
+    return models
+
+# --------------------------------------------------------------------------------------
+#
+def _fetch_rcsb_mmcif_assemblies(session, pdb_id, *,
+                                 max_assemblies=None, ignore_cache=False, **kw):
     mmcif_file = '%s-assembly%d.cif'
     mmcif_url = 'https://files.rcsb.org/download/%s'
+    models = _fetch_assemblies(session, pdb_id, mmcif_url, mmcif_file,
+                               max_assemblies=max_assemblies,
+                               ignore_cache=ignore_cache, **kw)
+    return models
 
+# --------------------------------------------------------------------------------------
+#
+def _fetch_rcsb_pdb_assemblies(session, pdb_id, *,
+                               max_assemblies=None, ignore_cache=False, **kw):
+    pdb_file = '%s.pdb%d.gz'
+    save_name = '%s-assembly%d.pdb'
+    pdb_url = 'https://files.rcsb.org/download/%s'
+    models = _fetch_assemblies(session, pdb_id, pdb_url, pdb_file,
+                               save_template=save_name,
+                               max_assemblies=max_assemblies,
+                               ignore_cache=ignore_cache, **kw)
+    return models
+
+# --------------------------------------------------------------------------------------
+#
+def _fetch_assemblies(session, pdb_id, url_template, file_template, *,
+                      save_template=None, max_assemblies=None, ignore_cache=False, **kw):
     models = []
     n = 1
+    id = pdb_id.lower()
     from chimerax.core.fetch import fetch_file
     from chimerax.core.errors import UserError
     while max_assemblies is None or n <= max_assemblies:
-        filename = mmcif_file % (id, n)
-        url = mmcif_url % filename
+        filename = file_template % (id, n)
+        url = url_template % filename
         status_name = '%s bioassembly %d' % (pdb_id, n)
+        save_name = filename if save_template is None else (save_template % (id, n))
+        uncompress = filename.endswith('.gz')
         try:
-            path = fetch_file(session, url, status_name, filename, 'PDB', ignore_cache=ignore_cache)
+            path = fetch_file(session, url, status_name, save_name, 'PDB',
+                              uncompress=uncompress, ignore_cache=ignore_cache)
         except UserError:
             break
         model_name = status_name
-        mlist, status = session.open_command.open_data(path, format='mmcif', name=model_name, **kw)
+        mlist, status = session.open_command.open_data(path, name=model_name, **kw)
         if len(mlist) > 1:
             models.append(_group_subunit_models(session, mlist, status_name)) 
         else:
@@ -76,35 +117,6 @@ def _fetch_mmcif_assemblies(session, pdb_id, *,
 
 # --------------------------------------------------------------------------------------
 #
-def _fetch_pdb_assemblies(session, pdb_id, *,
-                          max_assemblies=None, ignore_cache=False, **kw):
-    id = pdb_id.upper()
-    pdb_file = '%s.pdb%d.gz'
-    pdb_url = 'https://files.rcsb.org/download/%s'
-    models = []
-    n = 1
-    from chimerax.core.fetch import fetch_file
-    from chimerax.core.errors import UserError
-    while max_assemblies is None or n <= max_assemblies:
-        filename = pdb_file % (id, n)
-        url = pdb_url % filename
-        save_name = '%s-assembly%d.pdb' % (id, n)
-        status_name = '%s bioassembly %d' % (pdb_id, n)
-        try:
-            path = fetch_file(session, url, status_name, save_name, 'PDB',
-                              ignore_cache=ignore_cache, uncompress=True)
-        except UserError:
-            break
-        model_name = status_name
-        mlist, status = session.open_command.open_data(path, format='pdb', name=model_name, **kw)
-        if len(mlist) > 1:
-            models.append(_group_subunit_models(session, mlist, status_name)) 
-        else:
-            models.extend(mlist)
-        n += 1
-
-    return models
-
 def _group_subunit_models(session, subunit_models, name):
     from chimerax.core.models import Model
     group = Model(name, session)
