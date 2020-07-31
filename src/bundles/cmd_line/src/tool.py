@@ -274,10 +274,8 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info("<i>Failed command</i>: <b>%s</b>" % escape(cmd_text), is_html=True)
                     logger.info(error_text_format % escape(str(err)), is_html=True)
                 except BaseException:
-                    logger.info("<i>Failed command</i>: <b>%s</b>" % escape(cmd_text), is_html=True)
                     raise
         self.set_focus()
 
