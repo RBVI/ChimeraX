@@ -77,7 +77,7 @@ def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                 curRList1 = []
                 for rnum in rnums:
                         r0, r1 = r0map[rnum], r1map[rnum]
-                        if shareAtomsSameName(r0, r1, atomMap):
+                        if _residue_atom_pairing_same_name(r0, r1, atomMap):
                                 curRList0.append(r0)
                                 curRList1.append(r1)
                 parts.append((curRList0, curRList1))
@@ -111,7 +111,7 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                 curRList0 = None
                 curRList1 = None
                 for r0, r1 in zip(r0list, r1list):
-                        if not shareAtoms(r0, r1, atomMap):
+                        if not _residue_atom_pairing(r0, r1, atomMap):
                                 raise AtomPairingError("residues do not share atoms")
                         #
                         # Split residues based on surface category (in m0)
@@ -204,7 +204,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                         r1 = gapped1.residues[i1]
                         if r1 is None:
                                 continue
-                        if not shareAtoms(r0, r1, atomMap):
+                        if not _residue_atom_pairing(r0, r1, atomMap):
                                 continue
                         rList0.append(r0)
                         rList1.append(r1)
@@ -216,6 +216,15 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         #
         segments = find_hinges(parts, fraction, min_hinge_spacing, log)
 
+        _add_bound_residues(segments, atomMap, m0, m1, m0seqs, m1seqs)
+
+        #
+        # Finally, finished
+        #
+        # print ("Matched %d residues in %d segments" % (matched, len(segments)))
+        return segments, atomMap
+
+def _add_bound_residues(segments, atomMap, m0, m1, m0seqs, m1seqs):
         #
         # Identify any residues that were not in sequences but have
         # similar connectivity (e.g., metals and ligands) and share
@@ -227,22 +236,34 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                 for r0, r1 in zip(s[0], s[1]):
                         residueMap[r1] = r0
                         segmentMap[r0] = sIndex
+
+        # Find residues not in first sequence.
         used = set()
         for seq0 in m0seqs:
                 used.update(seq0.residues)
         m0candidates = [ r0 for r0 in m0.residues if r0 not in used ]
-        keyMap = dict()
+
+        # Map non-sequence residues according to their connected neighbors.
+        # TODO: More than one non-sequence residue can have the same neighbors.
+        #       For instance two can connect to the same single residue.
+        neighbors_to_residue = dict()
         for r0 in m0candidates:
                 neighbors = _getConnectedResidues(r0)
                 if not neighbors:
                         continue
                 nlist = list(neighbors)
                 nlist.sort()
-                keyMap[tuple(nlist)] = r0
+                neighbors_to_residue[tuple(nlist)] = r0
+
+        # Find residues not in second sequence.
         used = set()
         for seq1 in m1seqs:
                 used.update(seq1.residues)
         m1candidates = [ r1 for r1 in m1.residues if r1 not in used ]
+
+        # See if non-sequence residues in second sequence can be
+        # matched to non-sequence residues in first sequence that
+        # have the same set of neigbhors.
         for r1 in m1candidates:
                 neighbors = _getConnectedResidues(r1)
                 if not neighbors:
@@ -250,25 +271,17 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                 try:
                         nlist = [ residueMap[r] for r in neighbors ]
                 except KeyError:
-                        pass
-                else:
-                        nlist.sort()
-                        key = tuple(nlist)
-                        try:
-                                r0 = keyMap[key]
-                                sIndex = segmentMap[nlist[0]]
-                        except KeyError:
-                                pass
-                        else:
-                                if shareAtoms(r0, r1, atomMap):
-                                        s0, s1 = segments[sIndex]
-                                        segments[sIndex] = (s0 + (r0,), s1 + (r1,))
-
-        #
-        # Finally, finished
-        #
-        # print ("Matched %d residues in %d segments" % (matched, len(segments)))
-        return segments, atomMap
+                        continue
+                nlist.sort()
+                r0 = neighbors_to_residue.get(tuple(nlist))
+                if r0 is None:
+                        continue
+                sIndex = segmentMap.get(nlist[0])
+                if sIndex is None:
+                        continue
+                if _residue_atom_pairing(r0, r1, atomMap):
+                        s0, s1 = segments[sIndex]
+                        segments[sIndex] = (s0 + (r0,), s1 + (r1,))
 
 def find_hinges(parts, fraction, min_hinge_spacing, log = None):
         segments = []
@@ -328,7 +341,7 @@ def segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing):
 # small molecule ligands.
 # 
 satt = 0                        
-def shareAtoms(r0, r1, atomMap):
+def _residue_atom_pairing(r0, r1, atomMap):
         t0 = time()
         # We start by finding the atom connected to the
         # previous residue.  Failing that, we want the
@@ -410,7 +423,7 @@ def shareAtoms(r0, r1, atomMap):
         satt += t1-t0
         return True
 
-def shareAtomsSameName(r0, r1, atomMap):
+def _residue_atom_pairing_same_name(r0, r1, atomMap):
         a1 = {a.name: a for a in r1.atoms}
         matched = False
         for a in r0.atoms:
