@@ -111,8 +111,10 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                 curRList0 = None
                 curRList1 = None
                 for r0, r1 in zip(r0list, r1list):
-                        if not _residue_atom_pairing(r0, r1, atomMap):
-                                raise AtomPairingError("residues do not share atoms")
+                        if r0.num_atoms != r1.num_atoms:
+                                raise AtomPairingError("residues have different number atoms")
+                        if _residue_atom_pairing(r0, r1, atomMap) != r0.num_atoms:
+                                raise AtomPairingError("residues do not have identical atoms")
                         #
                         # Split residues based on surface category (in m0)
                         #
@@ -204,7 +206,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                         r1 = gapped1.residues[i1]
                         if r1 is None:
                                 continue
-                        if not _residue_atom_pairing(r0, r1, atomMap):
+                        if _residue_atom_pairing(r0, r1, atomMap) == 0:
                                 continue
                         rList0.append(r0)
                         rList1.append(r1)
@@ -279,7 +281,7 @@ def _add_bound_residues(segments, atomMap, m0, m1, m0seqs, m1seqs):
                 sIndex = segmentMap.get(nlist[0])
                 if sIndex is None:
                         continue
-                if _residue_atom_pairing(r0, r1, atomMap):
+                if _residue_atom_pairing(r0, r1, atomMap) > 0:
                         s0, s1 = segments[sIndex]
                         segments[sIndex] = (s0 + (r0,), s1 + (r1,))
 
@@ -380,7 +382,7 @@ def _residue_atom_pairing(r0, r1, atomMap):
                                 if na not in visited and na in neighbors:
                                         todo.append(na)
         if a1 is None:
-                return False
+                return 0
 
         matched = [(a0,a1)]
         paired = set((a0,a1))
@@ -421,16 +423,17 @@ def _residue_atom_pairing(r0, r1, atomMap):
         t1 = time()
         global satt
         satt += t1-t0
-        return True
+        return len(matched)
 
 def _residue_atom_pairing_same_name(r0, r1, atomMap):
-        a1 = {a.name: a for a in r1.atoms}
-        matched = False
+        a1map = {a.name: a for a in r1.atoms}
+        matched = []
         for a in r0.atoms:
-                if a.name in a1:
-                        atomMap[a] = a1[a.name]
-                        matched = True
-        return matched
+                if a.name in a1map:
+                        matched.append((a, a1map[a.name]))
+        for a0,a1 in matched:
+                atomMap[a0] = a1
+        return len(matched)
 
 
 def _getConnectedResidues(r):
