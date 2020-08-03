@@ -23,8 +23,6 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
     if atom.num_bonds -len(neighbor_Hs) > num_bonds:
         raise ParamError("Atom already has more bonds to heavy atoms than requested.\n"
             "Either delete some of those bonds/atoms or choose a different number of requested bonds.")
-    for h in neighbor_Hs:
-        h.structure.delete_atom(h)
 
     if geometry is None:
         if num_bonds < 2:
@@ -38,6 +36,9 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
                 geometry = 4
     if num_bonds > geometry:
         raise ParamError("Requested number of bonds more than the coordination geometry can support.")
+
+    for h in neighbor_Hs:
+        h.structure.delete_atom(h)
 
     changed_atoms = [atom]
     if name:
