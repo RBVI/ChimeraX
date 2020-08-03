@@ -506,9 +506,15 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # UNK/N residues will be missing some or all of their side-chain atoms, so
                 # skip atoms that would otherwise be incorrectly protonated due to their
                 # missing neighbors
-                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
-                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
-                    and unk_atom_truncated(atom))
+                truncated = \
+                        atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
+                    or \
+                        (atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE
+                        and unk_atom_truncated(atom)) \
+                    or \
+                        (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
+                        and atom.num_explicit_bonds < 4)
+
                 if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
