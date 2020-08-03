@@ -89,6 +89,8 @@ class Alignment(State):
                 from copy import copy
                 seqs[i] = copy(seq)
             seqs[i].match_maps = {}
+        # need an _headers placeholder before associate() gets called...
+        self._headers = []
         self._assoc_handler = None
         if auto_associate is None:
             # Create association for alignment's StructureSeqs, no auto-assoc
@@ -112,8 +114,6 @@ class Alignment(State):
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
             self._set_residue_attributes()
-        else:
-            self._headers = []
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
