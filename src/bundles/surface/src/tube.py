@@ -184,7 +184,7 @@ def extrusion_transforms(path, tangents, yaxis = None):
             n0 = n1
     else:
         # Make y-axis of coordinate frames at each point align with yaxis.
-        from chimerax.core import normalize_vector, cross_product
+        from chimerax.geometry import normalize_vector, cross_product, Place
         for p,t in zip(path, tangents):
             za = t
             xa = normalize_vector(cross_product(yaxis, za))
