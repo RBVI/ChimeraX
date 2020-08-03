@@ -295,7 +295,7 @@ def _atom_extrusion(path_atoms, shape, band_length = 0, segment_subdivisions = 1
     for atoms, bonds in chains:
         xyz_path = atoms.scene_coords
         point_colors = atoms.colors
-        segment_colors = [color] * (len(atoms) - 1) if color else bonds.colors
+        segment_colors =  bonds.colors if color is None else ([color] * (len(atoms) - 1))
         geom = banded_extrusion(xyz_path, point_colors, segment_colors,
                                 segment_subdivisions, band_length, shape)
         if geom is not None:

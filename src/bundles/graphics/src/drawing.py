@@ -812,6 +812,8 @@ class Drawing:
             from .opengl import Render
             if self.use_lighting:
                 sopt |= Render.SHADER_LIGHTING
+            if self.normals is not None:
+                sopt |= Render.SHADER_LIGHTING_NORMALS
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             t = self.texture

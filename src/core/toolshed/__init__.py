@@ -1164,7 +1164,7 @@ class Toolshed:
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
         # with stderr as parameter.
-        command = ["install", "--upgrade",
+        command = ["install", "--use-feature=2020-resolver", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
                    # "--only-binary", ":all:"   # msgpack-python is not binary
