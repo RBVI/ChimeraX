@@ -2031,6 +2031,7 @@ class Framebuffer:
 
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         if status != GL.GL_FRAMEBUFFER_COMPLETE:
+            self._fbo = fbo	# Need to set attribute for delete to release attachments.
             self.delete()
             # TODO: Need to rebind previous framebuffer.
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
