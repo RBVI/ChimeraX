@@ -306,6 +306,7 @@ class ObjectLabels(Model):
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
+        self._model_display_handler = t.add_handler('model display changed', self._model_display_changed)
         from chimerax.core.core_settings import settings as core_settings
         self._background_color_handler = core_settings.triggers.add_handler(
             'setting changed', self._background_changed_cb)
@@ -327,6 +328,11 @@ class ObjectLabels(Model):
         if h is not None:
             h.remove()
             self._update_graphics_handler = None
+
+        h = self._model_display_handler
+        if h is not None:
+            h.remove()
+            self._model_display_handler = None
 
         h = self._background_color_handler
         if h is not None:
@@ -413,6 +419,10 @@ class ObjectLabels(Model):
             self.delete_labels([l.object for l in self._labels if l.object_deleted])
         self.redraw_needed()
 
+    def _model_display_changed(self, trig_name, model):
+        # If a model is hidden global pseudobond labels may need to be hidden.
+        self._visibility_needs_update = True
+        
     def _background_changed_cb(self, trig_name, info):
         setting_name, old_val, new_val = info
         if setting_name == "background_color":
@@ -829,7 +839,11 @@ class EdgeLabel(ObjectLabel):
         return xyz
     def visible(self):
         pb = self.pseudobond
-        return (not pb.deleted) and pb.shown
+        if pb.deleted or not pb.shown:
+            return False
+        a1,a2 = pb.atoms
+        vis = a1.structure.visible and a2.structure.visible
+        return vis
 
 # -----------------------------------------------------------------------------
 #

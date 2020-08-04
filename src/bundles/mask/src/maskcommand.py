@@ -40,6 +40,9 @@ def mask(session, volumes, surfaces, axis = None, full_map = False,
     from .depthmask import surface_geometry, masked_volume
     for v in volumes:
         surfs = surface_geometry(surfaces, v.position.inverse(), pad)
+        if len(surfs) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('Only empty surfaces specified')
         mv = masked_volume(v, surfs, axis, full_map, sandwich, invert_mask,
                            fill_overlap, extend, model_id)
         mvlist.append(mv)
