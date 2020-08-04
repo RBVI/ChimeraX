@@ -281,7 +281,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     if models is None:
         models = session.models.list()
 
-    drawings = all_drawings(models)
+    drawings = all_visible_drawings(models)
     
     # Write 80 character comment.
     from chimerax import app_dirs as ad
@@ -342,10 +342,10 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
 # Collect all drawings including descendants of specified models, excluding
 # ones that show no triangles.
 #
-def all_drawings(models):
+def all_visible_drawings(models):
     drawings = set()
     for m in models:
-        if not m in drawings:
+        if m.visible and m not in drawings:
             for d in m.all_drawings(displayed_only = True):
                 drawings.add(d)
     # Prune drawings with nothing displayed.

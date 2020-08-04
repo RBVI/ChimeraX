@@ -1433,7 +1433,7 @@ class Multishadow:
         self._max_multishadows = None
         self._multishadow_view_transforms = Places()	# Includes camera view.
 
-        # near to far clip depth for shadow map:
+        # near to far clip depth for shadow map, needed to normalize shadow direction vector.
         self._multishadow_depth = None
 
         # Uniform buffer object for shadow matrices:
@@ -1611,7 +1611,8 @@ class Multishadow:
 
         maxs = self.max_multishadows()            
         shader.set_integer("shadow_count", min(maxs, len(m)))
-        shader.set_float("shadow_depth", self._multishadow_depth)
+        if shader.capabilities & Render.SHADER_LIGHTING_NORMALS:
+            shader.set_float("shadow_depth", self._multishadow_depth)
 
 class Offscreen:
     '''Offscreen framebuffer for 16-bit color depth.'''
@@ -1891,6 +1892,7 @@ class BlendTextures:
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',
+    'SHADER_LIGHTING_NORMALS',
     'SHADER_DEPTH_CUE',
     'SHADER_NO_DEPTH_CUE',
     'SHADER_TEXTURE_2D',

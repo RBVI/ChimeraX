@@ -13,7 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, register, Command, SaveFileNameArg, RestOfLine, next_token, \
     FileNameArg, DynamicEnum
-from chimerax.core.commands.cli import RegisteredCommandInfo
+from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 def cmd_save(session, file_name, rest_of_line, *, log=True):
@@ -28,35 +28,40 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         test_token = tokens[i].lower()
         if "format".startswith(test_token):
             format_name = tokens[i+1]
-
-    from .manager import NoSaverError
-    mgr = session.save_command
-    data_format= file_format(session, file_name, format_name)
-    try:
-        provider_args = mgr.save_args(data_format)
-    except NoSaverError as e:
-        raise LimitationError(str(e))
-
     provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)] + tokens)
-    # register a private 'save' command that handles the provider's keywords
-    registry = RegisteredCommandInfo()
-    keywords = {
-        'format': DynamicEnum(lambda ses=session: format_names(ses)),
-    }
-    for keyword, annotation in provider_args.items():
-        if keyword in keywords:
-            raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
-                " of same name" % keyword)
-        keywords[keyword] = annotation
-    # for convenience, allow 'models' to be a second positional argument instead of a keyword
-    if 'models' in keywords:
-        optional = [('models', keywords['models'])]
-        del keywords['models']
-    else:
-        optional = []
-    desc = CmdDesc(required=[('file_name', SaveFileNameArg)], optional=optional, keyword=keywords.items(),
-        hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
-    register("save", desc, provider_save, registry=registry)
+
+    try:
+        from .manager import NoSaverError
+        mgr = session.save_command
+        data_format= file_format(session, file_name, format_name)
+        try:
+            provider_args = mgr.save_args(data_format)
+        except NoSaverError as e:
+            raise LimitationError(str(e))
+
+        # register a private 'save' command that handles the provider's keywords
+        registry = RegisteredCommandInfo()
+        keywords = {
+            'format': DynamicEnum(lambda ses=session: format_names(ses)),
+        }
+        for keyword, annotation in provider_args.items():
+            if keyword in keywords:
+                raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
+                    " of same name" % keyword)
+            keywords[keyword] = annotation
+        # for convenience, allow 'models' to be a second positional argument instead of a keyword
+        if 'models' in keywords:
+            optional = [('models', keywords['models'])]
+            del keywords['models']
+        else:
+            optional = []
+        desc = CmdDesc(required=[('file_name', SaveFileNameArg)], optional=optional,
+            keyword=keywords.items(), hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
+        register("save", desc, provider_save, registry=registry)
+    except BaseException as e:
+        # want to log command even for keyboard interrupts
+        log_command(session, "save", provider_cmd_text, url=_main_save_CmdDesc.url)
+        raise
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
@@ -233,10 +238,12 @@ def cmd_usage_save_format(session, format):
     session.logger.info(syntax, is_html=session.ui.is_gui)
 
 
+_main_save_CmdDesc = None
 def register_command(command_name, logger):
-    register('save', CmdDesc(
-        required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
-        synopsis="Save file", self_logging=True), cmd_save, logger=logger)
+    global _main_save_CmdDesc
+    _main_save_CmdDesc = CmdDesc(required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
+        synopsis="Save file", self_logging=True)
+    register('save', _main_save_CmdDesc, cmd_save, logger=logger)
 
     sf_desc = CmdDesc(synopsis='report formats that can be saved')
     register('save formats', sf_desc, cmd_save_formats, logger=logger)

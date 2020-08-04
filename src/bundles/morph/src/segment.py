@@ -77,7 +77,7 @@ def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                 curRList1 = []
                 for rnum in rnums:
                         r0, r1 = r0map[rnum], r1map[rnum]
-                        if shareAtomsSameName(r0, r1, atomMap):
+                        if _residue_atom_pairing_same_name(r0, r1, atomMap):
                                 curRList0.append(r0)
                                 curRList1.append(r1)
                 parts.append((curRList0, curRList1))
@@ -111,8 +111,10 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                 curRList0 = None
                 curRList1 = None
                 for r0, r1 in zip(r0list, r1list):
-                        if not shareAtoms(r0, r1, atomMap):
-                                raise AtomPairingError("residues do not share atoms")
+                        if r0.num_atoms != r1.num_atoms:
+                                raise AtomPairingError("residues have different number atoms")
+                        if _residue_atom_pairing(r0, r1, atomMap) != r0.num_atoms:
+                                raise AtomPairingError("residues do not have identical atoms")
                         #
                         # Split residues based on surface category (in m0)
                         #
@@ -204,7 +206,7 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                         r1 = gapped1.residues[i1]
                         if r1 is None:
                                 continue
-                        if not shareAtoms(r0, r1, atomMap):
+                        if _residue_atom_pairing(r0, r1, atomMap) == 0:
                                 continue
                         rList0.append(r0)
                         rList1.append(r1)
@@ -216,59 +218,77 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         #
         segments = find_hinges(parts, fraction, min_hinge_spacing, log)
 
-        #
-        # Identify any residues that were not in sequences but have
-        # similar connectivity (e.g., metals and ligands) and share
-        # some common atoms
-        #
-        segmentMap = dict()
-        residueMap = dict()
-        for sIndex, s in enumerate(segments):
-                for r0, r1 in zip(s[0], s[1]):
-                        residueMap[r1] = r0
-                        segmentMap[r0] = sIndex
-        used = set()
-        for seq0 in m0seqs:
-                used.update(seq0.residues)
-        m0candidates = [ r0 for r0 in m0.residues if r0 not in used ]
-        keyMap = dict()
-        for r0 in m0candidates:
-                neighbors = _getConnectedResidues(r0)
-                if not neighbors:
-                        continue
-                nlist = list(neighbors)
-                nlist.sort()
-                keyMap[tuple(nlist)] = r0
-        used = set()
-        for seq1 in m1seqs:
-                used.update(seq1.residues)
-        m1candidates = [ r1 for r1 in m1.residues if r1 not in used ]
-        for r1 in m1candidates:
-                neighbors = _getConnectedResidues(r1)
-                if not neighbors:
-                        continue
-                try:
-                        nlist = [ residueMap[r] for r in neighbors ]
-                except KeyError:
-                        pass
-                else:
-                        nlist.sort()
-                        key = tuple(nlist)
-                        try:
-                                r0 = keyMap[key]
-                                sIndex = segmentMap[nlist[0]]
-                        except KeyError:
-                                pass
-                        else:
-                                if shareAtoms(r0, r1, atomMap):
-                                        s0, s1 = segments[sIndex]
-                                        segments[sIndex] = (s0 + (r0,), s1 + (r1,))
+        while _add_bound_residues(segments, atomMap, m0, m1, m0seqs, m1seqs) > 0:
+                # Keep trying to add more residues to ones just added.
+                # This handles for example protein glycosylation chains.
+                continue
 
         #
         # Finally, finished
         #
         # print ("Matched %d residues in %d segments" % (matched, len(segments)))
         return segments, atomMap
+
+def _add_bound_residues(segments, atomMap, m0, m1, m0seqs, m1seqs):
+        #
+        # Identify any residues that were not in sequences but have
+        # similar connectivity (e.g., metals and ligands) and share
+        # some common atoms
+        #
+        segmentMap = {}
+        r0_to_r1 = {}
+        r1_to_r0 = {}
+        for sIndex, s in enumerate(segments):
+                for r0, r1 in zip(s[0], s[1]):
+                        r0_to_r1[r0] = r1
+                        r1_to_r0[r1] = r0
+                        segmentMap[r0] = sIndex
+
+        # Find residues not in first sequence.
+        used = set()
+        for seq0 in m0seqs:
+                used.update(seq0.residues)
+        m0candidates = [ r0 for r0 in m0.residues if r0 not in used and r0 not in r0_to_r1 ]
+
+        # Map non-sequence residues according to their connected neighbors.
+        # TODO: More than one non-sequence residue can have the same neighbors.
+        #       For instance two can connect to the same single residue.
+        neighbors_to_residue = dict()
+        for r0 in m0candidates:
+                neighbors = _connected_residues(r0, r0_to_r1)
+                if not neighbors:
+                        continue
+                neighbors_to_residue[neighbors] = r0
+
+        # Find residues not in second sequence.
+        used = set()
+        for seq1 in m1seqs:
+                used.update(seq1.residues)
+        m1candidates = [ r1 for r1 in m1.residues if r1 not in used and r1 not in r1_to_r0 ]
+
+        # See if non-sequence residues in second sequence can be
+        # matched to non-sequence residues in first sequence that
+        # have the same set of neigbhors.
+        added = 0
+        for r1 in m1candidates:
+                neighbors = _connected_residues(r1, r1_to_r0)
+                if not neighbors:
+                        continue
+                neighbors0 = [(r1_to_r0[nr],na_name) for nr,na_name in neighbors]
+                neighbors0.sort()
+                r0 = neighbors_to_residue.get(tuple(neighbors0))
+                if r0 is None:
+                        continue
+                nr,na_name = neighbors0[0]
+                sIndex = segmentMap.get(nr)
+                if sIndex is None:
+                        continue
+                if _residue_atom_pairing(r0, r1, atomMap) > 0:
+                        s0, s1 = segments[sIndex]
+                        segments[sIndex] = (s0 + (r0,), s1 + (r1,))
+                        added += 1
+
+        return added
 
 def find_hinges(parts, fraction, min_hinge_spacing, log = None):
         segments = []
@@ -328,7 +348,7 @@ def segmentHingeResidues(rList0, rList1, fraction, min_hinge_spacing):
 # small molecule ligands.
 # 
 satt = 0                        
-def shareAtoms(r0, r1, atomMap):
+def _residue_atom_pairing(r0, r1, atomMap):
         t0 = time()
         # We start by finding the atom connected to the
         # previous residue.  Failing that, we want the
@@ -367,7 +387,7 @@ def shareAtoms(r0, r1, atomMap):
                                 if na not in visited and na in neighbors:
                                         todo.append(na)
         if a1 is None:
-                return False
+                return 0
 
         matched = [(a0,a1)]
         paired = set((a0,a1))
@@ -408,27 +428,31 @@ def shareAtoms(r0, r1, atomMap):
         t1 = time()
         global satt
         satt += t1-t0
-        return True
+        return len(matched)
 
-def shareAtomsSameName(r0, r1, atomMap):
-        a1 = {a.name: a for a in r1.atoms}
-        matched = False
+def _residue_atom_pairing_same_name(r0, r1, atomMap):
+        a1map = {a.name: a for a in r1.atoms}
+        matched = []
         for a in r0.atoms:
-                if a.name in a1:
-                        atomMap[a] = a1[a.name]
-                        matched = True
-        return matched
+                if a.name in a1map:
+                        matched.append((a, a1map[a.name]))
+        for a0,a1 in matched:
+                atomMap[a0] = a1
+        return len(matched)
 
 
-def _getConnectedResidues(r):
+def _connected_residues(r, allowed_res):
         neighborResidues = set()
         for a in r.atoms:
                 for na in a.neighbors:
-                        if na.residue is not r:
-                                neighborResidues.add(na.residue)
+                        nr = na.residue
+                        if nr is not r and nr in allowed_res:
+                                neighborResidues.add((nr,na.name))
 # TODO: Traverse pseudobonds.  Currently no atom.pseudoBonds property.
 #                for pb in a.pseudoBonds:
 #                        na = pb.otherAtom(a)
 #                        if na.residue is not r:
 #                                neighborResidues.add(na.residue)
-        return neighborResidues
+        nlist = list(neighborResidues)
+        nlist.sort()
+        return tuple(nlist)
