@@ -73,7 +73,7 @@ class GraphicsWindow(QWindow):
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
 
-        self._check_for_bad_intel_driver()
+            self._check_for_bad_intel_driver()
 
     def _check_for_bad_intel_driver(self):
         import sys
