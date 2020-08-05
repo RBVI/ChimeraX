@@ -322,7 +322,7 @@ def surface_style(session, surfaces, style):
 
 # -------------------------------------------------------------------------------------
 #
-def surface_cap(session, enable = None, offset = None, subdivision = None):
+def surface_cap(session, enable = None, offset = None, subdivision = None, mesh = None):
     '''
     Control whether clipping shows surface caps covering the hole produced by the clip plane.
 
@@ -341,6 +341,8 @@ def surface_cap(session, enable = None, offset = None, subdivision = None):
       triangles twice as small a value of 1.  A value of 1 makes triangles with edges that
       are about the length of the edge lengths on the perimeter of the cap which are usually
       comparable to the size of the triangles of the surface that is being clipped.
+    mesh : bool
+      Whether mesh style surfaces show caps.  Default False.
     '''
     update = False
     from .settings import settings
@@ -361,13 +363,19 @@ def surface_cap(session, enable = None, offset = None, subdivision = None):
         settings.clipping_cap_subdivision = subdivision
         update = True
 
+    if mesh is not None:
+        settings.clipping_cap_on_mesh = mesh
+        update = True
+
     if update:
         clip_planes = session.main_view.clip_planes
         clip_planes.changed = True
 
-    if enable is None and offset is None:
+    if enable is None and not update:
         onoff = 'on' if settings.clipping_surface_caps else 'off'
-        msg = 'Clip caps %s, offset %.3g' % (onoff, settings.clipping_cap_offset)
+        msg = ('Clip caps %s, offset %.3g, subdivision %.3g, mesh %s'
+               % (onoff, settings.clipping_cap_offset, settings.clipping_cap_subdivision,
+                  settings.clipping_cap_on_mesh))
         session.logger.status(msg, log = True)
         
 # -------------------------------------------------------------------------------------
@@ -420,7 +428,8 @@ def register_command(logger):
     cap_desc = CmdDesc(
         optional = [('enable', BoolArg),],
         keyword = [('offset', FloatArg),
-                   ('subdivision', FloatArg),],
+                   ('subdivision', FloatArg),
+                   ('mesh', BoolArg)],
         synopsis = 'Enable or disable clipping surface caps')
     register('surface cap', cap_desc, surface_cap, logger=logger)
 
