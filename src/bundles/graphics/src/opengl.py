@@ -797,21 +797,21 @@ class Render:
 
     def set_lighting_shader_capabilities(self):
         lp = self.lighting
+        self.enable_shader_capability(self.SHADER_DEPTH_CUE, lp.depth_cue)
+        self.enable_shader_shadows(lp.shadows)
+        self.enable_shader_multishadows(lp.multishadow > 0)
 
-        if lp.depth_cue:
-            self.enable_capabilities |= self.SHADER_DEPTH_CUE
-        else:
-            self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
+    def enable_shader_shadows(self, enable):
+        self.enable_shader_capability(self.SHADER_SHADOW, enable)
 
-        if lp.shadows:
-            self.enable_capabilities |= self.SHADER_SHADOW
-        else:
-            self.enable_capabilities &= ~self.SHADER_SHADOW
+    def enable_shader_multishadows(self, enable):
+        self.enable_shader_capability(self.SHADER_MULTISHADOW, enable)
 
-        if lp.multishadow > 0:
-            self.enable_capabilities |= self.SHADER_MULTISHADOW
+    def enable_shader_capability(self, capability, enable):
+        if enable:
+            self.enable_capabilities |= capability
         else:
-            self.enable_capabilities &= ~self.SHADER_MULTISHADOW
+            self.enable_capabilities &= ~capability
 
     def _bind_lighting_parameter_buffer(self, shader):
         pid = shader.program_id
@@ -1471,7 +1471,8 @@ class Multishadow:
         if lp.multishadow == 0:
             return False
         mat = r.material
-        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias, mat.transparent_cast_shadows)
+        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias,
+               mat.transparent_cast_shadows)
         if self._multishadow_current_params != msp:
             self.multishadow_update_needed = True
 

@@ -197,8 +197,9 @@ class View:
             offscreen = r.offscreen
             
         silhouette = self.silhouette
-        shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
-        
+
+        shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
+            
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
@@ -557,14 +558,26 @@ class View:
         '''
         self._render.finish_rendering()
 
-    def _compute_shadowmaps(self, drawings, camera):
+    def _compute_shadowmaps(self, opaque_drawings, transparent_drawings, camera):
         '''
         Compute shadow map textures for specified drawings.
         Does not include child drawings.
         '''
         r = self._render
-        shadow_enabled = r.shadow.use_shadow_map(camera, drawings)
-        multishadow_enabled = r.multishadow.use_multishadow_map(drawings)
+        lp = r.lighting
+        if not lp.shadows and lp.multishadow == 0:
+            return False, False
+        
+        shadow_drawings = opaque_drawings
+        if r.material.transparent_cast_shadows:
+            shadow_drawings += transparent_drawings
+
+        shadow_enabled = r.shadow.use_shadow_map(camera, shadow_drawings)
+        r.enable_shader_shadows(shadow_enabled)
+
+        multishadow_enabled = r.multishadow.use_multishadow_map(shadow_drawings)
+        r.enable_shader_multishadows(multishadow_enabled)
+        
         return shadow_enabled, multishadow_enabled
 
     def max_multishadow(self):
