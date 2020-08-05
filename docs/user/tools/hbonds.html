@@ -107,21 +107,6 @@ or set beforehand in the
 <a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
 The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-  <li><b>Reveal atoms of H-bonding residues</b>
-(initial default <b>off</b>) &ndash; 
-since a <a href="../pseudobonds.html">pseudobond</a> 
-is only shown when both of its endpoint atoms are shown,
-whether to ensure all showing all H-bonds by displaying all of the endpoint 
-atoms. To avoid showing disconnected atoms, the entire residues will be shown,
-except that amino acid and nucleic acid residues are split into 
-<a href="../commands/atomspec.html#builtin">sidechain</a> and
-<a href="../commands/atomspec.html#builtin">backbone</a>
-moieties separately displayed by this option.
-Displayed backbone atoms may still be invisible where cartoon is shown,
-unless their simultaneous display has been enabled with
-<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
-  <li><b>Select atoms</b> (initial default <b>off</b>)
-&ndash; whether to <a href="../selection.html">select</a> the H-bonding atoms
   <li><b>Retain pre-existing H-bonds</b> (initial default <b>off</b>) 
   </ul>
 <br>
@@ -189,6 +174,25 @@ as an H-bond acceptor.
 &ndash; whether to include intramolecular H-bonds, 
 where a molecule is defined as a covalently bonded set of atoms
   <li><b>Include intraresidue</b> (initial default <b>on</b>) 
+  </ul>
+<br>
+<li><b>Treatment of results</b>: 
+  <ul>
+  <li><b>Select atoms</b> (initial default <b>off</b>)
+&ndash; whether to <a href="../selection.html">select</a> the H-bonding atoms
+  <li><b>Reveal atoms of H-bonding residues</b>
+(initial default <b>on</b>) &ndash; 
+since a <a href="../pseudobonds.html">pseudobond</a> 
+is only shown when both of its endpoint atoms are shown,
+whether to ensure all showing all H-bonds by displaying all of the endpoint 
+atoms. To avoid showing disconnected atoms, the entire residues will be shown,
+except that amino acid and nucleic acid residues are split into 
+<a href="../commands/atomspec.html#builtin">sidechain</a> and
+<a href="../commands/atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
   </ul>
 <br>
 <li><b>Write information to:</b> Where to write H-bond information,
