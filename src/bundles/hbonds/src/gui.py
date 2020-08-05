@@ -40,15 +40,15 @@ class HBondsGUI(QWidget):
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
             make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any",
-            retain_current=False, reveal=False, salt_only=False, save_file=None, show_dist=False,
-            slop_color=BuiltinColors["dark orange"], two_colors=False,
+            retain_current=False, reveal=False, salt_only=False, save_file=None, select=False,
+            show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
             show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_model=True,
             show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_inter_submodel=False,
             show_log=True, show_make_pseudobonds=True, show_model_restrict=True, show_radius=True,
             show_relax=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
-            show_save_file=True, show_show_dist=True, show_slop=True, show_slop_color=True,
+            show_save_file=True, show_select=True, show_show_dist=True, show_slop=True, show_slop_color=True,
             show_two_colors=True):
 
         self.session = session
@@ -110,10 +110,6 @@ class HBondsGUI(QWidget):
                 self.__show_dist_option = BooleanOption("Distance label",
                     None if settings else show_dist, None, attr_name="show_dist", settings=settings)
                 make_pb_options.add_option(self.__show_dist_option)
-            if show_reveal:
-                self.__reveal_option = BooleanOption("Reveal atoms of H-bonding residues",
-                    None if settings else reveal, None, attr_name="reveal", settings=settings)
-                make_pb_options.add_option(self.__reveal_option)
             if show_retain_current:
                 self.__retain_current_option = BooleanOption("Retain pre-existing H-bonds",
                     None if settings else retain_current, None, attr_name="retain_current",
@@ -203,6 +199,27 @@ class HBondsGUI(QWidget):
                     None if settings else intra_submodel, None, attr_name="inter_submodel",
                     settings=settings)
                 limit_options.add_option(self.__intra_submodel_option)
+
+        if show_reveal or show_select:
+            group = QGroupBox("Treatment of results")
+            layout.addWidget(group)
+            treatment_layout = QVBoxLayout()
+            treatment_layout.setContentsMargins(0,0,0,0)
+            treatment_layout.setSpacing(0)
+            group.setLayout(treatment_layout)
+            self.__treatment_options = treatment_options = OptionsPanel(sorting=False, scrolled=False,
+                contents_margins=(0,0,0,0))
+            treatment_layout.addWidget(treatment_options)
+
+            if show_select:
+                self.__select_option = BooleanOption("Select atoms",
+                    None if settings else select, None, attr_name="select", settings=settings)
+                treatment_options.add_option(self.__select_option)
+
+            if show_reveal:
+                self.__reveal_option = BooleanOption("Reveal atoms of H-bonding residues",
+                    None if settings else reveal, None, attr_name="reveal", settings=settings)
+                treatment_options.add_option(self.__reveal_option)
 
         if show_log or show_save_file:
             group = QGroupBox("Write information to:")
@@ -343,6 +360,11 @@ class HBondsGUI(QWidget):
             settings['inter_submodel'] = self.__inter_submodel_option.value
         else:
             settings['inter_submodel'] = None
+
+        if self.__show_values['select']:
+            settings['select'] = self.__select_option.value
+        else:
+            settings['select'] = None
 
         if self.__show_values['reveal']:
             settings['reveal'] = self.__reveal_option.value
