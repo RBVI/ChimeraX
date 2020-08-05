@@ -1,20 +1,21 @@
-<BundleInfo name="ChimeraX-Dssp" version="2.0"
-	    package="chimerax.dssp" purePython="false"
+<BundleInfo name="ChimeraX-Coulombic" version="2.0"
+	    package="chimerax.Coulombic" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Compute/assign secondary structure</Synopsis>
-  <Description>Use Kabsch and Sander 'Define Secondary Struture of Proteins' algorithm to compute and assign secondary structure. See https://en.wikipedia.org/wiki/DSSP_(hydrogen_bond_estimation_algorithm)</Description>
+  <Synopsis>Compute/show electrostatic potential</Synopsis>
+  <Description>Compute and electrostatic potential according to Coulomb's law and either create a corresponding volume (three-dimensional grid) or color a surface.</Description>
 
   <Categories>
-    <Category name="Structure Analysis"/>
+    <Category name="Surface/Binding Analysis"/>
   </Categories>
 
-  <CModule name="_dssp">
-    <SourceFile>dssp_cpp/dssp.cpp</SourceFile>
+<!--
+  <CModule name="_coulombic">
+    <SourceFile>coulombic_cpp/esp.cpp</SourceFile>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
@@ -22,6 +23,7 @@
     <Library>logger</Library>
     <Library>appdirs</Library>
   </CModule>
+-->
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
@@ -32,6 +34,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: coulombic :: Surface/Binding Analysis :: Color surface based on electrostatics</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

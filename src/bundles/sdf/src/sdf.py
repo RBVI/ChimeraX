@@ -29,8 +29,8 @@ def read_sdf(session, stream, file_name):
     from chimerax.atomic.struct_edit import add_atom
     from chimerax.atomic import AtomicStructure, Element, Bond, Atom, AtomicStructure
     from numpy import array
-    Bond.register_attr(session, "order", "SDF format", default_value=1.0, attr_type=float)
-    Atom.register_attr(session, "charge", "SDF format", default_value=0.0, attr_type=float)
+    Bond.register_attr(session, "order", "SDF format", attr_type=float)
+    Atom.register_attr(session, "charge", "SDF format", attr_type=float)
     AtomicStructure.register_attr(session, "charge_model", "SDF format", attr_type=str)
     try:
         for l in stream:
