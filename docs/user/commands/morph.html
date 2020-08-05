@@ -70,7 +70,7 @@ morph #1.1-20 same t
 morph #2,5 core 0.1 frames 30 wrap t
 </b></blockquote>
 <p>
-Only the <a href="#pairing"><b><i>atoms in common</i></b></a>
+Only the <a href="#pairing">atoms in common</a>
 among the input structures will be included in the resulting trajectory.
 The models can have different numbers of residues or different
 sequences (homologs or mutants can be compared), but currently
@@ -92,7 +92,8 @@ and (b) the total rotation to best fit the starting and ending structures
 when their centroids are superimposed. Centroids are not mass-weighted.
 Details of the movement path depend on the <a href="#method"><b>method</b></a>.
 <li>The atoms within each group are moved in a non-rigid way,
-according to the <a href="#cartesian"><b>cartesian</b></a> option.
+according to the <a href="#cartesian"><b>cartesian</b></a> option
+(<a href="#details">details...</a>).
 </ol>
 <p>
 The endpoint and intermediate coordinate sets are opened as a new
@@ -147,19 +148,19 @@ How to calculate the rigid-body transformations
 within a <a href="#stage">stage</a>:
   <ul>
   <li><b>linear</b>
-  - rotate the group of atoms around its centroid and translate it along 
-  the straight line between the initial and final positions of the centroid
+&ndash; rotate the group of atoms around its centroid and translate it along 
+the straight line between the initial and final positions of the centroid
   <li><b>corkscrew</b> (default)
-  - move the group of atoms along a circular arc in the plane perpendicular 
-  to the rotation axis, and linearly along the rotation axis. 
-  When moving along the circular arc, the group rotates at the same rate 
-  as the tangent to the arc. The combination of circular and linear motion 
-  makes the centroid traverse a helical path between its initial and final
-  positions. In general, if the rotation angle is small, the helical path 
-  will be nearly straight (a small segment on a cylinder of large diameter).
-  In the case of the largest possible angle, 180&deg;, the helical path 
-  turns by half a circle, and the helical axis passes through
-  a point halfway between the initial and final centroids.
+&ndash; move the group of atoms along a circular arc in the plane perpendicular 
+to the rotation axis, and linearly along the rotation axis. 
+When moving along the circular arc, the group rotates at the same rate 
+as the tangent to the arc. The combination of circular and linear motion 
+makes the centroid traverse a helical path between its initial and final
+positions. In general, if the rotation angle is small, the helical path 
+will be nearly straight (a small segment on a cylinder of large diameter).
+In the case of the largest possible angle, 180&deg;, the helical path 
+turns by half a circle, and the helical axis passes through
+a point halfway between the initial and final centroids.
   </ul>
 </blockquote>
 <blockquote>
@@ -167,9 +168,12 @@ within a <a href="#stage">stage</a>:
 <b>cartesian</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether coordinates within a group of atoms
-should be interpolated strictly in Cartesian space.
+should be linearly interpolated in Cartesian (x,y,z coordinate) space.
+Linear interpolation in Cartesian space simply moves each atom 
+in a straight line between its starting and ending positions.
 Otherwise, internal coordinates will be used for the
-interpolation where possible. Using internal coordinates is slower
+interpolation where possible (<a href="#details">details...</a>).
+Using internal coordinates is slower
 but produces less distortion. A trajectory made with Cartesian forcing
 may be acceptable if few atomic details will be shown (for example,
 if only ribbons will be displayed).
@@ -181,12 +185,12 @@ How conformational changes within a <a href="#stage">stage</a>
 are distributed across the trajectory, where the <i>function</i> can be:
   <ul>
   <li><b>linear</b> (default)
-  - coordinate changes will be distributed approximately evenly
+  &ndash; coordinate changes will be distributed approximately evenly
   <li><b>ramp down</b>
-  - coordinates will change most rapidly near the starting conformation
+  &ndash; coordinates will change most rapidly near the starting conformation
   <li><b>ramp up</b>
-  - coordinates will change most rapidly near the ending conformation
-  <li><b>sinusoidal</b> - coordinates will change most rapidly halfway
+  &ndash; coordinates will change most rapidly near the ending conformation
+  <li><b>sinusoidal</b> &ndash; coordinates will change most rapidly halfway
   between the starting and ending conformations
   </ul>
 </blockquote>
@@ -258,12 +262,16 @@ Only the sequence alignment stage of
 <a href="matchmaker.html"><b>matchmaker</b></a> is
 performed, not the superposition of structures.
 </p><p>
-HET residues such as ligands and ions are only included if 
-they are present in both structures and attached to the same atom(s) 
-in the paired chains by at least one bond.
+HET residues are paired if they are covalently bonded to the same (equivalent)
+atoms in already paired residues, including other HET paired residues.
 <!--
-(which can be an unrealistic bond added manually and subsequently undisplayed)
-or <a href="../pseudobonds.html">pseudobond</a>.
+A <a href="../pseudobonds.html">pseudobond</a> such as a 
+<a href="distance.html">distance measurement</a>
+between the biopolymer chain and a noncovalently bound HET residue
+can be added to each structure to force including the noncovalently bound
+residue in the morph.
+The <a href="../pseudobonds.html">pseudobond</a> must connect the same
+(paired) atoms in the two structures.
 -->
 </p><p>
 Once residues are paired, atoms in common within those residues are paired.
@@ -284,8 +292,8 @@ same atom names, residue numbers, and chain IDs
 <li><a href="#same"><b>same</b></a> is <b>true</b> and the HET residues
 in question are present in both structures with the same atom names, residue,
 numbers, and chain IDs (even if other atoms are different)
-<li>the HET residues in question are
-attached to the same atoms in the paired chains by at least one bond
+<li>the HET residues are bonded to the paired chains either directly or
+indirectly through other paired HET residues
 </ul>
 
 <a name="limitations"></a>
@@ -320,7 +328,37 @@ parts of the sequence alignment may be wrong, leading to a jumbled
 and unattractive morph trajectory.
 </p>
 
+<a name="details"></a>
+<p class="nav">
+[<a href="#top">back to top: morph</a>]
+</p>
+<h3>Interpolating Cartesian or Internal Coordinates</h3>
+<p>
+Linear interpolation in Cartesian (x,y,z coordinate) space simply moves 
+each atom in a straight line between its starting and ending positions.
+Even with <a href="#cartesian"><b>cartesian false</b></a>, which  means
+to interpolate dihedral angles where possible, many atoms will still
+be linearly interpolated in Cartesian space. These atoms include:
+</p>
+<ul>
+<li>for any residues bonded to other residues, every atom that is
+participating in an interresidue bond
+<li>for residues not bonded to other residues, the first atom of the residue
+<li>three atoms in every residue that contains at least three atoms; only 
+with the positions of these three set by interpolation in Cartesian space can
+the positions of any remaining atoms in the residue be set by interpolating
+dihedral angles. For example, in an amino acid in the middle of a peptide chain,
+backbone atoms N, CA, and C are first interpolated in Cartesian space, and then
+the remaining atoms in the residue are positioned by interpolating 
+intraresidue dihedral angles, moving outward so that
+three previously positioned atoms are always used to position the next atom.
+</ul>
+<p>
+With <a href="#cartesian"><b>cartesian true</b></a>, the positions of
+all of the atoms will be interpolated in Cartesian space.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2019</address>
+August 2020</address>
 </body></html>
