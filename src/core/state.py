@@ -93,6 +93,7 @@ class StateManager(State, metaclass=abc.ABCMeta):
                     session.get_state_manager(tag)
                 except KeyError:
                     break
+                i += 1
 
         self.__tag = tag
         self.__session = session
