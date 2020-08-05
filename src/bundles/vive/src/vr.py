@@ -349,8 +349,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
+    # Use only 8 shadow directions for faster rendering.
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 8
+        
+    # Don't continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, label_reorient)	# Don't continuously reorient labels.
+    label_orient(session, label_reorient)
 
     c = vr_camera(session)
     if c is session.main_view.camera:
@@ -421,12 +426,21 @@ def stop_vr(session, simplify_graphics = True):
     from chimerax.graphics import MonoCamera
     v = session.main_view
     v.camera = MonoCamera()
+
     session.update_loop.set_redraw_interval(10)
+    
     if simplify_graphics:
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+
+    # Continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, 0)	# Continuously reorient labels.
+    label_orient(session, 0)
+
+    # Go back to 64 shadow directions
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 64
+    
     v.view_all()
     wait_for_vsync(session, True)
 
