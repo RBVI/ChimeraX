@@ -117,15 +117,14 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         session.logger.info(msg)
         return
 
-    from numpy import array, float32
-
+    ms_directions = lighting_settings(session).lighting_multishadow_directions
     if preset == 'default' or preset == 'simple':
         lp.shadows = False
         lp.multishadow = 0
         lp.set_default_parameters(v.background_color)
     elif preset == 'full':
         lp.shadows = True
-        lp.multishadow = 64
+        lp.multishadow = ms_directions
         lp.key_light_intensity = 0.7
         lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 0.8
@@ -133,7 +132,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.multishadow_map_size = 1024
     elif preset == 'soft':
         lp.shadows = False
-        lp.multishadow = 64
+        lp.multishadow = ms_directions
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
@@ -141,7 +140,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.multishadow_map_size = 1024
     elif preset == 'gentle':
         lp.shadows = False
-        lp.multishadow = 64
+        lp.multishadow = ms_directions
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
@@ -156,6 +155,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         sil = v.silhouette
         sil.enabled = True
         sil.depth_jump = 0.01
+
+    from numpy import array, float32
 
     if not direction is None:
         lp.key_light_direction = array(direction, float32)
@@ -281,3 +282,14 @@ def register_command(logger):
         synopsis="Turn off depth cue or shadows for individual models even when globally they are enabled.")
 
     register('lighting model', _lighting_model_desc, lighting_model, logger=logger)
+
+def lighting_settings(session):
+    if not hasattr(session, '_lighting_settings'):
+        session._lighting_settings = _LightingSettings(session, 'lighting')
+    return session._lighting_settings
+
+from chimerax.core.settings import Settings
+class _LightingSettings(Settings):
+    EXPLICIT_SAVE = {
+        'lighting_multishadow_directions': 64,
+    }
