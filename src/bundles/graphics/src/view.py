@@ -569,8 +569,11 @@ class View:
             return False, False
         
         shadow_drawings = opaque_drawings
-        if r.material.transparent_cast_shadows:
+        mp = r.material
+        if mp.transparent_cast_shadows:
             shadow_drawings += transparent_drawings
+        if not mp.meshes_cast_shadows:
+            shadow_drawings = [d for d in shadow_drawings if d.display_style != d.Mesh]
 
         shadow_enabled = r.shadow.use_shadow_map(camera, shadow_drawings)
         r.enable_shader_shadows(shadow_enabled)

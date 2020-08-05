@@ -1472,7 +1472,7 @@ class Multishadow:
             return False
         mat = r.material
         msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias,
-               mat.transparent_cast_shadows)
+               mat.transparent_cast_shadows, mat.meshes_cast_shadows)
         if self._multishadow_current_params != msp:
             self.multishadow_update_needed = True
 
@@ -2338,6 +2338,9 @@ class Material:
 
         self.transparent_cast_shadows = False
         "Do transparent objects cast shadows."
+
+        self.meshes_cast_shadows = False
+        "Do mesh style Drawings cast shadows."
 
 class Bindings:
     '''
