@@ -1310,7 +1310,7 @@ class Shadow:
             fb.delete(make_current = True)
             self._shadow_map_framebuffer = None
     
-    def use_shadow_map(self, camera, drawings, shadow_bounds):
+    def use_shadow_map(self, camera, drawings):
         '''
         Compute shadow map textures for specified drawings.
         Does not include child drawings.
@@ -1330,7 +1330,7 @@ class Shadow:
         # Compute drawing bounds so shadow map can cover all drawings.
         # TODO: Shadow bounds should exclude completely transparent drawings
         #       if transparent do not cast shadows.
-        center, radius, sdrawings = shadow_bounds(drawings)
+        center, radius, sdrawings = _shadow_bounds(drawings)
         if center is None or radius == 0:
             return False
 
@@ -1414,6 +1414,19 @@ class Shadow:
         if stf is not None:
             shader.set_matrix("shadow_transform", stf.opengl_matrix())
 
+def _shadow_bounds(drawings):
+    '''
+    Compute bounding box for drawings, not including child drawings.
+    '''
+    # TODO: This code is incorrectly including child drawings in bounds calculation.
+    sdrawings = [d for d in drawings if d.casts_shadows]
+    from chimerax.geometry import bounds
+    b = bounds.union_bounds(d.bounds() for d in sdrawings
+                            if not getattr(d, 'skip_bounds', False))
+    center = None if b is None else b.center()
+    radius = None if b is None else b.radius()
+    return center, radius, sdrawings
+
 class Multishadow:
     '''Render shadows from several directions for ambient occlusion lighting.'''
     
@@ -1452,7 +1465,7 @@ class Multishadow:
             GL.glDeleteBuffers(1, [mmb])
             self._multishadow_matrix_buffer_id = None
 
-    def use_multishadow_map(self, drawings, shadow_bounds):
+    def use_multishadow_map(self, drawings):
         r = self._render
         lp = r.lighting
         if lp.multishadow == 0:
@@ -1473,7 +1486,7 @@ class Multishadow:
             return True
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, sdrawings = shadow_bounds(drawings)
+        center, radius, sdrawings = _shadow_bounds(drawings)
         if center is None or radius == 0:
             return False
 

@@ -563,28 +563,9 @@ class View:
         Does not include child drawings.
         '''
         r = self._render
-        shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
-        multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
+        shadow_enabled = r.shadow.use_shadow_map(camera, drawings)
+        multishadow_enabled = r.multishadow.use_multishadow_map(drawings)
         return shadow_enabled, multishadow_enabled
-
-    def _shadow_bounds(self, drawings):
-        '''
-        Compute bounding box for drawings, not including child drawings.
-        '''
-        # TODO: remove case drawings = None.  That is not used.
-        if drawings is None:
-            b = self.drawing_bounds(allow_drawing_changes = False)
-            sdrawings = [self.drawing]
-        else:
-            # TODO: This code is incorrectly including child drawings in bounds calculation.
-            sdrawings = [d for d in drawings if d.casts_shadows]
-            from chimerax.geometry import bounds
-            b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
-            # TODO: Need to transform drawing bounds if they have different positions.
-            #   Check all places I use union_bounds() for this transform error.
-        center = None if b is None else b.center()
-        radius = None if b is None else b.radius()
-        return center, radius, sdrawings
 
     def max_multishadow(self):
         if not self._use_opengl():
