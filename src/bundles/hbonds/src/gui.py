@@ -40,7 +40,7 @@ class HBondsGUI(QWidget):
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
             make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any",
-            retain_current=False, reveal=False, salt_only=False, save_file=None, select=False,
+            retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
             show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
@@ -149,7 +149,7 @@ class HBondsGUI(QWidget):
 
         if show_model_restrict or show_inter_model or show_intra_model or show_bond_restrict \
         or show_salt_only or show_intra_mol or show_intra_res or show_inter_submodel:
-            group = QGroupBox("Limit results:")
+            group = QGroupBox("Limit results")
             layout.addWidget(group)
             limit_layout = QVBoxLayout()
             limit_layout.setContentsMargins(0,0,0,0)
@@ -290,24 +290,20 @@ class HBondsGUI(QWidget):
             command_values['save_file'] = None
 
         # may be saved in settings
-        if self.__show_values['color']:
-            settings['color'] = self.__color_option.value
+        if self.__show_values['make_pseudobonds']:
+            settings['make_pseudobonds'] = self.__make_pb_group.isChecked()
+            if self.__show_values['color']:
+                settings['color'] = self.__color_option.value
+            if self.__show_values['radius']:
+                settings['radius'] = self.__radius_option.value
+            if self.__show_values['dashes']:
+                settings['dashes'] = self.__dashes_option.value
+            if self.__show_values['show_dist']:
+                settings['show_dist'] = self.__show_dist_option.value
         else:
             settings['color'] = None
-
-        if self.__show_values['radius']:
-            settings['radius'] = self.__radius_option.value
-        else:
             settings['radius'] = None
-
-        if self.__show_values['dashes']:
-            settings['dashes'] = self.__dashes_option.value
-        else:
             settings['dashes'] = None
-
-        if self.__show_values['show_dist']:
-            settings['show_dist'] = self.__show_dist_option.value
-        else:
             settings['show_dist'] = None
 
         if self.__show_values['inter_model']:
