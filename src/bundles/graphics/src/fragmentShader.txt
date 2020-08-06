@@ -116,6 +116,10 @@ void main (void)
 * Shader for rendering scene with lighting.
 */
 
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+in vec3 v;
+#endif
+
 #ifdef USE_LIGHTING
 
 layout(std140) uniform lighting_block 
@@ -127,21 +131,14 @@ layout(std140) uniform lighting_block
   vec3 fill_light_direction;
   vec3 fill_light_diffuse_color;
   vec3 ambient_color;
-  vec3 depth_cue_color;
 };
 
 #ifdef USE_LIGHTING_NORMALS
 in vec3 N;
 #endif
 
-in vec3 v;
-
 #ifdef USE_STEREO_360
 in vec3 vshadow;
-#endif
-
-#ifdef USE_DEPTH_CUE
-uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_SHADOW
@@ -161,6 +158,11 @@ uniform	int shadow_count;
 uniform float shadow_depth;
 #endif
 
+#endif  // end USE_LIGHTING
+
+#ifdef USE_DEPTH_CUE
+uniform vec3 depth_cue_color;
+uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_VERTEX_COLORS
@@ -328,23 +330,23 @@ void main (void)
   Ifrag *= texture(tex3d, ambient_tex_coord).r;
 #endif
 
-#ifdef USE_LIGHTING
+#else  // not USE_LIGHTING
+
+  vec3 Ifrag = fcolor.rgb;
+
+#endif // end USE_LIGHTING
+
 #ifdef USE_DEPTH_CUE
   float d = -v.z;	// Distance from eye to fragment.
   float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
   Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
-#endif
-#endif
-
-#else
-  vec3 Ifrag = fcolor.rgb;
 #endif
 
   // transparency
   float a = fcolor.a;
 #ifdef USE_LIGHTING
 #ifdef USE_LIGHTING_NORMALS
-  a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01));
+  a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
 #endif
 #endif
 

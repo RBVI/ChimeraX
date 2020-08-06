@@ -342,8 +342,7 @@ class Render:
             ("key_light_direction",0), ("key_light_diffuse_color",4),
             ("key_light_specular_color",8),  ("key_light_specular_exponent",11),
             ("fill_light_direction",12), ("fill_light_diffuse_color",16),
-            ("ambient_color",20),
-            ("depth_cue_color",24))
+            ("ambient_color",20))
         self._lighting_buffer_floats = 28
 
         self.material = Material()              # Currently a global material
@@ -601,8 +600,8 @@ class Render:
                 self.multishadow._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOW & c:
                 self.shadow._set_shadow_shader_variables(shader)
-            if self.SHADER_DEPTH_CUE & c:
-                self.set_depth_cue_parameters()
+        if self.SHADER_DEPTH_CUE & c:
+            self.set_depth_cue_parameters()
         if not (self.SHADER_TEXTURE_OUTLINE & c
                 or self.SHADER_DEPTH_OUTLINE & c
                 or self.SHADER_BLEND_TEXTURE_2D & c
@@ -900,9 +899,6 @@ class Render:
         ams = mp.ambient_reflectivity * lp.ambient_light_intensity
         ac = tuple(ams * c for c in lp.ambient_light_color)
         params["ambient_color"] = ac
-
-        # Depth cue color
-        params['depth_cue_color'] = lp.depth_cue_color
         
         return params
 
@@ -914,12 +910,13 @@ class Render:
         if p is None:
             return
 
-        if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
+        if self.SHADER_DEPTH_CUE & p.capabilities:
             if self.recording_opengl:
                 r = lambda: self._depth_cue_range(self._near_far_clip())
             else:
                 r = self._depth_cue_range(self._near_far_clip)
             p.set_vector2('depth_cue_range', r)
+            p.set_vector3('depth_cue_color', self.lighting.depth_cue_color)
 
     def _depth_cue_range(self, near_far):
         lp = self.lighting
