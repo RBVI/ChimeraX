@@ -31,9 +31,9 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>material</b> command sets material properties for light reflection,
-through individual <a href="#options">options</a> and through
-<a href="#preset">presets</a> that may change more than one parameter
-at a time. Currently, all objects use the same material properties.
+through individual <a href="#options">options</a> and in convenient
+<a href="#preset">preset</a> combinations.
+Currently, all objects use the same material properties.
 See also: 
 <a href="lighting.html"><b>lighting</b></a>
 </p><p>
@@ -96,14 +96,22 @@ Set the fraction of ambient light that is reflected (default <b>0.8</b>).
 Whether transparent items cast shadows (default <b>false</b>)
 when ambient and/or directional shadowing is in use,
 see <a href="lighting.html"><b>lighting</b></a>.
-Shadow-casting by a transparent surface blackens objects inside
+Shadow-casting by a transparent surface darkens objects inside
 the surface and detracts from the transparent effect.
 Due to limitations of the graphics implementation,
 shadows from a transparent surface are just as dark as 
 if the surface were completely opaque.
 </blockquote>
+<blockquote>
+<b>meshesCastShadows</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether mesh surfaces cast shadows (default <b>false</b>)
+when ambient and/or directional shadowing is in use,
+see <a href="lighting.html"><b>lighting</b></a>.
+Shadow-casting by a mesh surface darkens objects inside the surface.
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+August 2020</address>
 </body></html>
