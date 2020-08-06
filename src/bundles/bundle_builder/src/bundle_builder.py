@@ -99,6 +99,11 @@ class BundleBuilder:
                 cmd += " noDeps true"
             else:
                 cmd += " noDeps false"
+        from chimerax.core import toolshed
+        ts = toolshed.get_toolshed()
+        bundle = ts.find_bundle(self.name, session.logger)
+        if bundle is not None:
+            cmd += " reinstall true"
         run(session, cmd)
 
     def make_clean(self):

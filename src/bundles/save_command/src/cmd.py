@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, SaveFileNameArg, RestOfLine, next_token, \
-    FileNameArg, DynamicEnum
+    FileNameArg, DynamicEnum, StringArg
 from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
@@ -28,7 +28,8 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         test_token = tokens[i].lower()
         if "format".startswith(test_token):
             format_name = tokens[i+1]
-    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)] + tokens)
+    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)]
+        + [StringArg.unparse(token) for token in tokens])
 
     try:
         from .manager import NoSaverError

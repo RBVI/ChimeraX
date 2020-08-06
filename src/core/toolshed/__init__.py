@@ -668,8 +668,6 @@ class Toolshed:
             args = []
             if per_user:
                 args.append("--user")
-            if reinstall:
-                args.append("--force-reinstall")
             if no_deps:
                 args.append("--no-deps")
             self._add_restart_action("install", bundle_name, args, logger)
@@ -1164,7 +1162,7 @@ class Toolshed:
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
         # with stderr as parameter.
-        command = ["install", "--use-feature=2020-resolver", "--upgrade",
+        command = ["install", "--use-feature=2020-resolver",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
                    # "--only-binary", ":all:"   # msgpack-python is not binary
@@ -1175,7 +1173,8 @@ class Toolshed:
             command.append("--no-deps")
         if reinstall:
             # XXX: Not sure how this interacts with "only-if-needed"
-            command.append("--force-reinstall")
+            # For now, prevent --force-reinstall from reinstalling dependencies
+            command.extend(["--force-reinstall", "--no-deps"])
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
         try:

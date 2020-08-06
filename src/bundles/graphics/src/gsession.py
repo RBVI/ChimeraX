@@ -220,6 +220,8 @@ class MaterialState:
         'diffuse_reflectivity',
         'specular_reflectivity',
         'specular_exponent',
+        'transparent_cast_shadows',
+        'meshes_cast_shadows',
         ]
 
     @staticmethod
