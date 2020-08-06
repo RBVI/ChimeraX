@@ -472,9 +472,15 @@ class Render:
         oc = self._opengl_context
         prev_win = oc.window
         oc.window = window
-        self.make_current()
-        s = oc.pixel_scale()
-        self.set_viewport(0,0,int(s*window.width()),int(s*window.height()))
+        try:
+            self.make_current()
+            s = oc.pixel_scale()
+            self.set_viewport(0,0,int(s*window.width()),int(s*window.height()))
+        except:
+            # Make sure to restore opengl context window if make_current() fails.
+            # This probably indicates the window has been destroyed.  Bug #3605.
+            oc.window = prev_win
+            raise
         return prev_win
 
     @property
