@@ -130,18 +130,14 @@ layout(std140) uniform lighting_block
   vec3 depth_cue_color;
 };
 
-#ifdef USE_LIGHTING
 #ifdef USE_LIGHTING_NORMALS
 in vec3 N;
-#endif
 #endif
 
 in vec3 v;
 
 #ifdef USE_STEREO_360
-#ifdef USE_LIGHTING
 in vec3 vshadow;
-#endif
 #endif
 
 #ifdef USE_DEPTH_CUE
