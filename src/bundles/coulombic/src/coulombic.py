@@ -47,4 +47,4 @@ def assign_charges(session, uncharged_residues, his_scheme):
         raise ChargeError("Atoms with non-standard names found in standard residues: %s.%s"
             % (atoms_text, hint))
 
-    #TODO: warn about missing heavy atoms
+    #TODO: warn about missing heavy atoms; treat MSE as MET
