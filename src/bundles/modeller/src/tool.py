@@ -123,7 +123,7 @@ class ModellerLauncher(ToolInstance):
         ToolInstance.delete(self)
 
     def launch_modeller(self):
-        from chimerax.core.commands import run, FileNameArg, quote_if_necessary as quote_if
+        from chimerax.core.commands import run, FileNameArg, StringArg
         from chimerax.core.errors import UserError
         alignments = self.alignment_list.value
         if not alignments:
@@ -134,13 +134,12 @@ class ModellerLauncher(ToolInstance):
             seq = seq_menu.value
             if not seq:
                 raise UserError("No target sequence chosen for alignment %s" % aln.ident)
-            aln_seq_args.append("%s:%d"
-                % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
+            aln_seq_args.append(StringArg.unparse("%s:%d" % (aln.ident, aln.seqs.index(seq)+1)))
         from .settings import get_settings
         settings = get_settings(self.session)
         run(self.session, "modeller comparative %s multichain %s numModels %d fast %s hetPreserve %s"
             " hydrogens %s%s waterPreserve %s"% (
-            ",".join(aln_seq_args),
+            " ".join(aln_seq_args),
             repr(settings.multichain).lower(),
             settings.num_models,
             repr(settings.fast).lower(),
