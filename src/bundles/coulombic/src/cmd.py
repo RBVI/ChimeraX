@@ -13,7 +13,7 @@
 
 from chimerax.core.errors import UserError
 
-chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NHE', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE'])
+chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
     atoms_per_surf = []
