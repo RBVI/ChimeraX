@@ -16,6 +16,8 @@ from chimerax.core.errors import UserError
 chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
+    session.logger.status("Computing Coulombic charge volume/surface")
+    session.logger.status("Matching atoms to surfaces", secondary=True)
     atoms_per_surf = []
     from chimerax.atomic import all_atomic_structures, MolecularSurface, all_atoms
     if atoms is None:
@@ -41,7 +43,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
             by_chain = {}
             for struct, chain_id, chain_atoms in atoms.by_chain:
                 by_chain.setdefault(struct, {})[chain_id] = chain_atoms
-            for struct, struct_atoms in atom.by_structure:
+            for struct, struct_atoms in atoms.by_structure:
                 try:
                     for chain_atoms in by_chain[struct].values():
                         atoms_per_surf.append((chain_atoms, None))
@@ -71,16 +73,20 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
                             problem_residues.add(r.name)
                         break
     if problem_residues:
+        session.logger.status("")
         from chimerax.core.commands import commas
         raise UserError("Don't know how to assign charges to the following residue types: %s"
             % commas(problem_residues, conjunction='and'))
 
     if needs_assignment:
+        session.logger.status("Assigning charges", secondary=True)
         from .coulombic import assign_charges, ChargeError
         try:
             assign_charges(session, needs_assignment, his_scheme)
         except ChargeError as e:
+            session.logger.status("")
             raise UserError(str(e))
+    session.logger.status("Finished computing Coulombic charge volume/surface")
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf
