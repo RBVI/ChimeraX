@@ -57,6 +57,7 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
+	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works)"
 	@echo "  jedi (pulled in by line-profiler)"
 	@echo "  MarkupSafe (pulled in by Jinja2)"
