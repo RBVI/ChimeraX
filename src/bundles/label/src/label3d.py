@@ -108,7 +108,7 @@ def label(session, objects = None, object_type = None, text = None,
         settings['text'] = False
         settings['attribute'] = attribute
 
-    if objects is None and len(settings) == 0:
+    if objects is None and len(settings) == 0 and on_top is None:
         return	# Get this when setting default height.
     
     view = session.main_view
