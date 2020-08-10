@@ -608,7 +608,7 @@ class Toolshed:
 
         Parameters
         ----------
-        bundle : string or :py:class:`BundleInfo` instance
+        bundle : string or :py:class:`BundleInfo` instance or sequence of them
             If string, path to wheel installer.
             If instance, should be from the available bundle list.
         per_user : boolean
@@ -634,46 +634,63 @@ class Toolshed:
         import importlib
         import os.path
         import re
+        if per_user is None:
+            per_user = True
         cx_dir = os.path.join(self._site_dir, _ChimeraNamespace)
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
-        install_now = True
-        old_bundle = None
-        if isinstance(bundle, str):
-            # If the name ends with .whl, it must be a path.
-            if bundle.endswith(".whl"):
+        if isinstance(bundle, (str, BundleInfo)):
+            bundles = [bundle]
+        else:
+            bundles = bundle
+        bundle_names = []
+        # TODO: redo this to collect bundles to install and then revise _can_install to
+        # check all bundles together.
+        # TODO: expose new _can_install, so gui can use it
+        all_install_now = True
+        for bundle in bundles:
+            old_bundle = None
+            if isinstance(bundle, str):
+                # If the name ends with .whl, it must be a path.
+                if not bundle.endswith(".whl"):
+                    raise ValueError("Can only install wheel files")
                 bundle = os.path.expanduser(bundle)
+                if not os.path.exists(bundle):
+                    raise ValueError("Non-existent wheel file")
                 basename = os.path.split(bundle)[1]
                 name = basename.split('-')[0]
+                old_bundle = self.find_bundle(name, logger, installed=True)
+                bundle_name = bundle
+            elif isinstance(bundle, BundleInfo):
+                # If "bundle" is not a string, it must be a Bundle instance.
+                if bundle.installed:
+                    if not reinstall:
+                        raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
+                old_bundle = self.find_bundle(bundle.name, logger, installed=True)
+                bundle_name = "%s==%s" % (bundle.name, bundle.version)
             else:
-                name = bundle
-            old_bundle = self.find_bundle(name, logger, installed=True)
-            bundle_name = bundle
-        else:
-            # If "bundle" is not a string, it must be a Bundle instance.
-            if bundle.installed:
-                if not reinstall:
-                    raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
-                old_bundle = bundle
-            bundle_name = "%s==%s" % (bundle.name, bundle.version)
-        if old_bundle in self._installed_bundle_info:
-            install_now = self._can_install(old_bundle)
-            if install_now:
-                old_bundle.deregister(logger)
-                self._installed_bundle_info.remove(old_bundle)
-        if per_user is None:
-            per_user = True
-        if not install_now:
+                raise ValueError("incorrect bundle argument")
+            if old_bundle in self._installed_bundle_info:
+                install_now = self._can_install(old_bundle)
+                if install_now:
+                    old_bundle.deregister(logger)
+                    self._installed_bundle_info.remove(old_bundle)
+                else:
+                    all_install_now = False
+            bundle_names.append(bundle_name)
+        if not all_install_now:
             args = []
             if per_user:
                 args.append("--user")
             if no_deps:
                 args.append("--no-deps")
-            self._add_restart_action("install", bundle_name, args, logger)
+            logger.error("A bundle is currently in use.  "
+                         "ChimeraX will install it after restarting.")
+            self._add_restart_action("install", bundle_names, args, logger)
             return
         try:
-            results = self._pip_install(bundle_name, logger,
+            results = self._pip_install(bundle_names, logger,
                                         per_user=per_user, reinstall=reinstall, no_deps=no_deps)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
@@ -744,6 +761,10 @@ class Toolshed:
         if bi.imported():
             return False
         # TODO: Figuring out the latter is hard, so we ignore it for now.
+        # TODO: possible stragegy: look through bundle dependencies and
+        # see that all dependencies on an installed bundle are satisfied
+        # TODO: need dependencies to be provided when querying toolshed for
+        # available bundles
         return True
 
     def _can_uninstall(self, bi):
@@ -752,11 +773,9 @@ class Toolshed:
         # loaded.  That is hard to tell, so we err on the side of caution.
         return not bi.imported()
 
-    def _add_restart_action(self, action_type, bundle, extra_args, logger):
+    def _add_restart_action(self, action_type, bundles, extra_args, logger):
         # Show user a dialog (hence error) so they know something happened.
-        # Append to on_restart file so bundle is installed on restart.
-        logger.error("Bundle is currently in use.  "
-                     "ChimeraX will %s it after restart." % action_type)
+        # Append to on_restart file so bundle action is done on restart.
         import os
         inst_dir, restart_file = restart_action_info()
         try:
@@ -765,14 +784,17 @@ class Toolshed:
             pass
         with open(restart_file, "a") as f:
             args = [action_type]
-            if not isinstance(bundle, str):
-                # Must be a BundleInfo instance
-                args.append("%s==%s" % (bundle.name, bundle.version))
-            else:
-                # Must be a file
-                import shutil
-                shutil.copy(bundle, inst_dir)
-                args.append(os.path.split(bundle)[1])
+            bundles = []
+            for bundle in bundles:
+                if not isinstance(bundle, str):
+                    # Must be a BundleInfo instance
+                    bundles.append("%s==%s" % (bundle.name, bundle.version))
+                else:
+                    # Must be a file
+                    import shutil
+                    shutil.copy(bundle, inst_dir)
+                    bundles.append(os.path.split(bundle)[1])
+            args.append(' '.join(bundles))
             args.extend(extra_args)
             print("\t".join(args), file=f)
 
@@ -781,7 +803,7 @@ class Toolshed:
 
         Parameters
         ----------
-        bundle : string or :py:class:`BundleInfo` instance
+        bundle : string or :py:class:`BundleInfo` instance or sequence of them
             If string, path to wheel installer.
             If instance, should be from the available bundle list.
         logger : :py:class:`~chimerax.core.logger.Logger` instance
@@ -798,21 +820,31 @@ class Toolshed:
         """
         import re
         _debug("uninstall_bundle", bundle)
-        if isinstance(bundle, str):
-            bundle = self.find_bundle(bundle, logger, installed=True)
-        if bundle is None or not bundle.installed:
-            raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
-        if not self._can_uninstall(bundle):
-            self._add_restart_action("uninstall", bundle, [], logger)
-            return
-        bundle.deregister(logger)
-        bundle.unload(logger)
-        results = self._pip_uninstall(bundle.name, logger)
-        uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
-        if uninstalled:
-            logger.info('\n'.join(uninstalled))
-        self.reload(logger, rebuild_cache=True, report=True)
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
+        if isinstance(bundle, (str, BundleInfo)):
+            bundles = [bundle]
+        else:
+            bundles = bundle
+        uninstall_now = []
+        uninstall_later = []
+        for bundle in bundles:
+            if isinstance(bundle, str):
+                bundle = self.find_bundle(bundle, logger, installed=True)
+            if bundle is None or not bundle.installed:
+                raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
+            if not self._can_uninstall(bundle):
+                uninstall_later.append(bundle)
+            bundle.deregister(logger)
+            bundle.unload(logger)
+        if uninstall_now:
+            results = self._pip_uninstall(uninstall_now, logger)
+            uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
+            if uninstalled:
+                logger.info('\n'.join(uninstalled))
+            self.reload(logger, rebuild_cache=True, report=True)
+            self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
+        if uninstall_later:
+            logger.error("Need to restart ChimeraX to finish uninstalling")
+            self._add_restart_action("uninstall", uninstall_later, [], logger)
 
     def find_bundle(self, name, logger, installed=True, version=None):
         """Supported API. Return a :py:class:`BundleInfo` instance with the given name.
@@ -1175,8 +1207,11 @@ class Toolshed:
             # XXX: Not sure how this interacts with "only-if-needed"
             # For now, prevent --force-reinstall from reinstalling dependencies
             command.extend(["--force-reinstall", "--no-deps"])
-        # bundle_name can be either a file path or a bundle name in repository
-        command.append(bundle_name)
+        # bundle_name can be either a file path or a bundle name in repository or a list of them
+        if isinstance(bundle_name, str):
+            command.append(bundle_name)
+        else:
+            command.extend(bundle_name)
         try:
             results = self._run_pip(command, logger)
         except (RuntimeError, PermissionError) as e:
@@ -1185,10 +1220,11 @@ class Toolshed:
         # self._remove_scripts()
         return results
 
-    def _pip_uninstall(self, bundle_name, logger):
+    def _pip_uninstall(self, bundles, logger):
         # Run "pip" and return standard output as string.  If there
         # was an error, raise RuntimeError with stderr as parameter.
-        command = ["uninstall", "--yes", bundle_name]
+        command = ["uninstall", "--yes"]
+        command.extend(bundle.name for bundle in bundles)
         return self._run_pip(command, logger)
 
     _pip_ignore_warnings = [
