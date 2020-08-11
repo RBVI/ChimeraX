@@ -321,15 +321,7 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
             logger.error("\"%s\" does not match any bundles" % bundle_name)
             return
         bundles.add(bi)
-    if not force_remove:
-        for bi in bundles:
-            deps = bi.dependents(logger)
-            if deps - bundles:
-                logger.error("\"%s\" has dependent bundles: %s" % (
-                    bi.name,
-                    commas(("\"%s\"" % b.name for b in deps if b not in bundles), 'and')))
-                return
-    ts.uninstall_bundle(bundles, logger, session=session)
+    ts.uninstall_bundle(bundles, logger, session=session, force_remove=force_remove)
 
 
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_names", ListOf(BundleNameArg))],

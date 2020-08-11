@@ -784,21 +784,21 @@ class Toolshed:
             pass
         with open(restart_file, "a") as f:
             args = [action_type]
-            bundles = []
+            bundle_args = []
             for bundle in bundles:
                 if not isinstance(bundle, str):
                     # Must be a BundleInfo instance
-                    bundles.append("%s==%s" % (bundle.name, bundle.version))
+                    bundle_args.append("%s==%s" % (bundle.name, bundle.version))
                 else:
                     # Must be a file
                     import shutil
                     shutil.copy(bundle, inst_dir)
-                    bundles.append(os.path.split(bundle)[1])
-            args.append(' '.join(bundles))
+                    bundle_args.append(os.path.split(bundle)[1])
+            args.append(' '.join(bundle_args))
             args.extend(extra_args)
             print("\t".join(args), file=f)
 
-    def uninstall_bundle(self, bundle, logger, *, session=None):
+    def uninstall_bundle(self, bundle, logger, *, session=None, force_remove=False):
         """Supported API. Uninstall bundle by removing the corresponding Python distribution.
 
         Parameters
@@ -831,11 +831,28 @@ class Toolshed:
                 bundle = self.find_bundle(bundle, logger, installed=True)
             if bundle is None or not bundle.installed:
                 raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
-            if not self._can_uninstall(bundle):
+            if self._can_uninstall(bundle):
+                uninstall_now.append(bundle)
+            else:
                 uninstall_later.append(bundle)
-            bundle.deregister(logger)
-            bundle.unload(logger)
+        if not force_remove:
+            all_bundles = set()
+            all_bundles.update(uninstall_now)
+            all_bundles.update(uninstall_later)
+            for bi in all_bundles:
+                needed_by = bi.dependents(logger)
+                needed_by -= all_bundles
+                if needed_by:
+                    from chimerax.core.commands import commas, plural_form
+                    other = plural_form(needed_by, "another", "other")
+                    bundles = plural_form(needed_by, "bundles")
+                    logger.error("Unable to uninstall %s because it is needed by %s %s: %s" % (
+                        bi.name, other, bundles, commas((bi.name for bi in needed_by), 'and')))
+                    return
         if uninstall_now:
+            for bundle in uninstall_now:
+                bundle.deregister(logger)
+                bundle.unload(logger)
             results = self._pip_uninstall(uninstall_now, logger)
             uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
             if uninstalled:
@@ -843,6 +860,9 @@ class Toolshed:
             self.reload(logger, rebuild_cache=True, report=True)
             self.triggers.activate_trigger(TOOLSHED_BUNDLE_UNINSTALLED, bundle)
         if uninstall_later:
+            for bundle in uninstall_later:
+                bundle.deregister(logger)
+                bundle.unload(logger)
             logger.error("Need to restart ChimeraX to finish uninstalling")
             self._add_restart_action("uninstall", uninstall_later, [], logger)
 
