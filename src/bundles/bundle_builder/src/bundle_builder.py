@@ -87,8 +87,8 @@ class BundleBuilder:
 
     def make_install(self, session, debug=False, user=None, no_deps=None):
         self.make_wheel(debug=debug)
-        from chimerax.core.commands import run
-        cmd = "toolshed install %r" % self.wheel_path
+        from chimerax.core.commands import run, FileNameArg
+        cmd = "toolshed install %s" % FileNameArg.unparse(self.wheel_path)
         if user is not None:
             if user:
                 cmd += " user true"
