@@ -15,8 +15,14 @@ from chimerax.core.errors import UserError
 
 chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
 
-def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
+def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1.4, spacing=1.0,
+        padding=5.0, map=False, palette=None, range=None):
     session.logger.status("Computing Coulombic charge volume/surface")
+    if palette is None:
+        from chimerax.core.colors import BuiltinColorMaps
+        cmap = BuiltinColorMaps("red-white-blue")
+    if range is None and not cmap.values_specified:
+        range = (-10.0, 10.0)
     session.logger.status("Matching atoms to surfaces", secondary=True)
     atoms_per_surf = []
     from chimerax.atomic import all_atomic_structures, MolecularSurface, all_atoms
@@ -86,16 +92,48 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None):
         except ChargeError as e:
             session.logger.status("")
             raise UserError(str(e))
+
+    session.logger.status("Computing electrostatics", secondary=True)
+    # Since electrostatics are long range, unlike mlp, don't compute a map (with a distance cutoff)
+    # by default.  Instead, compute the values at the surface vertices directly.  Only compute a
+    # map afterward if requested.
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('coulombic')
+    for atoms, srf in atoms_per_surf:
+        if srf is None:
+            from chimerax.surface import surface
+            data = [(surf.atoms, surf) for surf in surface(session, atoms)]
+        else:
+            data = [(atoms, srf)]
+        for charged_atoms, target_surface in data:
+            #TODO compute map
+            #vol_name = 'coulombic ' + target_surface.name.split(maxsplit=1)[0]
+            #v = coulombic_map(session, charged_atoms, target_surface, surf_dist, spacing, padding, vol_name)
+    session.undo.register(undo_state)
+
     session.logger.status("Finished computing Coulombic charge volume/surface")
 
+"""
+def coulombic_map(session, charged_atoms, target_surface, surf_dist, spacing, padding, vol_name):
+    data, bounds = calculate_map(target_surface, charged_atoms, spacing, surf_dist + padding)
+    #TODO
+"""
+
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf, FloatArg
+    from chimerax.core.commands import BoolArg, ColormapArg, ColormapRangeArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('atoms', Or(AtomsArg, EmptyArg))],
         keyword = [
             ('surfaces', SurfacesArg),
             ('his_scheme', EnumOf(['HIP', 'HIE', 'HID'])),
+            ('surf_dist', FloatArg),
+            ('spacing', FloatArg),
+            ('padding', FloatArg),
+            ('map', BoolArg),
+            ('palette', ColormapArg),
+            ('range', ColormapRangeArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )
