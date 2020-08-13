@@ -36,13 +36,17 @@ class WheelArg(OpenFileNameArg):
 
 class BundleNameArg(StringArg):
     name = "a bundle name"
+    # PEP 427, distribution names are alphanumeric with underscores.
+    # pypi projct names can have dashes.
 
     @staticmethod
     def parse(text, session):
-        from packaging import utils
+        import re
         token, text, rest = next_token(text, convert=True)
-        if token != utils.canonicalize_name(token):
-            raise AnnotationError("Illegal bundle name (not PEP 426 compliant)")
+        canonical = re.sub("[^\w\d.]+", "_", token, re.UNICODE)
+        simple = token.replace('-', '_')
+        if simple != canonical:
+            raise AnnotationError("Invalid bundle name")
         return token, text, rest
 
 
