@@ -578,6 +578,13 @@ class Atoms(Collection):
     '''Number of alt locs in each atom.  Zero for atoms without alt locs.  Read only.'''
     num_bonds = cvec_property('atom_num_bonds', size_t, read_only = True)
     '''Number of bonds in each atom. Read only.'''
+    @property
+    def num_residues(self):
+        "Total number of residues for atoms."
+        f = c_function('atom_num_residues',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.c_size_t)
+        return f(self._c_pointers, len(self))
     occupancies = cvec_property('atom_occupancy', float32)
 
     @property

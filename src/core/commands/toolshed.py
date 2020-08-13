@@ -36,13 +36,17 @@ class WheelArg(OpenFileNameArg):
 
 class BundleNameArg(StringArg):
     name = "a bundle name"
+    # PEP 427, distribution names are alphanumeric with underscores.
+    # pypi projct names can have dashes.
 
     @staticmethod
     def parse(text, session):
-        from packaging import utils
+        import re
         token, text, rest = next_token(text, convert=True)
-        if token != utils.canonicalize_name(token):
-            raise AnnotationError("Illegal bundle name (not PEP 426 compliant)")
+        canonical = re.sub("[^\w\d.]+", "_", token, re.UNICODE)
+        simple = token.replace('-', '_')
+        if simple != canonical:
+            raise AnnotationError("Invalid bundle name")
         return token, text, rest
 
 
@@ -391,6 +395,14 @@ toolshed_show_desc = CmdDesc(optional=[("bundle_name", StringArg)],
                              synopsis='show the toolshed or bundle in toolshed')
 
 
+def toolshed_update(session):
+    from chimerax.toolshed_utils import update_tool
+    update_tool.show(session)
+
+
+toolshed_update_desc = CmdDesc(synopsis='show update bundle tool')
+
+
 def register_command(logger):
     from chimerax.core.commands import register
 
@@ -401,3 +413,4 @@ def register_command(logger):
     register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
     register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
     register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
+    register("toolshed update", toolshed_update_desc, toolshed_update, logger=logger)
