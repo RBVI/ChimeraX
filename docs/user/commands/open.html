@@ -1123,19 +1123,17 @@ If a data file specified for opening is not found in this local cache or
 </p><p>
 <a name="maxAssemblies"></a>
 Multiple biological assemblies are defined for many entries in the PDB.
-<!-- see chimerax ticket #3515 for progress/plans -->
-By default, fetching from <b>rcsb_bio</b>
-<!--
-or <b>pdbe_bio</b>
--->
-will return all of the assemblies and open them as separate submodels.
+By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
+will return every assembly available for that entry in that database.
 The <b>maxAssemblies</b> option limits fetching to the
 first <i>N</i> assemblies.
-<!--
-A single assembly from <b>pdbe_bio</b> will be opened as a single submodel, but
+A single assembly from <b>pdbe_bio</b> will be opened as a single model, but
+even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
+(opened as submodels of the assembly model).
+<!-- 
+details in ticket #3515
+RCSB says that in 2021 all will be mmCIF and as one model per assembly
 -->
-However, even a single assembly from <b>rcsb_bio</b> may be opened as 
-multiple sub-submodels of the assembly submodel.
 </p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
@@ -1173,7 +1171,6 @@ target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
 <td align="center"><b>pdbe</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
-<!--
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">PDBe</a></td>
@@ -1181,7 +1178,6 @@ target="_blank">PDBe</a></td>
 <td align="center" class="text">atomic coordinates for biological assembly
 or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
 <td align="center"><b>mmcif</b></td>
--->
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">PDBe</a></td>

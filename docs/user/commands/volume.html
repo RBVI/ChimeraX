@@ -892,7 +892,7 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="meshlight"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
+  <a name="meshLighting"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Make the inside of a mesh-enclosed volume dimmer than the outside
   by varying the brightness according to the angle
   between each surface point normal and the line of sight.
@@ -900,8 +900,9 @@ both depict isosurfaces.
   is parallel to the line of sight and pointing at the user
   (see more on the definition of &ldquo;outward&rdquo; under 
   <a href="#flipNormals"><b>flipNormals</b></a>).
-  When this option is off, brightness is uniform regardless of
+  When this option is off, the brightness does not vary with
   the angle between the normal and the line of sight.
+See also: <a href="material.html"><b>material</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -920,7 +921,7 @@ both depict isosurfaces.
   <br>Affects surface displays when 
   <a href="#two-sided"><b>twoSidedLighting</b></a> is set to false,
   mesh displays when
- <a href="#meshlight"><b>meshLighting</b></a> is set to true.
+ <a href="#meshLighting"><b>meshLighting</b></a> is set to true.
   When <b>flipNormals</b> is true,
   the side toward larger or more positive values is treated
   as the outside for negative <a href="#level">thresholds</a>

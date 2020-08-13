@@ -7,7 +7,7 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-#PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch pillow_ome_tiff.patch
+PATCHES = suds_jurko.patch webcolors.patch
 
 all:
 
@@ -57,6 +57,7 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
+	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works)"
 	@echo "  jedi (pulled in by line-profiler)"
 	@echo "  MarkupSafe (pulled in by Jinja2)"

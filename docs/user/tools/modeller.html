@@ -57,29 +57,58 @@ Modeller comparative modeling requires the following for each target chain:
 <ol>
 <li>At least one template structure.
 <!-- apparently they do not need to be superimposed -->
+<br><br>
+  <ul>
+  <li>Modeling a multimer requires a multimeric template structure
+with the same stoichiometry and expected spatial relationship.
+Modeller uses this stoichiometry and spatial relationship rather
+than trying to calculate it.
+  </ul>
+<br>
 <li>A sequence alignment that includes the sequence of the target;
 other sequences may also be included. 
 The sequence alignment and template structure(s) should be open in ChimeraX
 and the template(s) <a href="sequenceviewer.html#association">associated</a>
 with sequence(s) in the alignment.
+<br><br>
+  <ul>
+<!--
 <blockquote>
 <table cellpadding="10px"><tr>
 <td class="shaded">
-The target sequence can be <a href="../commands/open.html#fetch">fetched</a>
+-->
+  <li>The target sequence can be 
+<a href="../commands/open.html#fetch">fetched</a>
 from <a href="http://www.uniprot.org" target="_blank">UniProt</a> or
 opened from a <a href="../commands/open.html#sequence">file</a>.
 That single sequence suffices as the 
 &ldquo;alignment&rdquo; if the template is similar enough in
 sequence to <a href="sequenceviewer.html#association">associate</a> with it
-(see <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
+(see an
+<a href="http://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
 target="_blank">example</a>).
 Alternatively, a multiple sequence alignment of the target and template(s)
 can be opened from a <a href="../commands/open.html#sequence">file</a>,
 if available, or obtained by using the
 <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
 command to search for templates with the target sequence as a query.
+<!--
 </td></tr></table>
 </blockquote>
+-->
+<br><br>
+  <li>Modeling a heteromultimer requires a separate sequence alignment
+for each unique chain. For example, modeling  an
+&alpha;<sub>2</sub>&beta;<sub>2</sub> tetramer requires a
+template structure that is also a &alpha;<sub>2</sub>&beta;<sub>2</sub>
+tetramer with its two &alpha; subunits
+<a href="sequenceviewer.html#association">associated</a>
+with one alignment containing the target &alpha; sequence,
+and its two &beta; subunits 
+<a href="sequenceviewer.html#association">associated</a>
+with another alignment containing the target &beta; sequence.
+  </ul>
+<br>
 <li><a name="key"></a>
 <!-- 
 Use of Modeller, whether a previously
@@ -261,5 +290,5 @@ after making modifications that are expected to improve the scores.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+August 2020</address>
 </body></html>

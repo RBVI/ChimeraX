@@ -863,7 +863,7 @@ def restart_action(line, inst_dir, msgs):
     import sys, subprocess, os.path, os
     parts = line.rstrip().split('\t')
     action = parts[0]
-    bundle = parts[1]
+    bundles = parts[1]
     pip_args = parts[2:]
     # Options should match those in toolshed
     # Do not want to import toolshed yet, so we duplicate the code
@@ -877,10 +877,11 @@ def restart_action(line, inst_dir, msgs):
         msgs.append(("stderr", "unexpected restart action: %s" % line))
         return
     command.extend(pip_args)
-    if bundle.endswith(".whl"):
-        command.append(os.path.join(inst_dir, bundle))
-    else:
-        command.append(bundle)
+    for bundle in bundles.split():
+        if bundle.endswith(".whl"):
+            command.append(os.path.join(inst_dir, bundle))
+        else:
+            command.append(bundle)
     cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
