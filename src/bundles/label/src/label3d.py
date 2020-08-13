@@ -473,16 +473,29 @@ class ObjectLabels(Model):
         normals = None
         ta = self._visible_label_triangles()
         self.set_geometry(va, normals, ta)
-        if self.texture is not None:
-            self.texture.reload_texture(trgba)
-        else:
-            from chimerax.graphics import Texture
-            self.texture = Texture(trgba)
-        self.texture_coordinates = tcoord
+        self._set_label_texture(trgba, tcoord)
         self.opaque_texture = opaque
         self._positions_need_update = False
         self._texture_needs_update = False
         self._visibility_needs_update = False
+
+    def _set_label_texture(self, trgba, tcoord):
+        # Check for too many labels.
+        from chimerax.graphics import Texture
+        if hasattr(Texture, 'MAX_TEXTURE_SIZE') and trgba.shape[0] > Texture.MAX_TEXTURE_SIZE:
+            msg = ('Too many labels (%d),' % len(self._labels) +
+                   ' label texture size (%d,%d)' % (trgba.shape[1], trgba.shape[0]) +
+                   ' exceeded maximum OpenGL texture size (%d)' % Texture.MAX_TEXTURE_SIZE +
+                   ', some labels will be blank.')
+            self.session.logger.warning(msg)
+            tcoord[:,1] *= trgba.shape[0] / Texture.MAX_TEXTURE_SIZE
+            trgba = trgba[:Texture.MAX_TEXTURE_SIZE]
+
+        if self.texture is not None:
+            self.texture.reload_texture(trgba)
+        else:
+            self.texture = Texture(trgba)
+        self.texture_coordinates = tcoord
 
     def _packed_texture(self):
         images = [l._label_image() for l in self._labels]
