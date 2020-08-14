@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1.4, spacing=1.0,
-        padding=5.0, map=False, palette=None, range=None):
+        padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
     session.logger.status("Computing Coulombic charge volume/surface")
     if palette is None:
         from chimerax.core.colors import BuiltinColorMaps
@@ -106,6 +106,17 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1
         else:
             data = [(atoms, srf)]
         for charged_atoms, target_surface in data:
+            if target_surface.normals is None:
+                session.logger.warning("Surface %s has no vertex normals set, using distance from surface"
+                    " of 0 instead of %g" % (target_surface, surf_dist))
+                target_points = target_surface.vertices
+            else:
+                target_points = target_surface.vertices + surf_dist * target_surface.normals
+            import numpy
+            from ._esp import potential_at_points
+            vertex_values = potential_at_points(
+                target_surface.scene_position.transform_points(target_points), charged_atoms.scene_coords,
+                numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric)
             #TODO compute map
             #vol_name = 'coulombic ' + target_surface.name.split(maxsplit=1)[0]
             #v = coulombic_map(session, charged_atoms, target_surface, surf_dist, spacing, padding, vol_name)
@@ -134,6 +145,8 @@ def register_command(logger):
             ('map', BoolArg),
             ('palette', ColormapArg),
             ('range', ColormapRangeArg),
+            ('disp_dep', BoolArg),
+            ('dielectric', FloatArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )
