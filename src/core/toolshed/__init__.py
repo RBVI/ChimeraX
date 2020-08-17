@@ -167,6 +167,9 @@ TOOLSHED_BUNDLE_UNINSTALLED : str
 TOOLSHED_BUNDLE_INFO_RELOADED : str
     Name of trigger fired when bundle metadata is reloaded.
     The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_OUT_OF_DATE_BUNDLES : str
+    Name of trigger fired when out-of-date bundles are detected.
+    The trigger data is None.
 
 Notes
 -----
@@ -182,6 +185,7 @@ TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
 TOOLSHED_BUNDLE_INFO_RELOADED = "bundle info reloaded"
+TOOLSHED_OUT_OF_DATE_BUNDLES = "out of date bundles found"
 
 # Known bundle catagories
 DYNAMICS = "Molecular trajectory"
@@ -338,6 +342,7 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
+        self.triggers.add_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES)
         self.triggers.add_trigger("selector registered")
         self.triggers.add_trigger("selector deregistered")
 
@@ -458,12 +463,11 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
-        # log newer versions of installed bundles
+        # check if there are newer version of installed bundles
         from packaging.version import Version
-        out_of_date = []
+        has_out_of_date = False
         installed_name = None
         installed_version = None
-        # TODO: sort abc?
         for available in abc:
             if available.name != installed_name:
                 bi = self.find_bundle(available.name, logger)
@@ -473,17 +477,11 @@ class Toolshed:
                 installed_version = Version(bi.version)
             new_version = Version(available.version)
             if new_version > installed_version:
-                out_of_date.append((installed_name, new_version, installed_version))
-        if out_of_date:
-            from chimerax.core.commands import plural_form
-            bundles = plural_form(out_of_date, 'bundle')
-            info = (
-                f"{plural_form(out_of_date, 'An', 'Some')} installed {bundles}"
-                f" {plural_form(out_of_date, 'is', 'are')} out of date."
-                f"  Please update the following {bundles}:<ul>")
-            for name, new_version, installed_version in out_of_date:
-                info += f"<li>{self.bundle_link(name)} to version {new_version} (currently {installed_version})"
-            logger.info(info + "</ul>", is_html=True)
+                has_out_of_date = True
+                break
+        if has_out_of_date:
+            self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, None)
+
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
