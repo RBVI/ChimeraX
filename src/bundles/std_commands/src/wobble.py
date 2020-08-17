@@ -43,6 +43,6 @@ def register_command(logger):
                    ('aspect', FloatArg),
                    ('models', TopModelsArg),
                    ('atoms', AtomsArg)],
-        synopsis='rock models back and forth'
+        synopsis='move models in figure 8 motion'
     )
     register('wobble', desc, wobble, logger=logger)
