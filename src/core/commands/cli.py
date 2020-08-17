@@ -1052,7 +1052,7 @@ class AttrNameArg(StringArg):
         token, text, rest = StringArg.parse(text, session)
         if not text:
             raise AnnotationError("Attribute names can't be empty strings")
-        non_underscore = text.remove('_')
+        non_underscore = text.replace('_', '')
         if not non_underscore.isalnum():
             raise AnnotationError("Attribute names can consist only of alphanumeric"
                                   " characters and underscores")

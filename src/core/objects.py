@@ -209,6 +209,15 @@ class Objects:
     def num_pseudobonds(self):
         return sum(len(b) for b in self._pseudobonds)
 
+    @property
+    def chains(self):
+        from chimerax import atomic
+        return self.residues.unique_chains
+
+    @property
+    def num_chains(self):
+        return len(self.chains)
+
     @staticmethod
     def union(left, right):
         u = Objects(models = (left._models | right._models))

@@ -11,11 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands.motion import CallForNFrames
-
 from chimerax.core.commands import Axis
 
-def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, rock=None,
+def roll(session, axis=Axis((0,1,0)), angle=1, frames='forever',
+         rock=None, wobble=None, wobble_aspect=0.3,
          center=None, coordinate_system=None, models=None, atoms=None):
     '''Rotate the scene.  Same as the turn command with infinite frames argument and angle step 1 degree.
 
@@ -30,6 +29,10 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
     rock : integer
        Repeat the rotation reversing the direction every N/2 frames.  The first reversal
        occurs at N/4 frames so that the rocking motion is centered at the current orientation.
+    wobble : integer
+       Like rock only move in a figure 8 pattern.
+    wobble_aspect : float
+       Ratio of wobble angle amplitude to rocking angle amplitude.  Default 0.3.
     center : Center
        Specifies the center of rotation. If not specified, then the current
        center of rotation is used.
@@ -42,21 +45,25 @@ def roll(session, axis=Axis((0,1,0)), angle=1, frames=CallForNFrames.Infinite, r
        Change the coordinates of these atoms.  Camera is not moved.
     '''
     from .turn import turn
-    turn(session, axis=axis, angle=angle, frames=frames, rock=rock, center=center,
+    turn(session, axis=axis, angle=angle, frames=frames,
+         rock=rock, wobble=wobble, wobble_aspect=wobble_aspect, center=center,
          coordinate_system=coordinate_system, models=models, atoms=atoms)
 
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
+    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg, Or, EnumOf
     from chimerax.atomic import AtomsArg
+    from .turn import FramesArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
-                   ('frames', PositiveIntArg)],
+                   ('frames', FramesArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
+                   ('wobble', PositiveIntArg),
+                   ('wobble_aspect', FloatArg),
                    ('models', TopModelsArg),
                    ('atoms', AtomsArg)],
         synopsis='rotate models continuously'
