@@ -1093,6 +1093,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -1120,6 +1121,20 @@ For caching, no distinction is made among the different Protein Data Bank sites.
 If a data file specified for opening is not found in this local cache or 
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
 </p><p>
+<a name="maxAssemblies"></a>
+Multiple biological assemblies are defined for many entries in the PDB.
+By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
+will return every assembly available for that entry in that database.
+The <b>maxAssemblies</b> option limits fetching to the
+first <i>N</i> assemblies.
+A single assembly from <b>pdbe_bio</b> will be opened as a single model, but
+even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
+(opened as submodels of the assembly model).
+<!-- 
+details in ticket #3515
+RCSB says that in 2021 all will be mmCIF and as one model per assembly
+-->
+</p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
 </p>
@@ -1143,11 +1158,26 @@ target="_blank">RCSB Protein Data Bank</a></td>
 target="_blank">wwPDB formats</a>)
 <br>or <a href="http://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
 </tr><tr>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center" class="text"><b>rcsb_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center">(no choice, <b>mmcif</b> or <b>pdb</b> depending on
+the specific entry)</td>
+</tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
 <td align="center"><b>pdbe</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
+target="_blank">PDBe</a></td>
+<td align="center" class="text"><b>pdbe_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center"><b>mmcif</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">PDBe</a></td>
@@ -1399,5 +1429,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html>

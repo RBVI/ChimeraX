@@ -17,6 +17,7 @@ include $(TOP)/mk/config.make
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 BUNDLE_BUILDER_SUBDIR = bundle_builder
+TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
 	  axes_planes basic_actions bild blastprotein \
@@ -50,7 +51,7 @@ ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -103,8 +104,8 @@ Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
-# Make sure bundle_builder bundle is installed before all others.
-$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build
+# Make sure bundle_builder and toolshed bundles are installed before all others.
+$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build $(TOOLSHED_UTILS_SUBDIR).build
 
 include Makefile.dependencies
 endif

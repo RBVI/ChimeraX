@@ -37,10 +37,12 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>sym</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-&nbsp;&nbsp;<i>sym-type</i>
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+&nbsp;&nbsp;<a href="#symmetry"><i>sym-type</i></a>&nbsp;
+[&nbsp;<a href="#axis"><b>axis</b></a>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<a href="#coordinateSystem"><b>coordinateSystem</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<a href="#contact"><b>contact</b></a>&nbsp;&nbsp;<i>contact-dist</i>&nbsp;]
+[&nbsp;<a href="#range"><b>range</b></a>&nbsp;&nbsp;<i>range-dist</i>&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -59,7 +61,8 @@ See also:
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="surface.html"><b>surface</b></a>,
-<a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>
+<a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>,
+<a href="open.html#fetch">fetching biological assemblies</a>
 </p>
 
 <blockquote><b>
@@ -100,9 +103,13 @@ and adjust the view to encompass it.
 By default, the additional copies are simply graphical clones; 
 however, for detailed analyses such as 
 calculating <a href="hbonds.html">hydrogen bonds</a> for the whole assembly,
-the <b>sym</b> command should be used with <a href="#copies"><b>copies true</b></a>
-to add full atomic copies instead. The <b>assembly</b> of interest
+the <b>sym</b> command should be used with 
+<a href="#copies"><b>copies true</b></a> to add full atomic copies instead.
+The <b>assembly</b> of interest
 is specified with the <i>identifier</i> mentioned above.
+Alternatively, the full atomic coordinates of a biological assembly can be
+<a href="open.html#fetch">fetched from online sources</a>
+instead of generated with <b>sym</b>.
 </p>
 
 <a name="symmetry"></a>
@@ -114,10 +121,12 @@ is specified with the <i>identifier</i> mentioned above.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>sym</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-&nbsp;&nbsp;<i>sym-type</i>
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+&nbsp;&nbsp;<i>sym-type</i>&nbsp;
+[&nbsp;<a href="#axis"><b>axis</b></a>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<a href="#coordinateSystem"><b>coordinateSystem</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<a href="#contact"><b>contact</b></a>&nbsp;&nbsp;<i>contact-dist</i>&nbsp;]
+[&nbsp;<a href="#range"><b>range</b></a>&nbsp;&nbsp;<i>range-dist</i>&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </blockquote>
 <p>
@@ -249,6 +258,16 @@ option specifies a reference model for interpreting
 <a href="#axis">axis</a> and <a href="#center">center</a> coordinates.
 If no reference model is specified,
 the <a href="view.html#scenecoords">scene coordinate system</a> is used.
+</p><p>
+<a name="contact"></a>
+<a name="range"></a>
+Copies can be filtered by their distance from the original atomic model.
+The <b>contact</b> option removes copies without any atom
+within <i>contact-dist</i> of the original model, and 
+the <b>range</b> option removes copies with centers farther than
+<i>range-dist</i> from the center of the original model.
+A model's center is defined as the center of the bounding box of
+all of its atoms, regardless of whether they are displayed.
 </p>
 
 <a name="copies"></a>
@@ -334,5 +353,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+August 2020</address>
 </body></html>

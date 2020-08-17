@@ -2032,6 +2032,7 @@ class VolumeSurface(Surface):
   def _set_show_mesh(self, show_mesh):
     if show_mesh != self._mesh:
       self._mesh = show_mesh
+      self.display_style = self.Mesh if show_mesh else self.Solid
       self.volume._drawings_need_update()
   show_mesh = property(_get_show_mesh, _set_show_mesh)
 

@@ -74,6 +74,8 @@ def open_output(output, encoding=None, *, append=False, compression=None):
     return open(fs_output, mode, encoding=encoding)
 
 def file_system_file_name(file_name):
+    import os.path
+    file_name = os.path.expanduser(file_name)
     try:
         hash_pos = file_name.rindex('#')
         dot_pos = file_name.rindex('.')

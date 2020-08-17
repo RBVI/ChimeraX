@@ -13,7 +13,8 @@
 
 from chimerax.core.commands import Axis
 
-def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
+def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
+         rock=None, wobble=None, wobble_aspect=0.3,
          center=None, coordinate_system=None, models=None, atoms=None):
     '''
     Rotate the scene.  Actually the camera is rotated about the scene center of rotation
@@ -31,7 +32,12 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
     rock : integer
        Rotate +/- angle degrees repeating, one cycle every specified number of frames.
        The rocking steps are small at the ends of the rock, using sine modulation.
-       If the frames option is not given the rocking continues indefinitely.
+       If the frames option is not given the rocking continues until the stop command
+       is run.
+    wobble : integer
+       Like rock only move in a figure 8 pattern.
+    wobble_aspect : float
+       Ratio of wobble angle amplitude to rocking angle amplitude.  Default 0.3.
     center : Center
        Specifies the center of rotation. If not specified, then the current
        center of rotation is used.
@@ -44,55 +50,110 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
        Change the coordinates of these atoms.  Camera is not moved.
     '''
 
-    if rock is not None and frames is None:
+    if (rock or wobble) and frames is None:
         frames = -1	# Continue motion indefinitely.
 
     v = session.main_view
-    c = v.camera
+    camera = v.camera
     with session.undo.block():
-        saxis = axis.scene_coordinates(coordinate_system, c)	# Scene coords
+        saxis = axis.scene_coordinates(coordinate_system, camera)	# Scene coords
         if center is None:
             ab = axis.base_point()
-            c0 = v.center_of_rotation if ab is None else ab
+            center = v.center_of_rotation if ab is None else ab
         else:
-            c0 = center.scene_coordinates(coordinate_system)
+            center = center.scene_coordinates(coordinate_system)
 
-    def _turn(angle, saxis=saxis, c=c, models=models, atoms=atoms):
-        a = -angle if models is None else angle
-        from chimerax.geometry import rotation
-        r = rotation(saxis, a, c0)
-        if models is not None:
-            for m in models:
-                m.positions = r * m.positions
-        if atoms is not None:
-            atoms.scene_coords = r.inverse() * atoms.scene_coords
-        if models is None and atoms is None:
-            c.position = r * c.position
+    turner = Turner(axis=saxis, center=center, angle=angle, rock=rock,
+                    wobble=wobble, wobble_aspect=wobble_aspect,
+                    camera=camera, models=models, atoms=atoms)
 
     if frames is not None:
-        def turn_step(session, frame, angle=angle, undo=None):
-            with session.undo.block():
-                if rock is None:
-                    a = angle
-                else:
-                    a = _rock_step(frame, rock) * angle
-                if undo:
-                    a = -a
-                _turn(a)
         from .move import multiframe_motion
-        multiframe_motion("turn", turn_step, frames, session)
+        multiframe_motion("turn", turner.turn_step, frames, session)
     else:
         from .view import UndoView
         undo = UndoView("move", session, models, frames=frames)
         with session.undo.block():
-            _turn(angle)
+            turner.turn()
         undo.finish(session, models)
         session.undo.register(undo)
 
-def _rock_step(frame, rock):
-    from math import pi, sin
-    a = sin(2*pi*((frame+1)%rock)/rock) - sin(2*pi*(frame%rock)/rock)
-    return a
+class Turner:
+    def __init__(self, axis=(0,1,0), center=(0,0,0), angle=90,
+                 rock=None, wobble=None, wobble_aspect=0.3, wobble_axis=None,
+                 camera=None, models=None, atoms=None):
+        self._axis = axis
+        self._center = center
+        self._full_angle = angle
+        self._rock = rock
+        self._wobble = wobble
+        if wobble is not None and wobble_axis is None:
+            from chimerax.geometry import cross_product, normalize_vector
+            wobble_axis = normalize_vector(cross_product(camera.view_direction(), axis))
+        self._wobble_axis = wobble_axis
+        self._wobble_aspect = wobble_aspect
+        self._wobble_axis = wobble_axis
+        self._camera = camera
+        self._models = models
+        self._atoms = atoms
+        
+    def turn(self):
+        r = self._rotation(self._full_angle)
+        self._move(r)
+        
+    def _rotation(self, angle):
+        from chimerax.geometry import rotation
+        r = rotation(self._axis, angle, self._center)
+        return r
+
+    def _move(self, rotation, invert=False):
+        r = rotation.inverse() if invert else rotation
+        models = self._models
+        atoms = self._atoms
+        move_camera = (models is None and atoms is None)
+        if move_camera:
+            camera = self._camera
+            camera.position = r.inverse() * camera.position
+        else:
+            if models is not None:
+                for m in models:
+                    m.positions = r * m.positions
+            if atoms is not None:
+                atoms.scene_coords = r * atoms.scene_coords
+
+    def turn_step(self, session, frame, undo=None):
+        with session.undo.block():
+            if self._rock:
+                r = self._rock_motion(frame)
+            elif self._wobble:
+                r = self._wobble_motion(frame)
+            else:
+                r = self._rotation(self._full_angle)
+            self._move(r, invert=undo)
+
+    def _rock_motion(self, frame):
+        n = self._rock
+        from math import pi, sin
+        f = sin(2*pi*((frame+1)%n)/n) - sin(2*pi*(frame%n)/n)
+        r = self._rotation(f * self._full_angle)
+        return r
+
+    def _wobble_motion(self, frame):
+        n = self._wobble
+        w0 = self._wobble_position((frame%n)/n)
+        w1 = self._wobble_position(((frame+1)%n)/n)
+        move_camera = (self._models is None and self._atoms is None)
+        r = w0 * w1.inverse() if move_camera else w1 * w0.inverse()
+        return r
+
+    def _wobble_position(self, f):
+        from math import pi, sin
+        a = sin(2*pi*f) * self._full_angle
+        wa = sin(4*pi*f) * self._full_angle * self._wobble_aspect
+        from chimerax.geometry import rotation
+        r = rotation(self._axis, a, self._center)
+        rw = rotation(self._wobble_axis, wa, self._center)
+        return rw*r
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
@@ -105,6 +166,8 @@ def register_command(logger):
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
+                   ('wobble', PositiveIntArg),
+                   ('wobble_aspect', FloatArg),
                    ('models', TopModelsArg),
                    ('atoms', AtomsArg)],
         synopsis='rotate models'

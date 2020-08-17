@@ -256,14 +256,22 @@ the maximum atom and bond triangles are set to five million each.
 See also: <a href="graphics.html"><b>graphics</b></a>
 </p><p>
 Ambient shadowing or &ldquo;ambient occlusion&rdquo;
-requires calculating shadows from multiple directions,
-which may make rendering too slow for VR and cause stuttering in the headset.
+requires calculating shadows from multiple directions.
+This may make rendering too slow for VR and cause stuttering in the headset,
+especially if the number of directions (the
+<a href="lighting.html#multiShadow"><b>lighting multiShadow</b></a> 
+parameter) is high.
 By default (<b>multishadowAllowed</b> &nbsp;<b>false</b>),
-if the <a href="lighting.html#multiShadow"><b>multiShadow</b></a>
-lighting parameter is &gt; 0, enabling VR switches to the
-<a href="lighting.html#preset"><b>simple</b></a> lighting mode.
+when the number of directions is &gt; 0, enabling VR switches to the
+<a href="lighting.html#preset"><b>simple</b></a> lighting preset, which
+does not use ambient shadowing.
 With <b>multishadowAllowed</b> &nbsp;<b>true</b>, 
-the lighting mode is left unchanged.
+enabling VR does not automatically change the lighting.
+In VR, the lighting presets with ambient shadowing
+(<a href="lighting.html#preset"><b>full</b></a>,
+<a href="lighting.html#preset"><b>soft</b></a>, and
+<a href="lighting.html#preset"><b>gentle</b></a>)
+use 8 directions instead of 64.
 </p><p>
 The <b>nearClipDistance</b> and <b>farClipDistance</b> options
 set clipping-plane positions in meters from the viewer
@@ -690,5 +698,5 @@ See also:
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html>

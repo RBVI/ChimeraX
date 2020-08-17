@@ -58,7 +58,9 @@ def _fetch_pdbe_assemblies(session, pdb_id, *,
     models = _fetch_assemblies(session, pdb_id, mmcif_url, mmcif_file,
                                save_template=save_name,
                                max_assemblies=max_assemblies,
-                               ignore_cache=ignore_cache, **kw)
+                               ignore_cache=ignore_cache,
+                               transmit_compressed = False,  # PDBe assemblies are twice gzip compressed (July 2020)
+                               **kw)
     return models
 
 # --------------------------------------------------------------------------------------
@@ -69,7 +71,8 @@ def _fetch_rcsb_mmcif_assemblies(session, pdb_id, *,
     mmcif_url = 'https://files.rcsb.org/download/%s'
     models = _fetch_assemblies(session, pdb_id, mmcif_url, mmcif_file,
                                max_assemblies=max_assemblies,
-                               ignore_cache=ignore_cache, **kw)
+                               ignore_cache=ignore_cache,
+                               **kw)
     return models
 
 # --------------------------------------------------------------------------------------
@@ -88,7 +91,8 @@ def _fetch_rcsb_pdb_assemblies(session, pdb_id, *,
 # --------------------------------------------------------------------------------------
 #
 def _fetch_assemblies(session, pdb_id, url_template, file_template, *,
-                      save_template=None, max_assemblies=None, ignore_cache=False, **kw):
+                      save_template=None, max_assemblies=None, ignore_cache=False,
+                      transmit_compressed=True, **kw):
     models = []
     n = 1
     id = pdb_id.lower()
@@ -102,7 +106,8 @@ def _fetch_assemblies(session, pdb_id, url_template, file_template, *,
         uncompress = filename.endswith('.gz')
         try:
             path = fetch_file(session, url, status_name, save_name, 'PDB',
-                              uncompress=uncompress, ignore_cache=ignore_cache)
+                              uncompress=uncompress, transmit_compressed=transmit_compressed,
+                              ignore_cache=ignore_cache)
         except UserError:
             break
         model_name = status_name

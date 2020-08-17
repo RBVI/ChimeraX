@@ -437,7 +437,7 @@ class Session:
         self.app_name = app_name
         self.debug = debug
         self.silent = silent
-        self._snapshot_methods = {}	# For saving classes with no State base class.
+        self._snapshot_methods = {}     # For saving classes with no State base class.
         self._state_containers = {}     # stuff to save in sessions.
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
@@ -447,7 +447,7 @@ class Session:
         self.logger = logger.Logger(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
-        
+
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
             return
@@ -457,7 +457,7 @@ class Session:
         register_graphics_session_save(self)
         from chimerax.geometry.psession import register_place_session_save
         register_place_session_save(self)
-        
+
         # initialize state managers for various properties
         from . import models
         self.models = models.Models(self)
@@ -549,7 +549,7 @@ class Session:
         and restore_snapshot(session, data).
         '''
         self._snapshot_methods.update(methods)
-        
+
     def save(self, stream, version, include_maps=False):
         """Serialize session to binary stream."""
         from . import serialize
@@ -754,7 +754,7 @@ def standard_metadata(previous_metadata={}):
     generator = unescape(html_user_agent(app_dirs))
     generator += ", http://www.rbvi.ucsf.edu/chimerax/"
     metadata['generator'] = generator
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     iso_date = now.isoformat() + 'Z'
     if 'created' in previous_metadata:
         metadata['modified'] = iso_date
@@ -1030,7 +1030,7 @@ def common_startup(sess):
 
     if not hasattr(sess, 'models'):
         return  # Minimal session mode.
-    
+
     from .selection import Selection
     sess.selection = Selection(sess)
 

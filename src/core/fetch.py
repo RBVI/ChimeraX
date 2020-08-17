@@ -32,7 +32,8 @@ TIMEOUT_CACHE_VALID = 600  # 10 minutes in seconds
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True,
+               uncompress=False, transmit_compressed=True,
+               ignore_cache=False, check_certificates=True,
                timeout=60):
     """fetch file from URL
 
@@ -82,7 +83,8 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         makedirs(dirname, exist_ok=True)
 
     try:
-        retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
+        retrieve_url(url, filename, uncompress=uncompress, transmit_compressed=transmit_compressed,
+                     logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
     except (URLError, EOFError) as err:
         raise UserError('Fetching url %s failed:\n%s' % (url, str(err)))
@@ -103,7 +105,7 @@ def cache_directories():
 
 # -----------------------------------------------------------------------------
 #
-def retrieve_url(url, filename, *, logger=None, uncompress=False,
+def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compressed=True,
                  update=False, check_certificates=True, name=None, timeout=60):
     """Return requested URL in filename
 
@@ -160,7 +162,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             pass
         request.method = 'GET'
     try:
-        request.headers['Accept-encoding'] = 'gzip, identity'
+        request.headers['Accept-encoding'] = 'gzip, identity' if transmit_compressed else 'identity'
         if check_certificates:
             ssl_context = None
         else:

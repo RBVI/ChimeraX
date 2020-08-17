@@ -108,11 +108,7 @@ class Drawing:
         square mesh density map display.
         '''
 
-        self.display_style = self.Solid
-        '''
-        Display style can be Drawing.Solid, Drawing.Mesh or Drawing.Dot.
-        Only one style can be used for a single Drawing instance.
-        '''
+        self._display_style = self.Solid
 
         self.texture = None
         '''
@@ -262,6 +258,18 @@ class Drawing:
     "Display style showing only edges of triangles."
     Dot = 'dot'
     "Display style showing only dots at triangle vertices."
+
+    def _get_display_style(self):
+        return self._display_style
+    def _set_display_style(self, style):
+        if style != self._display_style:
+            self._display_style = style
+            self.shape_changed = True
+    display_style = property(_get_display_style, _set_display_style)
+    '''
+    Display style can be Drawing.Solid, Drawing.Mesh or Drawing.Dot.
+    Only one style can be used for a single Drawing instance.
+    '''
 
     def child_drawings(self):
         '''Return the list of surface pieces.'''
