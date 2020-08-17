@@ -53,10 +53,11 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
     from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
     from chimerax.atomic import AtomsArg
+    from .turn import FramesArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
-                   ('frames', PositiveIntArg)],
+                   ('frames', FramesArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('cycle', PositiveIntArg),

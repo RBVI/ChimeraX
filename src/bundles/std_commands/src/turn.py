@@ -27,7 +27,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
        Defines the axis to rotate about.
     angle : float
        Rotation angle in degrees.
-    frames : integer
+    frames : "forever" or an integer
        Repeat the rotation for N frames, typically used in recording movies.
     rock : integer
        Rotate +/- angle degrees repeating, one cycle every specified number of frames.
@@ -50,7 +50,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
        Change the coordinates of these atoms.  Camera is not moved.
     '''
 
-    if (rock or wobble) and frames is None:
+    if ((rock or wobble) and frames is None) or frames == 'forever':
         frames = -1	# Continue motion indefinitely.
 
     v = session.main_view
@@ -155,14 +155,17 @@ class Turner:
         rw = rotation(self._wobble_axis, wa, self._center)
         return rw*r
 
+from chimerax.core.commands import Or, EnumOf, PositiveIntArg
+FramesArg = Or(EnumOf(['forever']), PositiveIntArg)
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
+    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg, Or, EnumOf
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
-                   ('frames', PositiveIntArg)],
+                   ('frames', FramesArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
