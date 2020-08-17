@@ -61,13 +61,17 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   </ul>
 <li>can be created:
   <ul>
-  <li>with the mouse in the graphics window
-  (see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
-    <img src="tools/mouse-icons/select.png" class="icon">), by default:
+  <li>by clicking with the mouse in the graphics window (...and 
+  doubleclicking for a <a href="#context">selection context menu</a>),
+  by default:
     <ul>
     <li>Ctrl-click to start selection (replace)
     <li>Shift-Ctrl-click to add/subtract (toggle)
     </ul>
+  The button assignment can be changed with
+  <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+  <img src="tools/mouse-icons/select.png" class="icon">.
+<br><br>
   <li>by clicking links in the <b>Chain information</b> and
   <b>Non-standard residues</b> tables
   shown in the <a href="tools/log.html"><b>Log</b></a>
@@ -144,8 +148,12 @@ and/or <a href="../pseudobonds.html">pseudobonds</a>.
 <img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon,
 and all types of hidden items shown with the
 <a href="commands/show.html"><b>show</b></a> command.)
-If two atoms are selected, the context menu also includes an option to add a
+If exactly two atoms are selected, the selection context menu will include 
+a <b>Distance</b> option to add a
 <a href="tools/distances.html">distance monitor</a> between them.
+If the selection contains part of a single amino acid, the context menu
+will include a choice to <b>Mutate Residue</b>
+with the <a href="tools/rotamers.html"><b>Rotamers</b></a> tool.
 See also:
 <a href="window.html#context-menu">context menus</a>,
 <a href="tools/distances.html"><b>Distances</b></a>
@@ -168,5 +176,5 @@ such as defining the scope of action when an icon is clicked.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2020</address>
+August 2020</address>
 </body></html>
