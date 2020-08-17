@@ -11,11 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands.motion import CallForNFrames
-
 from chimerax.core.commands import Axis
 
-def wobble(session, axis=Axis((0,1,0)), angle=15, frames=CallForNFrames.Infinite, cycle=136,
+def wobble(session, axis=Axis((0,1,0)), angle=30, frames="forever", cycle=136,
            aspect=0.3, center=None, coordinate_system=None, models=None, atoms=None):
     '''
     Wobble the scene back and forth.  Same as the turn command with infinite frames argument

@@ -15,7 +15,7 @@ from chimerax.core.commands.motion import CallForNFrames
 
 from chimerax.core.commands import Axis
 
-def rock(session, axis=Axis((0,1,0)), angle=15, frames=CallForNFrames.Infinite, cycle=136,
+def rock(session, axis=Axis((0,1,0)), angle=30, frames=CallForNFrames.Infinite, cycle=136,
          center=None, coordinate_system=None, models=None, atoms=None):
     '''
     Rock the scene back and forth.  Same as the turn command with infinite frames argument
@@ -27,7 +27,7 @@ def rock(session, axis=Axis((0,1,0)), angle=15, frames=CallForNFrames.Infinite, 
     axis : Axis
        Defines the axis to rotate about.
     angle : float
-       Rotation angle in degrees.
+       Full range rotation angle in degrees.
     frames : integer
        Repeat the rotation for N frames, typically used in recording movies.
     cycle : integer
