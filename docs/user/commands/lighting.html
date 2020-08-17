@@ -59,9 +59,15 @@ There are two directional lights, key and fill, plus ambient lighting.
 The <b><i>key light</i></b> is often the dominant source and can cast 
 shadows; the first set of intensity, direction, and color values 
 reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
-The <b><i>fill light</i></b> serves as a secondary 
-directional source to improve the visibility of regions that would 
-otherwise be dark. The <b><i>ambient</i></b> lighting 
+The <b><i>fill light</i></b> serves as a secondary directional source 
+to improve the visibility of regions that would otherwise be dark. 
+Regardless of whether <a href="#shadows">shadows</a> are on,
+the directional lights cause &ldquo;shading,&rdquo; 
+where the brightness of an object varies based on the angle
+between the light direction and the surface normal. 
+The key light also produces directionally dependent
+<a href="material.html">specular highlights</a>.
+The <b><i>ambient</i></b> lighting 
 is an approximation to omnidirectional illumination.
 Shadows cast from multiple uniformly distributed directions can produce 
 ambient shadowing, or &ldquo;ambient occlusion.&rdquo; 
@@ -292,6 +298,7 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 <b>lighting model</b>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>depthCue</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>directional</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>shadows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multiShadow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
@@ -307,6 +314,15 @@ If the setting is globally disabled, the per-model settings will not be evident.
 <br>
 Whether depth-cueing should apply to the specified model(s) when
 depth-cueing is <a href="#depthCue">enabled globally</a>.
+</blockquote>
+<blockquote>
+<a name="model-directional"></a>
+<b>directional</b> &nbsp;true | false
+<br>
+Model(s) for which this setting is false will appear as flat, 
+without any directional shading, highlights, or shadows.
+They will also be unaffected by changes in ambient lighting,
+but depth-cueing may still apply.
 </blockquote>
 <blockquote>
 <a name="model-shadows"></a>
