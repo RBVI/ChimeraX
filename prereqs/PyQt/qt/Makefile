@@ -85,5 +85,8 @@ ifneq (,$(PATCHES))
 	touch $(SOURCE)
 endif
 
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/qt/$(DISTRIBUTION)
+
 clean:
 	rm -rf $(SOURCE)
