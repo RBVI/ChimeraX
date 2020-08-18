@@ -1,0 +1,22 @@
+#
+#  radii from UCSF MidasPlus "vdw.default" file
+#
+#  Use this file to assign the attribute in ChimeraX or Chimera.
+#
+attribute: radius
+match mode: any
+	@*	1.8
+	C	1.8
+	N	1.8
+	O	1.5
+	S	1.85
+	P	1.9
+	F	1.35
+	I	2.15
+	B	1.8
+	Cl	1.8
+	Fe	0.64
+	Cu	1.28
+	Zn	1.38
+	Br	1.95
+	H	1.0

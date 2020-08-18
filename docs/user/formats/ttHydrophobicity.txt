@@ -1,0 +1,34 @@
+#  Amino acid hydrophobicity scale from
+#  "An amino acid "transmembrane tendency" scale that approaches the
+#   theoretical limit to accuracy for prediction of transmembrane helices:
+#   relationship to biological hydrophobicity,"
+#  Zhao and London, Protein Sci 15:8 (2006), doi: 10.1110/ps.062286306.
+#
+#  Zero should be at the middle of the extents (-3.46+1.98)/2 = -0.74
+#
+#  More positive means more hydrophobic.
+#
+#  Use this file to assign the attribute in ChimeraX or Chimera.
+#
+attribute: ttHydrophobicity
+recipient: residues
+	:asp	-3.27
+	:glu	-2.90
+	:asn	-1.62
+	:gln	-1.84
+	:lys	-3.46
+	:arg	-2.57
+	:his	-1.44
+	:gly	-0.19
+	:pro	-1.44
+	:ser	-0.53
+	:thr	-0.32
+	:cys	-0.30
+	:met	1.40
+	:ala	0.38
+	:val	1.46
+	:ile	1.97
+	:leu	1.82
+	:phe	1.98
+	:trp	1.53
+	:tyr	0.49
