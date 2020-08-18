@@ -395,12 +395,18 @@ toolshed_show_desc = CmdDesc(optional=[("bundle_name", StringArg)],
                              synopsis='show the toolshed or bundle in toolshed')
 
 
-def toolshed_update(session):
-    from chimerax.toolshed_utils import update_tool
-    update_tool.show(session)
+def toolshed_updates(session, dialog_type=None):
+    from chimerax.toolshed_utils import updates_tool
+    updates_tool.show(session, dialog_type)
 
 
-toolshed_update_desc = CmdDesc(synopsis='show update bundle tool')
+from chimerax.toolshed_utils import updates_tool
+DialogTypeArg = EnumOf(*zip(*((dt, dt.name.lower()) for dt in updates_tool.DialogType)))
+
+
+toolshed_updates_desc = CmdDesc(
+    optional=[('dialog_type', DialogTypeArg)],
+    synopsis='show updates for installed bundles')
 
 
 def register_command(logger):
@@ -413,4 +419,4 @@ def register_command(logger):
     register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
     register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
     register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
-    register("toolshed update", toolshed_update_desc, toolshed_update, logger=logger)
+    register("toolshed updates", toolshed_updates_desc, toolshed_updates, logger=logger)

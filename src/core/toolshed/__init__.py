@@ -472,9 +472,12 @@ class Toolshed:
             if available.name != installed_name:
                 bi = self.find_bundle(available.name, logger)
                 if bi is None:
+                    installed_version = None
                     continue
                 installed_name = available.name
                 installed_version = Version(bi.version)
+            elif installed_version is None:
+                continue
             new_version = Version(available.version)
             if new_version > installed_version:
                 has_out_of_date = True
