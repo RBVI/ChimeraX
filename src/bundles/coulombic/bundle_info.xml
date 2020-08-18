@@ -33,8 +33,6 @@
 
   <CModule name="_esp">
     <SourceFile>esp_cpp/esp.cpp</SourceFile>
-    <SourceFile>esp_cpp/esp.cpp</SourceFile>
-    <SourceFile>esp_cpp/module.cpp</SourceFile>
     <Library>arrays</Library>
   </CModule>
 

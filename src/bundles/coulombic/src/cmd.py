@@ -19,10 +19,12 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
     session.logger.status("Computing Coulombic charge volume/surface")
     if palette is None:
-        from chimerax.core.colors import BuiltinColorMaps
-        cmap = BuiltinColorMaps("red-white-blue")
-    if range is None and not cmap.values_specified:
-        range = (-10.0, 10.0)
+        from chimerax.core.colors import BuiltinColormaps
+        cmap = BuiltinColormaps["red-white-blue"]
+    if not cmap.values_specified:
+        rmin, rmax = (-10.0, 10.0) if range is None else range
+        print("setting cmap range")
+        cmap = cmap.linear_range(rmin, rmax)
     session.logger.status("Matching atoms to surfaces", secondary=True)
     atoms_per_surf = []
     from chimerax.atomic import all_atomic_structures, MolecularSurface, all_atoms
@@ -112,14 +114,17 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1
                 target_points = target_surface.vertices
             else:
                 target_points = target_surface.vertices + surf_dist * target_surface.normals
-            import numpy
+            import numpy, os
             from ._esp import potential_at_points
+            cpu_count = os.cpu_count()
             vertex_values = potential_at_points(
                 target_surface.scene_position.transform_points(target_points), charged_atoms.scene_coords,
-                numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric)
-            #TODO compute map
-            #vol_name = 'coulombic ' + target_surface.name.split(maxsplit=1)[0]
-            #v = coulombic_map(session, charged_atoms, target_surface, surf_dist, spacing, padding, vol_name)
+                numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
+                1 if cpu_count is None else cpu_count)
+            rgba = cmap.interpolated_rgba(vertex_values)
+            from numpy import uint8
+            rgba8 = (255*rgba).astype(uint8)
+            target_surface.vertex_colors = rgba8
     session.undo.register(undo_state)
 
     session.logger.status("Finished computing Coulombic charge volume/surface")

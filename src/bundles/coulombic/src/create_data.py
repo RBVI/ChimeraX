@@ -54,7 +54,7 @@ for file_name in sys.argv[1:]:
             else:
                 if len(fields) == 11:
                     if fields[2] != "DU":
-                        res_dict[fields[1]] = fields[-1]
+                        res_dict[fields[1]] = eval(fields[-1])
                 elif len(fields) == 1 and fields[0] == "DONE":
                     res_name = None
 
