@@ -22,9 +22,30 @@ Everything in here is considered private.
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
     ToolshedInstalledError,
-    BundleInfo,
+    BundleAPI, BundleInfo,
     _ChimeraXNamespace
 )
+
+
+class _BootstrapAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        from chimerax.core import toolshed
+        ts = session.toolshed
+
+        def show_updates(trigger_name, data, *, session=session):
+            from . import updates_tool
+            updates_tool.show(session, updates_tool.DialogType.UPDATES_ONLY)
+        ts.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
+
+    @staticmethod
+    def get_class(class_name):
+        return None
+
+
+bundle_api = _BootstrapAPI()
 
 
 def _debug(*args, **kw):
@@ -314,6 +335,7 @@ def _add_restart_action(action_type, bundles, extra_args, logger):
         args.append(' '.join(bundle_args))
         args.extend(extra_args)
         print("\t".join(args), file=f)
+    # TODO: ask if what to restart right now
 
 
 def _uninstall_bundle(toolshed, bundle, logger, *, session=None, force_remove=False):

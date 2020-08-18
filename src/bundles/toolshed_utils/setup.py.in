@@ -56,6 +56,8 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.toolshed_utils ::  :: true",
+        "ChimeraX :: Tool :: Updates :: General :: synopsis",
     ],
     # entry_points={
     #     "egg_info.writers": [
