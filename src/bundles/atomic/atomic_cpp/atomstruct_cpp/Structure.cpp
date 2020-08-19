@@ -370,6 +370,7 @@ void Structure::_copy(Structure* s) const
     }
     s->set_active_coord_set(cs_map[active_coord_set()]);
 
+    set_alt_loc_change_notify(false);
     std::map<Atom*, Atom*> amap;
     for (auto a: atoms()) {
         Atom* ca = s->new_atom(a->name(), a->element());
@@ -399,6 +400,7 @@ void Structure::_copy(Structure* s) const
         ca->set_display(a->display());
         amap[a] = ca;
     }
+    set_alt_loc_change_notify(true);
     
     for (auto b: bonds()) {
         const Bond::Atoms& a = b->atoms();

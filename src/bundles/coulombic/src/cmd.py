@@ -17,13 +17,12 @@ chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', '
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1.4, spacing=1.0,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
-    session.logger.status("Computing Coulombic charge volume/surface")
+    session.logger.status("Computing Coulombic charge surface%s" % ("/volume" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps["red-white-blue"]
     if not cmap.values_specified:
         rmin, rmax = (-10.0, 10.0) if range is None else range
-        print("setting cmap range")
         cmap = cmap.linear_range(rmin, rmax)
     session.logger.status("Matching atoms to surfaces", secondary=True)
     atoms_per_surf = []
@@ -95,19 +94,25 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1
             session.logger.status("")
             raise UserError(str(e))
 
-    session.logger.status("Computing electrostatics", secondary=True)
     # Since electrostatics are long range, unlike mlp, don't compute a map (with a distance cutoff)
     # by default.  Instead, compute the values at the surface vertices directly.  Only compute a
     # map afterward if requested.
     from chimerax.core.undo import UndoState
     undo_state = UndoState('coulombic')
+    undo_owners = []
+    undo_old_vals = []
+    undo_new_vals = []
     for atoms, srf in atoms_per_surf:
         if srf is None:
+            session.logger.status("Creating surface", secondary=True)
             from chimerax.surface import surface
             data = [(surf.atoms, surf) for surf in surface(session, atoms)]
         else:
             data = [(atoms, srf)]
+        session.logger.status("Computing electrostatics", secondary=True)
         for charged_atoms, target_surface in data:
+            undo_owners.append(target_surface)
+            undo_old_vals.append(target_surface.vertex_colors)
             if target_surface.normals is None:
                 session.logger.warning("Surface %s has no vertex normals set, using distance from surface"
                     " of 0 instead of %g" % (target_surface, surf_dist))
@@ -125,9 +130,12 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1
             from numpy import uint8
             rgba8 = (255*rgba).astype(uint8)
             target_surface.vertex_colors = rgba8
+            undo_new_vals.append(rgba8)
+    undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
 
-    session.logger.status("Finished computing Coulombic charge volume/surface")
+    session.logger.status("", secondary=True)
+    session.logger.status("Finished computing Coulombic charge surface%s" % ("/volume" if map else ""))
 
 """
 def coulombic_map(session, charged_atoms, target_surface, surf_dist, spacing, padding, vol_name):
