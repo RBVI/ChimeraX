@@ -15,7 +15,7 @@ CP_SPECIFIC_SPECIFIC = "ss"
 CP_SPECIFIC_BEST = "bs"
 CP_BEST_BEST = "bb"
 
-from chimerax.seqalign.align_algs import NEEDLEMAN_WUNSCH as AA_NEEDLEMAN_WUNSCH, \
+from chimerax.alignment_algs import NEEDLEMAN_WUNSCH as AA_NEEDLEMAN_WUNSCH, \
     SMITH_WATERMAN as AA_SMITH_WATERMAN
 
 from .settings import defaults

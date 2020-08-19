@@ -39,6 +39,7 @@ defaults = {
     'strand_open': 18,
     'other_open': 6,
     'compute_ss': True,
+    'overwrite_ss': False,
 }
 
 from  chimerax.core.settings import Settings

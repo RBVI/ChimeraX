@@ -93,10 +93,10 @@ class MatchMakerTool(ToolInstance):
             settings=settings, as_radio_buttons=True)
         self.options.add_option("Chain pairing", cp_opt)
 
-        from chimerax.seqalign.align_algs.options import SeqAlignmentAlgOption
+        from chimerax.alignment_algs.options import SeqAlignmentAlgOption
         self.options.add_option("Method", SeqAlignmentAlgOption("Sequence alignment algorithm", None, None,
             attr_name="alignment_algorithm", settings=settings))
-        from chimerax.seqalign.sim_matrices.options import SimilarityMatrixNameOption
+        from chimerax.sim_matrices.options import SimilarityMatrixNameOption
         self.options.add_option("Method", SimilarityMatrixNameOption("Matrix", None, None,
             attr_name="matrix", settings=settings))
         self.gap_open_option = IntOption("Gap opening penalty", None, None,
@@ -112,9 +112,12 @@ class MatchMakerTool(ToolInstance):
         ss_layout = QVBoxLayout()
         ss_layout.addWidget(ss_options)
         self.ss_widget.setLayout(ss_layout)
-        self.compute_ss_option = BooleanOption("Compute secondary structure assignments", None, None,
-            attr_name="compute_ss", settings=settings)
+        self.compute_ss_option = BooleanOption("Compute secondary structure assignments", None,
+            self._compute_ss_change, attr_name="compute_ss", settings=settings)
         ss_options.add_option(self.compute_ss_option)
+        self.overwrite_ss_option = BooleanOption("Overwrite previous assignments", None, None,
+            attr_name="overwrite_ss", settings=settings)
+        ss_options.add_option(self.overwrite_ss_option)
         self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
             right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
@@ -132,6 +135,14 @@ class MatchMakerTool(ToolInstance):
             attr_name='other_open', settings=settings)
         ss_options.add_option(self.ss_other_gap_option)
         self._include_ss_change(ss_opt)
+
+        iter_opt = BooleanOption("Iterate by pruning long atom pairs", None, self._iterate_change,
+            attr_name="iterate", settings=settings)
+        self.options.add_option("Matching", iter_opt)
+        self.iter_cutoff_option = FloatOption("Iteration cutoff distance", None, None,
+            attr_name="iter_cutoff", settings=settings)
+        self.options.add_option("Matching", self.iter_cutoff_option)
+        self._iterate_change(iter_opt)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -151,6 +162,15 @@ class MatchMakerTool(ToolInstance):
         from chimerax.core.commands import run
         #run(self.session, " ".join(self.gui.get_command()))
 
+    def _compute_ss_change(self, opt):
+        if opt.value:
+            from .settings import get_settings
+            settings = get_settings(self.session)
+            self.overwrite_ss_option.value = settings.overwrite_ss
+        else:
+            self.overwrite_ss_option.value = False
+        self.overwrite_ss_option.enabled = opt.value
+
     def _include_ss_change(self, opt):
         self.ss_widget.setHidden(not opt.value)
         self.gap_open_option.enabled = not opt.value
@@ -160,6 +180,10 @@ class MatchMakerTool(ToolInstance):
             self.compute_ss_option.value = settings.compute_ss
         else:
             self.compute_ss_option.value = False
+        self._compute_ss_change(self.compute_ss_option)
+
+    def _iterate_change(self, opt):
+        self.iter_cutoff_option.enabled = opt.value
 
     def _pairing_change(self, opt):
         ref_label, match_label = self.label_texts[opt.value]
@@ -243,33 +267,43 @@ class ChainListsWidget(QWidget):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.__session = session
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
         self.__work_layout = QVBoxLayout()
         self.__work_layout.setSpacing(0)
+        self.__work_layout.setContentsMargins(0,0,0,0)
         self.__container_layout = QVBoxLayout() # so that I can replace the working layout
+        self.__container_layout.setContentsMargins(0,0,0,0)
         self.__container_layout.addLayout(self.__work_layout)
-        self.setLayout(self.__container_layout)
+        self.__scroll_layout = QVBoxLayout()
+        self.__scroll_layout.setContentsMargins(0,0,0,0)
+        self.setLayout(self.__scroll_layout)
+        self.__scroll_area = QScrollArea()
+        scrolled_widget = QWidget()
+        self.__scroll_area.setWidget(scrolled_widget)
+        self.__container_layout.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
+        scrolled_widget.setLayout(self.__container_layout)
         self.__chain_list_mapping = {}
         self.__empty_label = QLabel("Choose one or more reference chains in the list on the left.  To"
             " specify multiple pairs, choose multiple reference chains at once; a menu for choosing the"
             " corresponding match chain will be provided for each reference chain.")
         self.__empty_label.setWordWrap(True)
-        self.__work_layout.addWidget(self.__empty_label)
+        self.__shown_widget = None
+        self.__show_widget(self.__empty_label)
 
     def update(self, ref_chains):
-        if not self.__chain_list_mapping:
-            self.__empty_label.hide()
         if not ref_chains:
             for widgets in self.__chain_list_mapping.values():
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
                     widget.deleteLater()
-            self.__empty_label.show()
+            self.__show_widget(self.__empty_label)
             return
         # rearranging widgets in an existing layout is nigh impossible so...
+        self.__show_widget(self.__scroll_area)
         from PyQt5.QtWidgets import QVBoxLayout, QLabel
         next_layout = QVBoxLayout()
         next_layout.setSpacing(0)
+        next_layout.setContentsMargins(0,0,0,0)
         self.__work_layout.removeWidget(self.__empty_label)
         next_layout.addWidget(self.__empty_label)
         next_mapping = {}
@@ -294,3 +328,13 @@ class ChainListsWidget(QWidget):
         self.__container_layout.takeAt(0)
         self.__container_layout.addLayout(next_layout)
         self.__work_layout = next_layout
+
+    def __show_widget(self, widget):
+        if widget == self.__shown_widget:
+            return
+        if self.__shown_widget is not None:
+            self.__scroll_layout.removeWidget(self.__shown_widget)
+            self.__shown_widget.hide()
+        self.__scroll_layout.addWidget(widget)
+        widget.show()
+        self.__shown_widget = widget
