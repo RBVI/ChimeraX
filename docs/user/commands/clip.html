@@ -48,29 +48,34 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>clip</b> command controls clipping planes. 
 Up to four planes can be active:
+</p>
 <ul>
 <li><b>near</b> and <b>far</b> planes are
 always perpendicular to the line of sight and do not move with the scene;
 they are shown/manipulable in the 
 <a href="../tools/sideview.html"><b>Side&nbsp;View</b></a>
 <li><b>front</b> and <b>back</b> planes
-move along with the scene and can be oriented in any direction
+move along with the scene, can be oriented in any direction,
+and can be applied selectively to specific models
+(<a href="#model">per-model clipping</a>)
 </ul>
+<p>
 If given without arguments, <b>clip</b> acts like <b>clip front 0</b>.
 The command <b>clip off</b> or <b>~clip</b>
 turns off all clipping planes, whereas 
 <b>clip list</b> reports the locations of any active clipping planes.
-</p><p>
-Capping of clipped surfaces can be controlled
-with a <a href="../preferences.html#clipping">preference</a> setting and/or the
-<a href="surface.html#cap"><b>surface cap</b></a> command.
-See also: <a href="view.html"><b>view</b></a>,
-<a href="cofr.html"><b>cofr</b></a>,
-<a href="ui.html#mousemode"><b>mousemode</b></a>
+Whether planar caps should be shown for clipped surfaces can be controlled
+with a <a href="../preferences.html#clipping">preference</a> 
+setting and/or the <a href="surface.html#cap"><b>surface cap</b></a> command.
+Clipping plane positions can be adjusted interactively
+<a href="ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>
+<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
+See also: <a href="view.html"><b>view</b></a>,
+<a href="cofr.html"><b>cofr</b></a>,
+<a href="device.html#vr"><b>vr</b></a>
 </p><p>
 Each plane can be activated or turned <b>off</b> individually; 
 specifying an <i>offset</i> activates a plane if it was not already active.
@@ -98,7 +103,48 @@ to interpret <b>position</b> and <b>axis</b> coordinates
 unless a reference model is specified with the <b>coordinateSystem</b> option.
 </p>
 
+<a name="model"></a>
+<p class="nav">
+[<a href="#top">back to top: clip</a>]
+</p>
+<h3>Per-Model Clipping</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>clip model</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;on&nbsp;|&nbsp;off&nbsp;]
+</blockquote>
+<p>
+The <b>clip model</b> command is used to turn off front/back 
+clipping for specific models, allowing per-model clipping.
+It does not apply to near/far clipping.
+Boolean values (<b>true</b> or <b>false</b>) can be used as well as 
+<b>on</b> and <b>off</b>.
+</p><p>
+For example, the protein in structure 
+<a href="https://www.rcsb.org/structure/1G74"
+target="_blank">1G74</a> has an oleic acid residue OLA in an 
+interior pocket. The following commands show the protein surface,
+activate front clipping for all models, and then turn it off for the 
+atomic model (#1) while leaving it in place for the molecular surface (#1.1):
+</p>
+<blockquote>
+<b><a href="open.html">open</a> 1g74
+<br><a href="surface.html">surface</a>
+<br><a href="#top">clip</a> front 0 position :ola
+<br><a href="#top">clip</a> model #!1 false
+<br><a href="show.html">hide</a> ~:ola target ar
+<br><a href="style.html">style</a> :ola ball</b>
+</blockquote>
+<p>
+If the <a href="surface.html#cap">cap</a> on a clipped surface is shown, 
+it may be useful to color it by <a href="color.html#byattribute">attribute</a>, 
+<a href="color.html#map">map</a>, or <a href="color.html#zone">zone</a>,
+perhaps with <a href="color.html#transparency">transparency</a>.
+See also: <a href="mlp.html"><b>mlp</b></a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2019</address>
+July 2020</address>
 </body></html>

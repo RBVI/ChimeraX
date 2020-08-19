@@ -90,6 +90,17 @@ class SaveManager(ProviderManager):
         return provider_info.bundle_info.run_provider(self.session,
             provider_info.format_name, self).save_args_string_from_widget(widget)
 
+    def save_data(self, path, **kw):
+        """
+        Given a file path and possibly format-specific keywords, save a data file based on the
+        current session.
+
+        The format name can be provided with the 'format' keyword if the filename suffix of the path
+        does not correspond to those for the desired format.
+        """
+        from .cmd import provider_save
+        provider_save(self.session, path, **kw)
+
     @property
     def save_data_formats(self):
         """

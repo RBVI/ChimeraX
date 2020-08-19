@@ -40,24 +40,23 @@ def change_model_id(session, models, id, new_name = 'group'):
     models are created.
     '''
     from chimerax.core.models import MODEL_ID_CHANGED
-    session.triggers.block_trigger(MODEL_ID_CHANGED)
-    ml = session.models
-    # If id we are changing to is one of the models being moved
-    # or a child of one of the models being moved then
-    # change that model's id so a new group model can be made.
-    for m in models:
-        if m.id == id[:len(m.id)]:
-            temp_id = (12345678,)
-            ml.assign_id(m, temp_id)
-    p = _find_model(session, id, create = (len(models) > 1), new_name = new_name)
-    if p:
-        ml.add(models, parent = p)
-    else:
-        # Find or create parent model of new id.
-        p = _find_model(session, id[:-1], create = True, new_name = new_name)
-        # Reparent
-        ml.assign_id(models[0], id)
-    session.triggers.release_trigger(MODEL_ID_CHANGED)
+    with session.triggers.block_trigger(MODEL_ID_CHANGED):
+        ml = session.models
+        # If id we are changing to is one of the models being moved
+        # or a child of one of the models being moved then
+        # change that model's id so a new group model can be made.
+        for m in models:
+            if m.id == id[:len(m.id)]:
+                temp_id = (12345678,)
+                ml.assign_id(m, temp_id)
+        p = _find_model(session, id, create = (len(models) > 1), new_name = new_name)
+        if p:
+            ml.add(models, parent = p)
+        else:
+            # Find or create parent model of new id.
+            p = _find_model(session, id[:-1], create = True, new_name = new_name)
+            # Reparent
+            ml.assign_id(models[0], id)
 
 # Find parent of model with given id or create a new model or models
 # extending up to an existing model.

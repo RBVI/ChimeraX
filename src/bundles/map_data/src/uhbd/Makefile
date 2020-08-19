@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/uhbd
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/uhbd
 
 PYSRCS = __init__.py uhbd_format.py uhbd_grid.py
 

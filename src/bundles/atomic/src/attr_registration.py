@@ -49,6 +49,8 @@ def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAU
         can_return_none=False):
     cls._attr_registration.register(session, attr_name, registerer, default_value, (attr_type, can_return_none))
 
+class RegistrationConflict(ValueError):
+    pass
 # used within the class to hold the registration info
 class AttrRegistration:
     def __init__(self, class_):
@@ -74,8 +76,21 @@ class AttrRegistration:
             prev_registrant, prev_default, prev_type_info = self.reg_attr_info[attr_name]
             if prev_default == default_value and prev_type_info == type_info:
                 return
-            raise ValueError("Registration of attr '%s' with %s by %s conflicts with previous"
-                " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
+            if prev_default != default_value:
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s due to differing default values (%s vs. %s)" % (attr_name,
+                    self.class_.__name__, registrant, prev_registrant, prev_default, default_value))
+            prev_attr_type, prev_can_return_none = prev_type_info
+            attr_type, can_return_none = type_info
+            if prev_attr_type != attr_type:
+                type_str = lambda t: "None" if t is None else t.__name__
+                raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                    " registration by %s due to differing value types (%s vs. %s)" % (attr_name,
+                    self.class_.__name__, registrant, prev_registrant,
+                    type_str(prev_attr_type), type_str(attr_type)))
+            raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
+                " registration by %s due to one allowing None as a value and the other not allowing it"
+                % (attr_name, self.class_.__name__, registrant, prev_registrant))
         self.reg_attr_info[attr_name] = (registrant, default_value, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
@@ -131,10 +146,7 @@ class RegAttrManager(StateManager):
            then it is okay for the attribute to also possibly be None.
         """
         # builtin properties
-        if class_obj not in self._class_builtin_types:
-            self._class_builtin_types[class_obj] = builtin_types = {}
-            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
-                builtin_types[attr_name] = attr_return_types
+        self._process_builtin_types(class_obj)
         matching_attr_names = []
         for attr_name, types in self._class_builtin_types[class_obj].items():
             matched_one = False
@@ -161,6 +173,16 @@ class RegAttrManager(StateManager):
                 matching_attr_names.append(attr_name)
         return matching_attr_names
 
+    def has_attribute(self, class_obj, attr_name):
+        """Does the class have a builtin or registered attribute with the given name?"""
+        self._process_builtin_types(class_obj)
+        if attr_name in self._class_builtin_types[class_obj]:
+            return True
+        if hasattr(class_obj, '_attr_registration'):
+            if attr_name in class_obj._attr_registration.reg_attr_info:
+                return True
+        return False
+
     # session functions; there is one manager per session, and is only in charge of
     # remembering registrations from its session (atomic instances save their own
     # attrs)
@@ -184,6 +206,12 @@ class RegAttrManager(StateManager):
             bundle_api.get_class(class_name)._attr_registration.restore_session_data(
                 session, registration)
         return inst
+
+    def _process_builtin_types(self, class_obj):
+        if class_obj not in self._class_builtin_types:
+            self._class_builtin_types[class_obj] = builtin_types = {}
+            for attr_name, attr_return_types in getattr(class_obj, '_cython_property_return_info', []):
+                builtin_types[attr_name] = attr_return_types
 
 class CustomizedInstanceManager(StateManager):
     # This manager's only job is to remember instances that have

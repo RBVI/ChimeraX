@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/imod
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/imod
 
 PYSRCS = __init__.py imod_grid.py
 

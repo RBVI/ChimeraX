@@ -27,7 +27,7 @@ FundingSources = ["NIH",
                   "Wellcome Trust",
                   "other"]
 RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
-#RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
+# RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
 DiscussionURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-users"
 AnnouncementsURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-announce"
 ThankYou = """Thank you for registering your copy of ChimeraX.
@@ -154,12 +154,13 @@ def _subscribe(session, label, url, name, email):
     from urllib.request import urlopen
     from urllib.error import URLError
     params = {
-        "fullname":name,
-        "email":email,
+        "fullname": name,
+        "email": email,
     }
     try:
         with urlopen(url, urlencode(params).encode()) as f:
             text = f.read()
+            del text
         session.logger.info("%s is subscribed to the ChimeraX %s list" %
                             (email, label))
     except URLError as e:
@@ -183,6 +184,8 @@ register_desc = CmdDesc(keyword=[("name", StringArg),
 def registration_status(session, verbose=False):
     from .nag import report_status
     report_status(session.logger, verbose)
+
+
 registration_status_desc = CmdDesc(keyword=[("verbose", NoArg)])
 
 
@@ -206,4 +209,6 @@ def registration_file(session, filename=None):
             from .nag import install
             if install(session, reg_data):
                 session.logger.info(ThankYou, is_html=True)
+
+
 registration_file_desc = CmdDesc(optional=[("filename", OpenFileNameArg)])

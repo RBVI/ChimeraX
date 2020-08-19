@@ -37,11 +37,11 @@ def unroll_operation(v, r0, r1, h, center, axis, gsp, subregion, step, modelId):
         values[i,:,:] = vval.reshape((ysize,xsize))
         grid_points[:] += axis_step                     # Shift annulus.
 
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     gstep = (float(r1-r0)/(xsize-1), circum/(ysize-1), float(h)/(zsize-1))
     gorigin = (center[0]+r0, center[1]-0.5*circum, center[2]-0.5*h)
     g = ArrayGridData(values, gorigin, gstep, name = 'unrolled %s' % v.name)
-    from .. import volume_from_grid_data
+    from chimerax.map import volume_from_grid_data
     vu = volume_from_grid_data(g, v.session, model_id = modelId)
     vu.copy_settings_from(v, copy_region = False, copy_active = False, copy_colors = False)
 

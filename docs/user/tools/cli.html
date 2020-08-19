@@ -52,10 +52,19 @@ The menu includes:
 <li>the most recently entered commands
 <li><b>Command History...</b> for showing the full
 <a href="#history"><b>Command History</b></a>
-<li><b>Remove duplicate consecutive commands</b> -
-where the same command was used multiple times in a row,
+<li><b>Remove duplicate consecutive commands</b>
+&ndash; where the same command was used multiple times in a row,
 remove all but one occurrence from the history
 </ul>
+<p>
+Whether to <b>Leave Failed Command Highlighted</b>
+(so that typing another command will automatically erase it)
+is a <a href="../preferences.html#other">preference</a>
+that can be set using the command-line
+<a href="../window.html#context-menu">context menu</a>.
+The initial default is to leave a failed command unhighlighted 
+in the command line so that it can be edited rather than erased.
+</p>
 
 <a name="history"></a>
 <p class="nav">
@@ -112,21 +121,25 @@ regardless of whether the <b>Command History</b> panel is shown.
 With the focus in the command line or graphics window:
 </p>
 <ul>
-<li><b>Ctrl-p</b> - previous command
-<li><b>Ctrl-n</b> - next command
-<li><b>Shift-Ctrl-p</b> - previous use of same command
+<li><b>Ctrl-p</b> &ndash; previous command
+<li><b>Ctrl-n</b> &ndash; next command
+<li><b>Shift-Ctrl-p</b> &ndash; previous use of same command
 (initial set of characters)
-<li><b>Shift-Ctrl-n</b> - next use of same command
+<li><b>Shift-Ctrl-n</b> &ndash; next use of same command
 (initial set of characters)
-<li><b>Ctrl-u</b> - erase command-line contents
-<li><b>Ctrl-k</b> - erase from the cursor position to the end of line
+<li><b>Ctrl-u</b> &ndash; erase command-line contents
+<li><b>Ctrl-k</b> &ndash; erase from the cursor position to the end of line
 </ul>
 <p>
 Navigation skips commands for which the entire line is identical.
 When the mouse focus is in the command line (not the graphics window),
 another way to navigate the history is with
 the keyboard <b>up arrow</b> and <b>down arrow</b>,
-alone or in combination with <b>Shift</b>.
+alone or in combination with <b>Shift</b> (meaning previous/next use of
+the same command, as described above for <b>Ctrl-p/n</b>).
+The arrow keys also work to navigate the command history when
+the mouse focus is in the graphics window but
+nothing is <a href="../selection.html">selected</a>.
 </p><p>
 The history is stored in a file in a platform-dependent standard location
 and carries over between different ChimeraX sessions.
@@ -138,5 +151,5 @@ The location can be reported with command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+August 2020</address>
 </body></html>

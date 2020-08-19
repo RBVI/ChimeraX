@@ -31,16 +31,18 @@ def register_mousemode_command(logger):
             ('control', NoArg),
             ('shift', NoArg),
         ],
-        synopsis='set mouse mode'
+        synopsis='set mouse mode',
+        url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode', desc, mousemode, logger=logger)
     create_alias('ui mousemode', 'mousemode $*', logger=logger,
-            url="help:user/commands/ui.html#mousemode")
+                 url="help:user/commands/ui.html#mousemode")
 
     desc = CmdDesc(
         optional = [('mode', mode_arg)],
         keyword=[('speed', FloatArg)],
-        synopsis='set a mouse mode parameter'
+        synopsis='set a mouse mode parameter',
+        url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode setting', desc, mousemode_setting, logger=logger)
     create_alias('ui mousemode setting', 'mousemode setting $*', logger=logger,

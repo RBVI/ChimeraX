@@ -40,7 +40,7 @@ def fetch_smiles(session, smiles_string, **kw):
         except SmilesTranslationError:
             pass
         else:
-            from chimerax.atomic.sdf import read_sdf
+            from chimerax.sdf import read_sdf
             from chimerax import io
             structures, status = read_sdf(session, io.open_input(path, encoding='utf=8'), path)
             if structures:

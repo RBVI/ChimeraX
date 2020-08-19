@@ -1,0 +1,22 @@
+--- pyqtbuild/bundle/qt_metadata.py.orig	2020-07-29 11:36:50.758210235 -0700
++++ pyqtbuild/bundle/qt_metadata.py	2020-07-29 11:37:35.511757248 -0700
+@@ -257,7 +257,7 @@
+ 
+         if qt_version == (5, 6, 0):
+             # Replace the incorrect rpath with the correct one.
+-            subprocess.run(['chrpath', '--replace', '$ORIGIN/../lib', exe])
++            subprocess.run(['chrpath', '-C', '--replace', '$ORIGIN/../lib', exe])
+ 
+         cls._create_qt_conf(exe)
+ 
+--- pyqtbuild/bundle/abstract_package.py.orig	2020-07-29 11:37:02.518616755 -0700
++++ pyqtbuild/bundle/abstract_package.py	2020-07-29 11:37:48.012189377 -0700
+@@ -141,7 +141,7 @@
+         if cls._missing_executable('chrpath'):
+             raise UserException("'chrpath' must be installed on your system")
+ 
+-        subprocess.run(['chrpath', '--replace', '$ORIGIN/Qt/lib', bindings])
++        subprocess.run(['chrpath', '-C', '--replace', '$ORIGIN/Qt/lib', bindings])
+ 
+     @classmethod
+     def _fix_macos_rpath(cls, bindings):

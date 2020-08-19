@@ -119,6 +119,7 @@ def parse_arguments(argv):
     opts.version = -1
     opts.get_available_bundles = True
     opts.safe_mode = False
+    opts.toolshed = None
 
     # Will build usage string from list of arguments
     arguments = [
@@ -142,6 +143,7 @@ def parse_arguments(argv):
         "--usedefaults",
         "--version",
         "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -171,6 +173,7 @@ def parse_arguments(argv):
         opts.get_available_bundles = False
         opts.module = sys.argv[2]
         opts.load_tools = False
+        opts.safe_mode = True
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
@@ -261,6 +264,8 @@ def parse_arguments(argv):
             opts.version += 1
         elif opt == "--qtscalefactor":
             os.environ["QT_SCALE_FACTOR"] = optarg
+        elif opt == "--toolshed":
+            opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
             help = True
@@ -307,6 +312,22 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
+    opts, args = parse_arguments(argv)
+
+    # install line_profile decorator, and install it before
+    # initialize_ssl_cert_dir() in case the line profiling is in the
+    # core (which would cause initialize_ssl_cert_dir() to fail)
+    import builtins
+    if not opts.line_profile:
+        builtins.__dict__['line_profile'] = lambda x: x
+    else:
+        # write profile results on exit
+        import atexit
+        import line_profiler
+        prof = line_profiler.LineProfiler()
+        builtins.__dict__['line_profile'] = prof
+        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()
 
@@ -319,20 +340,6 @@ def init(argv, event_loop=True):
     except ImportError:
         print("error: unable to figure out %s's version" % app_name)
         return os.EX_SOFTWARE
-
-    opts, args = parse_arguments(argv)
-
-    # install line_profile decorator
-    import builtins
-    if not opts.line_profile:
-        builtins.__dict__['line_profile'] = lambda x: x
-    else:
-        # write profile results on exit
-        import atexit
-        import line_profiler
-        prof = line_profiler.LineProfiler()
-        builtins.__dict__['line_profile'] = prof
-        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
     if opts.use_defaults:
         from chimerax.core import configinfo
@@ -450,7 +457,7 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     try:
-        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
     except ImportError as err:
         if opts.offscreen and 'OpenGL' in err.args[0]:
             if sys.platform.startswith("linux"):
@@ -468,15 +475,6 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-
-    # Put geometry in core for backwards compatibility.
-    # TODO: Remove this for ChimeraX 1.0.
-    try:
-        from chimerax import geometry
-        from sys import modules
-        modules['chimerax.core.geometry'] = geometry
-    except ImportError:
-        pass	# When building geometry may not yet exist
         
     # initialize qt
     if opts.gui:
@@ -551,8 +549,15 @@ def init(argv, event_loop=True):
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
+    if opts.toolshed is None:
+        toolshed_url = None
+    elif opts.toolshed == "preview":
+        toolshed_url = toolshed.preview_toolshed_url()
+    else:
+        toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
-                  check_available=opts.get_available_bundles)
+                  check_available=opts.get_available_bundles,
+                  remote_url=toolshed_url)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
@@ -858,12 +863,12 @@ def restart_action(line, inst_dir, msgs):
     import sys, subprocess, os.path, os
     parts = line.rstrip().split('\t')
     action = parts[0]
-    bundle = parts[1]
+    bundles = parts[1]
     pip_args = parts[2:]
     # Options should match those in toolshed
     # Do not want to import toolshed yet, so we duplicate the code
     if action == "install":
-        command = ["install", "--upgrade",
+        command = ["install", "--use-feature=2020-resolver", "--upgrade",
                    "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
                    "--upgrade-strategy", "only-if-needed"]
     elif action == "uninstall":
@@ -872,10 +877,11 @@ def restart_action(line, inst_dir, msgs):
         msgs.append(("stderr", "unexpected restart action: %s" % line))
         return
     command.extend(pip_args)
-    if bundle.endswith(".whl"):
-        command.append(os.path.join(inst_dir, bundle))
-    else:
-        command.append(bundle)
+    for bundle in bundles.split():
+        if bundle.endswith(".whl"):
+            command.append(os.path.join(inst_dir, bundle))
+        else:
+            command.append(bundle)
     cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)

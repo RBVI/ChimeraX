@@ -13,6 +13,21 @@
 
 # Session save/restore of graphics state
 
+def register_graphics_session_save(session):
+    from chimerax import graphics as g
+    methods = {
+        g.View: ViewState,
+        g.MonoCamera: CameraState,
+        g.OrthographicCamera: CameraState,
+        g.Lighting: LightingState,
+        g.Material: MaterialState,
+        g.ClipPlane: ClipPlaneState,
+        g.SceneClipPlane: SceneClipPlaneState,
+        g.CameraClipPlane: CameraClipPlaneState,
+        g.Drawing: DrawingState,
+    }
+    session.register_snapshot_methods(methods)
+
 class ViewState:
 
     version = 1
@@ -205,6 +220,8 @@ class MaterialState:
         'diffuse_reflectivity',
         'specular_reflectivity',
         'specular_exponent',
+        'transparent_cast_shadows',
+        'meshes_cast_shadows',
         ]
 
     @staticmethod
@@ -341,7 +358,7 @@ class DrawingState:
                   'ambient_texture', 'ambient_texture_transform', 
                   'use_lighting', 'positions', 'display_positions', 
                   'highlighted_positions', 'highlighted_triangles_mask', 'colors',
-                  'allow_depth_cue', 'accept_shadow', 'accept_multishadow']
+                  'allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']
 
     @staticmethod
     def take_snapshot(drawing, session, flags, include_children = True):

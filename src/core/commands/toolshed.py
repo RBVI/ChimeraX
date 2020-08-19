@@ -11,10 +11,43 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EnumOf, StringArg, NoArg, BoolArg, plural_form, commas
+from chimerax.core.commands import (
+    CmdDesc, EnumOf, StringArg, NoArg, BoolArg, plural_form, commas,
+    AnnotationError, OpenFileNameArg, ListOf, Or, next_token
+)
 
 _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
+
+
+class WheelArg(OpenFileNameArg):
+    name = "a wheel file name"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % WheelArg.name)
+        token, text, rest = OpenFileNameArg.parse(text, session)
+        import os
+        if os.path.splitext(token)[1] != ".whl":
+            raise AnnotationError("Expected %s" % WheelArg.name)
+        return token, text, rest
+
+
+class BundleNameArg(StringArg):
+    name = "a bundle name"
+    # PEP 427, distribution names are alphanumeric with underscores.
+    # pypi projct names can have dashes.
+
+    @staticmethod
+    def parse(text, session):
+        import re
+        token, text, rest = next_token(text, convert=True)
+        canonical = re.sub("[^\w\d.]+", "_", token, re.UNICODE)
+        simple = token.replace('-', '_')
+        if simple != canonical:
+            raise AnnotationError("Invalid bundle name")
+        return token, text, rest
 
 
 def _reSt_to_html(source):
@@ -212,7 +245,7 @@ def _bundle_string(bundle_name, version):
         return "%s (%s)" % (bundle_name, version)
 
 
-def toolshed_install(session, bundle_name, user_only=True,
+def toolshed_install(session, bundle_names, user_only=True,
                      reinstall=None, version=None, no_deps=None):
     '''
     Install a bundle.
@@ -228,26 +261,33 @@ def toolshed_install(session, bundle_name, user_only=True,
     '''
     ts = session.toolshed
     logger = session.logger
-    if bundle_name.endswith(".whl"):
-        bi = bundle_name
-    elif version == "latest":
-        bi = ts.find_bundle(bundle_name, logger, installed=False)
-        cur_bi = ts.find_bundle(bundle_name, logger, installed=True)
-        if bi.version == cur_bi.version and not reinstall:
-            logger.info("latest version of \"%s\" is already installed" % bundle_name)
-            return
-    else:
-        bi = ts.find_bundle(bundle_name, logger, installed=True, version=version)
-        if bi:
-            if not reinstall:
-                logger.error("%s (%s) is already installed" % (bi.name, bi.version))
-                return
-        else:
-            bi = ts.find_bundle(bundle_name, logger, installed=False, version=version)
+    bundles = []
+    for bundle_name in bundle_names:
+        if bundle_name.endswith(".whl"):
+            bundles.append(bundle_name)
+        elif version == "latest":
+            bi = ts.find_bundle(bundle_name, logger, installed=False)
             if bi is None:
-                logger.error("%s does not match any bundles"
-                             % _bundle_string(bundle_name, version))
+                logger.info("no newer version of \"%s\" is available" % bundle_name)
                 return
+            cur_bi = ts.find_bundle(bundle_name, logger, installed=True)
+            if bi.version == cur_bi.version and not reinstall:
+                logger.info("latest version of \"%s\" is already installed" % bundle_name)
+                return
+            bundles.append(bi)
+        else:
+            bi = ts.find_bundle(bundle_name, logger, installed=True, version=version)
+            if bi:
+                if not reinstall:
+                    logger.error("%s (%s) is already installed" % (bi.name, bi.version))
+                    return
+            else:
+                bi = ts.find_bundle(bundle_name, logger, installed=False, version=version)
+                if bi is None:
+                    logger.error("%s does not match any bundles"
+                                 % _bundle_string(bundle_name, version))
+                    return
+            bundles.append(bi)
     kw = {
         "session": session,
         "per_user": user_only,
@@ -255,10 +295,10 @@ def toolshed_install(session, bundle_name, user_only=True,
     }
     if reinstall is not None:
         kw["reinstall"] = reinstall
-    ts.install_bundle(bi, logger, **kw)
+    ts.install_bundle(bundles, logger, **kw)
 
 
-toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
+toolshed_install_desc = CmdDesc(required=[("bundle_names", ListOf(Or(BundleNameArg, WheelArg)))],
                                 optional=[("version", StringArg)],
                                 keyword=[("user_only", BoolArg),
                                          ("reinstall", BoolArg),
@@ -267,32 +307,28 @@ toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                                 synopsis='Install a bundle')
 
 
-def toolshed_uninstall(session, bundle_name, force_remove=False):
+def toolshed_uninstall(session, bundle_names, force_remove=False):
     '''
     Uninstall an installed bundle.
 
     Parameters
     ----------
-    bundle_name : string
+    bundle_names : sequence of strings
     force_remove : boolean
     '''
     ts = session.toolshed
     logger = session.logger
-    bi = ts.find_bundle(bundle_name, logger, installed=True)
-    if bi is None:
-        logger.error("\"%s\" does not match any bundles" % bundle_name)
-        return
-    if not force_remove:
-        deps = bi.dependents(logger)
-        if deps:
-            logger.error("\"%s\" has dependent bundles: %s"
-                         % (bi.name,
-                            ", ".join(["\"%s\"" % b.name for b in deps])))
+    bundles = set()
+    for bundle_name in bundle_names:
+        bi = ts.find_bundle(bundle_name, logger, installed=True)
+        if bi is None:
+            logger.error("\"%s\" does not match any bundles" % bundle_name)
             return
-    ts.uninstall_bundle(bi, logger, session=session)
+        bundles.add(bi)
+    ts.uninstall_bundle(bundles, logger, session=session, force_remove=force_remove)
 
 
-toolshed_uninstall_desc = CmdDesc(required=[("bundle_name", StringArg)],
+toolshed_uninstall_desc = CmdDesc(required=[("bundle_names", ListOf(BundleNameArg))],
                                   keyword=[("force_remove", BoolArg)],
                                   synopsis='Uninstall a bundle')
 
@@ -350,13 +386,27 @@ def toolshed_show(session, bundle_name=None):
         bi = ts.find_bundle(bundle_name, session.logger, installed=False)
         if bi is None:
             from ..errors import UserError
-            raise UserError("Unknown bundle")
+            raise UserError("Cannot find bundle '%s' in Toolshed" % bundle_name)
         url = session.toolshed.bundle_url(bi.name)
     help_viewer.show_url(session, url)
 
 
 toolshed_show_desc = CmdDesc(optional=[("bundle_name", StringArg)],
                              synopsis='show the toolshed or bundle in toolshed')
+
+
+def toolshed_updates(session, dialog_type=None):
+    from chimerax.toolshed_utils import updates_tool
+    updates_tool.show(session, dialog_type)
+
+
+from chimerax.toolshed_utils import updates_tool
+DialogTypeArg = EnumOf(*zip(*((dt, dt.name.lower()) for dt in updates_tool.DialogType)))
+
+
+toolshed_updates_desc = CmdDesc(
+    optional=[('dialog_type', DialogTypeArg)],
+    synopsis='show updates for installed bundles')
 
 
 def register_command(logger):
@@ -369,3 +419,4 @@ def register_command(logger):
     register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
     register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
     register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
+    register("toolshed updates", toolshed_updates_desc, toolshed_updates, logger=logger)

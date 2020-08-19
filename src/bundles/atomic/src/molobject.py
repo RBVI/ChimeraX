@@ -1494,7 +1494,7 @@ class StructureData:
         'metal_coordination_distance' is the maximum distance between a metal and a possibly
         coordinating atom that will generate a metal-coordination pseudobond.
         '''
-        from .connect_structure._cs import connect_structure as connect_struct
+        from chimerax.connect_structure._cs import connect_structure as connect_struct
         connect_struct(self.cpp_pointer, bond_length_tolerance, metal_coordination_distance)
 
     def delete_alt_locs(self):

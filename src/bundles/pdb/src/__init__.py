@@ -42,6 +42,7 @@ class _PDBioAPI(BundleAPI):
                             'coordsets': BoolArg,
                             'log_info': BoolArg,
                             'max_models': IntArg,
+                            'segid_chains': BoolArg,
                         }
             else:
                 from chimerax.open_command import FetcherInfo
@@ -59,7 +60,7 @@ class _PDBioAPI(BundleAPI):
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, IntArg, FloatArg
                         return {
-                            'oversampling': FloatArg,
+                            'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
         else:
@@ -81,6 +82,13 @@ class _PDBioAPI(BundleAPI):
                         'selected_only': BoolArg,
                         'serial_numbering': EnumOf(("amber","h36"))
                     }
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
 
         return Info()
 

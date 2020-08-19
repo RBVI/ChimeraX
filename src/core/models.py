@@ -87,7 +87,7 @@ class Model(State, Drawing):
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
         models = self.session.models
-        if models.have_id(self.id) and self in models.list(model_id = self.id):
+        if models.have_model(self):
             models.close([self])	# Remove from open models list.
             return
         self._deleted = True
@@ -273,7 +273,7 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
-        if om.have_id(self.id):
+        if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)
         else:
@@ -774,7 +774,7 @@ class Models(StateManager):
             p = None 		# Root model
         else:
             p = self.scene_root_model
-        model.parent = p
+
         if p:
             p.add_drawing(model)
 
@@ -880,11 +880,14 @@ class Models(StateManager):
     def close(self, models):
         '''
         Remove the models from the scene as well as all child models
-        to all depths, and delete the models.
+        to all depths, and delete the models.  Models that are not
+        part of the scene are deleted, and models that have already
+        been deleted are ignored.
         '''
-        self.remove(models)
+        mopen = [m for m in models if self.have_model(m)]
+        self.remove(mopen)
         for m in models:
-            if not m.deleted:
+            if not Model.deleted.fget(m):
                 m.delete()
 
 

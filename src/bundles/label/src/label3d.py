@@ -64,6 +64,11 @@ def label(session, objects = None, object_type = None, text = None,
     if text is not None and attribute is not None:
         raise UserError("Cannot specify both 'text' and 'attribute' keywords")
 
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to draw 3D labels without rendering images")
+
     settings = {}
     if text == 'default':
         settings['text'] = None
@@ -103,7 +108,7 @@ def label(session, objects = None, object_type = None, text = None,
         settings['text'] = False
         settings['attribute'] = attribute
 
-    if objects is None and len(settings) == 0:
+    if objects is None and len(settings) == 0 and on_top is None:
         return	# Get this when setting default height.
     
     view = session.main_view
@@ -301,6 +306,7 @@ class ObjectLabels(Model):
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
+        self._model_display_handler = t.add_handler('model display changed', self._model_display_changed)
         from chimerax.core.core_settings import settings as core_settings
         self._background_color_handler = core_settings.triggers.add_handler(
             'setting changed', self._background_changed_cb)
@@ -322,6 +328,11 @@ class ObjectLabels(Model):
         if h is not None:
             h.remove()
             self._update_graphics_handler = None
+
+        h = self._model_display_handler
+        if h is not None:
+            h.remove()
+            self._model_display_handler = None
 
         h = self._background_color_handler
         if h is not None:
@@ -408,6 +419,10 @@ class ObjectLabels(Model):
             self.delete_labels([l.object for l in self._labels if l.object_deleted])
         self.redraw_needed()
 
+    def _model_display_changed(self, trig_name, model):
+        # If a model is hidden global pseudobond labels may need to be hidden.
+        self._visibility_needs_update = True
+        
     def _background_changed_cb(self, trig_name, info):
         setting_name, old_val, new_val = info
         if setting_name == "background_color":
@@ -458,16 +473,29 @@ class ObjectLabels(Model):
         normals = None
         ta = self._visible_label_triangles()
         self.set_geometry(va, normals, ta)
-        if self.texture is not None:
-            self.texture.reload_texture(trgba)
-        else:
-            from chimerax.graphics import Texture
-            self.texture = Texture(trgba)
-        self.texture_coordinates = tcoord
+        self._set_label_texture(trgba, tcoord)
         self.opaque_texture = opaque
         self._positions_need_update = False
         self._texture_needs_update = False
         self._visibility_needs_update = False
+
+    def _set_label_texture(self, trgba, tcoord):
+        # Check for too many labels.
+        from chimerax.graphics import Texture
+        if hasattr(Texture, 'MAX_TEXTURE_SIZE') and trgba.shape[0] > Texture.MAX_TEXTURE_SIZE:
+            msg = ('Too many labels (%d),' % len(self._labels) +
+                   ' label texture size (%d,%d)' % (trgba.shape[1], trgba.shape[0]) +
+                   ' exceeded maximum OpenGL texture size (%d)' % Texture.MAX_TEXTURE_SIZE +
+                   ', some labels will be blank.')
+            self.session.logger.warning(msg)
+            tcoord[:,1] *= trgba.shape[0] / Texture.MAX_TEXTURE_SIZE
+            trgba = trgba[:Texture.MAX_TEXTURE_SIZE]
+
+        if self.texture is not None:
+            self.texture.reload_texture(trgba)
+        else:
+            self.texture = Texture(trgba)
+        self.texture_coordinates = tcoord
 
     def _packed_texture(self):
         images = [l._label_image() for l in self._labels]
@@ -824,7 +852,11 @@ class EdgeLabel(ObjectLabel):
         return xyz
     def visible(self):
         pb = self.pseudobond
-        return (not pb.deleted) and pb.shown
+        if pb.deleted or not pb.shown:
+            return False
+        a1,a2 = pb.atoms
+        vis = a1.structure.visible and a2.structure.visible
+        return vis
 
 # -----------------------------------------------------------------------------
 #

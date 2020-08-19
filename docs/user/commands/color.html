@@ -553,6 +553,7 @@ For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 See also: <a href="mlp.html"><b>mlp</b></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
+<a href="clip.html#model">per-model clipping</a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>
 </p>
@@ -565,7 +566,8 @@ from each surface vertex, along its normal, to evaluate the data
 (default <b>0.0</b> &Aring;).
 <br><br>
 <li><b>color electrostatic</b> is the same as <b>color sample</b> except
-with default offset <b>1.4</b> &Aring;, which is typically used for coloring a 
+with default <b>offset</b> <b>1.4</b> &Aring;, 
+which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
 The rationale for looking outward is that the values at the centers 
 of any interacting atoms are more relevant than those at their surfaces.
@@ -576,9 +578,14 @@ of radius 1.4 &Aring; can lie, the
 An offset of 1.4 &Aring; approximates the 
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
+** However, an offset of 0.0 may be preferred for coloring
+<a href="surface.html#cap">surface caps</a>
+(from <a href="clip.html">clipping</a>),
+and a zero or negative offset may be appropriate
+for coloring the surface of one structure by the potential from another. **
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
-with default offset <b>0.0</b> &Aring;.
+with default <b>offset</b> <b>0.0</b> &Aring;.
 The gradient at each volume grid point is
 computed by taking the difference in data values between the
 next and preceding grid points along each axis and dividing by twice
@@ -1042,5 +1049,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+August 2020</address>
 </body></html>

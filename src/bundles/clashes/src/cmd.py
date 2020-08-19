@@ -177,7 +177,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
             if hasattr(a, attr_name):
                 delattr(a, attr_name)
         for a in clash_atoms:
-            clash_vals = clashes[a].values()
+            clash_vals = list(clashes[a].values())
             clash_vals.sort()
             setattr(a, attr_name, clash_vals[-1])
     if reveal:

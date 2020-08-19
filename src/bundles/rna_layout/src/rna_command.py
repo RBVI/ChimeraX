@@ -15,19 +15,36 @@
 # -----------------------------------------------------------------------------
 #
 def rna_path(session, pairs, length = None,
-             pattern = 'line', radius = 2, random_branch_tilt = 0,
+             pattern = 'circle', loop_pattern = 'helix', 
+             marker_radius = 2,
              loop_color = (102,154,230,255), stem_color = (255,255,0,255),
+             loop_twist = 0, branch_tilt = 0,
+             helix_radius = 300, helix_rise = 50,
+             sphere_radius = None, sphere_turns = None, sphere_turn_spacing = 60,
+             helix_loop_size = 8, helix_loop_rise = 20,
+             horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
              name = 'RNA path'):
 
     plist = parse_pairs(pairs)
-    from .rna_layout import pair_map, rna_path, color_path
+    from .rna_layout import pair_map, rna_path, color_path, LayoutParameters
     pair_map = pair_map(plist)
+
     if length is None:
         length = max(pair_map.keys())
+
+    param_names = ['loop_pattern', 'loop_twist', 'branch_tilt',
+                   'helix_radius', 'helix_rise',
+                   'sphere_radius', 'sphere_turns', 'sphere_turn_spacing',
+                   'helix_loop_size', 'helix_loop_rise',
+                   'horseshoe_curve_size', 'horseshoe_side_size', 'horseshoe_spacing']
+    pvalues = locals()
+    params = {pname:pvalues[pname] for pname in param_names}
+    layout_parameters = LayoutParameters(**params)
+
     mset, coords = rna_path(session, length, pair_map,
                             pattern = pattern,
-                            marker_radius = radius,
-                            random_branch_tilt = random_branch_tilt,
+                            marker_radius = marker_radius,
+                            layout_parameters = layout_parameters,
                             name = name)
     color_path(mset.atoms, pair_map, loop_color, stem_color)
     session.models.add([mset])
@@ -70,15 +87,39 @@ def parse_pairs_string(pairs):
 #
 def rna_model(session, sequence, path = None, start_sequence = 1,
               length = None, pairs = None,
-              pattern = 'line', random_branch_tilt = 0,
+              pattern = 'line', loop_pattern = 'helix',
               loop_color = (102,154,230,255), stem_color = (255,255,0,255),
+              p_color = (255,165,0,255),
+              loop_twist = 0, branch_tilt = 0,
+              helix_radius = 300, helix_rise = 50,
+              sphere_radius = None, sphere_turns = None, sphere_turn_spacing = 60,
+              helix_loop_size = 8, helix_loop_rise = 20,
+              horseshoe_curve_size = 8, horseshoe_side_size = 10, horseshoe_spacing = 1,
               name = 'RNA'):
 
     from . import rna_layout as RL
     import os.path
     seq_path = os.path.expanduser(sequence)
-    seq = RL.read_fasta(seq_path) if os.path.exists(seq_path) else sequence
+    if os.path.exists(seq_path):
+        seq = RL.read_fasta(seq_path)
+    else:
+        if set(sequence) - set(('A','C','G','U','T','a','c','g','u','t')):
+            from chimerax.core.errors import UserError
+            raise UserError('Sequence "%s" does not specify a file and the string contains characters besides A,C,G,U,T' % sequence)
+        seq = sequence
     seq = seq[start_sequence-1:]
+    if len(seq) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Sequence "%s" is empty' % sequence)
+
+    param_names = ['loop_pattern', 'loop_twist', 'branch_tilt',
+                   'helix_radius', 'helix_rise',
+                   'sphere_radius', 'sphere_turns', 'sphere_turn_spacing',
+                   'helix_loop_size', 'helix_loop_rise',
+                   'horseshoe_curve_size', 'horseshoe_side_size', 'horseshoe_spacing']
+    pvalues = locals()
+    params = {pname:pvalues[pname] for pname in param_names}
+    layout_parameters = RL.LayoutParameters(**params)
 
     if path is None:
         if pairs is None:
@@ -90,7 +131,7 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
         pair_map = RL.pair_map(plist)
         base_placements = RL.rna_path(session, length, pair_map,
                                       pattern = pattern,
-                                      random_branch_tilt = random_branch_tilt,
+                                      layout_parameters = layout_parameters,
                                       name = None)
     else:
         mpath = [m for m in atoms_to_markers(path)
@@ -105,7 +146,7 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
                         for m in mpath if 'paired_with' in m.extra_attributes)
 
     mol = RL.rna_atomic_model(session, seq, base_placements, name)
-    RL.color_stems_and_loops(mol, pair_map, loop_color, stem_color)
+    RL.color_stems_and_loops(mol, pair_map, loop_color, stem_color, p_color)
 
     return mol
 
@@ -162,31 +203,47 @@ def register_rna_layout_command(logger):
     from chimerax.atomic import AtomsArg, StructureArg
 
     PatternArg = EnumOf(('line', 'circle', 'helix', 'sphere'))
+    LoopPatternArg = EnumOf(('helix', 'horseshoe'))
+
+    path_opts = [('pattern', PatternArg),
+                 ('loop_pattern', LoopPatternArg),
+                 ('marker_radius', FloatArg),
+                 ('loop_color', Color8Arg),
+                 ('stem_color', Color8Arg),
+                 ('loop_twist', FloatArg),
+                 ('branch_tilt', FloatArg),
+                 ('helix_radius', FloatArg),
+                 ('helix_rise', FloatArg),
+                 ('sphere_radius', FloatArg),
+                 ('sphere_turns', FloatArg),
+                 ('sphere_turn_spacing', FloatArg),
+                 ('helix_loop_size', IntArg),
+                 ('helix_loop_rise', FloatArg),
+                 ('horseshoe_curve_size', IntArg),
+                 ('horseshoe_side_size', IntArg),
+                 ('horseshoe_spacing', IntArg),
+                 ('name', StringArg)
+    ]
+
     # Make RNA marker model
     path_desc = CmdDesc(required = [('pairs', StringArg)],
                         optional = [('length', PositiveIntArg)],
-                        keyword = [('pattern', PatternArg),
-                                   ('radius', FloatArg),
-                                   ('random_branch_tilt', FloatArg),
-                                   ('loop_color', Color8Arg),
-                                   ('stem_color', Color8Arg),
-                                   ('name', StringArg)],
+                        keyword = path_opts,
                         synopsis = 'create an RNA marker model')
     register('rna path', path_desc, rna_path, logger=logger)
 
     # Make RNA atomic model
     model_desc = CmdDesc(required = [('sequence', StringArg)],
                          optional = [('path', AtomsArg)],
-                        keyword = [('start_sequence', IntArg),
-                                   ('length', PositiveIntArg),
-                                   ('pairs', StringArg),
-                                   ('pattern', PatternArg),
-                                   ('random_branch_tilt', FloatArg),
-                                   ('loop_color', Color8Arg),
-                                   ('stem_color', Color8Arg),
-                                   ('name', StringArg)],
+                         keyword = [('start_sequence', IntArg),
+                                    ('length', PositiveIntArg),
+                                    ('pairs', StringArg),
+                                    ('p_color', Color8Arg)] + path_opts,
                         synopsis = 'create an RNA atomic model')
     register('rna model', model_desc, rna_model, logger=logger)
+
+    '''
+    Unported commands.
 
     # Energy minimize RNA atomic model
     minimize_desc = CmdDesc(required = [('molecule', StructureArg)],
@@ -216,3 +273,4 @@ def register_rna_layout_command(logger):
                           synopsis = 'make a duplex DNA or RNA atomic model')
     register('rna duplex', duplex_desc, rna_duplex, logger=logger)
 
+    '''

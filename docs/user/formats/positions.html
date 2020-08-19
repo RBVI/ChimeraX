@@ -1,0 +1,86 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>ChimeraX Positions Format</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>ChimeraX Positions Format</h3>
+<p>
+A ChimeraX positions file (format <b>positions</b>, filename suffix .positions)
+contains one line per model, with 13 comma-separated fields: 
+model name and 12 numbers,
+corresponding to a 3x3 rotation matrix, and in the fourth column,
+a translation vector. 
+Ordering is row-by-row, such that the translation vector is 
+given as the fourth, eighth, and twelfth numbers. 
+This is the same matrix format as given by the
+<a href="../commands/view.html#matrix"><b>view matrix</b></a> command.
+Only model transformations relative to the scene are described,
+not global movements, which instead reflect rotations and
+translations of the camera. The command
+<a href="../commands/view.html#matrix"><b>view matrix</b></a> 
+can report the camera transformation.
+Any model that has not been moved relative to the scene will have an
+identity matrix, as in the first line of this example:
+</p>
+<blockquote><pre>
+2fw0,1,0,0,0,0,1,0,0,0,0,1,0
+2gbp,-0.33209739031,-0.835019159773,-0.438696166112,55.7338415394,-0.205194478785,0.51790960911,-0.830460632822,20.7421450103,0.920655499753,-0.185775777765,-0.343337750867,-49.6090434768
+2gbp map 6,-0.33209739031,-0.835019159773,-0.438696166112,55.7338415394,-0.205194478785,0.51790960911,-0.830460632822,20.7421450103,0.920655499753,-0.185775777765,-0.343337750867,-49.6090434768
+</pre></blockquote>
+
+<a name="opensave"></a>
+<p class="nav">
+[<a href="#top">back to top: Positions Format</a>]
+</p>
+<h3>Saving and Applying Positions Files</h3>
+<blockquote>
+<a href="../commands/usageconventions.html"><b>Usage</b></a>:
+<a href="../commands/save.html"><b>save</b></a> &nbsp;<i>filename</i>
+<b>models</b>&nbsp;&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>model-spec</i></a>
+[&nbsp;<b>format positions</b>&nbsp;]
+[&nbsp;<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="../commands/usageconventions.html"><b>Usage</b></a>:
+<a href="../commands/open.html"><b>open</b></a> &nbsp;<i>filename</i>
+<b>models</b>&nbsp;&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>model-spec</i></a>
+[&nbsp;<b>format positions</b>&nbsp;]
+[&nbsp;<a href="../commands/open.html#childModels"><b>childModels</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="../commands/open.html#matchNames"><b>matchNames</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The <b>models</b> option is required for both saving and opening the file.
+By default, only top-level models will be included,
+as normally submodels will have the same transformation as their parent.
+However, the <b>childModels</b> option allows explicitly including or
+applying the submodel matrices as well.
+The matrices will simply be applied in order of occurrence in the file unless 
+<b>matchNames true</b> is used to indicate matching the models by name instead.
+</p><p>
+See also: <a href="../commands/view.html"><b>view</b></a>,
+<a href="../commands/save.html#session">ChimeraX sessions</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2020</address>
+</body></html>

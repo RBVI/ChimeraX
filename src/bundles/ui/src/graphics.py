@@ -73,7 +73,7 @@ class GraphicsWindow(QWindow):
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
 
-        self._check_for_bad_intel_driver()
+            self._check_for_bad_intel_driver()
 
     def _check_for_bad_intel_driver(self):
         import sys
@@ -89,7 +89,7 @@ class GraphicsWindow(QWindow):
                 build = int(ver.split('.')[-1])
             except Exception:
                 return
-            if build > 6708:
+            if 6708 < build < 8280:
                 # This is to work around ChimeraX bug #2537 where the entire
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 

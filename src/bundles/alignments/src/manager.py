@@ -137,7 +137,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         return names
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
-            align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False):
+            align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False, **kw):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -236,7 +236,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         if identify_as:
             self.session.logger.info("Alignment identifier is %s" % identify_as)
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
-            auto_associate, description, intrinsic)
+            auto_associate, description, intrinsic, **kw)
         if identify_as:
             self._alignments[identify_as] = alignment
         if viewer_text:
@@ -295,7 +295,7 @@ def _register_viewer_subcommand(logger, viewer_sub):
         else:
             alignments = alignment_s
         for alignment in alignments:
-            alignment._dispatch_viewer_command(session, _viewer_keyword, subcommand_text)
+            alignment._dispatch_viewer_command(_viewer_keyword, subcommand_text)
     from .cmd import AlignmentArg
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, RestOfLine, ListOf
     desc = CmdDesc(

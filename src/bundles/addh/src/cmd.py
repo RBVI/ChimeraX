@@ -345,7 +345,7 @@ _tree_dist = 3.25
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
     from chimerax.geometry import distance_squared
-    from chimerax.atomic.search import AtomSearchTree
+    from chimerax.atom_search import AtomSearchTree
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
     # looking off their heavy atoms
@@ -466,7 +466,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 try:
                     exemplar = template_lookup[res.name]
                 except KeyError:
-                    from chimerax.atomic.mmcif import find_template_residue
+                    from chimerax.mmcif import find_template_residue
                     tmpl = find_template_residue(session, res.name)
                     if not tmpl:
                         continue
@@ -486,13 +486,13 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 for a in res.atoms:
                     ea = exemplar.find_atom(a.name)
                     if ea:
-                        idatm_lookup[a] = ea.idatm_type
+                        a.idatm_type = ea.idatm_type
             for r in template_lookup.values():
                 r.structure.delete()
             template_lookup.clear()
 
         for atom in struct.atoms:
-            atom_type = idatm_lookup[atom] if atom in idatm_lookup else atom.idatm_type
+            atom_type = atom.idatm_type
             idatm_type[atom] = atom_type
             if atom_type in type_info:
                 # don't want to ask for idatm_type in middle
@@ -506,9 +506,15 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # UNK/N residues will be missing some or all of their side-chain atoms, so
                 # skip atoms that would otherwise be incorrectly protonated due to their
                 # missing neighbors
-                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
-                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
-                    and unk_atom_truncated(atom))
+                truncated = \
+                        atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
+                    or \
+                        (atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE
+                        and unk_atom_truncated(atom)) \
+                    or \
+                        (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
+                        and atom.num_explicit_bonds < 4)
+
                 if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
@@ -987,14 +993,15 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
             h_name = "".join([x for x in h_name if x.isalnum()])
 
     if pdb_version == 2:
-        if total_hydrogens > 1 or find_atom(h_name):
+        # glycosylated asparagines should use the un-glycosylated names
+        if total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
             while find_atom("%d%s" % (h_num, h_name)):
                 h_num += 1
             h_name = "%d%s" % (h_num, h_name)
     elif h_name[-1] == "'" and len(h_name) + (total_hydrogens-1) <= 4:
         while find_atom(h_name):
             h_name += "'"
-    elif total_hydrogens > 1 or find_atom(h_name):
+    elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
         if atom.residue.principal_atom and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:

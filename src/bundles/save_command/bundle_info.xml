@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SaveCommand" version="1.0" package="chimerax.save_command"
+<BundleInfo name="ChimeraX-SaveCommand" version="1.2" package="chimerax.save_command"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -23,7 +23,7 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.1.dev1"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-IO" version="~=1.0"/>
   </Dependencies>
@@ -37,6 +37,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: save :: General :: Save data files</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: usage save :: General :: Show 'save' command syntax</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -111,7 +111,7 @@ if 'session' in locals() or 'session' in globals():
     formats = session.open_command.open_data_formats
     chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
 else:
-    init([app_name, "--nogui", "--exit"])
+    init([app_name, "--safemode", "--nogui", "--exit"])
     formats = []
 
 # create Info.plist
@@ -156,6 +156,8 @@ pl = {
     "NSHighResolutionCapable": True,
     "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True},
     "LSBackgroundOnly": False,
+    "NSCameraUsageDescription": "The ChimeraX webcam command needs permission to use the camera.",
+    "NSMicrophoneUsageDescription": "The ChimeraX webcam command needs permission to use the microphone.",
 }
 
 target = "10.4"

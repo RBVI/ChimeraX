@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/pif
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/pif
 
 PYSRCS = __init__.py pif_format.py pif_grid.py
 

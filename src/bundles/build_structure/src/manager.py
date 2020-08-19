@@ -56,7 +56,7 @@ class StartStructureManager(ProviderManager):
         self._new_providers = []
 
     def execute_command(self, name, structure, args):
-        self.providers[name].run_provider(self.session, name, self, command_info=(structure, args))
+        return self.providers[name].run_provider(self.session, name, self, command_info=(structure, args))
 
     def fill_parameters_widget(self, name, widget):
         self.providers[name].run_provider(self.session, name, self, widget_info=(widget, True))

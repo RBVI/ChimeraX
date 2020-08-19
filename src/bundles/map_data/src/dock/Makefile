@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/dock
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/dock
 
 PYSRCS = __init__.py dock_format.py dock_grid.py
 

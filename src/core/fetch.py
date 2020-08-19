@@ -25,12 +25,15 @@ and tries to create models from the content.
 
 _database_fetches = {}
 _cache_dirs = []
+_timeout_cache = {}
+TIMEOUT_CACHE_VALID = 600  # 10 minutes in seconds
 
 
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True,
+               uncompress=False, transmit_compressed=True,
+               ignore_cache=False, check_certificates=True,
                timeout=60):
     """fetch file from URL
 
@@ -46,12 +49,28 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :raises UserError: if unsuccessful
     """
     from os import path, makedirs
+    from urllib.request import URLError, urlparse
+    from .errors import UserError
+    import time
+    in_timeout_cache = False
+    if _timeout_cache:
+        hostname = urlparse(url).hostname
+        if hostname in _timeout_cache:
+            cur_time = time.time()
+            prev_time = _timeout_cache[hostname]
+            if prev_time + TIMEOUT_CACHE_VALID < cur_time:
+                del _timeout_cache[hostname]
+            else:
+                in_timeout_cache = True
+                ignore_cache = False
     cache_dirs = cache_directories()
     if not ignore_cache and save_dir is not None:
         for d in cache_dirs:
             filename = path.join(d, save_dir, save_name)
             if path.exists(filename):
                 return filename
+    if in_timeout_cache:
+        raise UserError(f'{hostname} failed to respond')
 
     if save_dir is None:
         import tempfile
@@ -63,13 +82,12 @@ def fetch_file(session, url, name, save_name, save_dir, *,
         filename = path.join(dirname, save_name)
         makedirs(dirname, exist_ok=True)
 
-    from urllib.request import URLError
     try:
-        retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
+        retrieve_url(url, filename, uncompress=uncompress, transmit_compressed=transmit_compressed,
+                     logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
-    except (URLError, EOFError) as e:
-        from .errors import UserError
-        raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
+    except (URLError, EOFError) as err:
+        raise UserError('Fetching url %s failed:\n%s' % (url, str(err)))
     return filename
 
 
@@ -87,7 +105,7 @@ def cache_directories():
 
 # -----------------------------------------------------------------------------
 #
-def retrieve_url(url, filename, *, logger=None, uncompress=False,
+def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compressed=True,
                  update=False, check_certificates=True, name=None, timeout=60):
     """Return requested URL in filename
 
@@ -109,10 +127,21 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     the HTTP last modified date, and return the filename.
     """
     import os
+    import time
+    from urllib.request import Request, urlopen, urlparse, URLError
+    from chimerax import app_dirs
+    from .errors import UserError
     if name is None:
         name = os.path.basename(filename)
-    from urllib.request import Request, urlopen
-    from chimerax import app_dirs
+    hostname = urlparse(url).hostname
+    if _timeout_cache:
+        if hostname in _timeout_cache:
+            cur_time = time.time()
+            prev_time = _timeout_cache[hostname]
+            if prev_time + TIMEOUT_CACHE_VALID < cur_time:
+                del _timeout_cache[hostname]
+            else:
+                raise UserError(f'{hostname} failed to respond')
     headers = {"User-Agent": html_user_agent(app_dirs)}
     request = Request(url, unverifiable=True, headers=headers)
     last_modified = None
@@ -121,16 +150,19 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             logger.status('check for newer version of %s' % name, secondary=True)
         info = os.stat(filename)
         request.method = 'HEAD'
-        with urlopen(request, timeout=timeout) as response:
-            d = response.headers['Last-modified']
-            last_modified = _convert_to_timestamp(d)
-        if last_modified is None and logger:
-            logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
-        if last_modified is None or last_modified <= info.st_mtime:
-            return
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                d = response.headers['Last-modified']
+                last_modified = _convert_to_timestamp(d)
+            if last_modified is None and logger:
+                logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
+            if last_modified is None or last_modified <= info.st_mtime:
+                return
+        except URLError:
+            pass
         request.method = 'GET'
     try:
-        request.headers['Accept-encoding'] = 'gzip, identity'
+        request.headers['Accept-encoding'] = 'gzip, identity' if transmit_compressed else 'identity'
         if check_certificates:
             ssl_context = None
         else:
@@ -168,11 +200,14 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
         if logger:
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return ct
-    except Exception:
+    except Exception as err:
         if os.path.exists(filename):
             os.remove(filename)
         if logger:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
+        if isinstance(err, URLError) and isinstance(err.reason, TimeoutError):
+            _timeout_cache[hostname] = time.time()
+            raise UserError(f'{hostname} failed to respond')
         raise
 
 
@@ -214,6 +249,7 @@ def read_and_report_progress(file_in, file_out, name, content_length, logger, ch
         # In ChimeraX bug #2747 zero bytes were read and no error reported.
         from urllib.request import URLError
         raise URLError('Got %d bytes when %d were expected' % (tb, content_length))
+
 
 # -----------------------------------------------------------------------------
 #

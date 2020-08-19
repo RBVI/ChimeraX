@@ -64,22 +64,22 @@ def read_obj(session, filename, name):
             # Vertex
             xyz = [float(x) for x in fa]
             if len(xyz) != 3:
-                raise OBJError('OBJ reader only handles x,y,z vertices, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles x,y,z vertices, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             vertices.append(xyz)
         elif f0 == 'vt':
             # Texture coordinates
             uv = [float(u) for u in fa]
             if len(uv) != 2:
-                raise OBJError('OBJ reader only handles u,v texture coordinates, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles u,v texture coordinates, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             texcoords.append(uv)
         elif f0 == 'vn':
             # Vertex normal
             n = [float(x) for x in fa]
             if len(n) != 3:
-                raise OBJError('OBJ reader only handles x,y,z normals, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles x,y,z normals, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             normals.append(n)
         elif f0 == 'f':
             # Polygonal face.
@@ -110,10 +110,12 @@ def read_obj(session, filename, name):
         model = Model(name, session)
         model.add(models)
     else:
-        raise OBJError('OBJ file has no objects')
+        raise OBJError('OBJ file %s has no objects' % name)
 
-    return [model], ('Opened OBJ file containing %d objects, %d triangles'
-                     % (len(models), sum(len(m.triangles) for m in models)))
+    from os.path import basename
+    msg = ('Opened OBJ file %s containing %d objects, %d triangles'
+           % (basename(name), len(models), sum(len(m.triangles) for m in models)))
+    return [model], msg
 
 # -----------------------------------------------------------------------------
 #
@@ -132,12 +134,17 @@ def new_object(session, object_name, vertices, normals, texcoords, triangles, vo
     from numpy import array, float32, int32, uint8
     if texcoords:
         model.texture_coordinates = array(texcoords, float32)
-    na = array(normals, float32) if normals else None
     ta = array(triangles, int32)
     if voffset > 0:
         ta -= voffset
     ta -= 1	# OBJ first vertex index is 1 while model first vertex index is 0
     va = array(vertices, float32)
+    if normals:
+        na = array(normals, float32)
+    else:
+        # na = None
+        from chimerax.surface import calculate_vertex_normals
+        na = calculate_vertex_normals(va, ta)
     model.set_geometry(va, na, ta)
     model.color = array((170,170,170,255), uint8)
     return model

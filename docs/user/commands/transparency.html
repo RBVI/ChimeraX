@@ -40,32 +40,34 @@ gradually over <i>N</i> frames.
 -->
 See also: <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>, 
-<a href="volume.html"><b>volume</b></a>
+<a href="volume.html"><b>volume</b></a>,
+<a href="material.html"><b>material</b></a>,
+<a href="clip.html#model">per-model clipping</a>
 </p><p>
 The <a name="target"><b>target</b></a> option allows acting on only 
 a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
   <ul>
-  <li><b>a</b> - atoms/bonds
+  <li><b>a</b> &ndash; atoms/bonds
   (shown for bonds in <a href="color.html#halfbond">halfbond mode</a>)
-  <li><b>b</b> - bonds-only
+  <li><b>b</b> &ndash; bonds-only
   (shown for bonds not in <a href="color.html#halfbond">halfbond mode</a>)
 <!--
-  <li><b>l</b> - atom labels
+  <li><b>l</b> &ndash; atom labels
 -->
   <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
-  - cartoons (ribbons) (divisible to per-residue segments)
-  <li><b>s</b> - surfaces
+  &ndash; cartoons (ribbons) (divisible to per-residue segments)
+  <li><b>s</b> &ndash; surfaces
   (molecular surfaces divisible to per-atom patches, other surface models
    such as volume isosurfaces)
-  <li><b>p</b> - pseudobonds-only
+  <li><b>p</b> &ndash; pseudobonds-only
   (shown for <a href="../pseudobonds.html">pseudobonds</a>
    not in <a href="color.html#halfbond">halfbond mode</a>)
 <!--
-  <li><b>n</b> - nonmolecular models (model-level color)
-  <li><b>m</b> - molecular models (model-level color)
-  <li><b>d</b> - distances and other pseudobond labels
+  <li><b>n</b> &ndash; nonmolecular models (model-level color)
+  <li><b>m</b> &ndash; molecular models (model-level color)
+  <li><b>d</b> &ndash; distances and other pseudobond labels
 -->
   </ul>
 The default is <b>target s</b>, surfaces only.
@@ -75,16 +77,16 @@ targets can be specified with one or more of the following keywords
 as a comma-separated list at the end of the command:
 </p>
 <ul>
-<li><b>atoms</b> - equivalent to <b>target a</b>
-<li><b>bonds</b> - equivalent to <b>target b</b>
-<li><b>cartoons</b> or <b>ribbons</b> - equivalent to <b>target c</b>
+<li><b>atoms</b> &ndash; equivalent to <b>target a</b>
+<li><b>bonds</b> &ndash; equivalent to <b>target b</b>
+<li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
 or <b>target r</b>
-<li><b>surfaces</b> - equivalent to <b>target s</b>
-<li><b>pseudobonds</b> - equivalent to <b>target p</b>
-<li><b>All</b> - equivalent to <b>target abcsp</b>
+<li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
+<li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
+<li><b>All</b> &ndash; equivalent to <b>target abcsp</b>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+August 2020</address>
 </body></html>

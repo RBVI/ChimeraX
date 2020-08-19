@@ -70,6 +70,11 @@ class OpenManager(ProviderManager):
             self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
                 check_path, batch)
         elif type == "fetch":
+            if not name:
+                raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
+            if len(name) == 1:
+                raise ValueError("Database fetch '%s' in bundle %s has single-character name which is"
+                    " disallowed to avoid confusion with Windows drive letters" % (name, bundle_name))
             if format_name is None:
                 raise ValueError("Database fetch '%s' in bundle %s failed to specify"
                     " file format name" % (name, bundle_name))
@@ -161,6 +166,9 @@ class OpenManager(ProviderManager):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
         tuple.  The models will not have been opened in the session.
+
+        The format name can be provided with the 'format' keyword if the filename suffix of the path
+        does not correspond to those for the desired format.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,

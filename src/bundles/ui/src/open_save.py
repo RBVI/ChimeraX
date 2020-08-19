@@ -18,7 +18,7 @@ open_save: open/save dialogs
 TODO
 """
 
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 from PyQt5.QtCore import Qt
 class SaveDialog(QFileDialog):
     def __init__(self, session, parent = None, *args, data_formats=None, **kw):
@@ -52,7 +52,9 @@ class SaveDialog(QFileDialog):
             row = layout.rowCount()
             from PyQt5.QtWidgets import QFrame
             self._custom_area = QFrame(self)
-            layout.addWidget(self._custom_area, row, 0, 1, -1, Qt.AlignCenter)
+            self._custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
+            self._custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            layout.addWidget(self._custom_area, row, 0, 1, -1)
         return self._custom_area
 
     def get_path(self):

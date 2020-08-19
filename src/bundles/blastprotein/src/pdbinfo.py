@@ -16,6 +16,8 @@
 # services.  Offer descriptions of all chains, names of molecular components
 # and ligands, publication date, literature reference, number of residues...
 #
+_polymer_info = {}
+_non_polymer_info = {}
 class PDB_Entry_Info:
 
     columns = (
@@ -38,31 +40,89 @@ class PDB_Entry_Info:
 
     def fetch_info(self, session, pdb_chain_ids):
 
+        global _polymer_info, _non_polymer_info
+        session.logger.status("Fetching PDB entry info for hits")
+        _polymer_info.clear()
+        _non_polymer_info.clear()
         if len(pdb_chain_ids) == 0:
             return {}
 
-        pdb_ids = [id.split('_')[0].lower() for id in pdb_chain_ids]
+        pdb_ids = [id.split('_')[0].upper() for id in pdb_chain_ids]
 
         # Fetch PDB entry info
-        xml = fetch_from_pdb(session, 'describePDB', set(pdb_ids))
-        if xml is None:
-            # TODO: Warn that fetch failed.
+        mmcif_data = fetch_from_pdb(session, 'entry/%s', set(pdb_ids))
+        if mmcif_data is None:
+            session.logger.warning("Could not fetch overall PDB entry info corresponding to BLAST results")
             return {}
-        pis = [self.pdb_info(e) for e in xml.getElementsByTagName('PDB')]
+        for id, info in mmcif_data.items():
+            try:
+                id_info = info["rcsb_entry_container_identifiers"]
+                _polymer_info[id] = id_info["polymer_entity_ids"]
+                _non_polymer_info[id] = id_info.get("non_polymer_entity_ids", [])
+            except KeyError:
+                _polymer_info[id] = []
+                _non_polymer_info[id] = []
+        pis = [self.pdb_info(session, id, info) for id, info in mmcif_data.items()]
         da = dict((pi.structureId.lower(), self.entry_properties(pi))
                   for pi in pis)
         pimap = dict((pcid, da.get(pdb_id.lower(),{}))
                      for pdb_id, pcid in zip(pdb_ids, pdb_chain_ids))
+        session.logger.status("Done fetching PDB entry info for hits")
         return pimap
 
-    def pdb_info(self, xml_element):
+    def pdb_info(self, session, pdb_id, info):
+        attr_name_mapping = [
+            ("structureId", ['entry', 'id']),
+            ("title", ['struct', 'title']),
+            ("expMethod", ['exptl', 'method']),
+            ("resolution", ['rcsb_entry_info', 'resolution_combined']),
+            ("keywords", ['struct_keywords', 'pdbx_keywords']),
+            ("nr_entities", ['rcsb_entry_info', 'polymer_entity_count']),
+            ("nr_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
+            ("nr_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
+            ("deposition_date", ['rcsb_accession_info', 'deposit_date']),
+            ("publish_date", ['rcsb_accession_info', 'initial_release_date']),
+            ("revision_date", ['rcsb_accession_info', 'revision_date']),
+            ("structure_authors", ['audit_author', 'name']),
+            ("pubmedId", ['rcsb_primary_citation', 'pdbx_database_id_pub_med']),
+            ("citation_authors", ['rcsb_primary_citation', 'rcsb_authors']),
+            ("status", ['pdbx_database_status', 'status_code']),
+            ("replaces", ['pdbx_database_pdbobs_spr', 'replace_pdb_id'])
+        ]
 
         pe = PDB_Entry()
-        attrs = xml_element.attributes
-        for i in range(attrs.length):
-            a = attrs.item(i)
-            setattr(pe, a.name, a.value)
-        strings_to_numeric_values(pe)
+        for attr_name, lookup_info in attr_name_mapping:
+            key1, key2 = lookup_info
+            try:
+                table_info = info[key1]
+            except KeyError:
+                #session.logger.warning("Could not find '%s' table in %s entry information" % (key1, pdb_id))
+                continue
+            if type(table_info) == dict:
+                try:
+                    value = table_info[key2]
+                except KeyError:
+                    #session.logger.info("%s item missing from '%s' table in %s entry information"
+                    #    % (key2, key1, pdb_id))
+                    continue
+                if value and isinstance(value, list) and isinstance(value[0], str):
+                    value = ", ".join(value)
+            else:
+                values = []
+                for table in table_info:
+                    try:
+                        values.append(table[key2])
+                    except KeyError:
+                        continue
+                if not values:
+                    #session.logger.info("%s item missing from all '%s' tables in %s entry information"
+                    #    % (key2, key1, pdb_id))
+                    continue
+                value = ", ".join(values)
+            setattr(pe, attr_name, value)
+        if pe.structureId is None:
+            session.logger.warning("Could not fetch entry information for %s" % pdb_id)
+            pe.structureId = pdb_id
         return pe
 
     def entry_properties(self, pe):
@@ -93,21 +153,6 @@ class PDB_Entry:
         self.status = None		# "CURRENT"
         self.replaces = None            # "1HHB"
 
-        self.integer_fields = ('nr_entities', 'nr_residues', 'nr_atoms',
-                               'pubmedId')
-        self.float_fields = ('resolution',)
-
-# -----------------------------------------------------------------------------
-#
-def strings_to_numeric_values(o):
-
-    for fname, fcast in (('integer', int), ('float', float)):
-        for aname in getattr(o, fname+'_fields', ()):
-            try:
-                setattr(o, aname, fcast(getattr(o, aname)))
-            except Exception:
-                pass
-
 # -----------------------------------------------------------------------------
 #
 class PDB_Chain_Info:
@@ -120,7 +165,7 @@ class PDB_Chain_Info:
          'PDB number of different\npolymers in structure'),
         ('Residues', 'chain_residues', {'anchor':"n"},
          'PDB number of residues\nin matched chain'),
-        ('Species', 'chain_species', {'anchor':"n"}, 'PDB chain taxonomy'), 
+        ('Species', 'chain_species', {'anchor':"n"}, 'PDB chain taxonomy'),
         ('UniProt', 'chain_sequence_id', {'anchor':"n"},
          'Uniprot sequence identifier\nof matched PDB chain'),
         ('Weight', 'chain_weight',  {'anchor':"n"},
@@ -132,101 +177,123 @@ class PDB_Chain_Info:
         if len(pdb_chain_ids) == 0:
             return {}
 
-        pdb_ids = [id.split('_')[0].lower() for id in pdb_chain_ids]
+        # The tool presents some data that is based on all chains of the structure,
+        # so look up all polymers in the entries, leveraging data cached from the
+        # previous entry lookup
+        # Also, Blast uses author chain ID whereas RSCB web service uses 'canonical'
+        # chain ID, so make a mapping from one to the other
+        session.logger.status("Fetching PDB chain mapping info for hits")
+        polymer_data = {}
+        chainID_mapping = {}
+        global _polymer_info
+        for i, item in enumerate(_polymer_info.items()):
+            session.logger.status("%d/%d" % (i, len(_polymer_info)), secondary=True)
+            entry_code, entity_ids = item
+            polymer_data[entry_code] = per_entity_data = {}
+            chainID_mapping[entry_code] = cid_mapping = {}
+            for entity_id in entity_ids:
+                per_entity_data[entity_id] = edata = fetch_from_pdb(session,
+                    'polymer_entity/%s/%s', [(entry_code, entity_id)])[(entry_code, entity_id)]
+                id_data = edata['rcsb_polymer_entity_container_identifiers']
+                canon = id_data['asym_ids']
+                auth = id_data['auth_asym_ids']
+                cid_mapping.update(dict(zip(auth, canon)))
 
-        # Fetch chain info.
-        xml = fetch_from_pdb(session, 'describeMol', set(pdb_ids))
-        if xml is None:
+        session.logger.status("Fetching PDB chain entity info for hits")
+        entry_chain_data = {}
+        for i, pcid in enumerate(pdb_chain_ids):
+            session.logger.status("%d/%d" % (i, len(pdb_chain_ids)), secondary=True)
+            entry, auth_cid = pcid.split('_')
+            try:
+                key = (entry, chainID_mapping[entry][auth_cid])
+            except KeyError:
+                session.logger.warning("Chain ID mapping failed for %s" % pcid)
+                chain_data = {}
+            else:
+                chain_data = fetch_from_pdb(session, 'polymer_entity_instance/%s/%s', [key])[key]
+            entry_chain_data[pcid] = chain_data
+        session.logger.status("", secondary=True)
+
+        if entry_chain_data is None:
             # TODO: Warn that fetch failed.
             return {}
-        pos = [self.polymers_info(e)
-               for e in xml.getElementsByTagName('structureId')]
 
         # Compute derived chain attributes
-        pomap = dict((pdb_id.lower(), polys) for pdb_id, polys in pos)
         pimap = {}
         for pcid in pdb_chain_ids:
-            pdb_id, cid = pcid.split('_')
-            polys = pomap.get(pdb_id.lower(), [])
-            pimap[pcid] = self.chain_properties(polys, cid)
+            entry, auth_id = pcid.split('_')
+            pimap[pcid] = self.chain_properties(entry_chain_data[pcid], polymer_data[entry])
 
+        session.logger.status("Done fetching PDB chain entity info for hits")
         return pimap
 
-    def polymers_info(self, e):
-
-        pdb_id = e.getAttribute('id')
-        polymers = [self.polymer_info(p)
-                    for p in e.getElementsByTagName('polymer')]
-        return (pdb_id, polymers)
-
-    def polymer_info(self, e):
-
-        p = Polymer()
-        for a in ('entityNr', 'length', 'type', 'weight'):
-            if e.hasAttribute(a):
-                setattr(p, a, e.getAttribute(a))
-        p.chainIds = [c.getAttribute('id')
-                      for c in e.getElementsByTagName('chain')
-                      if c.hasAttribute('id')]
-        p.macroMoleculeName = tag_attribute(e, 'macroMolecule', 'name')
-        mm = e.getElementsByTagName('macroMolecule')
-        if mm.length >= 1:
-            p.macroMoleculeId = tag_attribute(mm.item(0), 'accession', 'id')
-        p.polymerDescription = tag_attribute(e, 'polymerDescription',
-                                                'description')
-        p.fragment = tag_attribute(e, 'fragment', 'desc')
-        p.details = tag_attribute(e, 'details', 'desc')
-        p.taxonomyName = tag_attribute(e, 'Taxonomy', 'name')
-        p.taxonomyId = tag_attribute(e, 'Taxonomy', 'id')
-        strings_to_numeric_values(p)
-        return p
-
-    def chain_properties(self, polymers, chain_id):
+    def chain_properties(self, author_data, polymers):
 
         pr = {}
-        cp = self.chain_polymer(polymers, chain_id)
-        pr['chain_copies'] = len(cp.chainIds) if cp else 0
-        pr['chain_residues'] = cp.length if cp else 0
+        try:
+            entity_id = author_data["rcsb_polymer_entity_instance_container_identifiers"]["entity_id"]
+        except KeyError:
+            entity_data = {}
+            entity_id = None
+        else:
+            entity_data = polymers[entity_id]
+        try:
+            chain_ids = entity_data["entity_poly"]["pdbx_strand_id"]
+            num_chains = len(chain_ids.split(','))
+        except KeyError:
+            chain_ids = None
+            num_chains = 0
+        pr['chain_copies'] = num_chains
+        try:
+            num_residues = entity_data["entity_poly"]["rcsb_sample_sequence_length"]
+        except KeyError:
+            num_residues = 0
+        pr['chain_residues'] = num_residues
         pr['npolymers'] = len(polymers)
-        polys = list(polymers)
-        if cp:
-            polys.remove(cp)
-            polys.insert(0,cp)
-        cdesc = ['%s: %s %s' % (''.join(p.chainIds), p.polymerDescription, p.fragment) for p in polys]
+        entity_ids = list(polymers.keys())
+        entity_ids.sort(key= lambda eid, prime=entity_id: -1 if eid == prime else int(eid))
+        cdesc = []
+        if chain_ids:
+            for eid in entity_ids:
+                entity_info = polymers[eid]
+                entity_chain_ids = entity_info["entity_poly"]["pdbx_strand_id"]
+                cdesc.append("%s: %s" % (entity_chain_ids,
+                    entity_info['rcsb_polymer_entity']['pdbx_description']))
         pr['chain_names'] = cdesc
-        pr['chain_species'] = cp.taxonomyName if cp else ''
-        pr['chain_sequence_id'] = cp.macroMoleculeId if cp and cp.macroMoleculeId else ''
-        pr['chain_weight'] = cp.weight if cp else ''
+        try:
+            gene_srcs = set()
+            for src_data in entity_data["entity_src_gen"]:
+                gene_srcs.add(src_data["pdbx_gene_src_scientific_name"])
+            src = ", ".join(gene_srcs)
+        except KeyError:
+            try:
+                nat_srcs = set()
+                for src_data in entity_data["entity_src_nat"]:
+                    try:
+                        nat_srcs.add(src_data["pdbx_organism_scientific"])
+                    except KeyError:
+                        nat_srcs.add(src_data["species"])
+                src = ", ".join(nat_srcs)
+            except KeyError:
+                src = ""
+        pr['chain_species'] = src
+        try:
+            accessions = entity_data["rcsb_polymer_entity_container_identifiers"]["reference_sequence_identifiers"]
+            for accession_info in accessions:
+                if accession_info["database_name"] == "UniProt":
+                    accession_id = accession_info["database_accession"]
+                    break
+            else:
+                accession_id = ""
+        except KeyError:
+            accession_id = ""
+        pr['chain_sequence_id'] = accession_id
+        try:
+            weight = entity_data['rcsb_polymer_entity']['formula_weight']
+        except KeyError:
+            weight = 0.0
+        pr['chain_weight'] = weight
         return pr
-
-    def chain_polymer(self, polymers, chain_id):
-
-        for p in polymers:
-            if chain_id in p.chainIds:
-                return p
-        return None
-
-# -----------------------------------------------------------------------------
-#
-class Polymer:
-
-    def __init__(self):
-
-        self.entityNr = None            # "1"
-        self.length = None              # "141"
-        self.type = None                # "protein"
-        self.weight = None              # "15150.5"
-        self.chainIds = []              # ["A", "C"]
-        self.macroMoleculeName = ''     # "Hemoglobin subunit alpha"
-        self.macroMoleculeId = None     # "P69905"
-        self.polymerDescription = ''    # "HEMOGLOBIN (DEOXY) (ALPHA CHAIN)"
-        self.fragment = ''              # "HEAVY CHAIN 1-219"
-        self.details = ''               # "OBTAINED BY PAPAIN CLEAVAGE (FAB)"
-        self.taxonomyName = ''          # "Homo sapiens"
-        self.taxonomyId = None          # "9606"
-
-        self.integer_fields = ('entityNr', 'length')
-        self.float_fields = ('weight',)
 
 # -----------------------------------------------------------------------------
 #
@@ -250,104 +317,80 @@ class PDB_Ligand_Info:
         if len(pdb_chain_ids) == 0:
             return {}
 
-        pdb_ids = [id.split('_')[0].lower() for id in pdb_chain_ids]
+        session.logger.status("Fetching PDB ligand info for hits")
+        global _non_polymer_info
+        by_name = {}
+        by_entry = {}
+        for i, code_chain in enumerate(pdb_chain_ids):
+            session.logger.status("%d/%d" % (i, len(pdb_chain_ids)), secondary=True)
+            entry = code_chain.split('_')[0]
+            if entry in by_entry:
+                continue
+            by_entry[entry] = all_ligands = []
+            for entity_id in _non_polymer_info[entry]:
+                key = (entry, entity_id)
+                entity_data = fetch_from_pdb(session, 'nonpolymer_entity/%s/%s', [key])[key]
+                if not entity_data:
+                    continue
+                name = entity_data["pdbx_entity_nonpoly"]["comp_id"]
+                all_ligands.append(name)
+                if name in by_name:
+                    continue
+                comp_data = fetch_from_pdb(session, 'chemcomp/%s', [name])[name]
+                by_name[name] = lig_info = {}
+                try:
+                    lig_info["Name"] = comp_data["chem_comp"]["name"]
+                except KeyError:
+                    lig_info["Name"] = None
+                try:
+                    lig_info["Formula"] = comp_data["chem_comp"]["formula"]
+                except KeyError:
+                    lig_info["Formula"] = None
+                try:
+                    lig_info["Weight"] = comp_data["chem_comp"]["formula_weight"]
+                except KeyError:
+                    lig_info["Weight"] = None
+                try:
+                    lig_info["Smile"] = comp_data["rcsb_chem_comp_descriptor"]["smiles"]
+                except KeyError:
+                    lig_info["Smile"] = None
+        session.logger.status("", secondary=True)
 
-        xml = fetch_from_pdb(session, 'ligandInfo', set(pdb_ids))
-        if xml is None:
-            # TODO: Warn that fetch failed.
-            return {}
-        los = [self.ligands_info(e)
-               for e in xml.getElementsByTagName('structureId')]
+        entry_ligands = {}
+        for entry, names in by_entry.items():
+            entry_ligands[entry] = lig_dict = {}
+            lig_dict['ligandSymbols'] = names
+            comp_dicts = [by_name[n] for n in names]
+            for key in ["Name", "Formula", "Weight", "Smile"]:
+                lig_dict["ligand"+key+"s"] = [cd[key] for cd in comp_dicts]
+        session.logger.status("Done fetching PDB ligand info for hits")
+        return dict([(pcid, entry_ligands[pcid.split('_')[0]]) for pcid in pdb_chain_ids])
 
-        lmap = dict((pdb_id.lower(), ligands) for pdb_id, ligands in los)
-        pmap = dict((pcid, self.ligand_properties(lmap.get(pdb_id, {})))
-                    for pcid, pdb_id in zip(pdb_chain_ids, pdb_ids))
-        return pmap
 
-    def ligands_info(self, e):
+def fetch_from_pdb(session, query_template, query_args):
 
-        pdb_id = e.getAttribute('id')
-        ligands = [self.ligand_info(p)
-                   for p in e.getElementsByTagName('ligand')]
-        return (pdb_id, ligands)
-
-    def ligand_info(self, e):
-
-        lig = Ligand()
-        for a in ('chemicalID', 'type', 'molecularWeight'):
-            if e.hasAttribute(a):
-                setattr(lig, a, e.getAttribute(a))
-        for t in ('chemicalName', 'formula', 'smiles', 'InChi', 'InChiKey'):
-            te = e.getElementsByTagName(t)
-            if te.length >= 1:
-                setattr(lig, t, tag_text(te.item(0)))
-        strings_to_numeric_values(lig)
-        return lig
-
-    def ligand_properties(self, ligands):
-
-        d = {
-            'ligandNames': [l.chemicalName for l in ligands],
-            'ligandSmiles': [l.smiles for l in ligands],
-            'ligandSymbols': [l.chemicalID for l in ligands],
-            'ligandWeights': [l.molecularWeight for l in ligands],
-            'ligandFormulas': [l.formula for l in ligands],
-            }
-        return d
-
-# -----------------------------------------------------------------------------
-#
-class Ligand:
-
-    def __init__(self):
-
-        self.chemicalID = None          # "1B0"
-        self.type = None                # "non-polymer"
-        self.molecularWeight = None     # "425.522"
-        self.chemicalName = ''          # "PHENYLALANINAMIDE"
-        self.formula = ''               # "C27 H27 N3 O2"
-        self.smiles = ''                # "Cc1c(c2ccccc2[nH]1)CC(=O)N[C@@H](Cc3ccccc3)C(=O)N(C)c4ccccc4</smiles>"
-        self.InChi = None
-        self.InChiKey = None
-
-        self.float_fields = ('molecularWeight',)
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_pdb(session, query, pdb_ids):
-
-    ids = ','.join([pdb_id.lower() for pdb_id in pdb_ids])
-    url = 'https://www.rcsb.org/pdb/rest/%s?structureId=%s' % (query, ids)
-    from urllib.request import urlopen
-    from urllib.error import URLError, HTTPError
-    try:
-        f = urlopen(url)
-        xml_string = f.read()
-        f.close()
-    except (URLError, HTTPError) as e:
-        if session:
-            session.logger.warning('Fetching BLAST PDB info using URL:\n'
-                                   '%s\nFailed %s\n' % (url, str(e)))
-        return None
-    from xml.dom.minidom import parseString
-    xml = parseString(xml_string)
-    return xml
-
-# -----------------------------------------------------------------------------
-#
-def tag_attribute(element, tag_name, attr_name, default = ''):
-
-    for e in element.getElementsByTagName(tag_name):
-        if e.hasAttribute(attr_name):
-            return e.getAttribute(attr_name)
-    return default
-
-# -----------------------------------------------------------------------------
-#
-def tag_text(element, default = ''):
-
-    t = ''.join(n.data for n in element.childNodes if n.nodeType == n.TEXT_NODE)
-    return t
+    info = {}
+    for i, arg in enumerate(query_args):
+        if len(query_args) > 1:
+            session.logger.status("%d/%d" % (i, len(query_args)), secondary=True)
+        url = 'https://data.rcsb.org/rest/v1/core/%s' % (query_template % arg)
+        from urllib.request import urlopen
+        from urllib.error import URLError, HTTPError
+        import sys
+        try:
+            f = urlopen(url)
+            data = f.read()
+            f.close()
+        except (URLError, HTTPError) as e:
+            if session:
+                session.logger.warning('Fetching BLAST PDB info using URL:\n'
+                                       '%s\nFailed %s\n' % (url, str(e)))
+            info[arg] = {}
+            continue
+        info[arg] = eval(data)
+    if len(query_args) > 1:
+        session.logger.status("", secondary=True)
+    return info
 
 # -----------------------------------------------------------------------------
 #

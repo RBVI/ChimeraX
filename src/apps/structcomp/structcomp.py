@@ -41,14 +41,15 @@ def bonds(atoms):
 
 def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
-    from chimerax.core.commands.open import open
+    from chimerax.pdb.pdb import fetch_pdb
+    from chimerax.mmcif.mmcif import fetch_mmcif
     try:
-        pdb_models = open(session, pdb_id, format='pdb', log_info=False)
+        pdb_models, _ = fetch_pdb(session, pdb_id, log_info=False)
     except Exception as e:
         session.logger.error("%s: unable to open pdb format %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = open(session, pdb_id, format='mmcif', log_info=False)
+        mmcif_models, _ = fetch_mmcif(session, pdb_id, log_info=False)
     except Exception as e:
         session.logger.error("%s: unable to open mmcif format %s" % (pdb_id, e))
         return
@@ -267,7 +268,7 @@ def mmcif_id(mmcif_file):
     return n
 
 
-def compare_all(session):
+def compare_all(session, start):
     from datetime import datetime
     start_time = datetime.now()
     pdb_files = file_gen(PDB_DIR)
@@ -275,6 +276,8 @@ def compare_all(session):
 
     pdb_info = next_info(pdb_files)
     mmcif_info = next_info(mmcif_files)
+
+    start_dir_code = start[1:3] if start else None
 
     all_same = True
     while pdb_info and mmcif_info:
@@ -286,26 +289,52 @@ def compare_all(session):
                 (pdb_dir == mmcif_dir and
                  (pid is not None and mid is not None and pid < mid) or
                  ((pid is None or mid is None) and pdb_file < mmcif_file))):
-            session.logger.warning('Skipping pdb: %s' % os.path.join(pdb_dir, pdb_file))
+            warn = True
+            if start_dir_code:
+                dir_code = pid[1:3]
+                if dir_code < start_dir_code:
+                    warn = False
+                elif dir_code == start_dir_code and pid < start:
+                    warn = False
+            if warn:
+                session.logger.warning('Skipping pdb: %s' % os.path.join(pdb_dir, pdb_file))
             pdb_info = next_info(pdb_files)
             continue
         if (mmcif_dir < pdb_dir or
                 (pdb_dir == mmcif_dir and
                  (pid is not None and mid is not None and mid < pid) or
                  ((pid is None or mid is None) and mmcif_file < pdb_file))):
-            session.logger.warning('Skipping mmcif: %s' % os.path.join(mmcif_dir, mmcif_file))
+            warn = True
+            if start_dir_code:
+                dir_code = mid[1:3]
+                if dir_code < start_dir_code:
+                    warn = False
+                elif dir_code == start_dir_code and mid < start:
+                    warn = False
+            if warn:
+                session.logger.warning('Skipping mmcif: %s' % os.path.join(mmcif_dir, mmcif_file))
             mmcif_info = next_info(mmcif_files)
             continue
         assert(pid == mid)
-        print('trying: %s' % pid)
-        same = compare(session, pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
-                       os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
-        all_same = all_same and same
+        do_compare = True
+        if start_dir_code:
+            dir_code = pid[1:3]
+            if dir_code < start_dir_code:
+                do_compare = False
+            elif dir_code == start_dir_code and pid < start:
+                do_compare = False
+            else:
+                start_dir_code = None  # no need to test anymore
+        if do_compare:
+            print('trying: %s' % pid)
+            same = compare(session, pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
+                           os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
+            all_same = all_same and same
         pdb_info = next_info(pdb_files)
         mmcif_info = next_info(mmcif_files)
     end_time = datetime.now()
     print('Total time: %s' % (end_time - start_time))
-    raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
+    return all_same
 
 
 def compare_id(session, pdb_id):
@@ -359,7 +388,14 @@ def main():
         if not os.path.exists(PDB_DIR) or not os.path.exists(MMCIF_DIR):
             session.logger.error("pdb and/or mmCIF databases missing")
             raise SystemExit(os.EX_DATAERR)
-        compare_all(session)
+        start = None
+        if args:
+            if len(args) > 1 or len(args[0]) != 4:
+                session.logger.error("--all can have one starting PDB ID code")
+                raise SystemExit(os.EX_USAGE)
+            start = args[0]
+        all_same = compare_all(session, start)
+        raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
     same = True
     for pdb_id in args:
         is_same = compare_id(session, pdb_id)
@@ -368,5 +404,5 @@ def main():
     raise SystemExit(os.EX_OK if same else os.EX_DATAERR)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' or __name__.startswith("ChimeraX_sandbox_"):
     main()

@@ -136,7 +136,7 @@ def seqalign_chain(session, chains):
 
     if len(chains) == 1:
         chain = chains[0]
-        ident = ".".join([str(part) for part in chain.structure.id]) + "." + chain.chain_id
+        ident = ".".join([str(part) for part in chain.structure.id]) + "/" + chain.chain_id
         alignment = session.alignments.new_alignment([chain], ident, seq_viewer="sv",
             auto_associate=None, intrinsic=True)
     else:
@@ -208,9 +208,21 @@ def seqalign_disassociate(session, chains, alignment=None):
             session.logger.warning("%s not associated with %s"
                 % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
+def seqalign_header(session, alignments, subcommand_text):
+    from .alignment import Alignment
+    if alignments is None:
+        from .cmd import get_alignment_by_id
+        alignments = get_alignment_by_id(session, "", multiple_okay=True)
+        if not alignments:
+            raise UserError("No alignments open")
+    elif isinstance(alignments, Alignment):
+        alignments = [alignments]
+    for alignment in alignments:
+        alignment._dispatch_header_command(subcommand_text)
+
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, create_alias, Or
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf
     from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -233,6 +245,13 @@ def register_seqalign_command(logger):
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
     create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger,
             url="help:user/commands/sequence.html#disassociate")
+
+    desc = CmdDesc(
+        required = [('alignments', Or(AlignmentArg,ListOf(AlignmentArg),EmptyArg)),
+            ('subcommand_text', RestOfLine)],
+        synopsis = "send subcommand to header"
+    )
+    register('sequence header', desc, seqalign_header, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)

@@ -53,7 +53,7 @@ Here is an example of a function that may be registered with cli::
         spec = modelspec.evaluate(session)
         import numpy
         by_vector = numpy.array(by)
-        from chimerax.core.geometry import place
+        from chimerax.geometry import place
         translation = place.translation(by_vector)
         for m in spec.models:
             m.position = translation * m.position
@@ -831,13 +831,12 @@ class _AttrTest:
     def attr_matcher(self):
         import operator
         attr_name = self.name
-        want_missing = not self.no
         if self.value is None:
             def matcher(obj):
                 try:
                     v = getattr(obj, attr_name)
                 except AttributeError:
-                    return want_missing
+                    return False
                 return bool(v)
         elif (self.op in (operator.eq, operator.ne, "==", "!==") and
                 isinstance(self.value, str)):

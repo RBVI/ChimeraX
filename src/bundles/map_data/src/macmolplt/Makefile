@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/macmolplt
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/macmolplt
 
 PYSRCS = __init__.py macmolplt_format.py macmolplt_grid.py
 

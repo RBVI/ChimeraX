@@ -972,6 +972,20 @@ extern "C" EXPORT void atom_num_explicit_bonds(void *atoms, size_t n, size_t *nb
     }
 }
 
+extern "C" EXPORT size_t atom_num_residues(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        std::set<Residue *> res;
+        for (size_t i = 0; i != n; ++i)
+	    res.insert(a[i]->residue());
+	return res.size();
+    } catch (...) {
+        molc_error();
+	return 0;
+    }
+}
+
 extern "C" EXPORT void atom_radius(void *atoms, size_t n, float32_t *radii)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -4867,9 +4881,7 @@ extern "C" EXPORT void structure_delete_residue(void *mol, void *res)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
-std::cerr << "Calling delete_residue\n";
         m->delete_residue(static_cast<Residue *>(res));
-std::cerr << "Called delete_residue\n";
     } catch (...) {
         molc_error();
     }

@@ -793,7 +793,8 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         return;
     Residue* start_r;
     Residue* other_r;
-    if (b == nullptr) {
+    bool is_pb = (b == nullptr);
+    if (is_pb) {
         // missing structure pseudobond; need to pass through residue list to determine
         // relative ordering of the residues
         for (auto r: residues()) {
@@ -823,16 +824,61 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             chain->push_back(other_r);
         } else {
             // incorporate start_r into other_r's chain
-            other_r->chain()->push_front(start_r);
+            auto other_chain = other_r->chain();
+            auto other_index = other_chain->res_map().at(other_r);
+            if (other_index == 0 || other_chain->residues()[other_index-1] != nullptr) {
+                if (other_index == 0)
+                    other_chain->push_front(start_r);
+                else
+                    other_chain->insert(other_r, start_r);
+            } else {
+                other_chain->_residues[other_index-1] = start_r;
+                other_chain->_res_map[start_r] = other_index-1;
+                auto old_char = other_chain->contents()[other_index-1];
+                auto new_char = Sequence::rname3to1(start_r->name());
+                if (old_char != new_char) {
+                    other_chain->at(other_index-1) = new_char;
+                }
+            }
         }
     } else {
         if (other_r->chain() == nullptr) {
             // incorporate other_r into start_r's chain
-            start_r->chain()->push_back(other_r);
+            auto start_chain = start_r->chain();
+            auto start_index = start_chain->res_map().at(start_r);
+            if (start_index == start_chain->size() - 1
+            || start_chain->residues()[start_index+1] != nullptr) {
+                if (start_index == start_chain->size() - 1)
+                    start_chain->push_back(other_r);
+                else
+                    start_chain->insert(start_chain->residues()[start_index+1], other_r);
+            } else {
+                start_chain->_residues[start_index+1] = other_r;
+                start_chain->_res_map[other_r] = start_index+1;
+                auto old_char = start_chain->contents()[start_index+1];
+                auto new_char = Sequence::rname3to1(other_r->name());
+                if (old_char != new_char) {
+                    start_chain->at(start_index+1) = new_char;
+                }
+            }
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
+        } else if (!is_pb) {
+            // check if there were missing residues at that sequence position and eliminate any
+            auto chain = start_r->chain();
+            auto start_index = chain->res_map().at(start_r);
+            if (chain->residues()[start_index+1] == nullptr) {
+                auto& contents = chain->contents();
+                Sequence::Contents new_chars(contents.begin(), contents.begin() + start_index);
+                auto other_index = chain->res_map().at(other_r);
+                new_chars.insert(new_chars.end(), contents.begin() + other_index, contents.end());
+                auto& residues = chain->residues();
+                StructureSeq::Residues new_residues(residues.begin(), residues.begin() + start_index);
+                new_residues.insert(new_residues.end(), residues.begin() + other_index, residues.end());
+                chain->bulk_set(residues, &new_chars);
+            }
         }
     }
 }
@@ -1043,46 +1089,7 @@ Structure::new_bond(Atom *a1, Atom *a2)
     auto inst = py_instance(false);
     Py_DECREF(inst);
     if (inst != Py_None) {
-        if (_chains != nullptr) {
-            // adjust chain data
-            auto sa = b->polymeric_start_atom();
-            if (sa != nullptr) {
-                auto sres = sa->residue();
-                auto eres = b->other_atom(sa)->residue();
-                auto schain = sres->chain();
-                auto echain = eres->chain();
-                if (schain == nullptr) {
-                    if (echain == nullptr) {
-                        // start a chain
-                        auto pt = Sequence::rname_polymer_type(sres->name());
-                        if (pt == PT_NONE)
-                            pt = Sequence::rname_polymer_type(eres->name());
-                        if (pt == PT_NONE)
-                            pt = (sres->find_atom("CA") || eres->find_atom("CA")) ? PT_AMINO : PT_NUCLEIC;
-                        Chain* chain;
-                        std::vector<Residue*> res_list;
-                        chain = _new_chain(sres->chain_id(), pt);
-                        res_list.push_back(sres);
-                        res_list.push_back(eres);
-                        chain->bulk_set(res_list, nullptr);
-                    } else {
-                        // prepend to echain
-                        echain->push_front(sres);
-                    }
-                } else {
-                    if (echain == nullptr) {
-                        // append to schain
-                        schain->push_back(eres);
-                    } else {
-                        if (schain != echain) {
-                            // combine chains
-                            *schain += *echain;
-                        }
-                        // else: already the same chain; do nothing?
-                    }
-                }
-            }
-        }
+        // chain adjustment now handled by _form_chain_check
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
         if (pbg != nullptr) {
             // possibly adjust missing-chain pseudobonds
@@ -1126,7 +1133,8 @@ Structure::new_bond(Atom *a1, Atom *a2)
                         if (new_end == nullptr) {
                             pbg->delete_pseudobond(pb);
                             if (pbg->pseudobonds().size() == 0)
-                                pbg->manager()->delete_group(pbg);
+                                //pbg->manager()->delete_group(pbg);
+                                Py_XDECREF(pbg->py_call_method("cpp_del_model"));
                         } else {
                             auto shortened = pbg->new_pseudobond(new_end, other_pb);
                             shortened->copy_style(pb);

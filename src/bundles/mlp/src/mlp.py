@@ -102,7 +102,7 @@ def mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map):
     origin = tuple(xmin for xmin,xmax in bounds)
     s = spacing
     step = (s,s,s)
-    from chimerax.map.data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(data, origin, step, name = name)
     g.polar_values = True
     from chimerax.map import volume_from_grid_data

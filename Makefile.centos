@@ -7,7 +7,7 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
-install:
+install: centos
 	# assume ". /opt/rh/devtoolset-3/enable" has been done already
 	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)
 

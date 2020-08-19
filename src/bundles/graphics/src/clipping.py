@@ -52,6 +52,12 @@ class ClipPlanes:
                 return True
         return False
 
+    def have_scene_plane(self):
+        for p in self._clip_planes:
+            if isinstance(p, SceneClipPlane):
+                return True
+        return False
+
     def clear(self):
         self._clip_planes = []
         self._changed = True

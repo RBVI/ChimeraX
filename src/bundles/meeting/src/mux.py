@@ -50,8 +50,11 @@ def get_ctx_hub():
             if not os.path.exists(cert):
                 logger.error("no SSL certificate file found")
                 raise SystemExit(1)
-        _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+#        _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        _ctx_hub = ssl.create_default_context()
         _ctx_hub.options |= (ssl.OP_NO_TLSv1|ssl.OP_NO_TLSv1_1)
+        _ctx_hub.set_ciphers('HIGH:!aNULL:!eNULL')	# Avoid weak ciphers, ticket #
+#        _ctx_hub.check_hostname = False
         _ctx_hub.load_cert_chain(cert)
     return _ctx_hub
 

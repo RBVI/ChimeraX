@@ -33,6 +33,7 @@ See also:
 <a href="volume.html#mask"><b>volume mask</b></a>,
 <a href="marker.html#fromMesh"><b>marker fromMesh</b>,
 <a href="cartoon.html"><b>cartoon</b>,
+<a href="define.html"><b>define</b>,
 <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
 <a href="open.html#object">3D object formats</a>,
 <a href="surface.html#sop">surface operations</a>
@@ -48,11 +49,11 @@ The <i>shape</i> can be:
 <li><a href="#triangle"><b>triangle</b></a>
 <li><a href="#rectangle"><b>rectangle</b></a>
 <li><a href="#ribbon"><b>ribbon</b></a>
-&ndash; a ribbon connecting a series of atoms or 
-<a href="../markers.html">markers</a>
+&ndash; a ribbon of rectangular cross-section
+connecting a series of atoms or <a href="../markers.html">markers</a>
 <li><a href="#tube"><b>tube</b></a>
-&ndash; a tube connecting a series of atoms or
-<a href="../markers.html">markers</a>
+&ndash; a tube
+connecting a series of atoms or <a href="../markers.html">markers</a>
 <li><a href="#boxPath"><b>boxPath</b></a>
 &ndash; zigzag &ldquo;beams&rdquo; connecting a series of atoms or
 <a href="../markers.html">markers</a>
@@ -221,7 +222,10 @@ and these settings override the <b>divisions</b>
   &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
   [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
   [&nbsp;<b>height</b>&nbsp;&nbsp;&nbsp;<i>h</i>&nbsp;]
-  [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<i>axis</i>&nbsp;]
+  [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<i>x,y,z</i></a>&nbsp;]
+<!--
+[&nbsp;<b>yaxis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+-->
   [&nbsp;<b>twist</b>&nbsp;&nbsp;<i>t</i>&nbsp;]
   [&nbsp;<b>segmentSubdivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;]
   [&nbsp;<b>bandLength</b>&nbsp;&nbsp;<i>length</i>&nbsp;]
@@ -232,28 +236,18 @@ A <b>ribbon</b> is a smooth path with rectangular cross-section
 connecting a series of atoms or <a href="../markers.html">markers</a>.
 The default <b>width</b> <i>w</i> and <b>height</b> <i>h</i>
 of the cross-section are <b>1.0</b> and <b>0.1</b>, respectively.
-The <b>yaxis</b> <i>axis</i> (default none) and <b>twist</b> <i>t</i>
+The <b>yaxis</b> and <b>twist</b> options
 control ribbon orientation and how it varies along the path.
 If neither is specified, the ribbon normal varies along the path so that
-there is no local twist.  If an <i>axis</i> is given, the ribbon normal
-is aligned with that axis as closely as possible within the constraints
-of the path. A constant <b>twist</b> <i>t</i> to be applied at each point
-along the path can also be specified (default <b>0</b>&deg;).
-The <i>axis</i> can be given as:
-<ul>
-<li><b>x</b> &ndash; X-axis
-<li><b>y</b> &ndash; Y-axis
-<li><b>z</b> &ndash; Z-axis
-<li><i>x,y,z</i>
-(three values separated by commas only) &ndash; an arbitrary vector
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-exactly two atoms (not necessarily bonded or in the same model) or one bond.
-A bond can only be specified by <a href="../selection.html">selecting</a>
-it and using the word <b>selected</b>, <b>sel</b>, or <b>picked</b>;
-any atoms also selected at the time will be ignored.
-</ul>
-Coordinate specifications of <i>axis</i> are interpreted in the system
-of the model containing the first atom in the path.
+there is no local twist. The <b>yaxis</b> vector (default none)
+is specified as three numbers separated by commas only, 
+and is interpreted in the coordinate
+system of the model containing the first atom in the path. 
+If the vector is specified, the ribbon normal is aligned with it
+as closely as possible within the constraints of the path. 
+A constant <b>twist</b> angle <i>t</i> (default <b>0</b>&deg;) is
+applied at each point along the path.
+</p><p>
 The <b>segmentSubdivisions</b> setting controls how many straight segments
 are used to form the curve between a consecutive pair of atoms;
 higher values give smoother curves.
@@ -337,10 +331,9 @@ from &Aring; to the appropriate physical units.
 </a>
 <blockquote>
   <a name="center"><b>center</b></a>
-  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>
+  &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
   <br>
-The <b>center</b> can be set to the center of specified atom(s) or
-to a point (<i>x,y,z</i>). The default center is (<b>0,0,0</b>).
+The <b>center</b> location of the shape (default <b>0,0,0</b>).
 </blockquote>
 <blockquote>
   <a name="rotation"><b>rotation</b>&nbsp;&nbsp;<i>ax,ay,az,angle</i></a>
@@ -414,5 +407,5 @@ Offsets can be positive (outward) or negative (inward).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+August 2020</address>
 </body></html>

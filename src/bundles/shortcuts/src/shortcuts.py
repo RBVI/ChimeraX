@@ -649,8 +649,8 @@ def enable_mark_center_mouse_mode(session, button = 'right'):
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    from chimerax.map import series
-    m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
+    from chimerax.map_series import PlaySeriesMouseMode
+    m.bind_mouse_mode(button, PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
@@ -708,14 +708,14 @@ def fit_molecule_in_map(session):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimerax.map import fit
-    move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
+    from chimerax.map_fit import locate_maximum
+    move_tf, stats = locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
     log.status(msg)
-    from chimerax.map.fit import fitmap
+    from chimerax.map_fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def fit_subtract(session):
@@ -740,10 +740,10 @@ def fit_subtract(session):
 
     v = maps[0]
     res = 3*min(v.data.step)
-    from chimerax.map.fit.fitmap import simulated_map
+    from chimerax.map_fit.fitmap import simulated_map
     mfit = [simulated_map(m.atoms, res, session) for m in molfit]
     msub = [simulated_map(m.atoms, res, session) for m in molsub]
-    from chimerax.map.fit.fitcmd import fit_sequence
+    from chimerax.map_fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
 
@@ -1155,7 +1155,14 @@ def unused_file_name(directory, basename, suffix):
     from os import path, listdir
     dir = path.expanduser(directory)
     from os import listdir
-    files = listdir(dir)
+    try:
+        files = listdir(dir)
+    except PermissionError:
+        from chimerax.core.errors import UserError
+        raise UserError('Permission denied reading directory "%s"' % dir +
+                        ' while trying to determine next unused file name %s#%s.'
+                        % (basename, suffix))
+    
     nums = []
     for f in files:
         if f.startswith(basename) and f.endswith(suffix):
@@ -1207,6 +1214,7 @@ def register_shortcut_command(logger):
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
+    # run shortcut chosen via bundle provider interface
     from chimerax.core.errors import NotABug
     try:
         keyboard_shortcuts(session).try_shortcut(name)
@@ -1214,4 +1222,3 @@ def run_provider(session, name):
         from html import escape
         from chimerax.core.logger import error_text_format
         session.logger.info(error_text_format % escape(str(err)), is_html=True)
-

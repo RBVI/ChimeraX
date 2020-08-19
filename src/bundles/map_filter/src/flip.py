@@ -16,7 +16,7 @@
 # This is not the same as inverting the z axis if cell angles are not
 # 90 degrees.  Does not change rotation or symmetries.
 #
-from ..data import GridData
+from chimerax.map_data import GridData
 class FlipGrid(GridData):
 
     def __init__(self, grid_data, axes = 'z'):

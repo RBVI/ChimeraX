@@ -1,0 +1,37 @@
+<BundleInfo name="ChimeraX-LookingGlass" version="1.1"
+	    package="chimerax.looking_glass"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>LookingGlass holographic display</Synopsis>
+  <Description>Show graphics on LookingGlass holographic display.</Description>
+
+  <DataFiles>
+    <DataFile>vertex_shader.txt</DataFile>
+    <DataFile>fragment_shader.txt</DataFile>
+    <DataFile>lib/HoloPlayCore.dll</DataFile>
+    <DataFile>lib/libHoloPlayCore.dylib</DataFile>
+    <DataFile>lib/libHoloPlayCore.so</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: lookingglass :: General :: Render to LookingGlass holographic display</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: device lookingglass :: General :: Render to LookingGlass holographic display</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
