@@ -176,8 +176,31 @@ class MatchMakerTool(ToolInstance):
         tw.manage(placement=None)
 
     def run_matchmaker(self):
+        from .settings import defaults
+        chain_pairing = self.chain_pairing_option.value
+        ref_widget, match_widget = self.matching_widgets[chain_pairing]
+        ref_value = ref_widget.value
+        if chain_pairing == CP_SPECIFIC_SPECIFIC:
+            ref_spec = "".join([rchain.atomspec for rchain, mchain in ref_value])
+        else:
+            ref_spec = ref_value.atomspec
+        if self.ref_sel_restrict.isChecked():
+            ref_spec = ref_spec + " & sel"
+        match_value = match_widget.value
+        if chain_pairing == CP_SPECIFIC_SPECIFIC:
+            match_spec = "".join([mchain.atomspec for rchain, mchain in ref_value])
+        else:
+            from chimerax.core.commands import concise_model_spec
+            match_spec = concise_model_spec(self.session, match_value)
+        if self.match_sel_restrict.isChecked():
+            match_spec = match_spec + " & sel"
+
+        cmd = "matchmaker " + match_spec + " to " + ref_spec
+        if chain_pairing != defaults['chain_pairing']:
+            cmd += ' pairing ' + chain_pairing
+
         from chimerax.core.commands import run
-        #run(self.session, " ".join(self.gui.get_command()))
+        run(self.session, cmd)
 
     def _compute_ss_change(self, opt):
         if opt.value:
