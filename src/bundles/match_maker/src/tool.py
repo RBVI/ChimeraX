@@ -15,6 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
+from PyQt5.QtCore import Qt, pyqtSignal
 
 class MatchMakerTool(ToolInstance):
 
@@ -27,7 +28,6 @@ class MatchMakerTool(ToolInstance):
         parent = tw.ui_area
         from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
         from PyQt5.QtWidgets import QCheckBox
-        from PyQt5.QtCore import Qt
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
         overall_layout.setSpacing(0)
@@ -89,8 +89,8 @@ class MatchMakerTool(ToolInstance):
         from .settings import get_settings
         settings = get_settings(session)
 
-        cp_opt = ChainPairingOption("", None, self._pairing_change, attr_name="chain_pairing",
-            settings=settings, as_radio_buttons=True)
+        self.chain_pairing_option = cp_opt = ChainPairingOption("", None, self._pairing_change,
+            attr_name="chain_pairing", settings=settings, as_radio_buttons=True)
         self.options.add_option("Chain pairing", cp_opt)
 
         from chimerax.alignment_algs.options import SeqAlignmentAlgOption
@@ -143,6 +143,23 @@ class MatchMakerTool(ToolInstance):
             attr_name="iter_cutoff", settings=settings)
         self.options.add_option("Matching", self.iter_cutoff_option)
         self._iterate_change(iter_opt)
+        self.options.add_option("Matching", BooleanOption("Verbose logging", None, None,
+            attr_name="verbose_logging", settings=settings))
+        bring_container, bring_options = self.options.add_option_group("Matching",
+            group_alignment=Qt.AlignHCenter|Qt.AlignTop)
+        bring_layout = QVBoxLayout()
+        bring_container.setLayout(bring_layout)
+        self.bring_label = QLabel("If one model being matched, also move these models along with it:")
+        bring_layout.addWidget(self.bring_label)
+        from chimerax.ui.widgets import ModelListWidget
+        self.bring_model_list = ModelListWidget(session, filter_func=self._filter_bring_models,
+            autoselect=None)
+        for ref_widget, match_widget in self.matching_widgets.values():
+            ref_widget.value_changed.connect(self.bring_model_list.refresh)
+            match_widget.value_changed.connect(self.bring_model_list.refresh)
+            match_widget.value_changed.connect(self._match_value_change)
+        bring_layout.addWidget(self.bring_model_list)
+        self._match_value_change()
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -171,6 +188,36 @@ class MatchMakerTool(ToolInstance):
             self.overwrite_ss_option.value = False
         self.overwrite_ss_option.enabled = opt.value
 
+    def _filter_bring_models(self, model):
+        from chimerax.atomic import PseudobondGroup
+        if isinstance(model, PseudobondGroup):
+            return False
+        chain_pairing = self.chain_pairing_option.value
+        ref_widget, match_widget = self.matching_widgets[chain_pairing]
+        ref_value = ref_widget.value
+        match_value = match_widget.value
+        if chain_pairing == CP_BEST_BEST:
+            ref_structures = [ref_value]
+            match_structures = match_value
+        elif chain_pairing == CP_SPECIFIC_BEST:
+            ref_structures = [ref_value.structure]
+            match_structures = match_value
+        else:
+            ref_structures = set()
+            match_structures = set()
+            for rc, mc in match_value:
+                ref_structures.add(rc.structure)
+                match_structures.add(mc.structure)
+        for mstructure in match_structures:
+            # can't be in the same hierarchy as the match model
+            if model in mstructure.all_models() or mstructure in model.all_models():
+                return False
+        for rstructure in ref_structures:
+            # can't be above the reference structure in the hierarchy
+            if rstructure in model.all_models():
+                return False
+        return True
+
     def _include_ss_change(self, opt):
         self.ss_widget.setHidden(not opt.value)
         self.gap_open_option.enabled = not opt.value
@@ -185,14 +232,30 @@ class MatchMakerTool(ToolInstance):
     def _iterate_change(self, opt):
         self.iter_cutoff_option.enabled = opt.value
 
+    def _match_value_change(self):
+        chain_pairing = self.chain_pairing_option.value
+        ref_widget, match_widget = self.matching_widgets[chain_pairing]
+        match_value = match_widget.value
+        if chain_pairing == CP_BEST_BEST:
+            match_structures = match_value
+        elif chain_pairing == CP_SPECIFIC_BEST:
+            match_structures = match_value
+        else:
+            match_structures = set()
+            for rc, mc in match_value:
+                match_structures.add(mc.structure)
+        enable = len(match_structures) == 1
+        self.bring_label.setEnabled(enable)
+        self.bring_model_list.setEnabled(enable)
+
     def _pairing_change(self, opt):
         ref_label, match_label = self.label_texts[opt.value]
         self.ref_label.setText(ref_label)
         self.match_label.setText(match_label)
         ref_widget, match_widget = self.matching_widgets[opt.value]
         self.ref_stacking.setCurrentWidget(ref_widget)
-        if match_widget is not None:
-            self.match_stacking.setCurrentWidget(match_widget)
+        self.match_stacking.setCurrentWidget(match_widget)
+        self.bring_model_list.refresh()
 
 from chimerax.ui.options import SymbolicEnumOption, Option
 class ChainPairingOption(SymbolicEnumOption):
@@ -264,6 +327,9 @@ class SSScoringMatrixOption(Option):
 
 from PyQt5.QtWidgets import QWidget
 class ChainListsWidget(QWidget):
+
+    value_changed = pyqtSignal()
+
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.__session = session
@@ -297,6 +363,7 @@ class ChainListsWidget(QWidget):
                     self.__work_layout.removeWidget(widget)
                     widget.deleteLater()
             self.__show_widget(self.__empty_label)
+            self.value_changed.emit()
             return
         # rearranging widgets in an existing layout is nigh impossible so...
         self.__show_widget(self.__scroll_area)
@@ -315,6 +382,7 @@ class ChainListsWidget(QWidget):
                 from chimerax.atomic.widgets import ChainMenuButton
                 chain_list = ChainMenuButton(self.__session,
                     filter_func=lambda c, ref=chain: c.structure != ref.structure)
+                chain_list.value_changed.connect(self.value_changed.emit)
             from PyQt5.QtCore import Qt
             if next_mapping:
                 next_layout.addSpacing(10)
@@ -328,6 +396,17 @@ class ChainListsWidget(QWidget):
         self.__container_layout.takeAt(0)
         self.__container_layout.addLayout(next_layout)
         self.__work_layout = next_layout
+        self.value_changed.emit()
+
+    @property
+    def value(self):
+        val = []
+        for ref_chain, match_info in self.__chain_list_mapping.items():
+            match_label, match_menu = match_info
+            match_chain = match_menu.value
+            if match_chain is not None:
+                val.append((ref_chain, match_chain))
+        return val
 
     def __show_widget(self, widget):
         if widget == self.__shown_widget:

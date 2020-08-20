@@ -40,6 +40,7 @@ defaults = {
     'other_open': 6,
     'compute_ss': True,
     'overwrite_ss': False,
+    'verbose_logging': False,
 }
 
 from  chimerax.core.settings import Settings
