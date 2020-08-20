@@ -263,9 +263,13 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     if selected_only:
         atoms_list = session.selection.items("atoms")
         if not atoms_list:
+            if not session.in_script:
+                from chimerax.core.errors import UserError
+                raise UserError("No atoms selected")
+            session.logger.warning("No atoms selected")
             restrict = Atoms()
         else:
-            restrict = concatenate(selected)
+            restrict = concatenate(atoms_list)
             restrict = restrict.filter([st in models for st in restrict.structures])
     if displayed_only:
         displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
