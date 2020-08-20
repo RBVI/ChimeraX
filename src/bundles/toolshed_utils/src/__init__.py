@@ -32,13 +32,14 @@ class _BootstrapAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         # 'initialize' is called by the toolshed on start up
+        from . import cmd
         from chimerax.core import toolshed
-        ts = session.toolshed
+        cmd.register_command(session.logger)
 
         def show_updates(trigger_name, data, *, session=session):
-            from . import updates_tool
-            updates_tool.show(session, updates_tool.DialogType.UPDATES_ONLY)
-        ts.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
+            from . import tool
+            tool.show(session, tool.DialogType.UPDATES_ONLY)
+        session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod
     def get_class(class_name):

@@ -49,7 +49,7 @@ class UpdateTool(ToolInstance):
 
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QPushButton, QLabel, QComboBox, QSizePolicy
+            QPushButton, QLabel, QComboBox
         layout = QVBoxLayout()
         parent.setLayout(layout)
         label = QLabel(
@@ -146,6 +146,8 @@ class UpdateTool(ToolInstance):
             data[0].append(new_version)
 
         self.updates.clear()
+        if not new_bundles:
+            return
         self.all_item = all_item = QTreeWidgetItem()
         all_item.setText(0, "All")
         all_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
