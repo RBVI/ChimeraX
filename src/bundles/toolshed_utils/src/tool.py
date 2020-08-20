@@ -203,6 +203,7 @@ class UpdateTool(ToolInstance):
             w = self.updates.itemWidget(item, self.NEW_VERSION_COLUMN)
             version = w.currentText()
             bi = toolshed.find_bundle(bundle_name, logger, version=version, installed=False)
-            updating.append((bi, bi.installed))
-        print("UPDATING:", updating)
+            updating.append(bi)
+        from . import _install_bundle
+        _install_bundle(toolshed, updating, logger, reinstall=True, session=self.session)
         self.cancel()
