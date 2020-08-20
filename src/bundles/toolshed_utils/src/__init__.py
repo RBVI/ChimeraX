@@ -480,7 +480,7 @@ def _pip_install(toolshed, bundle_name, logger, per_user=True, reinstall=False, 
     try:
         results = _run_pip(command, logger)
     except (RuntimeError, PermissionError) as e:
-        from ..errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError(str(e))
     # _remove_scripts()
     return results
