@@ -23,6 +23,9 @@ app-install: install
 $(WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/numpy/$(WHEEL)
 
+upload_new_version:
+	$(RSYNC) $(WHEEL) $(PREREQS_UPLOAD)/numpy
+
 else
 
 install:
