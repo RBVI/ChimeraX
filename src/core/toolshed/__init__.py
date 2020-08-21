@@ -279,7 +279,7 @@ class Toolshed:
     """
 
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
-                 remote_url=None, check_available=True):
+                 remote_url=None, check_available=True, ui=None):
         """Initialize Toolshed instance.
 
         Parameters
@@ -357,9 +357,9 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
-        if self._available_bundle_info.toolshed_url != remote_url:
+        if check_available and self._available_bundle_info.toolshed_url != remote_url:
             check_remote = True
-        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
+        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
@@ -387,14 +387,19 @@ class Toolshed:
                         max_delta = timedelta(days=30)
                     need_check = delta > max_delta
             if need_check:
-                self.async_reload_available(logger)
+                if ui is None or not ui.is_gui:
+                    self.async_reload_available(logger)
+                else:
+                    def delayed_available(trigger_name, data, toolshed=self, logger=logger):
+                        toolshed.async_reload_available(logger)
+                    ui.triggers.add_handler('ready', delayed_available)
                 settings.toolshed_last_check = now.isoformat()
                 _debug("Initiated toolshed check: %s" %
                        settings.toolshed_last_check)
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
-               check_remote=False, report=False):
+               check_remote=False, report=False, _ui=None):
         """Supported API. Discard and reread bundle info.
 
         Parameters
@@ -431,7 +436,7 @@ class Toolshed:
             self._installed_bundle_info.register_all(logger, session,
                                                      self._installed_packages)
         if check_remote:
-            self.reload_available(logger)
+            self.reload_available(logger, _ui=_ui)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
         return changes
 
@@ -443,9 +448,7 @@ class Toolshed:
                    name="Update list of available bundles")
         t.start()
 
-    def reload_available(self, logger):
-        import sys
-        print("RELOAD_AVAILABLE", file=sys.__stderr__)
+    def reload_available(self, logger, _ui=None):
         from urllib.error import URLError
         from .available import AvailableBundleCache
         abc = AvailableBundleCache(self._cache_dir)
@@ -487,9 +490,14 @@ class Toolshed:
                 has_out_of_date = True
                 break
         if has_out_of_date:
-            print("TRIGGER", file=sys.__stderr__)
-            self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, None)
-
+            if _ui is None:
+                self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, self)
+            else:
+                # too early for trigger handler to be registered
+                if _ui.is_gui:
+                    def when_ready(trigger_name, data, toolshed=self):
+                        toolshed.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, toolshed)
+                    _ui.triggers.add_handler('ready', when_ready)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
