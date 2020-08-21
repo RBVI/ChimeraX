@@ -38,8 +38,14 @@ app-install:;
 	$(RSYNC) $(includedir)/hdf5*.h $(includedir)/H5* $(app_includedir)
 	$(RSYNC) $(shlibdir)/libhdf5*.$(SHLIB_EXT)* $(app_shlibdir)
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/hdf5/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/hdf5
 
 clean:
 	rm -rf $(SOURCE)
