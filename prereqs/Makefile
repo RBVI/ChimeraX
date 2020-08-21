@@ -251,9 +251,6 @@ Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpa
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
 scipy.install: Python.install numpy.install
-# tables could also need Cython, numexpr, and c-blosc
-tables.install: hdf5.install pips.install numpy.install
-tables.app-install: hdf5.app-install pips.app-install numpy.app-install
 xml2.app-install: Python.app-install zlib.app-install
 xml2.install: Python.install zlib.install
 xslt.app-install: xml2.app-install
