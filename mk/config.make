@@ -14,10 +14,12 @@ SHELL=/bin/bash
 
 # Location of third party binaries
 PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
-FETCH_PREREQ = curl --silent --show-error -O 
+FETCH_PREREQ = curl --silent --show-error -O
+PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # Location for large test data files
-TEST_DATA_ARCHIVE = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/test_data
+TEST_DATA_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/test_data
+FETCH_TEST_DATA = curl --silent --show-error -O
 
 # need absolute directory for build_prefix
 TOP := $(shell (cd "$(TOP)"; pwd))
