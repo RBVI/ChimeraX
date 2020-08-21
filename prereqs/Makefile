@@ -35,7 +35,6 @@ NEED_PKGCONFIG=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
 #SUBDIRS += leapmotion
-SUBDIRS += oculus
 endif
 
 ifeq ($(OS),Linux)
