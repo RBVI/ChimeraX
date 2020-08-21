@@ -16,6 +16,9 @@ SHELL=/bin/bash
 PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
 FETCH_PREREQ = curl --silent --show-error -O 
 
+# Location for large test data files
+TEST_DATA_ARCHIVE = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/test_data
+
 # need absolute directory for build_prefix
 TOP := $(shell (cd "$(TOP)"; pwd))
 build_prefix = $(TOP)/build
