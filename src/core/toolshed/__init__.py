@@ -357,6 +357,8 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
+        if self._available_bundle_info.toolshed_url != remote_url:
+            check_remote = True
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
@@ -442,6 +444,8 @@ class Toolshed:
         t.start()
 
     def reload_available(self, logger):
+        import sys
+        print("RELOAD_AVAILABLE", file=sys.__stderr__)
         from urllib.error import URLError
         from .available import AvailableBundleCache
         abc = AvailableBundleCache(self._cache_dir)
@@ -483,6 +487,7 @@ class Toolshed:
                 has_out_of_date = True
                 break
         if has_out_of_date:
+            print("TRIGGER", file=sys.__stderr__)
             self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, None)
 
 

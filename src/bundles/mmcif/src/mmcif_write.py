@@ -237,7 +237,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
     #
-    from chimerax.atomic import concatenate
+    from chimerax.atomic import concatenate, Atoms
     if len(models) == 1:
         best_m = models[0]
     else:
@@ -261,8 +261,16 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     restrict = None
     if selected_only:
-        restrict = concatenate(session.selection.items("atoms"))
-        restrict = restrict.filter([st in models for st in restrict.structures])
+        atoms_list = session.selection.items("atoms")
+        if not atoms_list:
+            if not session.in_script:
+                from chimerax.core.errors import UserError
+                raise UserError("No atoms selected")
+            session.logger.warning("No atoms selected")
+            restrict = Atoms()
+        else:
+            restrict = concatenate(atoms_list)
+            restrict = restrict.filter([st in models for st in restrict.structures])
     if displayed_only:
         displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
         if restrict is None:
