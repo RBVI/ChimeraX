@@ -546,18 +546,20 @@ def init(argv, event_loop=True):
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
+                sess.ui.splash_info("Restart action:\n%s" % line)
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
     if opts.toolshed is None:
-        toolshed_url = None
+        # Default to whatever the restart actions needed
+        toolshed_url = _restart_toolshed_url
     elif opts.toolshed == "preview":
         toolshed_url = toolshed.preview_toolshed_url()
     else:
         toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles,
-                  remote_url=toolshed_url)
+                  remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
@@ -856,23 +858,35 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 
+_restart_toolshed_url = None
+
+
 def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess, os.path, os
+    import sys, subprocess, os
+    global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]
-    bundles = parts[1]
-    pip_args = parts[2:]
     # Options should match those in toolshed
     # Do not want to import toolshed yet, so we duplicate the code
     if action == "install":
+        if _restart_toolshed_url is None:
+            _restart_toolshed_url = toolshed.default_toolshed_url()
+        bundles = parts[1]
+        pip_args = parts[2:]
         command = ["install", "--use-feature=2020-resolver", "--upgrade",
-                   "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+                   "--extra-index-url", _restart_toolshed_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed"]
     elif action == "uninstall":
+        bundles = parts[1]
+        pip_args = parts[2:]
         command = ["uninstall", "--yes"]
+    elif action == "toolshed_url":
+        # Warn if already set?
+        _restart_toolshed_url = parts[1]
+        return
     else:
         msgs.append(("stderr", "unexpected restart action: %s" % line))
         return
