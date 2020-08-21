@@ -90,8 +90,11 @@ clean:
 $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
 
-$(FFMPEG_SOURCE):
+$(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
 	tar jxf $(FFMPEG_DISTRIB) -C $(tmpdir)
+
+$(FFMPEG_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
 
 video_codecs: $(LIBTHEORA) $(LIBVPX) $(LIBX264)
 
@@ -101,21 +104,30 @@ yasm $(YASM_EXE): $(YASM_SOURCE)
 $(YASM_SOURCE): $(YASM_DISTRIB)
 	tar jxf $(YASM_DISTRIB) -C $(tmpdir)
 
+$(YASM_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(YASM_DISTRIB)
+
 libx264 $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 	cd $(LIBX264_SOURCE) ; \
 	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --enable-pic; \
 	env PATH=$(bindir):$(PATH) $(MAKE) lib-static install install-lib-static install-lib-dev
 
-$(LIBX264_SOURCE):
+$(LIBX264_SOURCE): $(LIBX264_DISTRIB)
 	$(bindir)/7za e -so $(LIBX264_DISTRIB) | tar xf - -C $(tmpdir)
+
+$(LIBX264_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBX264_DISTRIB)
 
 libogg $(LIBOGG): $(LIBOGG_SOURCE)
 	cd $(LIBOGG_SOURCE) ; \
 	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --disable-shared; \
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
-$(LIBOGG_SOURCE):
+$(LIBOGG_SOURCE): $(LIBOGG_DISTRIB)
 	$(bindir)/7za e -so $(LIBOGG_DISTRIB) | tar xf - -C $(tmpdir)
+
+$(LIBOGG_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBOGG_DISTRIB)
 
 libtheora $(LIBTHEORA): $(LIBTHEORA_SOURCE) $(LIBOGG)
 ifeq ($(OS),Darwin)
@@ -134,15 +146,24 @@ ifeq ($(OS),Darwin)
 	rm -f $(libdir)/libtheora*.dylib
 endif
 
-$(LIBTHEORA_SOURCE):
+$(LIBTHEORA_SOURCE): $(LIBTHEORA_DISTRIB)
 	$(bindir)/7za e -so $(LIBTHEORA_DISTRIB) | tar xf - -C $(tmpdir)
+
+$(LIBTHEORA_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBTHEORA_DISTRIB)
 
 libvpx $(LIBVPX): $(LIBVPX_SOURCE) $(YASM_EXE)
 	cd $(LIBVPX_SOURCE) ; \
 	env PATH=$(bindir):$(PATH) ./configure --prefix=$(build_prefix) --enable-pic --disable-examples --disable-tools --disable-docs --enable-vp8 --enable-vp9 --enable-runtime-cpu-detect --disable-shared --disable-unit-tests; \
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
-$(LIBVPX_SOURCE):
+$(LIBVPX_SOURCE): $(LIBVPX_DISTRIB)
 	$(bindir)/7za e -so $(LIBVPX_DISTRIB) | tar xf - -C $(tmpdir)
+
+$(LIBVPX_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBVPX_DISTRIB)
+
+upload_new_version:
+	$(RSYNC) $(FFMPEG_DISTRIB) $(YASM_DISTRIB) $(LIBX264_DISTRIB) $(LIBOGG_DISTRIB) $(LIBTHEORA_DISTRIB) $(LIBVPX_DISTRIB) $(PREREQS_UPLOAD)/ffmpeg
 
 endif
