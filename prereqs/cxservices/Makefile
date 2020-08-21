@@ -8,6 +8,8 @@ VERSION = 1.0
 SOURCE = client
 PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 
+SWAGGER_CODEGEN = swagger-codegen-cli.jar
+
 ifdef WIN32
 WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
 else
@@ -24,15 +26,15 @@ app-install: install
 
 clean:
 	rm -rf $(SOURCE)/build
-	
+
 distclean:	clean
 	rm -rf $(SOURCE)/dist $(SOURCE)/$(NAME).egg-info
 
 # Must have Java installed and on PATH
 
-$(SOURCE):	cxservices.yml cxservices.config cxservices.patch
+$(SOURCE): $(SWAGGER_CODEGEN) cxservices.yml cxservices.config cxservices.patch
 	rm -rf $(SOURCE)
-	java -jar swagger-codegen-cli.jar generate \
+	java -jar $(SWAGGER_CODEGEN) generate \
 		-DpackageName=$(NAME) \
 		--input-spec cxservices.yml \
 		--config cxservices.config \
@@ -51,14 +53,17 @@ cxservices.config:	cxservices.config.in
 # Useful commands I can't remember
 #
 
-help:
-	java -jar swagger-codegen-cli.jar -h
+help: $(SWAGGER_CODEGEN)
+	java -jar $(SWAGGER_CODEGEN) -h
 
-meta:
-	java -jar swagger-codegen-cli.jar meta
+meta: $(SWAGGER_CODEGEN)
+	java -jar $(SWAGGER_CODEGEN) meta
 
-langs:
-	java -jar swagger-codegen-cli.jar langs
+langs: $(SWAGGER_CODEGEN)
+	java -jar $(SWAGGER_CODEGEN) langs
 
-config:
-	java -jar swagger-codegen-cli.jar config-help -l python
+config: $(SWAGGER_CODEGEN)
+	java -jar $(SWAGGER_CODEGEN) config-help -l python
+
+$(SWAGGER_CODEGEN):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/$(SWAGGER_CODEGEN)
