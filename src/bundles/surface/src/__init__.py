@@ -62,7 +62,8 @@ class _SurfaceBundle(BundleAPI):
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)
-        elif command_name.startswith('surface') or command_name.startswith('sop'):
+        elif command_name.startswith('surface') or command_name.startswith('sop') \
+        or command_name.startswith("~surface"):
             from . import surfacecmds
             surfacecmds.register_command(logger)
             from . import check

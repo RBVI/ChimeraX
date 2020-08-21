@@ -17,6 +17,8 @@ chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', '
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, surf_dist=1.4, spacing=1.0,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
+    if map:
+        session.logger.warning("Computing electrostatic volume map not yet supported")
     session.logger.status("Computing Coulombic charge surface%s" % ("/volume" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps

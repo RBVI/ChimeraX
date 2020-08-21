@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Coulombic" version="2.0"
+<BundleInfo name="ChimeraX-Coulombic" version="1.0"
 	    package="chimerax.Coulombic" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -12,18 +12,6 @@
   <Categories>
     <Category name="Surface/Binding Analysis"/>
   </Categories>
-
-<!--
-  <CModule name="_coulombic">
-    <SourceFile>coulombic_cpp/esp.cpp</SourceFile>
-    <Library>atomstruct</Library>
-    <Library>element</Library>
-    <Library>pyinstance</Library>
-    <Library>arrays</Library>
-    <Library>logger</Library>
-    <Library>appdirs</Library>
-  </CModule>
--->
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>

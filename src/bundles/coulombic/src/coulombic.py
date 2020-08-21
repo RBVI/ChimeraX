@@ -61,6 +61,7 @@ def assign_charges(session, uncharged_residues, his_scheme):
 
     for struct, struct_residues in by_structure.items():
         if copy_needed[struct]:
+            session.logger.status("Copying %s" % struct, secondary=True)
             charged_struct = struct.copy(name="copy of " + struct.name)
             orig_a_to_copy = {}
             copy_a_to_orig = {}
@@ -79,12 +80,14 @@ def assign_charges(session, uncharged_residues, his_scheme):
                     hbond = True
             from chimerax.atomic import AtomicStructures
             addh_structures = AtomicStructures([charged_struct])
+            session.logger.status("Adding hydrogens to copy of %s" % struct, secondary=True)
             session.silent = True
             try:
                 cmd_addh(session, addh_structures, hbond=hbond)
             finally:
                 session.silent = False
             charged_residues = [orig_r_to_copy[r] for r in struct_residues]
+            session.logger.status("Assigning charges to copy of %s" % struct, secondary=True)
         else:
             charged_struct = struct
             charged_residues = struct_residues
@@ -93,6 +96,7 @@ def assign_charges(session, uncharged_residues, his_scheme):
         assign_residue_charges(charged_residues, his_scheme)
 
         if copy_needed[struct]:
+            session.logger.status("Copying charges back to %s" % struct, secondary=True)
             for o_r in struct_residues:
                 for o_a in o_r.atoms:
                     c_a = orig_a_to_copy[o_a]
@@ -100,6 +104,7 @@ def assign_charges(session, uncharged_residues, his_scheme):
                         if nb.residue == c_a.residue and nb not in copy_a_to_orig:
                             c_a.charge += nb.charge
                     o_a.charge = c_a.charge
+            session.logger.status("Destroying copy of %s" % struct, secondary=True)
             charged_struct.delete()
 
 def check_residues(residues):
@@ -152,7 +157,11 @@ def assign_residue_charges(residues, his_scheme):
         res_data = reference[rname]
         for a in r.atoms:
             aname = a.name if r.name != "MSE" or a.name != "SE" else "SD"
-            a.charge = res_data[aname]
+            try:
+                a.charge = res_data[aname]
+            except KeyError:
+                print(a)
+                raise
 
 def template_residue_name(r):
     if r.name == "HIS":
