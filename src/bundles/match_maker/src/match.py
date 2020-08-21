@@ -181,9 +181,10 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             _dm_cleanup.append(aligned)
     return score, gapped_ref, gapped_match
 
-def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *,
-        cutoff_distance=None, show_alignment=False, align=align, domain_residues=(None, None),
-        bring=None, verbose=None, always_raise_errors=False, keep_computed_ss=False, **align_kw):
+def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
+        show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
+        verbose=defaults['verbose_logging'], always_raise_errors=False,
+        keep_computed_ss=defaults['overwrite_ss'], **align_kw):
     """Superimpose structures based on sequence alignment
        
        Returns a list of tuples, one per chain pairing.  The tuples are:
@@ -592,12 +593,12 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     return ret_vals
 
 def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
-        alg=defaults["alignment_algorithm"], verbose=False, bring=None,
-        ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"],
-        gap_open=defaults["gap_open"], hgap=defaults["helix_open"],
-        sgap=defaults["strand_open"], ogap=defaults["other_open"],
+        alg=defaults["alignment_algorithm"], verbose=defaults['verbose_logging'], bring=None,
+        ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"], gap_open=defaults["gap_open"],
+        hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
-        show_alignment=False, compute_ss=defaults["compute_ss"], keep_computed_ss=False,
+        show_alignment=defaults['show_alignment'], compute_ss=defaults["compute_ss"],
+        keep_computed_ss=defaults['overwrite_ss'],
         mat_hh=default_ss_matrix[('H', 'H')],
         mat_ss=default_ss_matrix[('S', 'S')],
         mat_oo=default_ss_matrix[('O', 'O')],
@@ -721,13 +722,15 @@ def register_command(logger):
         return
     _registered = True
     from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
-        BoolArg, NoneArg, TopModelsArg, create_alias, Or
+        BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
     from chimerax.atomic import AtomsArg
+    from chimerax import sim_matrices
     desc = CmdDesc(
         required = [('match_atoms', AtomsArg)],
         required_arguments = ['to'],
         keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
-            ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)), ('matrix', StringArg),
+            ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
+            ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),

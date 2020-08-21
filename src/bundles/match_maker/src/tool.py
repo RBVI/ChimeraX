@@ -143,6 +143,8 @@ class MatchMakerTool(ToolInstance):
             attr_name="iter_cutoff", settings=settings)
         self.options.add_option("Matching", self.iter_cutoff_option)
         self._iterate_change(iter_opt)
+        self.options.add_option("Matching", BooleanOption("Show pairwise sequence alignment(s)", None, None,
+            attr_name="show_alignment", settings=settings))
         self.options.add_option("Matching", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Matching",
@@ -176,22 +178,28 @@ class MatchMakerTool(ToolInstance):
         tw.manage(placement=None)
 
     def run_matchmaker(self):
-        from .settings import defaults
+        from chimerax.core.commands import StringArg, BoolArg, FloatArg, DynamicEnum, NoneArg
+        from .settings import defaults, get_settings
+        settings = get_settings(self.session)
         chain_pairing = self.chain_pairing_option.value
         ref_widget, match_widget = self.matching_widgets[chain_pairing]
         ref_value = ref_widget.value
-        if chain_pairing == CP_SPECIFIC_SPECIFIC:
-            ref_spec = "".join([rchain.atomspec for rchain, mchain in ref_value])
-        else:
-            ref_spec = ref_value.atomspec
-        if self.ref_sel_restrict.isChecked():
-            ref_spec = ref_spec + " & sel"
         match_value = match_widget.value
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
-            match_spec = "".join([mchain.atomspec for rchain, mchain in ref_value])
+            ref_spec = "".join([rchain.atomspec for rchain, mchain in match_value])
+        else:
+            ref_spec = ref_value.atomspec
+        if not ref_spec:
+            raise UserError("No reference and/or match structure/chain chosen")
+        if self.ref_sel_restrict.isChecked():
+            ref_spec = ref_spec + " & sel"
+        if chain_pairing == CP_SPECIFIC_SPECIFIC:
+            match_spec = "".join([mchain.atomspec for rchain, mchain in match_value])
         else:
             from chimerax.core.commands import concise_model_spec
             match_spec = concise_model_spec(self.session, match_value)
+        if not match_spec:
+            raise UserError("No match structure/chain(s) chosen")
         if self.match_sel_restrict.isChecked():
             match_spec = match_spec + " & sel"
 
@@ -199,7 +207,86 @@ class MatchMakerTool(ToolInstance):
         if chain_pairing != defaults['chain_pairing']:
             cmd += ' pairing ' + chain_pairing
 
+        alg = settings.alignment_algorithm
+        if alg != defaults['alignment_algorithm']:
+            cmd += ' alg ' + StringArg.unparse(alg)
+
+        verbose = settings.verbose_logging
+        if verbose != defaults['verbose_logging']:
+            cmd += ' verbose ' + BoolArg.unparse(verbose)
+
+        use_ss = settings.use_ss
+        if use_ss:
+            ss_fraction = settings.ss_mixture
+            if ss_fraction != defaults['ss_mixture']:
+                cmd += ' ssFraction ' + FloatArg.unparse(ss_fraction)
+        else:
+            cmd += ' ssFraction ' + BoolArg.unparse(use_ss)
+
+        matrix = settings.matrix
+        if matrix != defaults['matrix']:
+            from chimerax import sim_matrices
+            cmd += ' matrix ' + DynamicEnum(
+                lambda ses=self.session: sim_matrices.matrices(ses.logger).keys()).unparse(matrix)
+
+        gap_open = settings.gap_open
+        if not use_ss and gap_open != defaults['gap_open']:
+            cmd += ' gapOpen ' + FloatArg.unparse(gap_open)
+
+        helix_open = settings.helix_open
         from chimerax.core.commands import run
+        if helix_open != defaults['helix_open']:
+            cmd += ' hgap ' + FloatArg.unparse(helix_open)
+
+        strand_open = settings.strand_open
+        from chimerax.core.commands import run
+        if strand_open != defaults['strand_open']:
+            cmd += ' sgap ' + FloatArg.unparse(strand_open)
+
+        other_open = settings.other_open
+        from chimerax.core.commands import run
+        if other_open != defaults['other_open']:
+            cmd += ' ogap ' + FloatArg.unparse(other_open)
+
+        iterate = settings.iterate
+        if iterate:
+            iter_cutoff = settings.iter_cutoff
+            if iter_cutoff != defaults['iter_cutoff']:
+                cmd += ' cutoffDistance ' + FloatArg.unparse(iter_cutoff)
+        else:
+            cmd += ' cutoffDistance ' + NoneArg.unparse(None)
+
+        gap_extend = settings.gap_extend
+        if gap_extend != defaults['gap_extend']:
+            cmd += ' gapExtend ' + FloatArg.unparse(gap_extend)
+
+        if self.bring_model_list.isEnabled():
+            models = self.bring_model_list.value
+            if models:
+                cmd += ' bring ' + concise_model_spec(self.session, models)
+
+        show_alignment = settings.show_alignment
+        if show_alignment != defaults['show_alignment']:
+            cmd += ' showAlignment ' + BoolArg.unparse(show_alignment)
+
+        compute_ss = settings.compute_ss
+        if compute_ss != defaults['compute_ss']:
+            cmd += ' computeSs ' + BoolArg.unparse(compute_ss)
+
+        overwrite_ss = settings.overwrite_ss
+        if compute_ss and overwrite_ss != defaults['overwrite_ss']:
+            cmd += ' keepComputedSs ' + BoolArg.unparse(overwrite_ss)
+
+        ss_matrix = settings.ss_scores
+        if ss_matrix != defaults['ss_scores']:
+            for key, val in ss_matrix.items():
+                order = ['H', 'S', 'O']
+                if val != defaults['ss_scores'][key]:
+                    let1, let2 = key
+                    if order.index(let1) > order.index(let2):
+                        continue
+                    cmd += ' mat' + let1 + let2.lower() + ' ' + FloatArg.unparse(val)
+
         run(self.session, cmd)
 
     def _compute_ss_change(self, opt):
@@ -335,6 +422,8 @@ class SSScoringMatrixOption(Option):
                     cell.setValidator(validator)
                     cell.setFixedWidth(30)
                     cell.setAlignment(Qt.AlignCenter)
+                    cell.textEdited.connect(
+                        lambda *args, cell=cell, cb=self.make_callback: cell.hasAcceptableInput() and cb())
                     grid.addWidget(cell, ri, ci, alignment=Qt.AlignCenter)
                     row_letter = cell_order[ri-1]
                     col_letter = cell_order[ci-1]

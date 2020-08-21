@@ -16,7 +16,7 @@ from .match import CP_BEST_BEST, AA_NEEDLEMAN_WUNSCH
 defaults = {
     'chain_pairing': CP_BEST_BEST,
     'alignment_algorithm': AA_NEEDLEMAN_WUNSCH,
-    'show_sequence': False,
+    'show_alignment': False,
     'matrix': "BLOSUM-62",
     'gap_open': 12,
     'gap_extend': 1,
