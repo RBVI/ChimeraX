@@ -265,7 +265,7 @@ class Conservation(DynamicHeaderSequence):
         if self.settings.al2co_cons == 2:
             command += ["-m", str(self.settings.al2co_transform)]
             from chimerax.sim_matrices import matrix_files
-            matrix_lookup = matrix_files(session)
+            matrix_lookup = matrix_files(session.logger)
             if self.settings.al2co_matrix in matrix_lookup:
                 command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]
         try:

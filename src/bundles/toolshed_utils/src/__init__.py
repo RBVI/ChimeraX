@@ -22,9 +22,31 @@ Everything in here is considered private.
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
     ToolshedInstalledError,
-    BundleInfo,
+    BundleAPI, BundleInfo,
     _ChimeraXNamespace
 )
+
+
+class _BootstrapAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        from . import cmd
+        from chimerax.core import toolshed
+        cmd.register_command(session.logger)
+
+        def show_updates(trigger_name, data, *, session=session):
+            from . import tool
+            session.ui.thread_safe(tool.show, session, tool.DialogType.UPDATES_ONLY)
+        session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
+
+    @staticmethod
+    def get_class(class_name):
+        return None
+
+
+bundle_api = _BootstrapAPI()
 
 
 def _debug(*args, **kw):
@@ -168,23 +190,22 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
             # If the name ends with .whl, it must be a path.
             if not bundle.endswith(".whl"):
                 raise ValueError("Can only install wheel files")
-            bundle = os.path.expanduser(bundle)
-            if not os.path.exists(bundle):
+            bundle_path = os.path.expanduser(bundle)
+            if not os.path.exists(bundle_path):
                 raise ValueError("Non-existent wheel file")
-            basename = os.path.split(bundle)[1]
+            basename = os.path.split(bundle_path)[1]
             name = basename.split('-')[0]
             old_bundle = toolshed.find_bundle(name, logger, installed=True)
             bundle_name = bundle
         elif isinstance(bundle, BundleInfo):
             # If "bundle" is not a string, it must be a Bundle instance.
-            if bundle.installed:
-                if not reinstall:
-                    raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
             old_bundle = toolshed.find_bundle(bundle.name, logger, installed=True)
-            bundle_name = "%s==%s" % (bundle.name, bundle.version)
+            bundle_name = bundle
         else:
             raise ValueError("incorrect bundle argument")
-        if old_bundle in toolshed._installed_bundle_info:
+        if old_bundle:
+            if not reinstall:
+                raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
             install_now = _can_install(old_bundle)
             if install_now:
                 old_bundle.deregister(logger)
@@ -198,9 +219,8 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
             args.append("--user")
         if no_deps:
             args.append("--no-deps")
-        logger.error("A bundle is currently in use.  "
-                     "ChimeraX will install it after restarting.")
-        _add_restart_action("install", bundle_names, args, logger)
+        message = "A bundle is currently in use.  ChimeraX must be restarted to finish installing."
+        _add_restart_action("install", bundle_names, args, logger, message, session)
         return
     try:
         results = _pip_install(
@@ -289,7 +309,7 @@ def _can_uninstall(bi):
     return not bi.imported()
 
 
-def _add_restart_action(action_type, bundles, extra_args, logger):
+def _add_restart_action(action_type, bundles, extra_args, logger, message, session):
     # Show user a dialog (hence error) so they know something happened.
     # Append to on_restart file so bundle action is done on restart.
     import os
@@ -300,6 +320,8 @@ def _add_restart_action(action_type, bundles, extra_args, logger):
     except FileExistsError:
         pass
     with open(restart_file, "a") as f:
+        if action_type == "install" and session is not None:
+            print(f"toolshed_url\t{session.toolshed.remote_url}", file=f)
         args = [action_type]
         bundle_args = []
         for bundle in bundles:
@@ -314,6 +336,24 @@ def _add_restart_action(action_type, bundles, extra_args, logger):
         args.append(' '.join(bundle_args))
         args.extend(extra_args)
         print("\t".join(args), file=f)
+    if session is None or not session.ui.is_gui:
+        logger.error(message)
+    else:
+        from PyQt5.QtWidgets import QMessageBox
+        msg_box = QMessageBox(QMessageBox.Question, "Restart ChimeraX?", message)
+        msg_box.setInformativeText("Do you want to restart now?")
+        yes = msg_box.addButton("Restart Now", QMessageBox.AcceptRole)
+        no = msg_box.addButton("Restart Later", QMessageBox.RejectRole)
+        msg_box.setDefaultButton(no)
+        msg_box.setEscapeButton(no)
+        msg_box.exec()
+        if msg_box.clickedButton() == yes:
+            import sys
+            import os
+            try:
+                os.execv(sys.executable, [sys.executable])
+            except Exception as err:
+                logger.error("Unable to restart ChimeraX: %s" % err)
 
 
 def _uninstall_bundle(toolshed, bundle, logger, *, session=None, force_remove=False):
@@ -381,8 +421,8 @@ def _uninstall_bundle(toolshed, bundle, logger, *, session=None, force_remove=Fa
         for bundle in uninstall_later:
             bundle.deregister(logger)
             bundle.unload(logger)
-        logger.error("Need to restart ChimeraX to finish uninstalling")
-        _add_restart_action("uninstall", uninstall_later, [], logger)
+        message = "ChimeraX must be restarted to finish uninstalling."
+        _add_restart_action("uninstall", uninstall_later, [], logger, message, session)
 
 
 def _install_module(toolshed, bundle, logger, install, session):
@@ -440,7 +480,7 @@ def _pip_install(toolshed, bundle_name, logger, per_user=True, reinstall=False, 
     try:
         results = _run_pip(command, logger)
     except (RuntimeError, PermissionError) as e:
-        from ..errors import UserError
+        from chimerax.core.errors import UserError
         raise UserError(str(e))
     # _remove_scripts()
     return results

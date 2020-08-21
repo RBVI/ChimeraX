@@ -167,6 +167,9 @@ TOOLSHED_BUNDLE_UNINSTALLED : str
 TOOLSHED_BUNDLE_INFO_RELOADED : str
     Name of trigger fired when bundle metadata is reloaded.
     The trigger data is a :py:class:`BundleInfo` instance.
+TOOLSHED_OUT_OF_DATE_BUNDLES : str
+    Name of trigger fired when out-of-date bundles are detected.
+    The trigger data is None.
 
 Notes
 -----
@@ -182,6 +185,7 @@ TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
 TOOLSHED_BUNDLE_INSTALLED = "bundle installed"
 TOOLSHED_BUNDLE_UNINSTALLED = "bundle uninstalled"
 TOOLSHED_BUNDLE_INFO_RELOADED = "bundle info reloaded"
+TOOLSHED_OUT_OF_DATE_BUNDLES = "out of date bundles found"
 
 # Known bundle catagories
 DYNAMICS = "Molecular trajectory"
@@ -275,7 +279,7 @@ class Toolshed:
     """
 
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
-                 remote_url=None, check_available=True):
+                 remote_url=None, check_available=True, ui=None):
         """Initialize Toolshed instance.
 
         Parameters
@@ -338,6 +342,7 @@ class Toolshed:
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_UNINSTALLED)
         self.triggers.add_trigger(TOOLSHED_BUNDLE_INFO_RELOADED)
+        self.triggers.add_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES)
         self.triggers.add_trigger("selector registered")
         self.triggers.add_trigger("selector deregistered")
 
@@ -352,7 +357,10 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
-        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache)
+        if check_available and (self._available_bundle_info is None or
+                                self._available_bundle_info.toolshed_url != remote_url):
+            check_remote = True
+        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
@@ -380,14 +388,19 @@ class Toolshed:
                         max_delta = timedelta(days=30)
                     need_check = delta > max_delta
             if need_check:
-                self.async_reload_available(logger)
+                if ui is None or not ui.is_gui:
+                    self.async_reload_available(logger)
+                else:
+                    def delayed_available(trigger_name, data, toolshed=self, logger=logger):
+                        toolshed.async_reload_available(logger)
+                    ui.triggers.add_handler('ready', delayed_available)
                 settings.toolshed_last_check = now.isoformat()
                 _debug("Initiated toolshed check: %s" %
                        settings.toolshed_last_check)
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
-               check_remote=False, report=False):
+               check_remote=False, report=False, _ui=None):
         """Supported API. Discard and reread bundle info.
 
         Parameters
@@ -424,7 +437,7 @@ class Toolshed:
             self._installed_bundle_info.register_all(logger, session,
                                                      self._installed_packages)
         if check_remote:
-            self.reload_available(logger)
+            self.reload_available(logger, _ui=_ui)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
         return changes
 
@@ -436,7 +449,7 @@ class Toolshed:
                    name="Update list of available bundles")
         t.start()
 
-    def reload_available(self, logger):
+    def reload_available(self, logger, _ui=None):
         from urllib.error import URLError
         from .available import AvailableBundleCache
         abc = AvailableBundleCache(self._cache_dir)
@@ -458,32 +471,34 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
-        # log newer versions of installed bundles
+        # check if there are newer version of installed bundles
         from packaging.version import Version
-        out_of_date = []
+        has_out_of_date = False
         installed_name = None
         installed_version = None
-        # TODO: sort abc?
         for available in abc:
             if available.name != installed_name:
                 bi = self.find_bundle(available.name, logger)
                 if bi is None:
+                    installed_version = None
                     continue
                 installed_name = available.name
                 installed_version = Version(bi.version)
+            elif installed_version is None:
+                continue
             new_version = Version(available.version)
             if new_version > installed_version:
-                out_of_date.append((installed_name, new_version, installed_version))
-        if out_of_date:
-            from chimerax.core.commands import plural_form
-            bundles = plural_form(out_of_date, 'bundle')
-            info = (
-                f"{plural_form(out_of_date, 'An', 'Some')} installed {bundles}"
-                f" {plural_form(out_of_date, 'is', 'are')} out of date."
-                f"  Please update the following {bundles}:<ul>")
-            for name, new_version, installed_version in out_of_date:
-                info += f"<li>{self.bundle_link(name)} to version {new_version} (currently {installed_version})"
-            logger.info(info + "</ul>", is_html=True)
+                has_out_of_date = True
+                break
+        if has_out_of_date:
+            if _ui is None:
+                self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, self)
+            else:
+                # too early for trigger handler to be registered
+                if _ui.is_gui:
+                    def when_ready(trigger_name, data, toolshed=self):
+                        toolshed.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, toolshed)
+                    _ui.triggers.add_handler('ready', when_ready)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache

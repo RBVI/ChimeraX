@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from . import _sw as SmithWaterman
+from chimerax.ui.options import EnumOption
 
-NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
-SMITH_WATERMAN = "Smith-Waterman"
+class SeqAlignmentAlgOption(EnumOption):
+    from . import NEEDLEMAN_WUNSCH, SMITH_WATERMAN
+    values = (NEEDLEMAN_WUNSCH, SMITH_WATERMAN)

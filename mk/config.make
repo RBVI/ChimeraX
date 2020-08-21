@@ -12,6 +12,10 @@
 # bash is the default shell on Cygwin and Mac OS X so use it on Linux as well
 SHELL=/bin/bash
 
+# Location of third party binaries
+PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
+FETCH_PREREQ = curl --silent --show-error -O 
+
 # need absolute directory for build_prefix
 TOP := $(shell (cd "$(TOP)"; pwd))
 build_prefix = $(TOP)/build

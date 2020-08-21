@@ -1,0 +1,33 @@
+#  Amino acid hydrophobicity scale from
+#  the supplementary information for "Recognition of transmembrane 
+#  helices by the endoplasmic reticulum translocon," Hessa et al., 
+#  Nature 433:377 (2005).
+#
+#  More negative means more hydrophobic.  
+#  The met value is also assigned to selenomethionine.
+#
+#  Use this file to assign the attribute in ChimeraX or Chimera.
+#
+attribute: hhHydrophobicity
+recipient: residues
+	:asp	3.49
+	:glu	2.68
+	:asn	2.05
+	:gln	2.36
+	:lys	2.71
+	:arg	2.58
+	:his	2.06
+	:gly	0.74
+	:pro	2.23
+	:ser	0.84
+	:thr	0.52
+	:cys	-0.13
+	:met	-0.10
+	:mse	-0.10
+	:ala	0.11
+	:val	-0.31
+	:ile	-0.60
+	:leu	-0.55
+	:phe	-0.32
+	:trp	0.30
+	:tyr	0.68

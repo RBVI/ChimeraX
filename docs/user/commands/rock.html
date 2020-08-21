@@ -36,22 +36,24 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>rock</b> command wags models back and forth around the specified
-<i>axis</i> (default <b>y</b>) with an amplitude of <i>angle</i> 
-in each direction (default <b>15</b>&deg;)
+<i>axis</i> (default <b>y</b>) 
+<!-- peak-to-peak amplitude, formerly semi-amplitude default 15 -->
+with an amplitude of <i>angle</i> (default <b>30</b>&deg;)
 and <i>N</i> frames per <b>cycle</b> (default <b>136</b>), 
-continuing until all <i>frames</i> (default <b>infinity</b>) have elapsed,
+continuing until all <i>frames</i> (default <b>forever</b>) have elapsed,
 or the motion is halted with the <a href="stop.html"><b>stop</b></a> command.
 Like that of a pendulum, the movement is slower near the turnaround points
 1/4 and 3/4 of the way through a cycle.
 </p><p>
 The commands <a href="turn.html"><b>turn</b></a>
-and <a href="roll.html"><b>roll</b></a> can perform the same rocking actions
+and <a href="roll.html"><b>roll</b></a> can perform the same motion
 as the <b>rock</b> command, with a <b>rock</b> 
 option equivalent to the <b>cycle</b> option described here.  
-They differ from <b>rock</b> only in their default parameter values.
+They differ from <b>rock</b> in their default parameter values.
+For a figure-eight motion, see <b><a href="wobble.html">wobble</a></b>.
 See also:
-<b><A href="cofr.html">cofr</A></b>,
-<b><A href="move.html">move</A></b>,
+<b><a href="cofr.html">cofr</a></b>,
+<b><a href="move.html">move</a></b>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
@@ -94,5 +96,5 @@ use the <a href="wait.html"><b>wait</b></a> command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html> 

@@ -46,7 +46,7 @@ def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
     return kw
 
 class ChainListWidget(ItemListWidget):
-    def __init__(self, session, *, group_identical=True, **kw):
+    def __init__(self, session, *, group_identical=False, **kw):
         self._session = session
         self._group_identical = group_identical and kw.get('selection_mode', None) != 'single'
         processed_kw = _process_chain_kw(session, **kw)

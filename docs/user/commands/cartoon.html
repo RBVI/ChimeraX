@@ -202,6 +202,7 @@ alt="6cmn licorice" title="6cmn licorice"></td>
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
 [&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>&nbsp;]
+[&nbsp;<b>ssEnds</b>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
 -->
 <blockquote>
 <p>
@@ -315,6 +316,28 @@ The <i>factor</i> (range 0.2&ndash;1.0,
 initial default <b>0.5</b>) is multiplied by the thickness to give
 the central &ldquo;bar&rdquo; thickness of <b>barbell</b> cross-section
 relative to the edges, where the nominal value applies.
+<!--
+  </blockquote><blockquote>
+<b>ssEnds</b> &nbsp;short&nbsp;|&nbsp;long&nbsp;
+<br>
+This option specifies the C-terminal endpoint and thus the length of 
+peptide helix and strand representations, with possible values:
+<table class="clRight" cellspacing="0px" cellpadding="0px">
+<tbody><tr>
+<td><img class="outline" src="carlink-short.png" width="150px"></td>
+<td><img class="outline" src="carlink-long.png" width="150px"></td>
+</tr>
+</tbody></table>
+</p><ul>
+<li><b>short</b> (initial default)
+&ndash; depiction of the helix or strand secondary structure element (SSE) 
+starts at the C&alpha; of its first (N-terminal) residue
+and ends at the C&alpha; of its last (C-terminal) residue
+<li><b>long</b>
+&ndash; depiction of the SSE starts at the C&alpha; of its first residue 
+(same as for <b>short</b>) but ends in the middle of its following peptide bond
+</ul>
+-->
   </blockquote>
 </p><p>
 More examples:

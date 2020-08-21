@@ -20,11 +20,16 @@ from .match import match, defaults
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class MatchMakerAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         from .match import register_command
         register_command(logger)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import MatchMakerTool
+        return MatchMakerTool(session, tool_name)
+
+bundle_api = MatchMakerAPI()

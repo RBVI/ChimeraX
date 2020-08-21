@@ -144,3 +144,35 @@ def combine_geometry_vte(geom):
         voffset += vc
         toffset += tc
     return cva, cta, cea
+
+# -----------------------------------------------------------------------------
+#
+def combine_geometry(geom, vertex_position = 0, triangle_position = 1):
+    '''
+    Combine triangle geometry given by multiple pairs of vertex and triangle arrays.
+    The arrays are concatenated into one array of vertices and one array of triangles
+    with the triangle array vertex indices offset for use with the concatenated vertex array.
+    '''
+    if len(geom) <= 1:
+        return geom
+
+    # Concatenate arrays
+    na = len(geom[0])
+    accum = [[] for a in range(na)]
+    for g in geom:
+        for i,a in enumerate(g):
+            accum[i].append(a)
+    from numpy import concatenate
+    cgeom = [concatenate(alist) for alist in accum]
+
+    # Adjust triangle offsets
+    voffset = 0
+    toffset = 0
+    cta = cgeom[triangle_position]
+    for g in geom:
+        vc, tc = len(g[vertex_position]), len(g[triangle_position])
+        cta[toffset:toffset+tc,:] += voffset
+        voffset += vc
+        toffset += tc
+
+    return cgeom

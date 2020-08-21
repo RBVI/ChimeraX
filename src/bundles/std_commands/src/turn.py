@@ -26,11 +26,11 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
     axis : Axis
        Defines the axis to rotate about.
     angle : float
-       Rotation angle in degrees.
-    frames : integer
+       Rotation angle about axis in degrees.
+    frames : "forever" or an integer
        Repeat the rotation for N frames, typically used in recording movies.
     rock : integer
-       Rotate +/- angle degrees repeating, one cycle every specified number of frames.
+       Rotate +/- angle/2 degrees repeating, one cycle every specified number of frames.
        The rocking steps are small at the ends of the rock, using sine modulation.
        If the frames option is not given the rocking continues until the stop command
        is run.
@@ -50,7 +50,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None,
        Change the coordinates of these atoms.  Camera is not moved.
     '''
 
-    if (rock or wobble) and frames is None:
+    if ((rock or wobble) and frames is None) or frames == 'forever':
         frames = -1	# Continue motion indefinitely.
 
     v = session.main_view
@@ -135,7 +135,7 @@ class Turner:
         n = self._rock
         from math import pi, sin
         f = sin(2*pi*((frame+1)%n)/n) - sin(2*pi*(frame%n)/n)
-        r = self._rotation(f * self._full_angle)
+        r = self._rotation(f * self._full_angle/2)
         return r
 
     def _wobble_motion(self, frame):
@@ -147,22 +147,26 @@ class Turner:
         return r
 
     def _wobble_position(self, f):
+        amax = 0.5 * self._full_angle
         from math import pi, sin
-        a = sin(2*pi*f) * self._full_angle
-        wa = sin(4*pi*f) * self._full_angle * self._wobble_aspect
+        a = sin(2*pi*f) * amax
+        wa = sin(4*pi*f) * amax * self._wobble_aspect
         from chimerax.geometry import rotation
         r = rotation(self._axis, a, self._center)
         rw = rotation(self._wobble_axis, wa, self._center)
         return rw*r
 
+from chimerax.core.commands import Or, EnumOf, PositiveIntArg
+FramesArg = Or(EnumOf(['forever']), PositiveIntArg)
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg
+    from chimerax.core.commands import CenterArg, CoordSysArg, TopModelsArg, Or, EnumOf
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional= [('axis', AxisArg),
                    ('angle', FloatArg),
-                   ('frames', PositiveIntArg)],
+                   ('frames', FramesArg)],
         keyword = [('center', CenterArg),
                    ('coordinate_system', CoordSysArg),
                    ('rock', PositiveIntArg),
