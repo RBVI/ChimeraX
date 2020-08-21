@@ -3443,14 +3443,21 @@ def show_one_plane(size, show_plane, min_voxels):
   voxels = float(size[0]) * float(size[1]) * float(size[2])
 
   return (voxels >= voxel_limit)
-    
+
+# ---------------------------------------------------------------------------
+#
+def _reset_color_sequence(session):
+  '''When all models are closed, volume color sequence is reset.'''
+  ds = default_settings(session)
+  ds._next_color_index = 0
+
 # ---------------------------------------------------------------------------
 #
 def set_initial_volume_color(v, session):
 
   ds = default_settings(session)
   if ds['use_initial_colors']:
-    i = 0 if session.models.empty() else getattr(ds, '_next_color_index', 0)
+    i = getattr(ds, '_next_color_index', 0)
     if not hasattr(v.data, 'series_index') or v.data.series_index == 0:
       ds._next_color_index = i+1
     icolors = ds['initial_colors']
@@ -3518,6 +3525,9 @@ def open_map(session, path, name = None, format = None, **kw):
     models : list of :class:`.Volume`
     message : description of the opened data
     '''
+    if session.models.empty():
+      _reset_color_sequence(session)
+      
     if name is None:
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
