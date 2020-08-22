@@ -48,9 +48,15 @@ ifeq ($(OS),Linux)
 	cd $(app_libdir) ; ln -sf python$(PYTHON_VERSION)/site-packages/$(GDCM_LIBDIR)/lib* .
 endif
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	-mkdir $(SOURCE)
 	tar xf $(DISTRIBUTION) -C $(SOURCE)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/gdcm/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/gdcm
 
 clean:
 	rm -rf $(SOURCE)
