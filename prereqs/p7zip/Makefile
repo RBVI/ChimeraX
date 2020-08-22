@@ -30,13 +30,19 @@ install: $(SOURCE)
 
 app-install:;
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/p7zip/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/p7zip
 
 clean:
 	if [ -d $(SOURCE) ] ; then \
