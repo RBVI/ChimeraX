@@ -50,13 +50,16 @@ all:
 
 ifdef USE_WHEEL
 
-install:
+install: $(WHEEL)
 	$(PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
 		(for p in $(PYOPENGL_PATCHES); do (cd $(PYSITEDIR) && patch -f -p0) < $$p; done)
 
-app-install:
+app-install: $(WHEEL)
 	$(APP_PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
 		(for p in $(PYOPENGL_PATCHES); do (cd $(APP_PYSITEDIR) && patch -f -p0) < $$p; done)
+
+$(WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(WHEEL)
 
 else
 
@@ -70,7 +73,7 @@ app-install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 
 endif
 
-$(PYOPENGL_SOURCE):
+$(PYOPENGL_SOURCE): $(PYOPENGL_DISTRIBUTION)
 	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PYOPENGL_PATCHES))
 	for p in $(PYOPENGL_PATCHES); do \
@@ -78,13 +81,22 @@ ifneq (,$(PYOPENGL_PATCHES))
 	done
 endif
 
-$(ACCELERATE_SOURCE):
+$(PYOPENGL_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(PYOPENGL_DISTRIBUTION)
+
+$(ACCELERATE_SOURCE): $(ACCELERATE_DISTRIBUTION)
 	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(ACCELERATE_PATCHES))
 	for p in $(ACCELERATE_PATCHES); do \
 		(cd $(ACCELERATE_SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+
+$(ACCELERATE_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(ACCELERATE_DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(PYOPENGL_DISTRIBUTION) $(ACCELERATE_DISTRIBUTION) $(WHEEL) $(PREREQS_UPLOAD)/pyopengl
 
 clean:
 	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE) pip.log
