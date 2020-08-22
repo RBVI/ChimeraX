@@ -305,13 +305,15 @@ class HeaderSequence(list):
         setattr(self.settings, attr_name, val)
 
     def _register_commands(self, registry):
-        from chimerax.core.commands import register, CmdDesc, RestOfLine
+        from chimerax.core.commands import register, CmdDesc, RestOfLine, SaveFileNameArg
         register("show", CmdDesc(synopsis='Show %s header' % self.ident),
             lambda session, hdr=self: setattr(hdr, "shown", True), registry=registry)
         register("hide", CmdDesc(synopsis='Hide %s header' % self.ident),
             lambda session, hdr=self: setattr(hdr, "shown", False), registry=registry)
         register("setting", CmdDesc(required=[('setting_arg_text', RestOfLine)],
             synopsis="change header setting"), self._process_setting_command, registry=registry)
+        register("save", CmdDesc(required=[('file_name', SaveFileNameArg)],
+            synopsis="save header values to file"), self._save, registry=registry)
 
     def _setting_option_cb(self, opt):
         from chimerax.core.commands import run, StringArg
@@ -320,6 +322,15 @@ class HeaderSequence(list):
             if len(session.alignments.alignments) > 1 else ""
         run(session, "seq header %s%s setting %s %s"
             % (align_arg, self.ident, opt.attr_name, StringArg.unparse(str(opt.value))))
+
+    def _save(self, session, file_name):
+        from chimerax.io import open_output
+        with open_output(file_name, encoding="utf-8") as f:
+            if hasattr(self, 'save_file_preamble'):
+                print(self.save_file_preamble, file=f)
+            print("%s header for %s" % (self.name, self.alignment), file=f)
+            for i, val in enumerate(self):
+                print("%d:" % (i+1), val, file=f)
 
 
 class FixedHeaderSequence(HeaderSequence):
