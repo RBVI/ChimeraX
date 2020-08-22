@@ -11,25 +11,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#--- public API ---
-from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from .match import AA_NEEDLEMAN_WUNSCH, AA_SMITH_WATERMAN
-from .match import match, defaults
-
-#--- toolshed/session-init funcs ---
+#from ._dssp import compute_ss
 
 from chimerax.core.toolshed import BundleAPI
 
-class MatchMakerAPI(BundleAPI):
-
+class _CoulombicBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
-        from .match import register_command
-        register_command(logger)
+        from . import cmd
+        cmd.register_command(logger)
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import MatchMakerTool
-        return MatchMakerTool(session, tool_name)
 
-bundle_api = MatchMakerAPI()
+bundle_api = _CoulombicBundle()

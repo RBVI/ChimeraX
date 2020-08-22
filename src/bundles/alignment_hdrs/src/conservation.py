@@ -26,6 +26,12 @@ class Conservation(DynamicHeaderSequence):
     STYLE_AL2CO = "AL2CO"
     styles = (STYLE_PERCENT, STYLE_CLUSTAL_CHARS, STYLE_AL2CO)
 
+    AL2CO_cite = ["Pei, J. and Grishin, N.V. (2001)",
+            "AL2CO: calculation of positional conservation in a protein sequence alignment",
+            "Bioinformatics, 17, 700-712."]
+    AL2CO_cite_prefix="Publications using AL2CO conservation measures should cite:"
+    save_file_preamble = '\n# '.join(['# ' + AL2CO_cite_prefix] + AL2CO_cite)
+
     def __init__(self, alignment, *args, **kw):
         # need access to settings early, so replicate code in HeaderSequence
         self.alignment = alignment
@@ -67,13 +73,8 @@ class Conservation(DynamicHeaderSequence):
         layout = QVBoxLayout()
         layout.addWidget(al2co_options, alignment=Qt.AlignLeft)
         from chimerax.ui.widgets import Citation
-        layout.addWidget(Citation(self.alignment.session,
-            "Pei, J. and Grishin, N.V. (2001)\n"
-            "AL2CO: calculation of positional conservation in a"
-            " protein sequence alignment\n"
-            "Bioinformatics, 17, 700-712.", prefix="Publications"
-            " using AL2CO conservation measures should cite:",
-            pubmed_id=11524371), alignment=Qt.AlignLeft)
+        layout.addWidget(Citation(self.alignment.session, '\n'.join(self.AL2CO_cite),
+            prefix=self.AL2CO_cite_prefix, pubmed_id=11524371), alignment=Qt.AlignLeft)
         self.al2co_options_widget.setLayout(layout)
         self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
             group_label="Sum-of-pairs parameters")
@@ -265,7 +266,7 @@ class Conservation(DynamicHeaderSequence):
         if self.settings.al2co_cons == 2:
             command += ["-m", str(self.settings.al2co_transform)]
             from chimerax.sim_matrices import matrix_files
-            matrix_lookup = matrix_files(session)
+            matrix_lookup = matrix_files(session.logger)
             if self.settings.al2co_matrix in matrix_lookup:
                 command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]
         try:

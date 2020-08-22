@@ -942,6 +942,9 @@ naming_exceptions = {
     'GDP': {
         "N1": ["HN1"],
         "N2": ["HN21", "HN22"]
+    },
+    'NH2': {
+        "N": ["HN1", "HN2"]
     }
 }
 
