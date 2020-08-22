@@ -251,7 +251,3 @@ Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpa
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
 scipy.install: Python.install numpy.install
-xml2.app-install: Python.app-install zlib.app-install
-xml2.install: Python.install zlib.install
-xslt.app-install: xml2.app-install
-xslt.install: xml2.install
