@@ -29,8 +29,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>distDep</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>dielectric</b>&nbsp;&nbsp;<i>C</i>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
-[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;|&nbsp;<b>none</b>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
+[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;|&nbsp;<b>none</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 <!-- not yet implemented
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -51,8 +51,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table>.
 If the surfaces do not already exist, they will be generated.
-The calculation can handle structures with or without explicit
-<a href="#hydrogens">hydrogens</a>.
+The calculation can handle structures with or without 
+explicit <a href="#hydrogens">hydrogens</a> 
+but currently assigns <a href="#charges">charges</a> only to standard residues.
 <!-- and a <a href="#volume">grid</a> of the values can be generated -->
 See also: 
 <a href="color.html#map"><b>color electrostatic</b></a>,
@@ -110,40 +111,10 @@ The default <a href="color.html#palette-options"><i>palette-options</i></a>
 for coloring are:
 </p>
 <blockquote>
-<b>palette redwhiteblue range -10,10</b>
+<b><a href="color.html#palette">palette</a> red-white-blue 
+&nbsp;<a href="color.html#range">range</a> -10,10</b>
 </blockquote>
-</p><p>
-<a name="hydrogens"></a>
-The calculation requires charge assignments, which in turn require hydrogens.
-However, an existing structure lacking hydrogens is not changed;
-a copy is created in memory, <a href="addh.html">protonated</a>,
-and assigned charges from a lookup table. 
-</p><p>
-The <b>HisScheme</b> option indicates how to 
-determine the charge states of histidines in structures without hydrogens:
-<ul>
-<li>HID
-&ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
-<li>HIE
-&ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
-<li>HIP
-&ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
-<li><b>none</b> (default)
-&ndash; protonation state chosen based on the local H-bonding environment
-</ul>
-These settings apply only to residues named HIS. Histidines that already have
-the special names (HID, HIE, HIP) will be protonated accordingly.
-</p><p>
-Currently there is no choice of different charge sets. 
-The partial charge values are taken from the following files in
-<a href="http://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
-all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
-These include only standard amino acid and nucleic acid residues,
-MSE (selenomethionine), HOH (water),
-ACE, NH2, NME, ACE (peptide-capping residues),
-ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
-Any other atoms inside the surfaces are not assigned partial charges.
-</p><p>
+<p>
 By default,
 a <a href="surface.html">molecular surface</a> is generated as needed
 for each biopolymer chain that contains any of the specified atoms,
@@ -163,14 +134,68 @@ to calculate the ESP for coloring that surface is to
 use both a non-blank <a href="atomspec.html"><i>atom-spec</i></a>
 and the <b>surfaces</b> option.
 </p>
-<!--
+
+<a name="hydrogens"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>Hydrogens</h3>
 <p>
-With <b>map true</b> (default <b>false</b>), each potential map
-will be opened a volume model. This allows
-<a href="save.html#map">saving the map</a> to a file and/or
+The calculation requires charge assignments, which in turn require hydrogens.
+However, an existing structure lacking hydrogens is not changed;
+a copy is created in memory, <a href="addh.html">protonated</a>,
+and assigned charges from a lookup table. 
+</p><p>
+The <b>HisScheme</b> option indicates how to 
+determine the charge states of histidines in structures without hydrogens:
+</p>
+<ul>
+<li>HID
+&ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
+<li>HIE
+&ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
+<li>HIP
+&ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
+<li><b>none</b> (default)
+&ndash; protonation state chosen based on the local H-bonding environment
+</ul>
+These settings apply only to residues named HIS. Histidines that already have
+the special names (HID, HIE, HIP) will be protonated accordingly.
+</p>
+
+<a name="charges"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>Atomic Charges</h3>
+<p>
+Currently there is no choice of different charge sets. 
+The partial charge values are taken from the following files in
+<a href="http://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
+all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
+These include standard amino acid and nucleic acid residues,
+MSE (selenomethionine), HOH (water),
+ACE, NH2, NME, ACE (peptide-capping residues),
+ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
+</p><p>
+The presence of any other residues within the biopolymer surface
+will cause an error. Solvent, ligands, ions, and cofactors are normally
+not enclosed by <a href="surface.html">molecular surfaces</a>,
+so this type of error should be relatively rare.
+</p>
+
+<!--
+<a name="map"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>ESP Maps</h3>
+<p>
+With <b>map true</b> (default <b>false</b>), 
+each ESP map will be opened a volume model.
+This allows <a href="save.html#map">saving the map</a> to a file and/or
 subsequently coloring surfaces by the map values using 
 <a href="color.html#map"><b>color electrostatic</b></a>
-or <a href="color.html#map"><b>color sample</b></a>
 without having to recalculate the map on the fly.
 </p><p>
 The <b>spacing</b> <i>s</i> of the map grid can be
