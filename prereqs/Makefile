@@ -34,7 +34,6 @@ NEED_OPENSSL=1
 NEED_PKGCONFIG=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
-#SUBDIRS += leapmotion
 endif
 
 ifeq ($(OS),Linux)
@@ -222,8 +221,6 @@ gdcm.app-install: Python.app-install
 gdcm.install: Python.install
 hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
-leapmotion.app-install: Python.app-install
-leapmotion.install: Python.install
 libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
