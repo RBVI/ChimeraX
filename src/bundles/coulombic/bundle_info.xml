@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Coulombic" version="1.0"
+<BundleInfo name="ChimeraX-Coulombic" version="1.0.1"
 	    package="chimerax.Coulombic" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
