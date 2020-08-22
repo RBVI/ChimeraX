@@ -242,8 +242,6 @@ PyOpenGL.app-install: Python.app-install pips.app-install
 PyOpenGL.install: Python.install pips.install
 PyQt.app-install: Python.app-install openssl.app-install zlib.app-install
 PyQt.install: Python.install openssl.install zlib.install
-pythomnic3k.app-install: Python.app-install
-pythomnic3k.install: Python.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
