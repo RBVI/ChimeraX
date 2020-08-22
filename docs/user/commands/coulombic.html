@@ -1,0 +1,213 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: coulombic</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: coulombic</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>coulombic</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>distDep</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>dielectric</b>&nbsp;&nbsp;<i>C</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
+[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;|&nbsp;<b>none</b>&nbsp;]
+&nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
+<!-- not yet implemented
+[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>padding</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
+-->
+</h3>
+<p>
+The <b>coulombic</b> command colors
+<a href="surface.html">molecular surfaces</a>
+by Coulombic electrostatic potential (ESP),
+ranging from <b>red</b> for negative potential through <b>white</b> 
+to <b>blue</b> for positive potential:
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=blue width="10px" title="blue"></td>
+</tr></table>.
+If the surfaces do not already exist, they will be generated.
+The calculation can handle structures with or without 
+explicit <a href="#hydrogens">hydrogens</a> 
+but currently assigns <a href="#charges">charges</a> only to standard residues.
+<!-- and a <a href="#volume">grid</a> of the values can be generated -->
+See also: 
+<a href="color.html#map"><b>color electrostatic</b></a>,
+<a href="surface.html"><b>surface</b></a>,
+<a href="mlp.html"><b>mlp</b></a>,
+<a href="clip.html#model">per-model clipping</a>,
+<a href="../measurements.html">measurements</a>,
+the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a>
+</p><p>
+The electrostatic potential is calculated from atomic partial charges 
+according to Coulomb's law:
+</p>
+<blockquote>
+<font size ="+1">
+&phi; = &Sigma; [q<sub>i</sub> / (&epsilon;d<sub>i</sub>)]
+</font>
+</blockquote>
+&phi; is the potential (which varies in space),
+q are the atomic partial charges,
+d are the distances from the atoms, and
+&epsilon; is the dielectric, representing screening by the medium.
+A distance-dependent dielectric is sometimes used to approximate screening
+by implicit solvent. By default,
+<b>distDep true</b> and <b>dielectric 4.0</b> are used:
+<blockquote>
+<font size ="+1">
+&epsilon; = 4d
+</font>
+</blockquote>
+With <b>distDep false</b>, &epsilon; is a constant <i>C</i>
+given with the <b>dielectric</b> option.
+</p><p>
+The <a name="offset"><b>offset</b></a> <i>d</i> is how far out
+from each surface vertex, along its normal, to evaluate the data.
+The default of <b>1.4</b> &Aring; is typically used for coloring a
+<a href="surface.html">molecular surface</a> by electrostatic potential.
+The rationale for looking outward is that the values at the centers
+of any interacting atoms are more relevant than those at their surfaces.
+By default, a <a href="surface.html#surfdefs">molecular surface</a>
+shows where the surface of a spherical probe
+of radius 1.4 &Aring; can lie, the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>.
+An offset of 1.4 &Aring; approximates the
+<a href="surface.html#surfdefs">solvent-accessible surface</a>,
+about as close as the probe center can get to the molecule.
+** However, an offset of 0.0 may be preferred for coloring
+<a href="surface.html#cap">surface caps</a>
+(from <a href="clip.html">clipping</a>),
+and a zero or negative offset may be appropriate
+for coloring the surface of one structure by the potential from another. **
+</p><p>
+<a name="palette-options"></a>
+The default <a href="color.html#palette-options"><i>palette-options</i></a> 
+for coloring are:
+</p>
+<blockquote>
+<b><a href="color.html#palette">palette</a> red-white-blue 
+&nbsp;<a href="color.html#range">range</a> -10,10</b>
+</blockquote>
+<p>
+By default,
+a <a href="surface.html">molecular surface</a> is generated as needed
+for each biopolymer chain that contains any of the specified atoms,
+colored by the Coulombic ESP from <i>all</i> of the atoms enclosed by that
+surface, and the surface patches for the specified atoms are displayed.
+An independent calculation is performed for each surface, using only the charges
+from the atoms enclosed by that surface. Typically, each biopolymer chain
+has its own molecular surface that does not include ligand or solvent.
+</p><p>
+Alternatively, one or more pre-existing 
+<a href="surface.html">molecular surfaces</a>
+can be specified with the <b>surfaces</b> option,
+in which case the calculation will use the charges of the
+specified atoms only.
+The only way to use different atoms than enclosed by a surface
+to calculate the ESP for coloring that surface is to
+use both a non-blank <a href="atomspec.html"><i>atom-spec</i></a>
+and the <b>surfaces</b> option.
+</p>
+
+<a name="hydrogens"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>Hydrogens</h3>
+<p>
+The calculation requires charge assignments, which in turn require hydrogens.
+However, an existing structure lacking hydrogens is not changed;
+a copy is created in memory, <a href="addh.html">protonated</a>,
+and assigned charges from a lookup table. 
+</p><p>
+The <b>HisScheme</b> option indicates how to 
+determine the charge states of histidines in structures without hydrogens:
+</p>
+<ul>
+<li>HID
+&ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
+<li>HIE
+&ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
+<li>HIP
+&ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
+<li><b>none</b> (default)
+&ndash; protonation state chosen based on the local H-bonding environment
+</ul>
+These settings apply only to residues named HIS. Histidines that already have
+the special names (HID, HIE, HIP) will be protonated accordingly.
+</p>
+
+<a name="charges"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>Atomic Charges</h3>
+<p>
+Currently there is no choice of different charge sets. 
+The partial charge values are taken from the following files in
+<a href="http://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
+all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
+These include standard amino acid and nucleic acid residues,
+MSE (selenomethionine), HOH (water),
+ACE, NH2, NME, ACE (peptide-capping residues),
+ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
+</p><p>
+The presence of any other residues within the biopolymer surface
+will cause an error. Solvent, ligands, ions, and cofactors are normally
+not enclosed by <a href="surface.html">molecular surfaces</a>,
+so this type of error should be relatively rare.
+</p>
+
+<!--
+<a name="map"></a>
+<p class="nav">
+[<a href="#top">back to top: coulombic</a>]
+</p>
+<h3>ESP Maps</h3>
+<p>
+With <b>map true</b> (default <b>false</b>), 
+each ESP map will be opened a volume model.
+This allows <a href="save.html#map">saving the map</a> to a file and/or
+subsequently coloring surfaces by the map values using 
+<a href="color.html#map"><b>color electrostatic</b></a>
+without having to recalculate the map on the fly.
+</p><p>
+The <b>spacing</b> <i>s</i> of the map grid can be
+specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+Decreasing the spacing increases map size and calculation time.
+</p><p>
+The <b>padding</b> <i>p</i> is how far the map grid should extend beyond
+the atoms in every direction (default <b>5.0</b> &Aring;).
+</p>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2020</address>
+</body></html>

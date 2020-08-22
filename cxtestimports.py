@@ -12,6 +12,7 @@ blacklist = set([
     "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.seqalign.align_algs.libalign_algs",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
+    "chimerax.coulombic.create_data.py",  # creates data.py
     "chimerax.dicom.scan_dicoms",  # development script
     "chimerax.map.data.memoryuse", # unported code
     "chimerax.map.filter.square",  # unported code
