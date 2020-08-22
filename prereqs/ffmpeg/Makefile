@@ -71,8 +71,11 @@ app-install: $(FFMPEG_EXE)
 
 clean:
 
-$(FFMPEG_EXE) $(FFMPEG_SOURCE):
+$(FFMPEG_EXE) $(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
 	unzip $(FFMPEG_DISTRIB) -d $(tmpdir)
+
+$(FFMPEG_DISTRIB):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
 
 else
 

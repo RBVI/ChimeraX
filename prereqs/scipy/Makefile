@@ -14,7 +14,7 @@ all:
 
 ifdef WIN32
 
-install:
+install: $(WHEEL)
 	$(PIP_INSTALL) $(WHEEL)
 
 app-install: install
