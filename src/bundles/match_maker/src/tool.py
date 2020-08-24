@@ -120,7 +120,7 @@ class MatchMakerTool(ToolInstance):
         self.overwrite_ss_option = BooleanOption("Overwrite previous assignments", None, None,
             attr_name="overwrite_ss", settings=settings)
         ss_options.add_option(self.overwrite_ss_option)
-        self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
+        self.ss_ratio_option = FloatOption("Secondary structure weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
             right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
         ss_options.add_option(self.ss_ratio_option)
