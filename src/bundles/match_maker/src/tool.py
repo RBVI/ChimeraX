@@ -127,13 +127,13 @@ class MatchMakerTool(ToolInstance):
         self.ss_matrix_option = SSScoringMatrixOption("Scoring matrix", None, None,
             attr_name='ss_scores', settings=settings)
         ss_options.add_option(self.ss_matrix_option)
-        self.ss_helix_gap_option = IntOption("Intra-helix gap-opening penalty", None, None,
+        self.ss_helix_gap_option = IntOption("Intra-helix gap opening penalty", None, None,
             attr_name='helix_open', settings=settings)
         ss_options.add_option(self.ss_helix_gap_option)
-        self.ss_strand_gap_option = IntOption("Intra-strand gap-opening penalty", None, None,
+        self.ss_strand_gap_option = IntOption("Intra-strand gap opening penalty", None, None,
             attr_name='strand_open', settings=settings)
         ss_options.add_option(self.ss_strand_gap_option)
-        self.ss_other_gap_option = IntOption("Any other gap-opening penalty", None, None,
+        self.ss_other_gap_option = IntOption("Any other gap opening penalty", None, None,
             attr_name='other_open', settings=settings)
         ss_options.add_option(self.ss_other_gap_option)
         self._include_ss_change(ss_opt)
