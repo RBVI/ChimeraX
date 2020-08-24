@@ -202,9 +202,7 @@ class Model(State, Drawing):
             self._selection_changed()
 
     def _selection_changed(self):
-        from chimerax.core.selection import SELECTION_CHANGED
-        self.session.ui.thread_safe(self.session.triggers.activate_trigger,
-                                    SELECTION_CHANGED, None)
+        self.session.selection.trigger_fire_needed = True
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
