@@ -620,7 +620,7 @@ def _rebuild_molecule(trigger_name, mol):
             if reasons.isdisjoint(_AtomReasons):
                 # no reason to rebuild
                 return
-    mol.bounds()  # need to recompute ribbon first  TODO: another way?
+    mol.update_graphics_if_needed()  # need to recompute ribbon first
     nuc = _nucleotides(mol.session)
     nd = _make_nuc_drawing(nuc, mol, recreate=True)
     if nd is None:

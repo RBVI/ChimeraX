@@ -69,13 +69,14 @@ install: $(FFMPEG_EXE)
 app-install: $(FFMPEG_EXE)
 	$(RSYNC) $(FFMPEG_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
 
-clean:
-
-$(FFMPEG_EXE) $(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
+$(FFMPEG_EXE): $(FFMPEG_DISTRIB)
 	unzip $(FFMPEG_DISTRIB) -d $(tmpdir)
+	touch $(FFMPEG_EXE)
 
 $(FFMPEG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
+
+clean:
 
 else
 
