@@ -494,16 +494,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
                     name="MatchMaker alignment")
                 alignment.auto_associate = True
-                for viewer in alignment.viewers:
-                    if viewer.tool_name == "Sequence Viewer":
-                        #TODO: port once sequence viewer supports headers
-                        """
-                        mav.hideHeaders(mav.headers(shownOnly=True))
-                        from MAVHeader.ChimeraExtension import CaDistanceSeq
-                        mav.showHeaders([h for h in mav.headers()
-                                    if h.name == CaDistanceSeq.name])
-                        """
-                        break
+                for hdr in alignment.headers:
+                    hdr.shown = hdr.ident == "rmsd"
             for i in range(len(s1)):
                 if s1[i] == "." or s2[i] == ".":
                     continue

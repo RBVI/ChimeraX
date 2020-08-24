@@ -94,6 +94,8 @@ class MatchMakerTool(ToolInstance):
         self.options.add_option("Chain pairing", cp_opt)
 
         from chimerax.alignment_algs.options import SeqAlignmentAlgOption
+        self.options.add_option("Alignment", BooleanOption("Show pairwise sequence alignment(s)", None, None,
+            attr_name="show_alignment", settings=settings))
         self.options.add_option("Alignment", SeqAlignmentAlgOption("Sequence alignment algorithm",
             None, None, attr_name="alignment_algorithm", settings=settings))
         from chimerax.sim_matrices.options import SimilarityMatrixNameOption
@@ -118,7 +120,7 @@ class MatchMakerTool(ToolInstance):
         self.overwrite_ss_option = BooleanOption("Overwrite previous assignments", None, None,
             attr_name="overwrite_ss", settings=settings)
         ss_options.add_option(self.overwrite_ss_option)
-        self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
+        self.ss_ratio_option = FloatOption("Secondary structure weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
             right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
         ss_options.add_option(self.ss_ratio_option)
@@ -143,8 +145,6 @@ class MatchMakerTool(ToolInstance):
             attr_name="iter_cutoff", settings=settings)
         self.options.add_option("Fitting", self.iter_cutoff_option)
         self._iterate_change(iter_opt)
-        self.options.add_option("Fitting", BooleanOption("Show pairwise sequence alignment(s)", None, None,
-            attr_name="show_alignment", settings=settings))
         self.options.add_option("Fitting", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Fitting",
