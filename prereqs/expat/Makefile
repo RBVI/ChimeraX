@@ -39,7 +39,7 @@ endif
 app-install:;
 	$(RSYNC) $(shlibdir)/libexpat.*$(SHLIB_EXT)* $(app_shlibdir)
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for i in $(PATCHES) ; do \
@@ -60,6 +60,12 @@ else
 	cd $(SOURCE) && \
 	  $(ENV_CONFIGURE) ./configure --prefix=$(build_prefix)
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/expat/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/expat
 
 clean:
 	rm -rf $(SOURCE)

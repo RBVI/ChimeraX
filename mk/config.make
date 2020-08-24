@@ -12,10 +12,6 @@
 # bash is the default shell on Cygwin and Mac OS X so use it on Linux as well
 SHELL=/bin/bash
 
-# Location of third party binaries
-PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
-FETCH_PREREQ = curl --silent --show-error -O 
-
 # need absolute directory for build_prefix
 TOP := $(shell (cd "$(TOP)"; pwd))
 build_prefix = $(TOP)/build
@@ -55,6 +51,25 @@ include $(TOP)/mk/os.make
 ifeq ($(OS),Windows)
 datadir = $(bindir)/share
 endif
+
+# Location for fetching third party binaries.
+ifeq ($(OS),Linux)
+# TODO: curl fails for daily builds run on plato with connection refused because the cluster node
+#   thinks it is plato but the web server is on another cluster node.
+#   Scooter Morris says it can't be fixed.
+#   For now, use rsync.  Later move prereqs archive off of plato.
+PREREQS_ARCHIVE = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
+FETCH_PREREQ = /bin/sh -c 'rsync -a $$1 .' --
+else
+# Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
+PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
+FETCH_PREREQ = curl --silent --show-error --insecure -O
+endif
+PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
+
+# Location for large test data files
+TEST_DATA_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/test_data
+FETCH_TEST_DATA = curl --silent --show-error --insecure -O
 
 ifeq ($(OS),Linux)
 # need root CAs for https in our Python

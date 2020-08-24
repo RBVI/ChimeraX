@@ -23,8 +23,8 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: matchmaker :: Structure Comparison :: Superimpose structures</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: mmaker :: Structure Comparison :: alias of matchmaker</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Matchmaker :: General :: superimpose structures/chains</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mmaker :: Structure Analysis :: alias of matchmaker</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Matchmaker :: Structure Analysis :: superimpose structures/chains</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

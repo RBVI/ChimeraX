@@ -1,3 +1,5 @@
+TOP	= ../../..
+include $(TOP)/mk/config.make
 include ../Makefile.bundle
 
 CSRCS = $(wildcard _mmtf/*.cpp)
@@ -18,6 +20,15 @@ $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files
 	unzip -u $(MMTF_CPP_DISTRIBUTION) '$(MMTF_CPP_SOURCE)/include/*'
 
+$(MMTF_CPP_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/mmtf/$(MMTF_CPP_DISTRIBUTION)
+
 $(MSGPACK_SOURCE): $(MSGPACK_DISTRIBUTION)
 	# only need the include files
 	unzip -u $(MSGPACK_DISTRIBUTION) '$(MSGPACK_SOURCE)/include/*'
+
+$(MSGPACK_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/mmtf/$(MSGPACK_DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(MMTF_CPP_DISTRIBUTION) $(MSGPACK_DISTRIBUTION) $(PREREQS_UPLOAD)/mmtf

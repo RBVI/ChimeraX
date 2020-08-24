@@ -94,20 +94,22 @@ class MatchMakerTool(ToolInstance):
         self.options.add_option("Chain pairing", cp_opt)
 
         from chimerax.alignment_algs.options import SeqAlignmentAlgOption
-        self.options.add_option("Method", SeqAlignmentAlgOption("Sequence alignment algorithm", None, None,
-            attr_name="alignment_algorithm", settings=settings))
+        self.options.add_option("Alignment", BooleanOption("Show pairwise sequence alignment(s)", None, None,
+            attr_name="show_alignment", settings=settings))
+        self.options.add_option("Alignment", SeqAlignmentAlgOption("Sequence alignment algorithm",
+            None, None, attr_name="alignment_algorithm", settings=settings))
         from chimerax.sim_matrices.options import SimilarityMatrixNameOption
-        self.options.add_option("Method", SimilarityMatrixNameOption("Matrix", None, None,
+        self.options.add_option("Alignment", SimilarityMatrixNameOption("Matrix", None, None,
             attr_name="matrix", settings=settings))
         self.gap_open_option = IntOption("Gap opening penalty", None, None,
             attr_name="gap_open", settings=settings)
-        self.options.add_option("Method", self.gap_open_option)
-        self.options.add_option("Method", IntOption("Gap extension penalty", None, None,
+        self.options.add_option("Alignment", self.gap_open_option)
+        self.options.add_option("Alignment", IntOption("Gap extension penalty", None, None,
             attr_name="gap_extend", settings=settings))
         ss_opt = BooleanOption("Include secondary structure score", None, self._include_ss_change,
             attr_name="use_ss", settings=settings)
-        self.options.add_option("Method", ss_opt)
-        self.ss_widget, ss_options = self.options.add_option_group("Method", sorting=False,
+        self.options.add_option("Alignment", ss_opt)
+        self.ss_widget, ss_options = self.options.add_option_group("Alignment", sorting=False,
             group_label="Secondary structure scoring")
         ss_layout = QVBoxLayout()
         ss_layout.addWidget(ss_options)
@@ -118,7 +120,7 @@ class MatchMakerTool(ToolInstance):
         self.overwrite_ss_option = BooleanOption("Overwrite previous assignments", None, None,
             attr_name="overwrite_ss", settings=settings)
         ss_options.add_option(self.overwrite_ss_option)
-        self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
+        self.ss_ratio_option = FloatOption("Secondary structure weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
             right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
         ss_options.add_option(self.ss_ratio_option)
@@ -138,16 +140,14 @@ class MatchMakerTool(ToolInstance):
 
         iter_opt = BooleanOption("Iterate by pruning long atom pairs", None, self._iterate_change,
             attr_name="iterate", settings=settings)
-        self.options.add_option("Matching", iter_opt)
+        self.options.add_option("Fitting", iter_opt)
         self.iter_cutoff_option = FloatOption("Iteration cutoff distance", None, None,
             attr_name="iter_cutoff", settings=settings)
-        self.options.add_option("Matching", self.iter_cutoff_option)
+        self.options.add_option("Fitting", self.iter_cutoff_option)
         self._iterate_change(iter_opt)
-        self.options.add_option("Matching", BooleanOption("Show pairwise sequence alignment(s)", None, None,
-            attr_name="show_alignment", settings=settings))
-        self.options.add_option("Matching", BooleanOption("Verbose logging", None, None,
+        self.options.add_option("Fitting", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
-        bring_container, bring_options = self.options.add_option_group("Matching",
+        bring_container, bring_options = self.options.add_option_group("Fitting",
             group_alignment=Qt.AlignHCenter|Qt.AlignTop)
         bring_layout = QVBoxLayout()
         bring_container.setLayout(bring_layout)
