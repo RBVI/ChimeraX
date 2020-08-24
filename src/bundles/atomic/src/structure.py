@@ -1578,9 +1578,13 @@ class StructureGraphicsChangeManager:
 
             # Fire selection changed trigger.
             if (gc & StructureData._SELECT_CHANGE).any():
-                from chimerax.core.selection import SELECTION_CHANGED
-                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                self.session.selection.trigger_fire_needed = True
                 # XXX: No data for now.  What should be passed?
+        if self.session.selection.trigger_fire_needed:
+            # Models can also set it
+            self.session.selection.trigger_fire_needed = False
+            from chimerax.core.selection import SELECTION_CHANGED
+            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
 
     def update_level_of_detail(self):
         n = self.num_atoms_shown
