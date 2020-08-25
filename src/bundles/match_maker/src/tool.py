@@ -19,7 +19,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 class MatchMakerTool(ToolInstance):
 
-    #help = "help:user/tools/hbonds.html"
+    help = "help:user/tools/matchmaker.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -94,6 +94,8 @@ class MatchMakerTool(ToolInstance):
         self.options.add_option("Chain pairing", cp_opt)
 
         from chimerax.alignment_algs.options import SeqAlignmentAlgOption
+        self.options.add_option("Alignment", BooleanOption("Show pairwise sequence alignment(s)", None, None,
+            attr_name="show_alignment", settings=settings))
         self.options.add_option("Alignment", SeqAlignmentAlgOption("Sequence alignment algorithm",
             None, None, attr_name="alignment_algorithm", settings=settings))
         from chimerax.sim_matrices.options import SimilarityMatrixNameOption
@@ -118,20 +120,20 @@ class MatchMakerTool(ToolInstance):
         self.overwrite_ss_option = BooleanOption("Overwrite previous assignments", None, None,
             attr_name="overwrite_ss", settings=settings)
         ss_options.add_option(self.overwrite_ss_option)
-        self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
+        self.ss_ratio_option = FloatOption("Secondary structure weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
             right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
         ss_options.add_option(self.ss_ratio_option)
         self.ss_matrix_option = SSScoringMatrixOption("Scoring matrix", None, None,
             attr_name='ss_scores', settings=settings)
         ss_options.add_option(self.ss_matrix_option)
-        self.ss_helix_gap_option = IntOption("Intra-helix gap-opening penalty", None, None,
+        self.ss_helix_gap_option = IntOption("Intra-helix gap opening penalty", None, None,
             attr_name='helix_open', settings=settings)
         ss_options.add_option(self.ss_helix_gap_option)
-        self.ss_strand_gap_option = IntOption("Intra-strand gap-opening penalty", None, None,
+        self.ss_strand_gap_option = IntOption("Intra-strand gap opening penalty", None, None,
             attr_name='strand_open', settings=settings)
         ss_options.add_option(self.ss_strand_gap_option)
-        self.ss_other_gap_option = IntOption("Any other gap-opening penalty", None, None,
+        self.ss_other_gap_option = IntOption("Any other gap opening penalty", None, None,
             attr_name='other_open', settings=settings)
         ss_options.add_option(self.ss_other_gap_option)
         self._include_ss_change(ss_opt)
@@ -143,8 +145,6 @@ class MatchMakerTool(ToolInstance):
             attr_name="iter_cutoff", settings=settings)
         self.options.add_option("Fitting", self.iter_cutoff_option)
         self._iterate_change(iter_opt)
-        self.options.add_option("Fitting", BooleanOption("Show pairwise sequence alignment(s)", None, None,
-            attr_name="show_alignment", settings=settings))
         self.options.add_option("Fitting", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Fitting",
@@ -170,8 +170,7 @@ class MatchMakerTool(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         overall_layout.addWidget(bbox)
 
         self._pairing_change(cp_opt)

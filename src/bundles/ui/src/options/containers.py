@@ -171,6 +171,15 @@ class CategorizedOptionsPanel(QTabWidget):
     def current_category(self):
         return self.tabText(self.currentIndex())
 
+    def set_current_category(self, category):
+        category = category.casefold()
+        for index in range(self.count()):
+            if category == self.tabText(index).casefold():
+                self.setCurrentIndex(index)
+                break
+        else:
+            raise ValueError("category not found")
+
     def options(self, category):
         return self._category_to_panel[category].options()
 
@@ -227,6 +236,9 @@ class SettingsPanelBase(QWidget):
             layout.addWidget(button_container, 0)
 
         self.setLayout(layout)
+
+    def show_category(self, category):
+        self.options_panel.set_current_category(category)
 
     def _get_actionable_options(self):
         if self.multicategory:

@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>dielectric</b>&nbsp;&nbsp;<i>C</i>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
-[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;|&nbsp;<b>none</b>&nbsp;]
+[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 <!-- not yet implemented
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -43,13 +43,9 @@ The <b>coulombic</b> command colors
 <a href="surface.html">molecular surfaces</a>
 by Coulombic electrostatic potential (ESP),
 ranging from <b>red</b> for negative potential through <b>white</b> 
-to <b>blue</b> for positive potential:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>.
+to <b>blue</b> for positive potential
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>.
 If the surfaces do not already exist, they will be generated.
 The calculation can handle structures with or without 
 explicit <a href="#hydrogens">hydrogens</a> 
@@ -108,7 +104,12 @@ for coloring the surface of one structure by the potential from another. **
 </p><p>
 <a name="palette-options"></a>
 The default <a href="color.html#palette-options"><i>palette-options</i></a> 
-for coloring are:
+for coloring are <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=blue width="10px" title="blue"></td>
+</tr></table>:
 </p>
 <blockquote>
 <b><a href="color.html#palette">palette</a> red-white-blue 
@@ -146,8 +147,8 @@ However, an existing structure lacking hydrogens is not changed;
 a copy is created in memory, <a href="addh.html">protonated</a>,
 and assigned charges from a lookup table. 
 </p><p>
-The <b>HisScheme</b> option indicates how to 
-determine the charge states of histidines in structures without hydrogens:
+The <b>hisScheme</b> option indicates how to (implicitly) protonate
+residues named HIS in structures without hydrogens:
 </p>
 <ul>
 <li>HID
@@ -156,11 +157,13 @@ determine the charge states of histidines in structures without hydrogens:
 &ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
 <li>HIP
 &ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
-<li><b>none</b> (default)
-&ndash; protonation state chosen based on the local H-bonding environment
 </ul>
-These settings apply only to residues named HIS. Histidines that already have
-the special names (HID, HIE, HIP) will be protonated accordingly.
+<p>
+If <b>hisScheme</b> is not specified, the protonation state of each HIS
+residue will be chosen based on the local H-bonding environment.
+The option applies only to residues named HIS. Regardless of this option,
+histidines that already have the special names (HID, HIE, HIP) 
+will be protonated accordingly.
 </p>
 
 <a name="charges"></a>
@@ -175,7 +178,7 @@ The partial charge values are taken from the following files in
 all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
 These include standard amino acid and nucleic acid residues,
 MSE (selenomethionine), HOH (water),
-ACE, NH2, NME, ACE (peptide-capping residues),
+ACE, NH2, NME (peptide-capping residues),
 ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
 </p><p>
 The presence of any other residues within the biopolymer surface

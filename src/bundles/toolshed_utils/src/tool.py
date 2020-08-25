@@ -97,6 +97,7 @@ class UpdateTool(ToolInstance):
         buttons_layout.addWidget(button)
 
         self._fill_updates()
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
 
     def cancel(self):
@@ -109,8 +110,7 @@ class UpdateTool(ToolInstance):
         menu.addAction(settings_action)
 
     def show_settings(self):
-        pass
-        # TODO: show toolshed settings
+        self.session.ui.main_window.show_settings('Toolshed')
 
     def _fill_updates(self):
         from PyQt5.QtCore import Qt

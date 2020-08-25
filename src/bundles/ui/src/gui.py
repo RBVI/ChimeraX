@@ -893,6 +893,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         else:
             self._core_settings_panel.options_widget.add_option(category, option)
 
+    def show_settings(self, category=None):
+        self.settings_ui_widget.show()
+        if category is not None:
+            self._core_settings_panel.show_category(category)
+
     def _new_tool_window(self, tw):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
