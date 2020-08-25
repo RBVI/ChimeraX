@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .models import Model
+from .models import Surface
 
 from . import toolshed
 CATEGORY = toolshed.GENERIC3D
@@ -21,13 +21,13 @@ CATEGORY = toolshed.GENERIC3D
 GENERIC3D_STATE_VERSION = 1
 
 
-class Generic3DModel(Model):
+class Generic3DModel(Surface):
     """Commom base class for generic 3D data"""
 
     def take_snapshot(self, session, flags):
         from chimerax.graphics.gsession import DrawingState
         data = {
-            'model state': Model.take_snapshot(self, session, flags),
+            'model state': Surface.take_snapshot(self, session, flags),
             'drawing state': DrawingState().take_snapshot(self, session, flags),
             'version': GENERIC3D_STATE_VERSION,
         }
