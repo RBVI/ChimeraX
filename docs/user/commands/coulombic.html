@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>dielectric</b>&nbsp;&nbsp;<i>C</i>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
-[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;|&nbsp;<b>none</b>&nbsp;]
+[&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 <!-- not yet implemented
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -147,8 +147,8 @@ However, an existing structure lacking hydrogens is not changed;
 a copy is created in memory, <a href="addh.html">protonated</a>,
 and assigned charges from a lookup table. 
 </p><p>
-The <b>HisScheme</b> option indicates how to 
-determine the charge states of histidines in structures without hydrogens:
+The <b>hisScheme</b> option indicates how to (implicitly) protonate
+residues named HIS in structures without hydrogens:
 </p>
 <ul>
 <li>HID
@@ -157,11 +157,13 @@ determine the charge states of histidines in structures without hydrogens:
 &ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
 <li>HIP
 &ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
-<li><b>none</b> (default)
-&ndash; protonation state chosen based on the local H-bonding environment
 </ul>
-These settings apply only to residues named HIS. Histidines that already have
-the special names (HID, HIE, HIP) will be protonated accordingly.
+<p>
+If <b>hisScheme</b> is not specified, the protonation state of each HIS
+residue will be chosen based on the local H-bonding environment.
+The option applies only to residues named HIS. Regardless of this option,
+histidines that already have the special names (HID, HIE, HIP) 
+will be protonated accordingly.
 </p>
 
 <a name="charges"></a>
