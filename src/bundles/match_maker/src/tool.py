@@ -19,7 +19,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 class MatchMakerTool(ToolInstance):
 
-    #help = "help:user/tools/hbonds.html"
+    help = "help:user/tools/matchmaker.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -170,8 +170,7 @@ class MatchMakerTool(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         overall_layout.addWidget(bbox)
 
         self._pairing_change(cp_opt)
