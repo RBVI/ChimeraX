@@ -42,6 +42,11 @@ class _BootstrapAPI(BundleAPI):
         session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import show
+        return show(session)
+
+    @staticmethod
     def get_class(class_name):
         return None
 
