@@ -1006,7 +1006,7 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
             h_name += "'"
     elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
-        if atom.residue.principal_atom and total_hydrogens == 2 and len(
+        if atom.residue.polymer_type == atom.residue.PT_AMINO and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
         h_digits = 4 - len(h_name)
