@@ -19,7 +19,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 class MatchMakerTool(ToolInstance):
 
-    #help = "help:user/tools/hbonds.html"
+    help = "help:user/tools/matchmaker.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -127,13 +127,13 @@ class MatchMakerTool(ToolInstance):
         self.ss_matrix_option = SSScoringMatrixOption("Scoring matrix", None, None,
             attr_name='ss_scores', settings=settings)
         ss_options.add_option(self.ss_matrix_option)
-        self.ss_helix_gap_option = IntOption("Intra-helix gap-opening penalty", None, None,
+        self.ss_helix_gap_option = IntOption("Intra-helix gap opening penalty", None, None,
             attr_name='helix_open', settings=settings)
         ss_options.add_option(self.ss_helix_gap_option)
-        self.ss_strand_gap_option = IntOption("Intra-strand gap-opening penalty", None, None,
+        self.ss_strand_gap_option = IntOption("Intra-strand gap opening penalty", None, None,
             attr_name='strand_open', settings=settings)
         ss_options.add_option(self.ss_strand_gap_option)
-        self.ss_other_gap_option = IntOption("Any other gap-opening penalty", None, None,
+        self.ss_other_gap_option = IntOption("Any other gap opening penalty", None, None,
             attr_name='other_open', settings=settings)
         ss_options.add_option(self.ss_other_gap_option)
         self._include_ss_change(ss_opt)
@@ -170,8 +170,7 @@ class MatchMakerTool(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         overall_layout.addWidget(bbox)
 
         self._pairing_change(cp_opt)
