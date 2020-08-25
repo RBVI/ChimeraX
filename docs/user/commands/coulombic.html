@@ -43,13 +43,9 @@ The <b>coulombic</b> command colors
 <a href="surface.html">molecular surfaces</a>
 by Coulombic electrostatic potential (ESP),
 ranging from <b>red</b> for negative potential through <b>white</b> 
-to <b>blue</b> for positive potential:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>.
+to <b>blue</b> for positive potential
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>.
 If the surfaces do not already exist, they will be generated.
 The calculation can handle structures with or without 
 explicit <a href="#hydrogens">hydrogens</a> 
@@ -108,7 +104,12 @@ for coloring the surface of one structure by the potential from another. **
 </p><p>
 <a name="palette-options"></a>
 The default <a href="color.html#palette-options"><i>palette-options</i></a> 
-for coloring are:
+for coloring are <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=blue width="10px" title="blue"></td>
+</tr></table>:
 </p>
 <blockquote>
 <b><a href="color.html#palette">palette</a> red-white-blue 
@@ -175,7 +176,7 @@ The partial charge values are taken from the following files in
 all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
 These include standard amino acid and nucleic acid residues,
 MSE (selenomethionine), HOH (water),
-ACE, NH2, NME, ACE (peptide-capping residues),
+ACE, NH2, NME (peptide-capping residues),
 ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
 </p><p>
 The presence of any other residues within the biopolymer surface
