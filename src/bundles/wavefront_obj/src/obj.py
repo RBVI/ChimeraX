@@ -62,7 +62,7 @@ def read_obj(session, filename, name):
         f0, fa = fields[0], fields[1:]
         if f0 == 'v':
             # Vertex
-            xyz = [float(x) for x in fa]
+            xyz = [float(x) for x in fa[:3]]
             if len(xyz) != 3:
                 raise OBJError('OBJ reader only handles x,y,z vertices, file %s, line %d: "%s"'
                                % (name, line_num, line))
@@ -227,9 +227,9 @@ def _split_vertices(vertices, normals, texcoords, faces):
                     tco = corner[1] if len(corner) >= 2 else None
                     no = corner[2] if len(corner) >= 3 else None
                 v.append(vertices[vo-1])
-                if tco is not None:
+                if tco is not None and texcoords:
                     tc.append(texcoords[tco-1])
-                if no is not None:
+                if no is not None and normals:
                     n.append(normals[no-1])
             t.append(vi)
         triangles.append(t)
