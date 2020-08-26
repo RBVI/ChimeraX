@@ -644,19 +644,19 @@ width="220px">
 </td></tr>
 </table>
 <p>
-To color <a href="../commands/surface.html#cap">surface cap</a> by the MLP, 
+To color a <a href="../commands/surface.html#cap">surface cap</a> by the 
+<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP), 
 it is necessary to first generate a map of the MLP as a separate
 <a href="../tools/volumeviewer.html">volume model</a>
 and then color the cap in a separate step.
 </p><p>
-For example, the protein in structure
+For example, the protein in structure 
 <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
-interior pocket. The following example opens 
-the structure as model #1, generates MLP map #2 with the
-<a href="../commands/mlp.html"><b>mlp</b></a> command, and uses the map
-to color <a href="../commands/surface.html#cap">surface cap</a>
-#1.1.1, from <a href="../commands/clip.html">clipping</a> surface #1.1.
+interior pocket. The following commands open
+the structure as model #1, generate MLP map model #2,
+and use the map to color the surface cap #1.1.1 created by 
+<a href="../commands/clip.html">clipping</a> the surface model #1.1.
 The cap coloring parameters are the same as used for the rest of the surface,
 except 30% transparent:
 </p>
@@ -681,8 +681,8 @@ except 30% transparent:
 </blockquote>
 <p>
 The <b><a href="../commands/wait.html">wait</a></b> command
-is only needed in the context of a script 
-(<a href="../commands/usageconventions.html#cxc-files">command file</a>),
+is needed only in the context of a
+<a href="../commands/usageconventions.html#cxc-files">command file</a>,
 to force drawing the graphics to create the surface cap
 before it is colored by the map values.
 The wait can be omitted if the commands are entered one by one.
@@ -752,7 +752,7 @@ The following shows surfaces for the protein chains
 and colors them by Coulombic ESP calculated on the fly:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein range -10,10">coulombic protein range -10,10</a></b>
 </blockquote>
 <p>
 The default color scheme is red for negative potential, white at zero,
