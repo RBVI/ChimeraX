@@ -134,6 +134,12 @@ class CommandLine(ToolInstance):
                 if start >= 0 and (start, length) != (le.selectionStart(), len(le.selectedText())):
                     le.setSelection(start, length)
         self.text.lineEdit().selectionChanged.connect(sel_change_correction)
+        # pastes can have a trailing newline, which is problematic when appending to the pasted command...
+        def strip_trailing_newlines():
+            le = self.text.lineEdit()
+            while le.text().endswith('\n'):
+                le.setText(le.text()[:-1])
+        self.text.lineEdit().textEdited.connect(strip_trailing_newlines)
         self.text.lineEdit().textEdited.connect(self.history_dialog.search_reset)
         def text_change(*args):
             # if text changes while focus is out, remember new selection

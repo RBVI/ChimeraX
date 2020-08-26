@@ -121,6 +121,9 @@ class CoreSettingsPanel:
 
         ui_area.setLayout(layout)
 
+    def show_category(self, category):
+        self.options_widget.show_category(category)
+
     def _core_setting_changed(self, trig_name, info):
         setting_name, old_val, new_val = info
         if setting_name in self.options:
