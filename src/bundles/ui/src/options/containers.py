@@ -105,7 +105,8 @@ class OptionsPanel(QWidget):
     def options(self):
         all_options = self._options[:]
         for grp in self._option_groups:
-            all_options.extend(grp._options)
+            # an option group can have further subgroups, so call options()
+            all_options.extend(grp.options())
         return all_options
 
     def sizeHint(self):
