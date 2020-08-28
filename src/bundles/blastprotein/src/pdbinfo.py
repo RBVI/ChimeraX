@@ -231,7 +231,9 @@ def get_val(init_val, mmcif_keys):
             vals = []
             for subval in val:
                 try:
-                    vals.append(subval[mmcif_key])
+                    subsubval = subval[mmcif_key]
+                    if subsubval is not None:
+                        vals.append(subsubval)
                 except KeyError:
                     continue
             if vals:
