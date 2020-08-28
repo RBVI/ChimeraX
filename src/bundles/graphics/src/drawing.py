@@ -1987,7 +1987,7 @@ class PickedInstance(Pick):
 
     def description(self):
         desc = self._drawing.name
-        pm = self._posititions_mask
+        pm = self._positions_mask
         np = pm.sum()
         if np < len(pm):
             desc += ', %d of %d instances' % (np, len(pm))
