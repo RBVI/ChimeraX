@@ -205,7 +205,7 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
         elif isinstance(bundle, BundleInfo):
             # If "bundle" is not a string, it must be a Bundle instance.
             old_bundle = toolshed.find_bundle(bundle.name, logger, installed=True)
-            bundle_name = bundle
+            bundle_name = f"{bundle.name}=={bundle.version}"
         else:
             raise ValueError("incorrect bundle argument")
         if old_bundle:
@@ -332,7 +332,7 @@ def _add_restart_action(action_type, bundles, extra_args, logger, message, sessi
         for bundle in bundles:
             if not isinstance(bundle, str):
                 # Must be a BundleInfo instance
-                bundle_args.append("%s==%s" % (bundle.name, bundle.version))
+                bundle_args.append(f"{bundle.name}=={bundle.version}")
             else:
                 # Must be a file
                 import shutil
