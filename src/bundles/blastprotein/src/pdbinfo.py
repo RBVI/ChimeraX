@@ -144,7 +144,8 @@ def fetch_pdb_info(session, entry_chain_list):
         data = f.read()
         f.close()
     except (URLError, HTTPError) as e:
-        raise IOError("Fetching BLAST PDB info failed: %s" % str(e))
+        session.logger.warning("Fetching BLAST PDB info failed: %s" % str(e))
+        return {}
     else:
         data = data.decode('utf-8').replace(':null', ':None')
         info = eval(data)
