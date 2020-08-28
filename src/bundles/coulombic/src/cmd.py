@@ -133,10 +133,12 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                 numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
                 1 if cpu_count is None else cpu_count)
             rgba = cmap.interpolated_rgba(vertex_values)
-            from numpy import uint8
+            from numpy import uint8, amin, mean, amax
             rgba8 = (255*rgba).astype(uint8)
             target_surface.vertex_colors = rgba8
             undo_new_vals.append(rgba8)
+            session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
+                % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
     undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
 
