@@ -333,11 +333,14 @@ def _add_restart_action(action_type, bundles, extra_args, logger, message, sessi
             if not isinstance(bundle, str):
                 # Must be a BundleInfo instance
                 bundle_args.append(f"{bundle.name}=={bundle.version}")
-            else:
+            elif bundle.endswith('.whl'):
                 # Must be a file
                 import shutil
                 shutil.copy(bundle, inst_dir)
                 bundle_args.append(os.path.split(bundle)[1])
+            else:
+                # leave as is
+                bundle_args.append(bundle)
         args.append(' '.join(bundle_args))
         args.extend(extra_args)
         print("\t".join(args), file=f)
