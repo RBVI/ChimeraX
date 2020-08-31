@@ -360,9 +360,6 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
-        if check_available and (self._available_bundle_info is None or
-                                self._available_bundle_info.toolshed_url != remote_url):
-            check_remote = True
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
@@ -511,7 +508,10 @@ class Toolshed:
         except FileNotFoundError:
             logger.info("available bundle cache has not been initialized yet")
         else:
-            self._available_bundle_info = abc
+            if abc.toolshed_url and abc.toolshed_url == self.remote_url:
+                self._available_bundle_info = abc
+            else:
+                logger.info("available bundle cache was for a different toolshed")
 
     def register_available_commands(self, logger):
         from sortedcontainers import SortedDict
