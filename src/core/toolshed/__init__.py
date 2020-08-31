@@ -334,6 +334,9 @@ class Toolshed:
         os.makedirs(self._site_dir, exist_ok=True)
         sys.path.insert(0, self._site_dir)
         site.addsitedir(self._site_dir)
+        # Make "user" chimerax namespace directory so live installs
+        # will find packages in it.
+        os.makedirs(os.path.join(self._site_dir, 'chimerax'), exist_ok=True)
 
         # Create triggers
         from .. import triggerset
