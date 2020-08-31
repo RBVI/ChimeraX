@@ -9,10 +9,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-# Here's a temp change to check git branch management
-#
-
 TOP = ../..
 include $(TOP)/mk/config.make
 
