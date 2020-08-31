@@ -475,7 +475,7 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-        
+
     # initialize qt
     if opts.gui:
         from chimerax.ui import initialize_qt
@@ -503,10 +503,10 @@ def init(argv, event_loop=True):
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
-        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+            (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
         try:
             os.chdir(os.path.expanduser('~/Desktop'))
-        except:
+        except Exception:
             pass
 
     # splash screen
@@ -529,6 +529,7 @@ def init(argv, event_loop=True):
 
     # Install any bundles before toolshed is initialized so
     # the new ones get picked up in this session
+    rebuild_cache = False
     from chimerax.core import toolshed
     inst_dir, restart_file = toolshed.restart_action_info()
     restart_action_msgs = []
@@ -541,7 +542,7 @@ def init(argv, event_loop=True):
             # Remove in case old file lying around.
             # Windows does not allow renaming to an existing file.
             os.remove(tmp_file)
-        except:
+        except Exception:
             pass
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
@@ -549,6 +550,7 @@ def init(argv, event_loop=True):
                 sess.ui.splash_info("Restart action:\n%s" % line)
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
+        rebuild_cache = True
 
     if opts.toolshed is None:
         # Default to whatever the restart actions needed
@@ -557,7 +559,7 @@ def init(argv, event_loop=True):
         toolshed_url = toolshed.preview_toolshed_url()
     else:
         toolshed_url = opts.toolshed
-    toolshed.init(sess.logger, debug=sess.debug,
+    toolshed.init(sess.logger, debug=sess.debug, rebuild_cache=rebuild_cache,
                   check_available=opts.get_available_bundles,
                   remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
@@ -743,7 +745,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -754,7 +756,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -770,7 +772,7 @@ def init(argv, event_loop=True):
             sess.ui.event_loop()
         except SystemExit as e:
             return e.code
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
             return os.EX_SOFTWARE
@@ -865,7 +867,9 @@ def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess, os
+    import sys
+    import os
+    import subprocess
     global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]
