@@ -950,6 +950,8 @@ start_t = end_t;
                 decltype(as->metadata)::mapped_type &h = as->metadata[key];
                 decltype(as->metadata)::mapped_type::value_type hdr = line;
                 hdr.pop_back(); // drop trailing newline
+                if (hdr.back() == '\r') // drop trailing carriage return if present
+                    hdr.pop_back();
                 h.push_back(hdr);
                 break;
 
