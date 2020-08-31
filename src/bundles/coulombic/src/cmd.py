@@ -19,7 +19,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
     if map:
         session.logger.warning("Computing electrostatic volume map not yet supported")
-    session.logger.status("Computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps["red-white-blue"]
@@ -143,7 +143,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     session.undo.register(undo_state)
 
     session.logger.status("", secondary=True)
-    session.logger.status("Finished computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
 
 """
 def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):
