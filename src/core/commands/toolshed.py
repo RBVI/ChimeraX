@@ -252,7 +252,7 @@ def toolshed_install(session, bundle_names, user_only=True,
 
     Parameters
     ----------
-    bundle_name : string
+    bundle_names : a bundle name or list of bundle names
     user_only : bool
       Install for this user only, or install for all users.
     no_deps : bool
@@ -313,7 +313,7 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
 
     Parameters
     ----------
-    bundle_names : sequence of strings
+    bundle_names : list of bundle names
     force_remove : boolean
     '''
     ts = session.toolshed
