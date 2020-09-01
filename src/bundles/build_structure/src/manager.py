@@ -15,15 +15,14 @@ from chimerax.core.toolshed import ProviderManager
 
 class StartStructureManager(ProviderManager):
 
-    def __init__(self, session):
-        # Just for good form.  Base class does not currently define __init__.
-        super().__init__()
+    def __init__(self, session, name):
         self.session = session
         self.providers = {}
         self._ui_names = {}
         self._indirect = {}
         self._new_model_only = {}
         self._new_providers = []
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, *, ui_name=None, indirect=False, new_model_only=False):
         # 'name' is the name used as an arg in the command

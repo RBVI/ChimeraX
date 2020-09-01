@@ -22,8 +22,7 @@ class BuildStructureAPI(BundleAPI):
     def init_manager(session, bundle_info, name, **kw):
         from .import manager
         if manager.manager is None:
-            manager.manager = manager.StartStructureManager(session)
-        return manager.manager
+            manager.manager = manager.StartStructureManager(session, name)
 
     @staticmethod
     def register_command(command_name, logger):

@@ -25,13 +25,14 @@ class FormatsManager(ProviderManager):
     CAT_SESSION = "Session"
     CAT_GENERAL = "General"
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._formats = {}
         self._suffix_to_formats = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
+        super().__init__(name)
 
     def add_format(self, name, category, *, suffixes=None, nicknames=None,
             bundle_info=None, mime_types=None, reference_url=None, insecure=None,
