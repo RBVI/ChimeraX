@@ -371,6 +371,17 @@ class TriggerSet:
         """Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
 
+    def manual_block(self, name):
+        """For situations where the block and release aren't in the same
+        code block, and therefore the context-manager version (block_trigger)
+        can't be used.
+        """
+        self._triggers[name].block()
+
+    def manual_release(self, name):
+        """Complement to manual_block"""
+        self._triggers[name].release()
+
     def profile_trigger(self, name, sort_by='time', num_entries=20):
         """Supported API. Profile the next firing of the given trigger.
 
@@ -442,14 +453,14 @@ class TriggerSet:
         return self._triggers.keys()
 
     def block(self):
-        """Supported API. Block all triggers from firing until released.
+        """Block all triggers from firing until released.
 
         triggerset.block() => None
         """
         self._blocked += 1
 
     def release(self):
-        """Supported API. Release trigger blocks and fire trigger in dependency order.
+        """Release trigger blocks and fire trigger in dependency order.
 
         triggerset.release() => boolean
 
@@ -469,7 +480,7 @@ class TriggerSet:
             self._activate_trigger_tree(name)
 
     def is_blocked(self):
-        """Supported API. Returns whether entire trigger set is blocked."""
+        """Returns whether entire trigger set is blocked."""
         return bool(self._blocked)
 
     def add_dependency(self, trigger, after):
