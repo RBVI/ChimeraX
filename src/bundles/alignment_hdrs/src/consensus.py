@@ -27,9 +27,6 @@ class Consensus(DynamicHeaderSequence):
         self.handler_ID = self.settings.triggers.add_handler('setting changed',
             lambda *args: self.reevaluate())
 
-    def add_options(self, options_container, *, category=None, verbose_labels=True):
-        self._add_options(options_container, category, verbose_labels, self.option_data())
-
     @property
     def capitalize_threshold(self):
         return self.settings.capitalize_threshold

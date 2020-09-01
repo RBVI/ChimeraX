@@ -19,7 +19,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
     if map:
         session.logger.warning("Computing electrostatic volume map not yet supported")
-    session.logger.status("Computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps["red-white-blue"]
@@ -133,15 +133,17 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                 numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
                 1 if cpu_count is None else cpu_count)
             rgba = cmap.interpolated_rgba(vertex_values)
-            from numpy import uint8
+            from numpy import uint8, amin, mean, amax
             rgba8 = (255*rgba).astype(uint8)
             target_surface.vertex_colors = rgba8
             undo_new_vals.append(rgba8)
+            session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
+                % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
     undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
 
     session.logger.status("", secondary=True)
-    session.logger.status("Finished computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
 
 """
 def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):

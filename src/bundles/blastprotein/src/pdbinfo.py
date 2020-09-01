@@ -144,7 +144,8 @@ def fetch_pdb_info(session, entry_chain_list):
         data = f.read()
         f.close()
     except (URLError, HTTPError) as e:
-        raise IOError("Fetching BLAST PDB info failed: %s" % str(e))
+        session.logger.warning("Fetching BLAST PDB info failed: %s" % str(e))
+        return {}
     else:
         data = data.decode('utf-8').replace(':null', ':None')
         info = eval(data)
@@ -231,7 +232,9 @@ def get_val(init_val, mmcif_keys):
             vals = []
             for subval in val:
                 try:
-                    vals.append(subval[mmcif_key])
+                    subsubval = subval[mmcif_key]
+                    if subsubval is not None:
+                        vals.append(subsubval)
                 except KeyError:
                     continue
             if vals:
