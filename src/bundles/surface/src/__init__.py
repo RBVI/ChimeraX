@@ -72,6 +72,7 @@ class _SurfaceBundle(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
+        from .cap import ClipCap
         from .colorgeom import CylinderColor, HeightColor, RadialColor
         from .colorvol import GradientColor, VolumeColor
         from .dust import Redust
@@ -79,6 +80,7 @@ class _SurfaceBundle(BundleAPI):
         from .colorzone import ZoneColor
         from .updaters import SurfaceUpdaters
         ct = {
+            'ClipCap': ClipCap,
             'CylinderColor': CylinderColor,
             'GradientColor': GradientColor,
             'HeightColor': HeightColor,
