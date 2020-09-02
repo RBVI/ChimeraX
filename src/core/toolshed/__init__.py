@@ -819,10 +819,10 @@ class Toolshed:
             initializing.remove(bi)
         try:
             for mgr, kw in bi.managers.items():
-                if not session.ui.is_gui and kw.pop("guiOnly", False):
+                if not session.ui.is_gui and kw.pop("guiOnly", "false") == "true":
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
                     continue
-                if not kw.pop("autostart", True):
+                if kw.pop("autostart", "true") == "false":
                     _debug("skip non-autostart manager %s for bundle %r" % (mgr, bi.name))
                     continue
                 _debug("initialize manager %s for bundle %r" % (mgr, bi.name))

@@ -197,7 +197,8 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        from .manager import manager
+        from .manager import get_manager
+        manager = get_manager(self.session)
         # until "lazy" managers are supported, 'manager' cannot be None at this point
         self.ss_u_to_p_names = { manager.ui_name(pn):pn for pn in manager.provider_names }
         ui_names = list(self.ss_u_to_p_names.keys())
@@ -358,7 +359,8 @@ class BuildStructureTool(ToolInstance):
         provider_name = self.ss_u_to_p_names[ui_name]
 
         from chimerax.core.errors import CancelOperation
-        from .manager import manager
+        from .manager import get_manager
+        manager = get_manager(self.session)
         try:
             subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
         except CancelOperation:
@@ -381,7 +383,8 @@ class BuildStructureTool(ToolInstance):
     def _ss_provider_changed(self, button):
         ui_name = button.text()
         self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
-        from .manager import manager
+        from .manager import get_manager
+        manager = get_manager(self.session)
         provider_name = self.ss_u_to_p_names[ui_name]
         hide_model_choice = manager.new_model_only(provider_name)
         if manager.is_indirect(provider_name):
