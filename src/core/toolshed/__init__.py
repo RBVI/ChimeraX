@@ -957,11 +957,7 @@ import abc
 
 
 class ProviderManager(metaclass=abc.ABCMeta):
-    """API for managers created by bundles
-
-    Managers returned by bundle ``init_manager`` methods should be an
-    instance of this class.
-    """
+    """API for managers created by bundles"""
 
     def __init__(self, manager_name):
         ts = get_toolshed()
@@ -1104,9 +1100,11 @@ class BundleAPI:
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        """Supported API. Called to create and return a manager in a bundle.
+        """Supported API. Called to create a manager in a bundle at startup.
 
-        Must be defined if there is a ``Manager`` tag in the bundle.
+        Must be defined if there is a ``Manager`` tag in the bundle,
+		unless that tag has an autostart="false" attribute, in which
+		case the bundle is in charge of creating the manager as needed.
         ``init_manager`` is called when bundles are first loaded.
         It is the responsibility of ``init_manager`` to make the manager
         locatable, e.g., assign as an attribute of `session`.
