@@ -167,6 +167,9 @@ class Drawing:
 
         self.accept_multishadow = True
         '''False means not to show multishadow on this Drawing even if global multishadow is on.'''
+
+        self.inherit_graphics_exemptions = True
+        '''Whether disabled lighting and clipping in parent will be copied to child when drawing is added.'''
         
         self.on_top = False
         '''
@@ -301,13 +304,20 @@ class Drawing:
         cd = self._child_drawings
         cd.append(d)
         d.parent = self
-        d._inherit_lighting_settings(self)
+        if d.inherit_graphics_exemptions:
+            d._inherit_graphics_exemptions()
         if self.display:
             self.redraw_needed(shape_changed=True)
 
-    def _inherit_lighting_settings(self, drawing):
-        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
-            value = getattr(drawing, attr)
+    def _inherit_graphics_exemptions(self):
+        '''
+        If the parent Drawing has turned off graphics effects
+        allow_depth_cue, allow_clipping, accept_shadow, or accept_multishadow
+        then turn them off for this Drawing.
+        '''
+        parent = self.parent
+        for attr in ['allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']:
+            value = getattr(parent, attr)
             if value == False:
                 # Only propagate disabling settings.
                 setattr(self, attr, value)
