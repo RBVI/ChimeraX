@@ -818,32 +818,31 @@ class Toolshed:
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
-            if self._available_bundle_info:
-                all_bundles = self._installed_bundle_info + self._available_bundle_info
-            else:
-                all_bundles = self._installed_bundle_info
             for mgr, kw in bi.managers.items():
-                if not session.ui.is_gui and kw.pop("guiOnly", False):
+                if not session.ui.is_gui and kw.pop("guiOnly", "false") == "true":
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
                     continue
-                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
-                m = bi.init_manager(session, mgr, **kw)
-                if m is None:
-                    logger = session.logger
-                    if logger:
-                        logger.error("Manager initialization for %r failed to return the manager instance"
-                                     % mgr)
+                if kw.pop("autostart", "true") == "false":
+                    _debug("skip non-autostart manager %s for bundle %r" % (mgr, bi.name))
                     continue
-                self._manager_instances[mgr] = m
-                for pbi in all_bundles:
-                    for name, kw in pbi.providers.items():
-                        p_mgr, pvdr = name.split('/', 1)
-                        if p_mgr == mgr:
-                            m.add_provider(pbi, pvdr, **kw)
-                m.end_providers()
+                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
+                bi.init_manager(session, mgr, **kw)
         except ToolshedError:
             failed.append(bi)
         done.add(bi)
+
+    def _init_single_manager(self, mgr, mgr_name):
+        if self._available_bundle_info:
+            all_bundles = self._installed_bundle_info + self._available_bundle_info
+        else:
+            all_bundles = self._installed_bundle_info
+        self._manager_instances[mgr_name] = mgr
+        for pbi in all_bundles:
+            for name, kw in pbi.providers.items():
+                p_mgr, pvdr = name.split('/', 1)
+                if p_mgr == mgr_name:
+                    mgr.add_provider(pbi, pvdr, **kw)
+        mgr.end_providers()
 
     def import_bundle(self, bundle_name, logger,
                       install="ask", session=None):
@@ -958,11 +957,11 @@ import abc
 
 
 class ProviderManager(metaclass=abc.ABCMeta):
-    """API for managers created by bundles
+    """API for managers created by bundles"""
 
-    Managers returned by bundle ``init_manager`` methods should be an
-    instance of this class.
-    """
+    def __init__(self, manager_name):
+        ts = get_toolshed()
+        ts._init_single_manager(self, manager_name)
 
     @abc.abstractmethod
     def add_provider(self, bundle_info, provider_name, **kw):
@@ -1101,9 +1100,11 @@ class BundleAPI:
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        """Supported API. Called to create and return a manager in a bundle.
+        """Supported API. Called to create a manager in a bundle at startup.
 
-        Must be defined if there is a ``Manager`` tag in the bundle.
+        Must be defined if there is a ``Manager`` tag in the bundle,
+		unless that tag has an autostart="false" attribute, in which
+		case the bundle is in charge of creating the manager as needed.
         ``init_manager`` is called when bundles are first loaded.
         It is the responsibility of ``init_manager`` to make the manager
         locatable, e.g., assign as an attribute of `session`.

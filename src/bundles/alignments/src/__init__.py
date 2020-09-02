@@ -38,8 +38,7 @@ class _AlignmentsBundleAPI(BundleAPI):
 
         if not hasattr(session, 'alignments'):
             from .manager import AlignmentsManager
-            session.alignments = AlignmentsManager(session, bundle_info)
-        return session.alignments
+            session.alignments = AlignmentsManager(session, name, bundle_info)
 
     @staticmethod
     def finish(session, bundle_info):

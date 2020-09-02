@@ -19,9 +19,7 @@ from chimerax.core.state import StateManager
 from chimerax.core.toolshed import ProviderManager
 class AlignmentsManager(StateManager, ProviderManager):
     """Manager for sequence alignments"""
-    def __init__(self, session, bundle_info):
-        # Just for good form.  Neither base class currently defines __init__.
-        super().__init__()
+    def __init__(self, session, name, bundle_info):
         self._alignments = {}
         # bundle_info needed for session save
         self.bundle_info = bundle_info
@@ -34,6 +32,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         self.triggers.add_trigger("destroy alignment")
         self._installed_headers = {}
         self._installed_viewers = {}
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, *, type=None,
             synonyms=[], subcommand_name=None, sequence_viewer=True, alignment_viewer=True, **kw):

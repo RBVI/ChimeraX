@@ -444,7 +444,7 @@ class SequenceViewer(ToolInstance):
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
-            if note_data[0] == alignment.NOTE_ADD_ASSOC:
+            if note_data[0] != alignment.NOTE_DEL_ASSOC:
                 match_maps = note_data[1]
             else:
                 match_maps = [note_data[1]['match map']]

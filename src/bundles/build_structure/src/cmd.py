@@ -21,7 +21,8 @@ def cmd_modify_atom(session, *args, **kw):
         raise UserError(e)
 
 def cmd_start_structure(session, method, model_info, subargs):
-    from .manager import manager
+    from .manager import get_manager
+    manager = get_manager(session)
     if manager.is_indirect(method):
         raise UserError("No command support for '%s' start-structure method" % method)
     if isinstance(model_info, str):
@@ -55,7 +56,8 @@ def register_command(command_name, logger):
     )
     register('build modify', desc, cmd_modify_atom, logger=logger)
 
-    from .manager import manager
+    from .manager import get_manager
+    manager = get_manager(logger.session)
     desc = CmdDesc(
         required=[('method', DynamicEnum(lambda mgr=manager: mgr.provider_names)),
             ('model_info', Or(StructureArg, StringArg)), ('subargs', RestOfLine)],
