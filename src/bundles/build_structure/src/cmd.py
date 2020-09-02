@@ -13,6 +13,25 @@
 
 from chimerax.core.errors import UserError
 
+def cmd_bond(session, *args, **kw):
+    from .bond import create_bonds, CreateBondError
+    try:
+        created = create_bonds(*args, **kw)
+    except CreateBondError as e:
+        raise UserError(str(e))
+    from chimerax.core.commands import plural_form
+    session.logger.info("Created %d %s" % (len(created), plural_form(created, "bond")))
+
+def cmd_xbond(session, atoms):
+    if len(atoms) < 2:
+        raise UserError("Must specify at least two atoms")
+
+    for struct, struct_atoms in atoms.by_structure:
+        for i, a1 in enumerate(struct_atoms):
+            for a2 in struct_atoms[i+1:]:
+                if a1 in a2.neighbors:
+                    struct.delete_bond(a1.bonds[a1.neighbors.index(a2)])
+
 def cmd_modify_atom(session, *args, **kw):
     from .mod import modify_atom, ParamError
     try:
@@ -44,8 +63,8 @@ def cmd_start_structure(session, method, model_info, subargs):
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, IntArg, EnumOf, StringArg
-    from chimerax.core.commands import DynamicEnum, RestOfLine
-    from chimerax.atomic import AtomArg, ElementArg, StructureArg
+    from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias
+    from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg
     from chimerax.atomic.bond_geom import geometry_name
     desc = CmdDesc(
         required=[('atom', AtomArg), ('element', ElementArg), ('num_bonds', IntArg)],
@@ -65,3 +84,20 @@ def register_command(command_name, logger):
         synopsis = 'start structure'
     )
     register('build start', desc, cmd_start_structure, logger=logger)
+
+    desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        keyword = [('reasonable', BoolArg)],
+        synopsis = 'add bond(s)'
+    )
+    register('bond', desc, cmd_bond, logger=logger)
+
+
+    desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        keyword = [],
+        synopsis = 'remove bond(s)'
+    )
+    register('~bond', desc, cmd_xbond, logger=logger)
+    create_alias("bond delete", "~bond $*", logger=logger)
+

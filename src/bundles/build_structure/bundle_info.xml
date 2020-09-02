@@ -42,6 +42,8 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: build :: Structure Analysis :: Create/modify structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: bond :: Structure Analysis :: Create bond(s)</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~bond :: Structure Analysis :: Remove bond(s)</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Build Structure :: Structure Editing :: Create/modify structures</ChimeraXClassifier>
   </Classifiers>
 
