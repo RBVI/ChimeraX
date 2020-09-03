@@ -109,8 +109,7 @@ class _OpenBundleAPI(BundleAPI):
                 lambda *args, ses=session: dialog.create_menu_entry(ses))
         if name == "open command":
             from . import manager
-            session.open_command = manager.OpenManager(session)
-            return session.open_command
+            session.open_command = manager.OpenManager(session, name)
 
     @staticmethod
     def register_command(command_name, logger):

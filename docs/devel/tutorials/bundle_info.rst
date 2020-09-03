@@ -392,15 +392,18 @@ of ``mac``.
 
   - Attribute:
 
-    - **name**: name of manager.  The bundle must implement the
-      ``init_manager`` method.  The two positional arguments to
+    - **name**: name of manager.  If **autostart** is true (see below), the bundle
+      must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
     - **uiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
+    - **autostart**: If true, the manager is started during Chimera startup.
+      Defaults to true.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
-    - ``init_manager`` should create and return an instance of a
+    - ``init_manager`` should create an instance of a
       subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
+      The ProviderManager constructor must be passed the **name** of the manager.
       The subclass must implement at least one method:
       ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager

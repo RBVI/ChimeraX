@@ -210,9 +210,9 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
         from chimerax.geometry import inner_product
-        f = inner_product(px, dp) / inner_product(dx, dp)
-        if f <= -0.1 or f >= 1.1:
-            raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
+        dxdp = inner_product(dx, dp)
+        f = 0 if dxdp == 0 else inner_product(px, dp) / dxdp
+        # Floating point precision limits can put f outside 0-1.
         if f < 0:
             f = 0
         elif f > 1:

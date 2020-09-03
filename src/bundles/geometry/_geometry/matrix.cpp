@@ -135,9 +135,9 @@ extern "C" PyObject *multiply_matrices(PyObject *, PyObject *args, PyObject *key
       if (!parse_contiguous_double_3x4_array(py_result, &result))
 	return NULL;
       multiply_matrices(m1.values(), m2.values(), result.values());
+      Py_INCREF(py_result);
     }
 
-  Py_INCREF(py_result);
   return py_result;
 }
 
@@ -187,9 +187,9 @@ extern "C" PyObject *multiply_matrix_lists(PyObject *, PyObject *args, PyObject 
 	  return NULL;
 	}
       multiply_matrix_lists(m1.values(), n1, m2.values(), n2, result.values());
+      Py_INCREF(py_result);
     }
 
-  Py_INCREF(py_result);
   return py_result;
 }
 
@@ -247,9 +247,9 @@ extern "C" PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds)
       if (!parse_contiguous_float_4x4_array(py_result, &result))
 	return NULL;
       opengl_matrix(m.values(), result.values());
+      Py_INCREF(py_result);
     }
 
-  Py_INCREF(py_result);
   return py_result;
 }
 
@@ -296,9 +296,9 @@ extern "C" PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywd
 	  return NULL;
 	}
       opengl_matrices(m.values(), n, result.values());
+      Py_INCREF(py_result);
     }
 
-  Py_INCREF(py_result);
   return py_result;
 }
 
@@ -408,9 +408,9 @@ extern "C" PyObject *invert_orthonormal(PyObject *, PyObject *args, PyObject *ke
       if (!parse_contiguous_double_3x4_array(py_result, &result))
 	return NULL;
       invert_orthonormal(m.values(), result.values());
+      Py_INCREF(py_result);
     }
 
-  Py_INCREF(py_result);
   return py_result;
 }
 

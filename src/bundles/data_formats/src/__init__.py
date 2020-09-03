@@ -22,7 +22,6 @@ class _FormatsBundleAPI(BundleAPI):
         """Initialize formats manager"""
         if name == "data formats":
             from .manager import FormatsManager
-            session.data_formats = FormatsManager(session)
-            return session.data_formats
+            session.data_formats = FormatsManager(session, name)
 
 bundle_api = _FormatsBundleAPI()

@@ -19,13 +19,6 @@ from chimerax.core.toolshed import BundleAPI
 class BuildStructureAPI(BundleAPI):
 
     @staticmethod
-    def init_manager(session, bundle_info, name, **kw):
-        from .import manager
-        if manager.manager is None:
-            manager.manager = manager.StartStructureManager(session)
-        return manager.manager
-
-    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)

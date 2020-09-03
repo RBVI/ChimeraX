@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.0" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.1" package="chimerax.build_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -18,7 +18,7 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.2dev2020"/>
     <Dependency name="ChimeraX-AddH" version="~=2.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
@@ -29,10 +29,10 @@
   </Dependencies>
 
   <Managers>
-    <Manager name="start structure"/>
+    <Manager name="start structure" autostart="false"/>
   </Managers>
 
-  <Providers manager="start structure">
+  <Providers manager="start structure" autostart="false">
     <Provider name="atom"/>
     <Provider name="peptide"/>
   </Providers>
@@ -42,6 +42,8 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: build :: Structure Analysis :: Create/modify structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: bond :: Structure Analysis :: Create bond(s)</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~bond :: Structure Analysis :: Remove bond(s)</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Build Structure :: Structure Editing :: Create/modify structures</ChimeraXClassifier>
   </Classifiers>
 

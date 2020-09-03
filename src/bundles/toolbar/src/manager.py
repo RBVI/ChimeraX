@@ -17,9 +17,10 @@ from chimerax.core.toolshed import ProviderManager
 class ToolbarManager(ProviderManager):
     """Manager for application toolbar"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._toolbar = {}
+        super().__init__(name)
         return
         # TODO:
         from . import settings
