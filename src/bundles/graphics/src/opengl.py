@@ -2596,7 +2596,7 @@ class Buffer:
                 # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
                 d = data
             else:
-                d = data.astype(self.value_type)
+                d = data.astype(self.value_type, order = 'C')
             size = d.size * d.itemsize        # Bytes
             if replace_buffer:
                 GL.glBufferData(btype, size, d, GL.GL_STATIC_DRAW)
