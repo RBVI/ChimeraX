@@ -1,3 +1,4 @@
+<!-- Edit bundle_info.xml.in, not bundle_info.xml -->
 <BundleInfo name="ChimeraX-Atomic" version="1.6.2"
             package="chimerax.atomic"
             purePython="false"
@@ -30,6 +31,7 @@
     <Category name="Structure Editing"/>
   </Categories>
 
+  <!-- Edit bundle_info.xml.in, not bundle_info.xml -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
