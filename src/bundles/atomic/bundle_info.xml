@@ -43,6 +43,10 @@
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
+  <Managers>
+    <Manager name="sequence features" autostart="false"/>
+  </Managers>
+
   <Providers manager="presets">
     <Provider category="Initial Styles" name="Original Look"
               order="0"/>

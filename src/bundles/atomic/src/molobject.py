@@ -770,6 +770,7 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        self._features = []
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
@@ -835,6 +836,16 @@ class Sequence(State):
     append = extend
 
     @property
+    def feature_data_sources(self):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        return mgr.data_sources
+
+    @property
+    def features(self):
+        return self._features
+
+    @property
     def full_name(self):
         return self.name
 
@@ -894,6 +905,7 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        self._features = data.get('features', [])
         set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
@@ -915,7 +927,7 @@ class Sequence(State):
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
-            'custom attrs': get_custom_attrs(Sequence, self)}
+            'custom attrs': get_custom_attrs(Sequence, self), 'features': self._features}
         return data
 
     def ungapped(self):
