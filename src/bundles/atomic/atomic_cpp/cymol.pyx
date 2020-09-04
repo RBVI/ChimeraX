@@ -688,7 +688,12 @@ cdef class CyAtom:
         if style.startswith("simple"):
             atom_str = self.name
         elif style.startswith("command"):
-            atom_str = '@' + self.name
+            # have to get fancy if the atom name isn't unique in the residue
+            atoms = self.residue.atoms
+            if len(atoms.filter(atoms.names == self.name)) > 1:
+                atom_str = '@@serial_number=' + str(self.serial_number)
+            else:
+                atom_str = '@' + self.name
         else:
             atom_str = str(self.serial_number)
         if atom_only:
