@@ -83,10 +83,10 @@ class HBondsGUI(QWidget):
         self.setLayout(layout)
 
         if show_make_pseudobonds:
-            self.__make_pb_group = group = QGroupBox("Display as pseudobonds")
+            self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings
+                else make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
+            group = self.__make_pb_option.widget
             layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['make_pseudobonds'])
             make_pb_layout = QVBoxLayout()
             make_pb_layout.setContentsMargins(0,0,0,0)
             make_pb_layout.setSpacing(0)
@@ -117,10 +117,10 @@ class HBondsGUI(QWidget):
                 make_pb_options.add_option(self.__retain_current_option)
 
         if show_relax:
-            self.__relax_group = group = QGroupBox("Relax distance and angle criteria")
+            self.__relax_option = BooleanOption("Relax distance and angle criteria", None if settings
+                else relax, None, attr_name="relax", settings=settings, as_group=True)
+            group = self.__relax_option.widget
             layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['relax'])
             relax_layout = QVBoxLayout()
             relax_layout.setContentsMargins(0,0,0,0)
             relax_layout.setSpacing(0)
@@ -291,7 +291,7 @@ class HBondsGUI(QWidget):
 
         # may be saved in settings
         if self.__show_values['make_pseudobonds']:
-            settings['make_pseudobonds'] = self.__make_pb_group.isChecked()
+            settings['make_pseudobonds'] = self.__make_pb_option.value
             if self.__show_values['color']:
                 settings['color'] = self.__color_option.value
             if self.__show_values['radius']:
@@ -317,7 +317,7 @@ class HBondsGUI(QWidget):
             settings['intra_model'] = None
 
         if self.__show_values['relax']:
-            settings['relax'] = self.__relax_group.isChecked()
+            settings['relax'] = self.__relax_option.value
             if self.__show_values['slop']:
                 settings['dist_slop'] = self.__dist_slop_option.value
                 settings['angle_slop'] = self.__angle_slop_option.value
@@ -427,6 +427,18 @@ class HBondsGUI(QWidget):
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
+
+    def reset(self):
+        self.__settings.reset()
+        if self.__show_values['save_file']:
+            self.__save_file_option.value = False
+        if self.__show_values['relax']:
+            if self.__show_values['slop_color']:
+                self.__slop_color_option.value = self.__settings.slop_color
+                self.__slop_color_option.value = None
+        if self.__show_values['bond_restrict']:
+            self.__bond_restrict_option.value = self.__bond_restrict_option.restrict_kw_vals[0]
+            self.__bond_restrict_option.value = None
 
     def _model_restrict_cb(self, opt):
         if opt.value is None:

@@ -252,9 +252,14 @@ class BooleanOption(Option):
         from PyQt5.QtCore import Qt
         self.widget.setCheckState(Qt.PartiallyChecked)
 
-    def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QCheckBox
-        self.widget = QCheckBox(**kw)
+    def _make_widget(self, as_group=False, **kw):
+        from PyQt5.QtWidgets import QCheckBox, QGroupBox
+        if as_group:
+            self.widget = QGroupBox(self.name)
+            self.name = ""
+            self.widget.setCheckable(True)
+        else:
+            self.widget = QCheckBox(**kw)
         self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
 class EnumBase(Option):

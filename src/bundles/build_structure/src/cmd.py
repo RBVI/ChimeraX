@@ -22,10 +22,6 @@ def cmd_bond(session, *args, **kw):
     from chimerax.core.commands import plural_form
     session.logger.info("Created %d %s" % (len(created), plural_form(created, "bond")))
 
-def cmd_xbond(session, bonds):
-    for b in bonds:
-        b.structure.delete_bond(b)
-
 def cmd_modify_atom(session, *args, **kw):
     from .mod import modify_atom, ParamError
     try:
@@ -86,12 +82,5 @@ def register_command(command_name, logger):
     )
     register('bond', desc, cmd_bond, logger=logger)
 
-
-    desc = CmdDesc(
-        required=[('bonds', BondsArg)],
-        keyword = [],
-        synopsis = 'remove bond(s)'
-    )
-    register('~bond', desc, cmd_xbond, logger=logger)
-    create_alias("bond delete", "~bond $*", logger=logger)
+    create_alias("~bond", "delete bonds $*", logger=logger)
 
