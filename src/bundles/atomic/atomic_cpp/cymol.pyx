@@ -1564,7 +1564,8 @@ cdef class CyResidue:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
-            return '%s %s' % (chain_str, res_str)
+            format_string = "%s%s" if style.startswith("command") else "%s %s"
+            return format_string % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = self.structure.string(style=style)

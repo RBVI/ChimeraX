@@ -410,3 +410,63 @@ def make_closest_placement_identity(tflist, center):
     from chimerax.geometry import Place, Places
     rtflist[i] = Place()
     return Places(rtflist)
+
+class _ResSpec:
+    def __init__(self, initial_spec):
+        self.spec = initial_spec
+        self.comma_okay = False
+        self.cur_chain = None
+
+    def add_range(self, start_res, end_res):
+        if start_res.chain_id != self.cur_chain:
+            show_chain = True
+            self.cur_chain = start_res.chain_id
+            self.comma_okay = False
+        else:
+            show_chain = False
+        if self.comma_okay:
+            self.spec += ','
+        else:
+            self.comma_okay = True
+        if end_res:
+            self.spec += "%s-%s" % (start_res.string(omit_structure=True, residue_only=not show_chain,
+                style="command")[(0 if show_chain else 1):],
+                end_res.string(omit_structure=True, style="command", residue_only=True)[1:])
+        else:
+            self.spec += "%s" % start_res.string(omit_structure=True, residue_only=not show_chain,
+                style="command")[(0 if show_chain else 1):]
+
+def concise_residue_spec(session, residues):
+    from . import Residues
+    if not isinstance(residues, Residues):
+        residues = Residues(residues)
+    from . import all_structures
+    need_model_spec = len(all_structures(session)) > 1
+    full_spec = ""
+    for struct, struct_residues in residues.by_structure:
+        sort_residues = list(struct_residues)
+        sort_residues.sort(key=lambda res: (res.chain_id, res.number, res.insertion_code))
+        res_index_map = {}
+        for i, r in enumerate(sort_residues):
+            res_index_map[r] = i
+        prev_index = prev_res = None
+        res_spec = _ResSpec(struct.string(style="command") if need_model_spec else "")
+        add_comma = False
+        for r in sort_residues:
+            r_index = res_index_map[r]
+            if prev_res is None:
+                start_range = r
+                end_range = None
+            elif r.chain_id == prev_res.chain_id and r_index == prev_index+1:
+                end_range = r
+            else:
+                res_spec.add_range(start_range, end_range)
+                start_range = r
+                end_range = None
+            prev_res = r
+            prev_index = r_index
+        res_spec.add_range(start_range, end_range)
+        if full_spec:
+            full_spec += ' '
+        full_spec += res_spec.spec
+    return full_spec
