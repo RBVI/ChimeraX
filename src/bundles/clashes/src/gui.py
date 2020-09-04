@@ -62,6 +62,7 @@ class AtomProximityGUI(QWidget):
 
         self.session = session
         self.cmd_name = cmd_name
+        self.default_group_name = name
 
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
@@ -616,6 +617,45 @@ class AtomProximityGUI(QWidget):
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return self.cmd_name, atom_spec, kw_values
+
+    def reset(self):
+        self.settings.reset()
+        if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
+        and self.show_values['distance_only']:
+            self.overlap_radio.setChecked(True)
+        if self.show_values['overlap_cutoff']:
+            self.overlap_spinbox.setValue(self.settings.overlap_cutoff)
+        if self.show_values['hbond_allowance']:
+            self.hbond_spinbox.setValue(self.settings.hbond_allowance)
+        if self.show_values['distance_only']:
+            val = 4.0 if self.settings.distance_only is None else self.settings.distance_only
+            self.dist_only_spinbox.setValue(val)
+        if self.show_values['restrict']:
+            self.sel_restrict_option.value = self.sel_restrict_option.restrict_kw_vals[0]
+            self.sel_restrict_option.value = None
+        if self.show_values['bond_separation']:
+            self.bond_sep_button.setText(str(self.settings.bond_separation))
+        if self.show_values['res_separation']:
+            self.res_sep_checkbox.setChecked(self.settings.res_separation is not None)
+            val = 5 if self.settings.res_separation is None else self.settings.res_separation
+            self.res_sep_spinbox.setValue(val)
+        if self.show_values['set_attrs']:
+            if self.show_values['attr_name']:
+                self.attr_name_option.value = self.settings.attr_name
+                self.attr_name_option.value = None
+            else:
+                self.set_attrs_option.value = self.settings.set_attrs
+        if self.show_values['make_pseudobonds']:
+            if isinstance(self.make_pseudobonds_widget, BooleanOption):
+                self.make_pseudobonds_widget.value = self.settings.make_pseudobonds
+            else:
+                self.make_pseudobonds_widget.setChecked(self.settings.make_pseudobonds)
+            if self.show_values['name']:
+                self.name_option.value = self.default_group_name
+        if self.show_values['save_file']:
+            self.save_file_option.value = False
+        if self.show_values['checking_frequency']:
+            self.ok_radio.setChecked(True)
 
     def _checking_change(self, ok_now_checked):
         from chimerax.core.commands import run
