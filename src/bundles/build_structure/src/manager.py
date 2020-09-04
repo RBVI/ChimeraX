@@ -48,10 +48,9 @@ class StartStructureManager(ProviderManager):
         return self.providers[name].run_provider(self.session, name, self, widget_info=(param_widget, False))
 
     def end_providers(self):
-        # Below code needs to be uncommented once this manager is 'lazy'; doesn't work at startup
-        #from .tool import BuildStructureTool
-        #for tool in self.session.tools.find_by_class(BuildStructureTool):
-        #    tool._new_start_providers(self._new_providers)
+        from .tool import BuildStructureTool
+        for tool in self.session.tools.find_by_class(BuildStructureTool):
+            tool._new_start_providers(self._new_providers)
         self._new_providers = []
 
     def execute_command(self, name, structure, args):
