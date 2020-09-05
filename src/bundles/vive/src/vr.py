@@ -2391,7 +2391,9 @@ class PanelDrawing(Drawing):
         self.color = (255,255,255,255)
         self.use_lighting = False
         self.casts_shadows = False
-        # self.skip_bounds = True	# Clips if far from models.
+        self.skip_bounds = True	# Panels should not effect view all command.
+        # Avoid panels fading out far from models.
+        self.allow_depth_cue = False
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
