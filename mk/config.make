@@ -53,18 +53,9 @@ datadir = $(bindir)/share
 endif
 
 # Location for fetching third party binaries.
-ifeq ($(OS),Linux)
-# TODO: curl fails for daily builds run on plato with connection refused because the cluster node
-#   thinks it is plato but the web server is on another cluster node.
-#   Scooter Morris says it can't be fixed.
-#   For now, use rsync.  Later move prereqs archive off of plato.
-PREREQS_ARCHIVE = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
-FETCH_PREREQ = /bin/sh -c 'rsync -a $$1 .' --
-else
 # Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
-PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
+PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
 FETCH_PREREQ = curl --silent --show-error --insecure -O
-endif
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # Location for large test data files
