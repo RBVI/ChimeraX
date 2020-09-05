@@ -1305,8 +1305,6 @@ class RoomCameraModel(Model):
     to render the desktop graphics window.  The camera looks in the -z direction.
     The camera is shown as a rectangle and texture mapped onto it is what the camera sees.
     '''
-    casts_shadows = False
-#    skip_bounds = True   # Camera screen disappears if it is far from models
     SESSION_SAVE = False
 
     def __init__(self, name, session, texture, room_to_scene, width = 1):
@@ -1316,14 +1314,17 @@ class RoomCameraModel(Model):
 
         Model.__init__(self, name, session)
 
+        self.casts_shadows = False
+        self.skip_bounds = True   # "view all" command excludes room camera
+
+        # Avoid camera disappearing when far from models
+        self.allow_depth_cue = False
+
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
         self.texture = texture
         self.opaque_texture = True
         self.set_size(width)
-
-        # Avoid camera disappearing when far from models
-        self.allow_depth_cue = False
 
     def delete(self):
         cam = self.session.main_view.camera
