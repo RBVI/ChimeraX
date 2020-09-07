@@ -31,7 +31,7 @@ class UpdateTool(ToolInstance):
 
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
-    help = "help:user/tools/updatetool.html"
+    help = "help:user/tools/updates.html"
 
     NAME_COLUMN = 0
     CURRENT_VERSION_COLUMN = 1
@@ -53,8 +53,12 @@ class UpdateTool(ToolInstance):
         layout = QVBoxLayout()
         parent.setLayout(layout)
         label = QLabel(
-            "<p>Check individual bundles you want to update, or click <b>All</b> for all of them."
-            "<br>Then click on the <b>Install</b> button to install them.")
+            "<p>Select the individual bundles you want to install by checking the box."
+            "  Then click on the <b>Install</b> button to install them."
+            "  The default bundle version is the newest one, but you can select an older version."
+            "<p>When only showing updates, check <b>All</b> to select all of them."
+        )
+        label.setWordWrap(True)
         layout.addWidget(label)
         choice_layout = QHBoxLayout()
         layout.addLayout(choice_layout)
@@ -88,6 +92,9 @@ class UpdateTool(ToolInstance):
         self.updates.setEditTriggers(QAbstractItemView.NoEditTriggers)
         buttons_layout = QHBoxLayout()
         layout.addLayout(buttons_layout)
+        button = QPushButton("Help")
+        button.clicked.connect(self.help_button)
+        buttons_layout.addWidget(button)
         buttons_layout.addStretch()
         button = QPushButton("Install")
         button.clicked.connect(self.install)
@@ -99,6 +106,10 @@ class UpdateTool(ToolInstance):
         self._fill_updates()
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
+
+    def help_button(self):
+        from chimerax.help_viewer import show_url
+        show_url(self.session, self.help, new_tab=True)
 
     def cancel(self):
         self.session.ui.main_window.close_request(self.tool_window)
@@ -148,16 +159,19 @@ class UpdateTool(ToolInstance):
         self.updates.clear()
         if not new_bundles:
             return
-        self.all_item = all_item = QTreeWidgetItem()
-        all_item.setText(0, "All")
-        all_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
-        all_item.setCheckState(self.NAME_COLUMN, Qt.Unchecked)
-        self.updates.addTopLevelItem(all_item)
-        self.updates.expandItem(all_item)
+        if dialog_type != DialogType.UPDATES_ONLY:
+            self.all_items = all_items = self.updates.invisibleRootItem()
+        else:
+            self.all_items = all_items = QTreeWidgetItem()
+            all_items.setText(0, "All")
+            all_items.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate)
+            all_items.setCheckState(self.NAME_COLUMN, Qt.Unchecked)
+            self.updates.addTopLevelItem(all_items)
+        self.updates.expandItem(all_items)
         flags = Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable | Qt.ItemNeverHasChildren
         for bundle_name in new_bundles:
             new_versions, installed_version, synopsis, category = new_bundles[bundle_name]
-            item = QTreeWidgetItem(all_item)
+            item = QTreeWidgetItem(all_items)
             # Name column
             item.setData(self.NAME_COLUMN, Qt.UserRole, bundle_name)
             if False:
@@ -193,10 +207,10 @@ class UpdateTool(ToolInstance):
         from PyQt5.QtCore import Qt
         toolshed = self.session.toolshed
         logger = self.session.logger
-        all_item = self.all_item
+        all_items = self.all_items
         updating = []
-        for i in range(all_item.childCount()):
-            item = all_item.child(i)
+        for i in range(all_items.childCount()):
+            item = all_items.child(i)
             if item.checkState(self.NAME_COLUMN) == Qt.Unchecked:
                 continue
             bundle_name = item.data(self.NAME_COLUMN, Qt.UserRole)
