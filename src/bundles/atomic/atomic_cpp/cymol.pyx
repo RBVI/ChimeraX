@@ -688,7 +688,12 @@ cdef class CyAtom:
         if style.startswith("simple"):
             atom_str = self.name
         elif style.startswith("command"):
-            atom_str = '@' + self.name
+            # have to get fancy if the atom name isn't unique in the residue
+            atoms = self.residue.atoms
+            if len(atoms.filter(atoms.names == self.name)) > 1:
+                atom_str = '@@serial_number=' + str(self.serial_number)
+            else:
+                atom_str = '@' + self.name
         else:
             atom_str = str(self.serial_number)
         if atom_only:
@@ -1564,7 +1569,8 @@ cdef class CyResidue:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
-            return '%s %s' % (chain_str, res_str)
+            format_string = "%s%s" if style.startswith("command") else "%s %s"
+            return format_string % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = self.structure.string(style=style)

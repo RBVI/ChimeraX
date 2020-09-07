@@ -235,13 +235,14 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
+        # manager may have alredy been started by command...
+        self._ignore_new_providers = True
         from .manager import get_manager
         manager = get_manager(self.session)
-        # until "lazy" managers are supported, 'manager' cannot be None at this point
         self.ss_u_to_p_names = { manager.ui_name(pn):pn for pn in manager.provider_names }
         ui_names = list(self.ss_u_to_p_names.keys())
         ui_names.sort(key=lambda x: x.lower())
-        provider_layout = QGridLayout()
+        self._start_provider_layout = provider_layout = QGridLayout()
         provider_layout.setVerticalSpacing(5)
         layout.addLayout(provider_layout)
         provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names)+2, 1)
@@ -265,6 +266,7 @@ class BuildStructureTool(ToolInstance):
                 but.setChecked(True)
                 self.parameter_widgets.setCurrentWidget(widget)
         provider_layout.setRowStretch(len(ui_names)+1, 1)
+        self._ignore_new_providers = False
 
         model_area = QWidget()
         layout.addWidget(model_area, alignment=Qt.AlignCenter)
@@ -389,8 +391,30 @@ class BuildStructureTool(ToolInstance):
         else:
             self.ms_change_atom_name.setChecked(True)
 
-    def _new_start_providers(self, new_providers):
-        pass
+    def _new_start_providers(self, new_provider_names):
+        if self._ignore_new_providers:
+            return
+        from .manager import get_manager
+        manager = get_manager(self.session)
+        num_prev = len(self.ss_u_to_p_names)
+        new_u_to_p_names = { manager.ui_name(pn):pn for pn in new_provider_names }
+        self.ss_u_to_p_names.update(new_u_to_p_names)
+        ui_names = list(new_u_to_p_names.keys())
+        ui_names.sort(key=lambda x: x.lower())
+
+        for row, ui_name in enumerate(ui_names):
+            row += num_prev
+            but = QRadioButton(ui_name)
+            self.ss_button_group.addButton(but)
+            provider_layout.addWidget(but, row+1, 1, alignment=Qt.AlignLeft)
+            params_title = " ".join([x.capitalize()
+                if x.islower() else x for x in ui_name.split()]) + " Parameters"
+            self.ss_widgets[ui_name] = widget = QGroupBox(params_title)
+            manager.fill_parameters_widget(self.ss_u_to_p_names[ui_name], widget)
+            self.parameter_widgets.addWidget(widget)
+            if row == 0:
+                but.setChecked(True)
+                self.parameter_widgets.setCurrentWidget(widget)
 
     def _ss_apply_cb(self):
         ui_name = self.ss_button_group.checkedButton().text()

@@ -1716,11 +1716,10 @@ class RegionBrowser:
     def _select_on_structures(self, region=None):
         # highlight on chimerax structures
         self._sel_change_from_self = True
-        self.tool_window.session.selection.clear()
-        from chimerax.atomic import Residues
-        sel_atoms = Residues(self.region_residues(region)).atoms
-        sel_atoms.selecteds = True
-        sel_atoms.intra_bonds.selecteds = True
+        session = self.tool_window.session
+        from chimerax.atomic import concise_residue_spec
+        from chimerax.core.commands import run
+        run(session, "sel " + concise_residue_spec(session, self.region_residues(region)))
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):

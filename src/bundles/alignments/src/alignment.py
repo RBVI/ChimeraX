@@ -109,17 +109,18 @@ class Alignment(State):
             self._auto_associate = False
         if create_headers:
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
-            for name, markup in file_markups.items():
-                from chimerax.core.utils import string_to_attr
-                from chimerax.alignment_headers import FixedHeaderSequence
-                class MarkupHeaderSequence(FixedHeaderSequence):
-                    ident = string_to_attr(name, prefix="file_markup_")
-                    def settings_info(self):
-                        base_settings_name, defaults = super().settings_info()
-                        from chimerax.core.commands import BoolArg
-                        defaults.update({'initially_shown': (BoolArg, True)})
-                        return "sequence file header %s" % name, defaults
-                self._headers.append(MarkupHeaderSequence(self, name, markup))
+            if file_markups is not None:
+                for name, markup in file_markups.items():
+                    from chimerax.core.utils import string_to_attr
+                    from chimerax.alignment_headers import FixedHeaderSequence
+                    class MarkupHeaderSequence(FixedHeaderSequence):
+                        ident = string_to_attr(name, prefix="file_markup_")
+                        def settings_info(self):
+                            base_settings_name, defaults = super().settings_info()
+                            from chimerax.core.commands import BoolArg
+                            defaults.update({'initially_shown': (BoolArg, True)})
+                            return "sequence file header %s" % name, defaults
+                    self._headers.append(MarkupHeaderSequence(self, name, markup))
             self._headers.sort(key=lambda hdr: hdr.name.casefold())
             attr_headers = []
             for header in self._headers:
