@@ -39,7 +39,7 @@ class HBondsGUI(QWidget):
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
-            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any",
+            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict=None,
             retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
             show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
@@ -166,7 +166,8 @@ class HBondsGUI(QWidget):
 
             if show_bond_restrict:
                 self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
-                    None, None, atom_word="end")
+                    None if settings else restrict, None, attr_name="restrict", settings=settings,
+                    atom_word="end")
                 limit_options.add_option(self.__bond_restrict_option)
 
             if show_salt_only:
@@ -266,15 +267,6 @@ class HBondsGUI(QWidget):
         else:
             atom_spec = ""
 
-        if self.__show_values['bond_restrict']:
-            bond_restrict = self.__bond_restrict_option.value
-            if bond_restrict is not None:
-                command_values['restrict'] = bond_restrict
-                if atom_spec:
-                    atom_spec += " & sel"
-                else:
-                    atom_spec = "sel"
-
         if self.__show_values['save_file']:
             if self.__save_file_option.value:
                 from PyQt5.QtWidgets import QFileDialog
@@ -305,6 +297,18 @@ class HBondsGUI(QWidget):
             settings['radius'] = None
             settings['dashes'] = None
             settings['show_dist'] = None
+
+        if self.__show_values['bond_restrict']:
+            bond_restrict = self.__bond_restrict_option.value
+            if bond_restrict is not None:
+                if atom_spec:
+                    atom_spec += " & sel"
+                else:
+                    atom_spec = "sel"
+            settings['restrict'] = bond_restrict
+            save_restrict = True
+        else:
+            save_restrict = False
 
         if self.__show_values['inter_model']:
             settings['inter_model'] = self.__inter_model_option.value
@@ -380,7 +384,7 @@ class HBondsGUI(QWidget):
         if self.__settings:
             saveables = []
             for attr_name, value in settings.items():
-                if value is not None:
+                if value is not None or (attr_name == 'restrict' and save_restrict):
                     setattr(self.__settings, attr_name, value)
                     saveables.append(attr_name)
             if saveables:
