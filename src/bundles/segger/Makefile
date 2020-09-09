@@ -9,6 +9,7 @@ install app-install: seggerx
 
 seggerx: $(SEGGER_SRC)
 	tar xf $(SEGGER_SRC)
+	touch seggerx
 
 $(SEGGER_SRC):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/segger/$(SEGGER_SRC)
@@ -17,6 +18,7 @@ upload_new_version:
 	$(RSYNC) $(SEGGER_SRC) $(PREREQS_UPLOAD)/segger
 
 tarball:
+	make -C seggerx/Segger clean
 	tar -cHf  seggerx.tar --exclude=".*" --exclude=tutorials seggerx
 	gzip seggerx.tar
 	mv seggerx.tar.gz seggerx_$(shell date +"%Y_%m_%d").tar.gz
@@ -31,4 +33,4 @@ test: seggerx
 	$(MAKE) -C seggerx/Segger test
 
 clean:
-	rm -rf seggerx
+	rm -rf seggerx $(SEGGER_SRC)
