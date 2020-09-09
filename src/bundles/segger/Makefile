@@ -9,6 +9,7 @@ install app-install: seggerx
 
 seggerx: $(SEGGER_SRC)
 	tar xf $(SEGGER_SRC)
+	touch seggerx
 
 $(SEGGER_SRC):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/segger/$(SEGGER_SRC)
