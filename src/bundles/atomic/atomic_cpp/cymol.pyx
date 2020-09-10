@@ -20,6 +20,7 @@ from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython
+from libc.stdint cimport uintptr_t
 
 IF UNAME_SYSNAME == "Windows":
     ctypedef long long ptr_type
@@ -665,6 +666,29 @@ cdef class CyAtom:
         " and leave others unchanged. Opposite of clear_hide_bits()"
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
+
+    def side_atoms(self, CyAtom skip_atom=None, CyAtom cycle_atom=None):
+        '''All the atoms connected to this atom on this side of 'skip_atom' (if given).
+           Missing-structure pseudobonds are treated as connecting their atoms for the purpose of
+           computing the connected atoms.  Connectivity will never trace through skip_atom, but if
+           'cycle_atom' (which can be the same as skip_atom) is reached then a cycle/ring is assumed
+           to exist and ValueError is thrown.
+        '''
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        sn_ptr = NULL if skip_atom is None else skip_atom.cpp_atom
+        ca_ptr = NULL if cycle_atom is None else cycle_atom.cpp_atom
+        # have to use a temporary to workaround the generated code otherwise taking the address
+        # of a temporary variable (the return value)
+        try:
+            tmp = <cydecl.vector[cydecl.Atom*]>self.cpp_atom.side_atoms(<cydecl.Atom*>sn_ptr,
+                <cydecl.Atom*>ca_ptr)
+        except RuntimeError as e:
+            # Cython raises RuntimeError for std::logic_error.
+            # Raise ValueError instead to be consistent with molc.cpp
+            raise ValueError(str(e))
+        from chimerax.atomic import Atoms
+        import numpy
+        return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
 
     def string(self, atom_only = False, style = None, relative_to=None):
         "Supported API.  Get text representation of Atom"

@@ -230,6 +230,7 @@ public:
     void  set_radius(float);
     void  set_ribbon_coord(const Point& coord);
     void  set_serial_number(int);
+    std::vector<Atom*>  side_atoms(const Atom* skip_neighbor, const Atom* cycle_atom) const;
     std::string  str() const;
     Structure*  structure() const { return _structure; }
     StructCat  structure_category() const;
