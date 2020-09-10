@@ -36,7 +36,7 @@ class StartStructureManager(ProviderManager):
             indirect = eval(indirect.capitalize())
         if isinstance(new_model_only, str):
             new_model_only = eval(new_model_only.capitalize())
-        self.providers[name] = bundle_info
+        self.providers[name] = bundle_info.run_provider(self.session, name, self)
         self._ui_names[name] = name if ui_name is None else ui_name
         self._indirect[name] = indirect
         self._new_model_only[name] = new_model_only
@@ -45,20 +45,19 @@ class StartStructureManager(ProviderManager):
     def get_command_substring(self, name, param_widget):
         # given the settings in the parameter widget, get the corresponding command args
         # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
-        return self.providers[name].run_provider(self.session, name, self, widget_info=(param_widget, False))
+        return self.providers[name].command_string(param_widget)
 
     def end_providers(self):
-        # Below code needs to be uncommented once this manager is 'lazy'; doesn't work at startup
-        #from .tool import BuildStructureTool
-        #for tool in self.session.tools.find_by_class(BuildStructureTool):
-        #    tool._new_start_providers(self._new_providers)
+        from .tool import BuildStructureTool
+        for tool in self.session.tools.find_by_class(BuildStructureTool):
+            tool._new_start_providers(self._new_providers)
         self._new_providers = []
 
     def execute_command(self, name, structure, args):
-        return self.providers[name].run_provider(self.session, name, self, command_info=(structure, args))
+        return self.providers[name].execute_command(structure, args)
 
     def fill_parameters_widget(self, name, widget):
-        self.providers[name].run_provider(self.session, name, self, widget_info=(widget, True))
+        self.providers[name].fill_parameters_widget(widget)
 
     def is_indirect(self, name):
         return self._indirect[name]

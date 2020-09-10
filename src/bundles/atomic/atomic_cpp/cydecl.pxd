@@ -189,6 +189,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_ribbon_coord(const cycoord.Point&)
         void set_selected(bool)
         void set_serial_number(int)
+        Neighbors side_atoms(Atom*, Atom*) except +
         Structure* structure()
         StructCat structure_category()
         void use_default_radius()

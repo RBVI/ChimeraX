@@ -44,7 +44,7 @@ class AtomProximityGUI(QWidget):
             continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
             intra_model=True, intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"],
             log=defaults["action_log"], make_pseudobonds=defaults["action_pseudobonds"],
-            res_separation=None, restrict="any", reveal=False, save_file=None,
+            res_separation=None, restrict=None, reveal=False, save_file=None,
             select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
             summary=True, test_atoms=None,
 
@@ -211,7 +211,8 @@ class AtomProximityGUI(QWidget):
                 group_layout.addWidget(restrict_options, alignment=Qt.AlignLeft)
                 if show_restrict:
                     self.sel_restrict_option = make_optional(AtomPairRestrictOption)("Limit by selection",
-                        None, None, atom_word="end")
+                        None if settings else restrict, None, attr_name="restrict", settings=settings,
+                        atom_word="end")
                     restrict_options.add_option(self.sel_restrict_option)
             if show_bond_separation:
                 bond_sep_layout = QHBoxLayout()
@@ -425,12 +426,6 @@ class AtomProximityGUI(QWidget):
 
         # never saved in settings
         atom_spec = ""
-        if self.show_values['restrict']:
-            restrict = self.sel_restrict_option.value
-            if restrict is not None:
-                command_values['restrict'] = restrict
-                atom_spec = "sel"
-
         if self.show_values['save_file']:
             if self.save_file_option.value:
                 from PyQt5.QtWidgets import QFileDialog
@@ -456,6 +451,15 @@ class AtomProximityGUI(QWidget):
             command_values['set_attrs'] = None
 
         # may be saved in settings
+        if self.show_values['restrict']:
+            restrict = self.sel_restrict_option.value
+            if restrict is not None:
+                atom_spec = "sel"
+            settings['restrict'] = restrict
+            save_restrict = True
+        else:
+            save_restrict = False
+
         if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
         and self.show_values['distance_only']:
             overlap_active = self.overlap_radio.isChecked()
@@ -564,7 +568,7 @@ class AtomProximityGUI(QWidget):
         if self.settings:
             saveables = []
             for attr_name, value in settings.items():
-                if value is not None:
+                if value is not None or (attr_name == 'restrict' and save_restrict):
                     setattr(self.settings, attr_name, value)
                     saveables.append(attr_name)
             if saveables:
