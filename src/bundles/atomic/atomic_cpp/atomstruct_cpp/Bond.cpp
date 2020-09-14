@@ -180,44 +180,8 @@ Bond::side_atoms(const Atom* side_atom) const
 {
     if (side_atom != _atoms[0] && side_atom != _atoms[1])
         throw std::invalid_argument("Atom given to Bond::side() not in bond!");
-    std::map<Atom*, std::vector<Atom*>> pb_connections;
-    auto pbg = const_cast<Structure*>(_atoms[0]->structure())->pb_mgr().get_group(
-        Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
-    if (pbg != nullptr) {
-        for (auto& pb: pbg->pseudobonds()) {
-            auto a1 = pb->atoms()[0];
-            auto a2 = pb->atoms()[1];
-            pb_connections[a1].push_back(a2);
-            pb_connections[a2].push_back(a1);
-        }
-    }
-    std::vector<Atom*> side_atoms;
-    side_atoms.push_back(const_cast<Atom*>(side_atom));
-    std::set<const Atom*> seen;
-    seen.insert(side_atom);
-    std::vector<Atom*> to_do;
-    const Atom* other = other_atom(side_atom);
-    for (auto nb: side_atom->neighbors())
-        if (nb != other)
-            to_do.push_back(nb);
-    while (to_do.size() > 0) {
-        auto a = to_do.back();
-        to_do.pop_back();
-        if (seen.find(a) != seen.end())
-            continue;
-        if (a == other)
-            throw std::logic_error("Bond::side() called on bond in ring or cycle");
-        seen.insert(a);
-        side_atoms.push_back(a);
-        if (pb_connections.find(a) != pb_connections.end()) {
-            for (auto conn: pb_connections[a]) {
-                to_do.push_back(conn);
-            }
-        }
-        for (auto nb: a->neighbors())
-            to_do.push_back(nb);
-    }
-    return side_atoms;
+    auto other = other_atom(side_atom);
+    return side_atom->side_atoms(other, other);
 }
 
 Atom*

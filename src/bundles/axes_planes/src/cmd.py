@@ -26,7 +26,12 @@ class PlaneModel(Surface, ComplexMeasurable):
         self._update_geometry()
 
     def angle(self, obj):
-        return NotImplemented
+        if not isinstance(obj, PlaneModel):
+            return NotImplemented
+        from chimerax.geometry import angle
+        degrees = angle(self.position.transform_vector(self.plane.normal),
+            obj.position.transform_vector(obj.plane.normal))
+        return degrees if degrees < 90 else 180 - degrees
 
     def distance(self, obj, *, signed=False):
         if isinstance(obj, PlaneModel):

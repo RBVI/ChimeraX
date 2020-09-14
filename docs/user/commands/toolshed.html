@@ -73,7 +73,7 @@ Report the location of the bundle information cache.
 <a href="#top" class="nounder">&bull;</a>
 <a name="install"><b>toolshed install</b></a>
 &nbsp;<i>bundle-name</i> [&nbsp;<i>version</i>&nbsp;]
-[&nbsp;<b>noDeps</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>noDeps</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Install a bundle.  If <i>bundle-name</i> is a file name,
 the file will be installed using <b>pip</b>.  If <i>bundle-name</i>
@@ -81,7 +81,8 @@ is a name from the toolshed, the bundle will be fetched from
 the toolshed and installed, again using <b>pip</b>.  A specific
 <i>version</i> may be specified when installing from the toolshed.
 The <b>noDeps</b> option specifies whether bundle dependencies should
-be checked during installation.  If dependency checking is on (default)
+be checked during installation.  If dependency checking is on 
+(<b>noDeps false</b>, default)
 and the bundle being installed requires other bundles to run, then the
 dependent bundles will also be installed.
 </blockquote>
@@ -154,5 +155,5 @@ See also the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+September 2020</address>
 </body></html>

@@ -39,6 +39,9 @@ setup(
     packages=[
         "PKG_NAME",
     ],
+    package_data={
+        "PKG_NAME": ["docs/user/tools/*"],
+    },
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
         # and our own ChimeraX classifiers.

@@ -836,6 +836,8 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             } else {
                 other_chain->_residues[other_index-1] = start_r;
                 other_chain->_res_map[start_r] = other_index-1;
+                start_r->set_chain(other_chain);
+                change_tracker()->add_modified(this, other_chain, ChangeTracker::REASON_RESIDUES);
                 auto old_char = other_chain->contents()[other_index-1];
                 auto new_char = Sequence::rname3to1(start_r->name());
                 if (old_char != new_char) {
@@ -857,6 +859,8 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             } else {
                 start_chain->_residues[start_index+1] = other_r;
                 start_chain->_res_map[other_r] = start_index+1;
+                other_r->set_chain(start_chain);
+                change_tracker()->add_modified(this, start_chain, ChangeTracker::REASON_RESIDUES);
                 auto old_char = start_chain->contents()[start_index+1];
                 auto new_char = Sequence::rname3to1(other_r->name());
                 if (old_char != new_char) {
@@ -879,7 +883,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 auto& residues = chain->residues();
                 StructureSeq::Residues new_residues(residues.begin(), residues.begin() + start_index);
                 new_residues.insert(new_residues.end(), residues.begin() + other_index, residues.end());
-                chain->bulk_set(residues, &new_chars);
+                chain->bulk_set(new_residues, &new_chars);
             }
         }
     }

@@ -40,6 +40,9 @@ class HBondsTool(ToolInstance):
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        reset_button = bbox.addButton("Reset", qbbox.ActionRole)
+        reset_button.setToolTip("Reset to initial-installation defaults")
+        reset_button.clicked.connect(lambda *args: self.gui.reset())
         layout.addWidget(bbox)
 
         tw.manage(placement=None)

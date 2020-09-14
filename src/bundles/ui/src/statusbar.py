@@ -56,23 +56,20 @@ class _StatusBarOpenGL:
             w.setVisible(show)
             
     def _make_widget(self):
-        from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QWidget
+        from PyQt5.QtWidgets import QStatusBar, QSizePolicy
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        from PyQt5.QtGui import QWindow, QSurface
-        self._window = pw = QWindow()
-        pw.exposeEvent = self._expose_event
-        pw.resizeEvent = self._resize_event
-        pw.keyPressEvent = self.session.ui.forward_keystroke
-        pwidget = QWidget.createWindowContainer(pw, sb)
-        pw.setSurfaceType(QSurface.OpenGLSurface)
-        sb.addWidget(pwidget, stretch = 1)
+        w = StatusOpenGLWindow(parent = sb,
+                               expose_cb = self._expose_event,
+                               resize_cb = self._resize_event,
+                               key_press_cb = self.session.ui.forward_keystroke)
+        self._window = w
         return sb
 
     def _resize_event(self, event):
         r = self._renderer
         if r:
-            s = event.size()
+            s = self._window.size()
             w,h = s.width(), s.height()
             r.set_default_framebuffer_size(w, h)
 
@@ -183,6 +180,33 @@ class _StatusBarOpenGL:
 
         from chimerax.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
+
+from PyQt5.QtGui import QWindow
+class StatusOpenGLWindow(QWindow):
+    def __init__(self, parent, expose_cb = None, resize_cb = None, key_press_cb = None):
+        QWindow.__init__(self)
+        if expose_cb:
+            self.exposeEvent = expose_cb
+        if resize_cb:
+            self.resizeEvent = resize_cb
+        if key_press_cb:
+            self.keyPressEvent = key_press_cb
+        from PyQt5.QtWidgets import QWidget
+        self._widget = QWidget.createWindowContainer(self, parent)
+        from PyQt5.QtGui import QSurface
+        self.setSurfaceType(QSurface.OpenGLSurface)
+        parent.addWidget(self._widget, stretch = 1)
+
+    # Override QWindow size(), width() and height() to use widget values.
+    # In Qt 5.12.9 QWindow reports values that are half the correct size
+    # after main window is dragged from devicePixelRatio = 2 screen
+    # to a devicePixelRatio = 1 screen on Windows 10.
+    def size(self):
+        return self._widget.size()
+    def width(self):
+        return self._widget.width()
+    def height(self):
+        return self._widget.height()
 
 #
 # Status bar drawing that partially restricts Qt event processing.  Allows event related

@@ -267,10 +267,12 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_RESIDUES);
     if (_res_map.size() == residues.size()) {
-        if (DestructionCoordinator::destruction_parent() != _structure && ischain)
-            _structure->remove_chain(dynamic_cast<Chain*>(this));
         _res_map.clear();
-        demote_to_sequence();
+        if (ischain) {
+            if (DestructionCoordinator::destruction_parent() != _structure)
+                _structure->remove_chain(dynamic_cast<Chain*>(this));
+            demote_to_sequence();
+        }
     } else {
         _res_map.clear();
         int i = 0;

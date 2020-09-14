@@ -114,6 +114,13 @@ Do not autostart any tools.
 <b>--offscreen</b>
 <br>
 Create a buffer for offscreen rendering in <a href="#nogui">nogui mode</a>.
+This option enables &ldquo;headless&rdquo; mode, allowing
+ChimeraX to render and save images and movies when it has no window,
+<i>e.g.</i>, on a server where no desktop windowing system is available.
+It is currently supported only on Linux and uses OSMesa, 
+a software rendering library included in Linux ChimeraX.
+Offscreen mode cannot use a graphics card or hardware-accelerated rendering 
+because OpenGL does not support rendering without a window.
 </blockquote>
 <blockquote>
 <a name="script"></a>
@@ -197,5 +204,5 @@ for more details.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2020</address>
+September 2020</address>
 </body></html>
