@@ -27,6 +27,12 @@ class SwapResAPI(BundleAPI):
             return RotamerDialog
 
     @staticmethod
+    def initialize(session, bundle_info):
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                SwapResAPI._add_gui_items(ses))
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
@@ -35,5 +41,10 @@ class SwapResAPI(BundleAPI):
     def start_tool(session, tool_name):
         from .tool import prep_rotamers_dialog
         return prep_rotamers_dialog(session, tool_name)
+
+    @staticmethod
+    def _add_gui_items(session):
+        from .contextmenu import add_selection_context_menu_items
+        add_selection_context_menu_items(session)
 
 bundle_api = SwapResAPI()

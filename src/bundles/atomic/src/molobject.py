@@ -991,7 +991,7 @@ class StructureSeq(Sequence):
             return False
         return self.residues < other.residues
 
-    chain_id = c_property('sseq_chain_id', string, read_only = True)
+    chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
@@ -1043,7 +1043,6 @@ class StructureSeq(Sequence):
         for part in (self.structure.name, "(%s)" % self.structure):
             rem = rem.strip()
             if rem:
-                rem = rem.strip()
                 if rem.startswith(part):
                     rem = rem[len(part):]
                     continue
@@ -1495,7 +1494,7 @@ class StructureData:
         'metal_coordination_distance' is the maximum distance between a metal and a possibly
         coordinating atom that will generate a metal-coordination pseudobond.
         '''
-        from .connect_structure._cs import connect_structure as connect_struct
+        from chimerax.connect_structure._cs import connect_structure as connect_struct
         connect_struct(self.cpp_pointer, bond_length_tolerance, metal_coordination_distance)
 
     def delete_alt_locs(self):
@@ -1622,11 +1621,16 @@ class StructureData:
         '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.
            The 'create_type' parameter controls if and how the pseudobond is created, as per:
 
-           0 (also: None) -- if no such group exists, none is created and None is returned
-           1 (also: "normal") -- a "normal" pseudobond group will be created if necessary, one where the
-              pseudobonds apply to all coordinate sets
-           2 (also: "per coordset") -- a "per coordset" pseudobond group will be created if necessary,
-              one where different coordsets can have different pseudobonds
+           0 (also: None)
+             If no such group exists, none is created and None is returned
+
+           1 (also: "normal")
+             A "normal" pseudobond group will be created if necessary, one where the pseudobonds
+             apply to all coordinate sets
+
+           2 (also: "per coordset")
+             A "per coordset" pseudobond group will be created if necessary, one where different
+             coordsets can have different pseudobonds
         '''
         if isinstance(create_type, int):
             create_arg = create_type

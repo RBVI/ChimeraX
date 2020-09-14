@@ -265,7 +265,6 @@ class BundleInfo:
         """
         _debug("register bundle", self._name, self._version)
         self._register_commands(logger)
-        self._register_file_types(logger)
         self._register_selectors(logger)
 
     def deregister(self, logger):
@@ -277,7 +276,7 @@ class BundleInfo:
             Where to log error messages.
         """
         self._deregister_selectors(logger)
-        self._deregister_file_types(logger)
+        #self._deregister_file_types(logger)
         self._deregister_commands(logger)
 
     def _register_commands(self, logger):
@@ -307,95 +306,6 @@ class BundleInfo:
                 cli.deregister(ci.name)
             except RuntimeError:
                 pass  # don't care if command was already missing
-
-    def _register_file_types(self, logger):
-        from chimerax.core import io, fetch
-        for fi in self.formats:
-            _debug("register_file_type", fi.name)
-            format = io.register_format(
-                fi.name, fi.category, fi.suffixes, fi.nicknames,
-                mime=fi.mime_types, reference=fi.documentation_url,
-                dangerous=fi.dangerous, icon=fi.icon, encoding=fi.encoding,
-                synopsis=fi.synopsis
-            )
-            if fi.has_open:
-                def boot_open(bi_self=self, logger=logger):
-                    try:
-                        f = bi_self._get_api(logger).open_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no open_file function found for bundle \"%s\"" % bi_self.name)
-                    if f == BundleAPI.open_file:
-                        raise ToolshedError(
-                            "bundle \"%s\"'s API forgot to override open_file()" % bi_self.name)
-                    return f
-                format._boot_open_func = boot_open
-
-                if fi.open_kwds:
-                    from ..commands import cli
-                    try:
-                        cli.add_keyword_arguments('open', _convert_keyword_types(
-                            fi.open_kwds, self, logger))
-                    except ValueError as e:
-                        logger.warning(
-                                "unable to register \"open\" keywords in bundle \"%s\": %s"
-                                % (self.name, str(e)))
-            if fi.has_save:
-                def boot_save(bi_self=self, logger=logger):
-                    try:
-                        f = bi_self._get_api(logger).save_file
-                    except AttributeError:
-                        raise ToolshedError(
-                            "no save_file function found for bundle \"%s\"" % bi_self.name)
-                    if f == BundleAPI.save_file:
-                        raise ToolshedError(
-                            "bundle \"%s\"'s API forgot to override save_file()" % bi_self.name)
-                    return f
-                format._boot_export_func = boot_save
-
-                if fi.save_kwds:
-                    from ..commands import cli
-                    try:
-                        cli.add_keyword_arguments('save', _convert_keyword_types(
-                            fi.save_kwds, self, logger))
-                    except ValueError as e:
-                        logger.warning(
-                                "unable to register \"save\" keywords in bundle \"%s\": %s"
-                                % (self.name, str(e)))
-        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
-            if io.format_from_name(format_name) is None:
-                logger.warning('Unknown format %r given for database %r' % (format_name, database_name))
-
-            def fetch_cb(session, identifier, database_name=database_name, format_name=format_name, **kw):
-                try:
-                    f = self._get_api(logger).fetch_from_database
-                except AttributeError:
-                    raise ToolshedError(
-                        "no fetch_from_database function found for bundle \"%s\""
-                        % self.name)
-                if f == BundleAPI.fetch_from_database:
-                    raise ToolshedError("bundle \"%s\"'s API forgot to override fetch_from_database()" % self.name)
-                # optimize by replacing fetch_from_database for (database, format)
-
-                def fetch_shim(session, identifier, f=f, database_name=database_name, format_name=format_name, **kw):
-                    return f(session, identifier, database_name=database_name, format_name=format_name, **kw)
-                fetch.register_fetch(database_name, fetch_shim, format_name)
-                return fetch_shim(session, identifier, **kw)
-            try:
-                fetch.register_fetch(
-                    database_name, fetch_cb, format_name, prefixes=prefixes,
-                    is_default_format=is_default, example_id=example_id)
-            except Exception as e:
-                logger.warning("Unable to register fetch function for format %t in database %r: %s" % (
-                               format_name, database_name, str(e)))
-
-    def _deregister_file_types(self, logger):
-        from chimerax.core import io, fetch
-        # Deregister fetch first since it might use format info
-        for (database_name, format_name, prefixes, example_id, is_default) in self.fetches:
-            fetch.deregister_fetch(database_name, format_name, prefixes=prefixes)
-        for fi in self.formats:
-            io.deregister_format(fi.name)
 
     def _register_selectors(self, logger):
         from ..commands import register_selector

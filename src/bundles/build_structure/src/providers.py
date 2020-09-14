@@ -18,9 +18,90 @@ from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
+import abc
 
-def fill_widget(name, widget):
-    if name == "atom":
+class StartStructureProvider(metaclass=abc.ABCMeta):
+    def __init__(self, session):
+        self.session = session
+
+    @abc.abstractmethod
+    def command_string(self, widget):
+        # Return the command (sub)string corresponding to the settings in the widget.
+        # Can return None if the provider doesn't directly add atoms [e.g. links to another tool].
+        # If 'new_model_only' was "true" in the Provider tag, then the returned string should be
+        # the _entire_ command for opening the model.
+        # Otherwise it should be the argument substring of your 'build start' provider's subcommand
+        pass
+
+    def execute_command(self, structure, args):
+        # Execute this providers subcommand into the given structure and with the given args.
+        # This method will not be called if 'new_model_only' was "true" in the Provider tag
+        # (i.e. command_string() returns a full command) or if 'indirect' was "true" in the
+        # Provider tag (i.e. provider doesn't directly add atoms)
+        raise NotImplementedError("Start-structure provider failed to implement 'execute_command'")
+
+    @abc.abstractmethod
+    def fill_parameters_widget(self, widget):
+        # populate the given widget with controls for specifying the arg values for this providers
+        # command
+        pass
+
+def get_provider(session, name):
+    return {
+        "atom": AtomProvider,
+        "peptide": PeptideProvider
+    }[name](session, name)
+
+from chimerax.core.commands import register, CmdDesc, Command, StringArg, Float2Arg, Float3Arg, BoolArg
+
+class AtomProvider(StartStructureProvider):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.name = name
+        # register commands to private registry
+        from chimerax.core.commands.cli import RegisteredCommandInfo
+        self.registry = RegisteredCommandInfo()
+        register(name,
+            CmdDesc(
+                keyword=[("position", Float3Arg), ("res_name", StringArg), ("select", BoolArg)],
+                synopsis="place helium atom"
+            ), shim_place_atom, registry=self.registry)
+
+    def command_string(self, widget):
+        from chimerax.core.commands import StringArg
+        args = []
+        button = widget.findChild(QRadioButton, "atom centered")
+        if not button.isChecked():
+            coords = []
+            for axis in "xyz":
+                coord_entry = widget.findChild(QLineEdit, axis + " coord")
+                if not coord_entry.hasAcceptableInput():
+                    raise UserError("%s coordinate must be a number" % axis)
+                coords.append(coord_entry.text().strip())
+            args.append("pos " + ','.join(coords))
+        res_name_entry = widget.findChild(QLineEdit, "res name")
+        res_name = res_name_entry.text().strip()
+        if not res_name:
+            raise UserError("Residue name must not be empty/blank")
+        if res_name != "UNL":
+            args.append("res %s" % StringArg.unparse(res_name))
+        check_box = widget.findChild(QCheckBox, "select atom")
+        if not check_box.isChecked():
+            args.append("select false")
+        return " ".join(args)
+
+    def execute_command(self, structure, args):
+        # the command uses the trick that the structure arg is temporarily made available in the
+        # global namespace as '_structure'
+        global _structure
+        _structure = structure
+        try:
+            cmd = Command(self.session, registry=self.registry)
+            return cmd.run(self.name + ' ' + args, log=False)[0]
+        finally:
+            _structure = None
+
+    def fill_parameters_widget(self, widget):
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,5)
         layout.setSpacing(0)
@@ -65,7 +146,59 @@ def fill_widget(name, widget):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
-    elif name == "peptide":
+
+class PeptideProvider(StartStructureProvider):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.name = name
+        # register commands to private registry
+        from chimerax.core.commands.cli import RegisteredCommandInfo
+        self.registry = RegisteredCommandInfo()
+
+        from chimerax.core.commands import Annotation, DynamicEnum
+        class RepeatableFloat2Arg(Annotation):
+            allow_repeat = True
+            parse = Float2Arg.parse
+            unparse = Float2Arg.unparse
+
+        register(name,
+            CmdDesc(
+                required=[("sequence", StringArg), ("phi_psis", RepeatableFloat2Arg)],
+                keyword=[("position", Float3Arg), ("chain_id", StringArg),
+                    ("rot_lib", DynamicEnum(self.session.rotamers.library_names))],
+                synopsis="construct peptide from sequence"
+            ), shim_place_peptide, registry=self.registry)
+
+    def command_string(self, widget):
+        args = []
+        seq_edit = widget.findChild(QTextEdit, "peptide sequence")
+        seq = "".join(seq_edit.toPlainText().split()).upper()
+        if not seq:
+            raise UserError("No peptide sequence entered")
+        param_dialog = PeptideParamDialog(self.session, widget, seq)
+        if not param_dialog.exec():
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("peptide building cancelled")
+        args.append(StringArg.unparse(seq))
+        args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
+        args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
+        chain_id = param_dialog.chain_id
+        if chain_id:
+            args.append("chainId %s" % StringArg.unparse(chain_id))
+        return " ".join(args)
+
+    def execute_command(self, structure, args):
+        # the command uses the trick that the structure arg is temporarily made available in the
+        # global namespace as '_structure'
+        global _structure
+        _structure = structure
+        try:
+            cmd = Command(self.session, registry=self.registry)
+            return cmd.run(self.name + ' ' + args, log=False)[0]
+        finally:
+            _structure = None
+
+    def fill_parameters_widget(self, widget):
         layout = QVBoxLayout()
         layout.setContentsMargins(3,0,3,5)
         layout.setSpacing(0)
@@ -82,46 +215,6 @@ def fill_widget(name, widget):
         # wrapping
         tip.setAlignment(Qt.AlignCenter)
         layout.addWidget(tip)
-
-def process_widget(session, name, widget):
-    from chimerax.core.commands import StringArg, Float2Arg
-    args = []
-    if name == "atom":
-        button = widget.findChild(QRadioButton, "atom centered")
-        if not button.isChecked():
-            coords = []
-            for axis in "xyz":
-                coord_entry = widget.findChild(QLineEdit, axis + " coord")
-                if not coord_entry.hasAcceptableInput():
-                    raise UserError("%s coordinate must be a number" % axis)
-                coords.append(coord_entry.text().strip())
-            args.append("pos " + ','.join(coords))
-        res_name_entry = widget.findChild(QLineEdit, "res name")
-        res_name = res_name_entry.text().strip()
-        if not res_name:
-            raise UserError("Residue name must not be empty/blank")
-        if res_name != "UNL":
-            args.append("res %s" % StringArg.unparse(res_name))
-        check_box = widget.findChild(QCheckBox, "select atom")
-        if not check_box.isChecked():
-            args.append("select false")
-    elif name == "peptide":
-        seq_edit = widget.findChild(QTextEdit, "peptide sequence")
-        seq = "".join(seq_edit.toPlainText().split()).upper()
-        if not seq:
-            raise UserError("No peptide sequence entered")
-        param_dialog = PeptideParamDialog(session, widget, seq)
-        if not param_dialog.exec():
-            from chimerax.core.errors import CancelOperation
-            raise CancelOperation("peptide building cancelled")
-        args.append(StringArg.unparse(seq))
-        args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
-        args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
-        chain_id = param_dialog.chain_id
-        if chain_id:
-            args.append("chainId %s" % StringArg.unparse(chain_id))
-
-    return " ".join(args)
 
 class PeptideParamDialog(QDialog):
     def __init__(self, session, parent, seq):
@@ -249,50 +342,6 @@ class PhiPsiOption(SymbolicEnumOption):
     ]
 
 
-
-from chimerax.core.commands import register, CmdDesc, Command
-command_registry = None
-def process_command(session, name, structure, substring):
-    # all the commands use the trick that the structure arg is temporarily made available in the
-    # global namespace as '_structure'
-    global _structure, command_registry
-    _structure = structure
-    try:
-        if command_registry is None:
-            # register commands to private registry
-            from chimerax.core.commands.cli import RegisteredCommandInfo
-            command_registry = RegisteredCommandInfo()
-
-            from chimerax.core.commands import Float3Arg, StringArg, BoolArg, \
-                Float2Arg, DynamicEnum
-
-            # atom
-            register("atom",
-                CmdDesc(
-                    keyword=[("position", Float3Arg), ("res_name", StringArg),
-                        ("select", BoolArg)],
-                    synopsis="place helium atom"
-                ), shim_place_atom, registry=command_registry)
-
-            # peptide
-            from chimerax.core.commands import Annotation
-            class RepeatableFloat2Arg(Annotation):
-                allow_repeat = True
-                parse = Float2Arg.parse
-                unparse = Float2Arg.unparse
-
-            register("peptide",
-                CmdDesc(
-                    required=[("sequence", StringArg), ("phi_psis", RepeatableFloat2Arg)],
-                    keyword=[("position", Float3Arg), ("chain_id", StringArg),
-                        ("rot_lib", DynamicEnum(session.rotamers.library_names))],
-                    synopsis="construct peptide from sequence"
-                ), shim_place_peptide, registry=command_registry)
-
-        cmd = Command(session, registry=command_registry)
-        cmd.run(name + ' ' + substring, log=False)
-    finally:
-        _structure = None
 
 def shim_place_atom(session, position=None, res_name="UNL", select=True):
     from .start import place_helium

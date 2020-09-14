@@ -83,7 +83,7 @@ def dicom_grids_from_series(series):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.map.data import GridData
+from chimerax.map_data import GridData
 class DicomGrid(GridData):
 
   initial_rendering_options = {'projection_mode': '3d',
@@ -139,7 +139,7 @@ class DicomGrid(GridData):
   #
   def dicom_read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from chimerax.map.data.readarray import allocate_array
+    from chimerax.map_data.readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     c = self.channel if self.multichannel else None
     self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,

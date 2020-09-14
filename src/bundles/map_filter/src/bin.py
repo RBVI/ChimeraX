@@ -17,7 +17,7 @@ def bin(v, bin_size = (2,2,2),
         step = None, subregion = None, model_id = None, session = None):
 
   bd = bin_grid(v, bin_size, step, subregion)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   bv = volume_from_grid_data(bd, session, model_id = model_id)
 
   bv.copy_settings_from(v, copy_region = False)
@@ -37,7 +37,7 @@ def bin_grid(v, bin_size = (2,2,2), step = 1, subregion = None, region = None):
 
 # -----------------------------------------------------------------------------
 #
-from ..data import GridData
+from chimerax.map_data import GridData
 class BinnedGrid(GridData):
   
   def __init__(self, grid_data, bin_size):

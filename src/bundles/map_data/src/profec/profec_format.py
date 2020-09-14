@@ -96,6 +96,6 @@ def read_line_values(line, count, type, descrip):
 
   try:
     values = [type(f) for f in line.split()[:count]]
-  except:
+  except Exception:
     raise FileFormatError('Error parsing %s on line:\n %s' % (descrip, line))
   return values

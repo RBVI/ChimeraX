@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-UI" version="1.0"
+<BundleInfo name="ChimeraX-UI" version="1.3"
 	    package="chimerax.ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -22,7 +22,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
   </Dependencies>
@@ -31,6 +31,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: ui :: User interface :: control user interface behavior</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: tool :: User interface :: Manipulate tools</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -29,19 +29,6 @@ class _MarkersAPI(BundleAPI):
         return p
 
     @staticmethod
-    def open_file(session, path):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import cmmfiles
-        return cmmfiles.read_cmm(session, path)
-
-    @staticmethod
-    def save_file(session, path, models=None):
-        # 'save_file' is called by session code to save a file
-        from . import cmmfiles
-        return cmmfiles.write_cmm(session, path, models)
-
-    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_marker_command(logger)

@@ -56,7 +56,7 @@ cymol.$(PYMOD_EXT): $(SHLIB) cymol.pyx include/atomstruct/Atom.h include/atomstr
 	mv chimerax/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic
 
-cytmpl.$(PYMOD_EXT): $(SHLIB) cytmpl.pyx
+cytmpl.$(PYMOD_EXT): $(SHLIB) cytmpl.pyx cymol.$(PYMOD_EXT)
 	LDFLAGS="-L." $(PYTHON_EXE) setup-cytmpl.py build_ext -i
 	mv chimerax/atomic/cytmpl.cp*.$(PYMOD_EXT) cytmpl.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic

@@ -210,7 +210,7 @@ def create_marker_sets(session, marker_set_tuples):
       if 'note' in mdict:
           m.marker_note = str(mdict['note'])
           if 'nr' in mdict and 'ng' in mdict and 'nb' in mdict:
-              m.marker_note_rgba = (mdict['nr'],mdict['ng'],mdict['nb'],1)
+              m.marker_note_rgba = (float(mdict['nr']),float(mdict['ng']),float(mdict['nb']),1)
       e = leftover_keys(mdict, ('id','x','y','z','r','g','b', 'radius','note',
 				'nr','ng','nb'))
       m.marker_extra_attributes = e

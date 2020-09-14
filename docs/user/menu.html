@@ -83,8 +83,10 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <li><b>Chemistry</b>
     <ul>
     <li><b>Element</b> &ndash; elements by atomic symbol
-    <li><b>Functional Group</b>
     <li><b>IDATM Type</b> &ndash; <a href="atomtypes.html">atom type</a>
+    <li><b>Functional Group</b>
+    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
+    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
     </ul>
   <li><b>Residues</b> 
   &ndash; <a href="commands/atomspec.html#hierarchy">residues</a>
@@ -98,10 +100,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
     <li><b>Ligand</b> 
     &ndash; <a href="commands/atomspec.html#surfcats">ligand</a>
     <li><b>Main</b> &ndash; <a href="commands/atomspec.html#surfcats">main</a>
-    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
-    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
-    <li><b>Ribose</b> &ndash; nucleic-acid backbone ribose and doxyribose moieties
-    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure types:
+    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure
       <ul>
       <li><b>Coil</b> &ndash; amino acid residues not in helix or strand
       <li><b>Helix</b> &ndash; amino acid residues in helices
@@ -120,8 +119,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <b>Sequence...</b> <a href="findseq.html">find and select</a>
   a specified amino acid or nucleotide sequence or sequence pattern
   <li><a name="selectzone"></a>
-  <b>Zone...</b> select atoms and bonds 
-(or whole residues, if <b>Apply criteria to whole residues</b> is checked)
+  <b>Zone...</b> select <b>atoms</b> or <b>residues</b>
 within and/or beyond a specified distance from the currently selected atoms.
 If both the within (&lt;) and beyond (&gt;) options are checked, 
 both criteria must be met; for example, the atoms or residues must fall within 
@@ -137,7 +135,10 @@ deselect all items that are currently selected
 level in the <a href="selection.html#cascade">selection cascade</a> 
   <li><b>Narrow</b> &ndash; narrow a previously broadened selection down a
 level in the <a href="selection.html#cascade">selection cascade</a>
-  <li><b>Menu Mode: <i>mode</i></b>
+<a name="selectmode"></a>
+  <li><b>Menu Mode: <i>mode</i></b> (applies only to selecting with
+the <a href="#select"><b>Select</b> menu</a> and 
+<a href="tools/basicactions.html"><b>Basic Actions</b></a> tool)
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)
     <li><b>Add (+)</b>
@@ -226,12 +227,10 @@ their simultaneous display has been enabled with
   <li><b>Show</b>
   <li><b>Hide</b>
   </ul>
-<p>
-The <a href="commands/cartoon.html#style"><b>cartoon style</b></a>
-options apply to whole models, except that they can be set separately
+The <a href="commands/cartoon.html#style"><b>cartoon style</b></a> settings 
+apply to whole models, except that edge shape can be set differently
 for <a href="#select">nucleic</a> and for protein 
-<a href="#select">helix, strand, and coil</a> within a single model:
-</p>
+<a href="#select">helix, strand, and coil</a>:
   <ul>
   <li><b>Rounded Edges</b> &ndash; oval cross-section
 (for a round cross-section, use
@@ -244,10 +243,10 @@ to set width = thickness, for example: <b>cartoon style
   </ul>
 <br>
 <li><b>Surface</b>
-&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>;
-the <a href="commands/surface.html#style"><b>surface style</b></a>
-and <a href="commands/transparency.html"><b>transparency</b></a> options
-also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
+&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>,
+adjust <a href="commands/surface.html#style">style</a> and 
+<a href="commands/transparency.html">transparency</a> of molecular and/or
+<a href="tools/volumeviewer.html">volume surfaces</a>
   <ul>
   <li><b>Show</b>
   <li><b>Hide</b>
@@ -255,6 +254,9 @@ also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
   <li><b>Mesh</b>
   <li><b>Dot</b>
   <li><b>Transparency</b>
+&ndash; can be set differently for atomic patches within a single
+<a href="commands/surface.html">molecular surface</a>,
+whereas the styles above apply to entire models only
      <ul>
      <li><b>0%</b>
      <li><b>10%</b>
@@ -271,6 +273,7 @@ also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
   </ul>
 </ul>
 <ul>
+<a name="actcolor"></a>
 <li><b>Color</b>
 &ndash; see also <a href="commands/color.html"><b>color</b></a>
   <ul>
@@ -283,7 +286,57 @@ also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
   &ndash; use a built-in <a href="commands/colortables.html#element">
   color-by-element scheme</a>
   <li><b>From Editor</b> &ndash; use the system color-editing tool
+  <li><b>All Options...</b> open the 
+  <a href="tools/coloractions.html"><b>Color Actions</b></a> dialog
+  for access to <a href="commands/colornames.html#builtin">all built-in 
+  named colors</a> and finer control over which types of items are colored
+  (for example, background only or cartoons only)
   </ul>
+<br>
+<li><b>Label</b>
+&ndash; see also <a href="commands/label.html"><b>label</b></a>
+  <ul>
+  <li><b>Atom</b>
+   <ul>
+   <li><b>Name</b>
+   <li><b>Element</b>
+   <li><b>IDATM Type</b> &ndash; by <a href="atomtypes.html">atom type</a>
+   <li><b>Custom Text</b></a>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#text"><b>text</b> option of <b>label</b></a>.
+Examples:
+     <ul class="none"><b>
+     <li>hello&nbsp;world
+     <li>{0.bfactor:g}
+     </b></ul>
+    <li><b>Off</b>
+   </ul>
+  <li><b>Residue</b>
+    <ul>
+    <li><b>Name</b>
+    <li><b>Specifier</b></a> &ndash; chain ID and number
+    <li><b>Name Combo</b> &ndash; chain ID, name, and number
+    <li><b>1-Letter Code</b> &ndash; 1-letter code for standard
+    amino acid and nucleic acid residues, name for other residues
+    <li><b>1-Letter Code Combo</b> &ndash; as above plus chain ID and number
+    <li><b>Custom Text</b>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#text"><b>text</b> option of <b>label</b></a>.
+Examples:
+      <ul class="none"><b>
+      <li>wild type
+      <li>{0.chain_id}
+      <li>{0.phi:.1f},{0.psi:.1f}
+      </b></ul>
+    <li><b>Off</b>
+    </ul>
+  </ul>
+  <li><b>View</b>
+&ndash; see also <a href="commands/view.html"><b>view</b></a>
+  <li><b>Set Pivot</b>
+&ndash; see also <a href="commands/cofr.html"><b>cofr</b></a>
 </ul>
 
 <a name="tools"></a>
@@ -294,7 +347,11 @@ The <b>Volume Data</b> category can be shown as a separate top-level
 <a href="#volume"><b>Volume</b> menu</a>.
 Active tools are listed in the bottom section and can be chosen
 to toggle their display: checked = shown, unchecked = hidden.
+The <b>More Tools</b> entry shows the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a>
+web repository of ChimeraX bundles.
 See also: 
+<a href="commands/ui.html#tool"><b>tool</b></a>,
 <a href="window.html#context-menu">context menus</a>
 <br><br>
 
@@ -303,7 +360,9 @@ See also:
 <b>Favorites</b>
 &ndash; <a href="index.html#tools">tools</a> designated as favorites 
 with the command <a href="commands/ui.html#favorite"><b>ui favorite</b></a>
-or <a href="window.html#tool-context">tool context menus</a>
+or <a href="window.html#tool-context">tool context menus</a>; 
+on some platforms, this menu also contains the 
+<a href="preferences.html"><b>Settings</b></a>
 <br><br>
 
 <a name="presets"></a>
@@ -421,5 +480,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2020</address>
+July 2020</address>
 </body></html> 

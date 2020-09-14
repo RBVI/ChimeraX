@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxDistance</b>&nbsp;&nbsp;<i>D</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
@@ -47,9 +47,13 @@ ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to
 See also: 
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>,
+<a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../preferences.html#startup">custom presets</a>,
-<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+<a href="defattr.html"><b>defattr</b></a> and
+<a href="defattr.html#examples">example assignment files</a>,
+the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
 target="_blank">ChimeraX MLP highlight</a>,
@@ -89,7 +93,7 @@ for the corresponding heavy atoms (see
 target="_blank">details and comparisons</a> to the original values 
 from <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>).
 The resulting lookup table includes the standard amino acids plus
-MLE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
+MSE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
 used in lower-resolution protein structures where the amino acid type
 could not be discerned), and the peptide-capping residues 
 PCA (pyroglutamic acid), ACE (acetyl), NME (methylamine),  and NH2.
@@ -145,7 +149,8 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>:
 </p>
 <blockquote>
-<b>palette lipophilicity range -20,20</b>
+<b><a href="color.html#palette">palette</a> lipophilicity 
+&nbsp;<a href="color.html#range">range</a> -20,20</b>
 </blockquote>
 <p>
 Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
@@ -157,13 +162,19 @@ and no surface calculations or coloring will be performed.
 This is only useful in combination with <b>map true</b>.
 </p><p>
 With <b>map true</b> (default <b>false</b>), MLP maps will be
-opened as volume models. This allows subsequently recoloring surfaces 
-by the map values (without having to recalculate them on the fly) 
-using <a href="color.html#map"><b>color sample</b></a>,
-and/or <a href="save.html#map">saving the maps</a> to files.
+opened as volume models. This allows 
+<a href="save.html#map">saving the map</a> to a file and/or
+subsequently coloring surfaces by the map values using 
+<a href="color.html#map"><b>color sample</b></a>
+without having to recalculate the map on the fly.
+The <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a> includes an
+<a href="../tutorials/binding-sites.html#cap-example">example</a>
+of generating such a map and using it to color the planar cap
+where a surface is clipped.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+August 2020</address>
 </body></html>

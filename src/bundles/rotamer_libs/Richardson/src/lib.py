@@ -14,8 +14,7 @@
 _common_cache = {}
 _mode_cache = {}
 
-from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
-    UnsupportedResTypeError, NoResidueRotamersError
+from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeError, NoResidueRotamersError
 
 class RichardsonBase(RotamerLibrary):
 

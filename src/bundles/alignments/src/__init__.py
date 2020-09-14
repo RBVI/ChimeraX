@@ -38,33 +38,12 @@ class _AlignmentsBundleAPI(BundleAPI):
 
         if not hasattr(session, 'alignments'):
             from .manager import AlignmentsManager
-            session.alignments = AlignmentsManager(session, bundle_info)
-        return session.alignments
+            session.alignments = AlignmentsManager(session, name, bundle_info)
 
     @staticmethod
     def finish(session, bundle_info):
         """De-install alignments manager from existing session"""
         del session.alignments
-
-    @staticmethod
-    def open_file(session, stream, file_name, format_name, alignment=True,
-            ident=None, auto_associate=True):
-        from .parse import open_file
-        return open_file(session, stream, file_name, format_name=format_name.upper(),
-            alignment=alignment, ident=ident, auto_associate=auto_associate)
-
-    @staticmethod
-    def save_file(session, path, format_name="fasta", alignment=None):
-        if not alignment:
-            alignments = session.alignments.alignments
-            from chimerax.core.errors import UserError
-            if not alignments:
-                raise UserError("No alignments open!")
-            elif len(alignments) != 1:
-                raise UserError("More than one alignment open;"
-                    " use 'alignment' keyword to specify one")
-            alignment = alignments[0]
-        alignment.save(path, format_name=format_name)
 
     @staticmethod
     def register_command(command_name, logger):

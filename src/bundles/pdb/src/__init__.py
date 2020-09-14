@@ -23,25 +23,6 @@ class _PDBioAPI(BundleAPI):
     SerialNumberingArg = EnumOf(("amber","h36"))
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
-            format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch data with give identifier
-        # returns (list of models, status message)
-        from . import pdb
-        fetcher = pdb.fetch_pdb_pdbe if database_name == "pdbe" else pdb.fetch_pdb
-        return fetcher(session, identifier, ignore_cache=ignore_cache, **kw)
-
-    @staticmethod
-    def open_file(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True, combine_sym_atoms=True):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import pdb
-        return pdb.open_pdb(session, stream, file_name, auto_style=auto_style,
-            coordsets=coordsets, atomic=atomic, max_models=max_models, log_info=log_info,
-            combine_sym_atoms=combine_sym_atoms)
-
-    @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
             if name == "PDB":
@@ -61,6 +42,7 @@ class _PDBioAPI(BundleAPI):
                             'coordsets': BoolArg,
                             'log_info': BoolArg,
                             'max_models': IntArg,
+                            'segid_chains': BoolArg,
                         }
             else:
                 from chimerax.open_command import FetcherInfo
@@ -78,7 +60,7 @@ class _PDBioAPI(BundleAPI):
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, IntArg, FloatArg
                         return {
-                            'oversampling': FloatArg,
+                            'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
         else:
@@ -100,17 +82,15 @@ class _PDBioAPI(BundleAPI):
                         'selected_only': BoolArg,
                         'serial_numbering': EnumOf(("amber","h36"))
                     }
-                    
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
         return Info()
 
-
-    @staticmethod
-    def save_file(session, path, *, models=None, selected_only=False, displayed_only=False,
-        all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36"):
-        # 'save_file' is called by session code to save a file
-        from . import pdb
-        return pdb.save_pdb(session, path, models=models, selected_only=selected_only,
-            displayed_only=displayed_only, all_coordsets=all_coordsets, pqr=pqr,
-            rel_model=rel_model, serial_numbering=serial_numbering)
 
 bundle_api = _PDBioAPI()

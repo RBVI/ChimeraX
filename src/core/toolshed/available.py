@@ -13,9 +13,9 @@
 
 
 from . import _debug
-import re
 
 _CACHE_FILE = "available.json"
+FORMAT_VERSION = 1
 
 
 class AvailableBundleCache(list):
@@ -23,6 +23,8 @@ class AvailableBundleCache(list):
     def __init__(self, cache_dir):
         self.cache_dir = cache_dir
         self.uninstallable = []
+        self.toolshed_url = None
+        self.format_version = 1
 
     def load(self, logger, toolshed_url):
         #
@@ -30,14 +32,21 @@ class AvailableBundleCache(list):
         # json interface.
         #
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
+        from chimerax import app_dirs
         from urllib.parse import urljoin, urlencode
-        params = [("uuid", self.uuid())]
+        params = [
+            ("uuid", self.uuid()),
+            ("app_version", app_dirs.version),
+            ("format_version", FORMAT_VERSION),
+        ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
         _debug("AvailableBundleCache.load: url", url)
         from urllib.request import urlopen
         with urlopen(url) as f:
             import json
             data = json.loads(f.read())
+        data.insert(0, ['toolshed_url', toolshed_url])
+        data.insert(0, ['format_version', FORMAT_VERSION])
         import os
         if self.cache_dir is not None:
             with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
@@ -66,13 +75,19 @@ class AvailableBundleCache(list):
         import chimerax.core
         my_version = Version(chimerax.core.version)
         for d in data:
-            b = _build_bundle(d)
-            if not b:
-                continue
-            if self._installable(b, my_version):
-                self.append(b)
+            if isinstance(d, list):
+                if d[0] == 'format_version':
+                    self.format_version = d[1]
+                elif d[0] == 'toolshed_url':
+                    self.toolshed_url = d[1]
             else:
-                self.uninstallable.append(b)
+                b = _build_bundle(d)
+                if not b:
+                    continue
+                if self._installable(b, my_version):
+                    self.append(b)
+                else:
+                    self.uninstallable.append(b)
 
     def _installable(self, b, my_version):
         installable = False

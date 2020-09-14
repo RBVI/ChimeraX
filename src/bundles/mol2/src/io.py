@@ -203,7 +203,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
     # need to find amide moieties since Sybyl has an explicit amide type
     if status:
         status("Finding amides")
-    from chimerax.atomic.chem_group import find_group
+    from chimerax.chem_group import find_group
     amides = find_group("amide", structures)
     amide_Ns = set([amide[2] for amide in amides])
     amide_CNs = set([amide[0] for amide in amides])
@@ -489,7 +489,11 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
             # ID of the root atom of the residue
             chain_atom = res.principal_atom
             if chain_atom is None:
-                chain_atom = res.atoms[0]
+                # if writing out a selection, not all residue atoms
+                # might be in atom_indices...
+                for chain_atom in res.atoms:
+                    if chain_atom in atom_indices:
+                        break
             print("%5d" % atom_indices[chain_atom], end=" ", file=f)
 
 

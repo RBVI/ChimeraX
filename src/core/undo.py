@@ -17,7 +17,7 @@ functions which may be invoked via GUI, command or programmatically.
 """
 
 import abc
-from .state import StateManager, CORE_STATE_VERSION
+from .state import StateManager
 
 
 class Undo(StateManager):
@@ -339,7 +339,8 @@ class UndoState(UndoAction):
         super().__init__(name, can_redo)
         self.state = []
 
-    def add(self, owner, attribute, old_value, new_value, option="A"):
+    def add(self, owner, attribute, old_value, new_value, option="A", *, deleted_check=lambda obj:
+            hasattr(obj.__class__, 'deleted') and type(obj.__class__.deleted) == property and obj.deleted):
         """Add another tuple of (owner, attribute, old_value, new_value,
         option) to the undo action state.
 
@@ -375,27 +376,34 @@ class UndoState(UndoAction):
             and old and new values are sequences of the same length
             and setattr is used to set each element of the owner sequence
             to the corresponding element of the value sequence.
+        deleted_check: function
+            Used to determine if the instance is still "alive" -- typically
+            for instances that have a C++ component that may have been
+            destroyed.  The function takes the instance as its only argument.
+            By default, 'deleted_check' uses the instance's "deleted" property
+            (if it exists) to decide if the object is still alive.
+            Dead instances will be skipped during the undo process.
         """
         if option not in self._valid_options:
             raise ValueError("invalid UndoState option: %s" % option)
-        self.state.append((owner, attribute, old_value, new_value, option))
+        self.state.append((owner, attribute, old_value, new_value, option, deleted_check))
 
     def undo(self):
         """Undo action (set owner attributes to old values).
         """
         self._consistency_check()
-        for owner, attribute, old_value, new_value, option in reversed(self.state):
-            self._update_owner(owner, attribute, old_value, option)
+        for owner, attribute, old_value, new_value, option, deleted_check in reversed(self.state):
+            self._update_owner(owner, attribute, old_value, option, deleted_check)
 
     def redo(self):
         """Redo action (set owner attributes to new values).
         """
         self._consistency_check()
-        for owner, attribute, old_value, new_value, option in self.state:
-            self._update_owner(owner, attribute, new_value, option)
+        for owner, attribute, old_value, new_value, option, deleted_check in self.state:
+            self._update_owner(owner, attribute, new_value, option, deleted_check)
 
     def _consistency_check(self):
-        for owner, attribute, old_value, new_value, option in self.state:
+        for owner, attribute, old_value, new_value, option, deleted_check in self.state:
             try:
                 owner_length = len(owner)
             except TypeError:
@@ -412,7 +420,10 @@ class UndoState(UndoAction):
                     raise UserError("Undo failed, probably because "
                                      "structures have been modified.")
 
-    def _update_owner(self, owner, attribute, value, option):
+    def _update_owner(self, owner, attribute, value, option, deleted_check):
+        if option != "S":
+            if deleted_check(owner):
+                return
         if option == "A":
             setattr(owner, attribute, value)
         elif option == "M":
@@ -423,6 +434,8 @@ class UndoState(UndoAction):
             getattr(owner, attribute)(*value)
         elif option == "S":
             for e,v in zip(owner, value):
+                if deleted_check(e):
+                    continue
                 setattr(e, attribute, v)
 
 

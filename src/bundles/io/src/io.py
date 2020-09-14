@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -13,17 +15,17 @@ from .compression import handle_compression, get_compression_type
 
 def open_input(source, encoding=None, *, compression=None):
     """
-	Open possibly compressed input for reading.
+    Open possibly compressed input for reading.
 
-	*source* can be path or a stream.  If a stream, it is simply returned.
-	If *encoding* is 'None', open as binary.
-	If *compression* is None, whether to use compression and what type will be determined off the file name.
+    *source* can be path or a stream.  If a stream, it is simply returned.
+    If *encoding* is 'None', open as binary.
+    If *compression* is None, whether to use compression and what type will be determined off the file name.
 
-	Also, if *source* is a string that begins with "http:" or "https:", then it is interpreted as an URL.
-	The encoding of the data returned by the URL is attempted to be determined by examining
-	Content-Encoding and/or Content-Type headers, but if those are missing then *encoding* is used
-	instead (binary if *encoding* is None).
-	"""
+    Also, if *source* is a string that begins with "http:" or "https:", then it is interpreted as an URL.
+    The encoding of the data returned by the URL is attempted to be determined by examining
+    Content-Encoding and/or Content-Type headers, but if those are missing then *encoding* is used
+    instead (binary if *encoding* is None).
+    """
 
     if _is_stream(source):
         return source
@@ -52,25 +54,28 @@ def open_input(source, encoding=None, *, compression=None):
             mode=mode, encoding=encoding)
     return open(fs_source, mode, encoding=encoding)
 
-def open_output(output, encoding=None, *, compression=None):
+def open_output(output, encoding=None, *, append=False, compression=None):
     """
-	Open output for (possibly compressed) writing.
+    Open output for (possibly compressed) writing.
 
-	*output* can be path or a stream.  If a stream, it is simply returned.
-	If *encoding* is 'None', open as binary.
-	If *compression* is None, whether to use compression and what type will be determined off the file name.
-	"""
+    *output* can be path or a stream.  If a stream, it is simply returned.
+    If *encoding* is 'None', open as binary.
+    If *compression* is None, whether to use compression and what type will be determined off the file name.
+    """
     if _is_stream(output):
         return output
     fs_output = file_system_file_name(output)
     compression_type = get_compression_type(fs_output, compression)
-    mode = 'wt' if encoding else 'wb'
+    base_mode = 'a' if append else 'w'
+    mode = base_mode + ('t' if encoding else 'b')
     if compression_type:
         return handle_compression(compression_type, fs_output,
             mode=mode, encoding=encoding)
     return open(fs_output, mode, encoding=encoding)
 
 def file_system_file_name(file_name):
+    import os.path
+    file_name = os.path.expanduser(file_name)
     try:
         hash_pos = file_name.rindex('#')
         dot_pos = file_name.rindex('.')

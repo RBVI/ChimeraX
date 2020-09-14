@@ -6,6 +6,7 @@ VERSION = 1.1.1d
 SHLIB_VERSION=$(shell awk '$$3 == "SHLIB_VERSION_NUMBER" { print $$4 }' $(SOURCE)/include/openssl/opensslv.h | sed s/\"//g)
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
+OPENSSL_OLD_HEADERS = openssl-include-0.9.8.tar.gz
 
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
 
@@ -77,8 +78,8 @@ endif
 
 ifeq ($(OS),Darwin)
 ifdef USE_OLD_HEADERS
-install:
-	tar zxf openssl-include-0.9.8.tar.gz -C $(includedir)
+install: $(OPENSSL_OLD_HEADERS)
+	tar zxf $(OPENSSL_OLD_HEADERS) -C $(includedir)
 else
 install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl
@@ -115,7 +116,7 @@ ifndef USE_OLD_HEADERS
 endif
 endif
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
@@ -133,6 +134,15 @@ ifneq (,$(POSTCONFIG_PATCHES))
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openssl/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/openssl
+
+$(OPENSSL_OLD_HEADERS):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openssl/$(OPENSSL_OLD_HEADERS)
 
 clean:
 	rm -rf $(SOURCE)

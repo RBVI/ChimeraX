@@ -49,7 +49,7 @@ install: $(SOURCE)
 app-install:;
 	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
 
-$(SOURCE) source:
+$(SOURCE) source: $(DISTRIBUTION)
 ifeq ($(OS),Linux)
 	tar xf $(DISTRIBUTION) -C $(tmpdir)
 else
@@ -60,6 +60,12 @@ ifneq (,$(PATCHES))
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/mesa/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/mesa
 
 clean:
 	if [ -d $(SOURCE) ] ; then \

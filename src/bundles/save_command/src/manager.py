@@ -24,12 +24,13 @@ from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
     """Manager for save command"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._savers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("save command changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, format_name, compression_okay=True, **kw):
         logger = self.session.logger
@@ -89,6 +90,17 @@ class SaveManager(ProviderManager):
                 % data_format.name)
         return provider_info.bundle_info.run_provider(self.session,
             provider_info.format_name, self).save_args_string_from_widget(widget)
+
+    def save_data(self, path, **kw):
+        """
+        Given a file path and possibly format-specific keywords, save a data file based on the
+        current session.
+
+        The format name can be provided with the 'format' keyword if the filename suffix of the path
+        does not correspond to those for the desired format.
+        """
+        from .cmd import provider_save
+        provider_save(self.session, path, **kw)
 
     @property
     def save_data_formats(self):

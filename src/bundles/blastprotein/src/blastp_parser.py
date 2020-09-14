@@ -15,7 +15,7 @@ _GapChars = "-. "
 
 import re
 RE_PDBId = re.compile(r"\S*pdb\|(?P<id>\w{4})\|(?P<chain>\w*)\s*(?P<desc>.*)")
-RE_ChainId = re.compile(r"Chain (?P<id>\w*),.*")
+RE_ChainId = re.compile(r"Chain (?P<id>\w*)\W.*")
 
 class Parser:
     """Parser for XML output from blastp (tested against

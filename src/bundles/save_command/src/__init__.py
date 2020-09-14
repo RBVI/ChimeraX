@@ -35,6 +35,11 @@ class SaverInfo:
         :py:class:`~chimerax.core.commands.cli.BoolArg` would convert 't' to True.
         Some bundles also provide relevant Annotations, *e.g.*
         :py:class:`chimerax.atomic.AtomsArg <chimerax.atomic.args.AtomsArg>`.
+
+        If your bundle includes a "models" keyword in the returned dictionary, it is handled specially
+        in that the user can not only specify it normally in the `save` command (*e.g.*
+        ``save out.pdb models #1``) but as a convenience it can instead be specified as the second
+        positional argument (*e.g.* ``save out.pdb #1``).
         """
         return {}
 
@@ -83,6 +88,7 @@ class SaverInfo:
 
 from .manager import NoSaverError
 from .dialog import show_save_file_dialog
+from .options import SaveModelOptionWidget
 
 from chimerax.core.toolshed import BundleAPI
 class _OpenBundleAPI(BundleAPI):
@@ -95,8 +101,7 @@ class _OpenBundleAPI(BundleAPI):
             session.ui.triggers.add_handler('ready',
                 lambda *args, ses=session: dialog.create_menu_entry(ses))
         from . import manager
-        session.save_command = manager.SaveManager(session)
-        return session.save_command
+        session.save_command = manager.SaveManager(session, name)
 
     @staticmethod
     def register_command(command_name, logger):

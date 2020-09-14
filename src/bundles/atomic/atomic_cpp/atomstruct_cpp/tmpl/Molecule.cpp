@@ -44,9 +44,9 @@ Molecule::set_active_coord_set(CoordSet *cs)
 }
 
 Atom *
-Molecule::new_atom(const AtomName& n, const element::Element& e)
+Molecule::new_atom(const AtomName& n, const element::Element& e, char chirality)
 {
-    Atom *_inst_ = new Atom(this, n, e);
+    Atom *_inst_ = new Atom(this, n, e, chirality);
     _atoms.insert(_inst_);
     return _inst_;
 }

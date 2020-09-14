@@ -18,7 +18,7 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
   if ijk_cell_size == d.size and (symmetries is None or len(symmetries) == 0):
     # Full unit cell and no symmetries to average.
     g = v.grid_data(subregion = 'all', step = step, mask_zone = False)
-    from .. import volume
+    from chimerax.map import volume
     cg = volume.map_from_periodic_map(g, ijk_min, ijk_max)
     return cg
 
@@ -32,7 +32,7 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
   shape = list(reversed(out_ijk_size))
   m = empty(shape, float32)
 
-  from .. import extend_crystal_map
+  from chimerax.map import extend_crystal_map
   nnc, dmax = extend_crystal_map(v.full_matrix(), ijk_cell_size, ijk_symmetries.array(),
                                  m, out_ijk_to_vijk_transform.matrix)
 
@@ -48,7 +48,7 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
     log.status('%d grid points not covered' % nnc)
 
   origin = d.ijk_to_xyz(ijk_min)
-  from ..data import ArrayGridData
+  from chimerax.map_data import ArrayGridData
   g = ArrayGridData(m, origin, d.step, d.cell_angles, name = v.name + ' extended')
 
   return g
@@ -68,7 +68,7 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
   values = empty((nsym,), float32)
   nnc = 0       # Number of grid points not covered by symmetry
   dmax = None   # Maximum value discrepancy for multiple overlaps
-  from ..data import interpolate_volume_data
+  from chimerax.map_data import interpolate_volume_data
   for k in range(ksz):
     for j in range(jsz):
       for i in range(isz):
@@ -113,7 +113,7 @@ def cover_box_bounds(volume, step, atoms, pad, box, fBox, iBox):
 
     grid = volume.data
     if atoms:
-        from ..volume import atom_bounds
+        from chimerax.map.volume import atom_bounds
         ijk_min, ijk_max = atom_bounds(atoms, pad, volume)
     elif box:
         origin, gstep = grid.origin, grid.step

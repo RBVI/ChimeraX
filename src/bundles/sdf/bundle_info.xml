@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-SDF" version="1.0"
-	    package="chimerax.atomic.sdf"
+<BundleInfo name="ChimeraX-SDF" version="2.0"
+	    package="chimerax.sdf"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: MDL MOL/SDF :: sdf :: Molecular structure :: .sdf,.mol :: :: https://en.wikipedia.org/wiki/Chemical_table_file :: :: :: SDF :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: MDL MOL/SDF :: sdf ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/ccp4
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/ccp4
 
 PYSRCS = __init__.py ccp4_grid.py
 

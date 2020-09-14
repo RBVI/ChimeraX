@@ -10,7 +10,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.12
-QT_MINOR_VERSION = 8
+QT_MINOR_VERSION = 9
 PYQT_MINOR_VERSION = 3
 PYQTWE_MINOR_VERSION = 1
 QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
@@ -101,7 +101,11 @@ wheel: pyqt-commercial.sip
 ifeq ($(OS),Linux)
 	# Only need to fix rpath in icu libraries in Qt 5.11.1,
 	# but make sure all are correct.
-	cd $(QTDIR)/lib; chrpath -r '$$ORIGIN' *.so
+	cd $(QTDIR)/lib && $(bindir)/chrpath -C -r '$$ORIGIN' *.so
+	# make sure other parts of Qt use RPATH instead of RUNPATH
+	cd $(QTDIR)/plugins && find . -name \*.so | xargs $(bindir)/chrpath -C
+	cd $(QTDIR)/qml && find . -name \*.so | xargs $(bindir)/chrpath -C
+	$(bindir)/chrpath -C $(QTDIR)/libexec/QtWebEngineProcess
 endif
 	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQt5_commercial*.whl-unlicensed
 	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQtWebEngine_commercial*.whl-unlicensed

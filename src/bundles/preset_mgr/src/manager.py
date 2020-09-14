@@ -15,7 +15,7 @@ from chimerax.core.toolshed import ProviderManager
 class PresetsManager(ProviderManager):
     """Manager for presets"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         from . import settings
         settings.settings = settings._PresetsSettings(session, "presets")
@@ -28,6 +28,7 @@ class PresetsManager(ProviderManager):
         if session.ui.is_gui:
             session.ui.triggers.add_handler('ready',
                 lambda *arg, ses=session: settings.register_settings_options(session))
+        super().__init__(name)
 
     @property
     def presets_by_category(self):

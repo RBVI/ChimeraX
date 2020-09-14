@@ -54,7 +54,7 @@ class TemplateResidues:
         tres = self._residues
         if tres:
             return
-        from chimerax.atomic.mmcif import open_mmcif
+        from chimerax.mmcif import open_mmcif
         from os.path import join, dirname
         path = join(dirname(__file__), self._template_file)
         models, status = open_mmcif(session, path, log_info = False)

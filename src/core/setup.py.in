@@ -95,6 +95,11 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: Core :: 1,1 :: chimerax.core :: :: ",
+        # The maximum session version number (second number below) is the
+        # current core state version. Since there are several different
+        # core classes that are saved in sessions, it represents a
+        # aggregate version and should be increased whenever one of the
+        # various core *STATE_VERSION numbers changes.
+        "ChimeraX :: Bundle :: Core :: 1,2 :: chimerax.core :: :: ",
     ],
 )

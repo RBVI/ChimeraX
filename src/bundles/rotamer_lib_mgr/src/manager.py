@@ -26,7 +26,7 @@ from chimerax.core.toolshed import ProviderManager
 class RotamerLibManager(ProviderManager):
     """Manager for rotmer libraries"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self.rot_libs = None
         from chimerax.core.triggerset import TriggerSet
@@ -35,6 +35,7 @@ class RotamerLibManager(ProviderManager):
         self._library_info = {}
         self.settings = _RotamerManagerSettings(session, "rotamer lib manager")
         self._uninstalled_suffix = " [not installed]"
+        super().__init__(name)
 
     def library(self, name):
         try:

@@ -37,9 +37,9 @@ def bounding_box(points):
   xyz_max = [None, None, None]
   for xyz in points:
     for a in range(3):
-      if xyz_min[a] == None or xyz[a] < xyz_min[a]:
+      if xyz_min[a] is None or xyz[a] < xyz_min[a]:
         xyz_min[a] = xyz[a]
-      if xyz_max[a] == None or xyz[a] > xyz_max[a]:
+      if xyz_max[a] is None or xyz[a] > xyz_max[a]:
         xyz_max[a] = xyz[a]
   return xyz_min, xyz_max
 

@@ -71,16 +71,18 @@ is much larger than <b>pdb</b> alone and takes much longer to search
 </ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
-to use for alignment scoring:
+to use for alignment scoring (uppercase or lowercase can be used):
 </p>
 <ul>
-<li><b>blosum45</b>
-<li><b>blosum62</b> (default)
-<li><b>blosum80</b>
-<li><b>blosum90</b>
-<li><b>blosum100</b>
-<li><b>pam30</b>
-<li><b>pam70</b>
+  <li><b>BLOSUM45</b>
+  <li><b>BLOSUM50</b>
+  <li><b>BLOSUM62</b> (default)
+  <li><b>BLOSUM80</b>
+  <li><b>BLOSUM90</b>
+  <li><b>PAM30</b>
+  <li><b>PAM70</b>
+  <li><b>PAM250</b>
+  <li><b>IDENTITY</b>
 </ul>
 <p>
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
@@ -102,8 +104,9 @@ to automatically superimpose the hit and query structures with
 The names of other hits are GI numbers that can be clicked to show the
 corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
 target="_blank">NCBI Protein</a> database.
-Checkboxes allow designating one ore more hit sequences to show as a
-<a href="../tools/blastprotein.html#notes">multiple alignment</a> with the query.
+Checkboxes allow designating one or more hit sequences to show as a
+<a href="../tools/blastprotein.html#notes">multiple alignment</a>
+with the query.
 Many other types of information can be shown and used to sort the hits:
 alignment scores, structure resolution, ligand residue names, <i>etc.</i>
 (<a href="../tools/blastprotein.html#results">details...</a>)
@@ -120,5 +123,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2019</address>
+May 2020</address>
 </body></html>

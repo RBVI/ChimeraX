@@ -8,8 +8,7 @@ class LabelMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
-        from chimerax.mouse_modes import picked_object
-        pick = picked_object(x, y, self.session.main_view)
+        pick = self.session.main_view.picked_object(x, y)
         self._label_pick(pick)
 
     def _label_pick(self, pick, color = None, background = None,

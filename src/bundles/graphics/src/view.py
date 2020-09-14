@@ -16,7 +16,6 @@ View
 ====
 '''
 
-
 class View:
     '''
     A View is the graphics windows that shows 3-dimensional drawings.
@@ -198,19 +197,20 @@ class View:
             offscreen = r.offscreen
             
         silhouette = self.silhouette
-        shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
-        
+
+        shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
+            
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if no_drawings:
-                r.draw_background()
+                camera.draw_background(vnum, r)
                 continue
             if offscreen:
                 offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
-            r.draw_background()
+            camera.draw_background(vnum, r)
             self._update_projection(camera, vnum)
             if r.recording_opengl:
                 from . import gllist
@@ -287,12 +287,10 @@ class View:
         elif corm == 'center of view' and cp.changed:
             self._update_center_of_rotation = True
 
-        if dm.shape_changed or cp.changed or dm.transparency_changed:
-            # TODO: If model transparency effects multishadows, will need to detect those changes.
-            if dm.shadows_changed():
-                r = self.render
-                if r:
-                    r.multishadow.multishadow_update_needed = True
+        if dm.shadows_changed() or cp.changed:
+            r = self.render
+            if r:
+                r.multishadow.multishadow_update_needed = True
 
         c.redraw_needed = False
         dm.clear_changes()
@@ -437,6 +435,11 @@ class View:
         else:
             c = camera
 
+        # Set flag that image save is in progress for Drawing.draw() routines
+        # to adjust sizes of rendered objects with sizes in pixels to preserve
+        # the on-screen sizes.  This is used for 2d label sizing.
+        r.image_save = True
+            
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
@@ -458,6 +461,8 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        delattr(r, 'image_save')
+        
         ncomp = 4 if transparent_background else 3
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top,
@@ -499,7 +504,7 @@ class View:
         elif w is not None:
             # Choose height to match window aspect ratio.
             return (w, (vh * w) // vw)
-        elif height is not None:
+        elif h is not None:
             # Choose width to match window aspect ratio.
             return ((vw * h) // vh, h)
         return (vw, vh)
@@ -553,26 +558,30 @@ class View:
         '''
         self._render.finish_rendering()
 
-    def _compute_shadowmaps(self, drawings, camera):
-
+    def _compute_shadowmaps(self, opaque_drawings, transparent_drawings, camera):
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
-        shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
-        multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
-        return shadow_enabled, multishadow_enabled
+        lp = r.lighting
+        if not lp.shadows and lp.multishadow == 0:
+            return False, False
+        
+        shadow_drawings = opaque_drawings
+        mp = r.material
+        if mp.transparent_cast_shadows:
+            shadow_drawings += transparent_drawings
+        if not mp.meshes_cast_shadows:
+            shadow_drawings = [d for d in shadow_drawings if d.display_style != d.Mesh]
 
-    def _shadow_bounds(self, drawings):
-        if drawings is None:
-            b = self.drawing_bounds(allow_drawing_changes = False)
-            sdrawings = [self.drawing]
-        else:
-            sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
-            from chimerax.geometry import bounds
-            b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
-            # TODO: Need to transform drawing bounds if they have different positions.
-            #   Check all places I use union_bounds() for this transform error.
-        center = None if b is None else b.center()
-        radius = None if b is None else b.radius()
-        return center, radius, sdrawings
+        shadow_enabled = r.shadow.use_shadow_map(camera, shadow_drawings)
+        r.enable_shader_shadows(shadow_enabled)
+
+        multishadow_enabled = r.multishadow.use_multishadow_map(shadow_drawings)
+        r.enable_shader_multishadows(multishadow_enabled)
+        
+        return shadow_enabled, multishadow_enabled
 
     def max_multishadow(self):
         if not self._use_opengl():
@@ -755,13 +764,15 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.first_intercept(0.5 * w, 0.5 * h,
-                                 exclude=lambda d: hasattr(d, 'no_cofr') and d.no_cofr)
+        p = self.picked_object(0.5 * w, 0.5 * h, max_transparent_layers = 0, exclude=View.unpickable)
         return p.position if p else None
 
-    def first_intercept(self, win_x, win_y, exclude=None, beyond = None):
+    unpickable = lambda drawing: not drawing.pickable
+
+    def picked_object(self, win_x, win_y, exclude=unpickable, beyond=None,
+                      max_transparent_layers=3):
         '''
-        Return a Pick object for the front-most object below the given
+        Return a Pick object for the frontmost object below the given
         screen window position (specified in pixels).  This Pick object will
         have an attribute position giving the point where the intercept occurs.
         This is used when hovering the mouse over an object (e.g. an atom)
@@ -770,11 +781,29 @@ class View:
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
-            return None
-        p = self.first_intercept_on_segment(xyz1, xyz2, exclude=exclude, beyond=beyond)
+            p = None
+        else:
+            p = self.picked_object_on_segment(xyz1, xyz2, exclude = exclude, beyond = beyond,
+                                              max_transparent_layers = max_transparent_layers)
+
+        # If scene clipping and some models disable clipping, try picking those.
+        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
+            ucxyz1, ucxyz2 = self.clip_plane_points(win_x, win_y, include_scene_clipping = False)
+            if ucxyz1 is not None and ucxyz2 is not None:
+                def exclude_clipped(d, exclude=exclude):
+                    return exclude(d) or d.allow_clipping
+                ucp = self.picked_object_on_segment(ucxyz1, ucxyz2,
+                                                    max_transparent_layers = max_transparent_layers,
+                                                    exclude = exclude_clipped)
+                if ucp:
+                    from chimerax.geometry import distance
+                    if p is None or ucp.distance * distance(ucxyz1, ucxyz2) < distance(ucxyz1, xyz1):
+                        p = ucp
+            
         return p
 
-    def first_intercept_on_segment(self, xyz1, xyz2, exclude=None, beyond = None):
+    def picked_object_on_segment(self, xyz1, xyz2, exclude=unpickable, beyond=None,
+                                 max_transparent_layers=3):
         '''
         Return a Pick object for the first object along line segment from xyz1
         to xyz2 in specified in scene coordinates. This Pick object will
@@ -785,17 +814,28 @@ class View:
         if beyond is not None:
             fb = beyond + 1e-5
             xyz1 = (1-fb)*xyz1 + fb*xyz2
+
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
+        
+        if max_transparent_layers > 0:
+            if getattr(p, 'pick_through', False) and p.distance is not None:
+                p2 = self.picked_object_on_segment(xyz1, xyz2, exclude=exclude, beyond=p.distance,
+                                                   max_transparent_layers = max_transparent_layers-1)
+                if p2:
+                    p = p2
+            
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
+
         if beyond:
             # Correct distance fraction to refer to clip planes.
             p.distance = fb + f*(1-fb)
+            
         return p
 
-    def rectangle_intercept(self, win_x1, win_y1, win_x2, win_y2, exclude=None):
+    def rectangle_pick(self, win_x1, win_y1, win_x2, win_y2, exclude=unpickable):
         '''
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
@@ -810,9 +850,22 @@ class View:
         cplanes = self.clip_planes.planes()
         if cplanes:
             from numpy import concatenate, array, float32
-            planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+            all_planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+        else:
+            all_planes = planes
 
-        picks = self.drawing.planes_pick(planes, exclude=exclude)
+        # If scene clipping and some models disable clipping, try picking those.
+        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
+            def exclude_unclipped(d, exclude=exclude):
+                return exclude(d) or not d.allow_clipping
+            cpicks = self.drawing.planes_pick(all_planes, exclude=exclude_unclipped)
+            def exclude_clipped(d, exclude=exclude):
+                return exclude(d) or d.allow_clipping
+            upicks = self.drawing.planes_pick(planes, exclude=exclude_clipped)
+            picks = cpicks + upicks
+        else:
+            picks = self.drawing.planes_pick(all_planes, exclude=exclude)
+            
         return picks
 
     def _update_projection(self, camera, view_num):
@@ -873,7 +926,8 @@ class View:
             far = 2 * near
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None):
+    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None,
+                          include_scene_clipping = True):
         '''
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
@@ -886,7 +940,8 @@ class View:
         near, far = self.near_far_distances(c, view_num, include_clipping = False)
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
-        cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
+        if include_scene_clipping:
+            cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
         from chimerax.geometry import ray_segment
         f0, f1 = ray_segment(origin, direction, cplanes)
         if f1 is None or f0 > f1:
@@ -998,7 +1053,6 @@ class View:
         c.eye_separation_scene *= f
         c.redraw_needed = True
 
-
 class _RedrawNeeded:
 
     def __init__(self):
@@ -1025,7 +1079,7 @@ class _RedrawNeeded:
         if self.transparency_changed:
             return True
         for d in self.shape_changed_drawings:
-            if getattr(d, 'casts_shadows', True):
+            if d.casts_shadows:
                 return True
         return False
 

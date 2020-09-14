@@ -29,6 +29,8 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>roll</b>
 [&nbsp;<i>axis</i>&nbsp;[&nbsp;<i>angle</i>&nbsp; [&nbsp;<i>frames</i>&nbsp;]]]
 [&nbsp;<b>rock</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>wobble</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>wobbleAspect</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;|&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
@@ -37,7 +39,7 @@ class="clRight" title="User Guide Index"/></a>
 The <b>roll</b> command performs a rotation of <i>angle</i>
 (default <b>1</b>&deg;) around a specified <i>axis</i> (default <b>y</b>)
 at each of a specified number of image update <i>frames</i>
-(default <b>infinity</b>; 
+(default <b>forever</b>; 
 can be halted with <a href="stop.html"><b>stop</b></a>).
 The commands <b>roll</b> and <a href="turn.html"><b>turn</b></a> are the same
 except for their default values of <i>angle</i> and <i>frames</i>.
@@ -52,13 +54,24 @@ See also:
 </p><p>
 The <i>axis</i> can be <b>x</b>, <b>y</b>, <b>z</b> or any of the other
 standard <a href="pointspec.html#vector">vector specifications</a>.
-</p><p>
 The <i>angle</i> can be positive or negative. 
+</p><p>
 The <b>rock</b> option wags models back and forth around the specified
 <i>axis</i> with an amplitude of <i>angle</i> in each direction
 and <i>N</i> frames per cycle, continuing until all <i>frames</i> have elapsed.
 Like that of a pendulum, the movement is slower near the turnaround points
 1/4 and 3/4 of the way through a cycle.
+See also:
+<b><A href="rock.html">rock</A></b>
+</p><p>
+The <b>wobble</b> option rotates models in a figure-eight motion
+with <i>M</i> frames per cycle, continuing until all <i>frames</i> have elapsed.
+The major rotation of the wobble is around <i>axis</i>
+with an amplitude of <i>angle</i>, and the minor rotation has an amplitude of
+<i>angle</i> multiplied by the <b>wobbleAspect</b> <i>fraction</i>
+(default <b>0.3</b>).
+See also:
+<b><A href="wobble.html">wobble</A></b>
 </p><p>
 The <b>center</b> default is the current
 <a href="cofr.html">center of rotation</a>.
@@ -92,5 +105,5 @@ To halt an ongoing <b>roll</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+August 2020</address>
 </body></html> 

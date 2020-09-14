@@ -25,12 +25,14 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Build Structure</h3>
 <p>
-The <b>Build Structure</b> tool is for building and modifying atomic structures.
-It is implemented as the
-<a href="../commands/build.html"><b>build</b></a> command.
+The <b>Build Structure</b> tool builds and modifies atomic structures.
+The equivalent commands are
+<a href="../commands/build.html"><b>build</b></a> and
+<a href="../commands/bond.html"><b>bond</b></a>.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="../commands/rna.html"><b>rna</b></a>,
 <a href="../commands/torsion.html"><b>torsion</b></a>
 </p><p>
 <b>Build Structure</b> can be opened from the 
@@ -41,6 +43,7 @@ Sections:
 </ul>
 <li><a href="#start"><b>Start Structure</b></a>
 <li><a href="#modify"><b>Modify Structure</b></a>
+<li><a href="#bonds"><b>Adjust Bonds</b></a>
 </ul>
 
 <p class="nav">
@@ -51,8 +54,9 @@ Sections:
 <p>
 The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
 adds new atoms or molecules independent of any pre-existing atoms.
-See also:
-<a href="../commands/open.html#fetch"><b>open</b></a>
+See also: <a href="../commands/open.html#fetch"><b>open</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>
 </p><p>
 Options are to <b>Add</b>:
 <ul>
@@ -194,7 +198,8 @@ to generate the desired protonation state.
 </p>
 <h3>Modify Structure</h3>
 <p>
-The <b>Modify Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+The <b>Modify Structure</b> section of 
+<a href="#top"><b>Build Structure</b></a> 
 can change the element, valence (number of directly attached atoms),
 and/or geometry (spatial arrangement of attached atoms) of a single
 <a href="../selection.html">selected</a> atom at a time.
@@ -296,10 +301,80 @@ Clicking the <b>Delete</b> button at the bottom of
 <a href="#modify"><b>Modify Structure</b></a> removes any
 <a href="../selection.html">selected</a> atoms and bonds.
 See also command: <a href="../commands/delete.html"><b>delete</b></a>, 
-menu: <a href="../menu.html#actions"><b>Actions... Delete</b>
+menu: <a href="../menu.html#actions"><b>Actions... Delete</b></a>
 </p>
+
+<a name="bonds"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Adjust Bonds</h3>
+<p>
+The <b>Adjust Bonds</b> section of <a href="#top"><b>Build Structure</b></a> 
+allows adding and deleting covalent bonds.
+A bond can also be deleted using its 
+<a href="../selection.html#context">selection context menu</a>.
+See also: <a href="../commands/bond.html"><b>bond</b></a>,
+<a href="../commands/delete.html"><b>delete</b></a>
+</p>
+<ul>
+<li><b>Delete selected bonds</b>
+&ndash; remove bonds that are <a href="../selection.html">selected</a>
+and/or between pairs of <a href="../selection.html">selected</a> atoms
+<li><b>Add</b> [<i>option</i>] <b>bonds between selected atoms</b> 
+&ndash; add bonds between pairs of
+<a href="../selection.html">selected</a> atoms according to
+the <i>option</i> setting:
+ <ul>
+ <li><b>reasonable</b> (default) 
+&ndash; only if the atoms are no farther apart than the sum of their
+<a href="#covrad">covalent bond radii</a> + 0.4 &Aring;
+ <li><b>all possible</b>
+&ndash; all pairwise combinations regardless of distance
+ </ul>
+</ul>
+
+<a name="covrad"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Covalent Bond Radii</h3>
+<p>
+Approximate covalent bond radii are used to guess the connectivity
+of untemplated residues (when not specified in the input structure file)
+and to generate crude bond lengths for building atomic structures.
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr><th align="center" colspan="2">Selected covalent bond radii
+(&Aring;)</th></tr>
+<tr><td align=center>H</td> <td align=center>0.23</td></tr>
+<tr><td align=center>B</td> <td align=center>0.83</td></tr>
+<tr><td align=center>C</td> <td align=center>0.68</td></tr>
+<tr><td align=center>N</td> <td align=center>0.68</td></tr>
+<tr><td align=center>O</td> <td align=center>0.68</td></tr>
+<tr><td align=center>F</td> <td align=center>0.64</td></tr>
+<tr><td align=center>Si</td> <td align=center>1.20</td></tr>
+<tr><td align=center>P</td> <td align=center>1.05</td></tr>
+<tr><td align=center>S</td> <td align=center>1.02</td></tr>
+<tr><td align=center>Cl</td> <td align=center>0.99</td></tr>
+<tr><td align=center>Se</td> <td align=center>1.22</td></tr>
+<tr><td align=center>Br</td> <td align=center>1.21</td></tr>
+<tr><td align=center>I</td> <td align=center>1.40</td></tr>
+</table>
+
+<p>
+A complete list, obtained many years ago from documentation from the
+<a href="http://www.ccdc.cam.ac.uk"
+target="_blank">Cambridge Crystallographic Data Centre</a>,
+can be found in Table III of:
+<blockquote>
+<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716"
+target="_blank">Determination of molecular topology and atomic hybridization
+states from heavy atom coordinates.</a> Meng EC, Lewis RA.
+<i>J Comput Chem</i> <b>12</b>:891 (1991).
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+September 2020</address>
 </body></html>

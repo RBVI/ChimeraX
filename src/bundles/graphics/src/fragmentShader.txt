@@ -116,6 +116,10 @@ void main (void)
 * Shader for rendering scene with lighting.
 */
 
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+in vec3 v;
+#endif
+
 #ifdef USE_LIGHTING
 
 layout(std140) uniform lighting_block 
@@ -127,18 +131,14 @@ layout(std140) uniform lighting_block
   vec3 fill_light_direction;
   vec3 fill_light_diffuse_color;
   vec3 ambient_color;
-  vec3 depth_cue_color;
 };
 
+#ifdef USE_LIGHTING_NORMALS
 in vec3 N;
-in vec3 v;
+#endif
 
 #ifdef USE_STEREO_360
 in vec3 vshadow;
-#endif
-
-#ifdef USE_DEPTH_CUE
-uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_SHADOW
@@ -158,6 +158,11 @@ uniform	int shadow_count;
 uniform float shadow_depth;
 #endif
 
+#endif  // end USE_LIGHTING
+
+#ifdef USE_DEPTH_CUE
+uniform vec3 depth_cue_color;
+uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_VERTEX_COLORS
@@ -249,13 +254,29 @@ void main (void)
     discard;
 #endif
 
+#ifdef USE_ALPHA_DEPTH
+  gl_FragDepth = 0.99999 * fcolor.a; // Depth 1 is clipped.
+#endif
+
 #ifdef USE_LIGHTING
+
+#ifdef USE_LIGHTING_NORMALS
   // Unit normal, with two-sided lighting.
   vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
   // vec3 N1 = normalize(N);  // single-sided lighting
 
   // Unit vector from camera to surface point.
   vec3 v1 = normalize(v);
+
+  float key_factor = max(-dot(N1,key_light_direction),0.0);
+  float fill_factor = max(-dot(N1,fill_light_direction),0.0);
+  vec3 R = normalize(reflect(key_light_direction,N1)); 
+  float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
+#else
+  float key_factor = 1;
+  float fill_factor = 1;
+  float specular_factor = 0;
+#endif
 
 #ifdef USE_SHADOW
   float shadow = texture(shadow_map, shadow_tex_coord);
@@ -265,12 +286,11 @@ void main (void)
 
   // diffuse color, radiated equally in all directions,
   //   strength based on incoming light direction and surface normal.
-  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(-dot(N1,key_light_direction),0.0) * shadow
-                             + fill_light_diffuse_color * max(-dot(N1,fill_light_direction),0.0));
+  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * key_factor * shadow
+                             + fill_light_diffuse_color * fill_factor);
 
   // specular color, reflection of incoming light towards the camera.
-  vec3 R = normalize(reflect(key_light_direction,N1)); 
-  vec3 Ispec = key_light_specular_color * pow(max(-dot(R,v1),0.0), key_light_specular_exponent) * shadow;
+  vec3 Ispec = key_light_specular_color * specular_factor * shadow;
 
 #ifdef USE_MULTISHADOW
 
@@ -282,11 +302,15 @@ void main (void)
         vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
       #else
         vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
-//        vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
+        // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       #endif
-      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
-      float diffuse = max(-dot(N1,light_direction),0.0);
-//      float diffuse = max(-dot(nscene,light_direction),0.0);
+      #ifdef USE_LIGHTING_NORMALS
+        vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+        float diffuse = max(-dot(N1,light_direction),0.0);
+	// float diffuse = max(-dot(nscene,light_direction),0.0);
+      #else
+        float diffuse = 0.25;
+      #endif
       mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
     }
   mshadow /= 0.25*shadow_count;
@@ -306,22 +330,24 @@ void main (void)
   Ifrag *= texture(tex3d, ambient_tex_coord).r;
 #endif
 
-#ifdef USE_LIGHTING
+#else  // not USE_LIGHTING
+
+  vec3 Ifrag = fcolor.rgb;
+
+#endif // end USE_LIGHTING
+
 #ifdef USE_DEPTH_CUE
   float d = -v.z;	// Distance from eye to fragment.
   float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
   Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
 #endif
-#endif
-
-#else
-  vec3 Ifrag = fcolor.rgb;
-#endif
 
   // transparency
   float a = fcolor.a;
 #ifdef USE_LIGHTING
-  a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01));
+#ifdef USE_LIGHTING_NORMALS
+  a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
+#endif
 #endif
 
   // final color

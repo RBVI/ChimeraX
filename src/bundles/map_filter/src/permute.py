@@ -17,13 +17,13 @@ def permute_axes(v, axis_order = (0,1,2),
 
   d = v.grid_data(subregion, step, mask_zone = False)
   pd = PermutedGrid(d, axis_order)
-  from .. import volume_from_grid_data
+  from chimerax.map import volume_from_grid_data
   pv = volume_from_grid_data(pd, v.session, model_id = model_id)
   return pv
 
 # -----------------------------------------------------------------------------
 #
-from ..data import GridData
+from chimerax.map_data import GridData
 class PermutedGrid(GridData):
   
   def __init__(self, grid_data, axis_order):

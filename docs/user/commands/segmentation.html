@@ -32,7 +32,8 @@ See also:
 <a href="color.html#map"><b>color map</b></a>,
 <a href="color.html#zone"><b>color zone</b></a>,
 <a href="volume.html#mask"><b>volume mask</b></a>,
-<a href="../tools/segment.html"><b>Segment Map</b></a>
+<a href="../tools/segment.html"><b>Segment Map</b></a>,
+<a href="../formats/sff.html">EMDB segmentation file format (SFF)</a>
 </p>
 <ul>
 <li><a href="#surfaces"><b>segmentation surfaces</b></a>
@@ -72,7 +73,7 @@ specific neuron, as shown in the examples <a href="#surfaces">below</a>.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>segmentation &nbsp;surfaces</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>seg-map</i></a>&nbsp;
-<span class="nowrap">[&nbsp;<b>where</b>&nbsp;&nbsp;<i>segment-id</i>&nbsp;|&nbsp;<i>attribute-name</i>&nbsp;|&nbsp;<i>attribute-name</i>=<i>attribute-value</i>&nbsp;]</span>
+<span class="nowrap">[&nbsp;<b>where</b>&nbsp;&nbsp;<i>segment-id-list</i>&nbsp;|&nbsp;<i>attribute-name</i>&nbsp;|&nbsp;<i>attribute-name</i>=<i>attribute-value</i>&nbsp;]</span>
 [&nbsp;<b>each</b>&nbsp;&nbsp;<i>attribute-name</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
@@ -84,33 +85,51 @@ Create one or more surface models enclosing segmentation regions defined in
 a subset of the segmentation regions:
 </p>
 <ul>
-<li><i>segment-id</i> &ndash; the region with the specified <i>segment-id</i>
+<li><i>segment-id-list</i> &ndash; a single <i>segment-id</i> or a
+comma-separated list of <i>segment-id</i> values and/or ranges of values
 <li><i>attribute-name</i>
 &ndash; regions with any nonzero value of the specified attribute
 <li><i>attribute-name</i>=<i>attribute-value</i>
 &ndash; regions with a specific value of a specified attribute
 </ul>
 <p>
+Examples:
+</p>
+<blockquote><b>
+seg surf #1 where 2
+<br>
+seg surf #1 where 3,7,8-10
+<br>
+seg surf #1 where neuron
+<br>
+seg surf #1 where neuron=5
+<br>
+seg surf #1 where neuron=5-12,17,21
+<br>
+seg surf #1 where neuron=1-10 where spinehead
+</b></blockquote>
+<p>
+As shown in the last example, the <b>where</b> option can be used 
+multiple times in the same command to limit the specification 
+to regions meeting multiple criteria (intersection). 
+The example specifies only the regions with a &ldquo;neuron&rdquo; 
+attribute value in the range 1-10 that also 
+have a nonzero &ldquo;spinehead&rdquo; attribute.
+</p><p>
 The <b>each</b> option controls how many surface models will be created,
 either a single model (default) or a separate (sub)model
-for each value of a specified attribute.
+for each value of a specified attribute. Example:
+</p>
+<blockquote><b>
+seg surf #3 each <a href="#segment-attribute">segment</a>
+</b></blockquote>
+<p>
 The <b>color</b> option gives a <a href="colornames.html">single color</a>;
 omitting it uses colors chosen randomly for different values of
 the <a href="#segment-attribute"><b>segment</b></a> attribute 
 unless a different attribute was specified with <b>where</b>
 (see also <a href="#colors"><b>segmentation colors</b></a> below).
-Example commands:
-</p>
-<blockquote><b>
-seg surf #3 each segment
-<br>
-seg surf #3 where 2 color blue
-<br>
-seg surf #1 where neuron
-<br>
-seg surf #1 where neuron=5
-</b></blockquote>
-<p>
+</p><p>
 The <b>region</b> option does not refer to a segmentation region,
 but instead a spatial subregion of the segmentation map: 
 the full dimensions (<b>all</b>, default)
@@ -138,20 +157,21 @@ they are used in the X, Y, and Z directions, respectively.
 &nbsp;<a href="atomspec.html#othermodels"><i>seg-map</i></a>&nbsp;
 [&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
-[&nbsp;<b>surface</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surface-model</i></a>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;]
 [&nbsp;<b>byAttribute</b>&nbsp;&nbsp;<i>attribute-name</i>&nbsp;]
 [&nbsp;<b>outsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>maxSegmentId</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 </blockquote>
 <p>
-Color a <b>map</b> or <b>surface</b> model by the segmentation regions 
-defined in <i>seg-map</i>.
+Color a <b>map</b> or <b>surfaces</b> by the segmentation regions 
+defined in <i>seg-map</i>, or if neither is given, 
+color <i>seg-map</i> itself.
 The <b>map</b> option should only be used for maps shown in the <b>image</b>
 <a href="volume.html#style">display style</a>, and the size of the image map
 (grid dimensions in X,Y,Z) must match that of the segmentation map.
-For maps shown as
-contour surfaces, the <b>surface</b> option should be used instead.
+For maps shown as contour surfaces, 
+the <b>surface</b> option should be used instead.
 If <a href="colornames.html"><i>color-spec</i></a> is omitted, 
 random coloring is applied according to values of the attribute 
 specified with the <b>byAttribute</b> option (default attribute 
@@ -159,6 +179,8 @@ specified with the <b>byAttribute</b> option (default attribute
 The <b>outsideColor</b> color is used for parts the map or surface that
 fall outside of the extents of <i>seg-map</i> or that correspond 
 to zero values of the attribute within <i>seg-map</i>.
+If <b>outsideColor</b> is not specified,
+those parts will retain their pre-existing colors.
 </p><p>
 The <b>maxSegmentId</b> is only used to speed coloring by restricting it to 
 only the lowest-numbered subset of a very high number of segmentation regions.
@@ -169,5 +191,5 @@ as described <a href="#surfaces">above</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+June 2020</address>
 </body></html>

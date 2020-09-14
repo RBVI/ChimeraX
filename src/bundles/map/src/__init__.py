@@ -53,10 +53,8 @@ from .mouselevel import ContourLevelMouseMode
 # -----------------------------------------------------------------------------
 # Routines to register map file formats, database fetch, and volume command.
 #
-from .volume import register_map_file_formats, add_map_format
+from .volume import add_map_format
 from .volume import MapChannelsModel, MultiChannelSeries
-from .eds_fetch import register_eds_fetch
-from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
 from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg, MapRegionArg, MapStepArg
@@ -94,10 +92,6 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
-        from chimerax import map
-        map.register_map_file_formats(session)
-        map.register_eds_fetch()
-        map.register_emdb_fetch()
         if session.ui.is_gui:
             from . import mouselevel, moveplanes, windowing, tiltedslab
             mouselevel.register_mousemode(session)
@@ -179,6 +173,7 @@ class _MapBundle(BundleAPI):
                                 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc',
                                 'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
                             'compress_shuffle': BoolArg,
+                            'compress_level': IntArg,
                             'mask_zone': BoolArg,
                             'region': MapRegionArg,
                             'subsamples': RepeatOf(Int1or3Arg),
@@ -187,8 +182,8 @@ class _MapBundle(BundleAPI):
                     return args
 
                 def save_args_widget(self, session):
-                    from .gui import SaveOptionsWidget
-                    return SaveOptionsWidget(session)
+                    from chimerax.save_command import SaveModelOptionWidget
+                    return SaveModelOptionWidget(session, 'Map', Volume)
 
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()

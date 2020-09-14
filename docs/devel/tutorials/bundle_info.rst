@@ -392,15 +392,18 @@ of ``mac``.
 
   - Attribute:
 
-    - **name**: name of manager.  The bundle must implement the
-      ``init_manager`` method.  The two positional arguments to
+    - **name**: name of manager.  If **autostart** is true (see below), the bundle
+      must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
     - **uiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
+    - **autostart**: If true, the manager is started during Chimera startup.
+      Defaults to true.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
-    - ``init_manager`` should create and return an instance of a
+    - ``init_manager`` should create an instance of a
       subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
+      The ProviderManager constructor must be passed the **name** of the manager.
       The subclass must implement at least one method:
       ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
@@ -878,7 +881,8 @@ The other possible `Provider`_ attributes are:
         lowercase string, since this name will be used directly in the ``open`` command
         as either the value for the ``fromDatabase`` keyword or as the prefix in the
         *from_database:identifier* form of fetch arguments.  So "pdb" is better then
-        "Protein Databank".
+        "Protein Databank".  Note that single-character database names are disallowed to
+        avoid confusion with Windows single-character drive names.
         
     *type*
         *type* should be "fetch" to indicate that your bundle fetches data
@@ -889,6 +893,12 @@ The other possible `Provider`_ attributes are:
     *example_ids*
         A list of one or more valid example identifiers for your database.  For use in
         graphical user interfaces.
+
+    *synopsis*
+        The description of the fetcher used by user-interface widgets that list fetchers
+        (like the Fetch By ID dialog in Chimera), so typically somewhat more verbose than *name*.
+        The first word should be capitalized unless that word is mixed case (*e.g.* mmCIF).
+        Defaults to a capitalized *name* followed by the *format_name* in parentheses.
 
 - **Infrequently-Used** Attributes
 
@@ -901,7 +911,7 @@ The other possible `Provider`_ attributes are:
 For example::
 
   <Providers manager="open command">
-    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
+    <Provider name="pubchem" type="fetch" format_name="sdf" synopsis="PubChem" example_ids="12123" />
   </Providers>
 
 The remainder of the information the bundle provides about how to fetch from a database comes

@@ -51,8 +51,9 @@ or <a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
 border=1 src="../tools/toolbar-icons/content-save.png"></a>.
 See also: <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
+<a href="../formats/positions.html">ChimeraX positions format</a>,
 <a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
-target="_blank">Writing mmCIF Files in ChimeraX</a>
+target="_blank">writing mmCIF files in ChimeraX</a>
 </p><p>
 The file type is specified with either the 
 <a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
@@ -61,6 +62,14 @@ appropriate suffix will be added to <i>filename</i>.
 </p><p>
 Sessions, images, and scenes include all contents, but map and atomic coordinate
 saving can be limited to specific models with the <b>models</b> option.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>, for example:
+</p>
+<blockquote>
+<b>save mutated.pdb #3</b>
+</blockquote>
+<p>
 There may be additional options, depending on the file type:
 </p>
 <ul class="none">
@@ -217,7 +226,7 @@ target="_blank">GL Transmission Format</a>
 </tr><tr>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl</td>
-<td align="center">STereoLithography</td>
+<td align="center">STereoLithography format (binary)</td>
 </tr><tr>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj</td>
@@ -239,7 +248,12 @@ target="_blank">X3D</a></td>
 PolyData 
 <br>(molecular structures and surfaces as points, lines, and mesh;
 <a href="../formats/vtk.html">details...</a>)</td>
-</td>
+</tr><tr id="posformat">
+<td align="center"><a href="../formats/positions.html">positions</a></td>
+<td align="center"><b>positions</b></td>
+<td align="center">.positions</td>
+<td align="center"><a href="../formats/positions.html">ChimeraX
+model positions</a></td>
 </tr></table>
 
 <a name="image"></a>
@@ -370,6 +384,7 @@ before restoring those from the session is set in the
 <a href="../preferences.html#log"><b>Log</b> preferences</a>.
 See also: 
 <a href="usageconventions.html#cxc-files">ChimeraX command files</a>,
+<a href="../formats/positions.html">ChimeraX positions files</a>,
 <a href="../preferences.html">ChimeraX preferences</a>
 </p><p>
 Sessions are saved in a ChimeraX-specific <a href="#sesformat">format</a>
@@ -436,6 +451,9 @@ Further options:
 <b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Volume model(s) to save; can be omitted if only one volume model is open.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>
@@ -551,6 +569,9 @@ single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
 <b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write only the specified models, otherwise all atomic models.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -671,6 +692,9 @@ Atomic coordinates can be saved in Sybyl Mol2 format, with options:
 Write only the specified models, otherwise all atomic models
 (except as restricted with <a href="#atoms"><b>atoms</b></a>
 and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -799,5 +823,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+July 2020</address>
 </body></html>

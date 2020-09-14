@@ -27,35 +27,30 @@ def update_clip_caps(view):
         drawings = view.drawing.all_drawings(displayed_only = True)
         show_surface_clip_caps(planes, drawings,
                                offset = settings.clipping_cap_offset,
-                               subdivision = settings.clipping_cap_subdivision)
+                               subdivision = settings.clipping_cap_subdivision,
+                               cap_meshes = settings.clipping_cap_on_mesh)
 
-def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0):
+def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0, cap_meshes = False):
     for p in planes:
         for d in drawings:
             # Clip only drawings that have "clip_cap" attribute true.
-            if (hasattr(d, 'clip_cap') and d.clip_cap and
-                d.triangles is not None and not hasattr(d, 'clip_cap_owner')):
-                varray, narray, tarray = compute_cap(d, p, offset)
-                if subdivision > 0 and tarray is not None:
-                    from . import refine_mesh
-                    varray, tarray = refine_mesh(varray, tarray, subdivision)
-                    if len(narray) > 0:
-                        normal = narray[0,:]
-                        narray = varray.copy()
-                        narray[:] = normal
+            if _drawing_shows_caps(d, cap_meshes):
+                varray, narray, tarray = compute_cap(d, p, offset, subdivision)
                 set_cap_drawing_geometry(d, p.name, varray, narray, tarray)
+            else:
+                _remove_cap(d, p.name)
 
     # Remove caps for clip planes that are gone.
     plane_names = set(p.name for p in planes)
     for cap in drawings:
         if hasattr(cap, 'clip_cap_owner') and cap.clip_plane_name not in plane_names:
-            d = cap.clip_cap_owner
-            del d._clip_cap_drawings[cap.clip_plane_name]
-            from chimerax.core.models import Model
-            if isinstance(cap, Model):
-                cap.session.models.remove([cap])
-            else:
-                cap.parent.remove_drawing(cap)
+            _remove_cap(cap.clip_cap_owner, cap.clip_plane_name)
+
+def _drawing_shows_caps(d, cap_meshes = False):
+    return (getattr(d, 'clip_cap', False)
+            and d.triangles is not None
+            and not hasattr(d, 'clip_cap_owner')
+            and (cap_meshes or d.display_style != d.Mesh))
 
 def remove_clip_caps(drawings):
     for cap in drawings:
@@ -68,7 +63,7 @@ def remove_clip_caps(drawings):
             else:
                 cap.parent.remove_drawing(cap)
 
-def compute_cap(drawing, plane, offset):
+def compute_cap(drawing, plane, offset, subdivision = 0.0):
     # Undisplay cap for drawing with no geometry shown.
     d = drawing
     if not d.display or not d.parents_displayed:
@@ -97,12 +92,20 @@ def compute_cap(drawing, plane, offset):
         from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
         from . import compute_cap
-        varray, tarray = compute_cap(pnormal, poffset, d.vertices, t)
+        varray, tarray = compute_cap(-pnormal, -poffset, d.vertices, t)
 
     if tarray is None or len(tarray) == 0:
         return None, None, None
     narray = varray.copy()
-    narray[:] = pnormal
+    narray[:] = -pnormal
+
+    if subdivision > 0:
+        from . import refine_mesh
+        varray, tarray = refine_mesh(varray, tarray, subdivision)
+        if len(narray) > 0:
+            normal = narray[0,:]
+            narray = varray.copy()
+            narray[:] = normal
 
     return varray, narray, tarray
 
@@ -127,7 +130,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
         from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, pinv*point) + doffset
         from . import compute_cap
-        ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)
+        ivarray, itarray = compute_cap(-pnormal, -poffset, d.vertices, triangles)
         pos.transform_points(ivarray, in_place = True)
         geom.append((ivarray, itarray))
     varray, tarray = concatenate_geometry(geom)
@@ -169,29 +172,91 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
     elif varray is None:
         return
     else:
-        cap_name = 'cap ' + plane_name
         np = len(d.get_scene_positions(displayed_only = True))
         if np == 1:
-            cm = new_cap(d, cap_name)
+            cm = _new_cap(d, plane_name)
         else:
-            cm = new_cap(d.parent, cap_name + ' ' + d.name)
+            cm = _new_cap(d, plane_name + ' ' + d.name, parent = d.parent)
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
-        cm.clip_plane_name = plane_name
-        cm.clip_cap_owner = d
-        d._clip_cap_drawings[plane_name] = cm
-        cm.color = d.color
 
     cm.set_geometry(varray, narray, tarray)
 
-def new_cap(drawing, cap_name):
+def _new_cap(drawing, plane_name, parent = None):
+    if parent is None:
+        parent = drawing
+
+    cap_name = 'cap ' + plane_name
+    if parent is not drawing:
+        cap_name += ' ' + drawing.name
+    
     from chimerax.core.models import Model, Surface
     if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
-        c = Surface(cap_name, drawing.session)
-        c.SESSION_SAVE = False
-        drawing.add([c])
+        c = ClipCap(plane_name, drawing)
+        c.name = cap_name
+        parent.add([c])
     else:
         # Cap is on a Drawing that is not a Model
-        c = drawing.new_drawing(cap_name)
-    c.is_clip_cap = True
+        c = ClipCapDrawing(cap_name)
+        c.name = cap_name
+        parent.add_drawing(c)
+    
     return c
+
+from chimerax.core.models import Surface
+class ClipCap(Surface):
+    is_clip_cap = True
+    def __init__(self, plane_name, drawing):
+        Surface.__init__(self, 'cap ' + plane_name, drawing.session)
+        self.clip_plane_name = plane_name
+        self.clip_cap_owner = drawing
+        self.color = drawing.color
+        self.display_style = drawing.display_style
+        if not hasattr(drawing, '_clip_cap_drawings'):
+            drawing._clip_cap_drawings = {}
+        drawing._clip_cap_drawings[plane_name] = self
+
+    # State save/restore in ChimeraX
+    def take_snapshot(self, session, flags):
+        data = {
+            'clip_plane_name': self.clip_plane_name,
+            'clip_cap_owner': self.clip_cap_owner,
+            'model state': Surface.take_snapshot(self, session, flags),
+            'version': 1
+        }
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        c = ClipCap(data['clip_plane_name'], data['clip_cap_owner'])
+        Surface.set_state_from_snapshot(c, session, data['model state'])
+        return c
+
+
+from chimerax.graphics import Drawing
+class ClipCapDrawing(Drawing):
+    is_clip_cap = True
+    def __init__(self, plane_name, drawing):
+        Drawing.__init__(self, 'cap ' + plane_name)
+        self.clip_plane_name = plane_name
+        self.clip_cap_owner = drawing
+        self.color = drawing.color
+        self.display_style = drawing.display_style
+        drawing._clip_cap_drawings[plane_name] = self
+
+def _remove_cap(drawing, plane_name):
+    d = drawing
+    if not hasattr(d, '_clip_cap_drawings'):
+        return
+    cap = d._clip_cap_drawings.get(plane_name, None)     # Find cap drawing
+    if cap is None:
+        return
+    del d._clip_cap_drawings[plane_name]
+    if cap.was_deleted:
+        return
+    from chimerax.core.models import Model
+    if isinstance(cap, Model):
+        cap.session.models.remove([cap])
+    else:
+        cap.parent.remove_drawing(cap)
+

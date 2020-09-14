@@ -1,7 +1,8 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def open_mol2(session, path, file_name, auto_style, atomic):
-    with open(path) as stream:
+    from chimerax.io import open_input
+    with open_input(path, encoding='utf-8') as stream:
         p = Mol2Parser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (

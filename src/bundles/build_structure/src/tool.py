@@ -47,7 +47,7 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Start Structure", "Modify Structure"]:
+        for category in ["Start Structure", "Modify Structure", "Adjust Bonds"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -68,6 +68,44 @@ class BuildStructureTool(ToolInstance):
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
         self.category_button.setText(action.text())
+
+    def _layout_adjust_bonds(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+        res_group = QGroupBox("Add/Delete")
+        layout.addWidget(res_group, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        group_layout = QVBoxLayout()
+        group_layout.setContentsMargins(0,0,0,0)
+        group_layout.setSpacing(0)
+        res_group.setLayout(group_layout)
+        del_layout = QHBoxLayout()
+        group_layout.addLayout(del_layout)
+        del_button = QPushButton("Delete")
+        del_button.clicked.connect(lambda *args, ses=self.session: run(ses, "~bond sel"))
+        del_layout.addWidget(del_button)
+        del_layout.addWidget(QLabel("selected bonds"), stretch=1, alignment=Qt.AlignLeft)
+        add_layout = QHBoxLayout()
+        group_layout.addLayout(add_layout)
+        add_button = QPushButton("Add")
+        add_layout.addWidget(add_button)
+        type_button = QPushButton("reasonable")
+        type_menu = QMenu(parent)
+        type_menu.addAction("reasonable")
+        type_menu.addAction("all possible")
+        type_menu.triggered.connect(lambda act, but=type_button: but.setText(act.text()))
+        type_button.setMenu(type_menu)
+        def add_but_clicked(*args, but=type_button):
+            if but.text() != "reasonable":
+                from chimerax.core.commands import BoolArg
+                kw = " reasonable %s" % BoolArg.unparse(False)
+            else:
+                kw = ""
+            run(self.session, "bond sel" + kw)
+        add_button.clicked.connect(add_but_clicked)
+        add_layout.addWidget(type_button)
+        add_layout.addWidget(QLabel("bonds between selected atoms"))
 
     def _layout_modify_structure(self, parent):
         layout = QVBoxLayout()
@@ -197,12 +235,14 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        from .manager import manager
-        # until "lazy" managers are supported, 'manager' cannot be None at this point
+        # manager may have alredy been started by command...
+        self._ignore_new_providers = True
+        from .manager import get_manager
+        manager = get_manager(self.session)
         self.ss_u_to_p_names = { manager.ui_name(pn):pn for pn in manager.provider_names }
         ui_names = list(self.ss_u_to_p_names.keys())
         ui_names.sort(key=lambda x: x.lower())
-        provider_layout = QGridLayout()
+        self._start_provider_layout = provider_layout = QGridLayout()
         provider_layout.setVerticalSpacing(5)
         layout.addLayout(provider_layout)
         provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names)+2, 1)
@@ -226,6 +266,7 @@ class BuildStructureTool(ToolInstance):
                 but.setChecked(True)
                 self.parameter_widgets.setCurrentWidget(widget)
         provider_layout.setRowStretch(len(ui_names)+1, 1)
+        self._ignore_new_providers = False
 
         model_area = QWidget()
         layout.addWidget(model_area, alignment=Qt.AlignCenter)
@@ -350,15 +391,38 @@ class BuildStructureTool(ToolInstance):
         else:
             self.ms_change_atom_name.setChecked(True)
 
-    def _new_start_providers(self, new_providers):
-        pass
+    def _new_start_providers(self, new_provider_names):
+        if self._ignore_new_providers:
+            return
+        from .manager import get_manager
+        manager = get_manager(self.session)
+        num_prev = len(self.ss_u_to_p_names)
+        new_u_to_p_names = { manager.ui_name(pn):pn for pn in new_provider_names }
+        self.ss_u_to_p_names.update(new_u_to_p_names)
+        ui_names = list(new_u_to_p_names.keys())
+        ui_names.sort(key=lambda x: x.lower())
+
+        for row, ui_name in enumerate(ui_names):
+            row += num_prev
+            but = QRadioButton(ui_name)
+            self.ss_button_group.addButton(but)
+            provider_layout.addWidget(but, row+1, 1, alignment=Qt.AlignLeft)
+            params_title = " ".join([x.capitalize()
+                if x.islower() else x for x in ui_name.split()]) + " Parameters"
+            self.ss_widgets[ui_name] = widget = QGroupBox(params_title)
+            manager.fill_parameters_widget(self.ss_u_to_p_names[ui_name], widget)
+            self.parameter_widgets.addWidget(widget)
+            if row == 0:
+                but.setChecked(True)
+                self.parameter_widgets.setCurrentWidget(widget)
 
     def _ss_apply_cb(self):
         ui_name = self.ss_button_group.checkedButton().text()
         provider_name = self.ss_u_to_p_names[ui_name]
 
         from chimerax.core.errors import CancelOperation
-        from .manager import manager
+        from .manager import get_manager
+        manager = get_manager(self.session)
         try:
             subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
         except CancelOperation:
@@ -381,7 +445,8 @@ class BuildStructureTool(ToolInstance):
     def _ss_provider_changed(self, button):
         ui_name = button.text()
         self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
-        from .manager import manager
+        from .manager import get_manager
+        manager = get_manager(self.session)
         provider_name = self.ss_u_to_p_names[ui_name]
         hide_model_choice = manager.new_model_only(provider_name)
         if manager.is_indirect(provider_name):

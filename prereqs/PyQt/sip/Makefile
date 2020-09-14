@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-SIP_VERSION = 4.19.20
+SIP_VERSION = 4.19.17
 DISTRIBUTION = sip-$(SIP_VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(SIP_VERSION)
 
@@ -18,8 +18,14 @@ install: $(SOURCE)
 app-install:
 	$(RSYNC) $(PYSITEDIR)/sip.$(PYMOD_EXT) $(APP_PYSITEDIR)
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/sip/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/sip
 
 clean:
 	rm -rf $(SOURCE)

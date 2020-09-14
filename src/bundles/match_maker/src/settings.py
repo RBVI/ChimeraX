@@ -16,7 +16,7 @@ from .match import CP_BEST_BEST, AA_NEEDLEMAN_WUNSCH
 defaults = {
     'chain_pairing': CP_BEST_BEST,
     'alignment_algorithm': AA_NEEDLEMAN_WUNSCH,
-    'show_sequence': False,
+    'show_alignment': False,
     'matrix': "BLOSUM-62",
     'gap_open': 12,
     'gap_extend': 1,
@@ -39,6 +39,8 @@ defaults = {
     'strand_open': 18,
     'other_open': 6,
     'compute_ss': True,
+    'overwrite_ss': False,
+    'verbose_logging': False,
 }
 
 from  chimerax.core.settings import Settings
@@ -47,11 +49,12 @@ from copy import deepcopy
 class _MatchmakerSettings(Settings):
     EXPLICIT_SAVE = deepcopy(defaults)
 
-# once a GUI is implemented it will need to call this...
-settings = None
-def init(session):
-    global settings
+# for the GUI
+_settings = None
+def get_settings(session):
+    global _settings
     # don't initialize a zillion times, which would also overwrite
     # any changed but not saved settings
-    if settings is None:
-        settings = _MatchmakerSettings(session, "matchmaker")
+    if _settings is None:
+        _settings = _MatchmakerSettings(session, "matchmaker")
+    return _settings

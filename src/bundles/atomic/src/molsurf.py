@@ -18,6 +18,10 @@ molsurf: Compute molecular surfaces
 
 from chimerax.core.models import Surface
 
+# If MOLSURF_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+MOLSURF_STATE_VERSION = 1
+
 class MolecularSurface(Surface):
     '''
     A molecular surface computed from a set of atoms.
@@ -573,8 +577,7 @@ class MolecularSurface(Surface):
         data = {attr:getattr(self, attr) for attr in init_attrs}
         data['model state'] = Surface.take_snapshot(self, session, flags)
         data.update({attr:getattr(self,attr) for attr in self._save_attrs if hasattr(self,attr)})
-        from chimerax.core.state import CORE_STATE_VERSION
-        data['version'] = CORE_STATE_VERSION
+        data['version'] = MOLSURF_STATE_VERSION
         return data
 
     @staticmethod

@@ -221,13 +221,13 @@ def add_bond(a1, a2, halfbond=None, color=None):
         return pos
     if close_gap:
         end_range = find_end(i2)
-        new_residues = all_residues[0:i1+1] + all_residues[i2:end_range+1] \
-            + all_residues[i1+1:i2] + all_residues[end_range+1:]
+        new_residues = list(all_residues[0:i1+1]) + list(all_residues[i2:end_range+1]) \
+            + list(all_residues[i1+1:i2]) + list(all_residues[end_range+1:])
     else:
         er1 = find_end(i1)
         er2 = find_end(i2, dir=-1)
-        new_residues = all_residues[0:i1] + all_residues[er1+1:i2+1] \
-            + all_residues[i1:er1+1] + all_residues[i2+1:]
+        new_residues = list(all_residues[0:i1]) + list(all_residues[er1+1:i2+1]) \
+            + list(all_residues[i1:er1+1]) + list(all_residues[i2+1:])
     a1.structure.reorder_residues(new_residues)
     return b
 

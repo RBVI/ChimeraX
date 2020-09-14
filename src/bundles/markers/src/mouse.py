@@ -62,8 +62,7 @@ class MarkerMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
         log = s.logger
-        from chimerax.mouse_modes import picked_object_on_segment
-        p = picked_object_on_segment(xyz1, xyz2, s.main_view)
+        p = s.main_view.picked_object_on_segment(xyz1, xyz2, max_transparent_layers = 0)
         if p is None:
             c = None
         elif self.marker_mode == 'mark center' and hasattr(p, 'triangle_pick'):
@@ -140,8 +139,8 @@ class MarkerMouseMode(MouseMode):
     
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
+        view = self.session.main_view
+        pick = view.picked_object_on_segment(xyz1, xyz2)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet

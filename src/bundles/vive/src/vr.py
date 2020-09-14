@@ -16,6 +16,7 @@
 #
 def vr(session, enable = None, room_position = None, mirror = None,
        gui = None, center = None, click_range = None,
+       near_clip_distance = None, far_clip_distance = None,
        multishadow_allowed = False, simplify_graphics = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
@@ -46,6 +47,12 @@ def vr(session, enable = None, room_position = None, mirror = None,
     click_range : float
       How far away hand controller tip can be when clicking an atom in scene units
       (Angstroms).  Default 5.
+    near_clip_distance : float
+      Parts of the scene closer than this distance (meters) to the eye are not shown.
+      Default 0.10.
+    far_clip_distance : float
+      Parts of the scene farther than this distance (meters) from the eye are not shown.
+      Default 500.
     multishadow_allowed : bool
       If this option is false and multi-shadow lighting is enabled (ambient occlusion) when vr is
       enabled, then lighting is switched to simple lighting.  If the option is true then no
@@ -98,10 +105,16 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if click_range is not None:
         c.user_interface.set_mouse_mode_click_range(click_range)
 
+    if near_clip_distance is not None:
+        c.near_clip_distance = near_clip_distance
+
+    if far_clip_distance is not None:
+        c.far_clip_distance = far_clip_distance
+
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
 #
-def vr_button(session, button, mode, hand = None):
+def vr_button(session, button, mode = None, hand = None, command = None):
     '''
     Assign VR hand controller buttons
 
@@ -111,10 +124,13 @@ def vr_button(session, button, mode, hand = None):
       Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
       and X/Y imply hand = 'left'
     mode : HandMode instance or 'default'
-      VR hand mode to assign to button.
+      VR hand mode to assign to button.  If mode is None then report the current mode.
     hand : 'left', 'right', None
       Which hand controller to assign.  If None then assign button on both hand controllers.
       If button is A, B, X, or Y then hand is ignored since A/B implies right and X/Y implies left.
+    command : string
+      Assign the button press to execute this command string.  Mode should be None or an error
+      is raised.
     '''
 
     c = vr_camera(session)
@@ -135,8 +151,9 @@ def vr_button(session, button, mode, hand = None):
         k_EButton_SteamVR_Trigger as trigger, \
         k_EButton_SteamVR_Touchpad as touchpad, \
         k_EButton_A as a
-    
-    openvr_buttons = {
+    button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+
+    openvr_button_ids = {
         'grip': [grip],
         'menu': [menu],
         'trigger': [trigger],
@@ -148,20 +165,40 @@ def vr_button(session, button, mode, hand = None):
         'Y': [menu],
         'all': [grip, menu, trigger, touchpad, a],
     }
-    openvr_buttons = openvr_buttons[button]
+    openvr_buttons = openvr_button_ids[button]
 
+    if command is not None:
+        if mode is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('vr button: Cannot specify both mode and command.')
+        mode = RunCommandMode(session, command)
+        
+    report_modes = (mode is None and command is None)
+    
+    mode_names = []
     for hc in hclist:
-        for button in openvr_buttons:
-            if mode == 'default':
-                hc.set_default_hand_mode(button)
+        for button_id in openvr_buttons:
+            if report_modes:
+                if hc.on:
+                    bname = button_names[button_id] if button == 'all' else button
+                    bmode = hc.current_hand_mode(button_id)
+                    mname = (bmode.name if bmode else 'none')
+                    mode_names.append('%s %s = %s' % (hc.left_or_right, bname, mname))
+            elif mode == 'default':
+                hc.set_default_hand_mode(button_id)
             else:
-                hc.set_hand_mode(button, mode)
+                hc.set_hand_mode(button_id, mode)
 
+    if report_modes:
+        modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
+        msg = 'Current VR button modes: ' + modes
+        session.logger.info(msg)
+        
 # -----------------------------------------------------------------------------
 #
 def vr_room_camera(session, enable = True, field_of_view = None, width = None,
-                   background_color = None, tracker = None,
-                   save_position = None, save_tracker_mount = None):
+                   background_color = None, show_hands = None, show_panels = None,
+                   save_position = None, tracker = None, save_tracker_mount = None):
     '''
     Mirror using fixed camera in room separate from VR headset view.
 
@@ -178,10 +215,14 @@ def vr_room_camera(session, enable = True, field_of_view = None, width = None,
       Width of room camera screen shown in VR in meters.  Default 1.
     background_color : Color
       Color of background in room camera rendering.  Default is dark gray.
-    tracker : bool
-      Whether to set the camera position from a Vive tracker device.  Default False.
+    show_hands : bool or "toggle"
+      Whether to show hand cones in room camera view.
+    show_panels : bool or "toggle"
+      Whether to show gui panels in room camera view.
     save_position : bool
       If true save the current camera room position for future sessions.
+    tracker : bool
+      Whether to set the camera position from a Vive tracker device.  Default False.
     save_tracker_mount : bool
       If true save the current relative camera position in tracker coordinates
       for future sessions.
@@ -205,6 +246,10 @@ def vr_room_camera(session, enable = True, field_of_view = None, width = None,
         rc._camera_model.set_size(width)
     if background_color is not None:
         rc._background_color = background_color.rgba
+    if show_hands is not None:
+        rc.show_hands = (not rc.show_hands) if show_hands == 'toggle' else show_hands
+    if show_panels is not None:
+        rc.show_gui_panels = (not rc.show_gui_panels) if show_panels == 'toggle' else show_panels
     if tracker is not None:
         rc.use_tracker(tracker)
     if save_position:
@@ -224,6 +269,8 @@ def register_vr_command(logger):
                               ('gui', StringArg),
                               ('center', BoolArg),
                               ('click_range', FloatArg),
+                              ('near_clip_distance', FloatArg),
+                              ('far_clip_distance', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                    ],
@@ -234,21 +281,25 @@ def register_vr_command(logger):
                  url='help:user/commands/device.html#vr')
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
-    desc = CmdDesc(required = [('button', button_name),
-                               ('mode', VRModeArg(logger.session))],
-                   keyword = [('hand', EnumOf(('left', 'right')))],
+    desc = CmdDesc(required = [('button', button_name)],
+                   optional = [('mode', VRModeArg(logger.session))],
+                   keyword = [('hand', EnumOf(('left', 'right'))),
+                              ('command', StringArg)],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
     register('vr button', desc, vr_button, logger=logger)
     create_alias('device vr button', 'vr button $*', logger=logger,
                  url='help:user/commands/device.html#vr-button')
 
+    ToggleArg = Or(EnumOf(['toggle']), BoolArg)
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
                               ('width', FloatArg),
                               ('background_color', ColorArg),
-                              ('tracker', BoolArg),
+                              ('show_hands', ToggleArg),
+                              ('show_panels', ToggleArg),
                               ('save_position', BoolArg),
+                              ('tracker', BoolArg),
                               ('save_tracker_mount', BoolArg)],
                    synopsis = 'Control VR room camera',
                    url = 'help:user/commands/device.html#vr-roomCamera')
@@ -298,8 +349,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
+    # Use only 8 shadow directions for faster rendering.
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 8
+        
+    # Don't continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, label_reorient)	# Don't continuously reorient labels.
+    label_orient(session, label_reorient)
 
     c = vr_camera(session)
     if c is session.main_view.camera:
@@ -370,12 +426,21 @@ def stop_vr(session, simplify_graphics = True):
     from chimerax.graphics import MonoCamera
     v = session.main_view
     v.camera = MonoCamera()
+
     session.update_loop.set_redraw_interval(10)
+    
     if simplify_graphics:
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+
+    # Continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, 0)	# Continuously reorient labels.
+    label_orient(session, 0)
+
+    # Go back to 64 shadow directions
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 64
+    
     v.view_all()
     wait_for_vsync(session, True)
 
@@ -440,11 +505,7 @@ class SteamVRCamera(Camera, StateManager):
         # Compute projection and eye matrices, units in meters
 
         # Left and right projections are different. OpenGL 4x4.
-        z_near, z_far = self._z_near, self._z_far
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
-        self._projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
-        self._projection_right = hmd44_to_opengl44(pr)
+        self._set_projection_matrices()
 
         # Eye shifts from hmd pose.
         vl = vrs.getEyeToHeadTransform(openvr.Eye_Left)
@@ -503,6 +564,29 @@ class SteamVRCamera(Camera, StateManager):
         self._reposition_room_camera(p)
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
     '''Transformation from room coordinates to scene coordinates.'''
+
+    def _set_projection_matrices(self):
+        z_near, z_far = self._z_near, self._z_far
+        vrs = self._vr_system
+        import openvr
+        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
+        self._projection_left = hmd44_to_opengl44(pl)
+        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
+        self._projection_right = hmd44_to_opengl44(pr)
+
+    def _get_near_clip_distance(self):
+        return self._z_near
+    def _set_near_clip_distance(self, near):
+        self._z_near = near
+        self._set_projection_matrices()
+    near_clip_distance = property(_get_near_clip_distance, _set_near_clip_distance)
+
+    def _get_far_clip_distance(self):
+        return self._z_far
+    def _set_far_clip_distance(self, far):
+        self._z_far = far
+        self._set_projection_matrices()
+    far_clip_distance = property(_get_far_clip_distance, _set_far_clip_distance)
         
     def _reposition_user_interface(self):
         ui = self.user_interface
@@ -531,6 +615,10 @@ class SteamVRCamera(Camera, StateManager):
             rc.close(self.render)
             self._room_camera = None
         return rc
+
+    @property
+    def room_camera(self):
+        return self._room_camera
 
     @property
     def have_room_camera(self):
@@ -1048,6 +1136,9 @@ class RoomCamera:
         self._field_of_view = 90	# Degrees.  Horizontal.
         self._background_color = (.1,.1,.1,1)	# RGBA, float 0-1
         self._settings = None		# Saved preferences, room position.
+        self.is_rendering = False	# Allows hand, gui, and screen models to hide themselves
+        self.show_hands = True		# Whether to show hand cones in room camera view
+        self.show_gui_panels = True	# Whether to show VR gui panel in room camera view
 
         # Depiction of camera in VR scene.
         render.make_current()	# Texture is allocated when framebuffer created.
@@ -1169,8 +1260,9 @@ class RoomCamera:
         # Set paramters for mixed reality blending.
         render.mix_video = True  # For making mixed reality videos
 
-        # Don't render camera model in desktop camera view.
-        self.enable_draw = False
+        # Allow hand, gui, and screen models to detect if room
+        # camera is rendering so they can hide themselves.
+        self.is_rendering = True
         
         # Make background contrast with room background so vr user can see boundary.
         render.set_background_color(self._background_color)
@@ -1179,13 +1271,8 @@ class RoomCamera:
         # Turn off mixed reality blending.
         render.mix_video = False
 
-        # Reenable camera model rendering for VR eye views.
-        self.enable_draw = True
-
-    def enable_draw(self, enable):
-        cm = self._camera_model
-        if cm:
-            cm.enable_draw = enable
+        # Reenable hand, gui and screen rendering for non-room-camera views.
+        self.is_rendering = False
 
     def framebuffer(self, render):
         rfb = render.default_framebuffer()
@@ -1218,26 +1305,26 @@ class RoomCameraModel(Model):
     to render the desktop graphics window.  The camera looks in the -z direction.
     The camera is shown as a rectangle and texture mapped onto it is what the camera sees.
     '''
-    casts_shadows = False
-#    skip_bounds = True   # Camera screen disappears if it is far from models
     SESSION_SAVE = False
 
     def __init__(self, name, session, texture, room_to_scene, width = 1):
         '''Width in meters.'''
-        self.enable_draw = True
         self._last_room_to_scene = room_to_scene
         self._width = width
 
         Model.__init__(self, name, session)
+
+        self.casts_shadows = False
+        self.skip_bounds = True   # "view all" command excludes room camera
+
+        # Avoid camera disappearing when far from models
+        self.allow_depth_cue = False
 
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
         self.texture = texture
         self.opaque_texture = True
         self.set_size(width)
-
-        # Avoid camera disappearing when far from models
-        self.allow_depth_cue = False
 
     def delete(self):
         cam = self.session.main_view.camera
@@ -1274,15 +1361,27 @@ class RoomCameraModel(Model):
         return vertices, normals, texcoords, triangles
 
     def draw(self, renderer, draw_pass):
-        if self.enable_draw:
-            # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
-            # but the texture may have transparent alpha values.  The drawing code uses alpha
-            # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
-            # code should be disabling alpha blending.
-            renderer.enable_blending(False)
-            Model.draw(self, renderer, draw_pass)
-            renderer.enable_blending(True)
-            
+        if self._hide_camera():
+            return
+        # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+        # but the texture may have transparent alpha values.  The drawing code uses alpha
+        # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+        # code should be disabling alpha blending.
+        renderer.enable_blending(False)
+        Model.draw(self, renderer, draw_pass)
+        renderer.enable_blending(True)
+
+    def _hide_camera(self):
+        '''
+        Returns true if the room camera is currently being rendered.
+        This is used to suppress screen drawing so it does not block the view.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering
+        return False
+    
     def update_scene_position(self, new_rts):
         old_rts = self._last_room_to_scene
         self._last_room_to_scene = new_rts
@@ -1494,7 +1593,7 @@ class UserInterface:
         for p in tuple(self._panels):
             try:
                 vis = p._widget.isVisible()
-            except:
+            except Exception:
                 vis = False	# Panel destroyed
             if not vis:
                 self._delete_panel(p)
@@ -1809,26 +1908,17 @@ class Panel:
         self._panel_thickness = 0.01	# meters
 
         # Drawing that renders this panel.
-        self._panel_drawing = self._create_panel_drawing(drawing_parent)
+        self._panel_drawing = d = PanelDrawing()
+        drawing_parent.add_drawing(d)
 
     @property
     def widget(self):
         w = self._widget
         try:
             w.width()
-        except:
+        except Exception:
             w = None	# Widget was deleted.
         return w
-
-    def _create_panel_drawing(self, drawing_parent):
-        from chimerax.graphics import Drawing
-        d = Drawing('VR UI panel')
-        d.color = (255,255,255,255)
-        d.use_lighting = False
-        d.casts_shadows = False
-        # d.skip_bounds = True	# Clips if far from models.
-        drawing_parent.add_drawing(d)
-        return d
 
     def _get_center(self):
         pd = self._panel_drawing
@@ -2294,6 +2384,33 @@ class Panel:
                 return p
         return None
 
+from chimerax.graphics import Drawing
+class PanelDrawing(Drawing):
+    '''Draws a single gui panel as a textured rectangle.'''
+    def __init__(self, name = 'VR UI panel'):
+        Drawing.__init__(self, name)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        self.skip_bounds = True	# Panels should not effect view all command.
+        # Avoid panels fading out far from models.
+        self.allow_depth_cue = False
+
+    def draw(self, renderer, draw_pass):
+        if not self._hide_panel():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_panel(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the GUI panels are to be hidden.
+        '''
+        c = self.parent.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering and not rc.show_gui_panels
+        return False
+
 def _ancestor_widgets(w):
     alist = []
     p = w
@@ -2548,7 +2665,10 @@ class HandController:
         if mode.update_ui_on_release:
             f = mode.update_ui_delay_frames
             self._camera.user_interface.redraw_ui(delay_frames = f)
-        
+
+    def current_hand_mode(self, button):
+        return self._modes.get(button)
+    
     def set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
         hm = self.hand_model
@@ -2731,6 +2851,22 @@ class HandModel(Model):
         
     def _set_button_icon(self, button, icon_path):
         self._buttons.set_button_icon(button, icon_path)
+
+    def draw(self, renderer, draw_pass):
+        if not self._hide_hand():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_hand(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the hand models are to be hidden.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            hide = (rc and rc.is_rendering and not rc.show_hands)
+            return hide
+        return False
 
 class HandButtons:
     def __init__(self, controller_type = 'htc vive'):
@@ -2974,9 +3110,8 @@ class HandButtonEvent(HandEvent):
         return self._released
     def picked_object(self, view):
         '''Return pick for object pointed at, along ray from cone.'''
-        from chimerax.mouse_modes import picked_object_on_segment
         xyz1, xyz2 = self.picking_segment()
-        pick = picked_object_on_segment(xyz1, xyz2, view)
+        pick = view.picked_object_on_segment(xyz1, xyz2)
         return pick
     
 class HandMotionEvent(HandEvent):
@@ -2998,9 +3133,13 @@ class HandMotionEvent(HandEvent):
         '''Rotation and translation in scene coordinates give as a Place instance.'''
         rp = self.hand_controller.room_position
         ldp = self._last_drag_room_position
-        room_move = rp * ldp.inverse()
-        rts = self.camera.room_to_scene
-        move = rts * room_move * rts.inverse()
+        if ldp is None:
+            from chimerax.geometry import Place
+            move = Place()
+        else:
+            room_move = rp * ldp.inverse()
+            rts = self.camera.room_to_scene
+            move = rts * room_move * rts.inverse()
         return move
     def set_last_drag_position(self, last_position):
         self._last_drag_room_position = last_position
@@ -3377,6 +3516,31 @@ class MouseMode(HandMode):
         if self.uses_thumbstick():
             self._mouse_mode.vr_thumbstick(hand_thumbstick_event)
 
+class RunCommandMode(HandMode):
+    name = 'command'
+    update_ui_on_release = True
+    def __init__(self, session, command):
+        self._session = session
+        self._command = command
+        self.name = 'command "%s"' % command
+    @property
+    def icon_path(self):
+        return RunCommandMode.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        return join(dirname(__file__), 'command_icon.png')
+    def pressed(self, hand_event):
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import run
+        try:
+            run(self._session, self._command)
+        except UserError as e:
+            self._session.logger.warning(str(e))
+        except Exception as e:
+            from traceback import format_exc
+            self._session.logger.bug(format_exc())
+            
 vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
 
 def hand_mode_names(session):

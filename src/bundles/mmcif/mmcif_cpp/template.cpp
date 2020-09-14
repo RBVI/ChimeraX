@@ -22,6 +22,10 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/tmpl/restmpl.h>
+#if 0
+// only needed if using tmpl::find_template_residue
+#include <atomstruct/tmpl/residues.h>
+#endif
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -49,6 +53,7 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Sequence;
 using atomstruct::Coord;
+using atomstruct::PolymerType;
 
 namespace mmcif {
 
@@ -62,24 +67,53 @@ tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
 const tmpl::Residue*
-find_template_residue(const ResName& name)
+find_template_residue(const ResName& name, bool start, bool stop)
 {
+    const tmpl::Residue* tr = nullptr;
     if (name.empty())
-        return nullptr;
+        return tr;
     if (templates == nullptr)
         templates = new tmpl::Molecule();
-    else {
-        tmpl::Residue* tr = templates->find_residue(name);
-        if (tr)
-            return tr;
+    else
+        tr = templates->find_residue(name);
+    if (tr == nullptr) {
+        if (locate_func == nullptr)
+            return nullptr;
+        string filename = locate_func(name);
+        if (filename.empty())
+            return nullptr;
+        load_mmCIF_templates(filename.c_str());
+        tr = templates->find_residue(name);
     }
-    if (locate_func == nullptr)
-        return nullptr;
-    string filename = locate_func(name);
-    if (filename.empty())
-        return nullptr;
-    load_mmCIF_templates(filename.c_str());
-    return templates->find_residue(name);
+    if (tr) {
+        if (tr->polymer_type() == PolymerType::PT_AMINO) {
+            if (start) {
+                ResName terminus = name + "_LSN3";
+                const tmpl::Residue* ttr = templates->find_residue(terminus);
+                if (ttr)
+                    return ttr;
+            } else if (stop) {
+                ResName terminus = name + "_LEO2H";
+                const tmpl::Residue* ttr = templates->find_residue(terminus);
+                if (ttr)
+                    return ttr;
+            }
+        }
+#if 0
+// The atomic module's templates are missing atoms, eg., OP3 in G.
+// So this gets rid of some warning about missing hydrogens
+// and add others.  Needs more investigation.
+        else if (tr->polymer_type() == PolymerType::PT_NUCLEIC) {
+            if (start || stop) {
+                // Until the PDB has mmCIF templates for RNA/DNA use built-ins
+                const tmpl::Residue* ttr = tmpl::find_template_residue(name, stop, start);
+                if (ttr)
+                    return ttr;
+            }
+        }
+#endif
+    }
+    return tr;
 }
 
 struct ExtractTemplate: public readcif::CIFFile
@@ -101,8 +135,6 @@ struct ExtractTemplate: public readcif::CIFFile
     set<tmpl::Atom*> leaving_atoms; // in current residue
 #endif
     string type;                    // residue type
-    bool is_peptide;
-    bool is_nucleotide;
     bool is_linking;
 };
 
@@ -166,8 +198,7 @@ ExtractTemplate::finished_parse()
         }
     }
 #endif
-    if (is_peptide) {
-        residue->description("peptide");
+    if (residue->polymer_type() == PolymerType::PT_AMINO) {
         tmpl::Atom* n = residue->find_atom("N");
         residue->chief(n);
         tmpl::Atom* c;
@@ -178,8 +209,7 @@ ExtractTemplate::finished_parse()
         else
             c = residue->find_atom("C");
         residue->link(c);
-    } else if (is_nucleotide) {
-        residue->description("nucleotide");
+    } else if (residue->polymer_type() == PolymerType::PT_NUCLEIC) {
         tmpl::Atom* p = residue->find_atom("P");
         residue->chief(p);
         tmpl::Atom* o3p = residue->find_atom("O3'");
@@ -190,8 +220,11 @@ ExtractTemplate::finished_parse()
 void
 ExtractTemplate::parse_chem_comp()
 {
-    ResName  name;
-    ResName  modres;
+    // TODO: parse "all" columns of chem_comp table and save in TmplMolecule's
+    // metadata for extraction when opening a CCD file as an atomic structure
+    ResName name;
+    ResName modres;
+    string  description;
     char    code = '\0';
     bool    ambiguous = false;
     type.clear();
@@ -206,6 +239,10 @@ ExtractTemplate::parse_chem_comp()
         pv.emplace_back(get_column("type"),
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
+            });
+        pv.emplace_back(get_column("name"),
+            [&] (const char* start, const char* end) {
+                description = string(start, end - start);
             });
         pv.emplace_back(get_column("three_letter_code"),
             [&] (const char* start, const char* end) {
@@ -236,14 +273,19 @@ ExtractTemplate::parse_chem_comp()
             c = tolower(c);
     }
     is_linking = type.find(" linking") != string::npos;
-    is_peptide = type.find("peptide") != string::npos;
-    is_nucleotide = type.find("dna ") == string::npos
-        || type.find("rna ") == string::npos;
+    bool is_peptide = type.find("peptide") != string::npos;
+    bool is_nucleotide = type.find("dna ") != string::npos
+        || type.find("rna ") != string::npos;
     residue = templates->new_residue(name.c_str());
+    residue->description(description);
     residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
     if (!code || (!is_peptide && !is_nucleotide))
         return;
+    if (is_peptide)
+        residue->polymer_type(PolymerType::PT_AMINO);
+    else if (is_nucleotide)
+        residue->polymer_type(PolymerType::PT_NUCLEIC);
     if (!modres.empty()) {
         char old_code;
         if (is_peptide) {
@@ -349,7 +391,7 @@ ExtractTemplate::parse_chem_comp_atom()
     }
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
-        tmpl::Atom* a = templates->new_atom(name, elem);
+        tmpl::Atom* a = templates->new_atom(name, elem, chirality);
         if (std::isnan(pdbx_x)) {
             tmpl::Coord c(x, y, z);
             a->set_coord(c);

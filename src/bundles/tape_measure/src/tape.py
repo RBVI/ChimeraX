@@ -47,10 +47,10 @@ class TapeMeasureMouseMode(MouseMode):
 
     def _clear(self):
         mset = self._marker_set
-        if mset:
+        if mset and not mset.deleted:
             self._log_clear_command()
-            self._marker_set = None
             self.session.models.close([mset])
+        self._marker_set = None
             
     def _show_distance(self, end_point):
         if self._markers:
@@ -147,9 +147,8 @@ class TapeMeasureMouseMode(MouseMode):
         return p, v
                 
     def _surface_or_atom_point(self, xyz1, xyz2):
-        from chimerax.mouse_modes import picked_object_on_segment
-        p = picked_object_on_segment(xyz1, xyz2, self.session.main_view,
-                                     exclude = self._exclude_markers_from_pick)
+        view = self.session.main_view
+        p = view.picked_object_on_segment(xyz1, xyz2, exclude = self._exclude_markers_from_pick)
         from chimerax.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
         from chimerax.atomic import PickedAtom, PickedResidue
@@ -168,8 +167,9 @@ class TapeMeasureMouseMode(MouseMode):
         return sxyz, v
 
     def _exclude_markers_from_pick(self, drawing):
-        from chimerax.mouse_modes import unpickable
-        return unpickable(drawing) or drawing is self._marker_set
+        if drawing is self._marker_set:
+            return 'all'
+        return not drawing.pickable
             
     def _volume_maximum_point(self, xyz1, xyz2):
         from chimerax.map import Volume

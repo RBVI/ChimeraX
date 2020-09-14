@@ -26,7 +26,7 @@ from .vector import interpolate_points, inner_product, normalize_vector, normali
 from .vector import planes_as_4_vectors, distance, cross_product, cross_products, norm, distance_squared
 from .vector import angle, dihedral, dihedral_point
 from .vector import clip_segment
-from .matrix import linear_combination
+from .matrix import linear_combination, project_to_axis
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
 from .bounds import copies_bounding_box, copy_tree_bounds, clip_bounds
 from ._geometry import natural_cubic_spline
@@ -60,5 +60,7 @@ class _GeometryBundleAPI(BundleAPI):
             return Place
         elif class_name == 'Places':
             return Places
+        elif class_name == 'Plane':
+            return Plane
 
 bundle_api = _GeometryBundleAPI()

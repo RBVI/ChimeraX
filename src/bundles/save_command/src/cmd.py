@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, SaveFileNameArg, RestOfLine, next_token, \
-    FileNameArg, DynamicEnum
-from chimerax.core.commands.cli import RegisteredCommandInfo
+    FileNameArg, DynamicEnum, StringArg
+from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 def cmd_save(session, file_name, rest_of_line, *, log=True):
@@ -28,35 +28,41 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         test_token = tokens[i].lower()
         if "format".startswith(test_token):
             format_name = tokens[i+1]
+    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)]
+        + [StringArg.unparse(token) for token in tokens])
 
-    from .manager import NoSaverError
-    mgr = session.save_command
-    data_format= file_format(session, file_name, format_name)
     try:
-        provider_args = mgr.save_args(data_format)
-    except NoSaverError as e:
-        raise LimitationError(str(e))
+        from .manager import NoSaverError
+        mgr = session.save_command
+        data_format= file_format(session, file_name, format_name)
+        try:
+            provider_args = mgr.save_args(data_format)
+        except NoSaverError as e:
+            raise LimitationError(str(e))
 
-    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)] + tokens)
-    # register a private 'save' command that handles the provider's keywords
-    registry = RegisteredCommandInfo()
-    def format_names(ses=session):
-        names = set()
-        for f in ses.save_command.save_data_formats:
-            names.update(f.nicknames)
-        return names
-
-    keywords = {
-        'format': DynamicEnum(format_names),
-    }
-    for keyword, annotation in provider_args.items():
-        if keyword in keywords:
-            raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
-                " of same name" % keyword)
-        keywords[keyword] = annotation
-    desc = CmdDesc(required=[('file_name', SaveFileNameArg)], keyword=keywords.items(),
-        hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
-    register("save2", desc, provider_save, registry=registry)
+        # register a private 'save' command that handles the provider's keywords
+        registry = RegisteredCommandInfo()
+        keywords = {
+            'format': DynamicEnum(lambda ses=session: format_names(ses)),
+        }
+        for keyword, annotation in provider_args.items():
+            if keyword in keywords:
+                raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
+                    " of same name" % keyword)
+            keywords[keyword] = annotation
+        # for convenience, allow 'models' to be a second positional argument instead of a keyword
+        if 'models' in keywords:
+            optional = [('models', keywords['models'])]
+            del keywords['models']
+        else:
+            optional = []
+        desc = CmdDesc(required=[('file_name', SaveFileNameArg)], optional=optional,
+            keyword=keywords.items(), hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
+        register("save", desc, provider_save, registry=registry)
+    except BaseException as e:
+        # want to log command even for keyboard interrupts
+        log_command(session, "save", provider_cmd_text, url=_main_save_CmdDesc.url)
+        raise
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
@@ -75,7 +81,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # remember in file history if appropriate
     try:
         session.open_command.open_info(data_format)
-    except:
+    except Exception:
         pass
     else:
         from os.path import isfile
@@ -83,6 +89,12 @@ def provider_save(session, file_name, format=None, **provider_kw):
             from chimerax.core.filehistory import remember_file
             remember_file(session, path, data_format.nicknames[0],
                 provider_kw.get('models', 'all models'), file_saved=True)
+
+def format_names(session):
+    names = set()
+    for f in session.save_command.save_data_formats:
+        names.update(f.nicknames)
+    return names
 
 def _get_path(file_name, compression_okay):
     from os.path import expanduser, expandvars, exists
@@ -107,8 +119,140 @@ def file_format(session, file_name, format_name):
     except NoFormatError as e:
         raise UserError(str(e))
 
+def cmd_save_formats(session):
+    '''Report file formats and suffixes that the save command knows about.'''
+    from chimerax.core.commands import commas
+    all_formats = session.save_command.save_data_formats
+    by_category = {}
+    for fmt in all_formats:
+        by_category.setdefault(fmt.category.title(), []).append(fmt)
+    titles = list(by_category.keys())
+    titles.sort()
+    lines = []
+    for title in titles:
+        formats = by_category[title]
+        if session.ui.is_gui:
+            lines.extend([
+                '<table border=1 cellspacing=0 cellpadding=2>',
+                '<tr><th colspan="3">%s' % title,
+                '<tr><th>File format<th>Short name(s)<th>Suffixes'
+            ])
+        else:
+            session.logger.info(title)
+            session.logger.info('File format, Short name(s), Suffixes:')
+        formats.sort(key = lambda f: f.name.lower())
+        for f in formats:
+            if session.ui.is_gui:
+                from html import escape
+                if f.reference_url:
+                    descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+                else:
+                    descrip = escape(f.synopsis)
+                lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                    escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+            else:
+                session.logger.info('    %s: %s: %s' % (f.synopsis,
+                    commas(f.nicknames), ', '.join(f.suffixes)))
+        if session.ui.is_gui:
+            lines.append('</table>')
+            lines.append('<p></p>')
+    if session.ui.is_gui:
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
 
+def _usage_setup(session):
+    if session.ui.is_gui:
+        get_name = lambda arg: arg.html_name()
+        cmd_fmt = "<b>%s</b>"
+        arg_fmt = "<i>%s</i>"
+        end_of_main_syntax = "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; <i>%s</i>\n"
+        arg_syntax_append = "<br>\n&nbsp;&nbsp;%s"
+        arg_syntax_join = "<br>\n&nbsp;&nbsp;"
+        kw_fmt = ' <nobr>[<b>%s</b> <i>%s</i>]</nobr>'
+    else:
+        get_name = lambda arg: arg.name
+        cmd_fmt = "%s"
+        arg_fmt = "%s"
+        end_of_main_syntax = " -- %s"
+        arg_syntax_append = "\n%s"
+        arg_syntax_join = "\n"
+        kw_fmt = ' [%s _%s_]'
+    return get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt
+
+from chimerax.core.commands.cli import user_kw
+
+def cmd_usage_save(session):
+    '''Report the generic syntax for the 'save' command'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "save"
+
+    syntax += ' ' + arg_fmt % "name"
+    arg_syntax.append("%s: %s" % (arg_fmt % "name", get_name(SaveFileNameArg)))
+    for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses)))]:
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    format_desc = "format-specific arguments"
+    syntax += ' [%s]' % (arg_fmt % format_desc)
+    arg_syntax.append("%s: %s" % (arg_fmt % format_desc, "format-specific arguments;"
+        " to see their syntax use the '%s %s' command, where %s is as per the above"
+        % (cmd_fmt % "usage save format", arg_fmt % "format", arg_fmt % "format")))
+
+    syntax += end_of_main_syntax % "save data to various file formats"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+def cmd_usage_save_format(session, format):
+    '''Report the syntax for the 'save' command for a partilar format'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "save"
+
+    syntax += ' ' + arg_fmt % "name"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(SaveFileNameArg)))
+
+    provider_args = session.save_command.save_args(session.data_formats[format])
+    for py_kw_name, arg in provider_args.items():
+        kw_name = user_kw(py_kw_name)
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    syntax += end_of_main_syntax % "save data to %s format" % format
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+
+_main_save_CmdDesc = None
 def register_command(command_name, logger):
-    register('save2', CmdDesc(
-        required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
-        synopsis="Save file", self_logging=True), cmd_save, logger=logger)
+    global _main_save_CmdDesc
+    _main_save_CmdDesc = CmdDesc(required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
+        synopsis="Save file", self_logging=True)
+    register('save', _main_save_CmdDesc, cmd_save, logger=logger)
+
+    sf_desc = CmdDesc(synopsis='report formats that can be saved')
+    register('save formats', sf_desc, cmd_save_formats, logger=logger)
+
+    us_desc = CmdDesc(synopsis='show generic "save" command syntax')
+    register('usage save', us_desc, cmd_usage_save, logger=logger)
+
+    usf_desc = CmdDesc(required=[('format', DynamicEnum(lambda ses=logger.session: format_names(ses)))],
+        synopsis='show "save" command syntax for a specific file format')
+    register('usage save format', usf_desc, cmd_usage_save_format, logger=logger)
+

@@ -26,5 +26,11 @@ clean:
 $(PROG): $(SOURCE)
 	cd $(SOURCE) && ./configure $(CONFIG_OPTS) && $(MAKE)
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/chrpath/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/chrpath

@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -44,6 +46,8 @@
 # use of OpenMM.  Might be worth trying that.  Also could apply it on the fly to prepare a 20 residue fragment
 # for interactive MD.  It can build missing segments which could be nice for fitting in high res cryoEM.
 #
+
+openmm_forcefield_parameters = ['amber14-all.xml', 'amber14/tip3p.xml']
 write_logs = False
 
 from chimerax.mouse_modes import MouseMode
@@ -68,7 +72,7 @@ class TugAtomsMode(MouseMode):
         self._log('In mouse_down')
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x,y)
+        pick = view.picked_object(x,y)
         self._pick_atom(pick)
 
     def _pick_atom(self, pick):
@@ -216,7 +220,8 @@ class StructureTugger:
         
 
         # OpenMM simulation parameters
-        self._forcefields = ('amber14-all.xml', 'amber14/tip3p.xml')
+        global openmm_forcefield_parameters
+        self._forcefields = openmm_forcefield_parameters
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
         from simtk import unit
@@ -324,7 +329,7 @@ class StructureTugger:
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
             self._log('Maximum force: %.3g' % max_force)
-        except:
+        except Exception:
                 max_force=self._max_force()
                 self._log("FAIL!!!\n")
                 self._set_simulation_coordinates()
@@ -392,20 +397,25 @@ class StructureTugger:
         
     def _create_openmm_system(self):
         self._log('In create_openmm_system ')
-        
-        from simtk.openmm import app
-        from simtk import openmm as mm
 
-        s = self.structure
         atoms = self.atoms
         self._particle_positions = atoms.coords
-        self._topology = openmm_topology(atoms, s.bonds)
-        
+        bonds = self.structure.bonds
+        self._topology = openmm_topology(atoms, bonds)
+
+        from simtk.openmm import app
         forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
         self._system = system = self._create_system(forcefield)
 
+#        path = '/Users/goddard/ucsf/amber/sustiva_tutorial/1FKO_sus.prmtop'
+#        crd_path = path[:-7] + '.rst7'
+#        path = '/Users/goddard/ucsf/amber/gfp_tutorial/gfp.parm7'
+#        crd_path = '/Users/goddard/ucsf/amber/gfp_tutorial/min1.rst7'
+#         self._system_from_prmtop(path, crd_path)
+        
+        from simtk import openmm as mm
         platform = mm.Platform.getPlatformByName(self._platform_name)
         self._platform = platform
 
@@ -416,6 +426,42 @@ class StructureTugger:
         for p in ('x0', 'y0', 'z0'):
             force.addGlobalParameter(p, 0.0)
         system.addForce(force)
+
+    def _system_from_prmtop(self, prmtop_path, impcrd_path):
+        # load in Amber input files
+        prmtop = app.AmberPrmtopFile(prmtop_path)
+        inpcrd = app.AmberInpcrdFile(incrd_path)
+        from numpy import array, float64
+        from simtk import unit
+        positions = 10*array(inpcrd.positions.value_in_unit(unit.nanometers), float64)  # Angstroms
+        self._particle_positions = positions
+
+        # Ordered atoms to match inpcrd order.
+        # PDB can have atoms for a chain not contiguous, e.g. chain A hetatm at end of file.
+        # But inpcrd has reordered so all chain atoms are contiguous.
+        atom_pos = atoms.scene_coords
+        from chimerax.geometry import find_closest_points
+        i1,i2,near = find_closest_points(positions, atom_pos, 1.0)
+        from numpy import empty, int32
+        ai = empty((len(i1),), int32)
+        ai[i1] = near
+        self.atoms = oatoms = atoms[ai]
+#        diff = oatoms.scene_coords - positions
+#        print ('diff', diff.max(), diff.min())
+#        p2a = {tuple(int(x) for x in a.scene_coord):a for a in atoms}
+#        oatoms = [p2a[tuple(int(x) for x in p)] for p in positions]
+#        print('\n'.join('%s %s' %(str(a1), str(a2)) for a1,a2 in zip(atoms, oatoms)))
+#        print ('inpcrd', positions[:10])
+#        print ('atoms', atom_pos[:10])
+        
+        # prepare system and integrator
+        system = prmtop.createSystem(nonbondedMethod=app.CutoffNonPeriodic,
+                                     nonbondedCutoff=1.0*unit.nanometers,
+                                     constraints=app.HBonds,
+                                     rigidWater=True,
+                                     ewaldErrorTolerance=0.0005
+        )
+        self._system = system
 
     def _create_system(self, forcefield):
         # We first try with ignoreExternalBonds = False.  This will fail any amino acid chain

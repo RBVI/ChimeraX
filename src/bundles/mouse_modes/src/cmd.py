@@ -31,16 +31,18 @@ def register_mousemode_command(logger):
             ('control', NoArg),
             ('shift', NoArg),
         ],
-        synopsis='set mouse mode'
+        synopsis='set mouse mode',
+        url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode', desc, mousemode, logger=logger)
     create_alias('ui mousemode', 'mousemode $*', logger=logger,
-            url="help:user/commands/ui.html#mousemode")
+                 url="help:user/commands/ui.html#mousemode")
 
     desc = CmdDesc(
-        required = [('mode', mode_arg)],
+        optional = [('mode', mode_arg)],
         keyword=[('speed', FloatArg)],
-        synopsis='set a mouse mode parameter'
+        synopsis='set a mouse mode parameter',
+        url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode setting', desc, mousemode_setting, logger=logger)
     create_alias('ui mousemode setting', 'mousemode setting $*', logger=logger,
@@ -93,14 +95,15 @@ def mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
 
 # -----------------------------------------------------------------------------
 #
-def mousemode_setting(session, mode, speed = None):
+def mousemode_setting(session, mode = None, speed = None):
     '''
     Set a mouse mode parameter.
 
     Parameters
     ----------
     mode : mode
-       The mouse mode to set parameter.
+       The mouse mode to set parameter.  If no mode is given then the parameter is
+       set for all modes for which that parameter can be set.
     speed : float
        Sensitivity to mouse motion.  Default 1.  Not all modes support this setting.
     '''
@@ -108,15 +111,22 @@ def mousemode_setting(session, mode, speed = None):
         session.logger.info("mouse is not supported in nogui mode")
         return
 
-    if hasattr(mode, 'speed'):
-        if speed is None:
-            msg = 'Mouse mode %s, speed = %.3g' % (mode.name, mode.speed)
-            session.logger.info(msg)
-        else:
-            mode.speed = speed
+    if mode is None:
+        modes = [m for m in session.ui.mouse_modes.modes if hasattr(m, 'speed')]
+    elif hasattr(mode, 'speed'):
+        modes = [mode]
     else:
-            msg = 'Mouse mode %s does not support speed adjustment' % mode.name
-            session.logger.warning(msg)
+        msg = 'Mouse mode %s does not support speed adjustment' % mode.name
+        session.logger.warning(msg)
+        modes = []
+        
+    if speed is None:
+        speeds = ', '.join('%s speed = %.3g' % (mode.name, mode.speed) for mode in modes)
+        msg = 'Mouse mode %s' % speeds
+        session.logger.info(msg)
+    else:
+        for mode in modes:
+            mode.speed = speed
 
 # -----------------------------------------------------------------------------
 #

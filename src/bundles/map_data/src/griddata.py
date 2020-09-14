@@ -43,6 +43,45 @@ class GridData:
   can also be rotated.  Values are read from a file for rectangular subregions
   of the data and cached in memory.  The numeric values can be signed or unsigned
   integer of 8, 16, or 32 bits or real 32-bit or 64-bit values.
+
+  Attributes
+  ----------
+  size : 3 integers
+    The number of grid points along x,y,z axes.
+  value_type : numpy.dtype
+    Numeric type of the data values.  Default numpy.float32
+  origin : 3 floats
+    Position of grid index (0,0,0) in physical coordinates (x,y,z) (usually Angstroms).
+    Default (0,0,0).
+  step : 3 floats
+    Grid plane spacing along x,y,z axes.  Default (1,1,1)
+  cell_angles : 3 floats
+    Cell angles for skewed crystallography maps.
+    Angles (alpha,beta,gamma) between yz, xz, and xy axes in degrees.
+    Default (90,90,90).
+  rotation : 3x3 matrix
+    Rotation matrix in physical coordinates. Default ((1,0,0),(0,1,0),(0,0,1))
+  symmetries : :class:`~.chimerax.geometry.Places` or None
+    Symmetry transformations that map the to itself in physical coordinates.
+    Default None means no symmetries.
+  name : string
+    Descriptive name of grid data.  Default ''
+  path : string or list of strings
+    File path or paths to location of data file.  Default ''.
+    Data need not come from a file.
+  file_type : string
+    File format name when data is read from a file.  Default ''.
+  grid_id : string
+    Identifier for a specific data set in a file for file formats that
+    allow more than one map in a single file, such as HDF5 format.
+  default_color : 4 floats or None
+    Red, green, blue, alpha color values (range 0-1) indicating preferred color
+  time : integer or None
+    Integer time point for time series volume data.  Usually 0 based but not required.
+    Default None.
+  channel : integer or None
+    Integer channel number for multi-channel data (e.g. light microscopy).
+    Default None.
   '''
   def __init__(self, size,
                value_type = float32,
@@ -194,6 +233,7 @@ class GridData:
   #
   def xyz_to_ijk(self, xyz):
     '''
+    Supported API.
     A matrix i,j,k index corresponds to a point in x,y,z space.
     This function maps the xyz point to the matrix index.
     The returned matrix index is floating point and need not be integers.
@@ -204,6 +244,7 @@ class GridData:
   #
   def ijk_to_xyz(self, ijk):
     '''
+    Supported API.
     A matrix i,j,k index corresponds to a point in x,y,z space.
     This function maps the matrix index to the xyz point.
     The index can be floating point, non-integral values.
@@ -215,6 +256,7 @@ class GridData:
   #
   def voxel_volume(self):
     '''
+    Supported API.
     Volume of one voxel including skewing.
     '''
     return self.ijk_to_xyz_transform.determinant()
@@ -223,6 +265,7 @@ class GridData:
   #
   def voxel_count(self):
     '''
+    Supported API.
     Return the total number of voxels.
     '''
     s = self.size
@@ -241,6 +284,7 @@ class GridData:
   def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
              ijk_step = (1,1,1), progress = None, from_cache_only = False):
     '''
+    Supported API.
     Return a numpy array for a box shaped subregion of the data with specified
     index origin and size.  Every Nth point can be take along an axis by
     specifying ijk_step.  If step size is greater than 1 then the returned
@@ -249,7 +293,7 @@ class GridData:
     grid point).  The array can be read from a file or be a cached copy in
     memory.  The array should not be modified.
     '''
-    if ijk_size == None:
+    if ijk_size is None:
       ijk_size = self.size
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)
@@ -278,6 +322,7 @@ class GridData:
   def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
     '''
+    Supported API.
     Must overide this function in derived class to return a 3 dimensional
     NumPy matrix.  The returned matrix has size ijk_size and
     element ijk is accessed as m[k,j,i].  It is an error if the requested

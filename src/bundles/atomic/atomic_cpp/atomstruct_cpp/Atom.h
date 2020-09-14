@@ -230,6 +230,7 @@ public:
     void  set_radius(float);
     void  set_ribbon_coord(const Point& coord);
     void  set_serial_number(int);
+    std::vector<Atom*>  side_atoms(const Atom* skip_neighbor, const Atom* cycle_atom) const;
     std::string  str() const;
     Structure*  structure() const { return _structure; }
     StructCat  structure_category() const;
@@ -309,6 +310,7 @@ Atom::set_idatm_type(const char* it) {
     && !(*it == '\0' && _explicit_idatm_type == _computed_idatm_type)
     && !(!_explicit_idatm_type.empty() && it == _explicit_idatm_type)) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
+        structure()->set_idatm_valid(false);
     }
     _explicit_idatm_type = it;
 }

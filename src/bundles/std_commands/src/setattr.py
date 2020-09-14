@@ -28,7 +28,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       If attr_name.lower() ends in "color", will be treated as a color name, otherwise as
       whatever type it "looks like": int, bool, float, string.
     create : bool
-      Whether to create the attribute if the object doesn't already have it
+      Whether to create the attribute if the class doesn't already have it
     """
     if objects is None:
         from chimerax.core.objects import all_objects
@@ -90,44 +90,46 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         attr_names = plural_of(attr_name)
         if hasattr(items, attr_names):
             attempt_set_attr(items, attr_names, value, attr_name, attr_value)
-        elif create:
-            register_attr(session, items.object_class, attr_name, type(value))
+        else:
+            # if already registered, set values; if not, register if create==True
+            # Since 'create' is more to prevent accidental attribute creation due to typos than
+            # to strictly enforce typing (especially since int and float "conflict") check
+            # existence first and only create if non-existent
+            if not session.attr_registration.has_attribute(items.object_class, attr_name):
+                if create:
+                    register_attr(session, items.object_class, attr_name, type(value))
+                else:
+                    raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
             for item in items:
                 setattr(item, attr_name, value)
-        else:
-            instances = items.instances(instantiate=False)
-            # First check if they all have the attr
-            for inst in instances:
-                if inst is None or not hasattr(inst, attr_name):
-                    raise UserError("Not creating attribute '%s'; use 'create true' to override"
-                        % attr_name)
-            for inst in instances:
-                setattr(inst, attr_name, value)
     else:
-        if create:
-            register_attr(session, items[0].__class__, attr_name, type(value))
-        else:
-            # First check if they all have the attr
-            for item in items:
-                if not hasattr(item, attr_name):
-                    raise UserError("Not creating attribute '%s'; use 'create true' to override"
-                        % attr_name)
+        class_ = items[0].__class__
+        if not session.attr_registration.has_attribute(class_, attr_name):
+            if create:
+                register_attr(session, class_, attr_name, type(value))
+            else:
+                raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
         for item in items:
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
 
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
     try:
         setattr(item, attr_name, value)
-    except:
+    except Exception:
         try:
             setattr(item, attr_name, value_string)
-        except:
+        except Exception:
             from chimerax.core.errors import UserError
             raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
 
 def register_attr(session, class_obj, attr_name, attr_type):
     if hasattr(class_obj, 'register_attr'):
-        class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        from chimerax.atomic.attr_registration import RegistrationConflict
+        try:
+            class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
+        except RegistrationConflict as e:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError(str(e))
     else:
         session.logger.warning("Class %s does not support attribute registration; '%s' attribute"
             " will not be preserved in sessions." % (class_obj.__name__, attr_name))

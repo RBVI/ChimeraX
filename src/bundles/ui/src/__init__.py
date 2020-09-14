@@ -19,7 +19,6 @@ ui: ChimeraX user interface
 from .htmltool import HtmlToolInstance
 from .font import shrink_font
 from .gui import MainToolWindow, initialize_qt, menu_capitalize
-from .save_dialog import SaveOptionsGUI
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -28,7 +27,10 @@ class _UIBundleAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command is lazily called when command is referenced
-        from .cmd import register_ui_command
-        register_ui_command(logger)
+        from .cmd import register_ui_command, register_tool_command
+        if command_name.startswith('tool'):
+            register_tool_command(logger)
+        else:
+            register_ui_command(logger)
 
 bundle_api = _UIBundleAPI()

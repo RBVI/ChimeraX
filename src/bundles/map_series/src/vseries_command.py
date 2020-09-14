@@ -22,7 +22,7 @@ def register_vseries_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg, ColorArg
     from chimerax.atomic import AtomsArg
-    from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
+    from chimerax.map.mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
 
     sarg = [('series', SeriesArg)]
 
@@ -163,7 +163,7 @@ def set_enclosed_volume(v, enclose_volume, fast_enclose_volume):
 def align(v, vprev):
 
     v.position = vprev.position
-    from ..fit.fitmap import map_points_and_weights, motion_to_maximum
+    from chimerax.map_fit.fitmap import map_points_and_weights, motion_to_maximum
     points, point_weights = map_points_and_weights(v, above_threshold = True)
     move_tf, stats = motion_to_maximum(points, point_weights, vprev,
                                        max_steps = 2000,
@@ -211,7 +211,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
                              align_to, grid, mask, final_value_type)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
-        from ..data import cmap
+        from chimerax.map_data import cmap
         cmap.save(d, path, options)
 
     if grid:
@@ -226,11 +226,11 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     d = v.data
     region = None
     if not subregion is None or not step is None:
-        from ..volume import full_region
+        from chimerax.map.volume import full_region
         ijk_min, ijk_max = full_region(d.size)[:2] if subregion is None else subregion
         ijk_step = (1,1,1) if step is None else step
         region = (ijk_min, ijk_max, ijk_step)
-        from ..data import GridSubregion
+        from chimerax.map_data import GridSubregion
         d = GridSubregion(d, ijk_min, ijk_max, ijk_step)
 
     if (value_type is None and threshold is None and not zero_mean and
@@ -299,7 +299,7 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
     if not final_value_type is None:
         m = m.astype(final_value_type)
 
-    from ..data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     d = ArrayGridData(m, d.origin, d.step, d.cell_angles, d.rotation)
 
     return d

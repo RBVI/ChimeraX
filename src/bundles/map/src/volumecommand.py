@@ -47,7 +47,7 @@ def register_volume_command(logger):
                ('name_forget', AppearanceArg(logger.session)),
                ('step', MapStepArg),
                ('region', MapRegionArg),
-               ('name_region', StringArg),
+#               ('name_region', StringArg),
                ('expand_single_plane', BoolArg),
                ('origin', Float1or3Arg),
                ('origin_index', Float1or3Arg),
@@ -120,8 +120,8 @@ def register_volume_command(logger):
     register('volume settings', vsettings_desc, volume_settings, logger=logger)
 
     # Register volume subcommands for filtering operations.
-    from . import filter
-    filter.register_volume_filtering_subcommands(logger)
+    from chimerax import map_filter
+    map_filter.register_volume_filtering_subcommands(logger)
     
 # -----------------------------------------------------------------------------
 #
@@ -689,7 +689,7 @@ class PlanesArg(Annotation):
             raise AnnotationError('Planes argument first field must be x, y, or z, got "%s"' % fields[0])
         try:
             values = [int(f) for f in fields[1:]]
-        except:
+        except Exception:
             raise AnnotationError('Planes arguments after axis must be integers')
         result = tuple([fields[0]] + values)
         return result, text, rest

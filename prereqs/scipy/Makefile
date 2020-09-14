@@ -12,18 +12,28 @@ endif
 
 all:
 
-install:
 ifdef WIN32
+
+install: $(WHEEL)
 	$(PIP_INSTALL) $(WHEEL)
-else
-	$(PIP_INSTALL) scipy==$(VERSION)
-endif
 
 app-install: install
-ifdef WIN32
 	$(APP_PIP_INSTALL) $(WHEEL)
+
+$(WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/scipy/$(WHEEL)
+
+upload_new_version:
+	$(RSYNC) $(WHEEL) $(PREREQS_UPLOAD)/scipy
+
 else
+
+install:
+	$(PIP_INSTALL) scipy==$(VERSION)
+
+app-install: install
 	$(APP_PIP_INSTALL) -U scipy==$(VERSION)
+
 endif
 
 clean:

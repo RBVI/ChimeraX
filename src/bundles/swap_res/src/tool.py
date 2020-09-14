@@ -13,7 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
-from chimerax.core.atomic import AtomicStructure
+from chimerax.atomic import AtomicStructure
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):
@@ -105,7 +105,7 @@ class PrepRotamersDialog(ToolInstance):
                 return
         res_type = self.res_type_option.value
         from chimerax.core.commands import run, StringArg
-        from chimerax.atomic.rotamers import NoResidueRotamersError
+        from chimerax.rotamers import NoResidueRotamersError
         lib_name = StringArg.unparse(self.rot_lib_option.value)
         try:
             run(self.session, "swapaa interactive sel %s rotLib %s" % (res_type, lib_name))
@@ -156,7 +156,7 @@ class PrepRotamersDialog(ToolInstance):
         return None
 
     def _update_rot_description(self):
-        from chimerax.atomic.rotamers import RotamerLibrary
+        from chimerax.rotamers import RotamerLibrary
         unusual_info = []
         std_descriptions = RotamerLibrary.std_rotamer_res_descriptions
         for code, desc in self.rot_lib.res_name_descriptions.items():
@@ -434,14 +434,14 @@ class RotamerDialog(ToolInstance):
             layout = QVBoxLayout()
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
-                from chimerax.atomic.hbonds.gui import HBondsGUI
+                from chimerax.hbonds.gui import HBondsGUI
                 sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
                     show_inter_model=False, show_intra_model=False, show_intra_mol=False,
                     show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
                     show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
             elif sd_type == "Clashes":
-                from chimerax.atomic.clashes.gui import ClashesGUI
+                from chimerax.clashes.gui import ClashesGUI
                 sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers", radius=0.075,
                     show_restrict=False, show_bond_separation=False, show_res_separation=False,
                     show_inter_model=False, show_intra_model=False, show_intra_res=False,

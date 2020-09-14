@@ -32,7 +32,7 @@ def sphere_geometry(ntri):
   for a in (0,1,2):
     va[:,a] /= vn
 
-  return va, va, ta
+  return va, va.copy(), ta
 
 
 # -----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ def sphere_geometry2(ntri):
     '''
     from chimerax.geometry import sphere
     va, ta = sphere.sphere_triangulation(ntri)
-    return va, va[:], ta
+    return va, va.copy(), ta
 
 
 # -----------------------------------------------------------------------------

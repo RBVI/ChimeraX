@@ -16,7 +16,7 @@ verbose = False
 from .acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
 from .donor_geom import don_theta_tau, don_upsilon_tau, don_generic, don_water
 from .common_geom import ConnectivityError, AtomTypeError
-from chimerax.atomic.chem_group import find_group
+from chimerax.chem_group import find_group
 from chimerax.geometry import distance_squared
 from .hydpos import hyd_positions
 from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
@@ -24,8 +24,8 @@ from chimerax.atomic import Element
 from chimerax.core.errors import UserError
 import copy
 
-from chimerax.atomic.chem_group import H, N, C, O, R
-from chimerax.atomic.chem_group.chem_group import find_ring_planar_NHR2, find_nonring_ether, \
+from chimerax.chem_group import H, N, C, O, R
+from chimerax.chem_group.chem_group import find_ring_planar_NHR2, find_nonring_ether, \
     find_nonring_NR2, find_6ring_planar_NR2, find_5ring_planar_NR2, find_5ring_OR2
 _ring5_NH = lambda structs, ret_coll: find_ring_planar_NHR2(structs, ret_coll, 5)
 _ring6_aro_NH = lambda structs, ret_coll: find_ring_planar_NHR2(structs, ret_coll, 6,
@@ -467,7 +467,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
             'S': gen_don_S_params
         }
 
-        from chimerax.atomic.search import AtomSearchTree
+        from chimerax.atom_search import AtomSearchTree
         metal_coord = {}
         acc_trees = {}
         hbonds = []
@@ -610,7 +610,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                                 % (acc_atom, e))
                             bad_connectivities += 1
                             continue
-                        except:
+                        except Exception:
                             print("donor:", donor_atom, " acceptor:", acc_atom)
                             raise
                         if verbose:

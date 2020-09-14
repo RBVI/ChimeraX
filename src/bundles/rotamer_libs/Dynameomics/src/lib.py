@@ -13,8 +13,7 @@
 
 _cache = {}
 
-from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
-    UnsupportedResTypeError, NoResidueRotamersError
+from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeError, NoResidueRotamersError
 
 class DynameomicsRotamerLibrary(RotamerLibrary):
 

@@ -38,7 +38,7 @@ class RegistrationUI(HtmlToolInstance):
         expiration = check_registration()
         if expiration is not None:
             exp_msg = ("<p>Your copy of ChimeraX is already registered "
-                                "through %s.</p>" % expiration.strftime("%x"))
+                       "through %s.</p>" % expiration.strftime("%x"))
         else:
             exp_msg = "<p>Your copy of ChimeraX is unregistered.</p>"
         html = html.replace("EXPIRATION_PLACEHOLDER", exp_msg)

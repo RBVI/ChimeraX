@@ -53,6 +53,7 @@ class Drawing:
 
     Rendering of drawings is done with OpenGL.
     '''
+   
     def __init__(self, name):
 
         self._redraw_needed = None
@@ -107,11 +108,7 @@ class Drawing:
         square mesh density map display.
         '''
 
-        self.display_style = self.Solid
-        '''
-        Display style can be Drawing.Solid, Drawing.Mesh or Drawing.Dot.
-        Only one style can be used for a single Drawing instance.
-        '''
+        self._display_style = self.Solid
 
         self.texture = None
         '''
@@ -162,11 +159,17 @@ class Drawing:
         self.allow_depth_cue = True
         '''False means not show depth cue on this Drawing even if global depth cueing is on.'''
 
+        self.allow_clipping = True
+        '''False means not to clip this Drawing even if global clipping is on.'''
+
         self.accept_shadow = True
         '''False means not to show shadow on this Drawing even if global shadow is on.'''
 
         self.accept_multishadow = True
         '''False means not to show multishadow on this Drawing even if global multishadow is on.'''
+
+        self.inherit_graphics_exemptions = True
+        '''Whether disabled lighting and clipping in parent will be copied to child when drawing is added.'''
         
         self.on_top = False
         '''
@@ -182,6 +185,15 @@ class Drawing:
 
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
+
+    pickable = True
+    '''Whether this drawing can be picked by View.picked_object().'''
+
+    casts_shadows = True
+    '''Whether this drawing creates shadows when shadows are enabled.'''
+
+    skip_bounds = False
+    '''Whether this drawing is included in calculation by bounds().'''
 
     def redraw_needed(self, **kw):
         """Function called when the drawing has been changed to indicate
@@ -250,6 +262,18 @@ class Drawing:
     Dot = 'dot'
     "Display style showing only dots at triangle vertices."
 
+    def _get_display_style(self):
+        return self._display_style
+    def _set_display_style(self, style):
+        if style != self._display_style:
+            self._display_style = style
+            self.shape_changed = True
+    display_style = property(_get_display_style, _set_display_style)
+    '''
+    Display style can be Drawing.Solid, Drawing.Mesh or Drawing.Dot.
+    Only one style can be used for a single Drawing instance.
+    '''
+
     def child_drawings(self):
         '''Return the list of surface pieces.'''
         return self._child_drawings
@@ -274,19 +298,26 @@ class Drawing:
     def add_drawing(self, d):
         '''Add a child drawing.'''
         d.set_redraw_callback(self._redraw_needed)
-        cd = self._child_drawings
-        cd.append(d)
         if d.parent is not None:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
+        cd = self._child_drawings
+        cd.append(d)
         d.parent = self
-        d._inherit_lighting_settings(self)
+        if d.inherit_graphics_exemptions:
+            d._inherit_graphics_exemptions()
         if self.display:
             self.redraw_needed(shape_changed=True)
 
-    def _inherit_lighting_settings(self, drawing):
-        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
-            value = getattr(drawing, attr)
+    def _inherit_graphics_exemptions(self):
+        '''
+        If the parent Drawing has turned off graphics effects
+        allow_depth_cue, allow_clipping, accept_shadow, or accept_multishadow
+        then turn them off for this Drawing.
+        '''
+        parent = self.parent
+        for attr in ['allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']:
+            value = getattr(parent, attr)
             if value == False:
                 # Only propagate disabling settings.
                 setattr(self, attr, value)
@@ -338,6 +369,7 @@ class Drawing:
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display = property(get_display, set_display)
@@ -360,6 +392,7 @@ class Drawing:
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
+        self._scene_positions_changed()
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
@@ -797,6 +830,8 @@ class Drawing:
             from .opengl import Render
             if self.use_lighting:
                 sopt |= Render.SHADER_LIGHTING
+            if self.normals is not None:
+                sopt |= Render.SHADER_LIGHTING_NORMALS
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             t = self.texture
@@ -826,6 +861,8 @@ class Drawing:
                 sopt |= Render.SHADER_NO_MULTISHADOW
             if not self.allow_depth_cue:
                 sopt |= Render.SHADER_NO_DEPTH_CUE
+            if not self.allow_clipping:
+                sopt |= Render.SHADER_NO_CLIP_PLANES
             self._shader_opt = sopt
         if transparent_only:
             from .opengl import Render
@@ -838,7 +875,7 @@ class Drawing:
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
          'ambient_texture', '_positions',
-         'allow_depth_cue', 'accept_shadow', 'accept_multishadow'))
+         'allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
     #  arrays have changed.
@@ -899,13 +936,14 @@ class Drawing:
     def bounds(self):
         '''
         The bounds of all displayed parts of a drawing and its children and all descendants, including
-        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True are not included.
+        instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True
+        are not included.
         '''
 
         # Get child drawing bounds
         from chimerax.geometry.bounds import union_bounds, copies_bounding_box
         dbounds = [d.bounds() for d in self.child_drawings()
-                   if d.display and not getattr(d, 'skip_bounds', False)]
+                   if d.display and not d.skip_bounds]
         nc = len(dbounds)
         if nc == 0:
             cb = None
@@ -964,8 +1002,9 @@ class Drawing:
         of this drawing and its children.  The end points are in the parent
         drawing coordinates and do not take account of this Drawings positions.
         If the exclude option is given it is a function that takes a drawing
-        and returns true if this drawing and its children should be excluded.
-        Return a Pick object for the intercepted item.
+        and returns true if this drawing should be excluded, 'all' if this drawing
+        and its children should be excluded, or false to include this drawing
+        and chidren.  Returns a Pick object for the intercepted item.
         The Pick object has a distance attribute giving the fraction (0-1)
         along the segment where the intersection occurs.
         For no intersection None is returned.  This routine is used for
@@ -975,17 +1014,27 @@ class Drawing:
         '''
         if not self.display:
             return None
-        if exclude is not None and exclude(self):
-            return None
+
+        if exclude is None:
+            include_self = True
+        else:
+            e = exclude(self)
+            if e == 'all':
+                return None
+            else:
+                include_self = not e
 
         pclosest = None
-        if not self.empty_drawing():
+        if include_self and not self.empty_drawing():
             p = self._first_intercept_excluding_children(mxyz1, mxyz2)
             if p and (pclosest is None or p.distance < pclosest.distance):
                 pclosest = p
+
+        # Intercepts with children
         p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude=exclude)
         if p and (pclosest is None or p.distance < pclosest.distance):
             pclosest = p
+            
         return pclosest
 
     def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
@@ -1059,18 +1108,25 @@ class Drawing:
         instance (self.positions has length 1) then the pick lists the individual
         triangles which have at least one vertex within all of the planes.
         If exclude is not None then it is a function called with a Drawing argument
-        that returns true if this drawing and its children should be excluded
-        from the pick.
+        that returns 'all' if this drawing and its children should be excluded
+        from the pick, or true if just this drawing should be excluded.
         Return a list of Pick objects for the contained items.
         This routine is used for highlighting objects in a frustum.
         '''
         if not self.display:
             return []
-        if exclude is not None and exclude(self):
-            return []
+
+        if exclude is None:
+            include_self = True
+        else:
+            e = exclude(self)
+            if e == 'all':
+                return None
+            else:
+                include_self = not e
 
         picks = []
-        if not self.empty_drawing():
+        if include_self and not self.empty_drawing():
             from chimerax.geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
@@ -1100,12 +1156,25 @@ class Drawing:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
                         picks.append(PickedTriangles(tmask, self))
+
+        # Pick child drawings
         from chimerax.geometry import transform_planes
         for d in self.child_drawings():
             for p in self.positions:
                 pplanes = transform_planes(p, planes)
                 picks.extend(d.planes_pick(pplanes, exclude))
+
         return picks
+
+    def all_allow_clipping(self, displayed_only = True):
+        if displayed_only and not self.display:
+            return True
+        if not self.allow_clipping:
+            return False
+        for d in self.child_drawings():
+            if not d.all_allow_clipping(displayed_only = displayed_only):
+                return False
+        return True
 
     def __del__(self):
         if not self.was_deleted:
@@ -1117,9 +1186,15 @@ class Drawing:
         Delete drawing and all child drawings.
         '''
         self.was_deleted = True
+        if self.parent is not None:
+            self.parent.remove_drawing(self, delete = False)
         c = self._opengl_context
         if c:
-            c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+            from . import OpenGLError
+            try:
+                c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+            except OpenGLError as e:
+                raise RuntimeError('OpenGL context make_current() raised an error during Drawing.delete()  for drawing "%s"' % self.name) from e
         else:
             # Drawing was never drawn so opengl context was not set.
             t = self.texture
@@ -1417,9 +1492,11 @@ def opaque_count(rgba):
     return _graphics.count_value(rgba[:,3], 255)
 
 def draw_opaque(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     _draw_multiple(drawings, renderer, Drawing.OPAQUE_DRAW_PASS)
 
 def draw_transparent(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     r = renderer
     r.draw_transparent(
         lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
@@ -1427,11 +1504,15 @@ def draw_transparent(renderer, drawings):
 
 
 def _draw_multiple(drawings, renderer, draw_pass):
+    '''Draws the specified drawings but not their children.'''
     for d in drawings:
         d.draw(renderer, draw_pass)
 
 def draw_depth(renderer, drawings, opaque_only = True):
-    '''Render only the depth buffer (not colors).'''
+    '''
+    Render only the depth buffer (not colors).
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
@@ -1443,8 +1524,10 @@ def draw_depth(renderer, drawings, opaque_only = True):
 
 
 def draw_overlays(drawings, renderer, scale = (1,1)):
-    '''Render drawings using an identity projection matrix with no
-    depth test.'''
+    '''
+    Render drawings using an identity projection matrix with no depth test.
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
                                   r.SHADER_DEPTH_CUE |
@@ -1473,7 +1556,10 @@ def draw_overlays(drawings, renderer, scale = (1,1)):
 
 
 def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
-    '''Draw the outlines of highlighted parts of the specified drawings.'''
+    '''
+    Draw the outlines of highlighted parts of the specified drawings.
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     r.outline.start_rendering_outline()
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
@@ -1481,6 +1567,7 @@ def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
 
     
 def draw_on_top(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     renderer.enable_depth_test(False)
     renderer.enable_blending(True)	# Handle transparent background
     _draw_multiple(drawings, renderer, Drawing.LAST_DRAW_PASS)
@@ -1910,7 +1997,7 @@ class PickedInstance(Pick):
 
     def description(self):
         desc = self._drawing.name
-        pm = self._posititions_mask
+        pm = self._positions_mask
         np = pm.sum()
         if np < len(pm):
             desc += ', %d of %d instances' % (np, len(pm))
@@ -2034,10 +2121,10 @@ def qimage_to_numpy(qi):
     buf = qi.bits().asstring(qi.byteCount())
     from numpy import uint8, frombuffer
     bgra = frombuffer(buf, uint8).reshape(shape)
-    rgba = bgra.copy()
-    rgba[:,:,0] = bgra[:,:,2]
-    rgba[:,:,2] = bgra[:,:,0]
-    rgba = rgba[::-1,:,:]	# flip
+    # Swap red and blue and flip vertically.
+    rgba = bgra[::-1].copy()
+    rgba[:,:,0] = rgba[:,:,2]
+    rgba[:,:,2] = bgra[::-1,:,0]
     return rgba
 
 # -----------------------------------------------------------------------------

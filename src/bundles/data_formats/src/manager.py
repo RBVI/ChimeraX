@@ -22,15 +22,17 @@ class FormatsManager(ProviderManager):
     """
 
     CAT_SCRIPT = "Command script"
+    CAT_SESSION = "Session"
     CAT_GENERAL = "General"
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._formats = {}
         self._suffix_to_formats = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
+        super().__init__(name)
 
     def add_format(self, name, category, *, suffixes=None, nicknames=None,
             bundle_info=None, mime_types=None, reference_url=None, insecure=None,
@@ -93,6 +95,13 @@ class FormatsManager(ProviderManager):
         """
         "Return data format based on file_name's suffix, ignoring compression suffixes"
         return self._format_from_filename(self.open_format_from_suffix, file_name)
+
+    def qt_file_filter(self, fmt):
+        """
+        Given a data format 'fmt', return a string usable as a member of the list argument
+        used with the setNameFilters() method of a Qt file dialog.
+        """
+        return "%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
 
     def save_format_from_suffix(self, suffix):
         """

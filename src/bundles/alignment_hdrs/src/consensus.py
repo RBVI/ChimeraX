@@ -17,14 +17,15 @@ from .header_sequence import DynamicHeaderSequence
 
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
+    ident = "consensus"
     sort_val = 1.3
-    def __init__(self, alignment, refresh_callback):
-        self.conserved = [False] * len(alignment.seqs[0])
-        super().__init__(alignment, refresh_callback)
-        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
+    value_type = None # since Clustal style is characters
 
-    def add_options(self, options_container, *, category=None, verbose_labels=True):
-        self._add_options(options_container, category, verbose_labels, self.option_data())
+    def __init__(self, alignment, *args, **kw):
+        self.conserved = [False] * len(alignment.seqs[0])
+        super().__init__(alignment, *args, **kw)
+        self.handler_ID = self.settings.triggers.add_handler('setting changed',
+            lambda *args: self.reevaluate())
 
     @property
     def capitalize_threshold(self):
@@ -67,6 +68,14 @@ class Consensus(DynamicHeaderSequence):
             retlet = let.lower()
         return retlet
 
+    def get_state(self):
+        state = {
+            'base state': super().get_state(),
+            'capitalize_threshold': self.settings.capitalize_threshold,
+            'ignore_gaps': self.settings.ignore_gaps,
+        }
+        return state
+
     @property
     def ignore_gaps(self):
         return self.settings.ignore_gaps
@@ -103,11 +112,16 @@ class Consensus(DynamicHeaderSequence):
             self.conserved[r1:r2] = [False] * (r2-r1)
         super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
 
+    def set_state(self, state):
+        super().set_state(state['base state'])
+        self.settings.capitalize_threshold = state['capitalize_threshold']
+        self.settings.ignore_gaps = state['ignore_gaps']
+
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import Bounded, FloatArg, BoolArg
         defaults.update({
-            'capitalize_threshold': 0.8,
-            'ignore_gaps': False,
-            'initially_shown': True
+            'capitalize_threshold': (Bounded(FloatArg, min=0, max=1), 0.8),
+            'ignore_gaps': (BoolArg, False),
         })
         return "consensus sequence header", defaults

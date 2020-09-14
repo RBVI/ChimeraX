@@ -589,10 +589,13 @@ class MouseTracking(PointerModels):
     def make_pointer_model(self, session):
         return MousePointerModel(self._session, 'my pointer')
 
-    def _mouse_hover_cb(self, trigger_name, xyz):
+    def _mouse_hover_cb(self, trigger_name, pick):
         if _vr_camera(self._session):
             return
 
+        xyz = getattr(pick, 'position', None)
+        if xyz is None:
+            return
         c = self._session.main_view.camera
         axis = c.view_direction()
         msg = {'name': self._meeting._name,
@@ -930,8 +933,12 @@ class VRHeadModel(Model):
     SESSION_SAVE = False
     default_face_file = 'face.png'
     def __init__(self, session, name = 'Head', size = 0.3, image_file = None):
-        Model.__init__(self, name, session)
         self.room_position = None
+
+        Model.__init__(self, name, session)
+
+        # Avoid head disappearing when models are zoomed small.
+        self.allow_depth_cue = False
         
         r = size / 2
         from chimerax.surface import box_geometry

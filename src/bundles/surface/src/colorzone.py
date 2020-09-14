@@ -210,9 +210,9 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
         from chimerax.geometry import inner_product
-        f = inner_product(px, dp) / inner_product(dx, dp)
-        if f <= -0.1 or f >= 1.1:
-            raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
+        dxdp = inner_product(dx, dp)
+        f = 0 if dxdp == 0 else inner_product(px, dp) / dxdp
+        # Floating point precision limits can put f outside 0-1.
         if f < 0:
             f = 0
         elif f > 1:
@@ -299,7 +299,8 @@ def volume_zone_color(volume):
 # ---------------------------------------------------------------------------
 #
 def split_volume_by_color_zone(volume):
-
+    '''Create new volumes for each color zoned region of a specified volume.'''
+    
     zc = volume_zone_color(volume)
     if zc is None:
         from chimerax.core.errors import UserError
@@ -337,11 +338,11 @@ def split_zones_by_color(volume, points, point_colors, radius):
   point_indices = [ctable[tuple(c)] for c in point_colors]
 
   ijk_min, ijk_max, ijk_step = volume.region
-  from chimerax.map.data import GridSubregion
+  from chimerax.map_data import GridSubregion
   sg = GridSubregion(volume.data, ijk_min, ijk_max)
 
   # Get volume mask with values indicating nearest color within given radius.
-  from chimerax.map.data import zone_mask, masked_grid_data
+  from chimerax.map_data import zone_mask, masked_grid_data
   mask = zone_mask(sg, points, radius, zone_point_mask_values = point_indices)
 
   grids = []
@@ -359,9 +360,11 @@ def split_zones_by_color(volume, points, point_colors, radius):
 
 # ---------------------------------------------------------------------------
 #
-def split_volumes_by_color_zone(session, volume):
-    for v in volume:
-        split_volume_by_color_zone(v)
+def split_volumes_by_color_zone(session, volumes):
+    vlist = []
+    for v in volumes:
+        vlist.extend(split_volume_by_color_zone(v))
+    return vlist
 
 # ---------------------------------------------------------------------------
 #
@@ -369,6 +372,6 @@ def register_volume_split_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.map import MapsArg
     desc = CmdDesc(
-        required = [('volume', MapsArg)],
+        required = [('volumes', MapsArg)],
         synopsis = 'split volume by color zone')
     register('volume splitbyzone', desc, split_volumes_by_color_zone, logger=logger)

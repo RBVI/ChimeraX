@@ -32,11 +32,17 @@ app-install:
 	$(RSYNC) $(includedir)/zlib.h $(app_includedir)
 	$(RSYNC) $(shlibdir)/libz.*$(SHLIB_EXT)* $(app_shlibdir)
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifndef WIN32
 	cd $(SOURCE) && $(ENV_CONFIGURE) ./configure
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/zlib/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/lib
 
 clean:
 	rm -rf $(SOURCE)

@@ -197,7 +197,7 @@ Our ``TutorialTool`` class inherits from :py:class:`chimerax.core.tools.ToolInst
 which makes it known to the ChimeraX tool manager, and
 it will thereby work correctly in all the generic
 ways that tools work, such as being displayed by the
-command `toolshed show <../../users/commands/toolshed.html>`_.
+command `tool show <../../user/commands/ui.html>`_.
 
 By declaring :py:attr:`SESSION_ENDURING` as ``False``, we
 are telling ChimeraX's session handling that this tool

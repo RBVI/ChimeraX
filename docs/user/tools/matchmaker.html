@@ -1,0 +1,312 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Matchmaker</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Matchmaker</h3>
+<p>
+The <b>Matchmaker</b> tool
+superimposes protein or nucleic acid structures by first creating
+a pairwise sequence alignment, then fitting the aligned residue pairs.
+It is also implemented as the
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a> command.
+</p><p>
+Residue types and/or protein secondary structure information
+can be used to align the sequences, and the pairwise alignment can be shown
+in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
+<a name="matchatom"></a>
+Fitting uses one point per residue:  CA in
+amino acid residues and C4' in nucleic acid residues.
+If a nucleic acid residue lacks a C4' atom
+(some lower-resolution structures are P traces),
+its P atom will be paired with the P atom of the aligned residue.
+</p><p>
+The method was originally implemented in Chimera, as described in:
+</p>
+<blockquote>
+<a href="http://www.biomedcentral.com/1471-2105/7/339" target="_blank">
+Tools for integrated sequence-structure analysis with UCSF Chimera.</a>
+Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
+<i>BMC Bioinformatics.</i> 2006 Jul 12;7:339.
+</blockquote>
+<p>
+Note: if it is already known which residue numbers in one structure
+should be paired with which residue numbers in the other,
+another possibility is to use the
+<a href="../commands/align.html"><b>align</b></a> command,
+which executes more quickly
+because it does not include a sequence alignment step.
+See also:
+<a href="fitmap.html"><b>Fit in Map</b></a>,
+<a href="../commands/morph.html"><b>morph</b></a>,
+<a href="../commands/view.html"><b>view</b></a>,
+<a href="../commands/dssp.html"><b>dssp</b></a>,
+<a href="../commands/measure.html#rotation"><b>measure rotation</b></a>,
+<a href="../commands/save.html#pdb"><b>save</b> PDB</a>
+</p><p>
+<b>Matchmaker</b> can be opened from the <b>Structure Analysis</b>
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>). 
+It contains three tabbed sections, explained in detail below:
+</p>
+<ul>
+<li><a href="#pairing"><b>Chain pairing</b></a>
+<li><a href="#alignment"><b>Alignment</b></a>
+<li><a href="#fitting"><b>Fitting</b></a>
+</ul>
+<p>
+The following three buttons relate to the
+<a href="../preferences.html">preferences</a>, and there is a
+checkbox option as to whether they should apply to all three tabbed sections
+or only the one that is currently shown:
+</p>
+<ul>
+<li><b>Save</b> saves the current <b>Matchmaker</b> parameters as preferences
+<li><b>Reset</b> resets the dialog to the factory default
+parameter settings without changing any preferences
+<li><b>Restore</b> populates the dialog with the last saved preferences
+</ul>
+Clicking <b>OK</b> or <b>Apply</b> will start the calculations
+with or without closing the dialog, respectively.
+<b>Close</b> simply closes the dialog, while <b>Help</b> opens
+this manual page in a browser window.
+</p><p>
+Sequence alignment scores, parameter values, and root-mean-square deviations
+(RMSD values) will be reported in the <a href="log.html"><b>Log</b></a>
+(see also <a href="#verbose">verbose logging</a>).
+If the fit is <a href="#iterate">iterated</a>,
+the final RMSD over all residue pairs (columns in the sequence alignment)
+will be reported along with the RMSD over the pruned set of pairs.
+</p>
+
+<a name="pairing"></a>
+<p class="nav">
+[<a href="#top">back to top: Matchmaker</a>]
+</p>
+<h3>Chain Pairing</h3>
+<p>
+The chain-pairing method dictates what choices of structure
+are available in the top section of the dialog.
+</p>
+<ul>
+<li><b>Best-aligning pair of chains between reference and match structure</b>
+(initial default)
+&ndash; One reference structure and one or more structures to match
+should be chosen.  For each structure to be matched, the
+reference-match pair of chains with the highest
+<a href="#scoring">sequence alignment score</a> will be used.
+<li><b>Specific chain in reference structure
+and best-aligning chain in match structure</b>
+&ndash; One reference chain and one or more structures to match 
+should be chosen. For each structure to be matched,
+the chain that aligns to the reference chain with the highest
+<a href="#scoring">sequence alignment score</a> will be used.
+<li><b>Specific chain(s) in reference structure
+with specific chain(s) in match structure</b>
+&ndash; One or more reference chains should be chosen from the list.
+For each reference chain chosen, one chain to be matched should
+be chosen from the corresponding pulldown menu. If multiple chains are to
+be matched to the same reference chain, it is necessary to match them
+in separate steps (by choosing the chain to match and then clicking
+<b>Apply</b>).  A given chain cannot be matched to two different
+reference chains simultaneously, and chains from the same structure
+(atomic model)
+cannot simultaneously serve as a reference chain and a chain to match.
+</ul>
+<p>
+<a name="restrict"></a>
+<b>Also restrict to selection</b></a> allows ignoring
+residues of the reference and/or match structures that are not
+<a href="../selection.html">selected</a>.
+In general, restriction should only be used in specific cases
+to suppress results that would otherwise be obtained.
+For example, two chains that would
+otherwise align on their N-terminal domains can be forced to align on
+their C-terminal domains by selecting the C-terminal domains and
+using the restriction option. Otherwise, restriction is not recommended,
+because full-length alignments tend to be of higher quality, and
+<a href="#iterate">iteration</a> already serves to exclude
+poorly superimposed regions from the final fit.
+Although unselected parts of matched chains will appear in the resulting
+sequence alignment (if <a href="#show">shown</a>), they have simply
+been added back in as &ldquo;filler,&rdquo; without consideration of
+how the characters align, after alignment and matching of only the
+<a href="../selection.html">selected</a> residues.
+</p>
+
+<a name="alignment"></a>
+<p class="nav">
+[<a href="#top">back to top: Matchmaker</a>]
+</p>
+<h3>Alignment</h3>
+<ul>
+<li><a name="show"><b>Show pairwise sequence alignment(s)</b></a>
+(initial default <b>off</b>) &ndash; whether to display the resulting pairwise
+reference-match sequence alignments; each will be shown in a separate
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+When <a href="#iterate">fit iteration</a> is employed,
+the pairs used in the final fit will be shown in the alignment as a
+<a href="../tools/sequenceviewer.html#regions">region</a> named
+<font style="background:rgb(255,224,204);
+border:solid orangered 1px;padding:1px 3px">
+<b>matched&nbsp;residues</b></font>.
+An RMSD <a href="sequenceviewer.html#headers">header</a> is automatically
+shown above the sequences, with bar heights
+representing the spatial variation among residues associated with a column.
+</p><p>
+*These sequence alignments are a by-product of superposition,
+and may not be entirely correct.
+Successful superposition only requires these alignments to be partly
+correct, as incorrect portions tend to be excluded from the fit during
+<a href="#iterate">iteration</a>.
+If the sequences are easy to align (highly similar),
+the sequence alignments are likely to be correct throughout.
+However, if the sequences are more distantly related,
+parts of the alignments may be incorrect even when the superposition is good.
+</p><p>
+**When the fit has been <a href="#restrict">restricted to selected residues</a>,
+the unselected residues of matched chains will still appear in the alignment,
+but merely as a convenient compact representation; how they are aligned
+is not meaningful.
+</p>
+<a name="algorithm"></a>
+<li><b>Sequence alignment algorithm</b>:
+  <ul>
+  <li><b>Needleman-Wunsch</b> (initial default) &ndash; global
+  <li><b>Smith-Waterman</b> &ndash; local
+  </ul>
+</ul>
+<p>
+<a name="scoring"></a>
+Sequence alignment scores may include contributions from residue similarity,
+secondary structure, and gap penalties.</a>
+</p>
+<ul>
+<li><b>Matrix</b> (initial default <b>BLOSUM-62</b>) 
+&ndash; which substitution matrix
+to use for the residue similarity part of the score.
+If an amino acid matrix is chosen, only peptide sequences
+will be aligned; if a nucleic acid matrix is chosen, only
+nucleic acid sequences will be aligned.  An error message will appear
+if there are no reference-match pairs of the appropriate type.
+<li><b>Gap opening penalty</b> (initial default <b>12</b>)
+&ndash; if <a href="#useSS">secondary structure scoring</a> is <b>on</b>,
+this parameter is ignored and the
+<a href="#SS-specific">secondary-structure-specific</a>
+gap-opening penalties are used instead
+<li><b>Gap extension penalty</b> (initial default <b>1</b>)
+<li><a name="useSS"><b>Include secondary structure score</b></a>
+(initial default <b>on</b>)
+&ndash; whether to include a secondary structure term in the score,
+with additional parameters:
+  <ul>
+  <li><a name="computeSS"><b>Compute secondary structure assignments</b></a>
+  (default <b>on</b>)
+&ndash; whether to first identify helices and strands by running the
+<a href="../commands/dssp.html"><b>dssp</b></a> algorithm; may improve 
+superposition by generating consistent assignments, as pre-existing 
+assignments may reflect the use of different criteria on different structures
+  <li><b>Overwrite previous assignments</b> (initial default <b>off</b>)
+&ndash; whether to overwrite pre-existing secondary structure assignments
+with the newly computed ones. Otherwise, the new assignments are used only
+temporarily for superposition purposes.
+  <li><b>Secondary structure weighting</b> (initial default <b>0.30</b>)
+&ndash; fractional weight <i>f</i> of the secondary structure contribution 
+to the overall score, with (1 &ndash; <i>f</i>) used to weight the 
+residue similarity contribution. For example, a value of means:
+</p>
+<blockquote>
+total score = 0.30(secondary structure score) + 0.70(residue similarity score)
+&ndash; gap penalties
+</blockquote>
+<p>
+Setting the slider to 0.0 is not the same as turning off
+<a href="#useSS">secondary-structure scoring</a>.
+When the option is on, the secondary-structure-specific gap opening penalties 
+are used regardless of the slider position.
+</p><p>
+<a name="SS-specific"></a>
+The values in the secondary-structure <b>Scoring matrix</b>
+(for all pairwise combinations of <b>H</b> helix, <b>S</b> strand, and
+<b>O</b> other) and the secondary-structure-specific gap opening penalties
+(<b>Intra-helix</b>, <b>Intra-strand</b>, and <b>Any other</b>) can be adjusted.
+  </ul>
+</ul>
+
+<a name="fitting"></a>
+<p class="nav">
+[<a href="#top">back to top: Matchmaker</a>]
+</p>
+<h3>Fitting</h3>
+<p>
+Fitting uses one point per residue: CA atoms in amino acids and
+C4' atoms in nucleic acids. If a nucleic acid residue lacks a C4' atom
+(some lower-resolution structures are P traces),
+its P atom will be paired with the P atom of the aligned residue.
+<ul>
+<li>
+<a name="iterate"><b>Iterate by pruning long atom pairs</b></a>
+(initial default <b>on</b>)
+&ndash; whether to iteratively remove far-apart residue pairs from
+the &ldquo;match list&rdquo; used to superimpose the structures. This does not
+change the initial sequence alignment, but restricts which columns of
+that alignment will be used in the final fit.
+Otherwise, all of the columns containing both sequences
+(i.e. without a gap) will be used.  In each cycle of iteration,
+atom pairs are removed from the match list and the remaining
+pairs are fitted, until no matched pair is
+more than the <a href="#itercut">iteration cutoff distance</a> apart.
+The atom pairs removed are either the 10% farthest apart of all pairs
+or the 50% farthest apart of all pairs exceeding the cutoff, whichever
+is the lesser number of pairs.
+Iteration tends to exclude sequence-aligned but conformationally dissimilar
+regions such as flexible loops, allowing a tighter fit of the
+best-matching "core" regions.
+<li><a name="itercut"><b>Iteration cutoff distance</b></a>
+(initial default <b>2.0</b> &Aring;)
+<li><a name="verbose"><b>Verbose logging</b></a> (initial default <b>off</b>)
+&ndash; whether to send additional information to the 
+  <a href="../tools/log.html"><b>Log</b></a> for each chain-chain pair:
+  <ul>
+  <li><b>Sequences:</b>
+  followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
+  each containing a sequence name and (gapped) sequence
+  <li><b>Residues:</b>
+  followed by two lines, each a comma-separated list of the structure residues
+  associated with the nongap positions of the corresponding sequence;
+  missing structure residues are reported as <b>None</b>
+  <li><b>Residue usage in match (1=used, 0=unused):</b>
+  followed by two lines, each a comma-separated list of zeros and ones,
+  indicating which structure residues were used in the final fit
+  </ul>
+<li><a name="bring"></a>
+<b>If one model being matched, also move these models along with it</b>
+&ndash; if only one match model is designated in the top section
+of the dialog, one or more additional models to move along with it 
+can be chosen from the model list
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2020</address>
+</body></html>

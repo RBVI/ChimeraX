@@ -210,6 +210,18 @@ error_wrap_array_set(T** instances, size_t n, void (T::*pm)(Elem), Elem2* args)
     }
 }
 
+// wrap setting "const" (mutable) array elements via member function
+template <typename T, typename Elem, typename Elem2 = Elem> void
+error_wrap_array_set_mutable(T** instances, size_t n, void (T::*pm)(Elem) const, Elem2* args)
+{
+    try {
+        for (size_t i = 0; i < n; ++i)
+            (instances[i]->*pm)(args[i]);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // wrap array calling single argument member function
 template <typename T, typename Elem, typename Elem2 = Elem> void
 error_wrap_array_1arg(T** instances, size_t n, void (T::*pm)(Elem), Elem2 arg)
@@ -969,6 +981,20 @@ extern "C" EXPORT void atom_num_explicit_bonds(void *atoms, size_t n, size_t *nb
             nbonds[i] = a[i]->num_explicit_bonds();
     } catch (...) {
         molc_error();
+    }
+}
+
+extern "C" EXPORT size_t atom_num_residues(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        std::set<Residue *> res;
+        for (size_t i = 0; i != n; ++i)
+	    res.insert(a[i]->residue());
+	return res.size();
+    } catch (...) {
+        molc_error();
+	return 0;
     }
 }
 
@@ -2536,6 +2562,17 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT void set_residue_chain_id(void *residues, size_t n, pyobject_t *cids)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            r[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT bool residue_connects_to(void *residue, void *other_res)
 {
     Residue *r = static_cast<Residue *>(residue);
@@ -3188,6 +3225,17 @@ extern "C" EXPORT void sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(c[i]->chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
+{
+    StructureSeq **sseq = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            sseq[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
     } catch (...) {
         molc_error();
     }
@@ -3864,7 +3912,7 @@ extern "C" EXPORT void structure_alt_loc_change_notify(void *structures, size_t 
 extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, size_t n, npy_bool *alcn)
 {
     Structure **s = static_cast<Structure **>(structures);
-    error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
+    error_wrap_array_set_mutable(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
 extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
@@ -4845,9 +4893,7 @@ extern "C" EXPORT void structure_delete_residue(void *mol, void *res)
 {
     Structure *m = static_cast<Structure *>(mol);
     try {
-std::cerr << "Calling delete_residue\n";
         m->delete_residue(static_cast<Residue *>(res));
-std::cerr << "Called delete_residue\n";
     } catch (...) {
         molc_error();
     }

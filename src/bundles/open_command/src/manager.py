@@ -23,26 +23,28 @@ class OpenerProviderInfo:
         self.batch = batch
 
 class FetcherProviderInfo:
-    def __init__(self, bundle_info, is_default, example_ids):
+    def __init__(self, bundle_info, is_default, example_ids, synopsis):
         self.bundle_info = bundle_info
         self.is_default = is_default
         self.example_ids = example_ids
+        self.synopsis = synopsis
 
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
     """Manager for open command"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._openers = {}
         self._fetchers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("open command changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False,
             check_path=True, batch=False, format_name=None,
-            is_default=True, example_ids=None, **kw):
+            is_default=True, synopsis=None, example_ids=None, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -69,6 +71,11 @@ class OpenManager(ProviderManager):
             self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
                 check_path, batch)
         elif type == "fetch":
+            if not name:
+                raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
+            if len(name) == 1:
+                raise ValueError("Database fetch '%s' in bundle %s has single-character name which is"
+                    " disallowed to avoid confusion with Windows drive letters" % (name, bundle_name))
             if format_name is None:
                 raise ValueError("Database fetch '%s' in bundle %s failed to specify"
                     " file format name" % (name, bundle_name))
@@ -86,8 +93,10 @@ class OpenManager(ProviderManager):
                 example_ids = ",".split(example_ids)
             else:
                 example_ids = []
+            if synopsis is None:
+                synopsis = "%s (%s)" % (name.capitalize(), format_name)
             self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
-                bundle_info, is_default, example_ids)
+                bundle_info, is_default, example_ids, synopsis)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
                     if info.is_default]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"
@@ -119,9 +128,24 @@ class OpenManager(ProviderManager):
             try:
                 provider_info = db_formats[format_name]
             except KeyError:
-                raise NoOpenerError("Format '%s' not supported for database '%s'."
-                    "  Supported formats are: %s" % (format_name, database_name,
-                    commas([dbf for dbf in db_formats])))
+                # for backwards compatibility, try the nicknames of the format
+                try:
+                    df = self.session.data_formats[format_name]
+                except KeyError:
+                    nicks = []
+                else:
+                    nicks = df.nicknames + df.name
+                for nick in nicks:
+                    try:
+                        provider_info = db_formats[nick]
+                        format_name = nick
+                    except KeyError:
+                        continue
+                    break
+                else:
+                    raise NoOpenerError("Format '%s' not supported for database '%s'."
+                        "  Supported formats are: %s" % (format_name, database_name,
+                        commas([dbf for dbf in db_formats])))
         else:
             for format_name, provider_info in db_formats.items():
                 if provider_info.is_default:
@@ -143,6 +167,9 @@ class OpenManager(ProviderManager):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
         tuple.  The models will not have been opened in the session.
+
+        The format name can be provided with the 'format' keyword if the filename suffix of the path
+        does not correspond to those for the desired format.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
@@ -151,7 +178,7 @@ class OpenManager(ProviderManager):
     @property
     def open_data_formats(self):
         """
-        The names of data formats for which an opener function has been registered.
+        The data formats for which an opener function has been registered.
         """
         return list(self._openers.keys())
 

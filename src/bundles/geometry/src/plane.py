@@ -12,11 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 import numpy
-from numpy.linalg import norm
+from numpy.linalg import norm, eig, svd, eigh
 normalize = lambda v: v/norm(v)
 sqlength = lambda v: numpy.sum(v*v)
 
-class Plane:
+from chimerax.core.state import State
+class Plane(State):
     """A mathematical plane
 
        The 'origin_info' must either be a point (numpy array of 3 floats) or an array/list
@@ -35,6 +36,7 @@ class Plane:
             if normal is None:
                 raise ValueError(self.usage_msg)
             self._origin = origin_info
+            # sets 'normal' property, and therefore calls _compute_offset
             self.normal = normal
         elif len(dims) == 2 and dims[-1] == 3:
             if normal is not None:
@@ -42,24 +44,15 @@ class Plane:
             num_pts = dims[0]
             if num_pts < 3:
                 raise ValueError("Must provide at least 3 points to define plane")
-            # Implementation of Newell's algorithm
-            # See Foley, van Dam, Feiner, and Hughes (pp. 476-477)
-            # Implementation copied from Filippo Tampieri from Graphics Gems
-            A = B = C = 0.0
-            for i in range(num_pts):
-                j = i + 1
-                if j == num_pts:
-                    j = 0
-                ux, uy, uz = origin_info[i]
-                vx, vy, vz = origin_info[j]
-                A += (uy - vy) * (uz + vz)
-                B += (uz - vz) * (ux + vx)
-                C += (ux - vx) * (uy + vy)
-            self._origin = numpy.sum(origin_info, axis=0) / num_pts
-            self.normal = numpy.array([A,B,C])  # uses property, and therefore calls _compute_offset
+            xyzs = origin_info
+            centroid = xyzs.mean(0)
+            centered = xyzs - centroid
+            ignore, vals, vecs = svd(centered, full_matrices=False)
+            self._origin = centroid
+            # sets 'normal' property, and therefore calls _compute_offset
+            self.normal = vecs[numpy.argmin(vals)]
         else:
             raise ValueError(self.usage_msg)
-        self._compute_offset()
 
     def distance(self, pt):
         return numpy.dot(pt, self._normal) + self._offset
@@ -76,9 +69,9 @@ class Plane:
 
         s1 = numpy.negative(self._offset)
         s2 = numpy.negative(plane._offset)
-        n1n2dot = self._normal * plane._normal
-        n1normsqr = self._normal * self._normal
-        n2normsqr = plane._normal * plane._normal
+        n1n2dot = numpy.dot(self._normal, plane._normal)
+        n1normsqr = numpy.dot(self._normal, self._normal)
+        n2normsqr = numpy.dot(plane._normal, plane._normal)
         divisor = n1n2dot * n1n2dot - n1normsqr * n2normsqr
         a = (s2 * n1n2dot - s1 * n2normsqr) / divisor
         b = (s1 * n1n2dot - s2 * n1normsqr) / divisor
@@ -112,7 +105,7 @@ class Plane:
     def restore_snapshot(session, data):
         return Plane(data['origin'], normal=data['normal'])
 
-    def take_snapshot(self):
+    def take_snapshot(self, session, flags):
         data = { 'origin': self.origin, 'normal': self.normal }
         return data
 

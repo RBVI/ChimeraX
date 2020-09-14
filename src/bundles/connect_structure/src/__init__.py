@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # Must import search to get shared object loaded
-import chimerax.atomic.search
+import chimerax.atom_search
 
 from chimerax.core.toolshed import BundleAPI
 

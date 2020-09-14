@@ -23,7 +23,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
-    salt_only=False, name="hydrogen bonds", coordsets=True):
+    salt_only=False, name="hydrogen bonds", coordsets=True, select=False):
 
     """Wrapper to be called by command line.
 
@@ -128,6 +128,30 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             for hbs in hb_lists]), len(cs_ids)), log=True, blank_after=120)
     else:
         session.logger.status("%d hydrogen bonds found" % len(result), log=True, blank_after=120)
+
+    if select:
+        if doing_coordsets:
+            structure = structures[0]
+            for i, cs_id in enumerate(structure.coordset_ids):
+                if structure.active_coordset_id == cs_id:
+                    break
+            hb_list = hb_lists[i]
+        else:
+            hb_list = hb_lists[0]
+            cs_id = None
+        session.selection.clear()
+        for d, a in hb_list:
+            if cs_id is None:
+                acc_coord = a.scene_coord
+            else:
+                acc_coord = a.get_coordset_coord(cs_id)
+            dist, hyd = donor_hyd(d, cs_id, acc_coord)
+            if hyd is None:
+                d.selected = True
+            else:
+                hyd.selected = True
+            a.selected = True
+
     if not make_pseudobonds:
         return hb_lists if doing_coordsets else hb_lists[0]
 
@@ -290,8 +314,8 @@ def restrict_hbonds(hbonds, atoms, restrict):
 def _file_output(file_name, output_info, naming_style):
     inter_model, intra_model, relax_constraints, \
             dist_slop, angle_slop, structures, hbond_info, cs_ids = output_info
-    from chimerax.core.io import open_filename
-    out_file = open_filename(file_name, 'w')
+    from chimerax.io import open_output
+    out_file = open_output(file_name, 'utf-8')
     if inter_model:
         out_file.write("Finding intermodel H-bonds\n")
     if intra_model:
@@ -336,18 +360,7 @@ def _file_output(file_name, output_info, naming_style):
             dwidth = max(dwidth, len(labels[don]))
             awidth = max(awidth, len(labels[acc]))
             da = distance(don_coord, acc_coord)
-            dha = None
-            for h in don.neighbors:
-                if h.element.number != 1:
-                    continue
-                if cs_id is None:
-                    h_coord = h.scene_coord
-                else:
-                    h_coord = h.get_coordset_coord(cs_id)
-                d = distance(h_coord, acc_coord)
-                if dha is None or d < dha:
-                    dha = d
-                    hyd = h
+            dha, hyd = donor_hyd(don, cs_id, acc_coord)
             if dha is None:
                 dha_out = "N/A"
                 hyd_out = "no hydrogen"
@@ -364,6 +377,22 @@ def _file_output(file_name, output_info, naming_style):
     if out_file != file_name:
         # we opened it, so close it...
         out_file.close()
+
+def donor_hyd(don, cs_id, acc_coord):
+    from chimerax.geometry import distance
+    dha = hyd = None
+    for h in don.neighbors:
+        if h.element.number != 1:
+            continue
+        if cs_id is None:
+            h_coord = h.scene_coord
+        else:
+            h_coord = h.get_coordset_coord(cs_id)
+        d = distance(h_coord, acc_coord)
+        if dha is None or d < dha:
+            dha = d
+            hyd = h
+    return dha, hyd
 
 def cmd_xhbonds(session, name="hydrogen bonds"):
     pbg = session.pb_manager.get_group(name, create=False)
@@ -454,7 +483,7 @@ def register_command(command_name, logger):
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg),
-                ('name', StringArg), ('coordsets', BoolArg)],
+                ('name', StringArg), ('coordsets', BoolArg), ('select', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)

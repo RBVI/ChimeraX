@@ -112,7 +112,11 @@ def save_image(session, path, format_name, width=None, height=None,
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
     if i is not None:
-        i.save(path, format_name, **metadata)
+        try:
+            i.save(path, format_name, **metadata)
+        except PermissionError:
+            from chimerax.core.errors import UserError
+            raise UserError('Permission denied writing file %s' % path)
     else:
         msg = "Unable to save image"
         if width is not None:

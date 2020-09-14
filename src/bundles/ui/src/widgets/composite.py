@@ -234,8 +234,13 @@ def _resize_dock_widget(child_widget):
     p = _dock_widget_parent(child_widget)
     if p:
         p.adjustSize()
-        from PyQt5.QtCore import Qt
-        p.window().resizeDocks([p], [p.widget().sizeHint().height()], Qt.Vertical)
+        main_win = p.window()
+        # For undocked dock widgets this will not be a QMainWindow,
+        # no need to resize all dock widgets.
+        from PyQt5.QtWidgets import QMainWindow
+        if isinstance(main_win, QMainWindow):
+            from PyQt5.QtCore import Qt
+            main_win.resizeDocks([p], [p.widget().sizeHint().height()], Qt.Vertical)
 
 def _dock_widget_parent(widget):
     from PyQt5.QtWidgets import QDockWidget

@@ -27,12 +27,25 @@ class="clRight" title="User Guide Index"/></a>
 ui, functionkey, mousemode</h3>
 
 <p>
-The <b>ui</b> command sets generic tool-interface 
-<a href="../preferences.html#other">preferences</a>
-and assigns actions to the <a href="#mousemode">mouse/touchpad</a>
-and <a href="#functionkey">function keys</a>.
+The <b>ui</b> command adjusts the user interface (UI):
 </p>
+<ul>
+<li><a href="#uiprefs">sets tool-interface preferences</a>
+<li><a href="#uishow">shows and hides</a> graphical interfaces
+<li><a href="#uiassign">assigns functions</a>
+to the <a href="#mousemode">mouse/touchpad</a>
+and <a href="#functionkey">function keys</a>
+</ul>
 
+<a name="uiprefs"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Tool-Interface Preferences</h3>
+<p>
+Several <b>ui</b> subcommands set generic tool-interface
+<a href="../preferences.html#other">preferences</a>.
+</p>
 <a name="autostart"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>ui autostart</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -81,10 +94,30 @@ Make the <a href="../window.html">ChimeraX window</a>
 fill the screen and hide its title bar.
 See also: 
 <a href="camera.html"><b>camera</b></a>,
+<a href="../preferences.html#window"><b>Window</b> preferences</a>,
 <a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
 </p>
 </blockquote>
 
+<a name="uishow"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Graphical Interface Show and Hide</h3>
+
+<a name="tool"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>tool</b>&nbsp;&nbsp;show&nbsp;|&nbsp;hide&nbsp;&nbsp;<i>toolname</i>
+<blockquote>
+<p>
+The <b>tool</b> command (same as <b>ui tool</b>)
+shows or hides the user interface of the specified tool.  Example:
+</p>
+<blockquote>
+<b>tool show "Side View"</b>
+</blockquote>
+See also: <a href="../menu.html#tools"><b>Tools</b> menu</a>
+</blockquote>
 <a name="menubar"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>ui menubar</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -101,6 +134,12 @@ Show/hide the <a href="../menu.html">ChimeraX menu</a> on Windows.
 Show/hide the <a href="../window.html">status line</a>.
 </p>
 </blockquote>
+
+<a name="uiassign"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Function Key and Mouse Assignments</h3>
 
 <a name="functionkey"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -147,6 +186,11 @@ fun f4 "<a href="view.html#initial">view</a> orient; <a href="view.html#initial"
 [&nbsp;<b>rightMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
 [&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
 [&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+<br><br>
+<a href="#top" class="nounder">&bull;</a>
+<b>mousemode setting</b> 
+[&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>speed</b>&nbsp;&nbsp;<i>s</i></a>&nbsp;]
 <blockquote>
 <p>
 The <b>mousemode</b> command (same as <b>ui mousemode</b>)
@@ -169,24 +213,29 @@ two commands rather than one would be needed to assign functions to
 <b>mousemode alt wheel contour</b>
 </blockquote>
 <p>
+A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
 Given without arguments, the <b>mousemode</b> command reports the current
 assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
-</p><p>
 The analogous command for <a href="../vr.html">virtual reality</a> 
 hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
 See also:
 <a href="cofr.html"><b>cofr</b></a>,
 <a href="device.html"><b>device</b></a>,
 <a href="#functionkey"><b>functionkey</b></a>,
-<!--
-<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,
-<a href="../tools/maperaser.html"><b>Map Eraser</b></a>,
--->
 <a href="../window.html">ChimeraX window</a>
 </p><p>
-A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
-Summary of mouse and trackpad defaults:
+The <b>mousemode setting</b> command allows adjusting the <b>speed</b>
+or sensitivity (default <b>1</b>) of <b>contour level</b>, <b>zoom</b>, 
+and any of the rotation and translation functions. Specifying a <b>speed</b>
+but omitting the <a href="#functions"><i>function</i></a> 
+adjusts the sensitivity of all applicable modes, whereas entering
+<b>mousemode setting</b> without arguments reports the current value(s)
+in the <a href="../tools/log.html"><b>Log</b></a>. 
+Sensitivity changes do not apply to 
+<a href="../preferences.html#trackpad">multitouch gestures</a>, however.
+</p><p>
+<a name="mousedefaults"></a>
+Summary of mouse and trackpad default assignments:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" rowspan="2"><b>rotate</b>
@@ -254,7 +303,7 @@ The icon for the current right-mouse assignment is highlighted
 in the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 A specific mouse button can only be assigned one function at a time.
 </p><p>
-In the command, the <a href="#functions"><i>function</i></a>
+In commands, the <a href="#functions"><i>function</i></a>
 can be truncated to a unique string. 
 If the string contains spaces, it should be enclosed in quotation marks.
 Not all functions make sense for a given input mode; for example,
@@ -663,5 +712,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2020</address>
+April 2020</address>
 </body></html>

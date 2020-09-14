@@ -81,6 +81,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool selected()
         bool  thin_rings()
         void set_alt_loc(char) except +
+        void set_chain_id(const char*)
         void set_insertion_code(char)
         void set_is_helix(bool)
         void set_is_strand(bool)
@@ -188,6 +189,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_ribbon_coord(const cycoord.Point&)
         void set_selected(bool)
         void set_serial_number(int)
+        Neighbors side_atoms(Atom*, Atom*) except +
         Structure* structure()
         StructCat structure_category()
         void use_default_radius()

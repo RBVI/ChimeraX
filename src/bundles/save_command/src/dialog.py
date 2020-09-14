@@ -15,16 +15,33 @@ class MainSaveDialog:
     def __init__(self, settings=None):
         self._settings = settings
 
-    def display(self, session, parent):
+    def display(self, session, *, parent=None, format=None, initial_directory=None, initial_file=None):
+        if parent is None:
+            parent = session.ui.main_window
         from chimerax.ui.open_save import SaveDialog
-        dialog = SaveDialog(parent, "Save File")
+        dialog = SaveDialog(session, parent, "Save File")
         self._customize_dialog(session, dialog)
+        if format is not None:
+            try:
+                filter = self._fmt_name2filter[format]
+            except KeyError:
+                session.logger.warning("Unknown format requested for save dialog: '%s'" % format)
+            else:
+                dialog.selectNameFilter(filter)
+                self._format_selected(session, dialog)
+        if initial_directory is not None:
+            if initial_directory == '':
+                from os import getcwd
+                initial_directory = getcwd()
+            dialog.setDirectory(initial_directory)
+        if initial_file is not None:
+            dialog.selectFile(initial_file)
         if not dialog.exec():
             return
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         from chimerax.core.commands import run, SaveFileNameArg, StringArg
         fname = self._add_missing_file_suffix(dialog.selectedFiles()[0], fmt)
-        cmd = "save2 %s" % SaveFileNameArg.unparse(fname)
+        cmd = "save %s" % SaveFileNameArg.unparse(fname)
         if self._current_option != self._no_options_label:
             cmd += ' ' + session.save_command.save_args_string_from_widget(fmt,
                 self._current_option)
@@ -41,15 +58,11 @@ class MainSaveDialog:
 
     def _customize_dialog(self, session, dialog):
         options_panel = dialog.custom_area
-        saveable_formats = [fmt for fmt in session.save_command.save_data_formats
-            if fmt.suffixes]
-        file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
-            for fmt in saveable_formats]
-        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats],
-            file_filters))
+        saveable_formats = dialog.data_formats
+        file_filters = dialog.name_filters
+        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats], file_filters))
         self._filter2fmt = dict(zip(file_filters, saveable_formats))
         file_filters.sort(key=lambda f: f.lower())
-        dialog.setNameFilters(file_filters)
         if self._settings:
             try:
                 file_filter = self._fmt_name2filter[self._settings.format_name]
@@ -71,9 +84,8 @@ class MainSaveDialog:
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         if self._current_option:
             self._current_option.hide()
+        self._current_option = session.save_command.save_args_widget(fmt) or self._no_options_label
         from PyQt5.QtWidgets import QLabel
-        self._current_option = session.save_command.save_args_widget(fmt) \
-            or self._no_options_label
         self._options_layout.addWidget(self._current_option)
         self._current_option.show()
 
@@ -91,11 +103,11 @@ def create_menu_entry(session):
             shortcut="Ctrl+S", insertion_point="Close Session")
 
 _dlg = None
-def show_save_file_dialog(session):
+def show_save_file_dialog(session, **kw):
     global _dlg
     if _dlg is None:
         global _settings
         if not _settings:
             _settings = SaveDialogSettings(session, "main save dialog")
         _dlg = MainSaveDialog(settings=_settings)
-    _dlg.display(session, session.ui.main_window)
+    _dlg.display(session, **kw)

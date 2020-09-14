@@ -73,7 +73,7 @@ class GraphicsWindow(QWindow):
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
 
-        self._check_for_bad_intel_driver()
+            self._check_for_bad_intel_driver()
 
     def _check_for_bad_intel_driver(self):
         import sys
@@ -87,9 +87,9 @@ class GraphicsWindow(QWindow):
             ver = r.opengl_version()
             try:
                 build = int(ver.split('.')[-1])
-            except:
+            except Exception:
                 return
-            if build > 6708:
+            if 6708 < build < 8280:
                 # This is to work around ChimeraX bug #2537 where the entire
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 
@@ -115,9 +115,20 @@ class GraphicsWindow(QWindow):
             elif t == QEvent.Drop:
                 mw.dropEvent(event)
                 return True
+
+    # Override QWindow size(), width() and height() to use widget values.
+    # In Qt 5.12.9 QWindow reports values that are half the correct size
+    # after main window is dragged from devicePixelRatio = 2 screen
+    # to a devicePixelRatio = 1 screen on Windows 10.
+    def size(self):
+        return self.widget.size()
+    def width(self):
+        return self.widget.width()
+    def height(self):
+        return self.widget.height()
     
     def resizeEvent(self, event):
-        s = event.size()
+        s = self.size()
         w, h = s.width(), s.height()
         v = self.view
         v.resize(w, h)

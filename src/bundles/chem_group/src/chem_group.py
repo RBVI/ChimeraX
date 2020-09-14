@@ -209,7 +209,7 @@ def find_group(group_desc, structures, return_collection=False):
     if isinstance(group_desc, str):
         try:
             group_formula, group_rep, group_principals = group_info[group_desc]
-        except:
+        except Exception:
             raise KeyError("No known chemical group named '%s'" % group_desc)
     else:
         group_rep, group_principals = group_desc

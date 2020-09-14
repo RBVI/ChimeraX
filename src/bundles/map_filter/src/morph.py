@@ -233,7 +233,7 @@ def linear_combination(f1, v1, f2, v2, v, subregion, step):
       m1.dtype == m.dtype and m2.dtype == m.dtype):
     # Optimize calculation of linear combination of matrices.
     # C++ routine is 7x faster (.1 vs .7 sec) than numpy on 256^3 matrix.
-    from .. import linear_combination
+    from chimerax.map import linear_combination
     linear_combination(f1, m1, f2, m2, m)
   else:
     m[:,:,:] = f1*m1[:,:,:] + f2*m2[:,:,:]
@@ -274,3 +274,5 @@ def morph_maps(volumes, play_steps, play_start, play_step, play_direction,
     im.play(play_start, fmin, fmax, play_step, None, play_direction, play_steps)
   else:
     im.interpolate(play_start)
+
+  return im

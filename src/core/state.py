@@ -13,8 +13,6 @@
 
 import abc
 
-CORE_STATE_VERSION = 1  #: version of core session state data
-
 
 class RestoreError(RuntimeError):
     """Raised when session file has a problem being restored"""
@@ -95,6 +93,7 @@ class StateManager(State, metaclass=abc.ABCMeta):
                     session.get_state_manager(tag)
                 except KeyError:
                     break
+                i += 1
 
         self.__tag = tag
         self.__session = session
@@ -130,6 +129,7 @@ def _init_primitives():
     import numpy
     import datetime
     from PIL import Image
+    import tinyarray
 
     def numpy_numbers():
         for n in dir(numpy):
@@ -150,8 +150,13 @@ def _init_primitives():
         int, range, str,
         collections.Counter,
         datetime.datetime, datetime.timedelta,
+        datetime.timezone,
         Image.Image,
         FinalizedState,
+        # tinyarrays are immutable
+        tinyarray.ndarray_complex,
+        tinyarray.ndarray_float,
+        tinyarray.ndarray_int,
     )
     _final_primitives += tuple(numpy_numbers())
     _container_primitives = (

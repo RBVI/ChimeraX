@@ -114,6 +114,13 @@ Do not autostart any tools.
 <b>--offscreen</b>
 <br>
 Create a buffer for offscreen rendering in <a href="#nogui">nogui mode</a>.
+This option enables &ldquo;headless&rdquo; mode, allowing
+ChimeraX to render and save images and movies when it has no window,
+<i>e.g.</i>, on a server where no desktop windowing system is available.
+It is currently supported only on Linux and uses OSMesa, 
+a software rendering library included in Linux ChimeraX.
+Offscreen mode cannot use a graphics card or hardware-accelerated rendering 
+because OpenGL does not support rendering without a window.
 </blockquote>
 <blockquote>
 <a name="script"></a>
@@ -140,6 +147,18 @@ Start the specified tool after the autostarted tools.
 Start in sequential stereo if the hardware permits.
 See also: <a href="commands/camera.html"><b>camera</b></a>
 </blockquote>
+<!--
+<blockquote>
+<a name="toolshed"></a>
+<b>--toolshed preview</b>
+<br>
+Set the <b>Toolshed</b> URL to the 
+<a href="https://cxtoolshed-preview.rbvi.ucsf.edu"
+target="_blank">preview site</a> instead of the 
+<a href="https://cxtoolshed.rbvi.ucsf.edu" target="_blank">standard site</a>.
+See also: <a href="commands/toolshed.html#url"><b>toolshed url</b></a>
+</blockquote>
+-->
 <blockquote>
 <b>--uninstall</b>
 <br>
@@ -185,5 +204,5 @@ for more details.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2018</address>
+September 2020</address>
 </body></html>

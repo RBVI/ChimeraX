@@ -31,8 +31,9 @@ Based on:
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

@@ -311,59 +311,102 @@ class BooleanOption(Option):
         from PyQt5.QtCore import Qt
         self.widget.setCheckState(Qt.PartiallyChecked)
 
-    def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QCheckBox
-        self.widget = QCheckBox(**kw)
+    def _make_widget(self, as_group=False, **kw):
+        from PyQt5.QtWidgets import QCheckBox, QGroupBox
+        if as_group:
+            self.widget = QGroupBox(self.name)
+            self.name = ""
+            self.widget.setCheckable(True)
+        else:
+            self.widget = QCheckBox(**kw)
         self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
 class EnumBase(Option):
     values = ()
     def get_value(self):
-        return self.__widget.text()
+        if self.__as_radio_buttons:
+            return self.values[self.__button_group.checkedId()]
+        button_text = self.widget.text()
+        if isinstance(self, SymbolicEnumOption):
+            return self.values[self.labels.index(button_text)]
+        return button_text
 
     def set_value(self, value):
-        self.__widget.setText(value)
+        if self.__as_radio_buttons:
+            self.__button_group.button(self.values.index(value)).setChecked(True)
+        elif isinstance(self, SymbolicEnumOption):
+            self.widget.setText(self.labels[self.values.index(value)])
+        else:
+            self.widget.setText(value)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        self.__widget.setText(self.multiple_value)
+        if not self.__as_radio_buttons:
+            self.widget.setText(self.multiple_value)
 
-    def remake_menu(self, labels=None):
-        from PyQt5.QtWidgets import QAction
-        if labels is None:
+    def remake_menu(self):
+        from PyQt5.QtWidgets import QAction, QRadioButton
+        from PyQt5.QtCore import Qt
+        if isinstance(self, SymbolicEnumOption):
+            labels = self.labels
+        else:
             labels = self.values
-        menu = self.__widget.menu()
-        menu.clear()
-        for label in labels:
-            menu_label = label.replace('&', '&&')
-            action = QAction(menu_label, self.__widget)
-            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
-            menu.addAction(action)
-        if self.values and self.value not in self.values and self.value != self.multiple_value:
-            self.value = labels[0]
-            self.make_callback()
+        if self.__as_radio_buttons:
+            for b in self.__button_group.buttons():
+                self.__button_group.removeButton(b)
+                b.hide()
+                b.destroy()
+            layout = self.widget.layout()
+            for i, l in enumerate(labels):
+                b = QRadioButton(l)
+                layout.addWidget(b, alignment=Qt.AlignLeft)
+                self.__button_group.addButton(b, id=i)
+        else:
+            menu = self.widget.menu()
+            menu.clear()
+            for label, value in zip(labels, self.values):
+                menu_label = label.replace('&', '&&')
+                action = QAction(menu_label, self.widget)
+                action.triggered.connect(lambda arg, s=self, val=value: s._menu_cb(val))
+                menu.addAction(action)
+            if self.values and self.value not in self.values and self.value != self.multiple_value:
+                self.value = labels[0]
+                self.make_callback()
+    remake_buttons = remake_menu
 
-    def _make_widget(self, *, display_value=None, **kw):
-        from PyQt5.QtWidgets import QPushButton, QMenu
-        if display_value is None:
-            display_value = self.default
-        self.__widget = QPushButton(display_value, **kw)
-        self.__widget.setAutoDefault(False)
-        menu = QMenu(self.__widget)
-        self.__widget.setMenu(menu)
-        self.remake_menu()
-        return self.__widget
+    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
+        from PyQt5.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+        self.__as_radio_buttons = as_radio_buttons
+        if as_radio_buttons:
+            self.widget = QWidget()
+            layout = QVBoxLayout()
+            self.widget.setLayout(layout)
+            self.__button_group = QButtonGroup()
+            self.remake_buttons()
+            self.__button_group.button(self.values.index(self.default)).setChecked(True)
+            self.__button_group.buttonClicked[int].connect(lambda arg: self.make_callback())
+        else:
+            if display_value is not None:
+                button_label = display_value
+            elif isinstance(self, SymbolicEnumOption):
+                button_label = self.labels[self.values.index(self.default)]
+            else:
+                button_label = self.default
+            self.widget = QPushButton(button_label, **kw)
+            self.widget.setAutoDefault(False)
+            menu = QMenu(self.widget)
+            self.widget.setMenu(menu)
+            self.remake_menu()
+        return self.widget
 
-    def _menu_cb(self, label):
-        self.value = label
+    def _menu_cb(self, value):
+        self.value = value
         self.make_callback()
 
 class EnumOption(EnumBase):
     """Supported API. Option for enumerated values"""
 
-    def _make_widget(self, *, display_value=None, **kw):
-        self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
 OptionalEnumOption = make_optional(EnumOption)
 
 class FloatOption(NumericOption):
@@ -409,8 +452,8 @@ class FloatOption(NumericOption):
         self._float_widget.blockSignals(False)
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
-            decimal_places=3, step=None, **kw):
-        self._float_widget = _make_float_widget(min, max, step, decimal_places, **kw)
+            decimal_places=3, step=None, as_slider=False, **kw):
+        self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         if (not left_text and not right_text) or as_slider:
             if left_text:
@@ -802,36 +845,6 @@ class SymbolicEnumOption(EnumOption):
     values = ()
     labels = ()
 
-    def get_value(self):
-        return self._value
-
-    def set_value(self, value):
-        self._value = value
-        self.widget.setText(self.labels[list(self.values).index(value)])
-
-    value = property(get_value, set_value)
-
-    def remake_menu(self):
-        EnumOption.remake_menu(self, labels=self.labels)
-
-    def set_multiple(self):
-        self._value = None
-        EnumOption.set_multiple(self)
-
-    def make_callback(self):
-        label = self.widget.text()
-        i = list(self.labels).index(label)
-        self._value = self.values[i]
-        EnumOption.make_callback(self)
-
-    def _make_widget(self, **kw):
-        self._value = self.default
-        EnumOption._make_widget(self,
-            display_value=self.labels[list(self.values).index(self.default)], **kw)
-
-    def _menu_cb(self, label):
-        self.value = self.values[self.labels.index(label)]
-        self.make_callback()
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
 from PyQt5.QtWidgets import QWidget
@@ -841,14 +854,23 @@ class FloatSlider(QWidget):
 
     valueChanged = pyqtSignal(float)
 
-    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, **kw):
-        from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel
+    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
+            ignore_wheel_event=False, **kw):
+        from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
         super().__init__()
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         self.setLayout(layout)
-        self._slider = QSlider(**kw)
+        if ignore_wheel_event:
+            class Slider(QSlider):
+                def wheelEvent(self, event):
+                    event.ignore()
+        else:
+            Slider = QSlider
+        self._slider = Slider(**kw)
         self._slider.setOrientation(Qt.Horizontal)
+        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._minimum = minimum
         self._maximum = maximum
         self._continuous = continuous_callback
@@ -858,14 +880,23 @@ class FloatSlider(QWidget):
         int_step = max(1, int(5000 * step / (maximum - minimum)))
         self._slider.setSingleStep(int_step)
         layout.addWidget(self._slider, 0, 0, 1, 3)
+        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
+        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
+        # line wrapping
+        from chimerax.ui import shrink_font
         self._left_text = QLabel()
         self._left_text.setWordWrap(True)
-        layout.addWidget(self._left_text, 1, 0, alignment=Qt.AlignLeft | Qt.AlignTop)
+        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        shrink_font(self._left_text)
+        layout.addWidget(self._left_text, 1, 0)
         self._value_text = QLabel()
+        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
         self._right_text = QLabel()
         self._right_text.setWordWrap(True)
-        layout.addWidget(self._right_text, 1, 2, alignment=Qt.AlignRight | Qt.AlignTop)
+        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        shrink_font(self._right_text)
+        layout.addWidget(self._right_text, 1, 2)
         self._format = "%%.%df" % decimal_places
         self._slider.valueChanged.connect(self._slider_value_changed)
         self._slider.sliderReleased.connect(self._slider_released)

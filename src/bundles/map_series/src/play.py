@@ -438,7 +438,7 @@ def label_value_in_range(text, imin, imax):
 
   try:
     i = int(text)
-  except:
+  except Exception:
     return False
   return i >= imin and i <= imax
 

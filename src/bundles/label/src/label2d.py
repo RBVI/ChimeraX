@@ -69,6 +69,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     if name == 'all':
         from chimerax.core.errors import UserError
         raise UserError("'all' is reserved to refer to all labels")
+    elif name:
+        lm = session_labels(session)
+        if lm and lm.named_label(name) is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('Label "%s" already exists' % name)
 
     kw = {'text':text, 'color':color, 'size':size, 'font':font,
           'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
@@ -84,6 +89,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
         kw['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         kw['background'] = None
+
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to draw 2D labels without rendering images")
         
     return Label(session, name, **kw)
 
@@ -249,9 +259,11 @@ def label_under_window_position(session, win_x, win_y):
         return None
     for lbl in lm.all_labels:
         dx,dy = fx - lbl.xpos, fy - lbl.ypos
-        lw,lh = lbl.drawing.size
-        if dx >=0 and dx < lw and dy >=0 and dy < lh:
-            return lbl
+        d = lbl.drawing
+        if d.display and d.parents_displayed:
+            lw,lh = d.size
+            if dx >=0 and dx < lw and dy >=0 and dy < lh:
+                return lbl
     return None
     
 # -----------------------------------------------------------------------------
@@ -271,6 +283,10 @@ def label_delete(session, labels = None):
 #
 def label_listfonts(session):
     '''Report available fonts.'''
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to do list fonts without being able to render images")
     from PyQt5.QtGui import QFontDatabase
     fdb = QFontDatabase()
     fnames = list(fdb.families())
@@ -488,6 +504,7 @@ class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0):
+
         self.session = session
         self.name = name
         self.text = text
@@ -498,16 +515,17 @@ class Label:
         else:
             # may already be numpy array if being restored from a session
             self.background = background
-        self.size = size    # Points (1/72 inch) to get similar appearance on high DPI displays
+        self.size = size    	# Logical pixels.  On Mac retina display will render 2x more pixels.
         self.font = font
         self.bold = bold
         self.italic = italic
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
-        self.margin = margin
+        self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
         self.drawing = d = LabelModel(session, self)
+        d.display = visibility
         lb = session_labels(session, create = True)
         lb.add_label(self)
 
@@ -541,8 +559,10 @@ class LabelModel(Model):
         name = label.name if label.name else label.text
         Model.__init__(self, name, session)
         self.label = label
-        self.window_size = None
-        self.texture_size = None
+        self._window_size = None	# Full window size in render pixels
+        self._texture_size = None	# Label image size in render pixels
+        self._texture_pixel_scale = 1	# Converts label.size from logical pixels to render pixels
+        self._aspect = 1		# Scale y label positioning for image saving at non-screen aspect ratio
         self.needs_update = True
 
     def delete(self):
@@ -550,10 +570,87 @@ class LabelModel(Model):
         self.label.delete()
         
     def draw(self, renderer, draw_pass):
-        if not self.update_drawing():
-            self.resize()
+        self._update_graphics(renderer)
         Model.draw(self, renderer, draw_pass)
 
+    def _update_graphics(self, renderer):
+        '''
+        Recompute the label texture image or update its texture coordinates that
+        position it in the window based on the rendered window size.
+        When saving an image file the rendered size may differ from the on screen
+        window size.  In that case make the label size match its relative size
+        seen on screen.
+        '''
+        window_size = renderer.render_size()
+
+        # Preserve on screen label size if saving an image of different size.
+        if getattr(renderer, 'image_save', False):
+            # When saving an image match the label's on screen fractional size
+            # even though the image size in pixels may be different from on screen.
+            sw,sh = self.session.main_view.window_size
+            w,h = window_size
+            pscale = (w / sw) if sw > 0 else 1
+            aspect = (w*sh)/(h*sw) if h*sw > 0 else 1
+        else:
+            pscale = renderer.pixel_scale()
+            aspect = 1
+        if pscale != self._texture_pixel_scale or aspect != self._aspect:
+            self._texture_pixel_scale = pscale
+            self._aspect = aspect
+            self.needs_update = True
+
+        # Will need to reposition label if window size changes.
+        win_size_changed = (window_size != self._window_size)
+        if win_size_changed:
+            self._window_size = window_size
+
+        if self.needs_update:
+            self.needs_update = False
+            self._update_label_image()
+        elif win_size_changed:
+            self._position_label_image()
+
+    def _update_label_image(self):
+        l = self.label
+        xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
+        ypad = l.margin
+        s = self._texture_pixel_scale
+        from chimerax.graphics import text_image_rgba
+        rgba = text_image_rgba(l.text, self.label_color, int(s*l.size), l.font,
+                               background_color = l.background,
+                               xpad =int(s*xpad), ypad = int(s*ypad),
+                               bold = l.bold, italic = l.italic,
+                               outline_width=int(s*l.outline_width))
+        if rgba is None:
+            l.session.logger.info("Can't find font for label")
+        else:
+            ih, iw = rgba.shape[:2]
+            self._texture_size = (iw,ih)
+            (x,y),(w,h) = self._placement
+            from chimerax.graphics.drawing import rgba_drawing
+            rgba_drawing(self, rgba, (x,y), (w,h), opaque = False)
+
+    def _position_label_image(self):
+        # Window has resized so update texture drawing placement
+        (x,y),(w,h) = self._placement
+        from chimerax.graphics.drawing import position_rgba_drawing
+        position_rgba_drawing(self, (x,y), (w,h))
+
+    @property
+    def _placement(self):
+        l = self.label
+        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+        y *= self._aspect
+        w,h = [2*s for s in self.size]		# Convert [0,1] size [-1,1] size.
+        return (x,y), (w,h)
+
+    @property
+    def size(self):
+        '''Label size as fraction of window size (0-1).'''
+        w,h = self._window_size
+        tw,th = self._texture_size
+        return (tw/w, th/h)
+    
     @property
     def label_color(self):
         l = self.label
@@ -575,54 +672,6 @@ class LabelModel(Model):
         l.color = color
         l.update_drawing()
     single_color = property(_get_single_color, _set_single_color)
-
-    def update_drawing(self):
-        if not self.needs_update:
-            return False
-        self.needs_update = False
-        l = self.label
-        xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
-        ypad = l.margin
-        from chimerax.graphics import text_image_rgba
-        rgba = text_image_rgba(l.text, self.label_color, l.size, l.font,
-                               background_color = l.background, xpad = xpad,
-                               ypad = ypad, bold = l.bold, italic = l.italic,
-                               outline_width=l.outline_width)
-        if rgba is None:
-            l.session.logger.info("Can't find font for label")
-            return True
-        self.set_text_image(rgba)
-        return True
-        
-    def set_text_image(self, rgba):
-        l = self.label
-        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-        v = l.session.main_view
-        self.window_size = w,h = v.window_size
-        th, tw = rgba.shape[:2]
-        self.texture_size = (tw,th)
-        uw,uh = 2*tw/w, 2*th/h
-        from chimerax.graphics.drawing import rgba_drawing
-        rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
-
-    @property
-    def size(self):
-        '''Label size as fraction of window size (0-1).'''
-        w,h = self.window_size
-        tw,th = self.texture_size
-        return (tw/w, th/h)
-
-    def resize(self):
-        l = self.label
-        v = l.session.main_view
-        if v.window_size != self.window_size:
-            # Window has resized so update texture drawing size
-            self.window_size = w,h = v.window_size
-            tw,th = self.texture_size
-            uw,uh = 2*tw/w, 2*th/h
-            x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-            from chimerax.graphics.drawing import position_rgba_drawing
-            position_rgba_drawing(self, (x,y), (uw,uh))
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d

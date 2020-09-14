@@ -242,7 +242,7 @@ class ColormapArg(Annotation):
             if session is not None:
                 i = session.user_colormaps.bisect_left(ci_token)
                 if i < len(session.user_colormaps):
-                    name = session.user_colormaps.iloc[i]
+                    name = session.user_colormaps.keys()[i]
                     if name.startswith(ci_token):
                         consumed = f'^{name}' if reversed else name
                         cmap = session.user_colormaps[name]
@@ -250,7 +250,7 @@ class ColormapArg(Annotation):
                 from ..colors import BuiltinColormaps
                 i = BuiltinColormaps.bisect_left(ci_token)
                 if i < len(BuiltinColormaps):
-                    name = BuiltinColormaps.iloc[i]
+                    name = BuiltinColormaps.keys()[i]
                     if name.startswith(ci_token):
                         consumed = f'^{name}' if reversed else name
                         cmap = BuiltinColormaps[name]
@@ -323,7 +323,7 @@ def find_named_color(color_dict, name):
             break
         choices = []
         for i in range(i, num_colors):
-            color_name = color_dict.iloc[i]
+            color_name = color_dict.keys()[i]
             if not color_name.startswith(cur_name):
                 break
             choices.append(color_name)

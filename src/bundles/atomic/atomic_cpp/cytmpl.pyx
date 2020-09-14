@@ -87,6 +87,10 @@ cdef class TmplResidue:
     def pdbx_ambiguous(self):
         return self.cpp_res.pdbx_ambiguous
 
+    @property
+    def description(self):
+        return self.cpp_res.description().decode()
+
 cytmpl.Residue.set_py_class(TmplResidue)
 
 cdef class TmplAtom:
@@ -100,6 +104,12 @@ cdef class TmplAtom:
         if not isinstance(ptr_val, int) or ptr_val < 256:
             raise ValueError("Do not use %s constructor directly; use TmplResidue.get_template method"
                 " and go from there" % self.__class__.__name__)
+
+    def __hash__(self):
+        return id(self)
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     @property
     def bonds(self):

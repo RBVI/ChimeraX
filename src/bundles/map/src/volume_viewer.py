@@ -318,7 +318,7 @@ class VolumeViewer(ToolInstance):
         self.redisplay_in_progress = True
         try:
           self.show_using_dialog_settings(self.active_volume)
-        except:
+        except Exception:
           # Need this to avoid disabling automatic volume redisplay when
           # user cancels file read cancel or out of memory exception raised.
           self.redisplay_in_progress = False
@@ -1988,13 +1988,14 @@ class Histogram_Pane:
   def _planes_slider_moved_cb(self, event):
       k = self._planes_slider.value()
       self._update_plane(k)
+      # Make sure this plane is shown before we show another plane.
+      self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      if self._planes_slider_shown:
-          self._planes_spinbox.setValue(k)
-          self._planes_slider.setValue(k)
+      self._update_plane_slider(k)
+      
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -2006,8 +2007,23 @@ class Histogram_Pane:
       v.new_region(nijk_min, nijk_max, ijk_step)
       for vc in v.other_channels():
           vc.new_region(nijk_min, nijk_max, ijk_step)
-      # Make sure this plane is shown before we show another plane.
-      self.dialog.session.update_loop.update_graphics_now()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_plane_slider(self, k):
+      '''Update plane slider gui without invoking callbacks.'''
+      if not self._planes_slider_shown:
+          return
+
+      psb = self._planes_spinbox
+      psb.blockSignals(True)	# Don't send valueChanged signal
+      psb.setValue(k)
+      psb.blockSignals(False)
+
+      psl = self._planes_slider
+      psl.blockSignals(True)	# Don't send valueChanged signal
+      psl.setValue(k)
+      psl.blockSignals(False)
 
   # ---------------------------------------------------------------------------
   # x,y in canvas coordinates
@@ -2754,7 +2770,7 @@ class Histogram_Pane:
     markers = self.surface_thresholds.markers
     for m in markers:
         level, color = m.xy[0], m.rgba
-        if not hasattr(m, 'volume_surface'):
+        if not hasattr(m, 'volume_surface') or m.volume_surface.deleted:
             m.volume_surface = v.add_surface(level, color)
             surf_levels_changed = surf_colors_changed = True
         else:
@@ -3381,6 +3397,7 @@ class Plane_Panel(PopupPanel):
   #
   def preload_cb(self, event = None):
 
+    # TODO: Not yet ported
     v = active_volume()
     if v:
       step = v.region[2]
@@ -4952,7 +4969,7 @@ def integer_variable_value(v, default = None):
 
   try:
     return int(v.get())
-  except:
+  except Exception:
     return default
   
 # -----------------------------------------------------------------------------
@@ -4964,7 +4981,7 @@ def integer_variable_values(v, default = None):
   for field in fields:
     try:
       value = int(field)
-    except:
+    except Exception:
       value = default
     values.append(value)
   return values
@@ -4981,7 +4998,7 @@ def string_to_float(v, default = None):
 
   try:
     return float(v)
-  except:
+  except Exception:
     return default
     
 # -----------------------------------------------------------------------------

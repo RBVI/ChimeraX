@@ -229,7 +229,8 @@ class UI(QApplication):
     def event(self, event):
         from PyQt5.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
-            if not hasattr(self, 'toolshed'):
+            from chimerax.core.toolshed import get_toolshed
+            if get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
@@ -280,12 +281,16 @@ class UI(QApplication):
         if self.key_intercepted(k):
             return
         elif k == Qt.Key_Up:
-            from chimerax.core.commands import run
-            run(self.session, 'select up')
+            if not self.session.selection.empty():
+                from chimerax.core.commands import run
+                run(self.session, 'select up')
+                return
+            # Up arrow on an empty selection was probably intended for the command history...
         elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
-        elif self._keystroke_sinks:
+            return
+        if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
             # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
             event.setAccepted(True)
@@ -385,9 +390,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             dw = QDesktopWidget()
             main_screen_geom = ui.primaryScreen().availableGeometry()
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
-        else:
+        elif sizing_scheme == "fixed":
             width, height = size_data
-        self.resize(width, height)
+        if sizing_scheme not in ["full screen", "maximized"]:
+            self.resize(width, height)
+        # going into full screen / maximized causes events to happen, so delay until we're more
+        # fully initialized
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -446,6 +454,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
+        self._set_label_height_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -472,12 +481,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
 
-        self.show()
+        # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
+        # so withdrawn in favor of just "maximized" for now
+        #if sizing_scheme == "full screen":
+        #    self.showFullScreen()
+        if sizing_scheme == "maximized" or sizing_scheme == "full screen":
+            self.showMaximized()
+        else:
+            self.show()
 
     def enable_stereo(self, stereo = True):
         '''
         Switching to a sequential stereo OpenGL context seems to require
-        replacing the graphics window with a stereo compatible window on 
+        replacing the graphics window with a stereo compatible window on
         Windows 10 with Qt 5.9.
         '''
         gw = self.graphics_window
@@ -488,7 +504,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         try:
             g = GraphicsWindow(self._stack, self.session.ui, stereo, oc)
-        except:
+        except Exception:
             # Failed to create OpenGL context
             return False
 
@@ -531,7 +547,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._fill_tb_context_menu_cbs[tb] = (tool, fill_context_menu_cb)
         settings =  self.session.ui.settings
         if tool.tool_name in settings.tool_positions['toolbars']:
-            version, placement, geom_info = settings.tool_positions['toolbars'][tool.tool_name]
+            pos_info = settings.tool_positions['toolbars'][tool.tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
+            else:
+                version, *info = settings.tool_positions['toolbars'][tool.tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is None:
                 self.session.logger.info("Cannot restore toolbar as floating")
                 #from PyQt5.QtCore import Qt
@@ -748,6 +775,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._select_zone_dialog.show()
         self._select_zone_dialog.raise_()
 
+    def show_set_label_height_dialog(self, *args):
+        if self._set_label_height_dialog is None:
+            self._set_label_height_dialog = LabelHeightDialog(self.session)
+        self._set_label_height_dialog.show()
+        self._set_label_height_dialog.raise_()
+
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
         _show_context_menu(event, tool, None, fill_cb, True, tb)
@@ -859,6 +892,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._accumulated_settings_options.append((category, option))
         else:
             self._core_settings_panel.options_widget.add_option(category, option)
+
+    def show_settings(self, category=None):
+        self.settings_ui_widget.show()
+        if category is not None:
+            self._core_settings_panel.show_category(category)
 
     def _new_tool_window(self, tw):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
@@ -1117,6 +1155,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        cartoon_menu.addSeparator()
         action = QAction("Rounded Edges", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1154,7 +1193,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action = QAction(style.capitalize(), self)
             surface_menu.addAction(action)
             action.triggered.connect(lambda *args, run=self._run_surf_command,
-                cmd="surface style %%s %s" % style: run(cmd))
+                cmd="surface style %%s %s" % style: run(cmd, whole_surf=True))
         surface_menu.addSeparator()
         transparency_menu = surface_menu.addMenu("Transparency")
         for percent in range(0, 101, 10):
@@ -1179,7 +1218,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action = QAction(icon, spaced_name.title(), self)
             color_menu.addAction(action)
             action.triggered.connect(lambda *args, run=self._run_surf_command,
-                cmd="color %%s %s" % svg_name: run(cmd))
+                cmd="color %%s %s" % spaced_name: run(cmd))
         color_menu.addSeparator()
         for menu_text, cmd_arg in [("By Heteroatom", "byhet"), ("By Element", "byelement")]:
             action = QAction(menu_text, self)
@@ -1188,16 +1227,74 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
         action = QAction("From Editor", self)
         color_menu.addAction(action)
-        action.triggered.connect(self._color_by_editor)
+        action.triggered.connect(self.color_by_editor)
+        color_menu.addSeparator()
+        action = QAction("All Options...", self)
+        color_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+                run(ses, "ui tool show 'Color Actions'"))
 
-        """
         #
         # Label...
         #
         label_menu = actions_menu.addMenu("Label")
-        """
+        label_atoms_menu = label_menu.addMenu("Atoms")
+        for menu_entry, attr_name in [("Name", None), ("Element", "element"), ("IDATM Type", "idatm_type")]:
+            action = QAction(menu_entry, self)
+            label_atoms_menu.addAction(action)
+            text = " attr %s" % attr_name if attr_name else ""
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="label %%s atoms%s"
+                % text: run(ses, cmd % sel_or_all(ses, ['atoms'], allow_empty_spec=False)))
+        action = QAction("Custom Text", self)
+        label_atoms_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            fetch_text=self._get_label_text_arg: run(ses, "label %s atoms text %s"
+            % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        action = QAction("Off", self)
+        label_atoms_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "~label %s atoms" % sel_or_all(ses, ['atoms'], allow_empty_spec=False)))
+        label_residues_menu = label_menu.addMenu("Residues")
+        for menu_entry, cmd_arg in [("Name", "name"), ("Specifier", "label_specifier"),
+                ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code", "label_one_letter_code"), ("1-Letter Code Combo",
+                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]:
+            action = QAction(menu_entry, self)
+            label_residues_menu.addAction(action)
+            if cmd_arg:
+                if '{' in cmd_arg:
+                    text = " text %s" % cmd_arg
+                else:
+                    text = " attr %s" % cmd_arg
+            else:
+                text = ""
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="label %%s%s"
+                % text: run(ses, cmd % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
+        action = QAction("Custom Text", self)
+        label_residues_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            fetch_text=self._get_label_text_arg: run(ses, "label %s text %s"
+            % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        action = QAction("Off", self)
+        label_residues_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "~label %s residues" % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
+        action = QAction("Set Label Height", self)
+        label_menu.addAction(action)
+        action.triggered.connect(self.show_set_label_height_dialog)
 
-    def _color_by_editor(self, *args):
+        # misc...
+        action = QAction("View", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "view" + ("" if ses.selection.empty() else " sel")))
+
+        action = QAction("Set Pivot", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "cofr " + ("frontCenter" if ses.selection.empty() else "sel")))
+
+    def color_by_editor(self, *args):
         if not self._color_dialog:
             from PyQt5.QtWidgets import QColorDialog
             self._color_dialog = cd = QColorDialog(self)
@@ -1219,31 +1316,43 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cd.hide()
         cd.show()
 
-    def _run_surf_command(self, cmd):
+    def _run_surf_command(self, cmd, *, whole_surf=False):
         from chimerax.core.commands import run, sel_or_all, NoneSelectedError
         from chimerax.core.models import Surface
-        try:
-            selector = sel_or_all(self.session, ['atoms', 'bonds'])
-        except NoneSelectedError:
-            try:
-                selector = sel_or_all(self.session, Surface)
-            except NoneSelectedError:
-                from chimerax.core.errors import UserError
-                if self.session.selection.empty():
-                    raise UserError("No atoms, bonds, or surfaces visible")
-                else:
-                    raise UserError("No visible atoms, bonds, or surfaces selected")
+        if whole_surf:
+            selector = sel_or_all(self.session, Surface, relevant_types=Surface)
         else:
-            if "sel" not in selector:
-                # no visible atoms/bonds selected, see if any surfaces are
+            try:
+                selector = sel_or_all(self.session, ['atoms', 'bonds'])
+            except NoneSelectedError:
                 try:
-                    surf_selector = sel_or_all(self.session, Surface)
+                    selector = sel_or_all(self.session, Surface)
                 except NoneSelectedError:
-                    pass
-                else:
-                    if "sel" in surf_selector:
-                        selector = surf_selector
+                    from chimerax.core.errors import UserError
+                    if self.session.selection.empty():
+                        raise UserError("No atoms, bonds, or surfaces visible")
+                    else:
+                        raise UserError("No visible atoms, bonds, or surfaces selected")
+            else:
+                if "sel" not in selector:
+                    # no visible atoms/bonds selected, see if any surfaces are
+                    try:
+                        surf_selector = sel_or_all(self.session, Surface)
+                    except NoneSelectedError:
+                        pass
+                    else:
+                        if "sel" in surf_selector:
+                            selector = surf_selector
         run(self.session, cmd % selector)
+
+    def _get_label_text_arg(self):
+        from PyQt5.QtWidgets import QInputDialog
+        from chimerax.core.commands import StringArg
+        user_text, okay = QInputDialog.getText(self, "Custom Label Text", "Label:")
+        if okay:
+            return StringArg.unparse(user_text)
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
@@ -1277,7 +1386,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         selectors_menu.setToolTipsVisible(True)
         selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
         from chimerax.core.commands import run
-        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+        selectors_menu.triggered.connect(lambda name: self.select_by_mode(name.text()))
         def_selector_action = QAction("Define Selector...", self)
         select_menu.addAction(def_selector_action)
         def_selector_action.triggered.connect(self.show_define_selector_dialog)
@@ -1339,7 +1448,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         for fave in session.ui.settings.favorites:
             fave_action = QAction(fave, self)
             fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
-                run(ses, "toolshed show %s" % (StringArg.unparse(fave))))
+                run(ses, "ui tool show %s" % (StringArg.unparse(fave))))
             if prev_actions:
                 self.favorites_menu.insertAction(separator, fave_action)
             else:
@@ -1383,21 +1492,18 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.setChecked(tool_name in active_tool_names)
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed %s %s" % (("show" if arg else "hide"),
+                        run(ses, "ui tool %s %s" % (("show" if arg else "hide"),
                         StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed show %s" % StringArg.unparse(tool_name)))
+                        run(ses, "ui tool show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
-        def _show_toolshed(arg):
-            from chimerax.help_viewer import show_url
-            from chimerax.core import toolshed
-            show_url(session, toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
-        more_tools.triggered.connect(_show_toolshed)
+        more_tools.triggered.connect(
+            lambda arg, ses=session, run=run: run(ses, "toolshed show"))
         tools_menu.addAction(more_tools)
         # running tools will go below this...
         self._tools_menu_separator = tools_menu.addSection("Running Tools")
@@ -1762,13 +1868,33 @@ class ToolWindow(StatusLogger):
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
-            version, placement, geom_info = settings.tool_positions['windows'][tool_name]
+            pos_info = settings.tool_positions['windows'][tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
+            else:
+                version, *info = settings.tool_positions['windows'][tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is not None:
-                placement = self.window_placement_to_text[placement]
+                for tabbed_with in tab_info:
+                    for ti, tws in ui.main_window.tool_instance_to_windows.items():
+                        if ti.tool_name == tabbed_with:
+                            placement = tws[0]
+                            break
+                    else:
+                        continue
+                    break
+                else:
+                    placement = self.window_placement_to_text[placement]
             if geom_info is not None:
                 from PyQt5.QtCore import QRect
                 geometry = QRect(*geom_info)
-        self.tool_instance.session.ui.main_window._about_to_manage(self,
+        ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
         if initially_hidden:
@@ -1812,7 +1938,8 @@ class ToolWindow(StatusLogger):
             resize = lambda mw=self.session.ui.main_window, dw=dw, orientation=orientation: \
                 mw.resizeDocks([dw], [1], orientation)
         from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, resize)
+        # 0 is empirically "too fast", as is 10 and 12, using 25 msec
+        QTimer.singleShot(25, resize)
 
     def status(self, *args, **kw):
         """Supported API.  Show a status message for the tool."""
@@ -2196,18 +2323,33 @@ def _remember_tool_pos(ui, tool_instance, widget):
             raise LimitationError("Cannot currently save toolbars as floating")
         get_side = mw.toolBarArea
         mem_location = remembered['toolbars']
+        tab_info = []
     else:
         get_side = mw.dockWidgetArea
         mem_location = remembered['windows']
+        tabbed_with = mw.tabifiedDockWidgets(widget)
+        if tabbed_with:
+            tab_info = []
+            for ti, tws in mw.tool_instance_to_windows.items():
+                if tws[0]._dock_widget in tabbed_with:
+                    tab_info.append(ti.tool_name)
+            mw.status('To save tabbed positions, use "Save Tool Position" on each tab', "blue", False)
+        else:
+            tab_info = []
     if widget.isFloating():
         side = None
         geom = widget.geometry()
-        pos_info = (geom.x(), geom.y(), geom.width(), geom.height())
+        geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         side = get_side(widget)
-        pos_info = None
-    version = 1
-    mem_location[tool_instance.tool_name] = (version, side, pos_info)
+        geom_info = None
+    version = 3
+    mem_location[tool_instance.tool_name] = {
+        'version': version,
+        'placement': side,
+        'geom_info': geom_info,
+        'tab_info': tab_info
+    }
     ui.settings.tool_positions = remembered
     ui.settings.save()
 
@@ -2328,9 +2470,24 @@ class SelZoneDialog(QDialog):
         self.setWindowTitle("Select Zone")
         self.setSizeGripEnabled(True)
         from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
-            QCheckBox, QDoubleSpinBox
+            QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget
+        from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Select atoms/bonds that meet all chosen distance criteria:"))
+        target_area = QWidget()
+        target_layout = QHBoxLayout()
+        target_layout.setContentsMargins(0,0,0,0)
+        target_layout.setSpacing(3)
+        target_area.setLayout(target_layout)
+        target_layout.addWidget(QLabel("Select"))
+        self.target_button = QPushButton("atoms")
+        menu = QMenu()
+        menu.triggered.connect(lambda action: self.target_button.setText(action.text()))
+        menu.addAction("atoms")
+        menu.addAction("residues")
+        self.target_button.setMenu(menu)
+        target_layout.addWidget(self.target_button)
+        target_layout.addWidget(QLabel(":"))
+        layout.addWidget(target_area, alignment=Qt.AlignLeft)
         less_layout = QHBoxLayout()
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
@@ -2356,10 +2513,6 @@ class SelZoneDialog(QDialog):
         more_layout.addWidget(self.more_spinbox)
         more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
-        res_layout = QHBoxLayout()
-        self.res_checkbox = QCheckBox("Apply criteria to whole residues")
-        res_layout.addWidget(self.res_checkbox)
-        layout.addLayout(res_layout)
 
         self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
@@ -2374,20 +2527,84 @@ class SelZoneDialog(QDialog):
         self.setLayout(layout)
 
     def zone(self, *args):
-        cmd = "select "
-        char = ':' if self.res_checkbox.isChecked() else '@'
+        cmd = ""
+        char = ':' if self.target_button.text() == "residues" else '@'
         if self.less_checkbox.isChecked():
             cmd += "sel %s< %g" % (char, self.less_spinbox.value())
             if self.more_checkbox.isChecked():
                 cmd += ' & '
         if self.more_checkbox.isChecked():
             cmd += "sel %s> %g" % (char, self.more_spinbox.value())
-        from chimerax.core.commands import run
-        run(self.session, cmd)
+        self.session.ui.main_window.select_by_mode(cmd)
 
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
+
+
+class LabelHeightDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Set Label Height")
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
+            QCheckBox, QPushButton, QMenu, QWidget
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QDoubleValidator
+        layout = QVBoxLayout()
+        height_area = QWidget()
+        layout.addWidget(height_area)
+        height_layout = QHBoxLayout()
+        height_layout.setContentsMargins(0,0,0,0)
+        height_layout.setSpacing(3)
+        height_area.setLayout(height_layout)
+        height_layout.addWidget(QLabel("Set all label heights to"))
+        self.height_entry = QLineEdit()
+        self.height_entry.setMaximumWidth(50)
+        from chimerax.label.settings import settings
+        self.height_entry.setText(str(settings.label_height))
+        height_layout.addWidget(self.height_entry)
+        self.unit_button = QPushButton("\N{ANGSTROM SIGN}")
+        menu = QMenu()
+        menu.triggered.connect(lambda action: self.unit_button.setText(action.text()))
+        menu.addAction("\N{ANGSTROM SIGN}")
+        menu.addAction("pixels")
+        self.unit_button.setMenu(menu)
+        height_layout.addWidget(self.unit_button)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.bbox.accepted.connect(self.set_height)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.set_height)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(self.bbox.Help).setEnabled(False)
+        #from chimerax.core.commands import run
+        #self.bbox.helpRequested.connect(lambda run=run, ses=session:
+        #    run(ses, "help help:user/menu.html#selectzone"))
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def set_height(self, *args):
+        from chimerax.core.errors import UserError
+        in_pixels = self.unit_button.text() == 'pixels'
+        if in_pixels:
+            try:
+                height = int(self.height_entry.text())
+            except ValueError:
+                raise UserError("Pixels must be an integer")
+        else:
+            try:
+                height = int(self.height_entry.text())
+            except ValueError:
+                raise UserError("Height must be a number")
+        if height <= 0:
+            raise UserError("Height must be a positive number")
+        if in_pixels:
+            command = "label size %g height fixed" % height
+        else:
+            command = "label height %g" % height
+        from chimerax.core.commands import run
+        run(self.session, command)
 
 prepositions = set(["a", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to"])
 def menu_capitalize(text):
@@ -2461,7 +2678,7 @@ class InitWindowSizeOption(Option):
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()
-        for label in ("last used", "proportional", "fixed"):
+        for label in ("last used", "proportional", "fixed", "maximized"):
             action = QAction(label, self.push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)

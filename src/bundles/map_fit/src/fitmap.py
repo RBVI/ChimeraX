@@ -319,7 +319,7 @@ def correlation_gradient_direction(points, point_weights, data_array,
                            syminv = syminv, values = values)
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                  syminv = syminv, gradients = gradients)
-    from .. import _map
+    from chimerax.map import _map
     g = _map.correlation_gradient(point_weights, values, gradients, about_mean)
     return g
 
@@ -353,7 +353,7 @@ def sum_product_torque_axis(points, point_weights, center, data_array,
 
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                  gradients = gradients)
-    from .. import _map
+    from chimerax.map import _map
     tor = _map.torque(points, point_weights, gradients, center)
     return tor
 
@@ -374,7 +374,7 @@ def correlation_torque_axis(points, point_weights, center, data_array,
     # TODO: Exclude points outside data.  Currently treated as zero values.
     values = volume_values(points, xyz_to_ijk_transform, data_array,
                            syminv = syminv, values = values)
-    from .. import _map
+    from chimerax.map import _map
     if len(syminv) == 0:
         gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                      gradients = gradients)
@@ -392,7 +392,7 @@ def correlation_torque_axis(points, point_weights, center, data_array,
 def volume_values(points, xyz_to_ijk_transform, data_array,
                   syminv = [], values = None, return_outside = False):
 
-    from .. import data as VD
+    import chimerax.map_data as VD
     if len(syminv) == 0:
         values, outside = VD.interpolate_volume_data(points,
                                                      xyz_to_ijk_transform,
@@ -421,7 +421,7 @@ def volume_values(points, xyz_to_ijk_transform, data_array,
 def volume_gradients(points, xyz_to_ijk_transform, data_array,
                      syminv = [], gradients = None):
 
-    from .. import data as VD
+    import chimerax.map_data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
             points, xyz_to_ijk_transform, data_array, gradients = gradients)
@@ -448,8 +448,8 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array,
 def volume_torques(points, center, xyz_to_ijk_transform, data_array,
                    syminv = [], gradients = None):
 
-    from .. import _map
-    from .. import data as VD
+    from chimerax.map import _map
+    import chimerax.map_data as VD
     if len(syminv) == 0:
         gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                      gradients = gradients)
@@ -537,7 +537,7 @@ def atom_coordinates(atoms):
 def average_map_value_at_atom_positions(atoms, volume = None):
 
     if volume is None:
-        from .. import active_volume
+        from chimerax.map import active_volume
         volume = active_volume()
 
     points = atom_coordinates(atoms)
@@ -594,7 +594,7 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place(),
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]
     else:
         from numpy import single as floatc, ravel, count_nonzero, nonzero, take
-        from ..data import grid_indices
+        from chimerax.map_data import grid_indices
         points = grid_indices(m.shape[::-1], floatc)        # i,j,k indices
         weights = ravel(m).astype(floatc)
         if not include_zeros:
@@ -680,7 +680,7 @@ def move_atoms_to_maxima():
 def move_atom_to_maximum(a, max_steps = 2000,
                          ijk_step_size_min = 0.001, ijk_step_size_max = 0.5):
 
-    from .. import active_volume
+    from chimerax.map import active_volume
     dr = active_volume()
     if dr == None or dr.model_transform() == None:
         from chimera.replyobj import status
@@ -703,7 +703,7 @@ def move_atom_to_maximum(a, max_steps = 2000,
 def atoms_outside_contour(atoms, volume = None):
 
     if volume is None:
-        from .. import active_volume
+        from chimerax.map import active_volume
         volume = active_volume()
     points = atom_coordinates(atoms)
     from chimerax.geometry import identity
@@ -802,7 +802,7 @@ def simulated_map(atoms, res, session):
     if v is None:
       # Need to be able to move map independent of molecule if changing
       #  atom coordinates if not mwm.
-      from ..molmap import molecule_map
+      from chimerax.map.molmap import molecule_map
       v = molecule_map(session, atoms, res)
       v.display = False
       v.fitsim_params = (array_checksum(atoms.coords), res)
@@ -818,7 +818,7 @@ def simulated_map(atoms, res, session):
 def find_simulated_map(atoms, res, session):
 
     a = array_checksum(atoms.coords)
-    from ..volume import volume_list
+    from chimerax.map.volume import volume_list
     vlist = volume_list(session)
     for v in vlist:
       if hasattr(v, 'fitsim_params'):

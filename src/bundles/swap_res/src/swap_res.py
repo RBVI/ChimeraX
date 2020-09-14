@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import LimitationError, UserError
-from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
+from chimerax.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
     UnsupportedResTypeError
 from chimerax.atomic import AtomicStructure
 
@@ -88,7 +88,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             elif char == "c":
                 # clash
                 if clash_hbond_allowance is None or clash_overlap_cutoff is None:
-                    from chimerax.atomic.clashes.settings import defaults
+                    from chimerax.clashes.settings import defaults
                     if clash_hbond_allowance is None:
                         clash_hbond_allowance = defaults['clash_hbond_allowance']
                     if clash_overlap_cutoff is None:
@@ -101,7 +101,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             elif char == 'h':
                 # H bonds
                 if hbond_angle_slop is None or hbond_dist_slop is None:
-                    from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
+                    from chimerax.hbonds import rec_angle_slop, rec_dist_slop
                     if hbond_angle_slop is None:
                         hbond_angle_slop = rec_angle_slop
                     if hbond_dist_slop is None:
@@ -111,7 +111,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
                     hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
                 session.logger.status("")
-                from chimerax.atomic.hbonds import flush_cache
+                from chimerax.hbonds import flush_cache
                 flush_cache()
                 fetch = lambda r: r.num_hbonds
                 test = cmp
@@ -728,7 +728,7 @@ def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_me
         if pbg:
             session.models.close([pbg])
     from chimerax.atomic import concatenate
-    from chimerax.atomic.clashes import find_clashes
+    from chimerax.clashes import find_clashes
     CA = residue.find_atom("CA")
     alt_locs = CA.alt_locs if CA.alt_locs else [' ']
     res_atoms = set(residue.atoms)
@@ -764,7 +764,7 @@ def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_me
 
 def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius, relax,
             dist_slop, angle_slop, two_colors, relax_color, ignore_other_models, *, cache_da=False):
-    from chimerax.atomic.hbonds import find_hbonds
+    from chimerax.hbonds import find_hbonds
     CA = residue.find_atom("CA")
     alt_locs = CA.alt_locs if CA.alt_locs else [' ']
     with CA.suppress_alt_loc_change_notifications():
