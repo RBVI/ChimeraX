@@ -113,11 +113,11 @@ def angle(session, objects, degrees=None, *, move="small"):
     session.undo.register(undo_state)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, ObjectsArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, ObjectsArg
     from chimerax.atomic import PseudobondsArg
     desc = CmdDesc(
         required = [('objects', ObjectsArg)],
         optional = [('degrees', FloatArg)],
-        keyword = [('move_smaller', BoolArg)],
+        keyword = [('move', EnumOf(("small", "large")))],
         synopsis = 'set/report angle between objects/atoms')
     register('angle', desc, angle, logger=logger)
