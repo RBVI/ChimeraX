@@ -34,8 +34,6 @@ NEED_OPENSSL=1
 NEED_PKGCONFIG=1
 NEED_P7ZIP=1
 NEED_ZLIB=1
-#SUBDIRS += leapmotion
-SUBDIRS += oculus
 endif
 
 ifeq ($(OS),Linux)
@@ -223,16 +221,12 @@ gdcm.app-install: Python.app-install
 gdcm.install: Python.install
 hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
-leapmotion.app-install: Python.app-install
-leapmotion.install: Python.install
 libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
-msgpack.app-install: Python.app-install pips.app-install
-msgpack.install: Python.install pips.install
-numpy.app-install: Python.app-install numpy.app-install pips.app-install
+numpy.app-install: Python.app-install pips.app-install
 numpy.install: Python.install numpy.install pips.install
 openmm.app-install: Python.app-install numpy.app-install pips.app-install
 openmm.install: Python.install numpy.install pips.install
@@ -246,16 +240,7 @@ PyOpenGL.app-install: Python.app-install pips.app-install
 PyOpenGL.install: Python.install pips.install
 PyQt.app-install: Python.app-install openssl.app-install zlib.app-install
 PyQt.install: Python.install openssl.install zlib.install
-pythomnic3k.app-install: Python.app-install
-pythomnic3k.install: Python.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
 scipy.app-install: Python.app-install numpy.app-install
 scipy.install: Python.install numpy.install
-# tables could also need Cython, numexpr, and c-blosc
-tables.install: hdf5.install pips.install numpy.install
-tables.app-install: hdf5.app-install pips.app-install numpy.app-install
-xml2.app-install: Python.app-install zlib.app-install
-xml2.install: Python.install zlib.install
-xslt.app-install: xml2.app-install
-xslt.install: xml2.install

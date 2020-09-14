@@ -1,0 +1,34 @@
+#  Amino acid hydrophobicity scale from Table S1 (delta delta G) in
+#  the supplementary information for "Side-chain hydrophobicity scale 
+#  derived from transmembrane protein folding into lipid bilayers."
+#  Moon CP, Fleming KG.
+#  Proc Natl Acad Sci USA. 2011 Jun 21;108(25):10174-7.
+#
+#  More negative means more hydrophobic, values relative to alanine.
+#  The met value is also assigned to selenomethionine.
+#
+#  Use this file to assign the attribute in ChimeraX or Chimera.
+#
+attribute: mfHydrophobicity
+recipient: residues
+	:asp	2.95
+	:glu	1.64
+	:asn	3.47
+	:gln	3.01
+	:lys	5.39
+	:arg	3.71
+	:his	4.76
+	:gly	1.72
+	:pro	-1.52
+	:ser	1.83
+	:thr	1.78
+	:cys	0.49
+	:met	-0.76
+	:mse	-0.76
+	:ala	0.0
+	:val	-0.78
+	:ile	-1.56
+	:leu	-1.81
+	:phe	-2.20
+	:trp	-0.38
+	:tyr	-1.09

@@ -65,8 +65,9 @@ of the hydrogen will be found.
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. Several of the dialog settings are remembered as 
 <a href="../preferences.html#other">preferences</a> when the calculation is run.
+Clicking <b>Reset</b> restores the dialog to factory default settings.
 </p>
-<ul>
+<ul class="none">
 <li><b>Display as pseudobonds</b> (initial default <b>on</b>)
 &ndash; whether to show H-bonds as 
 <a href="../pseudobonds.html">pseudobonds</a>.
@@ -78,6 +79,7 @@ H-bond pseudobonds can be removed with the command
 A <a href="../pseudobonds.html">pseudobond model</a> can also be closed
 with the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
 or the <a href="../commands/close.html"><b>close</b></a> command.
+<br><br>
   <ul>
   <li><b>Color</b> (initial default <b>deep sky blue</b>
 <table border cellpadding="4" cellspacing="0"
@@ -106,19 +108,6 @@ or set beforehand in the
 <a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
 The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-<li><b>Reveal atoms of H-bonding residues</b>
-(initial default <b>off</b>) &ndash; 
-since a <a href="../pseudobonds.html">pseudobond</a> 
-is only shown when both of its endpoint atoms are shown,
-whether to ensure all showing all H-bonds by displaying all of the endpoint 
-atoms. To avoid showing disconnected atoms, the entire residues will be shown,
-except that amino acid and nucleic acid residues are split into 
-<a href="../commands/atomspec.html#builtin">sidechain</a> and
-<a href="../commands/atomspec.html#builtin">backbone</a>
-moieties separately displayed by this option.
-Displayed backbone atoms may still be invisible where cartoon is shown,
-unless their simultaneous display has been enabled with
-<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
   <li><b>Retain pre-existing H-bonds</b> (initial default <b>off</b>) 
   </ul>
 <br>
@@ -130,6 +119,7 @@ H-bonds (several different distance and angle cutoffs depending on the
 cutoffs were based on high-resolution small-molecule crystal structures,
 relaxing them is generally recommended for macromolecules and 
 structures at a broader range of resolutions.
+<br><br>
   <ul>
   <li><b>Distance tolerance</b> (initial default <b>0.4</b> &Aring;)
   <li><b>Angle tolerance</b> (initial default <b>20</b>&deg;)
@@ -145,7 +135,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkorange width="10px" title="dark orange"></td></tr></table>)
   </ul>
 <br>
-<li><b>Limit results</b>: 
+<li><b>Limit results</b>:
 Any combination of the settings can be used, except that the first two
 are mutually exclusive (cannot both be <b>on</b>).
 To find H-bonds between sibling 
@@ -153,7 +143,7 @@ To find H-bonds between sibling
 of the same parent model,
 use the <a href="../commands/hbonds.html"><b>hbonds</b></a> command with 
 <a href="../commands/hbonds.html#interSubmodel"><b>interSubmodel true</b></a>.
-</p>
+<br><br>
   <ul>
 <!--
   <li><b>Restrict to models...</b> (initial default <b>off</b>) 
@@ -168,7 +158,7 @@ choices in the pulldown menu:
     <li><b>with exactly one end selected</b>
     <li><b>with both ends selected</b>
     <li><b>between selection and atom spec...</b> 
-    [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
+  [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
 The two sets of atoms may overlap, but will not overrule other restrictions.
     </ul>
   <li><b>Salt bridges only</b> (initial default <b>off</b>) 
@@ -187,11 +177,31 @@ where a molecule is defined as a covalently bonded set of atoms
   <li><b>Include intraresidue</b> (initial default <b>on</b>) 
   </ul>
 <br>
+<li><b>Treatment of results</b>:
+  <ul>
+  <li><b>Select atoms</b> (initial default <b>off</b>)
+&ndash; whether to <a href="../selection.html">select</a> the H-bonding atoms
+  <li><b>Reveal atoms of H-bonding residues</b>
+(initial default <b>on</b>) &ndash; 
+since a <a href="../pseudobonds.html">pseudobond</a> 
+is only shown when both of its endpoint atoms are shown,
+whether to ensure all showing all H-bonds by displaying all of the endpoint 
+atoms. To avoid showing disconnected atoms, the entire residues will be shown,
+except that amino acid and nucleic acid residues are split into 
+<a href="../commands/atomspec.html#builtin">sidechain</a> and
+<a href="../commands/atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
+  </ul>
+<br>
 <li><b>Write information to:</b> Where to write H-bond information,
 including donor and acceptor atom specifications 
 (see the <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
 for specifier style), donor-acceptor distances, and when hydrogens are present, 
 hydrogen atom specifications and hydrogen-acceptor distances.
+<br><br>
   <ul>
   <li><b>Log</b> (initial default <b>off</b>) 
 &ndash; show the information in the <a href="log.html"><b>Log</b></a>
@@ -199,7 +209,8 @@ hydrogen atom specifications and hydrogen-acceptor distances.
 &ndash; save the information to a text file
   </ul>
 </ul>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+September 2020</address>
 </body></html>

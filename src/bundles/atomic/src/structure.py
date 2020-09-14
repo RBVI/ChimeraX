@@ -293,7 +293,7 @@ class Structure(Model, StructureData):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
         pass
 
-    def _update_graphics_if_needed(self, *_):
+    def update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc == 0:
             return
@@ -654,11 +654,11 @@ class Structure(Model, StructureData):
         return picks
 
     def x3d_needs(self, x3d_scene):
-        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        self.update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().x3d_needs(x3d_scene)
 
     def write_x3d(self, *args, **kw):
-        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        self.update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().write_x3d(*args, **kw)
 
     def get_selected(self, include_children=False, fully=False):
@@ -944,10 +944,6 @@ class AtomsDrawing(Drawing):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
-        # TODO: use the next two lines instead of the following four for a 5% speedup
-        # should be okay to change since Structure.bounds does _update_graphics_if_needed first
-        # xyzr = self.positions.shift_and_scale_array()
-        # coords, radii = xyzr[:, :3], xyzr[:, 3]
         a = self.visible_atoms
         if len(a) == 0:
             return None
@@ -1568,7 +1564,7 @@ class StructureGraphicsChangeManager:
         if self._model_display_change or gc.any():
             # Update graphics for each changed structure
             for i in gc.nonzero()[0]:
-                s[i]._update_graphics_if_needed()
+                s[i].update_graphics_if_needed()
 
             # Update level of detail if number of atoms shown changed.
             if self._model_display_change or (gc & StructureData._SHAPE_CHANGE).any():
@@ -1582,9 +1578,13 @@ class StructureGraphicsChangeManager:
 
             # Fire selection changed trigger.
             if (gc & StructureData._SELECT_CHANGE).any():
-                from chimerax.core.selection import SELECTION_CHANGED
-                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                self.session.selection.trigger_fire_needed = True
                 # XXX: No data for now.  What should be passed?
+        if self.session.selection.trigger_fire_needed:
+            # Models can also set it
+            self.session.selection.trigger_fire_needed = False
+            from chimerax.core.selection import SELECTION_CHANGED
+            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
 
     def update_level_of_detail(self):
         n = self.num_atoms_shown

@@ -78,7 +78,7 @@ def add_hydrogens(session, atom_list, *args):
         num_bonds = atom.num_bonds
         substs = bonding_info.substituents
         geom = bonding_info.geometry
-        if num_bonds >= substs:
+        if atom.num_explicit_bonds >= substs:
             if atom.element.number == 7 and num_bonds == 3 and geom == planar:
                 for ring in atom.rings():
                     if ring.aromatic:

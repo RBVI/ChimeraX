@@ -489,7 +489,11 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
             # ID of the root atom of the residue
             chain_atom = res.principal_atom
             if chain_atom is None:
-                chain_atom = res.atoms[0]
+                # if writing out a selection, not all residue atoms
+                # might be in atom_indices...
+                for chain_atom in res.atoms:
+                    if chain_atom in atom_indices:
+                        break
             print("%5d" % atom_indices[chain_atom], end=" ", file=f)
 
 

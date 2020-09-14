@@ -342,8 +342,7 @@ class Render:
             ("key_light_direction",0), ("key_light_diffuse_color",4),
             ("key_light_specular_color",8),  ("key_light_specular_exponent",11),
             ("fill_light_direction",12), ("fill_light_diffuse_color",16),
-            ("ambient_color",20),
-            ("depth_cue_color",24))
+            ("ambient_color",20))
         self._lighting_buffer_floats = 28
 
         self.material = Material()              # Currently a global material
@@ -473,9 +472,15 @@ class Render:
         oc = self._opengl_context
         prev_win = oc.window
         oc.window = window
-        self.make_current()
-        s = oc.pixel_scale()
-        self.set_viewport(0,0,int(s*window.width()),int(s*window.height()))
+        try:
+            self.make_current()
+            s = oc.pixel_scale()
+            self.set_viewport(0,0,int(s*window.width()),int(s*window.height()))
+        except:
+            # Make sure to restore opengl context window if make_current() fails.
+            # This probably indicates the window has been destroyed.  Bug #3605.
+            oc.window = prev_win
+            raise
         return prev_win
 
     @property
@@ -601,8 +606,8 @@ class Render:
                 self.multishadow._set_multishadow_shader_variables(shader)
             if self.SHADER_SHADOW & c:
                 self.shadow._set_shadow_shader_variables(shader)
-            if self.SHADER_DEPTH_CUE & c:
-                self.set_depth_cue_parameters()
+        if self.SHADER_DEPTH_CUE & c:
+            self.set_depth_cue_parameters()
         if not (self.SHADER_TEXTURE_OUTLINE & c
                 or self.SHADER_DEPTH_OUTLINE & c
                 or self.SHADER_BLEND_TEXTURE_2D & c
@@ -797,21 +802,21 @@ class Render:
 
     def set_lighting_shader_capabilities(self):
         lp = self.lighting
+        self.enable_shader_capability(self.SHADER_DEPTH_CUE, lp.depth_cue)
+        self.enable_shader_shadows(lp.shadows)
+        self.enable_shader_multishadows(lp.multishadow > 0)
 
-        if lp.depth_cue:
-            self.enable_capabilities |= self.SHADER_DEPTH_CUE
-        else:
-            self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
+    def enable_shader_shadows(self, enable):
+        self.enable_shader_capability(self.SHADER_SHADOW, enable)
 
-        if lp.shadows:
-            self.enable_capabilities |= self.SHADER_SHADOW
-        else:
-            self.enable_capabilities &= ~self.SHADER_SHADOW
+    def enable_shader_multishadows(self, enable):
+        self.enable_shader_capability(self.SHADER_MULTISHADOW, enable)
 
-        if lp.multishadow > 0:
-            self.enable_capabilities |= self.SHADER_MULTISHADOW
+    def enable_shader_capability(self, capability, enable):
+        if enable:
+            self.enable_capabilities |= capability
         else:
-            self.enable_capabilities &= ~self.SHADER_MULTISHADOW
+            self.enable_capabilities &= ~capability
 
     def _bind_lighting_parameter_buffer(self, shader):
         pid = shader.program_id
@@ -900,9 +905,6 @@ class Render:
         ams = mp.ambient_reflectivity * lp.ambient_light_intensity
         ac = tuple(ams * c for c in lp.ambient_light_color)
         params["ambient_color"] = ac
-
-        # Depth cue color
-        params['depth_cue_color'] = lp.depth_cue_color
         
         return params
 
@@ -914,12 +916,13 @@ class Render:
         if p is None:
             return
 
-        if self.SHADER_DEPTH_CUE & p.capabilities and self.SHADER_LIGHTING & p.capabilities:
+        if self.SHADER_DEPTH_CUE & p.capabilities:
             if self.recording_opengl:
                 r = lambda: self._depth_cue_range(self._near_far_clip())
             else:
                 r = self._depth_cue_range(self._near_far_clip)
             p.set_vector2('depth_cue_range', r)
+            p.set_vector3('depth_cue_color', self.lighting.depth_cue_color)
 
     def _depth_cue_range(self, near_far):
         lp = self.lighting
@@ -1310,7 +1313,7 @@ class Shadow:
             fb.delete(make_current = True)
             self._shadow_map_framebuffer = None
     
-    def use_shadow_map(self, camera, drawings, shadow_bounds):
+    def use_shadow_map(self, camera, drawings):
         '''
         Compute shadow map textures for specified drawings.
         Does not include child drawings.
@@ -1330,7 +1333,7 @@ class Shadow:
         # Compute drawing bounds so shadow map can cover all drawings.
         # TODO: Shadow bounds should exclude completely transparent drawings
         #       if transparent do not cast shadows.
-        center, radius, sdrawings = shadow_bounds(drawings)
+        center, radius, sdrawings = _shadow_bounds(drawings)
         if center is None or radius == 0:
             return False
 
@@ -1414,6 +1417,19 @@ class Shadow:
         if stf is not None:
             shader.set_matrix("shadow_transform", stf.opengl_matrix())
 
+def _shadow_bounds(drawings):
+    '''
+    Compute bounding box for drawings, not including child drawings.
+    '''
+    # TODO: This code is incorrectly including child drawings in bounds calculation.
+    sdrawings = [d for d in drawings if d.casts_shadows]
+    from chimerax.geometry import bounds
+    b = bounds.union_bounds(d.bounds() for d in sdrawings
+                            if not getattr(d, 'skip_bounds', False))
+    center = None if b is None else b.center()
+    radius = None if b is None else b.radius()
+    return center, radius, sdrawings
+
 class Multishadow:
     '''Render shadows from several directions for ambient occlusion lighting.'''
     
@@ -1433,7 +1449,7 @@ class Multishadow:
         self._max_multishadows = None
         self._multishadow_view_transforms = Places()	# Includes camera view.
 
-        # near to far clip depth for shadow map:
+        # near to far clip depth for shadow map, needed to normalize shadow direction vector.
         self._multishadow_depth = None
 
         # Uniform buffer object for shadow matrices:
@@ -1452,13 +1468,14 @@ class Multishadow:
             GL.glDeleteBuffers(1, [mmb])
             self._multishadow_matrix_buffer_id = None
 
-    def use_multishadow_map(self, drawings, shadow_bounds):
+    def use_multishadow_map(self, drawings):
         r = self._render
         lp = r.lighting
         if lp.multishadow == 0:
             return False
         mat = r.material
-        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias, mat.transparent_cast_shadows)
+        msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias,
+               mat.transparent_cast_shadows, mat.meshes_cast_shadows)
         if self._multishadow_current_params != msp:
             self.multishadow_update_needed = True
 
@@ -1473,7 +1490,7 @@ class Multishadow:
             return True
 
         # Compute drawing bounds so shadow map can cover all drawings.
-        center, radius, sdrawings = shadow_bounds(drawings)
+        center, radius, sdrawings = _shadow_bounds(drawings)
         if center is None or radius == 0:
             return False
 
@@ -1611,7 +1628,8 @@ class Multishadow:
 
         maxs = self.max_multishadows()            
         shader.set_integer("shadow_count", min(maxs, len(m)))
-        shader.set_float("shadow_depth", self._multishadow_depth)
+        if shader.capabilities & Render.SHADER_LIGHTING_NORMALS:
+            shader.set_float("shadow_depth", self._multishadow_depth)
 
 class Offscreen:
     '''Offscreen framebuffer for 16-bit color depth.'''
@@ -1891,6 +1909,7 @@ class BlendTextures:
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',
+    'SHADER_LIGHTING_NORMALS',
     'SHADER_DEPTH_CUE',
     'SHADER_NO_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
@@ -2029,6 +2048,7 @@ class Framebuffer:
 
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         if status != GL.GL_FRAMEBUFFER_COMPLETE:
+            self._fbo = fbo	# Need to set attribute for delete to release attachments.
             self.delete()
             # TODO: Need to rebind previous framebuffer.
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
@@ -2322,6 +2342,9 @@ class Material:
         self.transparent_cast_shadows = False
         "Do transparent objects cast shadows."
 
+        self.meshes_cast_shadows = False
+        "Do mesh style Drawings cast shadows."
+
 class Bindings:
     '''
     Use an OpenGL vertex array object to save buffer bindings.
@@ -2573,7 +2596,7 @@ class Buffer:
                 # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
                 d = data
             else:
-                d = data.astype(self.value_type)
+                d = data.astype(self.value_type, order = 'C')
             size = d.size * d.itemsize        # Bytes
             if replace_buffer:
                 GL.glBufferData(btype, size, d, GL.GL_STATIC_DRAW)
@@ -2827,6 +2850,7 @@ class Texture:
 
         self.id = t = GL.glGenTextures(1)
         self.size = size
+        self._check_maximum_texture_size(size)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, t)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
@@ -2893,6 +2917,15 @@ class Texture:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 
+    def _check_maximum_texture_size(self, size):
+        if not hasattr(Texture, 'MAX_TEXTURE_SIZE'):
+            Texture.MAX_TEXTURE_SIZE = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = Texture.MAX_TEXTURE_SIZE
+        for s in size:
+            if s > max_size:
+                raise OpenGLError('Texture size (%s) exceeds OpenGL driver maximum %d' %
+                                  (','.join(str(s) for s in size), max_size))
+        
     def __del__(self):
         if self.id is not None:
             raise OpenGLError('OpenGL texture was not deleted before graphics.Texture destroyed')

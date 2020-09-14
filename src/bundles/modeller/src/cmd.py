@@ -49,11 +49,11 @@ def score_models(session, structures, *, block=None, license_key=None, refresh=F
     scores.fetch_scores(session, structures, block=block, license_key=license_key, refresh=refresh)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, RepeatOf, BoolArg, PasswordArg, IntArg
     from chimerax.core.commands import OpenFileNameArg, OpenFolderNameArg
     from chimerax.seqalign import AlignSeqPairArg
     desc = CmdDesc(
-        required = [('targets', ListOf(AlignSeqPairArg))],
+        required = [('targets', RepeatOf(AlignSeqPairArg))],
         keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
             ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg), ('fast', BoolArg),
             ('het_preserve', BoolArg), ('hydrogens', BoolArg), ('license_key', PasswordArg),

@@ -506,9 +506,15 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # UNK/N residues will be missing some or all of their side-chain atoms, so
                 # skip atoms that would otherwise be incorrectly protonated due to their
                 # missing neighbors
-                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
-                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
-                    and unk_atom_truncated(atom))
+                truncated = \
+                        atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
+                    or \
+                        (atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE
+                        and unk_atom_truncated(atom)) \
+                    or \
+                        (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
+                        and atom.num_explicit_bonds < 4)
+
                 if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
@@ -936,6 +942,9 @@ naming_exceptions = {
     'GDP': {
         "N1": ["HN1"],
         "N2": ["HN21", "HN22"]
+    },
+    'NH2': {
+        "N": ["HN1", "HN2"]
     }
 }
 
@@ -997,7 +1006,7 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
             h_name += "'"
     elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
-        if atom.residue.principal_atom and total_hydrogens == 2 and len(
+        if atom.residue.polymer_type == atom.residue.PT_AMINO and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
         h_digits = 4 - len(h_name)

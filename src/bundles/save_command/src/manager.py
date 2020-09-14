@@ -24,12 +24,13 @@ from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
     """Manager for save command"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._savers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("save command changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, format_name, compression_okay=True, **kw):
         logger = self.session.logger

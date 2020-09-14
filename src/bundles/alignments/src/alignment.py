@@ -89,6 +89,8 @@ class Alignment(State):
                 from copy import copy
                 seqs[i] = copy(seq)
             seqs[i].match_maps = {}
+        # need an _headers placeholder before associate() gets called...
+        self._headers = []
         self._assoc_handler = None
         if auto_associate is None:
             # Create association for alignment's StructureSeqs, no auto-assoc
@@ -107,13 +109,23 @@ class Alignment(State):
             self._auto_associate = False
         if create_headers:
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
+            if file_markups is not None:
+                for name, markup in file_markups.items():
+                    from chimerax.core.utils import string_to_attr
+                    from chimerax.alignment_headers import FixedHeaderSequence
+                    class MarkupHeaderSequence(FixedHeaderSequence):
+                        ident = string_to_attr(name, prefix="file_markup_")
+                        def settings_info(self):
+                            base_settings_name, defaults = super().settings_info()
+                            from chimerax.core.commands import BoolArg
+                            defaults.update({'initially_shown': (BoolArg, True)})
+                            return "sequence file header %s" % name, defaults
+                    self._headers.append(MarkupHeaderSequence(self, name, markup))
             self._headers.sort(key=lambda hdr: hdr.name.casefold())
             attr_headers = []
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
             self._set_residue_attributes()
-        else:
-            self._headers = []
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
@@ -599,7 +611,14 @@ class Alignment(State):
         if self._assoc_handler:
             self._assoc_handler.remove()
 
-    def _dispatch_viewer_command(self, session, viewer_keyword, subcommand_text):
+    def _dispatch_header_command(self, subcommand_text):
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import EnumOf
+        enum = EnumOf(self.headers, ids=[header.ident for header in self._headers])
+        header, ident_text, remainder = enum.parse(subcommand_text, self.session)
+        header.process_command(remainder)
+
+    def _dispatch_viewer_command(self, viewer_keyword, subcommand_text):
         from chimerax.core.errors import UserError
         viewers = self.viewers_by_subcommand.get(viewer_keyword, [])
         if not viewers:

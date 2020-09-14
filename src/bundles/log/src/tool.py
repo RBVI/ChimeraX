@@ -200,13 +200,6 @@ class Log(ToolInstance, HtmlLog):
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
                 from chimerax.ui.widgets.htmlview import chimerax_intercept
                 chimerax_intercept(request_info, *args, session=self.session, view=self, **kw)
-                if not self.log.suppress_scroll:
-                    return
-                def defer(log_tool):
-                    log_tool.suppress_scroll = False
-                # clicked link is executed via thread_safe, so add another
-                # that is executed after that one
-                self.session.ui.thread_safe(defer, self.log)
 
             def cm_save(self):
                 from chimerax.ui.open_save import SaveDialog
@@ -357,6 +350,7 @@ class Log(ToolInstance, HtmlLog):
         if self.suppress_scroll:
             sp = self.log_window.page().scrollPosition()
             height = str(sp.y())
+            self.suppress_scroll = False
         else:
             height = 'document.body.scrollHeight'
         html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, %s);\">%s</body>" % (

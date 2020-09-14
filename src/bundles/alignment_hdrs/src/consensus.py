@@ -27,9 +27,6 @@ class Consensus(DynamicHeaderSequence):
         self.handler_ID = self.settings.triggers.add_handler('setting changed',
             lambda *args: self.reevaluate())
 
-    def add_options(self, options_container, *, category=None, verbose_labels=True):
-        self._add_options(options_container, category, verbose_labels, self.option_data())
-
     @property
     def capitalize_threshold(self):
         return self.settings.capitalize_threshold
@@ -122,8 +119,9 @@ class Consensus(DynamicHeaderSequence):
 
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import Bounded, FloatArg, BoolArg
         defaults.update({
-            'capitalize_threshold': 0.8,
-            'ignore_gaps': False,
+            'capitalize_threshold': (Bounded(FloatArg, min=0, max=1), 0.8),
+            'ignore_gaps': (BoolArg, False),
         })
         return "consensus sequence header", defaults

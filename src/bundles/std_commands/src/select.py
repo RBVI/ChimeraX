@@ -41,18 +41,17 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
-    with session.triggers.block_trigger("selection changed"):
-        if sequence is None:
-            objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
-            clear_selection(session, undo_state)
-            modify_selection(objects, 'add', undo_state, full_residues = residues)
+    if sequence is None:
+        objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
+        clear_selection(session, undo_state)
+        modify_selection(objects, 'add', undo_state, full_residues = residues)
 
-            if polymer is not None:
-                polymer_selection(polymer, session, undo_state)
-        else:
-            clear_selection(session, undo_state)
-            objects = _select_sequence(objects, sequence)
-            modify_selection(objects, 'add', undo_state, full_residues = residues)
+        if polymer is not None:
+            polymer_selection(polymer, session, undo_state)
+    else:
+        clear_selection(session, undo_state)
+        objects = _select_sequence(objects, sequence)
+        modify_selection(objects, 'add', undo_state, full_residues = residues)
 
     session.undo.register(undo_state)
     report_selection(session)
@@ -172,12 +171,19 @@ def select_clear(session):
     session.undo.register(undo_state)
 
 def report_selection(session):
+    # TODO: This routine is taking about 25% of time of select command with
+    #       this example "open 6zm7 ; time sel nucleic".
     s = session.selection
     mlist = [m for m in s.models() if m.selected]	# Exclude grouping models
     mc = len(mlist)
-    ac = sum([len(atoms) for atoms in s.items('atoms')], 0)
-    bc = sum([len(bonds) for bonds in s.items('bonds')], 0)
-    pbc = sum([len(pbonds) for pbonds in s.items('pseudobonds')], 0)
+    ac = bc = pbc = rc = 0
+    for atoms in s.items('atoms'):
+        ac += len(atoms)
+        rc += atoms.num_residues
+    for bonds in s.items('bonds'):
+        bc += len(bonds)
+    for pbonds in s.items('pseudobonds'):
+        pbc += len(pbonds)
     lines = []
     if mc == 0 and ac == 0 and bc == 0 and pbc == 0:
         lines.append('Nothing')
@@ -190,6 +196,9 @@ def report_selection(session):
     if pbc != 0:
         plural = ('s' if pbc > 1 else '')
         lines.append('%d pseudobond%s' % (pbc, plural))
+    if rc != 0:
+        plural = ('s' if rc > 1 else '')
+        lines.append('%d residue%s' % (rc, plural))
     if mc != 0:
         plural = ('s' if mc > 1 else '')
         lines.append('%d model%s' % (mc, plural))

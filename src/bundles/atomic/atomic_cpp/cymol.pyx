@@ -20,6 +20,7 @@ from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython
+from libc.stdint cimport uintptr_t
 
 IF UNAME_SYSNAME == "Windows":
     ctypedef long long ptr_type
@@ -666,6 +667,29 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
 
+    def side_atoms(self, CyAtom skip_atom=None, CyAtom cycle_atom=None):
+        '''All the atoms connected to this atom on this side of 'skip_atom' (if given).
+           Missing-structure pseudobonds are treated as connecting their atoms for the purpose of
+           computing the connected atoms.  Connectivity will never trace through skip_atom, but if
+           'cycle_atom' (which can be the same as skip_atom) is reached then a cycle/ring is assumed
+           to exist and ValueError is thrown.
+        '''
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        sn_ptr = NULL if skip_atom is None else skip_atom.cpp_atom
+        ca_ptr = NULL if cycle_atom is None else cycle_atom.cpp_atom
+        # have to use a temporary to workaround the generated code otherwise taking the address
+        # of a temporary variable (the return value)
+        try:
+            tmp = <cydecl.vector[cydecl.Atom*]>self.cpp_atom.side_atoms(<cydecl.Atom*>sn_ptr,
+                <cydecl.Atom*>ca_ptr)
+        except RuntimeError as e:
+            # Cython raises RuntimeError for std::logic_error.
+            # Raise ValueError instead to be consistent with molc.cpp
+            raise ValueError(str(e))
+        from chimerax.atomic import Atoms
+        import numpy
+        return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
+
     def string(self, atom_only = False, style = None, relative_to=None):
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing)"
@@ -688,7 +712,12 @@ cdef class CyAtom:
         if style.startswith("simple"):
             atom_str = self.name
         elif style.startswith("command"):
-            atom_str = '@' + self.name
+            # have to get fancy if the atom name isn't unique in the residue
+            atoms = self.residue.atoms
+            if len(atoms.filter(atoms.names == self.name)) > 1:
+                atom_str = '@@serial_number=' + str(self.serial_number)
+            else:
+                atom_str = '@' + self.name
         else:
             atom_str = str(self.serial_number)
         if atom_only:
@@ -1564,7 +1593,8 @@ cdef class CyResidue:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         if omit_structure:
-            return '%s %s' % (chain_str, res_str)
+            format_string = "%s%s" if style.startswith("command") else "%s %s"
+            return format_string % (chain_str, res_str)
         from .structure import Structure
         if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
             struct_string = self.structure.string(style=style)

@@ -38,6 +38,7 @@ class OptionsPanel(QWidget):
             self._layout.setContentsMargins(*contents_margins)
         if scrolled:
             sublayout = QVBoxLayout()
+            sublayout.setContentsMargins(3,0,3,2)
             self.setLayout(sublayout)
             scroller = QScrollArea()
             scroller.setWidgetResizable(True)
@@ -104,7 +105,8 @@ class OptionsPanel(QWidget):
     def options(self):
         all_options = self._options[:]
         for grp in self._option_groups:
-            all_options.extend(grp._options)
+            # an option group can have further subgroups, so call options()
+            all_options.extend(grp.options())
         return all_options
 
     def sizeHint(self):
@@ -115,24 +117,29 @@ class OptionsPanel(QWidget):
 class CategorizedOptionsPanel(QTabWidget):
     """Supported API. CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
 
-    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True,
+            category_scrolled={}, **kw):
         """sorting:
             False: categories/options shown in order added
             True: categories/options sorted alphabetically by name
             func: categories/options sorted based on the provided key function
+
+            If category not found in category_scrolled, defaults to True
         """
         self._contents_margins = kw.pop('contents_margins', None)
         QTabWidget.__init__(self, parent, **kw)
         self._category_sorting = category_sorting
         self._option_sorting = option_sorting
         self._category_to_panel = {}
+        self._category_scrolled = category_scrolled
 
     def add_option(self, category, option):
         """Supported API. Add option (instance of chimerax.ui.options.Option) to given category"""
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins,
+                scrolled=self._category_scrolled.get(category, True))
             self.add_tab(category, panel)
         panel.add_option(option)
 
@@ -164,6 +171,15 @@ class CategorizedOptionsPanel(QTabWidget):
 
     def current_category(self):
         return self.tabText(self.currentIndex())
+
+    def set_current_category(self, category):
+        category = category.casefold()
+        for index in range(self.count()):
+            if category == self.tabText(index).casefold():
+                self.setCurrentIndex(index)
+                break
+        else:
+            raise ValueError("category not found")
 
     def options(self, category):
         return self._category_to_panel[category].options()
@@ -221,6 +237,9 @@ class SettingsPanelBase(QWidget):
             layout.addWidget(button_container, 0)
 
         self.setLayout(layout)
+
+    def show_category(self, category):
+        self.options_panel.set_current_category(category)
 
     def _get_actionable_options(self):
         if self.multicategory:

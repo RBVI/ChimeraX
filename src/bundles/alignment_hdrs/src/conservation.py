@@ -26,8 +26,15 @@ class Conservation(DynamicHeaderSequence):
     STYLE_AL2CO = "AL2CO"
     styles = (STYLE_PERCENT, STYLE_CLUSTAL_CHARS, STYLE_AL2CO)
 
+    AL2CO_cite = ["Pei, J. and Grishin, N.V. (2001)",
+            "AL2CO: calculation of positional conservation in a protein sequence alignment",
+            "Bioinformatics, 17, 700-712."]
+    AL2CO_cite_prefix="Publications using AL2CO conservation measures should cite:"
+    save_file_preamble = '\n# '.join(['# ' + AL2CO_cite_prefix] + AL2CO_cite)
+
     def __init__(self, alignment, *args, **kw):
         # need access to settings early, so replicate code in HeaderSequence
+        self.alignment = alignment
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = self.make_settings(alignment.session)
         self._set_update_vars(self.settings.style)
@@ -66,13 +73,8 @@ class Conservation(DynamicHeaderSequence):
         layout = QVBoxLayout()
         layout.addWidget(al2co_options, alignment=Qt.AlignLeft)
         from chimerax.ui.widgets import Citation
-        layout.addWidget(Citation(self.alignment.session,
-            "Pei, J. and Grishin, N.V. (2001)\n"
-            "AL2CO: calculation of positional conservation in a"
-            " protein sequence alignment\n"
-            "Bioinformatics, 17, 700-712.", prefix="Publications"
-            " using AL2CO conservation measures should cite:",
-            pubmed_id=11524371), alignment=Qt.AlignLeft)
+        layout.addWidget(Citation(self.alignment.session, '\n'.join(self.AL2CO_cite),
+            prefix=self.AL2CO_cite_prefix, pubmed_id=11524371), alignment=Qt.AlignLeft)
         self.al2co_options_widget.setLayout(layout)
         self.al2co_sop_options_widget, al2co_sop_options = al2co_options.add_option_group(
             group_label="Sum-of-pairs parameters")
@@ -173,15 +175,18 @@ class Conservation(DynamicHeaderSequence):
 
     def settings_info(self):
         name, defaults = super().settings_info()
+        from chimerax.core.commands import EnumOf, FloatArg, IntArg, Bounded, PositiveIntArg, BoolArg
+        from chimerax.sim_matrices import matrices
+        matrix_names = list(matrices(self.alignment.session).keys())
         defaults.update({
-            'style': self.STYLE_AL2CO,
-            'al2co_freq': 2,
-            'al2co_cons': 0,
-            'al2co_window': 1,
-            'al2co_gap': 0.5,
-            'al2co_matrix': "BLOSUM-62",
-            'al2co_transform': 0,
-            'initially_shown': True
+            'style': (EnumOf(self.styles), self.STYLE_AL2CO),
+            'al2co_freq': (Bounded(IntArg, min=0, max=2), 2),
+            'al2co_cons': (Bounded(IntArg, min=0, max=2), 0),
+            'al2co_window': (PositiveIntArg, 1),
+            'al2co_gap': (Bounded(FloatArg, min=0, max=1), 0.5),
+            'al2co_matrix': (EnumOf(matrix_names), "BLOSUM-62"),
+            'al2co_transform': (Bounded(IntArg, min=0, max=2), 0),
+            'initially_shown': (BoolArg, True),
         })
         return "conservation sequence header", defaults
 
@@ -261,7 +266,7 @@ class Conservation(DynamicHeaderSequence):
         if self.settings.al2co_cons == 2:
             command += ["-m", str(self.settings.al2co_transform)]
             from chimerax.sim_matrices import matrix_files
-            matrix_lookup = matrix_files(session)
+            matrix_lookup = matrix_files(session.logger)
             if self.settings.al2co_matrix in matrix_lookup:
                 command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]
         try:
@@ -296,10 +301,11 @@ class Conservation(DynamicHeaderSequence):
 
     def _setting_changed_cb(self, trig_name, trig_data):
         attr_name, prev_val, new_val = trig_data
-        if attr_name == "style":
-            self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
-        elif attr_name == "al2co_cons":
-            self.al2co_sop_options_widget.setHidden(new_val != 2)
+        if hasattr(self, 'al2co_options_widget'):
+            if attr_name == "style":
+                self.al2co_options_widget.setHidden(new_val != self.STYLE_AL2CO)
+            elif attr_name == "al2co_cons":
+                self.al2co_sop_options_widget.setHidden(new_val != 2)
         self.reevaluate()
 
 from chimerax.ui.options import EnumOption, SymbolicEnumOption

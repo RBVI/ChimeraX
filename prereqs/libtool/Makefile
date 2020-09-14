@@ -18,8 +18,14 @@ install: $(SOURCE)
 
 app-install:;
 
-source $(SOURCE):
+source $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/libtool/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/libtool
 
 clean:
 	rm -rf $(SOURCE)

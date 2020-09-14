@@ -17,6 +17,7 @@ include $(TOP)/mk/config.make
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 BUNDLE_BUILDER_SUBDIR = bundle_builder
+TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
 	  axes_planes basic_actions bild blastprotein \
@@ -24,7 +25,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  bumps buttons cage_builder \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe connect_structure core_formats \
-	  crosslinks crystal data_formats \
+	  coulombic crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
@@ -35,7 +36,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command \
-	  pdb pick_blobs positions preset_mgr pubchem \
+	  pdb pdb_bio pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
 	  sdf segger segment seq_view sequences shape \
@@ -50,7 +51,7 @@ ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -103,8 +104,8 @@ Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
-# Make sure bundle_builder bundle is installed before all others.
-$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build
+# Make sure bundle_builder and toolshed bundles are installed before all others.
+$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build $(TOOLSHED_UTILS_SUBDIR).build
 
 include Makefile.dependencies
 endif

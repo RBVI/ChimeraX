@@ -52,6 +52,16 @@ ifeq ($(OS),Windows)
 datadir = $(bindir)/share
 endif
 
+# Location for fetching third party binaries.
+# Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
+PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
+FETCH_PREREQ = curl --silent --show-error --insecure -O
+PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
+
+# Location for large test data files
+TEST_DATA_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/test_data
+FETCH_TEST_DATA = curl --silent --show-error --insecure -O
+
 ifeq ($(OS),Linux)
 # need root CAs for https in our Python
 ifneq (,$(wildcard /etc/ssl/certs/ca-certificates.crt))

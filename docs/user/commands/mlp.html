@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxDistance</b>&nbsp;&nbsp;<i>D</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
@@ -47,10 +47,13 @@ ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to
 See also: 
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../preferences.html#startup">custom presets</a>,
-<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+<a href="defattr.html"><b>defattr</b></a> and
+<a href="defattr.html#examples">example assignment files</a>,
+the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
 target="_blank">ChimeraX MLP highlight</a>,
@@ -90,7 +93,7 @@ for the corresponding heavy atoms (see
 target="_blank">details and comparisons</a> to the original values 
 from <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>).
 The resulting lookup table includes the standard amino acids plus
-MLE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
+MSE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
 used in lower-resolution protein structures where the amino acid type
 could not be discerned), and the peptide-capping residues 
 PCA (pyroglutamic acid), ACE (acetyl), NME (methylamine),  and NH2.
@@ -146,7 +149,8 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>:
 </p>
 <blockquote>
-<b>palette lipophilicity range -20,20</b>
+<b><a href="color.html#palette">palette</a> lipophilicity 
+&nbsp;<a href="color.html#range">range</a> -20,20</b>
 </blockquote>
 <p>
 Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
@@ -163,36 +167,14 @@ opened as volume models. This allows
 subsequently coloring surfaces by the map values using 
 <a href="color.html#map"><b>color sample</b></a>
 without having to recalculate the map on the fly.
-The following example colors a <a href="surface.html#cap">surface cap</a> 
-(#1.1.1, from <a href="clip.html">clipping</a> surface #1.1) by MLP map #2
-with the same coloring parameters as used for the rest of the surface,
-except 30% transparent:
-</p>
-<blockquote>
-<b><a href="open.html">open</a> 1g74
-<br><a href="#top">mlp</a> map true
-<br><a href="show.html">hide</a> #2
-<br><a href="clip.html">clip</a>
-<br><a href="wait.html">wait</a> 1
-<br><a href="color.html#map">color sample</a> 
-#1.1.1 map #2 palette lipophilicity range -20,20 transparency 30
-<br><a href="clip.html#model">clip model</a> #!1 off
-<br><a href="show.html">hide</a> ~ligand targ ar
-</b>
-</blockquote>
-<p>
-The <b><a href="wait.html">wait</a></b> command is only needed in the context 
-of a script (<a href="usageconventions.html#cxc-files">command file</a>),
-to force drawing the graphics to create the surface cap
-before it is colored by the map values. 
-The wait can be omitted if the commands are entered one by one. 
-The subsequent commands color the cap,
-make clipping apply only to the surface (not to the atomic model),
-and hide ribbons and atoms not classified as
-<a href="atomspec.html#builtin">ligand</a>.
+The <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a> includes an
+<a href="../tutorials/binding-sites.html#cap-example">example</a>
+of generating such a map and using it to color the planar cap
+where a surface is clipped.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html>

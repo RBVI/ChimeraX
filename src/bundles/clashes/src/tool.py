@@ -44,6 +44,9 @@ class AtomProximityTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
+        reset_button = bbox.addButton("Reset", qbbox.ActionRole)
+        reset_button.setToolTip("Reset to initial-installation defaults")
+        reset_button.clicked.connect(lambda *args: self.gui.reset())
         tw.manage(placement=None)
 
     def delete(self):

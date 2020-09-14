@@ -37,7 +37,6 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 <span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
 </h3>
-<a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>sequence</b> 
 (&nbsp;<b>dissociate</b>&nbsp;|&nbsp;<b>disassociate</b>&nbsp;)
@@ -94,7 +93,42 @@ For <b>sequence dissociate</b>, only the alignment needs to be specified,
 not an individual sequence, because a structure chain can only be 
 associated with one sequence per alignment.
 </p>
+
+<a name="header"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Sequence Header Controls</h3>
+<blockquote>
+<a href="usageconventions.html">Usage</a>:
+<b>sequence &nbsp;header</b> [&nbsp;<i>alignment-ID</i>&nbsp;]
+&nbsp;<i>header-name</i>
+(&nbsp;<b>show</b>&nbsp;|&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>save</b>&nbsp;&nbsp;<i>filename</i>&nbsp;)
+</blockquote>
+<p>
+The command <b>sequence header</b> shows, hides, or saves a
+<a href="../tools/sequenceviewer.html#headers">sequence header</a> to a file.
+(It can also be used to change the sequence
+<a href="../tools/sequenceviewer.html#settings-headers"><b>Headers</b>
+preferences</a>, but command details are omitted here because normally
+the <a href="../tools/sequenceviewer.html#settings"><b>Settings</b></a>
+dialog will be used instead.)
+</p><p>
+The <i>header-name</i> can be <b>consensus</b>, <b>conservation</b>,
+or <b>rmsd</b>, although there will only be an effect when that header
+is available (for example, an RMSD header is only available for alignments
+associated with at least two structures).
+Headers are saved to a simple text format that lists the alignment positions 
+and values. The <i>filename</i> can be given as a pathname or the word 
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to bring up a file browser window for choosing the
+name and location interactively. 
+If multiple alignments are open but an <i>alignment-ID</i> is not specified, 
+showing/hiding affects all applicable alignments. 
+However, saving only works for a single header at a time, so an
+<i>alignment-ID</i> must be given when more than one alignment is open.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+August 2020</address>
 </body></html>

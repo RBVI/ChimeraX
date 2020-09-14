@@ -173,6 +173,7 @@ def parse_arguments(argv):
         opts.get_available_bundles = False
         opts.module = sys.argv[2]
         opts.load_tools = False
+        opts.safe_mode = True
         return opts, sys.argv[2:]
     if len(sys.argv) > 2 and sys.argv[1] == '-c':
         # treat like Python's -c argument
@@ -456,7 +457,7 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     try:
-        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
     except ImportError as err:
         if opts.offscreen and 'OpenGL' in err.args[0]:
             if sys.platform.startswith("linux"):
@@ -545,18 +546,20 @@ def init(argv, event_loop=True):
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
+                sess.ui.splash_info("Restart action:\n%s" % line)
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
     if opts.toolshed is None:
-        toolshed_url = None
+        # Default to whatever the restart actions needed
+        toolshed_url = _restart_toolshed_url
     elif opts.toolshed == "preview":
         toolshed_url = toolshed.preview_toolshed_url()
     else:
         toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles,
-                  remote_url=toolshed_url)
+                  remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip':
         # keep bugs in ChimeraX from preventing pip from working
@@ -855,31 +858,44 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 
+_restart_toolshed_url = None
+
+
 def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess, os.path, os
+    import sys, subprocess, os
+    global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]
-    bundle = parts[1]
-    pip_args = parts[2:]
     # Options should match those in toolshed
     # Do not want to import toolshed yet, so we duplicate the code
     if action == "install":
-        command = ["install", "--upgrade",
-                   "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+        if _restart_toolshed_url is None:
+            _restart_toolshed_url = toolshed.default_toolshed_url()
+        bundles = parts[1]
+        pip_args = parts[2:]
+        command = ["install", "--use-feature=2020-resolver", "--upgrade",
+                   "--extra-index-url", _restart_toolshed_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed"]
     elif action == "uninstall":
+        bundles = parts[1]
+        pip_args = parts[2:]
         command = ["uninstall", "--yes"]
+    elif action == "toolshed_url":
+        # Warn if already set?
+        _restart_toolshed_url = parts[1]
+        return
     else:
         msgs.append(("stderr", "unexpected restart action: %s" % line))
         return
     command.extend(pip_args)
-    if bundle.endswith(".whl"):
-        command.append(os.path.join(inst_dir, bundle))
-    else:
-        command.append(bundle)
+    for bundle in bundles.split():
+        if bundle.endswith(".whl"):
+            command.append(os.path.join(inst_dir, bundle))
+        else:
+            command.append(bundle)
     cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)

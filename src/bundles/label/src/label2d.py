@@ -259,9 +259,11 @@ def label_under_window_position(session, win_x, win_y):
         return None
     for lbl in lm.all_labels:
         dx,dy = fx - lbl.xpos, fy - lbl.ypos
-        lw,lh = lbl.drawing.size
-        if dx >=0 and dx < lw and dy >=0 and dy < lh:
-            return lbl
+        d = lbl.drawing
+        if d.display and d.parents_displayed:
+            lw,lh = d.size
+            if dx >=0 and dx < lw and dy >=0 and dy < lh:
+                return lbl
     return None
     
 # -----------------------------------------------------------------------------

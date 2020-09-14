@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-SwapRes" version="2.0" package="chimerax.swap_res"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>

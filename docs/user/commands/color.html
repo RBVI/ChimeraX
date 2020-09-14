@@ -66,6 +66,7 @@ or <a href="../markers.html">markers</a>
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
@@ -551,7 +552,11 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
-See also: <a href="mlp.html"><b>mlp</b></a>,
+The <a href="coulombic.html"><b>coulombic</b></a> command
+colors molecular surfaces
+by Coulombic electrostatic potential without requiring an input map.
+See also: 
+<a href="mlp.html"><b>mlp</b></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
@@ -566,7 +571,8 @@ from each surface vertex, along its normal, to evaluate the data
 (default <b>0.0</b> &Aring;).
 <br><br>
 <li><b>color electrostatic</b> is the same as <b>color sample</b> except
-with default offset <b>1.4</b> &Aring;, which is typically used for coloring a 
+with default <b>offset</b> <b>1.4</b> &Aring;, 
+which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
 The rationale for looking outward is that the values at the centers 
 of any interacting atoms are more relevant than those at their surfaces.
@@ -577,12 +583,14 @@ of radius 1.4 &Aring; can lie, the
 An offset of 1.4 &Aring; approximates the 
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
-However, an offset of 0.0 may be preferred for coloring
+** However, an offset of 0.0 may be preferred for coloring
 <a href="surface.html#cap">surface caps</a>
-(from <a href="clip.html">clipping</a>).
+(from <a href="clip.html">clipping</a>),
+and a zero or negative offset may be appropriate
+for coloring the surface of one structure by the potential from another. **
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
-with default offset <b>0.0</b> &Aring;.
+with default <b>offset</b> <b>0.0</b> &Aring;.
 The gradient at each volume grid point is
 computed by taking the difference in data values between the
 next and preceding grid points along each axis and dividing by twice
@@ -785,10 +793,12 @@ A <b><i>palette</i></b> is an ordered set of
 used for <a href="#sequential">sequential coloring</a> or coloring by value 
 (<a href="#map">map</a>, <a href="#distance">distance</a>,
 or <a href="#byattribute">attribute</a>).
-See also: <a href="mlp.html"><b>mlp</b></a>,
+See also: 
+<a href="coulombic.html"><b>coulombic</b></a>,
+<a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
-<a name="palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
+<a name="palette"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
 The <i>palette</i> can be specified as one of the following
 (or as <b>^</b><i>palette</i> to reverse the order of the colors):
@@ -1046,5 +1056,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html>

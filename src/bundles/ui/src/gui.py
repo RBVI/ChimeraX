@@ -281,12 +281,16 @@ class UI(QApplication):
         if self.key_intercepted(k):
             return
         elif k == Qt.Key_Up:
-            from chimerax.core.commands import run
-            run(self.session, 'select up')
+            if not self.session.selection.empty():
+                from chimerax.core.commands import run
+                run(self.session, 'select up')
+                return
+            # Up arrow on an empty selection was probably intended for the command history...
         elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
-        elif self._keystroke_sinks:
+            return
+        if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
             # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
             event.setAccepted(True)
@@ -888,6 +892,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._accumulated_settings_options.append((category, option))
         else:
             self._core_settings_panel.options_widget.add_option(category, option)
+
+    def show_settings(self, category=None):
+        self.settings_ui_widget.show()
+        if category is not None:
+            self._core_settings_panel.show_category(category)
 
     def _new_tool_window(self, tw):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)

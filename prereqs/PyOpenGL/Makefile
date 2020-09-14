@@ -30,7 +30,7 @@ ALREADY_INSTALLED = grep -E "(already satisfied|not upgraded)"
 
 ifdef USE_WHEEL
 include ../pips/Makefile.pip
-WHEEL = PyOpenGL-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl \
+WHEELS = PyOpenGL-$(VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl \
 	PyOpenGL_accelerate-$(ACCEL_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-win_amd64.whl
 endif
 
@@ -50,13 +50,18 @@ all:
 
 ifdef USE_WHEEL
 
-install:
-	$(PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
+install: $(WHEELS)
+	$(PIP_INSTALL) $(WHEELS) | $(ALREADY_INSTALLED) || \
 		(for p in $(PYOPENGL_PATCHES); do (cd $(PYSITEDIR) && patch -f -p0) < $$p; done)
 
-app-install:
-	$(APP_PIP_INSTALL) $(WHEEL) | $(ALREADY_INSTALLED) || \
+app-install: $(WHEELS)
+	$(APP_PIP_INSTALL) $(WHEELS) | $(ALREADY_INSTALLED) || \
 		(for p in $(PYOPENGL_PATCHES); do (cd $(APP_PYSITEDIR) && patch -f -p0) < $$p; done)
+
+$(WHEELS):
+	for w in $(WHEELS); do \
+		$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$$w ; \
+	done
 
 else
 
@@ -70,7 +75,7 @@ app-install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 
 endif
 
-$(PYOPENGL_SOURCE):
+$(PYOPENGL_SOURCE): $(PYOPENGL_DISTRIBUTION)
 	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PYOPENGL_PATCHES))
 	for p in $(PYOPENGL_PATCHES); do \
@@ -78,13 +83,22 @@ ifneq (,$(PYOPENGL_PATCHES))
 	done
 endif
 
-$(ACCELERATE_SOURCE):
+$(PYOPENGL_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(PYOPENGL_DISTRIBUTION)
+
+$(ACCELERATE_SOURCE): $(ACCELERATE_DISTRIBUTION)
 	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(ACCELERATE_PATCHES))
 	for p in $(ACCELERATE_PATCHES); do \
 		(cd $(ACCELERATE_SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
+
+$(ACCELERATE_DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pyopengl/$(ACCELERATE_DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(PYOPENGL_DISTRIBUTION) $(ACCELERATE_DISTRIBUTION) $(WHEELS) $(PREREQS_UPLOAD)/pyopengl
 
 clean:
 	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE) pip.log

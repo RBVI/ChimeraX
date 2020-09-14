@@ -12,18 +12,28 @@ endif
 
 all:
 
-install:
 ifdef WIN32
+
+install: $(WHEEL)
 	$(PIP_INSTALL) $(WHEEL)
-else
-	$(PIP_INSTALL) numpy==$(VERSION)
-endif
 
 app-install: install
-ifdef WIN32
 	$(APP_PIP_INSTALL) $(WHEEL)
+
+$(WHEEL):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/numpy/$(WHEEL)
+
+upload_new_version:
+	$(RSYNC) $(WHEEL) $(PREREQS_UPLOAD)/numpy
+
 else
+
+install:
+	$(PIP_INSTALL) numpy==$(VERSION)
+
+app-install: install
 	$(APP_PIP_INSTALL) numpy==$(VERSION)
+
 endif
 
 clean:

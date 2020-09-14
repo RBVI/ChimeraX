@@ -1,0 +1,33 @@
+#  Amino acid hydrophobicity scale from
+#  "Experimentally determined hydrophobicity scale for proteins at
+#  membrane interfaces," Wimley and White, Nat Struct Biol 3:842 (1996).
+#
+#  More positive means more hydrophobic.
+#  Values for the ionized forms of asp, glu, his are used here, and the
+#  met value is also assigned to selenomethionine.
+#
+#  Use this file to assign the attribute in ChimeraX or Chimera.
+#
+attribute: wwHydrophobicity
+recipient: residues
+	:asp	-1.23
+	:glu	-2.02
+	:asn	-0.42
+	:gln	-0.58
+	:lys	-0.99
+	:arg	-0.81
+	:his	-0.96
+	:gly	-0.01
+	:pro	-0.45
+	:ser	-0.13
+	:thr	-0.14
+	:cys	0.24
+	:met	0.23
+	:mse	0.23
+	:ala	-0.17
+	:val	-0.07
+	:ile	0.31
+	:leu	0.56
+	:phe	1.13
+	:trp	1.85
+	:tyr	0.94

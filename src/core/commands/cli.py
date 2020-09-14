@@ -1052,7 +1052,7 @@ class AttrNameArg(StringArg):
         token, text, rest = StringArg.parse(text, session)
         if not text:
             raise AnnotationError("Attribute names can't be empty strings")
-        non_underscore = text.remove('_')
+        non_underscore = text.replace('_', '')
         if not non_underscore.isalnum():
             raise AnnotationError("Attribute names can consist only of alphanumeric"
                                   " characters and underscores")
@@ -2834,25 +2834,8 @@ class Command:
     def log(self):
         session = self._session()  # resolve back reference
         cmd_text = self.current_text[self.start:self.amount_parsed]
-        if session is None:
-            # for testing purposes
-            print("Executing: %s" % cmd_text)
-        elif not session.ui.is_gui:
-            session.logger.info("Executing: %s" % cmd_text)
-        else:
-            from html import escape
-            ci = self._ci
-            msg = '<div class="cxcmd"><div class="cxcmd_as_doc">'
-            if ci is None or ci.url is None:
-                msg += escape(cmd_text)
-            else:
-                cargs = cmd_text[len(self.command_name):]
-                msg += '<a href="%s">%s</a>%s' % (
-                    ci.url, escape(self.command_name), escape(cargs))
-            text = escape(cmd_text)
-            msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (
-                text, text)
-            session.logger.info(msg, is_html=True, add_newline=False)
+        url = self._ci.url if self._ci is not None else None
+        log_command(session, self.command_name, cmd_text, url=url)
 
     def log_parse_error(self):
         session = self._session()  # resolve back reference
@@ -3764,3 +3747,22 @@ if __name__ == '__main__':
     if failures:
         raise SystemExit(1)
     raise SystemExit(0)
+
+def log_command(session, command_name, command_text, *, url=None):
+    if session is None:
+        # for testing purposes
+        print("Executing: %s" % command_text)
+    elif not session.ui.is_gui:
+        session.logger.info("Executing: %s" % command_text)
+    else:
+        from html import escape
+        msg = '<div class="cxcmd"><div class="cxcmd_as_doc">'
+        if url is None:
+            msg += escape(command_text)
+        else:
+            cargs = command_text[len(command_name):]
+            msg += '<a href="%s">%s</a>%s' % (url, escape(command_name), escape(cargs))
+        text = escape(command_text)
+        msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (text, text)
+        session.logger.info(msg, is_html=True, add_newline=False)
+

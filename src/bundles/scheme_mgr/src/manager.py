@@ -15,13 +15,12 @@ from chimerax.core.toolshed import ProviderManager
 class SchemesManager(ProviderManager):
     """Manager for html schemes used by all bundles"""
 
-    def __init__(self, session):
-        #  Just for good form.  Base class currently has no __init__.
-        super().__init__()
+    def __init__(self, session, name):
         self.schemes = set()
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("html schemes changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, **kw):
         self.schemes.add(name)

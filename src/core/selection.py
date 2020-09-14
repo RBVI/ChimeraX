@@ -22,6 +22,7 @@ class Selection:
         # XXX: SELECTION_CHANGED trigger is currently fired in by
         # atomic.structure.StructureGraphicsChangeManager
         # Maybe it should be moved up to Model level somehow?
+        self._trigger_fire_needed = False
 
     def models(self, all_selected=False):
         if all_selected:
@@ -81,6 +82,14 @@ class Selection:
             for m in models:
                 orig = old_state if old_state is not None else m.selected
                 undo_state.add(m, "set_model_selected", orig, new_state, "M")
+
+    @property
+    def trigger_fire_needed(self):
+        return self._trigger_fire_needed
+
+    @trigger_fire_needed.setter
+    def trigger_fire_needed(self, needed):
+        self._trigger_fire_needed = needed
 
     def _orig_state(self, owner, old_state):
         if old_state is None:

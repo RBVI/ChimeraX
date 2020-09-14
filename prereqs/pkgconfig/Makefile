@@ -15,8 +15,14 @@ install: $(SOURCE)
 
 app-install:;
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pkgconfig/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/pkgconfig
 
 clean:
 	if [ -d $(SOURCE) ] ; then \

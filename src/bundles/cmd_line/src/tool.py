@@ -134,6 +134,12 @@ class CommandLine(ToolInstance):
                 if start >= 0 and (start, length) != (le.selectionStart(), len(le.selectedText())):
                     le.setSelection(start, length)
         self.text.lineEdit().selectionChanged.connect(sel_change_correction)
+        # pastes can have a trailing newline, which is problematic when appending to the pasted command...
+        def strip_trailing_newlines():
+            le = self.text.lineEdit()
+            while le.text().endswith('\n'):
+                le.setText(le.text()[:-1])
+        self.text.lineEdit().textEdited.connect(strip_trailing_newlines)
         self.text.lineEdit().textEdited.connect(self.history_dialog.search_reset)
         def text_change(*args):
             # if text changes while focus is out, remember new selection
@@ -190,6 +196,11 @@ class CommandLine(ToolInstance):
         filter_action.setChecked(self.settings.typed_only)
         filter_action.toggled.connect(lambda arg, f=self._set_typed_only: f(arg))
         menu.addAction(filter_action)
+        select_action = QAction("Leave Failed Command Highlighted", menu)
+        select_action.setCheckable(True)
+        select_action.setChecked(self.settings.select_failed)
+        select_action.toggled.connect(lambda arg, f=self._set_select_failed: f(arg))
+        menu.addAction(select_action)
 
     def on_combobox(self, event):
         val = self.text.GetValue()
@@ -228,7 +239,7 @@ class CommandLine(ToolInstance):
     def execute(self):
         from contextlib import contextmanager
         @contextmanager
-        def processing_command(line_edit, cmd_text, command_worked):
+        def processing_command(line_edit, cmd_text, command_worked, select_failed):
             line_edit.blockSignals(True)
             self._processing_command = True
             # as per the docs for contextmanager, the yield needs
@@ -239,7 +250,7 @@ class CommandLine(ToolInstance):
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
-                if command_worked[0]:
+                if command_worked[0] or select_failed:
                     line_edit.selectAll()
                 self._processing_command = False
         session = self.session
@@ -256,7 +267,8 @@ class CommandLine(ToolInstance):
             # an accidental keypress won't erase the command, which
             # probably needs to be edited to work
             command_worked = [False]
-            with processing_command(self.text.lineEdit(), cmd_text, command_worked):
+            with processing_command(self.text.lineEdit(), cmd_text, command_worked,
+                    self.settings.select_failed):
                 try:
                     self._just_typed_command = cmd_text
                     cmd = Command(session)
@@ -268,10 +280,8 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info("<i>Failed command</i>: <b>%s</b>" % escape(cmd_text), is_html=True)
                     logger.info(error_text_format % escape(str(err)), is_html=True)
                 except BaseException:
-                    logger.info("<i>Failed command</i>: <b>%s</b>" % escape(cmd_text), is_html=True)
                     raise
         self.set_focus()
 
@@ -310,6 +320,9 @@ class CommandLine(ToolInstance):
             self._processing_command = False
             raise
         self._processing_command = False
+
+    def _set_select_failed(self, select_failed):
+        self.settings.select_failed = select_failed
 
     def _set_typed_only(self, typed_only):
         self.settings.typed_only = typed_only

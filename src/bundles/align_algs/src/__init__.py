@@ -12,3 +12,6 @@
 # === UCSF ChimeraX Copyright ===
 
 from . import _sw as SmithWaterman
+
+NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
+SMITH_WATERMAN = "Smith-Waterman"

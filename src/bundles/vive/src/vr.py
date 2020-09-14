@@ -349,8 +349,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
+    # Use only 8 shadow directions for faster rendering.
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 8
+        
+    # Don't continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, label_reorient)	# Don't continuously reorient labels.
+    label_orient(session, label_reorient)
 
     c = vr_camera(session)
     if c is session.main_view.camera:
@@ -421,12 +426,21 @@ def stop_vr(session, simplify_graphics = True):
     from chimerax.graphics import MonoCamera
     v = session.main_view
     v.camera = MonoCamera()
+
     session.update_loop.set_redraw_interval(10)
+    
     if simplify_graphics:
         from chimerax.std_commands.graphics import graphics_quality
         graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+
+    # Continuously reorient labels.
     from chimerax.label.label3d import label_orient
-    label_orient(session, 0)	# Continuously reorient labels.
+    label_orient(session, 0)
+
+    # Go back to 64 shadow directions
+    from chimerax.std_commands.lighting import lighting_settings
+    lighting_settings(session).lighting_multishadow_directions = 64
+    
     v.view_all()
     wait_for_vsync(session, True)
 
@@ -1291,8 +1305,6 @@ class RoomCameraModel(Model):
     to render the desktop graphics window.  The camera looks in the -z direction.
     The camera is shown as a rectangle and texture mapped onto it is what the camera sees.
     '''
-    casts_shadows = False
-#    skip_bounds = True   # Camera screen disappears if it is far from models
     SESSION_SAVE = False
 
     def __init__(self, name, session, texture, room_to_scene, width = 1):
@@ -1302,14 +1314,17 @@ class RoomCameraModel(Model):
 
         Model.__init__(self, name, session)
 
+        self.casts_shadows = False
+        self.skip_bounds = True   # "view all" command excludes room camera
+
+        # Avoid camera disappearing when far from models
+        self.allow_depth_cue = False
+
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
         self.texture = texture
         self.opaque_texture = True
         self.set_size(width)
-
-        # Avoid camera disappearing when far from models
-        self.allow_depth_cue = False
 
     def delete(self):
         cam = self.session.main_view.camera
@@ -2377,7 +2392,9 @@ class PanelDrawing(Drawing):
         self.color = (255,255,255,255)
         self.use_lighting = False
         self.casts_shadows = False
-        # self.skip_bounds = True	# Clips if far from models.
+        self.skip_bounds = True	# Panels should not effect view all command.
+        # Avoid panels fading out far from models.
+        self.allow_depth_cue = False
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():

@@ -318,6 +318,8 @@ def surface_geometry(plist, tf, pad):
     surfs = []
     va = p.vertices
     ta = p.masked_triangles
+    if va is None or len(va) == 0 or ta is None or len(ta) == 0:
+      continue
     na = p.normals
     if isinstance(pad, (float,int)) and pad != 0:
       varray, tarray = offset_surface(va, ta, na, pad)

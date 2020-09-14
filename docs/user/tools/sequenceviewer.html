@@ -104,6 +104,9 @@ with choices including:
   <li><b>Conservation</b> 
   <li><b>RMSD</b> (<b>C&alpha;</b> or <b>backbone</b> as per
    the <a href="#settings-headers"><b>Headers</b> settings</a>)
+  <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [choice of available headers]
+  &ndash; save header information to file
   </ul>
 <li><b>Tools</b>
   <ul>
@@ -131,17 +134,17 @@ histogram for multiple <a href="#association">associated</a> structures.
 Which headers are shown initially and how they are calculated 
 can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
-Regardless of whether a header is shown initially, it can be shown and 
-hidden for a specific window using the <b>Sequence Viewer</b>
-<a href="../window.html#context-menu">context menu</a>.
+Headers for a specific window can be shown, hidden, or saved to a file 
+with the <a href="#context"><b>Sequence Viewer</b> context menu</a> or the
+<a href="../commands/sequence.html#header"><b>sequence header</b></a> command.
 </p><p>
 Per-column header values are assigned as 
 <a href="../attributes.html">attributes</a> of the structure residues
 <a href="#association">associated</a> with sequences in the alignment.
 The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
 is the name of the header, for example,
-<a href="../attributes.html#conservation">seq_conservation</a> or
-<a href="../attributes.html#rmsd">seq_rmsd</a>.
+<a href="../attributes.html#residue">seq_conservation</a> or
+<a href="../attributes.html#residue">seq_rmsd</a>.
 These are of interest for
 <a href="../commands/color.html#byattribute">coloring by attribute</a>.
 </p>
@@ -556,5 +559,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+August 2020</address>
 </body></html>

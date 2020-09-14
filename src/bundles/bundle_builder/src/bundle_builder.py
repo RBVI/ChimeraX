@@ -87,8 +87,8 @@ class BundleBuilder:
 
     def make_install(self, session, debug=False, user=None, no_deps=None):
         self.make_wheel(debug=debug)
-        from chimerax.core.commands import run
-        cmd = "toolshed install %r" % self.wheel_path
+        from chimerax.core.commands import run, FileNameArg
+        cmd = "toolshed install %s" % FileNameArg.unparse(self.wheel_path)
         if user is not None:
             if user:
                 cmd += " user true"
@@ -99,6 +99,11 @@ class BundleBuilder:
                 cmd += " noDeps true"
             else:
                 cmd += " noDeps false"
+        from chimerax.core import toolshed
+        ts = toolshed.get_toolshed()
+        bundle = ts.find_bundle(self.name, session.logger)
+        if bundle is not None:
+            cmd += " reinstall true"
         run(session, cmd)
 
     def make_clean(self):
@@ -528,8 +533,10 @@ class BundleBuilder:
                 self.datafiles[self.package] = binary_files
             else:
                 data_files.extend(binary_files)
+        import sys
+        vi = sys.version_info
         self.setup_arguments = {"name": self.name,
-                                "python_requires": ">= 3.6"}
+                                "python_requires": f">={vi.major}.{vi.minor}"}
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
         add_argument("long_description", self.description)

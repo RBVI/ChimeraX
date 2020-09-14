@@ -126,7 +126,7 @@ public:
 protected:
     bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
-    bool  _alt_loc_change_notify = true;
+    mutable bool  _alt_loc_change_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
     Bonds  _bonds;
@@ -299,7 +299,7 @@ public:
     void  session_save_teardown() const;
     void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
-    void  set_alt_loc_change_notify(bool cn) { _alt_loc_change_notify = cn; }
+    void  set_alt_loc_change_notify(bool cn) const { _alt_loc_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;

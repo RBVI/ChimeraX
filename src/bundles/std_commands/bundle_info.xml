@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.0.4"
+<BundleInfo name="ChimeraX-StdCommands" version="1.1"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -19,7 +19,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.1.dev1"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.4"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.8"/>
     <Dependency name="ChimeraX-Dssp" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
@@ -40,6 +40,7 @@
     <ChimeraXClassifier>Command :: alias delete :: General Controls :: remove command alias</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~alias :: General Controls :: remove command alias</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: align :: Structure Comparison :: superimpose specific parts of structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: angle :: Structure Analysis :: Report or set angle between atoms/objects</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: camera :: Viewing Controls :: change "camera" parametrs of main viewing window</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: cartoon :: Depiction :: show stylized representation of structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~cartoon :: Depiction :: stop show stylized representation of structure</ChimeraXClassifier>
@@ -61,6 +62,7 @@
     <ChimeraXClassifier>Command :: ~colourdef :: General Controls :: remove custom color names</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: coordset :: General Controls :: show specific coordinate set (a.k.a. frame or conformer)</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: crossfade :: Movie Making :: fade from one view to another</ChimeraXClassifier>
+	<ChimeraXClassifier>Command :: defattr :: General Controls :: set many Python attribute values for structure elements from a file</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: delete :: Structure Editing :: delete parts of a structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: dssp :: Structure Editing :: compute/assign secondary structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: exit :: General Controls :: quit ChimeraX</ChimeraXClassifier>
@@ -86,6 +88,7 @@
     <ChimeraXClassifier>Command :: pwd :: Utilities :: report current working directory</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rainbow :: Depiction :: "rainbow" color (parts of) structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: rock :: General Controls :: rock models back and forth</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: runscript :: General Controls :: run a Python script with arguments</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
@@ -111,6 +114,7 @@
     <ChimeraXClassifier>Command :: view :: Viewing Controls :: change/save/restore 3D view</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: wait :: Movie Making :: wait a given amount of frames before executing the next command</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: windowsize :: General Controls :: set the size of the 3D window</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: wobble :: General Controls :: move models in figure 8 motion</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select zone :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: zoom :: Viewing Controls :: zoom in/out</ChimeraXClassifier>
   </Classifiers>

@@ -33,13 +33,14 @@ from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
     """Manager for open command"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._openers = {}
         self._fetchers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("open command changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False,
             check_path=True, batch=False, format_name=None,

@@ -173,6 +173,7 @@ def standard_shortcuts(session):
 
         ('ms', run_on_atoms('show %s surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
         ('sa', run_on_atoms('measure sasa %s'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
+        ('ep', run_on_atoms('coulombic %s'), 'Color surface by electrostatic potential', molcat, sesarg, mlmenu),
         ('hp', run_on_atoms('mlp %s'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),

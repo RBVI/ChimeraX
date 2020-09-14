@@ -31,7 +31,7 @@ from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
 from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
-from .combine import combine_geometry_vnt, combine_geometry_vntc
+from .combine import combine_geometry, combine_geometry_vnt, combine_geometry_vntc
 from .combine import combine_geometry_xvnt, combine_geometry_vtp
 from .combine import combine_geometry_xvntctp, combine_geometry_vte
 from .surfacecmds import surface, surface_show_patches, surface_hide_patches
@@ -62,7 +62,8 @@ class _SurfaceBundle(BundleAPI):
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)
-        elif command_name.startswith('surface') or command_name.startswith('sop'):
+        elif command_name.startswith('surface') or command_name.startswith('sop') \
+        or command_name.startswith("~surface"):
             from . import surfacecmds
             surfacecmds.register_command(logger)
             from . import check
@@ -71,6 +72,7 @@ class _SurfaceBundle(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
+        from .cap import ClipCap
         from .colorgeom import CylinderColor, HeightColor, RadialColor
         from .colorvol import GradientColor, VolumeColor
         from .dust import Redust
@@ -78,6 +80,7 @@ class _SurfaceBundle(BundleAPI):
         from .colorzone import ZoneColor
         from .updaters import SurfaceUpdaters
         ct = {
+            'ClipCap': ClipCap,
             'CylinderColor': CylinderColor,
             'GradientColor': GradientColor,
             'HeightColor': HeightColor,
