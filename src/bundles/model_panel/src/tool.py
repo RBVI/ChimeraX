@@ -325,6 +325,11 @@ class ModelPanelSettings(Settings):
 
 from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
+    # ask for confirmation if multiple top-level models being closed without explicitly selecting them
+    if len([m for m in models if '.' not in m.id_string]) > 1 and not _mp.tree.selectedItems():
+        from chimerax.ui.ask import ask
+        if ask(session, "Really close all models?", title="Confirm close models") == "no":
+            return
     _mp.self_initiated = True
     from chimerax.core.models import Model
     # The 'close' command explicitly avoids closing grouping models where not
