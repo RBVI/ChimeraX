@@ -147,7 +147,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= cxservices gdcm imex lineprofiler openmm \
-	   pips PyOpenGL PyQt Python \
+	   pips PyOpenGL PyQt Python
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
