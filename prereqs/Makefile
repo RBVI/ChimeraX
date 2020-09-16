@@ -146,10 +146,8 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= cxservices gdcm imex lineprofiler numpy openmm \
-	   pips \
-	   PyOpenGL PyQt Python \
-	   scipy
+SUBDIRS	+= cxservices gdcm imex lineprofiler openmm \
+	   pips PyOpenGL PyQt Python \
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -226,10 +224,8 @@ lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
-numpy.app-install: Python.app-install pips.app-install
-numpy.install: Python.install numpy.install pips.install
-openmm.app-install: Python.app-install numpy.app-install pips.app-install
-openmm.install: Python.install numpy.install pips.install
+openmm.app-install: Python.app-install pips.app-install
+openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install pkgconfig.install
 pillow.app-install: Python.app-install zlib.app-install
@@ -242,5 +238,3 @@ PyQt.app-install: Python.app-install openssl.app-install zlib.app-install
 PyQt.install: Python.install openssl.install zlib.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
-scipy.app-install: Python.app-install numpy.app-install
-scipy.install: Python.install numpy.install

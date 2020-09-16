@@ -18,6 +18,7 @@ lxml==4.5.1
 MarkupSafe==1.1.1
 mccabe==0.6.1
 msgpack==1.0.0
+numpy==1.19.2
 pep8==1.7.1
 pep8-naming==0.10.0
 Pillow==7.1.2
