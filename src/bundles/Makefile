@@ -77,7 +77,7 @@ endif
 clean:
 	rm -rf __pycache__ Makefile.dependencies
 ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm */*.whl
+	cd $(SYNC_DIR) && rm -f */*.whl
 endif
 
 #
