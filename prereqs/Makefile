@@ -147,7 +147,7 @@ endif
 
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= cxservices gdcm imex lineprofiler openmm \
-	   pips PyOpenGL PyQt Python \
+	   pips PyOpenGL PyQt Python
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -228,8 +228,6 @@ openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install pkgconfig.install
-pillow.app-install: Python.app-install zlib.app-install
-pillow.install: Python.install zlib.install
 pips.app-install: Python.app-install
 pips.install: Python.install
 PyOpenGL.app-install: Python.app-install pips.app-install
