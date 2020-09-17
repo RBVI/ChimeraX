@@ -70,7 +70,7 @@ ifdef DEBUG
 	fi
 endif
 
-install-others:
+install-others: $(PY_MAIN) $(ICONS)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
@@ -78,7 +78,7 @@ install-others:
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 else
-install: $(PROG)
+install: $(PROG) $(PY_MAIN) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(PROG) $(bindir)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
