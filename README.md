@@ -18,6 +18,4 @@ ChimeraX plugins are called bundles and can include reading new file formats, ad
 
 ## Building ChimeraX
 
-Building ChimeraX can be challenging because it depends on more than 50 third party libraries and packages. We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](http://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.
-
-[Instructions for building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) on different operating systems are in the Programming Manual.
+[Building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) can be challenging because it depends on more than 50 [third party libraries and packages](https://www.rbvi.ucsf.edu/chimerax/docs/devel/dependencies.html). We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](http://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.
