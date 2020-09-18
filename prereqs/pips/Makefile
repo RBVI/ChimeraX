@@ -59,6 +59,8 @@ outdated:
 	@echo "Known issues:"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
+	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  jedi (pulled in by line-profiler)"
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"
