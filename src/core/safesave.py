@@ -69,7 +69,8 @@ class SaveFile:
             raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), save_dir)
         self.name = filename
         self._critical = critical
-        self._tmp_filename = filename + ".tmp"
+        # prevent conflicts between ChimeraX's running/starting at the same time
+        self._tmp_filename = filename + "." + str(os.getpid()) + ".tmp"
         self._f = open(self._tmp_filename)
         assert(self._f.writable())
 
