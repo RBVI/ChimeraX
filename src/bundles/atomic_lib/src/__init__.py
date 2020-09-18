@@ -18,33 +18,17 @@ class _AtomicLibAPI(BundleAPI):
 
 bundle_api = _AtomicLibAPI()
 
-_libatomic = None
-def load_libatomic():
-    '''
-    Load the atomic_lib C++ dynamic libraries.
-    This allows other C modules that link against libarrays to find it
-    without setting search paths like RPATH since it will be part of
-    the process once loaded and the runtime linker will find it.
-    Matching libraries that are part of the process are used on
-    macOS, Windows, Linux.
-    '''
-    global _libatomic
-    if _libatomic is None:
-        add_library_search_path()
-        from . import _load_libs
-        _libatomic = True
-
-def add_library_search_path():
-    import sys
-    if sys.platform.startswith('win'):
-        import os
-        try:
-            paths = os.environ['PATH'].split(';')
-        except KeyError:
-            paths = []
-        from os.path import join, dirname
-        libdir = join(dirname(__file__), 'lib')
-        if libdir in paths:
-            return
+# make our shared libs linkable by other bundles
+import sys
+if sys.platform.startswith('win'):
+    import os
+    try:
+        paths = os.environ['PATH'].split(';')
+    except KeyError:
+        paths = []
+    from os.path import join, dirname
+    libdir = join(dirname(__file__), 'lib')
+    if libdir not in paths:
         paths.append(libdir)
         os.environ['PATH'] = ';'.join(paths)
+from . import _load_libs

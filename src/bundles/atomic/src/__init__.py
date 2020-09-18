@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure atomic_libs C++ shared libs are linkable by us
+import chimerax.atomic_lib
+
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError

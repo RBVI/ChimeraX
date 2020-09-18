@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Must import search to get shared object loaded
+# ensure C++ shared libs are linkable by us
+import chimerax.atomic_lib
 import chimerax.atom_search
 
 from chimerax.core.toolshed import BundleAPI

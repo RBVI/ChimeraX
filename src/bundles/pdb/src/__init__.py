@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure atomic_libs C++ shared libs are linkable by us
+import chimerax.atomic_lib
+
 from ._pdbio import standard_polymeric_res_names  # this also gets shared lib loaded
 from .pdb import open_pdb, save_pdb
 from .pdb import process_chem_name, format_nonstd_res_info

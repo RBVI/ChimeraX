@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# get shared lib loaded
+# ensure C++ shared libs are linkable by us
+import chimerax.atomic_lib
 from chimerax import pdb
+
 
 from chimerax.core.toolshed import BundleAPI
 
