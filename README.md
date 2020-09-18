@@ -1,6 +1,6 @@
 # UCSF ChimeraX Molecular Visualization
 
-[ChimeraX](https://www.rbvi.ucsf.edu/chimerax/) is an application for visualizing and analyzing molecule structures such as proteins, RNA, DNA, lipids as well as gene sequences, electron microscopy maps, X-ray maps, 3D light microscopy and 3D medical imaging scans.  It is the successor of the [UCSF Chimera](https://www.cgl.ucsf.edu/chimera/) program.  [Example images](https://www.rbvi.ucsf.edu/chimerax/gallery.html) and [feature highlights](https://www.rbvi.ucsf.edu/chimerax/features.html) show a few of its capabilities.
+[ChimeraX](https://www.rbvi.ucsf.edu/chimerax/) is an application for visualizing and analyzing molecule structures such as proteins, RNA, DNA, lipids as well as gene sequences, electron microscopy maps, X-ray maps, 3D light microscopy and 3D medical imaging scans.  It is the successor of the [UCSF Chimera](https://www.cgl.ucsf.edu/chimera/) program.  [Example images](https://www.rbvi.ucsf.edu/chimerax/gallery.html) and [feature highlights](https://www.rbvi.ucsf.edu/chimerax/features.html) show a few of its capabilities, and [recipes](https://rbvi.github.io/chimerax-recipes/) show example command and Python API use.
 
 ## Platforms
 
@@ -18,6 +18,4 @@ ChimeraX plugins are called bundles and can include reading new file formats, ad
 
 ## Building ChimeraX
 
-Building ChimeraX can be challenging because it depends on more than 50 third party libraries and packages. We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](http://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.
-
-[Instructions for building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) on different operating systems are currently woefully out of date.
+[Building ChimeraX](https://www.cgl.ucsf.edu/chimerax/docs/devel/building.html) can be challenging because it depends on more than 50 [third party libraries and packages](https://www.rbvi.ucsf.edu/chimerax/docs/devel/dependencies.html). We recommend using a prebuilt ChimeraX from the [downloads page](https://www.rbvi.ucsf.edu/chimerax/download.html) instead.  If you develop your own ChimeraX plugins they can be used with a prebuilt ChimeraX using the [toolshed install](http://www.rbvi.ucsf.edu/chimerax/docs/user/commands/toolshed.html#install) command.
