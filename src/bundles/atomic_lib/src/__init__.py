@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,13 +11,24 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ensure C++ shared libs are linkable by us
-import chimerax.atomic_lib
-import chimerax.atom_search
-
 from chimerax.core.toolshed import BundleAPI
 
-class _ConnectStructureBundle(BundleAPI):
+class _AtomicLibAPI(BundleAPI):
     pass
 
-bundle_api = _ConnectStructureBundle()
+bundle_api = _AtomicLibAPI()
+
+# make our shared libs linkable by other bundles
+import sys
+if sys.platform.startswith('win'):
+    import os
+    try:
+        paths = os.environ['PATH'].split(';')
+    except KeyError:
+        paths = []
+    from os.path import join, dirname
+    libdir = join(dirname(__file__), 'lib')
+    if libdir not in paths:
+        paths.append(libdir)
+        os.environ['PATH'] = ';'.join(paths)
+from . import _load_libs
