@@ -15,14 +15,7 @@
     <Category name="Structure Analysis"/>
   </Categories>
 
-  <CLibrary name="atomsearch">
-    <SourceFile>search_cpp/search.cpp</SourceFile>
-    <Library>atomstruct</Library>
-  </CLibrary>
-
   <ExtraFiles>
-    <ExtraFile source="search_cpp/search.h">include/atomsearch/search.h</ExtraFile>
-    <ExtraFile source="search_cpp/imex.h">include/atomsearch/imex.h</ExtraFile>
     <ExtraFile source="search_cpp/ast.pyx">ast.pyx</ExtraFile>
   </ExtraFiles>
 
@@ -35,6 +28,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomSearchLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=1.0"/>
   </Dependencies>
 

@@ -20,8 +20,8 @@ BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search \
-	  atomic atomic_lib axes_planes basic_actions bild blastprotein \
-	  bond_rot bug_reporter build_structure \
+	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
+	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe connect_structure core_formats \
