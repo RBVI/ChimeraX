@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 # ensure C++ shared libs are linkable by us
-import chimerax.atomic_lib
-from chimerax import pdb
+import chimerax.atomic_lib  # noqa
+import chimerax.pdb_lib  # noqa
 
 
 from chimerax.core.toolshed import BundleAPI

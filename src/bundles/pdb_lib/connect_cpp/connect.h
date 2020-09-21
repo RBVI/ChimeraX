@@ -32,8 +32,6 @@ using namespace atomstruct;
 
 namespace pdb_connect {
 
-PDB_CONNECT_IMEX bool is_standard_residue(const ResName& name);
-
 PDB_CONNECT_IMEX void connect_structure(Structure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,

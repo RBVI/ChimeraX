@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 # ensure C++ shared libs are linkable by us
-import chimerax.atomic_lib
-import chimerax.pdb  # noqa
+import chimerax.atomic_lib  # noqa
+import chimerax.pdb_lib  # noqa
 
 from .mmcif import (  # noqa
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,

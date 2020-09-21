@@ -26,8 +26,8 @@
 
   <CModule name="_load_libs">
     <SourceFile>search_cpp/load_libs.cpp</SourceFile>
-    <LibraryDir>src/lib</LibraryDir>
-    <IncludeDir>src/include</IncludeDir>
+	<IncludeDir>src/include</IncludeDir>
+	<LibraryDir>src/lib</LibraryDir>
     <Library>atomstruct</Library>
     <Library>atomsearch</Library>
   </CModule>
