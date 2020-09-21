@@ -1238,14 +1238,24 @@ class TopModelsArg(AtomSpecArg):
         return concise_model_spec(session, tmodels)
 
 
+total_calls = 0
+total_parse = 0
+total_evaluate = 0
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
 
     @classmethod
     def parse(cls, text, session):
+        global total_calls, total_parse, total_evaluate
+        from time import time
+        t0 = time()
         aspec, text, rest = super().parse(text, session)
+        t1 = time()
         objects = aspec.evaluate(session)
+        total_evaluate += time() - t1
+        total_calls += 1
+        total_parse += t1-t0
         objects.spec = str(aspec)
         return objects, text, rest
 
