@@ -21,7 +21,6 @@
 
   <CModule name="ast">
     <SourceFile>search_cpp/ast.pyx</SourceFile>
-    <LibraryDir>src/lib</LibraryDir>
     <Library>atomsearch</Library>
     <Library>atomstruct</Library>
   </CModule>
