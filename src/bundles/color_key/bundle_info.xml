@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-ColorKey" version="1.0"
-	    package="chimerax.colorkey"
+	    package="chimerax.color_key"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

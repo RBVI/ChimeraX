@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -16,15 +18,15 @@ class _ColorKeyBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called (when the command is run)
-		from .cmd import register_command
-		register_command(logger)
+        from .cmd import register_command
+        register_command(logger)
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'KeyModel':
-			from .model import KeyModel
-			return KeyModel
+            from .model import KeyModel
+            return KeyModel
         return None
 
     @staticmethod
