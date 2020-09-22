@@ -19,6 +19,7 @@ jupyter-client==6.1.7
 lxml==4.5.2
 matplotlib==3.3.2
 msgpack==1.0.0
+netCDF4==1.5.4
 networkx==2.5
 numpy==1.19.2
 openvr==1.12.501
