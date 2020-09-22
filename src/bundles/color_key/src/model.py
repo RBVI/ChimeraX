@@ -50,15 +50,16 @@ class ColorKeyModel(Model):
         self._num_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
 
+        session.main_view.add_overlay(self)
+
     def delete(self):
+        self.session.main_view.remove_overlays([self], delete = False)
         self.key_triggers.activate_trigger("closed", None)
         super().delete()
         global _model
         _model = None
 
     def draw(self, renderer, draw_pass):
-        import sys
-        print("draw", file=sys.__stderr__)
         if self._key_position is None:
             return
         self._update_graphics(renderer)
@@ -70,8 +71,6 @@ class ColorKeyModel(Model):
         based on the rendered window size.  When saving an image file, the rendered size may differ from the
         on-screen window size.  In that case, make the label size match its relative size seen on the screen.
         """
-        import sys
-        print("update graphics", file=sys.__stderr__)
         window_size = renderer.render_size()
 
         # Remember the on-screen size if rendering off screen
@@ -101,8 +100,6 @@ class ColorKeyModel(Model):
             self._update_key_image()
 
     def _update_key_image(self):
-        import sys
-        print("update key image", file=sys.__stderr__)
         rgba = self._key_image_rgba()
         if rgba is None:
             self.session.logger.info("Can't find font for color key labels")
@@ -136,7 +133,10 @@ class ColorKeyModel(Model):
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         rgbas, labels = zip(*self._rgbas_and_labels)
+        rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
+            for r,g,b,a in rgbas]
 
+        #TODO: improve code to use just one gradient for whole key if blended
         with QPainter(image) as p:
             p.setRenderHint(QPainter.Antialiasing)
             p.setPen(QPen(Qt.NoPen))
@@ -146,6 +146,13 @@ class ColorKeyModel(Model):
                 if self._color_treatment == self.CT_BLENDED:
                     color2 = rgbas[i+1]
                     gradient = QLinearGradient()
+                    if layout == "vertical":
+                        start, stop = (0.0, 1.0), (0.0, 0.0)
+                    else:
+                        start, stop = (0.0, 0.0), (1.0, 0.0)
+                    gradient.setCoordinateMode(QLinearGradient.ObjectMode)
+                    gradient.setStart(*start)
+                    gradient.setFinalStop(*stop)
                     gradient.setColorAt(0.0, QColor(*color1))
                     gradient.setColorAt(1.0, QColor(*color2))
                     brush = QBrush(gradient)
@@ -158,10 +165,7 @@ class ColorKeyModel(Model):
                 else:
                     x1, y1 = rect_positions[i], 0
                     x2, y2 = rect_positions[i+1], y_pixels
-                p.drawRectangle(QRect(QPoint(x1, y1), QPoint(x2, y2)))
-
-            #TODO: keep cribbing from label2d._update_label_image
-            #    (in turn, from: arrows._arrow_image_rgba)
+                p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
 
         # Convert to numpy rgba array
         from chimerax.graphics import qimage_to_numpy
@@ -198,11 +202,9 @@ class ColorKeyModel(Model):
         return rect_positions
 
     def _set_key_image(self, rgba):
-        import sys
-        print("set key image", file=sys.__stderr__)
         if self._key_position is None:
             return
-        key_x, key_y = self._key_position
+        key_x, key_y = self._key_position[0]
         x, y = (-1 + 2*key_x, -1 + 2*key_y)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
         w, h = self._window_size
@@ -210,4 +212,4 @@ class ColorKeyModel(Model):
         self._texture_size = (tw, th)
         uw, uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
-        rgba_drawing(self, rgba, (x, y) (uw, uh), opaque=False)
+        rgba_drawing(self, rgba, (x, y), (uw, uh), opaque=False)
