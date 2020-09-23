@@ -29,7 +29,6 @@ endif
 
 ifeq ($(OS),Darwin)
 NEED_EXPAT=1
-# NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_PKGCONFIG=1
 NEED_P7ZIP=1
@@ -45,7 +44,6 @@ endif
 ifeq ($(CENTOS_DIST),7)
 NEED_MESA=1
 endif
-# NEED_HDF5=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 NEED_EXPAT=1
@@ -112,13 +110,6 @@ SUBDIRS += expat
 else
 expat.install:
 expat.app-install:
-endif
-
-ifdef NEED_HDF5
-SUBDIRS += hdf5
-else
-hdf5.install:
-hdf5.app-install:
 endif
 
 ifdef NEED_OPENSSL
@@ -216,8 +207,6 @@ cxservices.app-install: pips.app-install
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-hdf5.app-install: zlib.app-install chrpath.app-install
-hdf5.install: zlib.install chrpath.install
 libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
