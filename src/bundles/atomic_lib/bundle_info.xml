@@ -22,6 +22,13 @@
     <DataFile>*.pyd</DataFile>
   </DataFiles>
 
+  <CModule name="_load_libs">
+    <SourceFile>atomic_cpp/load_libs.cpp</SourceFile>
+	<IncludeDir>src/include</IncludeDir>
+	<LibraryDir>src/lib</LibraryDir>
+    <Library>atomstruct</Library>
+  </CModule>
+
   <Categories>
     <Category name="Structure Analysis"/>
     <Category name="Structure Editing"/>

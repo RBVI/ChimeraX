@@ -16,24 +16,7 @@ SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp
 
 include $(TOP)/mk/subdir.make
 
-ifdef WIN32
-ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
-else
-ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
-endif
-
-PYMOD_NAME = _load_libs
-SRCS	= load_libs.cpp
-OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-DEFS	+= $(PYDEF)
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude -I$(ARRAYS_DIR)/include
-ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
-else
-LIBS	+= -Llib -latomstruct -lelement -lpyinstance -L$(ARRAYS_DIR)/lib -larrays -llogger -lappdirs $(PYTHON_LIB)
-endif
-
-all: $(PYMOD)
+all: lib data include
 
 lib:
 	mkdir lib
@@ -46,17 +29,7 @@ data:
 	mkdir data
 
 install: all
-	cat /dev/null > lib/__init__.py
-	mv $(PYMOD) lib
 	$(RSYNC) data include lib ../src
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
-ifeq ($(OS),Darwin)
-	install_name_tool -change @rpath/libatomstruct.dylib @loader_path/libatomstruct.dylib $(PYMOD)
-	install_name_tool -change @rpath/libelement.dylib @loader_path/libelement.dylib $(PYMOD)
-	install_name_tool -change @rpath/libpyinstance.dylib @loader_path/libpyinstance.dylib $(PYMOD)
-endif
 
 clean:
 	rm -rf __pycache__ $(OBJS) lib include data build
@@ -67,4 +40,3 @@ endif
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 element_cpp.install: pyinstance_cpp.install
 pyinstance_cpp.install: lib include data
-$(OBJS): atomstruct_cpp.install
