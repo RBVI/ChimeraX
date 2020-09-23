@@ -87,13 +87,6 @@ llvm.install:
 llvm.app-install:
 endif
 
-ifdef NEED_LIBTOOL
-SUBDIRS += libtool
-else
-libtool.install:
-libtool.app-install:
-endif
-
 ifdef NEED_PKGCONFIG
 SUBDIRS += pkgconfig
 else
@@ -202,7 +195,6 @@ cxservices.install: pips.install
 cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
