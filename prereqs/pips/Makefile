@@ -7,7 +7,7 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES = suds_jurko.patch webcolors.patch
+PATCHES = pyopengl_macos11.patch suds_jurko.patch webcolors.patch
 
 all:
 
