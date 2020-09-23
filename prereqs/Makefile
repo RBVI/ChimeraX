@@ -62,10 +62,6 @@ endif
 
 ifdef NEED_FFMPEG
 SUBDIRS += ffmpeg
-ifeq ($(OS),Darwin)
-NEED_LIBTOOL=1
-NEED_PKGCONFIG=1
-endif
 else
 ffmpeg.install:
 ffmpeg.app-install:
@@ -204,7 +200,6 @@ endif
 
 cxservices.install: pips.install
 cxservices.app-install: pips.app-install
-ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
 libtool.install: PyQt.install  # when building from source Qt needs the system libtool
