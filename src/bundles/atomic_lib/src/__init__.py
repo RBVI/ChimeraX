@@ -31,4 +31,4 @@ if sys.platform.startswith('win'):
     if libdir not in paths:
         paths.append(libdir)
         os.environ['PATH'] = ';'.join(paths)
-from . import _load_libs
+from .lib import _load_libs

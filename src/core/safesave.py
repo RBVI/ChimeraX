@@ -98,7 +98,7 @@ class SaveFile:
                 os.replace(self._tmp_filename, self.name)
             except PermissionError as e:
                 import sys, time
-                if sys.platform.startswith("win") and e.winerror == 32:
+                if sys.platform.startswith("win") and e.winerror in [5, 32]:
                     # Windows can have the file open from another process
                     # for some reason (virus scan?), so wait a little and
                     # try again

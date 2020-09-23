@@ -11,14 +11,24 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# make sure the shared lib we need is loaded
-import chimerax.atom_search_lib
-
-from .ast import AtomSearchTree
-
 from chimerax.core.toolshed import BundleAPI
 
-class _AtomSearchAPI(BundleAPI):
+class _PdbLibAPI(BundleAPI):
     pass
 
-bundle_api = _AtomSearchAPI()
+bundle_api = _PdbLibAPI()
+
+# make our shared libs linkable by other bundles
+import sys
+if sys.platform.startswith('win'):
+    import os
+    try:
+        paths = os.environ['PATH'].split(';')
+    except KeyError:
+        paths = []
+    from os.path import join, dirname
+    libdir = join(dirname(__file__), 'lib')
+    if libdir not in paths:
+        paths.append(libdir)
+        os.environ['PATH'] = ';'.join(paths)
+from . import _load_libs

@@ -46,18 +46,20 @@ data:
 	mkdir data
 
 install: all
-	$(RSYNC) $(PYMOD) data include lib ../src
+	cat /dev/null > lib/__init__.py
+	mv $(PYMOD) lib
+	$(RSYNC) data include lib ../src
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 ifeq ($(OS),Darwin)
-	install_name_tool -change @rpath/libatomstruct.dylib @loader_path/lib/libatomstruct.dylib $(PYMOD)
-	install_name_tool -change @rpath/libelement.dylib @loader_path/lib/libelement.dylib $(PYMOD)
-	install_name_tool -change @rpath/libpyinstance.dylib @loader_path/lib/libpyinstance.dylib $(PYMOD)
+	install_name_tool -change @rpath/libatomstruct.dylib @loader_path/libatomstruct.dylib $(PYMOD)
+	install_name_tool -change @rpath/libelement.dylib @loader_path/libelement.dylib $(PYMOD)
+	install_name_tool -change @rpath/libpyinstance.dylib @loader_path/libpyinstance.dylib $(PYMOD)
 endif
 
 clean:
-	rm -rf __pycache__ lib include data build
+	rm -rf __pycache__ $(OBJS) lib include data build
 ifdef WIN32
 	rm -f vc*.pdb
 endif

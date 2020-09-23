@@ -5429,7 +5429,7 @@ extern "C" EXPORT void pointer_table_indices(void *pointer_table, void *pointer_
 
 // inform C++ about relevant class objects
 //
-#include <atomic/ctypes_pyinst.h>
+#include "ctypes_pyinst.h"
 SET_PYTHON_CLASS(atom, Atom)
 SET_PYTHON_CLASS(bond, Bond)
 SET_PYTHON_CLASS(changetracker, ChangeTracker)

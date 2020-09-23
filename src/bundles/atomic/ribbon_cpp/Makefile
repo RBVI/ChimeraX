@@ -18,21 +18,23 @@ INSTALL_MOD = ../../src
 
 ifdef WIN32
 ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+ATOMIC_LIB_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/atomic_lib')'
 else
 ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+ATOMIC_LIB_DIR = $(APP_PYSITEDIR)/chimerax/atomic_lib
 endif
 
 PYMOD_NAME = _ribbons
 SRCS	= normals.cpp parse.cpp ribbons.cpp spline.cpp xsection.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
-INCS	+= -I../include $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
+INCS	+= -I$(ATOMIC_LIB_DIR)/include $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 #OPT = -g -Wall -Wextra
 
 ifdef WIN32
-LIBS	+= /LIBPATH:../lib libatomstruct.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:$(ATOMIC_LIB_DIR)/lib libatomstruct.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -L../lib -latomstruct -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
+LIBS	+= -L$(ATOMIC_LIB_DIR)/lib -latomstruct -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
 endif
 
 all: $(PYMOD)
