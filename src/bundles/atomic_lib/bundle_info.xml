@@ -1,0 +1,47 @@
+<BundleInfo name="ChimeraX-AtomicLibrary" version="1.0"
+            package="chimerax.atomic_lib"
+            purePython="false"
+            installedDataDir="data"
+            installedIncludeDir="include"
+            installedLibraryDir="lib"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Atomic-structure C++ library</Synopsis>
+  <Description>C++ support for handling atomic structures</Description>
+
+  <DataFiles>
+    <DataFile>data/*/*/*</DataFile>
+    <DataFile>include/*/*</DataFile>
+    <DataFile>include/*/*/*</DataFile>
+    <DataFile>lib/*</DataFile>
+    <DataFile>*.so</DataFile>
+    <DataFile>*.pyd</DataFile>
+  </DataFiles>
+
+  <CModule name="_load_libs">
+    <SourceFile>atomic_cpp/load_libs.cpp</SourceFile>
+	<IncludeDir>src/include</IncludeDir>
+	<LibraryDir>src/lib</LibraryDir>
+    <Library>atomstruct</Library>
+  </CModule>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

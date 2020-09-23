@@ -1,50 +1,47 @@
 #
-# Calculate and show piecewise linear geodesic (locally minimum length) paths on a triangulated surface.
-# Also minimize path length for an existing path by moving nodes with ends fixed.
+# Calculate and show piecewise linear geodesic (locally minimum length) paths on a triangulated surface
+# starting from a specified point and direction.
 #
 
-def geodesic(session, volume, length = 100, color = None, radius = 1, minimal = True):
-    rgba = color.uint8x4() if color else (255,255,0,255)
-    surface_path(session, volume.surfaces[0],
-                 length = length, rgba = rgba, radius = radius, geodesic = minimal)
+def geodesic(session, surface, start_point = None, direction = None,
+             length = 100, color = (255,255,0,255), radius = 1):
+    '''
+    Create a geodesic path on the surface, ie. one that has locally minimal path length.
+    The returned path is a MarkerSet model and has a specified length, color and radius
+    (it is made up of cylinder segements).
+    If a start_point is specified it need not be on the surface and the starting
+    point on the surface will be at the closest point on an edge of the triangulated
+    surface.  If no starting point is given then a random edge is taken and a random
+    point on that edge.  The direction gives an initial direction vector and will be projected
+    onto a triangle containing the starting point point edge.  If no direction is given
+    then it is taken perpendicular to the starting edge.
+    '''
+    va = surface.vertices
+    ta = surface.joined_triangles if hasattr(surface, 'joined_triangles') else surface.triangles
+    nedges = next_edges(ta)
+    tnormals = edge_triangle_normals(va, ta)
 
-def surface_path(session, surface, length = 100, rgba = (255,255,0,255), radius = 1, geodesic = True):
-    ep = edge_pairs(surface.triangles)
-    from random import choice
-    e = choice(tuple(ep.keys()))
-#    e = first_element(ep.keys())
-    vertices = surface.vertices
-    if geodesic:
-        tnormals = edge_triangle_normals(surface.vertices, surface.triangles)
-        # Start in direction perpendicular to starting edge.
-        eo = (e[1],e[0])
-        ev = edge_vector(eo, vertices)
-        from chimerax.geometry import cross_product, normalize_vector
-        direction = normalize_vector(cross_product(tnormals[eo], ev))
-    else:
-        direction, tnormals = None
-    points = make_surface_path(e, ep, length, vertices, direction, tnormals)
-    from chimerax.markers import MarkerSet, create_link
-    ms = MarkerSet(session, 'surface path')
-    mprev = None
-    for id, xyz in enumerate(points):
-        m = ms.create_marker(xyz, rgba, radius, id)
-        if mprev is not None:
-            create_link(mprev, m, rgba = rgba, radius = radius)
-        mprev = m
-    session.models.add([ms])
+    edge, f = edge_start_point(start_point, surface, nedges)
+    sdir = start_direction(direction, edge, tnormals, surface)
+        
+    points = walk_surface(edge, f, sdir, length, nedges, va, tnormals)
 
-def edge_pairs(triangles):
+    mset = marker_path(session, points, color, radius)
+    session.models.add([mset])
+    
+    return mset
+
+def next_edges(triangles):
     '''
     Return dictionary mapping each edge to two other edges of triangle it belongs to.
     Edge is an ordered pair of vertex indices.
     '''
-    ep = {}
+    ne = {}
     for v1,v2,v3 in triangles:
-        ep[(v1,v2)] = ((v2,v3),(v3,v1))
-        ep[(v2,v3)] = ((v3,v1),(v1,v2))
-        ep[(v3,v1)] = ((v1,v2),(v2,v3))
-    return ep
+        ne[(v1,v2)] = ((v2,v3),(v3,v1))
+        ne[(v2,v3)] = ((v3,v1),(v1,v2))
+        ne[(v3,v1)] = ((v1,v2),(v2,v3))
+    return ne
 
 def edge_triangle_normals(vertices, triangles):
     tn = {}
@@ -55,32 +52,89 @@ def edge_triangle_normals(vertices, triangles):
         tn[(v1,v2)] = tn[(v2,v3)] = tn[(v3,v1)] = n
     return tn
 
+def edge_start_point(start_point, surface, nedges):
+    if start_point is None:
+        from random import choice, uniform
+        edge = choice(tuple(nedges.keys()))
+        f = uniform(0,1)
+    else:
+        from chimerax.core.commands import Center
+        if isinstance(start_point, Center):
+            start_point = start_point.scene_coordinates()
+        edges = tuple(nedges.keys())
+        edge, f = closest_edge_point(start_point, surface, edges)
+    return edge, f
+
+def closest_edge_point(start_point, surface, edges):
+    emin = fmin = dmin = None
+    vertices = surface.vertices
+    for edge in edges:
+        d, f = edge_distance(start_point, edge, vertices)
+        if dmin is None or d < dmin:
+            emin = edge
+            fmin = f
+            dmin = d
+    return emin, fmin
+
+def edge_distance(start_point, edge, vertices):
+    e0,e1 = edge
+    v0,v1 = vertices[e0], vertices[e1]
+    ev = v1-v0
+    from chimerax.geometry import inner_product, distance
+    se = inner_product(start_point-v0, ev)
+    e2 = inner_product(ev, ev)
+    if se <= 0:
+        f = 0
+        p = v0
+    elif se >= e2:
+        f = 1
+        p = v1
+    else:
+        f = se/e2
+        p = (1-f)*v0+f*v1
+    d = distance(start_point, p)
+    return d, f
+
+def start_direction(direction, edge, tnormals, surface):
+    eo = (edge[1],edge[0])
+    tn = tnormals[eo]
+    if direction is None:
+        # Start in direction perpendicular to starting edge.
+        ev = edge_vector(eo, surface.vertices)
+        from chimerax.geometry import cross_product, normalize_vector
+        sdir = normalize_vector(cross_product(tn, ev))
+    else:
+        from chimerax.core.commands import Axis
+        if isinstance(direction, Axis):
+            direction = direction.scene_coordinates()
+        from chimerax.geometry import inner_product
+        sdir = direction - inner_product(direction,tn)*tn
+    return sdir
+
 def edge_vector(e, vertices):
     return vertices[e[1]] - vertices[e[0]]
 
-def first_element(iter):
-    '''Return the next element from an iterator.'''
-    for e in iter:
-        return e
-
-def make_surface_path(edge, edge_pairs, num_points, vertices,
-                      direction = None, triangle_normals = None):
+def walk_surface(edge, position, direction, length, next_edges, vertices, triangle_normals):
     points = []
     e = edge
-    from random import random, choice
-    f = random()
-    for i in range(num_points):
+    f = position  # Fraction of distance along edge.
+    l = 0
+    prev_p = None
+    from chimerax.geometry import distance
+    while l < length:
         v1,v2 = e
         p = (1-f)*vertices[v1] + f*vertices[v2]
         points.append(p)
-        edges = edge_pairs[(v2,v1)]
-        if direction is None:
-            e = choice(edges)
-        else:
-            e, f = next_edge(p, direction, edges, vertices)
-            n1 = triangle_normals[e]
-            n2 = triangle_normals[(e[1],e[0])]
-            direction = next_direction(direction, e, vertices, n1, n2)
+        if prev_p is not None:
+            l += distance(p, prev_p)
+        prev_p = p
+        edges = next_edges[(v2,v1)]
+        e, f = next_edge(p, direction, edges, vertices)
+        if e is None:
+            return points
+        n1 = triangle_normals[e]
+        n2 = triangle_normals[(e[1],e[0])]
+        direction = next_direction(direction, e, vertices, n1, n2)
     return points
 
 def next_edge(p, direction, edges, vertices):
@@ -104,16 +158,29 @@ def next_direction(direction, e, vertices, normal1, normal2):
     d = inner_product(direction, ev) * ev + inner_product(direction, en1) * en2
     d = normalize_vector(d)
     return d
+
+def marker_path(session, points, color, radius):
+    from chimerax.markers import MarkerSet, create_link
+    ms = MarkerSet(session, 'surface path')
+    mprev = None
+    for id, xyz in enumerate(points):
+        m = ms.create_marker(xyz, color, radius, id)
+        if mprev is not None:
+            create_link(mprev, m, rgba = color, radius = radius)
+        mprev = m
+    return ms
     
 def register_geodesic_command(session):
-    from chimerax.core.commands import CmdDesc, register, IntArg, ColorArg, FloatArg
-    from chimerax.map import MapArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import SurfaceArg, CenterArg, AxisArg, IntArg, Color8Arg, FloatArg
     desc = CmdDesc(
-        required=[('volume', MapArg)],
-        keyword=[('length', IntArg),
-                 ('color', ColorArg),
+        required=[('surface', SurfaceArg)],
+        keyword=[('start_point', CenterArg),
+                 ('direction', AxisArg),
+                 ('length', FloatArg),
+                 ('color', Color8Arg),
                  ('radius', FloatArg)],
-        synopsis='draw geodesic path on a volume surface'
+        synopsis='draw geodesic path on a surface'
     )
     register('geodesic', desc, geodesic, logger=session.logger)
 
