@@ -3,19 +3,30 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/omnia/openmm/files
-PYVER = py37_cuda101_rc_1
+
+#VERSION = 7.5.0
+#OPENMM_REL = 1
+#PYVER = py38
+
 VERSION = 7.4.1
+OPENMM_REL = rc_1
+PYVER = py37
+CUDA_VERSION = cuda101
+
 ifeq ($(OS),Darwin)
 PLATFORM = mac
+#CUDA_VERSION = nocuda
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
+#CUDA_VERSION = cuda110
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
+#CUDA_VERSION = cuda110
 endif
 
-DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER).tar.bz2
+DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER)_$(CUDA_VERSION)_$(OPENMM_REL).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 

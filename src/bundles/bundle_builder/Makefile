@@ -10,6 +10,8 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../../..
+include $(TOP)/mk/config.make
+
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
@@ -18,11 +20,11 @@ PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.7
+PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.7
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
 PYLINT = $(PYTHON_EXE) -I -m flake8
