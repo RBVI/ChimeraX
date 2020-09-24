@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).8
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -156,6 +156,11 @@ else ifdef USE_MAC_FRAMEWORKS
 		cp -r $$dir/* $(libdir); \
 		rm -rf $$dir ; \
 		ln -s $(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
+	dir=$(PYTHON_FRAMEWORK)/Library; \
+	if [ ! -L $$dir ]; \
+	then \
+		ln -s $(shell python -c 'import os; print(os.path.relpath("$(build_prefix)/Library", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/share; \
 	if [ ! -L $$dir ]; \

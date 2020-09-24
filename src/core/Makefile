@@ -44,7 +44,7 @@ BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VER
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
 all: $(PYOBJS)
