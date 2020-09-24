@@ -114,7 +114,7 @@ clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
 	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb \
-		$(APP_NAME).exp $(APP_NAME).lib
+		$(APP_NAME).exp $(APP_NAME).lib main_desktop.$(OBJ_EXT)
 endif
 
 pylint:
