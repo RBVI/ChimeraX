@@ -140,6 +140,7 @@
 	<IncludeDir>src/include</IncludeDir>
 	<LibraryDir>src/lib</LibraryDir>
     <Library>atomstruct</Library>
+    <Library>element</Library>
   </CModule>
 
   <Categories>
