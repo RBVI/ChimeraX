@@ -1,0 +1,108 @@
+--- Mac/Makefile.in.orig	2014-04-24 14:04:46.000000000 -0700
++++ Mac/Makefile.in	2014-04-24 14:08:12.000000000 -0700
+@@ -60,6 +60,7 @@
+ 	if [ ! -d "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" ]; then  \
+ 		$(INSTALL) -d -m $(DIRMODE) "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" ;\
+ 	fi
++	if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
+ 	cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 	for fn in \
+ 			2to3 \
+@@ -72,8 +73,10 @@
+ 	do \
+ 		rm -f $${fn} ; \
+ 		$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+-	done
+-	-if test "x$(VERSION)" != "x$(LDVERSION)"; then \
++	done \
++	fi
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(VERSION)" != "x$(LDVERSION)"; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				python$(VERSION)-config \
+@@ -82,8 +85,10 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+-	-if test "x$(LIPO_32BIT_FLAGS)" != "x"; then \
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(LIPO_32BIT_FLAGS)" != "x"; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				python3-32 \
+@@ -92,8 +97,10 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+-	-if test "x$(ENSUREPIP)" != "xno"  ; then \
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(ENSUREPIP)" != "xno"  ; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				pip3 \
+@@ -102,6 +109,7 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+ 
+ #
+@@ -111,6 +119,7 @@
+ 	if [ ! -d "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" ]; then  \
+ 		$(INSTALL) -d -m $(DIRMODE) "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" ;\
+ 	fi
++	if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
+ 	cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 	for fn in \
+ 			2to3-$(VERSION) \
+@@ -123,8 +132,10 @@
+ 	do \
+ 		rm -f $${fn} ;\
+ 		$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+-	done
+-	-if test "x$(VERSION)" != "x$(LDVERSION)"; then \
++	done \
++	fi
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(VERSION)" != "x$(LDVERSION)"; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				python$(LDVERSION) \
+@@ -133,8 +144,10 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+-	-if test "x$(LIPO_32BIT_FLAGS)" != "x"; then \
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(LIPO_32BIT_FLAGS)" != "x"; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				python$(VERSION)-32 \
+@@ -143,8 +156,10 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+-	-if test "x$(ENSUREPIP)" != "xno"  ; then \
++	-if test "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" != "$(BINDIR)"; then \
++	if test "x$(ENSUREPIP)" != "xno"  ; then \
+ 		cd "$(DESTDIR)$(FRAMEWORKUNIXTOOLSPREFIX)/bin" && \
+ 		for fn in \
+ 				easy_install-$(VERSION) \
+@@ -154,6 +169,7 @@
+ 			rm -f $${fn} ;\
+ 			$(LN) -s $(BINDIR)/$${fn} $${fn} ;\
+ 		done ;\
++	fi \
+ 	fi
+ 
+ pythonw: $(srcdir)/Tools/pythonw.c Makefile
