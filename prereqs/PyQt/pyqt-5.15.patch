@@ -16,7 +16,7 @@ index 0f81e8ad0..d85bb559d 100644
  MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
  
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index 924864d20..6724627c9 100644
+index 924864d20..b4dbe5dc0 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
 @@ -3,15 +3,21 @@ TOP	= ../..
@@ -70,7 +70,8 @@ index 924864d20..6724627c9 100644
  ifeq ($(OS),Darwin)
  BIN_PLATFORM = macos
  WHEEL_ABI = abi3
- WHEEL_PLATFORM = macosx_10_6_intel
+-WHEEL_PLATFORM = macosx_10_6_intel
++WHEEL_PLATFORM = macosx_10_13_intel
 +WE_WHEEL_PLATFORM = macosx_10_13_intel
  QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
  else ifeq ($(OS),Linux)
