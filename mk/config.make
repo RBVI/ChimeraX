@@ -57,7 +57,7 @@ endif
 # Location for fetching third party binaries.
 # Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
 PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
-FETCH_PREREQ = curl --silent --show-error --insecure -O
+FETCH_PREREQ = curl --silent --show-error --fail --insecure -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # Location for large test data files
