@@ -23,8 +23,10 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: colorkey :: General :: add color key to graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: key :: General :: add color key to graphics</ChimeraXClassifier>
+	<!--
     <ChimeraXClassifier>Tool :: Color Key :: General :: add color key to graphics</ChimeraXClassifier>
+	-->
   </Classifiers>
 
 </BundleInfo>

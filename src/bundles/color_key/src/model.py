@@ -45,7 +45,8 @@ class ColorKeyModel(Model):
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
-        self._key_position = None
+        self._position = None
+        self._size = (0.25, 0.05)
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._num_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
@@ -60,10 +61,45 @@ class ColorKeyModel(Model):
         _model = None
 
     def draw(self, renderer, draw_pass):
-        if self._key_position is None:
+        if self._position is None:
             return
         self._update_graphics(renderer)
         super().draw(renderer, draw_pass)
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, llxy):
+        if llxy == self._position:
+            return
+        self._position = llxy
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def rgbas_and_labels(self):
+        return self._rgbas_and_labels
+
+    @rgbas_and_labels.setter
+    def rgbas_and_labels(self, r_l):
+        # skip the equality test since there are numpy arrays involved, sigh...
+        self._rgbas_and_labels = r_l
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, wh):
+        if wh == self._size:
+            return
+        self._size = wh
+        self.needs_update = True
+        self.redraw_needed()
 
     def _update_graphics(self, renderer):
         """
@@ -107,12 +143,11 @@ class ColorKeyModel(Model):
             self._set_key_image(rgba)
 
     def _key_image_rgba(self):
-        upper_left_xy, lower_right_xy = self._key_position
-        ulx, uly = upper_left_xy
-        lrx, lry = lower_right_xy
+        ulx, uly = self._position
+        key_w, key_h = self._size
         win_w, win_h = self._window_size
-        x_pixels = int(win_w * (lrx - ulx) + 0.5)
-        y_pixels = int(win_h * (uly - lry) + 0.5)
+        x_pixels = int(win_w * key_w + 0.5)
+        y_pixels = int(win_h * key_h + 0.5)
         if x_pixels > y_pixels:
             layout = "horizontal"
             long_size = x_pixels
@@ -136,36 +171,37 @@ class ColorKeyModel(Model):
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
 
-        #TODO: improve code to use just one gradient for whole key if blended
         with QPainter(image) as p:
             p.setRenderHint(QPainter.Antialiasing)
             p.setPen(QPen(Qt.NoPen))
 
-            for i in range(len(rect_positions)-1):
-                color1 = rgbas[i]
-                if self._color_treatment == self.CT_BLENDED:
-                    color2 = rgbas[i+1]
-                    gradient = QLinearGradient()
-                    if layout == "vertical":
-                        start, stop = (0.0, 1.0), (0.0, 0.0)
-                    else:
-                        start, stop = (0.0, 0.0), (1.0, 0.0)
-                    gradient.setCoordinateMode(QLinearGradient.ObjectMode)
-                    gradient.setStart(*start)
-                    gradient.setFinalStop(*stop)
-                    gradient.setColorAt(0.0, QColor(*color1))
-                    gradient.setColorAt(1.0, QColor(*color2))
-                    brush = QBrush(gradient)
-                else:
-                    brush = QBrush(QColor(*color1))
-                p.setBrush(brush)
+            if self._color_treatment == self.CT_BLENDED:
+                gradient = QLinearGradient()
+                gradient.setCoordinateMode(QLinearGradient.ObjectMode)
                 if layout == "vertical":
-                    x1, y1 = 0, rect_positions[i]
-                    x2, y2 = x_pixels, rect_positions[i+1]
+                    start, stop = (0.0, 1.0), (0.0, 0.0)
                 else:
-                    x1, y1 = rect_positions[i], 0
-                    x2, y2 = rect_positions[i+1], y_pixels
-                p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
+                    start, stop = (0.0, 0.0), (1.0, 0.0)
+                gradient.setStart(*start)
+                gradient.setFinalStop(*stop)
+                for rgba, rect_pos in zip(rgbas, rect_positions):
+                    fraction = rect_pos/rect_positions[-1]
+                    if layout == "vertical":
+                        fraction = 1.0 - fraction
+                    gradient.setColorAt(fraction, QColor(*rgba))
+                p.setBrush(QBrush(gradient))
+                p.drawRect(QRect(QPoint(0, 0), QPoint(x_pixels, y_pixels)))
+            else:
+                for i in range(len(rect_positions)-1):
+                    brush = QBrush(QColor(*rgbas[i]))
+                    p.setBrush(brush)
+                    if layout == "vertical":
+                        x1, y1 = 0, rect_positions[i]
+                        x2, y2 = x_pixels, rect_positions[i+1]
+                    else:
+                        x1, y1 = rect_positions[i], 0
+                        x2, y2 = rect_positions[i+1], y_pixels
+                    p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
 
         # Convert to numpy rgba array
         from chimerax.graphics import qimage_to_numpy
@@ -177,7 +213,7 @@ class ColorKeyModel(Model):
         if self._num_label_spacing == "proportional to value":
             try:
                 values = [float(t) for t in texts]
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
             else:
                 if values == sorted(values):
@@ -202,9 +238,9 @@ class ColorKeyModel(Model):
         return rect_positions
 
     def _set_key_image(self, rgba):
-        if self._key_position is None:
+        if self._position is None:
             return
-        key_x, key_y = self._key_position[0]
+        key_x, key_y = self._position
         x, y = (-1 + 2*key_x, -1 + 2*key_y)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
         w, h = self._window_size
