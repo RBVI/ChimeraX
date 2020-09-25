@@ -327,7 +327,7 @@ class VRModeArg(Annotation):
         from chimerax.core.commands import EnumOf
         mode_arg = EnumOf(hand_mode_names(session) + ('default',))
         mode_name, used, rest = mode_arg.parse(text, session)
-        if mode_name is 'default':
+        if mode_name == 'default':
             hm = 'default'
         else:
             c = vr_camera(session)
