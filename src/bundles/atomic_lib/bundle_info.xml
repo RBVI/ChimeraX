@@ -28,8 +28,10 @@
 
   <CLibrary name="element">
     <SourceFile>atomic_cpp/element_cpp/Element.cpp</SourceFile>
-	<IncludeDir>src/include</IncludeDir>
-	<LibraryDir>src/lib</LibraryDir>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
     <Library>pyinstance</Library>
   </CLibrary>
 
@@ -47,8 +49,8 @@
     <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/ions.cpp</SourceFile>
     <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/namino.cpp</SourceFile>
     <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/nucleic.cpp</SourceFile>
-	<IncludeDir>src/include</IncludeDir>
-	<LibraryDir>src/lib</LibraryDir>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
     <Library>pyinstance</Library>
   </CLibrary>
 
@@ -74,8 +76,10 @@
     <SourceFile>atomic_cpp/atomstruct_cpp/StructureSeq.cpp</SourceFile>
     <SourceFile>atomic_cpp/atomstruct_cpp/destruct.cpp</SourceFile>
     <SourceFile>atomic_cpp/atomstruct_cpp/seq_assoc.cpp</SourceFile>
-	<IncludeDir>src/include</IncludeDir>
-	<LibraryDir>src/lib</LibraryDir>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
     <Library>pyinstance</Library>
     <Library>element</Library>
     <Library>atomstruct_tmpl</Library>
