@@ -463,14 +463,7 @@ class BundleInfo:
         import sys
         if sys.platform.startswith('win'):
             import os
-            try:
-                paths = os.environ['PATH'].split(';')
-            except KeyError:
-                paths = []
-            if libdir in paths:
-                return
-            paths.append(libdir)
-            os.environ['PATH'] = ';'.join(paths)
+            os.add_dll_directory(libdir)
             # _debug("  update_library_path: windows", paths)
 
     def _get_api(self, logger=None):

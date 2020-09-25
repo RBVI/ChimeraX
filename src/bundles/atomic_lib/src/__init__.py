@@ -21,14 +21,7 @@ bundle_api = _AtomicLibAPI()
 # make our shared libs linkable by other bundles
 import sys
 if sys.platform.startswith('win'):
-    import os
-    try:
-        paths = os.environ['PATH'].split(';')
-    except KeyError:
-        paths = []
-    from os.path import join, dirname
-    libdir = join(dirname(__file__), 'lib')
-    if libdir not in paths:
-        paths.append(libdir)
-        os.environ['PATH'] = ';'.join(paths)
+    from os import path, add_dll_directory
+    libdir = path.join(path.dirname(__file__), 'lib')
+    add_dll_directory(libdir)
 from . import _load_libs
