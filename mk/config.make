@@ -31,20 +31,18 @@ all:
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 3.7
-PYTHON_PATCH_VERSION = 8
-#PYTHON_VERSION = 3.8
-#PYTHON_PATCH_VERSION = 5
+PYTHON_VERSION = 3.8
+PYTHON_PATCH_VERSION = 5
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
-PYTHON_ABI = m
+PYTHON_ABI = 
 else
-ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)dm))
-PYTHON_ABI = dm
+ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)d))
+PYTHON_ABI = d
 else
 # didn't find debug include files, Python not compiled with debugging,
 # so revert to regular Python ABI
-PYTHON_ABI = m
+PYTHON_ABI = 
 endif
 endif
 # Windows uses python22.dll instead of libpython2.2.so
