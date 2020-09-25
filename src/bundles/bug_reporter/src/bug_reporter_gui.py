@@ -387,6 +387,23 @@ def _linux_info():
     count = 0
     model_name = ""
     cache_size = ""
+    virtual_machine = ""
+    try:
+        p = subprocess.run(
+            ["systemd-detect-virt"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding="UTF-8",
+            env={
+                "LANG": "en_US.UTF-8",
+                "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+            })
+        # ignore return code
+        virtual_machine = p.stdout.split('\n', 1)[0]
+    except Exception:
+        # TODO: find other non-root methods to try 
+        virtual_machine = "detection failed"
     try:
         with open("/proc/cpuinfo", encoding='utf-8') as f:
             for line in f.readlines():
@@ -464,6 +481,7 @@ Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
+Virutal Machine: {virtual_machine}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
 Memory:
