@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure atomic_libs C++ shared libs are linkable by us
+import chimerax.atomic_lib
+
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
@@ -66,7 +69,8 @@ class _AtomicBundleAPI(BundleAPI):
         from . import settings
         settings.settings = settings._AtomicSettings(session, "atomic")
 
-        Residue.set_templates_dir(bundle_info.data_dir())
+        from chimerax.core.toolshed import get_toolshed
+        Residue.set_templates_dir(get_toolshed().find_bundle("AtomicLibrary", session.logger).data_dir())
 
         session.change_tracker = ChangeTracker()
         session.pb_manager = PseudobondManager(session)

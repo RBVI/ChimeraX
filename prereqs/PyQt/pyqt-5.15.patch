@@ -1,5 +1,5 @@
 diff --git a/prereqs/PyQt/Makefile b/prereqs/PyQt/Makefile
-index 0f81e8ad0..ab4a8ccb5 100644
+index 0f81e8ad0..d85bb559d 100644
 --- a/prereqs/PyQt/Makefile
 +++ b/prereqs/PyQt/Makefile
 @@ -8,9 +8,9 @@ METHOD=wheel
@@ -10,16 +10,16 @@ index 0f81e8ad0..ab4a8ccb5 100644
 -PYQT_MINOR_VERSION = 3
 -QT_MINOR_VERSION = 9
 +VERSION = 5.15
-+PYQT_MINOR_VERSION = 0
-+QT_MINOR_VERSION = 0
++PYQT_MINOR_VERSION = 1
++QT_MINOR_VERSION = 1
  
  MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
  
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index 924864d20..990a08c27 100644
+index 924864d20..b4dbe5dc0 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
-@@ -3,16 +3,22 @@ TOP	= ../..
+@@ -3,15 +3,21 @@ TOP	= ../..
  include $(TOP)/mk/config.make
  include ../pips/Makefile.pip
  
@@ -38,14 +38,12 @@ index 924864d20..990a08c27 100644
 -VERSION = 5.12
 -QT_MINOR_VERSION = 9
 -PYQT_MINOR_VERSION = 3
--PYQTWE_MINOR_VERSION = 1
 +VERSION = 5.15
-+QT_MINOR_VERSION = 0
-+PYQT_MINOR_VERSION = 0
-+PYQTWE_MINOR_VERSION = 0
++QT_MINOR_VERSION = 1
++PYQT_MINOR_VERSION = 1
+ PYQTWE_MINOR_VERSION = 1
  QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
  ifeq (,$(PYQT_MINOR_VERSION))
- PYQT_VERSION = $(VERSION)
 @@ -25,50 +31,49 @@ else
  PYQTWE_VERSION = $(VERSION).$(PYQTWE_MINOR_VERSION)
  endif
@@ -54,8 +52,8 @@ index 924864d20..990a08c27 100644
 -# to a Windows path when installing
 +# Versions of Riverbank Computing Limited packages/programs from when
 +# unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
-+SIP_VERSION = 12.8.0
-+BUILDER_VERSION = 1.4.0
++SIP_VERSION = 12.8.1
++BUILDER_VERSION = 1.5.0
 +
  QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
 -WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(BUILD_TAGS).whl
@@ -66,12 +64,14 @@ index 924864d20..990a08c27 100644
 +WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
  
 -PYQT_LICENSE_VERSION = 1.17
- PYTHON_TAGS = cp35.cp36.cp37.cp38
+-PYTHON_TAGS = cp35.cp36.cp37.cp38
++PYTHON_TAGS = cp35.cp36.cp37.cp38.cp39
  
  ifeq ($(OS),Darwin)
  BIN_PLATFORM = macos
  WHEEL_ABI = abi3
- WHEEL_PLATFORM = macosx_10_6_intel
+-WHEEL_PLATFORM = macosx_10_6_intel
++WHEEL_PLATFORM = macosx_10_13_intel
 +WE_WHEEL_PLATFORM = macosx_10_13_intel
  QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
  else ifeq ($(OS),Linux)
@@ -157,8 +157,8 @@ index 924864d20..990a08c27 100644
  endif
 -	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQt5_commercial*.whl-unlicensed
 -	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQtWebEngine_commercial*.whl-unlicensed
-+	pyqt-bundle $(BUNDLE_ARGS) PyQt5_commercial-$(PYQT_VERSION)-$(PYTHON_TAGS)-*.whl
-+	pyqt-bundle $(BUNDLE_ARGS) PyQtWebEngine_commercial-$(PYQTWE_VERSION)-$(PYTHON_TAGS)-*.whl
++	pyqt-bundle $(BUNDLE_ARGS) $(BUNDLE_ARGS) PyQt5_commercial-$(PYQT_VERSION)-$(PYTHON_TAGS)-*.whl
++	pyqt-bundle $(BUNDLE_ARGS) $(BUNDLE_ARGS) PyQtWebEngine_commercial-$(PYQTWE_VERSION)-$(PYTHON_TAGS)-*.whl
  
 -upload: wheel
 +upload: wheels

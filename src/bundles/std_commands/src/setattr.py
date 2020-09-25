@@ -102,6 +102,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
                     raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
             for item in items:
                 setattr(item, attr_name, value)
+        if items.object_class in session.change_tracker.tracked_classes:
+            session.change_tracker.add_modified(items, attr_name + " changed")
     else:
         class_ = items[0].__class__
         if not session.attr_registration.has_attribute(class_, attr_name):
@@ -111,6 +113,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
                 raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
         for item in items:
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
+        if isinstance(item, tuple(session.change_tracker.tracked_classes)):
+            session.change_tracker.add_modified(items, attr_name + " changed")
 
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
     try:

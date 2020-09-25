@@ -121,12 +121,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **ChimeraXClassifier**
 
@@ -159,12 +163,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **CModule**
 
@@ -183,12 +191,22 @@ of ``mac``.
 
   - Child elements:
     
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
+
+- **CompileArgument**
+
+  - Element text
+
+    - Additional argument to provide to the compiler when compiling.
 
 - **DataDir**
 
@@ -209,6 +227,14 @@ of ``mac``.
       source.  For example, because current package source is expected
       to be in folder **src**, a data file **datafile** in the
       same folder is referenced as ``datafile``, not ``src/datafile``.
+
+- **Define**
+
+  - Element text
+
+    - Symbolic name to be defined during compilation.  Can just be
+      the symbolic name itself, or the symbolic name plus *=value*, as
+      needed.
 
 - **DataFiles**
 
@@ -379,6 +405,12 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **LinkArgument**
+
+  - Element text
+
+    - Additional argument to provide to the linker when linking.
+
 - **Managers**
 
   - List of managers that bundle provides
@@ -479,6 +511,12 @@ of ``mac``.
   - Element text:
 
     - One line description of bundle (*e.g.*, as tool tip text)
+
+- **Undefine**
+
+  - Element text
+
+    - Symbolic name to be explictly undefined during compilation.
 
 - **URL**
 

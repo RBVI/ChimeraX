@@ -1894,6 +1894,8 @@ class ChangeTracker:
             set_c_pointer(self, ct_pointer)
         f = c_function('set_changetracker_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self.tracked_classes = frozenset([Atom, Bond, Pseudobond, Residue, Chain, StructureData,
+            PseudobondGroupData, CoordSet])
 
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1916,7 +1918,7 @@ class ChangeTracker:
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+                f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
         else:
             f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
                 reason.encode('utf-8'))
