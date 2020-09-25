@@ -126,7 +126,8 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= cxservices gdcm imex lineprofiler openmm pips PyQt Python
+#SUBDIRS	+= cxservices gdcm imex lineprofiler openmm pips PyQt Python
+SUBDIRS	+= cxservices imex lineprofiler openmm pips PyQt Python
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
