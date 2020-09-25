@@ -4,16 +4,20 @@ include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
-DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
-SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
 PIP_VERSION = 20.2.3
 WHEEL_VERSION = 0.34.2
 SETUPTOOLS_VERSION = 50.3.0
 
 ifdef WIN32
+DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
+DISTDIR = $(tmpdir)/python-$(PYTHON_PATCH_LEVEL)-win-amd64
+SOURCE = 
 DYNLOAD_DIR = $(bindir)/DLLs
 else
+DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
+DISTDIR =
+SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
@@ -66,28 +70,6 @@ pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
 endif
 
-ifeq ($(OS),Windows)
-ifeq ($(OSARCH),Windows64)
-REGTOOL = regtool -w
-CONFIG = Release
-PLATFORM = x64
-else
-REGTOOL = regtool
-CONFIG = Release
-PLATFORM = Win32
-endif
-CONFIG_PLATFORM = '$(CONFIG)|$(PLATFORM)'
-
-_PYDIR_MACHINE = /machine/SOFTWARE/Python/PythonCore/$(PYTHON_VERSION)/InstallPath/
-_PYDIR_USER = /user/SOFTWARE/Python/PythonCore/$(PYTHON_VERSION)/InstallPath/
-ifeq ($(shell $(REGTOOL) -q check $(_PYDIR_MACHINE) && echo found),found)
-	PYDIR   = $(shell cygpath -u '$(shell $(REGTOOL) get $(_PYDIR_MACHINE))')
-endif
-ifeq ($(shell $(REGTOOL) -q check $(_PYDIR_USER) && echo found),found)
-	PYDIR   = $(shell cygpath -u '$(shell $(REGTOOL) get $(_PYDIR_USER))')
-endif
-endif # Windows
-
 ifdef DEBUG
 CONFIG_OPTIONS += --with-pydebug
 endif
@@ -101,31 +83,23 @@ endif
 
 all:
 
-install: $(SOURCE)
+install: $(SOURCE) $(DISTDIR)
 ifeq ($(OS),Windows)
-	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
-	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
-	test -n '$(PYDIR)'
-	@if [ $(PYTHON_PATCH_LEVEL) != $(shell '$(PYDIR)'/python -c 'import sys; print(sys.version.split()[0])') ] ; \
-	then \
-		echo "Can not find Python $(PYTHON_PATCH_LEVEL)" ; \
-		exit 1 ; \
-	fi
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(PYDIR)'/DLLs \
-	  '$(PYDIR)'/Lib \
-	  '$(PYDIR)'/include \
-	  '$(PYDIR)'/libs \
-	  '$(PYDIR)'/python.exe \
-	  '$(PYDIR)'/pythonw.exe \
-	  '$(PYDIR)'/*.dll \
+	  '$(DISTDIR)'/DLLs \
+	  '$(DISTDIR)'/Lib \
+	  '$(DISTDIR)'/include \
+	  '$(DISTDIR)'/libs \
+	  '$(DISTDIR)'/python.exe \
+	  '$(DISTDIR)'/pythonw.exe \
+	  '$(DISTDIR)'/*.dll \
 	  '$(bindir)'
 	# Leave include and libs in bindir so pip/setuptools will work.
 	# Also copy include and lib directories to common locations for
 	# our source code.
-	$(RSYNC) --delete '$(PYDIR)'/include/* \
+	$(RSYNC) --delete '$(DISTDIR)'/include/* \
 		$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
-	$(RSYNC) '$(PYDIR)'/libs/* $(libdir)
+	$(RSYNC) '$(DISTDIR)'/libs/* $(libdir)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
@@ -239,11 +213,11 @@ app-install:
 ifeq ($(OS),Windows)
 	# need include and libs so pip install will work
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(PYDIR)'/DLLs \
-	  '$(PYDIR)'/Lib \
-	  '$(PYDIR)'/include \
-	  '$(PYDIR)'/libs \
-	  '$(PYDIR)'/*.dll \
+	  '$(DISTDIR)'/DLLs \
+	  '$(DISTDIR)'/Lib \
+	  '$(DISTDIR)'/include \
+	  '$(DISTDIR)'/libs \
+	  '$(DISTDIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
 	# next line breaks code signing 1/22/16
@@ -275,7 +249,8 @@ endif
 
 ifeq ($(OS),Windows)
 
-$(SOURCE):
+$(DISTDIR): $(DISTRIBUTION)
+	tar xf $(DISTRIBUTION) -C $(tmpdir)
 
 else
 
