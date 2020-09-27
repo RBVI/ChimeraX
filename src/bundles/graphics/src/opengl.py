@@ -290,7 +290,7 @@ class OpenGLContext:
 
 def _qobject_deleted(o):
     import sip
-    return sip.isDeleted(o)
+    return sip.isdeleted(o)
 
 def remember_current_opengl_context():
     '''
