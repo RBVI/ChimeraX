@@ -33,7 +33,7 @@ class _StatusBarOpenGL:
         self._drawing2 = None	# Secondary status
         self.background_color = (0.85,0.85,0.85,1.0)
         self.text_color = (0,0,0,255)
-        self.font = 'Lucida Sans'	# Wider and clearer than Helvetica or Arial
+        self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
