@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core import ProviderManager
+from chimerax.core.toolshed import ProviderManager
 
 class SeqFeatureManager(ProviderManager):
 
@@ -26,9 +26,13 @@ class SeqFeatureManager(ProviderManager):
     def data_sources(self):
         return self._data_source_info.keys()
 
+    def get_features(self, seq, data_source):
+        if data_source not in self._data_source_info:
+            raise ValueError("Unknown sequence-feature data source: %s" % data_source)
+
 _manager = None
-def get_manager(self):
+def get_manager():
     global _manager
     if _manager is None:
         _manager = SeqFeatureManager()
-    return manager
+    return _manager
