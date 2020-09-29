@@ -3265,6 +3265,7 @@ class MoveUIMode(HandMode):
         oc = e.camera.other_controller(hc)
         if oc and self._ui_zoom(oc):
             scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
+            scale = max(min(scale, 10.0), 0.1)	# Limit scaling
             ui.scale_ui(scale)
             self._last_hand_position.clear()	# Avoid jump when one button released
         else:
@@ -3385,7 +3386,6 @@ def _pinch_scale(prev_pos, pos, other_pos):
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
     if dp > 0:
         s = d / dp
-        s = max(min(s, 10.0), 0.1)	# Limit scaling
     else:
         s = 1.0
     center = 0.5*(pos+other_pos)
@@ -3415,8 +3415,7 @@ class ZoomMode(HandMode):
         if center is None:
             return
         y_motion = (e.pose.origin() - e.previous_pose.origin())[1]  # meters
-        s = 2 ** (y_motion/self.size_doubling_distance)
-        scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
+        scale_factor = 2 ** (y_motion/self.size_doubling_distance)
         _pinch_zoom(e.camera, scale_factor, center)
     def released(self, hand_event):
         self._zoom_center = None
@@ -3442,7 +3441,16 @@ def _choose_zoom_center(camera, center = None):
         return camera.room_position.origin()
     return center
 
-def _pinch_zoom(camera, scale_factor, center):
+def _pinch_zoom(camera, scale_factor, center, max_scale_factor = 10, max_scale = 1e12):
+    if max_scale_factor is not None:
+        if scale_factor > max_scale_factor:
+            scale_factor = max_scale_factor
+        elif scale_factor < 1/max_scale_factor:
+            scale_factor = 1/max_scale_factor
+    if max_scale is not None:
+        s = camera.scene_scale * scale_factor
+        if s > max_scale or s < 1/max_scale:
+            return
     from chimerax.geometry import distance, translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)
