@@ -985,15 +985,16 @@ class VRHeadModel(Model):
 
 class VRGUIModel(Model):
     '''Size in meters.'''
-    casts_shadows = False
-    pickable = False
-    skip_bounds = True
     SESSION_SAVE = False
 
     def __init__(self, session, name = 'GUI Panel'):
         Model.__init__(self, name, session)
         self.room_position = None
         self._panels = {}		# Maps panel name to VRGUIPanel
+        self.casts_shadows = False
+        self.pickable = False
+        self.skip_bounds = True		# Panels should not effect view all command.
+        self.allow_depth_cue = False	# Avoid panels fading out far from models.
 
     def update_panel(self, panel_changes):
         name = panel_changes['name']
