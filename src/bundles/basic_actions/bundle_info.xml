@@ -28,8 +28,6 @@ atoms, cartoons and surfaces.
     <Category name="General"/>
   </Categories>
 
-<AdditionalPackages/>
-
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>

@@ -504,7 +504,12 @@ class BundleBuilder:
                 if kind == "file":
                     pkg_files.append(name)
                 elif kind == "dir":
-                    prefix = "src"
+                    for pknm, folder in self.packages:
+                        if pknm == pkg_name:
+                            prefix = folder
+                            break
+                    else:
+                        prefix = "src"
                     prefix_len = len(prefix) + 1
                     root = os.path.join(prefix, name)
                     for dirp, dns, fns in os.walk(root):

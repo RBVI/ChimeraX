@@ -3,16 +3,19 @@ BUILD_AND_INSTALL = 1
 include ../Makefile.bundle
 TOP = ../../..
 include $(TOP)/mk/config.make
+CLEAN_ALWAYS =	src/lib src/include src/data atomic_cpp/pyinstance_cpp/imex*.h \
+	atomic_cpp/element_cpp/imex.h atomic_cpp/atomstruct_cpp/imex.h
 
-CSRCS = atomic_cpp/load_libs.cpp
-CLEAN_ALWAYS =	src/lib src/include src/data atomic_cpp/load_libs.o*
+install: atomic_cpp/pyinstance_cpp/imex.map.h atomic_cpp/element_cpp/imex.h atomic_cpp/atomstruct_cpp/imex.h
 
-wheel install app-install:	lib
+atomic_cpp/atomstruct_cpp/imex.h:
+	sed -e 's/LIBNAME/ATOMSTRUCT/' < $(includedir)/imex.i > $@
 
-lib:
-	$(MAKE) -C atomic_cpp install
+atomic_cpp/element_cpp/imex.h:
+	sed -e 's/LIBNAME/ELEMENT/' < $(includedir)/imex.i > $@
 
-clean:	atomic_cpp.clean
+atomic_cpp/pyinstance_cpp/imex.h:
+	sed -e 's/LIBNAME/PYINSTANCE/' < $(includedir)/imex.i > $@
 
-atomic_cpp.clean:
-	$(MAKE) -C atomic_cpp clean
+atomic_cpp/pyinstance_cpp/imex.map.h: atomic_cpp/pyinstance_cpp/imex.h
+	sed -e 's/PYINSTANCE/PYINSTANCE_MAP/' < $< > $@
