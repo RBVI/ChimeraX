@@ -585,7 +585,7 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
     Mouse mode to translate picked models.
     '''
     name = 'move picked models'
-    icon_file = 'icons/move_h2o.png'  # TODO: Make icon witbhout selection outline
+    icon_file = 'icons/move_picked_model.png'
 
     def __init__(self, session):
         TranslateMouseMode.__init__(self, session)
