@@ -220,6 +220,6 @@ class TapeMeasureMouseMode(MouseMode):
         end_time = time()
         if end_time - self._start_time < self._clear_time:
             self._clear()
-        else:
+        elif self._markers:
             self._log_tape_command()
         self._markers = []
