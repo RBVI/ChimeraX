@@ -837,14 +837,8 @@ class Structure(Model, StructureData):
         import numpy
         for attr in attrs:
             choose = attr.attr_matcher()
-            if len(objects) == 1:
-                # numpy.vectorize produces the wrong size in this case
-                selected = numpy.array(selected)
-                selected[0] = selected[0] and choose(objects[0])
-            else:
-                s = numpy.vectorize(choose)(objects)
-                selected = numpy.logical_and(selected, s)
-        return selected
+            selected = [(selected[i] and choose(obj)) for i, obj in enumerate(objects)]
+        return numpy.array(selected)
 
 
     def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):

@@ -2327,6 +2327,8 @@ class PickedMap(Pick):
     return '%s %s %s' % (self.map.id_string, self.map.name, self.detail)
   def specifier(self):
     return '#%s' % self.map.id_string
+  def drawing(self):
+    return self.map
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':

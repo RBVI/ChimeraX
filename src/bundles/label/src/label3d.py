@@ -372,10 +372,12 @@ class ObjectLabels(Model):
             if o not in ol:
                 ol[o] = lo = label_class(o, view, **settings)
                 self._labels.append(lo)
-            if settings:
+            elif settings:
                 lo = ol[o]
                 for k,v in settings.items():
                     setattr(lo, k, v)
+            else:
+                continue
             if lo.attribute is not None:
                 self._monitor_attribute(lo)
         self._count_pixel_sized_labels()

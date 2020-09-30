@@ -216,8 +216,10 @@ class TapeMeasureMouseMode(MouseMode):
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
-        self._markers = []
         from time import time
         end_time = time()
         if end_time - self._start_time < self._clear_time:
             self._clear()
+        elif self._markers:
+            self._log_tape_command()
+        self._markers = []
