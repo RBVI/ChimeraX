@@ -216,9 +216,9 @@ class RESTHandler(BaseHTTPRequestHandler):
                             json_vals.append(None)
                             python_vals.append(val)
                     response = {}
-                    response['json_values'] = json_vals
-                    response['python_values'] = python_vals
-                    response['log_messages'] = rest_log.getvalue()
+                    response['json values'] = json_vals
+                    response['python values'] = python_vals
+                    response['log messages'] = rest_log.getvalue()
                     q.put(JSONEncoder(default=lambda x: None).encode(response))
                 else:
                     q.put(rest_log.getvalue())
