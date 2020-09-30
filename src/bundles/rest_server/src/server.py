@@ -41,7 +41,7 @@ class RESTServer(Task):
     def server_address(self):
         return self.httpd.server_address
 
-    def run(self, port, use_ssl):
+    def run(self, port, use_ssl, json):
         from http.server import HTTPServer
         import sys
         if port is None:
@@ -52,6 +52,7 @@ class RESTServer(Task):
             use_ssl = False
         self.httpd = HTTPServer(("localhost", port), RESTHandler)
         self.httpd.chimerax_restserver = self
+        self.json = json
         if not use_ssl:
             proto = "http"
         else:
@@ -181,11 +182,12 @@ class RESTHandler(BaseHTTPRequestHandler):
         from chimerax.core.logger import StringPlainTextLog
         session = self.server.chimerax_restserver.session
         q = Queue()
-        def f(args=args, session=session, q=q):
+        def f(args=args, session=session, q=q, json=self.server.chimerax_restserver.json):
             logger = session.logger
             # rest_log.log_summary gets called at the end
             # of the "with" statement
-            with StringPlainTextLog(logger) as rest_log:
+            log_class = ByLevelPlainTextLog if json else StringPlainTextLog
+            with log_class(logger) as rest_log:
                 from chimerax.core.commands import run
                 try:
                     commands = args["command"]
@@ -196,11 +198,44 @@ class RESTHandler(BaseHTTPRequestHandler):
                         for cmd in commands:
                             if isinstance(cmd, bytes):
                                 cmd = cmd.decode('utf-8')
-                            run(session, cmd, log=False)
+                            ret_val = run(session, cmd, log=False, return_json=json, return_list=True)
                     except NotABug as e:
                         logger.info(str(e))
-                q.put(rest_log.getvalue())
+                # if json, compose Python and JSON return values into a JSON string,
+                # along with log messages broken down by logging level
+                if json:
+                    from chimerax.core.commands import JSONResult
+                    from json import JSONEncoder
+                    json_vals = []
+                    python_vals = []
+                    for val in ret_val:
+                        if isinstance(val, JSONResult):
+                            json_vals.append(val.json_value)
+                            python_vals.append(val.python_value)
+                        else:
+                            json_vals.append(None)
+                            python_vals.append(val)
+                    response = {}
+                    response['json_values'] = json_vals
+                    response['python_values'] = python_vals
+                    response['log_messages'] = rest_log.getvalue()
+                    q.put(JSONEncoder(default=lambda x: None).encode(response))
+                else:
+                    q.put(rest_log.getvalue())
         session.ui.thread_safe(f)
         data = bytes(q.get(), "utf-8")
         self._header(200, "text/plain", len(data))
         self.wfile.write(data)
+
+from chimerax.core.logger import StringPlainTextLog
+class ByLevelPlainTextLog(StringPlainTextLog):
+    def __init__(self, logger):
+        super().__init__(logger)
+        self._msgs = { descript:[] for descript in self.LEVEL_DESCRIPTS }
+
+    def log(self, level, msg):
+        self._msgs[self.LEVEL_DESCRIPTS[level]].append(msg)
+        return True
+
+    def getvalue(self):
+        return self._msgs

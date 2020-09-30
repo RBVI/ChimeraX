@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .run import run, concise_model_spec, sel_or_all, NoneSelectedError
+from .run import run, concise_model_spec, sel_or_all, NoneSelectedError, JSONResult
 from .runscript import runscript
 from .logging import log_equivalent_command, residues_specifier, options_text
 
