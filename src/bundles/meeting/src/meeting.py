@@ -447,7 +447,10 @@ class MeetingServer:
         msg = msg_bytes[4:4+msg_len].decode('utf-8')
         mbuf[socket] = msg_bytes[4+msg_len:]
         import ast
-        msg_data = ast.literal_eval(msg)
+        try:
+            msg_data = ast.literal_eval(msg)
+        except ValueError as e:
+            raise ValueError('ChimeraX meeting message could not be parsed, length %d, content "%s"' % (msg_len, msg)) from e
         return msg_data
 
     def _report_message_status(self, bytes_received, message_bytes):
