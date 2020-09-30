@@ -291,6 +291,7 @@ class MoveMouseMode(MouseMode):
         MouseMode.mouse_up(self, event)
 
         self._undo_save()
+        self._log_command()
 
         if self.move_atoms:
             self._atoms = None
@@ -462,6 +463,15 @@ class MoveMouseMode(MouseMode):
         self._starting_atom_scene_coords = None
         self._starting_model_positions = None
 
+    def _log_command(self):
+        if self._moved:
+            models = self.models()
+            if models:
+                from chimerax.std_commands.view import model_positions_string
+                cmd = 'view matrix models %s' % model_positions_string(models)
+                from chimerax.core.commands import log_equivalent_command
+                log_equivalent_command(self.session, cmd)
+
     def vr_press(self, event):
         # Virtual reality hand controller button press.
         if self.move_atoms:
@@ -480,6 +490,7 @@ class MoveMouseMode(MouseMode):
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._undo_save()
+        self._log_command()
 
 class RotateMouseMode(MoveMouseMode):
     '''
