@@ -2583,6 +2583,7 @@ class HandController:
     
     def close(self):
         self._device_index = None
+        self._active_drag_modes.clear()
         self._close_hand_model()
 
     def _close_hand_model(self):
