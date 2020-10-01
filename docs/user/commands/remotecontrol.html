@@ -16,6 +16,14 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>Command: remotecontrol</title>
+<style>
+table {
+	border-collapse: collapse;
+}
+td, th {
+	border: 1px solid black;
+}
+</style>
 </head><body>
 
 <a name="top"></a>
@@ -44,6 +52,7 @@ Either of the following methods of communication can be used:
 <b>remotecontrol rest start</b>
 [&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -84,10 +93,31 @@ curl http://127.0.0.1:60958/run?command=open+1a0s
 wget http://127.0.0.1:60958/run?command=open+1grl
 </blockquote>
 <p>
-Any logging that would normally result from command execution will still occur,
+If <b>json</b> is <b>false</b> (default), any logging that would normally result from command execution will still occur,
 but will be shown in the web browser or (for curl or wget) in the shell
 instead of in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>.
-The command <b>remotecontrol rest stop</b> 
+If <b>json</b> is <b>true</b>, command execution will return a string in 
+<a href="https://www.json.org/">JSON</a> (JavaScript Object Notation) format representing a JSON &quot;object&quot;
+with the following name/value pairs:
+<table>
+	<tr>
+		<th>Name</th>
+		<th>Value</th>
+	</tr>
+	<tr>
+		<td>python&nbsp;values</td>
+		<td>A list of the Python values returned by the commands executed.  Typically, a list with only one value, but if the &quot;command&quot; sent was actually a series of commands separated by semicolons, then the list would have a corresponding number of values.</td>
+	</tr>
+	</tr>
+		<td>json&nbsp;values</td>
+		<td>A list of the JSON values returned by the commands executed.  The exact contents of a command's JSON value should be documented in the doc string for the function that carries out the corresponding command. Will be <code>null</code> for commands that haven't yet implemented JSON return values.</td>
+	</tr>
+	</tr>
+		<td>log&nbsp;messages</td>
+		<td>A JSON object with the names corresponding to <code>chimerax.core.logger.Log.LEVEL_DESCRIPTS</code> and whose values are lists of messages logged at that level during command execution.</td>
+	</tr>
+</table>
+<p>The command <b>remotecontrol rest stop</b> 
 discontinues accepting commands by REST, optionally sending a notification
 to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
 </p>
