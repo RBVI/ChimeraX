@@ -21,7 +21,7 @@ def _get_server():
         _server = None
     return _server
 
-def start_server(session, port=None, ssl=None):
+def start_server(session, port=None, ssl=None, json=False):
     global _server
     server = _get_server()
     if server is not None:
@@ -30,10 +30,11 @@ def start_server(session, port=None, ssl=None):
         from .server import RESTServer
         _server = RESTServer(session)
         # Run code will report port number
-        _server.start(port, ssl)
+        _server.start(port, ssl, json)
 from chimerax.core.commands import CmdDesc, IntArg, BoolArg
 start_desc = CmdDesc(keyword=[("port", IntArg),
                               ("ssl", BoolArg),
+                              ("json", BoolArg),
                              ],
                      synopsis="Start REST server")
 
