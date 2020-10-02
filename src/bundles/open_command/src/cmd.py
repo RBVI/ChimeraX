@@ -37,6 +37,10 @@ def exists_locally(text, format):
     return False
 
 def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
+    """If return_json is True, the returned JSON object has one name/value pair:
+        (name) model specs
+        (value) a list of atom specifiers, one for each model opened by the command
+    """
     tokens = []
     remainder = rest_of_line
     while remainder:
