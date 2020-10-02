@@ -373,7 +373,8 @@ target="_blank">OME</a> TIFF</td>
 <br>(grayscale or RGB image series in multiple files or a single multipage file,
 in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>);
-see <a href="#image-wildcards">image stack wildcards</a>
+see <a href="#image-wildcards">image stack wildcards</a> and
+<a href="#photo">single image</a>
 </td>
 </tr><tr>
 <td align="center">
@@ -688,6 +689,16 @@ command file</a></td>
 <td align="center">
 <a href="../index.html#commands">ChimeraX commands</a></td>
 </tr><tr>
+<td align="center">photo (single image)</td>
+<td align="center"><b>photo</b></td>
+<td align="center">.jpg
+<br>(other image types .tif,.png, <i>etc.</i>
+accepted if specified as <b>format photo</b>;
+<a href="#photo">details...</a>)
+</td>
+<td align="center">2D image;
+<br>see also <a href="#image-stacks">image stack</a></td> 
+</tr><tr>
 <td align="center">Python</td>
 <td align="center"><b>py</b></td>
 <td align="center">.py, .pyc, .pyo
@@ -921,6 +932,13 @@ Whether to fetch ensembles associated with an IHM dataset
 (default <b>false</b>, as these can be quite large).
 </blockquote>
 <blockquote>
+<a name="height"></a>
+<b>height</b>&nbsp;&nbsp;<i>h</i>
+<br>
+Height in physical units of distance (&Aring;) for the
+<a href="#photo">photo</a> (single image) being opened.
+</blockquote>
+<blockquote>
 <a name="logInfo"></a>
 <b>logInfo</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -975,6 +993,13 @@ number. Model name and number can be changed with the
 Whether to open an HTML file in a new tab of the
 <a href="../tools/helpviewer.html">ChimeraX browser</a>
 (default <b>false</b>, replace any current page).
+</blockquote>
+<blockquote>
+<a name="pixelSize"></a>
+<b>pixelSize</b>&nbsp;&nbsp;<i>s</i>
+<br>
+Pixel size in physical units of distance (&Aring;) for the
+<a href="#photo">photo</a> (single image) being opened.
 </blockquote>
 <blockquote>
 <a name="resizeWindow"></a>
@@ -1052,6 +1077,13 @@ The option to specify a directory rather than filenames
 is only available for this format. See also:
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p>
+</blockquote>
+<blockquote>
+<a name="width"></a>
+<b>width</b>&nbsp;&nbsp;<i>w</i>
+<br>
+Width in physical units of distance (&Aring;) for the
+<a href="#photo">photo</a> (single image) being opened.
 </blockquote>
 
 <a name="url"></a>
@@ -1358,6 +1390,44 @@ FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
 RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
 </p>
 
+<a name="photo"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Photo (Single Image)</h3>
+<p>
+A single image file can be opened as a flat model. Although flat,
+the model exists in 3D and can be rotated and translated like other models.
+Several image types (filename suffixes .png, .tif, <i>etc.</i>) 
+are accepted, but except for .jpg, require specifying 
+<a href="#miscellaneous"><b>format photo</b></a> 
+in the <a href="#local"><b>open</b></a> command. Any of the following 
+options can be used to specify the size of the image within the scene:
+</p>
+<blockquote>
+<a href="#width"><b>width</b></a>&nbsp;&nbsp;<i>w</i>
+<br>
+<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>
+<br>
+<a href="#pixelSize"><b>pixelSize</b></a>&nbsp;&nbsp;<i>s</i>
+</blockquote>
+<p>
+Width, height, and pixel size values are specified in physical units of 
+distance (&Aring;). If width or height is given,
+the other is set according to the aspect ratio of the image.
+If both are given and their ratio differs
+from that of the image, the image will be stretched.
+Width and height values override any pixel size specification.
+If no width, height, or pixel size is given,
+a pixel size of <b>1.0</b> will be used.
+Examples:
+<blockquote>
+<b>open ~/Desktop/headshot.png format photo width 5</b>
+<br>
+<b>open figure1.jpg height 30</b>
+</blockquote>
+</p>
+
 <a name="clipper"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
@@ -1435,5 +1505,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+October 2020</address>
 </body></html>
