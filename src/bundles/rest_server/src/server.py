@@ -193,6 +193,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                     commands = args["command"]
                 except KeyError:
                     logger.error("\"command\" parameter missing")
+                    ret_val = []
                 else:
                     try:
                         for cmd in commands:
@@ -200,6 +201,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                                 cmd = cmd.decode('utf-8')
                             ret_val = run(session, cmd, log=False, return_json=json, return_list=True)
                     except NotABug as e:
+                        ret_val = []
                         logger.info(str(e))
                 # if json, compose Python and JSON return values into a JSON string,
                 # along with log messages broken down by logging level

@@ -16,7 +16,7 @@ from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat
 
 
-def info(session, models=None):
+def info(session, models=None, *, return_json=False):
     '''
     Report state of models, such as whether they are displayed, color, number of children,
     number of instances...
@@ -24,19 +24,66 @@ def info(session, models=None):
     Parameters
     ----------
     models : list of models
+
+    If 'return_json' is True, the returned JSON will be a list of JSON objects, one per model.  Each object
+    will have at a minimum the following name/value pairs:
+
+        spec:  the atom specifier for this model
+        name:  the name of the model
+        shown:  whether the model-level display attribute is true
+        num triangles:  if the model is a surface of some kind, how many triangles does it have; for
+            non-surface models, this will be 0
+        num instances:  how many graphical "instances" of the model are there, so at least 1
+        num selected instances:  how many of the graphical instances are selected
+
+    For Structure (or AtomicStructure) models, there will be these additional name/value pairs:
+
+        num atoms:  the number of atoms
+        num_bonds:  the number of bonds
+        num residues:  the number of residues
+        chains:  a list of chain IDs for polymeric chains in the structure
+        num coordsets:  the number of coordinate sets in the structure
+        pseudobond groups:  list of JSON, one per pseudobond subgroup; those objects will have the following
+            name/value pairs:
+
+            name: name of the pseudobond group
+            num pseudobonds:  number of pseudobonds in the group
+
+    For global PseudobondGroup models (i.e. not a submodel of a structure), there will be this additional
+    name/value pair:
+
+            num pseudobonds:  number of pseudobonds in the group
+
+    For Volume models, there will be additional names: size, step, voxel size, surface levels, image levels,
+        minimum value, maximum value, value type, and num symmetry operators.
     '''
     m = session.models
     if models is None:
         models = m.list()
     
-    lines = []
+    if return_json:
+        model_infos = []
+    else:
+        lines = []
     from . import util
     for m in sorted(models, key = lambda m: m.id):
-        line = (util.model_info(m) +
-                util.structure_info(m) +
-                util.pseudobond_group_info(m) +
-                util.volume_info(m))
-        lines.append(line)
+        if return_json:
+            info = {}
+            model_infos.append(info)
+            util.model_info(m, info_dict=info)
+            util.structure_info(m, info_dict=info)
+            util.pseudobond_group_info(m, info_dict=info)
+            util.volume_info(m, info_dict=info)
+        else:
+            line = (util.model_info(m) +
+                    util.structure_info(m) +
+                    util.pseudobond_group_info(m) +
+                    util.volume_info(m))
+            lines.append(line)
+    if return_json:
+        from chimerax.core.commands import JSONResult
+        import json
+        return JSONResult(json.JSONEncoder().encode(model_infos), None)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)
 
