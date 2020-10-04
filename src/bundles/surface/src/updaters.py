@@ -23,7 +23,10 @@ class SurfaceUpdaters(State):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        return SurfaceUpdaters(data['updaters'])
+        # Filter out updaters that could not be restored.
+        # For example, a surface for a missing Volume might not be restored.
+        updaters = [u for u in data['updaters'] if u is not None]
+        return SurfaceUpdaters(updaters)
 
     def clear(self):
         self._updaters.clear()
