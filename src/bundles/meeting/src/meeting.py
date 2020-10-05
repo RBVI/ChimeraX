@@ -803,7 +803,10 @@ class VRTracking(PointerModels):
             # Notify about changes in panel size, position or image.
             pchanges = []	# GUI panel changes
             for panel in ui.panels:
-                name, size, pos, rgba = panel.name, panel.size, panel.drawing.position, panel.panel_image_rgba()
+                name, size, pos = panel.name, panel.size, panel.drawing.position
+                rgba = panel.panel_image_rgba()
+                if rgba is None:
+                    continue  # Panel has not yet been drawn.
                 pstate = gui_state.setdefault(('panel', name), {})
                 pchange = {}
                 if 'size' not in pstate or size != pstate['size'] or shown_changed:
