@@ -44,8 +44,14 @@ install: $(SOURCE)
 
 app-install:;
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/llvm/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/llvm
 
 clean:
 	if [ -d $(SOURCE) ] ; then \

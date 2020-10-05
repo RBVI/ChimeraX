@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/xplor
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/xplor
 
 PYSRCS = __init__.py xplor_format.py xplor_grid.py
 

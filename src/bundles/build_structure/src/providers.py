@@ -290,7 +290,7 @@ def process_command(session, name, structure, substring):
                 ), shim_place_peptide, registry=command_registry)
 
         cmd = Command(session, registry=command_registry)
-        cmd.run(name + ' ' + substring, log=False)
+        return cmd.run(name + ' ' + substring, log=False)[0]
     finally:
         _structure = None
 

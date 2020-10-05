@@ -23,8 +23,6 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
     if atom.num_bonds -len(neighbor_Hs) > num_bonds:
         raise ParamError("Atom already has more bonds to heavy atoms than requested.\n"
             "Either delete some of those bonds/atoms or choose a different number of requested bonds.")
-    for h in neighbor_Hs:
-        h.structure.delete_atom(h)
 
     if geometry is None:
         if num_bonds < 2:
@@ -38,6 +36,9 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
                 geometry = 4
     if num_bonds > geometry:
         raise ParamError("Requested number of bonds more than the coordination geometry can support.")
+
+    for h in neighbor_Hs:
+        h.structure.delete_atom(h)
 
     changed_atoms = [atom]
     if name:
@@ -80,7 +81,7 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
         if atom.structure.num_atoms < 100:
             test_atoms = list(atom.structure.atoms)
         else:
-            from chimerax.atomic.search import AtomSearchTree
+            from chimerax.atom_search import AtomSearchTree
             tree = AtomSearchTree(atom.structure.atoms, sep_val=2.5, scene_coords=False)
             test_atoms = tree.search(atom.coord, 5.0)
     else:
@@ -197,7 +198,7 @@ element_radius[Element.get_element('S')] = 1.0428
 
 def bond_length(a1, geom, e2, *, a2_info=None):
     if e2.number == 1:
-        from chimerax.atomic.addh import bond_with_H_length
+        from chimerax.addh import bond_with_H_length
         return bond_with_H_length(a1, geom)
     e1 = a1.element
     base_len = element_radius[e1] + element_radius[e2]

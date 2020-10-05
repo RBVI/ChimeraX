@@ -72,6 +72,7 @@ from chimerax.core.models import Surface
 class BlobOutlineBox(Surface):
     def __init__(self, session):
         Surface.__init__(self, 'blob outline box', session)
+        self.pickable = False
 
     @classmethod
     def create_box(cls, session, axes, bounds, rgba = (0,255,0,255)):
@@ -199,14 +200,8 @@ class PickBlobs(MouseMode):
     def mouse_down(self, event):
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x, y, exclude = self._unpickable)
+        pick = view.picked_object(x, y, max_transparent_layers = 0)
         self._pick_blob(pick)
-
-    def _unpickable(self, m):
-        from chimerax.core.models import Model
-        return (isinstance(m,BlobOutlineBox) or
-                not getattr(m, 'pickable', True) or
-                not isinstance(m, Model))
     
     def _pick_blob(self, pick):
         from chimerax.map.volume import PickedMap

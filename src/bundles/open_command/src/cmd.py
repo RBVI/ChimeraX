@@ -13,7 +13,7 @@
 
 from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
     FileNameArg, BoolArg, StringArg, DynamicEnum
-from chimerax.core.commands.cli import RegisteredCommandInfo
+from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 # need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
@@ -43,62 +43,61 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         token, token_log, remainder = next_token(remainder)
         remainder = remainder.lstrip()
         tokens.append(token)
-    database_name = format_name = None
-    for i in range(len(tokens)-2, -1, -2):
-        test_token = tokens[i].lower()
-        if "format".startswith(test_token):
-            format_name = tokens[i+1]
-        elif "fromdatabase".startswith(test_token):
-            database_name = tokens[i+1]
-
-    from .manager import NoOpenerError
-    mgr = session.open_command
-    fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
-    if fetches:
-        try:
-            provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
-        except NoOpenerError as e:
-            raise LimitationError(str(e))
-    else:
-        data_format = file_format(session, files[0], format_name)
-        if data_format is None:
-            # let provider_open raise the error, which will show the command
-            provider_args = {}
-        else:
-            try:
-                provider_args = mgr.open_args(data_format)
-            except NoOpenerError as e:
-                raise LimitationError(str(e))
-
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
         for fn in file_names] + [StringArg.unparse(token) for token in tokens])
-    # register a private 'open' command that handles the provider's keywords
-    registry = RegisteredCommandInfo()
-    def format_names(ses=session):
-        fmt_names = set([ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ])
-        for db_name in ses.open_command.database_names:
-            for fmt_name in ses.open_command.database_info(db_name).keys():
-                fmt_names.add(ses.data_formats[fmt_name].nicknames[0])
-        return fmt_names
+    try:
+        database_name = format_name = None
+        for i in range(len(tokens)-2, -1, -2):
+            test_token = tokens[i].lower()
+            if "format".startswith(test_token):
+                format_name = tokens[i+1]
+            elif "fromdatabase".startswith(test_token):
+                database_name = tokens[i+1]
 
-    def database_names(mgr=mgr):
-        return mgr.database_names
+        from .manager import NoOpenerError
+        mgr = session.open_command
+        fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
+        if fetches:
+            try:
+                provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
+            except NoOpenerError as e:
+                raise LimitationError(str(e))
+        else:
+            data_format = file_format(session, files[0], format_name)
+            if data_format is None:
+                # let provider_open raise the error, which will show the command
+                provider_args = {}
+            else:
+                try:
+                    provider_args = mgr.open_args(data_format)
+                except NoOpenerError as e:
+                    raise LimitationError(str(e))
 
-    keywords = {
-        'format': DynamicEnum(format_names),
-        'from_database': DynamicEnum(database_names),
-        'ignore_cache': BoolArg,
-        'name': StringArg
-    }
-    for keyword, annotation in provider_args.items():
-        if keyword in keywords:
-            raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
-                " same name" % keyword)
-        keywords[keyword] = annotation
-    desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
-        synopsis="unnecessary")
-    register("open", desc, provider_open, registry=registry)
-    Command(session, registry=registry).run(provider_cmd_text, log=log)
+        # register a private 'open' command that handles the provider's keywords
+        registry = RegisteredCommandInfo()
+
+        def database_names(mgr=mgr):
+            return mgr.database_names
+
+        keywords = {
+            'format': DynamicEnum(lambda ses=session:format_names(ses)),
+            'from_database': DynamicEnum(database_names),
+            'ignore_cache': BoolArg,
+            'name': StringArg
+        }
+        for keyword, annotation in provider_args.items():
+            if keyword in keywords:
+                raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
+                    " same name" % keyword)
+            keywords[keyword] = annotation
+        desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
+            synopsis="read and display data")
+        register("open", desc, provider_open, registry=registry)
+    except BaseException as e:
+        # want to log command even for keyboard interrupts
+        log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
+        raise
+    return Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
@@ -114,6 +113,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             " multiple different formats or databases; use several 'open' commands"
             " instead.")
     opened_models = []
+    ungrouped_models = []
     statuses = []
     if homogeneous:
         data_format = formats.pop() if formats else None
@@ -130,6 +130,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
+                    ungrouped_models.extend(models)
         else:
             opener_info, provider_info = mgr.open_info(data_format)
             if provider_info.batch:
@@ -141,6 +142,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, paths))
+                    ungrouped_models.extend(models)
             else:
                 for fi in file_infos:
                     if provider_info.want_path:
@@ -155,6 +157,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if models:
                         opened_models.append(name_and_group_models(models, name,
                             [fi.file_name]))
+                        ungrouped_models.extend(models)
     else:
         for fi in file_infos:
             opener_info, provider_info = mgr.open_info(fi.data_format)
@@ -168,6 +171,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
@@ -179,6 +183,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [ident]))
+                ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
     if _add_models and len(names) == 1:
@@ -197,10 +202,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
 
     status ='\n'.join(statuses) if statuses else ""
     if _return_status:
-        return opened_models, status
+        return ungrouped_models, status
     elif status:
         session.logger.status(status, log=True)
-    return opened_models
+    return ungrouped_models
 
 def _fetch_info(mgr, database_name, default_format_name):
     db_info = mgr.database_info(database_name)
@@ -273,6 +278,8 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
+        if len(db_name) < 2:
+            return None
     elif database_name:
         db_name = database_name
         ident = file_arg
@@ -394,35 +401,174 @@ class FileInfo:
                 raise UserError("Unrecognized file suffix '%s'" % ext)
             raise UserError("'%s' has no suffix" % file_name)
 
+def _usage_setup(session):
+    if session.ui.is_gui:
+        get_name = lambda arg: arg.html_name()
+        cmd_fmt = "<b>%s</b>"
+        arg_fmt = "<i>%s</i>"
+        end_of_main_syntax = "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; <i>%s</i>\n"
+        arg_syntax_append = "<br>\n&nbsp;&nbsp;%s"
+        arg_syntax_join = "<br>\n&nbsp;&nbsp;"
+        kw_fmt = ' <nobr>[<b>%s</b> <i>%s</i>]</nobr>'
+    else:
+        get_name = lambda arg: arg.name
+        cmd_fmt = "%s"
+        arg_fmt = "%s"
+        end_of_main_syntax = " -- %s"
+        arg_syntax_append = "\n%s"
+        arg_syntax_join = "\n"
+        kw_fmt = ' [%s _%s_]'
+    return get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt
+
+from chimerax.core.commands.cli import user_kw
+
+def cmd_usage_open(session):
+    '''Report the generic syntax for the 'open' command'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+    for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses))),
+            ('fromDatabase', DynamicEnum(lambda ses=session: ses.open_command.database_names)),
+            ('name', StringArg)]:
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    format_desc = "format/database-specific arguments"
+    syntax += ' [%s]' % (arg_fmt % format_desc)
+    arg_syntax.append("%s: %s" % (arg_fmt % format_desc, "format- or database-specific arguments;"
+        " to see their syntax use '%s %s' or '%s %s' commands respectively, where %s and %s are as per"
+        " the above" % (cmd_fmt % "usage open format", arg_fmt % "format", cmd_fmt % "usage open database",
+        arg_fmt % "database", arg_fmt % "format", arg_fmt % "database")))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+def cmd_usage_open_format(session, format):
+    '''Report the syntax for the 'open' command for a partilar format'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+
+    from .manager import NoOpenerError
+    try:
+        provider_args = session.open_command.open_args(session.data_formats[format])
+    except NoOpenerError:
+        raise UserError("'%s' is a database format type; use the command 'usage open database' with the"
+            " corresponding database type instead" % format)
+    for py_kw_name, arg in provider_args.items():
+        kw_name = user_kw(py_kw_name)
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+def cmd_usage_open_database(session, database):
+    '''Report the syntax for the 'open' command for a partilar database fetch'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+
+    mgr = session.open_command
+    args = { 'ignoreCache': BoolArg }
+    args.update(mgr.fetch_args(database))
+    defaults = [format_name for format_name, provider_info in mgr.database_info(database).items()
+        if provider_info.is_default]
+    if len(defaults) == 1:
+        from .manager import NoOpenerError
+        try:
+            args.update(session.open_command.open_args(session.data_formats[defaults[0]]))
+        except NoOpenerError:
+            pass
+
+    for py_kw_name, arg in args.items():
+        kw_name = user_kw(py_kw_name)
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
 def cmd_open_formats(session):
     '''Report file formats, suffixes and databases that the open command knows about.'''
-    if session.ui.is_gui:
-        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
-    else:
-        session.logger.info('File format, Short name(s), Suffixes:')
     from chimerax.core.commands import commas
-    formats = session.open_command.open_data_formats
-    formats.sort(key = lambda f: f.name.lower())
-    for f in formats:
+    all_formats = session.open_command.open_data_formats
+    by_category = {}
+    for fmt in all_formats:
+        by_category.setdefault(fmt.category.title(), []).append(fmt)
+    titles = list(by_category.keys())
+    titles.sort()
+    lines = []
+    for title in titles:
+        formats = by_category[title]
         if session.ui.is_gui:
-            from html import escape
-            if f.reference_url:
-                descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
-            else:
-                descrip = escape(f.synopsis)
-            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
-                escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+            lines.extend([
+                '<table border=1 cellspacing=0 cellpadding=2>',
+                '<tr><th colspan="3">%s' % title,
+                '<tr><th>File format<th>Short name(s)<th>Suffixes'
+            ])
         else:
-            session.logger.info('    %s: %s: %s' % (f.synopsis,
-                commas(f.nicknames), ', '.join(f.suffixes)))
-    if session.ui.is_gui:
-        lines.append('</table>')
-        lines.append('<p></p>')
+            session.logger.info(title)
+            session.logger.info('File format, Short name(s), Suffixes:')
+        formats.sort(key = lambda f: f.name.lower())
+        for f in formats:
+            if session.ui.is_gui:
+                from html import escape
+                if f.reference_url:
+                    descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+                else:
+                    descrip = escape(f.synopsis)
+                lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                    escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+            else:
+                session.logger.info('    %s: %s: %s' % (f.synopsis,
+                    commas(f.nicknames), ', '.join(f.suffixes)))
+        if session.ui.is_gui:
+            lines.append('</table>')
+            lines.append('<p></p>')
+        else:
+            session.logger.info('\n')
 
     if session.ui.is_gui:
         lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
     else:
-        session.logger.info('\nDatabase, Formats:')
+        session.logger.info('Database, Formats:')
     database_names = session.open_command.database_names
     database_names.sort(key=lambda dbn: dbn.lower())
     for db_name in database_names:
@@ -450,11 +596,31 @@ def cmd_open_formats(session):
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
 
+def format_names(session):
+    fmt_names = set([ fmt.nicknames[0] for fmt in session.open_command.open_data_formats ])
+    for db_name in session.open_command.database_names:
+        for fmt_name in session.open_command.database_info(db_name).keys():
+            fmt_names.add(session.data_formats[fmt_name].nicknames[0])
+    return fmt_names
 
+_main_open_CmdDesc = None
 def register_command(command_name, logger):
-    register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
-        ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
-        self_logging=True), cmd_open, logger=logger)
+    global _main_open_CmdDesc
+    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+        ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files", self_logging=True)
+    register('open', _main_open_CmdDesc, cmd_open, logger=logger)
+
+    uo_desc = CmdDesc(synopsis='show generic "open" command syntax')
+    register('usage open', uo_desc, cmd_usage_open, logger=logger)
+
+    uof_desc = CmdDesc(required=[('format', DynamicEnum(lambda ses=logger.session: format_names(ses)))],
+        synopsis='show "open" command syntax for a specific file format')
+    register('usage open format', uof_desc, cmd_usage_open_format, logger=logger)
+
+    uod_desc = CmdDesc(
+        required=[('database', DynamicEnum(lambda ses=logger.session: ses.open_command.database_names))],
+        synopsis='show "open" command syntax for a specific database fetch')
+    register('usage open database', uod_desc, cmd_usage_open_database, logger=logger)
 
     of_desc = CmdDesc(synopsis='report formats that can be opened')
     register('open formats', of_desc, cmd_open_formats, logger=logger)

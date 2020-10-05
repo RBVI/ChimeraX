@@ -441,9 +441,14 @@ class SequenceViewer(ToolInstance):
         self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
 
     def alignment_notification(self, note_name, note_data):
-        if note_name == "modify association":
+        alignment = self.alignment
+        if note_name == alignment.NOTE_MOD_ASSOC:
             assoc_aseqs = set()
-            for match_map in note_data[-1]:
+            if note_data[0] != alignment.NOTE_DEL_ASSOC:
+                match_maps = note_data[1]
+            else:
+                match_maps = [note_data[1]['match map']]
+            for match_map in match_maps:
                 aseq = match_map.align_seq
                 assoc_aseqs.add(aseq)
             for aseq in assoc_aseqs:
@@ -453,13 +458,14 @@ class SequenceViewer(ToolInstance):
                 self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
-        elif note_name == "pre-remove seqs":
+        elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_browser._pre_remove_lines(note_data)
-        elif note_name == "destroyed":
+        elif note_name == alignment.NOTE_DESTROYED:
             self.delete()
-        elif note_name == "command":
+        elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
     def consensus_capitalize_theshold(self):
@@ -499,14 +505,14 @@ class SequenceViewer(ToolInstance):
         from PyQt5.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
-        from chimerax.core.commands import run, quote_path_if_necessary
+        from chimerax.core.commands import run, StringArg
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
-        fmts.sort(key=lambda fmt: fmt.name.casefold())
+        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
-            action = QAction(fmt.name, save_as_menu)
+            action = QAction(fmt.synopsis, save_as_menu)
             action.triggered.connect(lambda arg, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
-                % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
+                % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
@@ -522,22 +528,58 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
-        comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
+
+        headers_menu = menu.addMenu("Headers")
+        headers = self.alignment.headers
+        headers.sort(key=lambda hdr: hdr.ident.casefold())
+        from chimerax.core.commands import run
+        for hdr in headers:
+            action = QAction(hdr.name, headers_menu)
+            action.setCheckable(True)
+            action.setChecked(hdr.shown)
+            if not hdr.relevant:
+                action.setEnabled(False)
+            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
+            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
+                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if checked else "hide")))
+            headers_menu.addAction(action)
+        headers_menu.addSeparator()
+        hdr_save_menu = headers_menu.addMenu("Save")
+        for hdr in headers:
+            if not hdr.relevant:
+                continue
+            action = QAction(hdr.name, hdr_save_menu)
+            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
+            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
+                self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
+            hdr_save_menu.addAction(action)
+
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info")
+
+        tools_menu = menu.addMenu("Tools")
+        comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
         comp_model_action.triggered.connect(lambda arg: run(self.session,
             "ui tool show 'Modeller Comparative'"))
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
-        structure_menu.addAction(comp_model_action)
+        tools_menu.addAction(comp_model_action)
+        if len(self.alignment.seqs) == 1:
+            blast_action = QAction("Blast Protein...", tools_menu)
+            blast_action.triggered.connect(lambda arg: run(self.session,
+                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            tools_menu.addAction(blast_action)
+        else:
+            blast_menu = tools_menu.addMenu("Blast Protein")
+            for i, seq in enumerate(self.alignment.seqs):
+                blast_action = QAction(seq.name, blast_menu)
+                blast_action.triggered.connect(lambda arg: run(self.session,
+                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_menu.addAction(blast_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-
-    def headers(self, shown_only=False):
-        headers = self.seq_canvas.headers
-        if shown_only:
-            return [hd for hd in headers if self.seq_canvas.display_header[hd]]
-        return headers
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""

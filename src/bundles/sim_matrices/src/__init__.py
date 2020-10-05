@@ -61,18 +61,18 @@ def read_matrix_file(file_name, style="protein"):
 
 _matrices = _matrix_files = None
 
-def matrices(session):
+def matrices(logger=None):
 	if _matrices == None:
-		_init(session)
+		_init(logger)
 	return _matrices
 
-def matrix(session, mat_name):
+def matrix(mat_name, logger=None):
 	if _matrices == None:
-		_init(session)
+		_init(logger)
 	try:
 		return _matrices[mat_name]
 	except KeyError:
-		raise ValueError("Cannot find similarity matrix '%s'" ^ mat_name)
+		raise ValueError("Cannot find similarity matrix '%s'" % mat_name)
 
 def matrix_name_key_func(mat_name):
 	# sorts matrix names numerically where appropriate
@@ -83,17 +83,19 @@ def matrix_name_key_func(mat_name):
 		return (mat_name.lower(), 0)
 	return (prefix.lower(), int(mat_name[len(prefix):]))
 
-def matrix_files(session):
+def matrix_files(logger=None):
 	if _matrix_files == None:
-		_init(session)
+		_init(logger)
 	return _matrix_files
 
-def matrix_compatible(session, chain, mat_name):
-	protein_matrix = len(matrix(session, mat_name)) >= 400
+def matrix_compatible(chain, mat_name, logger=None):
 	from chimerax.atomic import Residue
-	return protein_matrix == (chain.polymer_type == Residue.PT_AMINO)
+	return protein_matrix(mat_name, logger) == (chain.polymer_type == Residue.PT_AMINO)
 
-def _init(session):
+def protein_matrix(mat_name, logger=None):
+	return len(matrix(mat_name, logger)) >= 400
+
+def _init(logger):
 	global _matrices, _matrix_files
 	_matrices = {}
 	_matrix_files = {}
@@ -123,9 +125,13 @@ def _init(session):
 			try:
 				_matrices[name] = read_matrix_file(path, style=ftype)
 			except ValueError:
-				session.logger.report_exception()
+				if logger:
+					logger.report_exception()
 			else:
 				_matrix_files[name] = path
 	if not _matrices:
-		session.logger.warning("No matrices found by %s module. (Looked in: %s)"
-			% (__name__, ", ".join(searched)))
+		msg = "No matrices found by %s module. (Looked in: %s)" % (__name__, ", ".join(searched))
+		if logger:
+			logger.warning(msg)
+		else:
+			print(msg)

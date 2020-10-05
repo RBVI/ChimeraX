@@ -251,6 +251,8 @@ class _Trigger:
         return [h._func for h in self._handlers if h not in self._pending_del]
 
 
+from contextlib import contextmanager
+
 class TriggerSet:
     """Keep track of related groups of triggers."""
 
@@ -347,30 +349,37 @@ class TriggerSet:
         else:
             trigger.activate(data)
 
+    @contextmanager
     def block_trigger(self, name):
-        """Block all handlers registered with the given name.
+        """Context manager to block all handlers registered with the
+        given name until the context is exited, at which point the
+        triggers fire (if applicable).
 
-        triggerset.block_trigger(name) => None
+        with triggerset.block_trigger(name):
+           ...code to execute with trigger blocked...
 
         If no trigger corresponds to name, an exception is raised.
-        block_trigger()/release_trigger() may be nested inside other
-        block_trigger()/release_trigger() pairs.
+        Blocked trigger contexts can be nested.
         """
         self._triggers[name].block()
+        try:
+            yield
+        finally:
+            self._triggers[name].release()
 
     def is_trigger_blocked(self, name):
         """Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
 
-    def release_trigger(self, name):
-        """Release all handlers registered with the given name.
-
-        triggerset.release_trigger(name) => None
-
-        If no trigger corresponds to name, an exception is raised.
-        The last call to activate_trigger() made between the outermost
-        block_trigger()/release_trigger() pair is executed.
+    def manual_block(self, name):
+        """For situations where the block and release aren't in the same
+        code block, and therefore the context-manager version (block_trigger)
+        can't be used.
         """
+        self._triggers[name].block()
+
+    def manual_release(self, name):
+        """Complement to manual_block"""
         self._triggers[name].release()
 
     def profile_trigger(self, name, sort_by='time', num_entries=20):
@@ -444,14 +453,14 @@ class TriggerSet:
         return self._triggers.keys()
 
     def block(self):
-        """Supported API. Block all triggers from firing until released.
+        """Block all triggers from firing until released.
 
         triggerset.block() => None
         """
         self._blocked += 1
 
     def release(self):
-        """Supported API. Release trigger blocks and fire trigger in dependency order.
+        """Release trigger blocks and fire trigger in dependency order.
 
         triggerset.release() => boolean
 
@@ -471,7 +480,7 @@ class TriggerSet:
             self._activate_trigger_tree(name)
 
     def is_blocked(self):
-        """Supported API. Returns whether entire trigger set is blocked."""
+        """Returns whether entire trigger set is blocked."""
         return bool(self._blocked)
 
     def add_dependency(self, trigger, after):

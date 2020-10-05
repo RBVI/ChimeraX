@@ -163,10 +163,10 @@ class Matrix_Statistics:
         from numpy import ravel, minimum, maximum, add, multiply, array, float32
         matrix_1d = matrix.ravel()
         dmin = minimum.reduce(matrix_1d)
-        if self.min == None or dmin < self.min:
+        if self.min is None or dmin < self.min:
             self.min = dmin
         dmax = maximum.reduce(matrix_1d)
-        if self.max == None or dmax > self.max:
+        if self.max is None or dmax > self.max:
             self.max = dmax
         self.sum += add.reduce(matrix_1d)
         # TODO: Don't copy array to get standard deviation.

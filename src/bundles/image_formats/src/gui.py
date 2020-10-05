@@ -16,51 +16,43 @@ SUPERSAMPLE_OPTIONS = (("None", 1),
                        ("3x", 3),
                        ("4x", 4))
 
-from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QComboBox, QLabel, QLineEdit, QCheckBox
+from PyQt5.QtCore import Qt
 class SaveOptionsWidget(QFrame):
     def __init__(self, session):
         super().__init__()
-        layout = QGridLayout()
+        layout = QHBoxLayout()
         layout.setContentsMargins(2, 0, 0, 0)
-        row = 0
 
-        size_frame = QFrame()
-        size_layout = QHBoxLayout(size_frame)
+        size_layout = QHBoxLayout()
         size_layout.setContentsMargins(0, 0, 0, 0)
-        self._width = w = QLineEdit(size_frame)
+        layout.addLayout(size_layout, stretch=1)
+        size_layout.addWidget(QLabel("Size:"), alignment=Qt.AlignRight | Qt.AlignVCenter)
+        self._width = w = QLineEdit()
+        size_layout.addWidget(self._width, alignment=Qt.AlignRight)
         new_width = int(0.4 * w.sizeHint().width())
         w.setFixedWidth(new_width)
         w.textEdited.connect(self._width_changed)
-        x = QLabel(size_frame)
-        x.setText("x")
-        self._height = h = QLineEdit(size_frame)
+        size_layout.addWidget(QLabel("x"), alignment=Qt.AlignHCenter)
+        self._height = h = QLineEdit()
+        size_layout.addWidget(self._height, alignment=Qt.AlignLeft)
         h.setFixedWidth(new_width)
         h.textEdited.connect(self._height_changed)
-        
-        from PyQt5.QtCore import Qt
-        size_layout.addWidget(self._width, Qt.AlignRight)
-        size_layout.addWidget(x, Qt.AlignHCenter)
-        size_layout.addWidget(self._height, Qt.AlignLeft)
-        size_frame.setLayout(size_layout)
-        size_label = QLabel()
-        size_label.setText("Size:")
-        layout.addWidget(size_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
-        layout.addWidget(size_frame, row, 1, Qt.AlignLeft)
-        row += 1
 
         self._keep_aspect = ka = QCheckBox('preserve aspect')
         ka.setChecked(True)
         ka.stateChanged.connect(self._aspect_changed)
-        layout.addWidget(ka, row, 1, Qt.AlignLeft)
-        row += 1
+        size_layout.addWidget(ka, alignment=Qt.AlignLeft)
 
-        ss_label = QLabel()
-        ss_label.setText("Supersample:")
+        supersample_layout = QHBoxLayout()
+        supersample_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(supersample_layout, stretch=1)
+        supersample_layout.addWidget(QLabel("Supersample:"), alignment=Qt.AlignRight)
+
         supersamples = QComboBox()
         supersamples.addItems([o[0] for o in SUPERSAMPLE_OPTIONS])
         supersamples.setCurrentIndex(2)
-        layout.addWidget(ss_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
-        layout.addWidget(supersamples, row, 1, Qt.AlignLeft)
+        supersample_layout.addWidget(supersamples, alignment=Qt.AlignLeft)
         self._supersample = supersamples
 
         self._session = session

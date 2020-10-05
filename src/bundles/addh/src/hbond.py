@@ -78,7 +78,7 @@ def add_hydrogens(session, atom_list, *args):
         num_bonds = atom.num_bonds
         substs = bonding_info.substituents
         geom = bonding_info.geometry
-        if num_bonds >= substs:
+        if atom.num_explicit_bonds >= substs:
             if atom.element.number == 7 and num_bonds == 3 and geom == planar:
                 for ring in atom.rings():
                     if ring.aromatic:
@@ -215,7 +215,7 @@ def add_hydrogens(session, atom_list, *args):
             hbond_info[atom] = [(alt_loc, h_positions, [])
                 for alt_loc, _, h_positions in altloc_hpos_info]
 
-    from chimerax.atomic.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
+    from chimerax.hbonds import find_hbonds, rec_dist_slop, rec_angle_slop
 
     logger.status("Finding hydrogen bonds", blank_after=0, secondary=True)
     donors = {}
@@ -1131,6 +1131,16 @@ def _try_finish(atom, hbond_info, finished, aro_amines, pruned_by, processed):
             if debug:
                 print("determined proton")
             protons[nearest] = 1
+        if len(protons) == hyds_to_position:
+            # it is possible that an earlier call to this routine had protons in
+            # the same position and therefore decided that the full set of proton
+            # positions hadn't been determined, but between that call and a later
+            # call one of the H-bond partners became fully determined and caused
+            # the "nearest" proton to switch to a different position, so that by
+            # the time this routine is called again, you don't need the extra
+            # H-bond, so this check is to prevent adding extra protons!  Example
+            # is /H:2081 (water) in 2c9t
+            break
 
     for is_acc, other in conflicting:
         if debug:

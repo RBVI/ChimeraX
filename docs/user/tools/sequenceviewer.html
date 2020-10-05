@@ -96,10 +96,27 @@ with choices including:
   <ul>
   <li><b>Associations...</b> show dialog for controlling 
   <a href="#association">sequence-structure association</a>
+  </ul>
+<li><b>Headers</b> 
+&ndash; which <a href="#headers">headers</a> are shown currently
+  <ul>
+  <li><b>Consensus</b>
+  <li><b>Conservation</b> 
+  <li><b>RMSD</b> (<b>C&alpha;</b> or <b>backbone</b> as per
+   the <a href="#settings-headers"><b>Headers</b> settings</a>)
+  <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [choice of available headers]
+  &ndash; save header information to file
+  </ul>
+<li><b>Tools</b>
+  <ul>
   <li><b>Modeller Comparative Modeling...</b> 
 start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
 (requires a structure to be <a href="#association">associated</a> 
 with any sequence in the alignment, for use as a template in modeling)
+  <li><b>Blast Protein...</b> 
+run <a href="blastprotein.html"><b>Blast Protein</b></a>
+with default parameters on the specified sequence
   </ul>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
@@ -112,9 +129,24 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 <h3>Headers</h3>
 <p>
 Headers are the rows of information above the sequences: consensus sequence,
-conservation histogram, <i>etc.</i>
-Which headers are shown and how they are calculated can be controlled in the
+conservation histogram, and/or RMSD (root-mean-square displacement)
+histogram for multiple <a href="#association">associated</a> structures.
+Which headers are shown initially and how they are calculated 
+can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
+Regardless of whether a header is shown initially, it can be shown and 
+hidden for a specific window using the <b>Sequence Viewer</b>
+<a href="../window.html#context-menu">context menu</a>.
+</p><p>
+Per-column header values are assigned as 
+<a href="../attributes.html">attributes</a> of the structure residues
+<a href="#association">associated</a> with sequences in the alignment.
+The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
+is the name of the header, for example,
+<a href="../attributes.html#residue">seq_conservation</a> or
+<a href="../attributes.html#residue">seq_rmsd</a>.
+These are of interest for
+<a href="../commands/color.html#byattribute">coloring by attribute</a>.
 </p>
 
 <a name="regions"></a>
@@ -246,11 +278,8 @@ shows its settings in a separate window, with sections:
 </p>
 <ul>
 <li><a href="#settings-appearance"><b>Appearance</b></a>
-&ndash; sequence display parameters
 <li><a href="#settings-headers"><b>Headers</b></a>
-&ndash; rows of information above the sequences in an alignment
 <li><a href="#settings-regions"><b>Regions</b></a>
-&ndash; creation and display of <a href="#regions">regions</a> (colored boxes)
 </ul>
 <p>
 The settings window can be manipulated like other panels in the
@@ -270,8 +299,10 @@ values for multiple <b>Sequence Viewer</b> windows,
 there can be only one set of saved preference values.
 </p>
 <a name="settings-appearance"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Appearance</h4>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Appearance</b> &ndash; how text is displayed in the 
+<b>Sequence Viewer</b> window
+</p>
 <ul class="none">
 <li><b>Single Sequence</b>
   <ul class="none">
@@ -302,14 +333,17 @@ Appearance</h4>
 </ul>
 
 <a name="settings-headers"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Headers</h4>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Headers</b> &ndash; rows of information above the sequences in an alignment
+(<a href="#headers">more...</a>)
+</p>
 <ul class="none">
-<li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
-<li><b>Consensus: ignore gap characters</b> (<b>off</b>)
-<li><b>Consensus: show at startup</b> (<b>on</b>)
-<li><b>Conservation: show at startup</b> (<b>on</b>)
-</ul>
+<li><b>Consensus</b>
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><b>Capitalization threshold</b> (initial default <b>0.8</b>)
+  <li><b>Ignore gap characters</b> (initial default <b>off</b>)
+  </ul>
 The consensus sequence shows the residue type that is most common
 at each position in the alignment, even if it appears in less than 0.5
 of the sequences; if a consensus type appears in at least the 
@@ -323,22 +357,22 @@ as one or more residue types, unless <b>ignore gap characters</b>
 is turned on. Regardless of this option, however,
 gap positions are always included in the denominator
 for calculating the consensus fraction.
-<ul>
-<li><b>Conservation: style</b>
+</p>
+<li><b>Conservation</b>
   <ul>
-  <li><b>identity histogram</b> &ndash; what proportion of the sequences
+  <li><b>Show initially</b> (initial default <b>on</b>)
+  <li><b>Style</b>
+    <ul>
+    <li><b>identity histogram</b> &ndash; what proportion of the sequences
 have the most prevalent nongap character per alignment column.
 Histogram bar heights are proportional to (M-1)/(N-1), where
 M is the number of occurrences of the most prevalent residue type at
 a position in the alignment and N is the number of sequences in the
 alignment. Thus, if every sequence has a different residue at a
 given position, the bar height is zero, not 1/N.
-<!--
 However, M/N values (not the values used for display purposes) are
-used for the <a href="#mavAttributes"><b>mavConservation</b> attribute</a>
-and written out when conservation values are <a href="#saveheader">saved</a>.
--->
-  <li><b>Clustal characters</b> &ndash; as in Clustal format, 
+used for the <a href="#headers">seq_conservation attribute</a>.
+    <li><b>Clustal characters</b> &ndash; as in Clustal format, 
      <ul class="none"> 
      <li>* (asterisk) for complete identity
      <li>: (colon) for 
@@ -347,7 +381,7 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
      <a href="../formats/clustgroups.html">weak group conservation</a>
      <li> blank otherwise
      </ul>
-  <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+    <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
   initial default) &ndash; more sophisticated options
   for calculating conservation. Users should cite:
   <a name="al2coref"></a>
@@ -358,66 +392,87 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
     Pei J, Grishin NV.
     <i>Bioinformatics.</i> 2001 Aug;17(8):700-12.
    </blockquote>
-  <b>AL2CO parameters</b>:
-  <ul>
-  <li><b>Averaging window</b> (initial default <b>1</b>)
-  &ndash; window width, or
-  how many alignment positions to average in a sliding window.
-  The result is assigned to the central column of the window
-  when the width is odd, the column left of center when the width is even
-  (<i>e.g.</i>, the fourth position in a window of 8),
-  with various adjustments at the termini.
-  The authors of AL2CO recommend a width of 3 for motif analyses.
-  <li><a name="al2comeas"><b>Conservation measure</b></a>
-  &ndash; which AL2CO conservation equation to use:
-    <ul>
-    <li><b>entropy-based</b> (initial default)
-    <li><b>variance-based</b>
-    <li><b>sum of pairs</b>
-    </ul>
-  <li><b>Frequency estimation method</b> 
-  &ndash; whether/how to weight the sequences
-    <ul>
-    <li><b>unweighted</b>
-    <li><b>modified Henikoff & Henikoff</b>
-    <li><b>independent counts</b> (initial default)
-    </ul>
-  <li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
-   &ndash; maximum fraction of sequences with gaps in a column
-  for conservation to still be calculated; for example, if the
-  <b>gap fraction</b> is 0.25, conservation values will only be calculated
-  for columns in which at least three-fourths of the sequences have residues
-  </ul><br>
-Additional settings if the AL2CO
-<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
-  <ul>
-  <li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
-  BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
-  BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
-  BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
-  PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
-  <li><b>Matrix transformation</b> 
-  &ndash; whether/how to modify the matrix
-     <ul>
-     <li><b>none</b> (initial default)
-     <li><b>normalization</b>
-     &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
-     <li><b>adjustment</b>
-     &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
-     </ul>
-  </ul>
-  <p>
   Conservation values from AL2CO are in standard deviations from the mean 
   (Z-scores) and can range from &ndash;&infin; (least conserved) to
-  +&infin; (most conserved).
-  </p>
+  +&infin; (most conserved). For purposes of histogram display only,
+  the values are mapped to bar heights 0-1, with conservation values
+  of zero giving a histogram bar height of 0.5.
+</p><p>
+<a name="al2co-parameters"></a>
+<b>AL2CO parameters</b>:
+</p>
+<ul>
+<li><b>Averaging window</b> (initial default <b>1</b>)
+&ndash; window width, or
+how many alignment positions to average in a sliding window.
+The result is assigned to the central column of the window
+when the width is odd, the column left of center when the width is even
+(<i>e.g.</i>, the fourth position in a window of 8),
+with various adjustments at the termini.
+The authors of AL2CO recommend a width of 3 for motif analyses.
+<li><a name="al2comeas"><b>Conservation measure</b></a>
+&ndash; which AL2CO conservation equation to use:
+  <ul>
+  <li><b>entropy-based</b> (initial default)
+  <li><b>variance-based</b>
+  <li><b>sum of pairs</b>
   </ul>
+<li><b>Frequency estimation method</b> 
+&ndash; whether/how to weight the sequences
+  <ul>
+  <li><b>unweighted</b>
+  <li><b>modified Henikoff & Henikoff</b>
+  <li><b>independent counts</b> (initial default)
+  </ul>
+<li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+ &ndash; maximum fraction of sequences with gaps in a column
+for conservation to still be calculated; for example, if the
+<b>gap fraction</b> is 0.25, conservation values will only be calculated
+for columns in which at least three-fourths of the sequences have residues
+</ul><br>
+Additional settings if the AL2CO
+<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
+<ul>
+<li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
+BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
+BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
+BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
+PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
+<li><b>Matrix transformation</b> 
+&ndash; whether/how to modify the matrix
+   <ul>
+   <li><b>none</b> (initial default)
+   <li><b>normalization</b>
+   &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
+   <li><b>adjustment</b>
+   &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
+   </ul>
+</ul>
+</ul>
+  </ul>
+<br>
+<li><b>RMSD</b> &ndash; per-column root-mean-square displacement among 
+<a href="#association">associated</a> structure residues
+  <ul>
+  <li><b>Show initially</b> (initial default <b>off</b>)
+  <li><b>Atoms used for RMSD</b>
+    <ul>
+    <li><b>C&alpha;</b> (initial default)
+    <li><b>backbone</b>
+    </ul>
+  </ul>
+<p>
+When more than one chain per model is <a href="#associations">associated</a>
+with the same alignment, the RMSD
+calculation uses only the chain that gives the lowest overall RMSD.
+</p>
 </ul>
 
 <a name="settings-regions"></a>
-<h4><a href="#settings" class="nounder"><b>&larr;</b></a>
-Regions</h4>
-<p>
+<p><a href="#settings" class="nounder"><b>&larr;</b></a>
+<b>Regions</b>
+&ndash; creation and display of <a href="#regions">regions</a> (colored boxes)
+</p><p>
 The <b>Regions</b> section of <a href="#settings">settings</a> controls
 whether different types of <a href="#regions">regions</a> should be shown,
 and if so, their initial colors.
@@ -504,5 +559,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+August 2020</address>
 </body></html>

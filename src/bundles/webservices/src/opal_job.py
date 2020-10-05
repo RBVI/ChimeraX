@@ -134,7 +134,7 @@ class OpalJob(Job):
         # Launch job
         from suds import WebFault
         import time
-        self.start_time = time.time()
+        self.launch_time = time.time()
         if not blocking:
             try:
                 r = self._suds.service.launchJob(cmd, **job_kw)
@@ -175,7 +175,7 @@ class OpalJob(Job):
         """Return whether background process is still running.
 
         """
-        return self.start_time is not None and self.end_time is None
+        return self.launch_time is not None and self.end_time is None
 
     def monitor(self):
         """Check the status of the background process.
@@ -269,6 +269,12 @@ class OpalJob(Job):
         if encoding is None:
             return contents
         return contents.decode(encoding)
+
+    def get_stdout(self):
+        return self.get_file("stdout.txt")
+
+    def get_stderr(self):
+        return self.get_file("stderr.txt")
 
     def get_outputs(self, refresh=False):
         """Return dictionary of output files and their URLs.

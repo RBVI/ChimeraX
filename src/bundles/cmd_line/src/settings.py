@@ -21,6 +21,7 @@ class _CmdLineSettings(Settings):
     AUTO_SAVE = {
         "num_remembered": 500,
         "typed_only": True,
+        "select_failed": False,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API

@@ -40,6 +40,9 @@ def mask(session, volumes, surfaces, axis = None, full_map = False,
     from .depthmask import surface_geometry, masked_volume
     for v in volumes:
         surfs = surface_geometry(surfaces, v.position.inverse(), pad)
+        if len(surfs) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('Only empty surfaces specified')
         mv = masked_volume(v, surfs, axis, full_map, sandwich, invert_mask,
                            fill_overlap, extend, model_id)
         mvlist.append(mv)
@@ -104,7 +107,7 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100,
     from numpy import ones, int8
     vtype = int8 if value_type is None else value_type
     varray = ones(size[::-1], vtype)
-    from chimerax.map.data import ArrayGridData
+    from chimerax.map_data import ArrayGridData
     g = ArrayGridData(varray, origin, spacing, name = 'mask')
 
     # Create Volume model

@@ -57,6 +57,8 @@ color the surface accordingly
 min, max, mean, SD, and RMSD values
 <li><a href="#motion"><b>motion</b></a>
 &ndash; show changes in surface position by drawing lines
+<li><a href="#rotation"><b>rotation</b></a>
+&ndash; report transformation of one model relative to another
 <li><a href="#sasa"><b>sasa</b></a>
 &ndash; calculate 
 <a href="surface.html#surfdefs">solvent-accessible surface</a> area
@@ -207,6 +209,10 @@ style="display:inline-block; vertical-align:middle"><tr>
 The marker model is opened as number <i>model-number</i>
 (default next unused number) with name <i>model-name</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
+Atomic mass-weighting is always used, but the related command
+<a href="define.html#centroid"><b>define centroid</b></a>
+allows calculating the center of geometry (not mass-weighted)
+of a set of atoms.
 See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
@@ -301,13 +307,10 @@ to match the first atom or surface in its calculation.
 Another way to generate a low-resolution
 representation of an atomic structure is with
 <a href="molmap.html"><b>molmap</b></a>.
-<!--
 See also:
-<a href="define.html#axis"><b>define axis</b></a>,
-<a href="aniso.html"><b>aniso</b></a>,
+<a href="define.html"><b>define</b></a>,
 <a href="shape.html#ellipsoid"><b>shape ellipsoid</b></a>,
-<a href="../print.html#objects">geometric objects</a>
--->
+<a href="open.html#object">3D object formats</a>
 </p>
 </blockquote>
 
@@ -377,6 +380,76 @@ If a model number is specified with <b>pricklesModel</b> <i>N</i>,
 the prickles will be added as a submodel of <i>N</i>.
 If a model number is not specified,
 the new model will be a submodel of <i>surf-model</i>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="rotation"><b>measure rotation</b></a>
+&nbsp;<i>model1</i>&nbsp; <b>toModel</b> &nbsp;<i>model2</i>&nbsp;
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>showAxis</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showSlabs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>t</i>&nbsp;]
+[&nbsp;<b>color2</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+<blockquote>
+Report the transformation of <i>model1</i> relative to <i>model2</i> as:
+  <ul>
+  <li> a matrix in which the first three columns describe a rotation
+  and the fourth describes a translation (performed after the rotation)
+  <li> an axis of rotation (a unit vector), point on the axis,
+  rotation angle, and shift parallel to the axis
+  </ul>
+<b><i>This command does not evaluate how to best fit or match
+the two models.</i></b> It reports the current rotation and translation
+between the coordinate systems of the two models, which would be zero
+unless one model was moved relative to the other, either
+<a href="ui.html#mousemode">with the mouse</a> (using one of the 
+<a href="ui.html#functions">rotate/translate selected</a> modes)
+or with some other tool or command such as
+<a href="../tools/fitmap.html"><b>Fit in Map</b></a>,
+<a href="align.html"><b>align</b></a>, or
+<a href="matchmaker.html"><b>matchmaker</b></a>.
+(Moving everything collectively, such as rotating or zooming to get a better
+view, does not change the positions of models relative to each other.)
+<p>
+To get the transformation between
+atomic structures that are similar but displaced from one another
+(without actually superimposing them),
+using the <a href="align.html"><b>align</b></a> command with
+<b>move false</b> and <b>reportMatrix true</b>
+is recommended instead.
+</p><p>
+The transformation is expressed in the coordinate system of <i>model2</i>
+unless specified otherwise with the <b>coordinateSystem</b> option.
+If <b>showAxis</b> is <b>true</b> (default), a
+<a href="../markers.html">marker model</a> showing the axis as a rod
+will be created, with the specified <b>length</b>
+(default the largest dimension of the bounding box of the displayed part
+of <i>model2</i>), <b>radius</b> (default 2.5% of the length), and <b>color</b>
+(default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>).
+If <b>showSlabs</b> is <b>true</b> (default <b>false</b>), two rectangular
+slabs showing the rotation axis and angle and the shift will be created
+as surface models, with the specified <b>length</b>
+(default described above), <b>width</b>, and <b>thickness</b> 
+(defaults 50% and 2.5% of the length, respectively)
+and colored according to <b>color</b> and <b>color2</b> 
+(defaults <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>
+and <b>cornflower blue</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=cornflowerblue width="10px" 
+title="cornflower blue"></td></tr></table>, respectively).
+</p><p>
+See also:
+<a href="fitmap.html"><b>fitmap</b></a>
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -564,5 +637,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+June 2020</address>
 </body></html>

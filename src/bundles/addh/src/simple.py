@@ -35,7 +35,7 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
     away = away2 = planar = None
     geom = bonding_info.geometry
     substs = bonding_info.substituents
-    needed = substs - atom.num_bonds
+    needed = substs - atom.num_explicit_bonds
     if needed <= 0:
         return
     added = None

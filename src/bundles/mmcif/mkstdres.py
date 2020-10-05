@@ -29,6 +29,21 @@ standard_residues = set([
 found = set()
 
 with open("stdresidues.cif", "w") as output:
+    # Prefer components.cif entries because they are actively maintained
+    # with gzip.open("components.cif.gz", "rt", encoding='utf-8') as f:
+    with open("components.cif", "rt", encoding='utf-8') as f:
+        save_lines = False
+        for line in f.readlines():
+            if line.startswith('data_'):
+                ccd = line[5:].strip()
+                if ccd in found:
+                    continue
+                save_lines = ccd in standard_residues
+                if save_lines:
+                    found.add(ccd)
+            if save_lines:
+                output.write(line)
+
     with open("aa-variants-v1.cif", "rt", encoding='utf-8') as f:
         save_lines = False
         for line in f.readlines():
@@ -44,22 +59,12 @@ with open("stdresidues.cif", "w") as output:
             if save_lines:
                 output.write(line)
 
-    #with gzip.open("components.cif.gz", "rt", encoding='utf-8') as f:
-    with open("components.cif", "rt", encoding='utf-8') as f:
-        save_lines = False
-        for line in f.readlines():
-            if line.startswith('data_'):
-                ccd = line[5:].strip()
-                if ccd in found:
-                    continue
-                save_lines = ccd in standard_residues
-                if save_lines:
-                    found.add(ccd)
-            if save_lines:
-                output.write(line)
-
 if found == standard_residues:
     raise SystemExit(0)
 
-print("Missing CCD entries for:", " ".join(standard_residues - found))
+missing = standard_residues - found
+if missing:
+    print("Missing CCD entries for:", " ".join(missing))
+else:
+    print("All residues found")
 raise SystemExit(1)

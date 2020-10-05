@@ -145,7 +145,7 @@ class Log(ToolInstance, HtmlLog):
                 menu.addAction("Save As...", log_window.cm_save)
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy Selection", lambda:
-                    log_window.page().triggerAction(log_window.page().Copy))
+                    self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
                 from PyQt5.QtWidgets import QAction
@@ -200,13 +200,6 @@ class Log(ToolInstance, HtmlLog):
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
                 from chimerax.ui.widgets.htmlview import chimerax_intercept
                 chimerax_intercept(request_info, *args, session=self.session, view=self, **kw)
-                if not self.log.suppress_scroll:
-                    return
-                def defer(log_tool):
-                    log_tool.suppress_scroll = False
-                # clicked link is executed via thread_safe, so add another
-                # that is executed after that one
-                self.session.ui.thread_safe(defer, self.log)
 
             def cm_save(self):
                 from chimerax.ui.open_save import SaveDialog
@@ -221,6 +214,10 @@ class Log(ToolInstance, HtmlLog):
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
+        from PyQt5.QtCore import QTimer
+        self.regulating_timer = QTimer()
+        self.regulating_timer.timeout.connect(self._actually_show)
+
         from PyQt5.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
@@ -345,9 +342,15 @@ class Log(ToolInstance, HtmlLog):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
+        # start() is documented to stop the timer if it is running
+        self.regulating_timer.start(100)
+
+    def _actually_show(self):
+        self.regulating_timer.stop()
         if self.suppress_scroll:
             sp = self.log_window.page().scrollPosition()
             height = str(sp.y())
+            self.suppress_scroll = False
         else:
             height = 'document.body.scrollHeight'
         html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, %s);\">%s</body>" % (

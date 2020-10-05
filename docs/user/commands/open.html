@@ -61,7 +61,7 @@ See also:
 <img class="iconbar" src="../tools/ui-icons/lightning_day.png">,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="../autostyle.html">automatic styling</a>,
-<a href="../../devel/mmcif.html"
+<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
 target="_blank">ChimeraX Fast mmCIF Guidelines</a>
 </p><p>
 Examples:
@@ -94,6 +94,7 @@ The command <b>open formats</b> command lists the possible formats and
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
 <li><a href="#volume">Volume Data and Related</a>
+<li><a href="#segmentation">Segmentations</a>
 <li><a href="#object">Other 3D Objects</a>
 <li><a href="#sequence">Sequences</a>
 <li><a href="#composite">Composite</a>
@@ -129,7 +130,7 @@ target="_blank">PDBx/mmCIF</a></td>
 <td align="center">atomic coordinates and associated annotations
 <br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>,
 <a href="hbonds.html#related">H-bonds from mmCIF</a>,
-<br><a href="../../devel/mmcif.html"
+<br><a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
 target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
 </tr><tr>
 <td align="center" class="text"><a href="http://mmtf.rcsb.org/"
@@ -445,12 +446,6 @@ versions 6 and 7)</td>
 <td align="center"><b>pif</b></td>
 <td align="center">.pif</td>
 <td align="center">electron density map</td>
-</tr><tr>
-<td align="center">
-<a href="../tools/segment.html">Segger segmentation</a></td>
-<td align="center"><b>segger</b></td>
-<td align="center">.seg</td>
-<td align="center">segmentation regions</td>
 <!-- via Signal Viewer bundle in Toolshed
 </tr><tr>
 <td align="center">
@@ -496,6 +491,29 @@ target="_blank">TOM toolbox</a> map</td>
 University of Houston Brownian Dynamics</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="segmentation"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Segmentations</b></td>
+</tr><tr>
+<td align="center">
+<a href="../formats/sff.html">EMDB segmentation</a></td>
+<td align="center"><b>sff</b></td>
+<td align="center">.sff (XML)<br>.hff (HDF5)</td>
+<td align="center">EM segmentation</td>
+</tr><tr>
+<td align="center">
+<a href="../formats/imod.html">IMOD segmentation</a></td>
+<td align="center"><b>imod</b></td>
+<td align="center">.imod<br>.mod</td>
+<td align="center">EM segmentation meshes and contours</td>
+</tr><tr>
+<td align="center">
+<a href="../tools/segment.html">Segger segmentation</a></td>
+<td align="center"><b>segger</b></td>
+<td align="center">.seg</td>
+<td align="center">segmentation regions</td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="object"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Other 3D Objects</b></td>
@@ -531,8 +549,17 @@ target="_blank">GL Transmission Format</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
+<td align="center">Neuron trace
+<br>(<a href="http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html" target="_blank">SWC</a>, see also the
+<a href="http://neuromorpho.org/myfaq.jsp#QS3"
+target="_blank">NeuroMorpho FAQ</a>)</td>
+<td align="center"><b>swc</b></td>
+<td align="center">.swc</td>
+<td align="center">neuron reconstruction, such as from
+<a href="http://neuromorpho.org/" target="_blank">NeuroMorpho.Org</a></td>
+</tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
-target="_blank">STereoLithography</a> (binary)</td>
+target="_blank">STereoLithography</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl
 <br><a href="#compressed">+&nbsp;compressed</td>
@@ -668,6 +695,13 @@ command file</a></td>
 <td align="center">
 hypertext to render in the 
 <a href="../tools/helpviewer.html">ChimeraX browser</a></td>
+</tr><tr>
+<td align="center"><a href="../formats/positions.html">ChimeraX 
+model positions</a></td>
+<td align="center"><b>positions</b></td>
+<td align="center">.positions</td>
+<td align="center">
+ChimeraX model names and positions to restore</td>
 </tr></table>
 
 <a name="local"></a>
@@ -835,6 +869,21 @@ into one (default <b>true</b>) to prevent errors in subsequent
 calculations such as <a href="addh.html">adding hydrogens</a>.
 </blockquote>
 <blockquote>
+<a name="childModels"></a>
+<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to explicitly apply matrices for submodels rather than simply
+allowing them to follow their parent models.
+</blockquote>
+<blockquote>
+<a name="contours"></a>
+<b>contours</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to read the contours from an
+<a href="../formats/imod.html">IMOD segmentation file</a>.
+</blockquote>
+<blockquote>
 <a name="coordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -852,6 +901,14 @@ separate submodels that can be shown/hidden/specified independently
 or collectively (for example, using #1).
 </blockquote>
 <blockquote>
+<a name="debug"></a>
+<b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to send verbose information to the 
+<a href="../tools/log.html"><b>Log</b></a> when opening a
+<a href="../formats/sff.html">EMDB segmentation file</a>.
+</blockquote>
+<blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
@@ -866,12 +923,34 @@ Whether to show available <a href="../modelinfo.html">model information</a>
 See also: <a href="log.html#metadata"><b>log metadata</b></a>
 </blockquote>
 <blockquote>
+<a name="matchNames"></a>
+<b>matchNames</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to match models by name instead of simply applying the
+matrices in order of appearance in the file.
+</blockquote>
+<blockquote>
 <a name="maxModels"></a>
 <b>maxModels</b>&nbsp;&nbsp;<i>M</i>
 <br>
 Maximum number of models to keep when opening a multi-model file 
 in mmCIF or PDB format as multiple models in ChimeraX
 (<b><a href="#coordsets">coordsets</a> false</b>).
+</blockquote>
+<blockquote>
+<a name="maxSurfaces"></a>
+<b>maxSurfaces</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Maximum number of surface models to create when opening an
+<a href="../formats/sff.html">EMDB segmentation file</a>.
+</blockquote>
+<blockquote>
+<a name="meshes"></a>
+<b>meshes</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to read the meshes from an
+<a href="../formats/imod.html">IMOD segmentation file</a>.
 </blockquote>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
@@ -901,6 +980,12 @@ overrides the corresponding
 <a href="../preferences.html#window"><b>Window</b> preference</a>.
 Opening a ChimeraX <a href="save.html#session">session</a>
 automatically runs <a href="close.html"><b>close session</b></a> first.
+</blockquote>
+<blockquote>
+<a name="segidChains"></a>
+<b>segidChains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to assign segment IDs in PDB format as the chain IDs in ChimeraX.
 </blockquote>
 <blockquote>
 <a name="structureModel"></a>
@@ -1008,6 +1093,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -1035,6 +1121,20 @@ For caching, no distinction is made among the different Protein Data Bank sites.
 If a data file specified for opening is not found in this local cache or 
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
 </p><p>
+<a name="maxAssemblies"></a>
+Multiple biological assemblies are defined for many entries in the PDB.
+By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
+will return every assembly available for that entry in that database.
+The <b>maxAssemblies</b> option limits fetching to the
+first <i>N</i> assemblies.
+A single assembly from <b>pdbe_bio</b> will be opened as a single model, but
+even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
+(opened as submodels of the assembly model).
+<!-- 
+details in ticket #3515
+RCSB says that in 2021 all will be mmCIF and as one model per assembly
+-->
+</p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
 </p>
@@ -1058,11 +1158,26 @@ target="_blank">RCSB Protein Data Bank</a></td>
 target="_blank">wwPDB formats</a>)
 <br>or <a href="http://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
 </tr><tr>
+<td align="center"><a href="http://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center" class="text"><b>rcsb_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center">(no choice, <b>mmcif</b> or <b>pdb</b> depending on
+the specific entry)</td>
+</tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
 <td align="center"><b>pdbe</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
+target="_blank">PDBe</a></td>
+<td align="center" class="text"><b>pdbe_bio</b></td>
+<td align="center" class="text">atomic coordinates for biological assembly
+or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
+<td align="center"><b>mmcif</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/"
 target="_blank">PDBe</a></td>
@@ -1314,5 +1429,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+August 2020</address>
 </body></html>

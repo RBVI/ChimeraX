@@ -176,6 +176,13 @@ class Camera:
         # TODO:  Find a better place to update the OpenGL viewport when window resized.
         render.full_viewport()
 
+    def draw_background(self, view_num, render):
+        '''
+        Draw background.  May only draw it on the first view if multiple
+        views render to portions of the same texture.
+        '''
+        render.draw_background()
+
     def combine_rendered_camera_views(self, render):
         '''Combine camera views into a single image.'''
         pass

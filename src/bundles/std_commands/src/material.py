@@ -13,7 +13,8 @@
 
 def material(session, preset = None, reflectivity = None,
              specular_reflectivity = None, exponent = None,
-             ambient_reflectivity = None, transparent_cast_shadows = None):
+             ambient_reflectivity = None, transparent_cast_shadows = None,
+             meshes_cast_shadows = None):
 
     '''
     Change surface material properties controlling the reflection of light.
@@ -43,12 +44,14 @@ def material(session, preset = None, reflectivity = None,
       objects cast a shadows as if the objects are opaque making everything inside
       appear black. Raytracing would be required to render a partial shadow, and we
       don't support that. Initial value is false.
+    meshes_cast_shadows : bool
+      Whether mesh style drawings cast shadows.  Initial value is false.
     '''
     v = session.main_view
     m = v.material
 
     if len([opt for opt in (preset, reflectivity, specular_reflectivity, exponent,
-                            ambient_reflectivity, transparent_cast_shadows)
+                            ambient_reflectivity, transparent_cast_shadows, meshes_cast_shadows)
             if not opt is None]) == 0:
         # Report current settings.
         lines = (
@@ -57,6 +60,7 @@ def material(session, preset = None, reflectivity = None,
             'Specular exponent: %.5g' % m.specular_exponent,
             'Ambient reflectivity %.5g' % m.ambient_reflectivity,
             'Transparent cast shadows: %s' % ('true' if m.transparent_cast_shadows else 'false'),
+            'Meshes cast shadows: %s' % ('true' if m.meshes_cast_shadows else 'false'),
         )
         msg = '\n'.join(lines)
         session.logger.info(msg)
@@ -79,6 +83,8 @@ def material(session, preset = None, reflectivity = None,
         m.ambient_reflectivity = ambient_reflectivity
     if not transparent_cast_shadows is None:
         m.transparent_cast_shadows = transparent_cast_shadows
+    if not meshes_cast_shadows is None:
+        m.meshes_cast_shadows = meshes_cast_shadows
 
     v.material = m	# Let's viewer know the material has been changed.
 
@@ -92,6 +98,7 @@ def register_command(logger):
             ('exponent', FloatArg),
             ('ambient_reflectivity', FloatArg),
             ('transparent_cast_shadows', BoolArg),
+            ('meshes_cast_shadows', BoolArg),
         ],
         synopsis="report or alter material parameters")
     register('material', _material_desc, material, logger=logger)

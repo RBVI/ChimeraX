@@ -12,7 +12,7 @@
 TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/map/data/imagic
+PKG_DIR = $(PYSITEDIR)/chimerax/map_data/imagic
 
 PYSRCS = __init__.py imagic_format.py imagic_grid.py imagic_write.py
 

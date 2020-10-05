@@ -11,6 +11,14 @@
 
 # Session save/restore of place state
 
+def register_place_session_save(session):
+    from .place import Place, Places
+    methods = {
+        Place: PlaceState,
+        Places: PlacesState,
+    }
+    session.register_snapshot_methods(methods)
+
 class PlaceState:
     version = 1
 

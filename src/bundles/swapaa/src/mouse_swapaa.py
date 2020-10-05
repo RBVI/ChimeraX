@@ -60,8 +60,7 @@ class SwapAAMouseMode(MouseMode):
 
     def _picked_residue(self, event):
         x,y = event.position()
-        from chimerax.mouse_modes import picked_object
-        pick = picked_object(x, y, self.session.main_view)
+        pick = self.session.main_view.picked_object(x, y)
         return self._residue_from_pick(pick)
 
     def _residue_from_pick(self, pick):

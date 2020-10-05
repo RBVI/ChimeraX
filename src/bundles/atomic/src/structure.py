@@ -70,7 +70,8 @@ class Structure(Model, StructureData):
         from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         self.triggers.add_trigger("changes")
-
+        _register_hover_trigger(session)
+        
         self._make_drawing()
 
         self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
@@ -97,12 +98,13 @@ class Structure(Model, StructureData):
         self._ses_handlers.clear()
         ses = self.session
         Model.delete(self)	# Delete children (pseudobond groups) before deleting structure
-        if not self.deleted:
+        # ensure we are checking StructureData.deleted, not Model.deleted
+        if not StructureData.deleted.fget(self):
             self.session = ses
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = StructureData.deleted
+    deleted = Model.deleted
 
     def copy(self, name = None):
         '''
@@ -291,7 +293,7 @@ class Structure(Model, StructureData):
         # TODO: Handle instead with a C++ notification that atoms added or deleted
         pass
 
-    def _update_graphics_if_needed(self, *_):
+    def update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
         if gc == 0:
             return
@@ -487,6 +489,7 @@ class Structure(Model, StructureData):
         all_rings = self.rings(all_size_threshold=6)
         # Ring info will change spontaneously when we ask for radii, so remember what we need now
         ring_atoms = [ring.ordered_atoms for ring in all_rings]
+        rings = []
         for atoms in ring_atoms:
             residue = atoms[0].residue
             if not residue.ring_display or not all(atoms.visibles):
@@ -497,22 +500,25 @@ class Structure(Model, StructureData):
             else:
                 offset = min(self._atom_display_radii(atoms))
             if len(atoms) < 6:
-                self.fill_small_ring(atoms, offset, residue.ring_color)
+                rings.append(self.fill_small_ring(atoms, offset, residue.ring_color))
             else:
-                self.fill_6ring(atoms, offset, residue.ring_color)
+                rings.append(self.fill_6ring(atoms, offset, residue.ring_color))
 
         if ring_count:
+            self._ring_drawing.add_shapes(rings)
             self._graphics_changed |= self._SHAPE_CHANGE
 
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring
+        from .shapedrawing import AtomicShapeInfo
         vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
-        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def fill_6ring(self, atoms, offset, color):
         # 6-membered rings
         from chimerax.geometry import fill_6ring
+        from .shapedrawing import AtomicShapeInfo
         # Picking the "best" orientation to show chair/boat configuration is hard
         # so choose anchor the ring using atom nomenclature.
         # Find index of atom with lowest element with lowest number (C1 < C6).
@@ -540,7 +546,7 @@ class Structure(Model, StructureData):
             anchor_element = e
             anchor_name = a.name
         vertices, normals, triangles = fill_6ring(atoms.coords, offset, anchor)
-        self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def _create_ribbon_graphics(self):
         ribbons_drawing = self._ribbons_drawing
@@ -648,11 +654,11 @@ class Structure(Model, StructureData):
         return picks
 
     def x3d_needs(self, x3d_scene):
-        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        self.update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().x3d_needs(x3d_scene)
 
     def write_x3d(self, *args, **kw):
-        self._update_graphics_if_needed()       # Ribbon drawing lazily computed
+        self.update_graphics_if_needed()       # Ribbon drawing lazily computed
         super().write_x3d(*args, **kw)
 
     def get_selected(self, include_children=False, fully=False):
@@ -938,10 +944,6 @@ class AtomsDrawing(Drawing):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
             return cpb
-        # TODO: use the next two lines instead of the following four for a 5% speedup
-        # should be okay to change since Structure.bounds does _update_graphics_if_needed first
-        # xyzr = self.positions.shift_and_scale_array()
-        # coords, radii = xyzr[:, :3], xyzr[:, 3]
         a = self.visible_atoms
         if len(a) == 0:
             return None
@@ -1214,7 +1216,7 @@ class AtomicStructure(Structure):
                 nucleic = ribbonable.filter(mask)
                 display |= nucleic
                 if nucleic:
-                    from .nucleotides.cmd import nucleotides
+                    from chimerax.nucleotides.cmd import nucleotides
                     if len(nucleic) < 100:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
                     else:
@@ -1324,12 +1326,12 @@ class AtomicStructure(Structure):
         for het, alt in alternatives.items():
             if len(alt) < len(hnd[het]):
                 hnd[het] = alt
-        from .pdb import process_chem_name
+        from chimerax.pdb import process_chem_name
         for k, v in hnd.items():
             hnd[k] = process_chem_name(v)
 
     def _set_chain_descriptions(self, session):
-        from . import mmcif
+        from chimerax import mmcif
         chain_to_desc = {}
         struct_asym, entity = mmcif.get_mmcif_tables_from_metadata(self, ['struct_asym', 'entity'])
         if struct_asym:
@@ -1345,8 +1347,11 @@ class AtomicStructure(Structure):
             else:
                 for ch in self.chains:
                     mmcif_cid = ch.existing_residues.mmcif_chain_ids[0]
-                    chain_to_desc[ch.chain_id] = (
-                        entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
+                    try:
+                        chain_to_desc[ch.chain_id] = (
+                            entity_to_description[mmcif_chain_to_entity[mmcif_cid]], False)
+                    except KeyError:
+                        pass  # ignore bad metadata
         elif 'COMPND' in self.metadata and self.pdb_version > 1:
             compnd_recs = self.metadata['COMPND']
             compnd_chain_ids = None
@@ -1392,7 +1397,7 @@ class AtomicStructure(Structure):
                 for chain_id in compnd_chain_ids:
                     chain_to_desc[chain_id] = (description, synonym)
         if chain_to_desc:
-            from chimerax.atomic.pdb import process_chem_name
+            from chimerax.pdb import process_chem_name
             for k, v in chain_to_desc.items():
                 description, synonym = v
                 chain_to_desc[k] = process_chem_name(description, probable_abbrs=synonym)
@@ -1478,7 +1483,7 @@ class AtomicStructure(Structure):
 
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
-    from chimerax.atomic import mmcif 
+    from chimerax import mmcif
     sat = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly'])[0]
     sagt = mmcif.get_mmcif_tables_from_metadata(mol, ['pdbx_struct_assembly_gen'])[0]
     if not sat or not sagt:
@@ -1559,7 +1564,7 @@ class StructureGraphicsChangeManager:
         if self._model_display_change or gc.any():
             # Update graphics for each changed structure
             for i in gc.nonzero()[0]:
-                s[i]._update_graphics_if_needed()
+                s[i].update_graphics_if_needed()
 
             # Update level of detail if number of atoms shown changed.
             if self._model_display_change or (gc & StructureData._SHAPE_CHANGE).any():
@@ -1573,9 +1578,13 @@ class StructureGraphicsChangeManager:
 
             # Fire selection changed trigger.
             if (gc & StructureData._SELECT_CHANGE).any():
-                from chimerax.core.selection import SELECTION_CHANGED
-                self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
+                self.session.selection.trigger_fire_needed = True
                 # XXX: No data for now.  What should be passed?
+        if self.session.selection.trigger_fire_needed:
+            # Models can also set it
+            self.session.selection.trigger_fire_needed = False
+            from chimerax.core.selection import SELECTION_CHANGED
+            self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
 
     def update_level_of_detail(self):
         n = self.num_atoms_shown
@@ -1773,11 +1782,16 @@ class PromoteAtomSelection(SelectionPromotion):
         self._prev_atom_sel_mask = prev_atom_sel_mask
         self._prev_bond_sel_mask = prev_bond_sel_mask
     def promote(self):
-        atoms = self._structure.atoms
+        s = self._structure
+        if s.deleted:
+            return
+        atoms = s.atoms
         atoms.selected = asel = self._atom_sel_mask
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
+        if s.deleted:
+            return
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 
@@ -1796,7 +1810,9 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, mode = 'add'):
         select_atom(self.atom, mode)
-
+    def drawing(self):
+        return self.atom.structure
+    
 # -----------------------------------------------------------------------------
 #
 def select_atom(a, mode = 'add'):
@@ -1891,6 +1907,8 @@ class PickedBond(Pick):
         return None
     def select(self, mode = 'add'):
         select_bond(self.bond, mode)
+    def drawing(self):
+        return self.bond.structure
 
 # -----------------------------------------------------------------------------
 #
@@ -1975,6 +1993,8 @@ class PickedResidue(Pick):
             a.selected = False
         elif mode == 'toggle':
             a.selected = not a.selected.any()
+    def drawing(self):
+        return self.residue.structure
 
 # -----------------------------------------------------------------------------
 #
@@ -2191,3 +2211,22 @@ def structure_residues(structures):
     for m in structures:
         res = res | m.residues
     return res
+
+def _residue_mouse_hover(pick, log):
+    res = getattr(pick, 'residue', None)
+    if res is None:
+        return
+    from .molobject import Residue
+    if isinstance(res, Residue):
+        chain = res.chain
+        if chain and chain.description:
+            log.status("chain %s: %s" % (chain.chain_id, chain.description))
+        elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+            log.status(res.structure._hetnam_descriptions[res.name])
+            
+def _register_hover_trigger(session):
+    if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:
+        def res_hover(tname, pick, session=session):
+            _residue_mouse_hover(pick, session.logger)
+        session._residue_hover_handler = session.triggers.add_handler('mouse hover', res_hover)
+

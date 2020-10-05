@@ -19,13 +19,13 @@ Read Protein DataBank (PDB) files.
 """
 
 def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True, combine_sym_atoms=True):
+             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False):
 
     path = stream.name if hasattr(stream, 'name') else None
 
     from . import _pdbio
     try:
-        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic)
+        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains)
     except ValueError as e:
         if 'non-ASCII' in str(e):
             from chimerax.core.errors import UserError
@@ -227,7 +227,7 @@ def _get_formatted_res_info(model, *, standalone=True):
 
 # also used by mmcif
 def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
-    from chimerax.atomic.pdb import process_chem_name
+    from chimerax.pdb import process_chem_name
     html = ""
     nonstd_res_names = model.nonstandard_residue_names
     if nonstd_res_names:

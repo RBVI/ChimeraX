@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 # get PDB shared lib loaded...
-import chimerax.atomic.pdb  # noqa
+import chimerax.pdb  # noqa
 from .mmcif import (  # noqa
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
@@ -75,7 +75,7 @@ class _mmCIFioAPI(BundleAPI):
                     def fetch_args(self):
                         from chimerax.core.commands import BoolArg, FloatArg
                         return {
-                            'oversampling': FloatArg,
+                            'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
         else:
@@ -94,6 +94,8 @@ class _mmCIFioAPI(BundleAPI):
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
+                        'fixed_width': BoolArg,
+                        'best_guess': BoolArg,
                     }
 
         return Info()

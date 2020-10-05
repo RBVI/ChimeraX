@@ -172,9 +172,13 @@ See also: AtomGroup, ASel
                 self.remarks = []
                 self.NTITLE = up('i',f.read(cs('i')))[0]
                 for i in range(0,self.NTITLE):
-                        dat = [c.decode('utf-8') for c in up('80c',f.read(cs('80c')))]
+                        dat = []
+                        for c in up('80c',f.read(cs('80c'))):
+                            if c == b'\x00':
+                                break
+                            dat.append(c.decode('utf-8'))
                         self.remarks.append(''.join(dat).strip())
-#                        print(self.remarks[-1])
+                        #print(self.remarks[-1])
                 if up('i',f.read(cs('i')))[0] != size :
                         raise DCDFormatError("4")
                 if up('i',f.read(cs('i')))[0] != bytesPerInt :

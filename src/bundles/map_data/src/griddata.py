@@ -293,7 +293,7 @@ class GridData:
     grid point).  The array can be read from a file or be a cached copy in
     memory.  The array should not be modified.
     '''
-    if ijk_size == None:
+    if ijk_size is None:
       ijk_size = self.size
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)

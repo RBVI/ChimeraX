@@ -182,7 +182,11 @@ class HtmlView(QWebEngineView):
             from PyQt5.QtCore import Qt
             self.copy_sc = QShortcut(QKeySequence.Copy, self)
             self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
-            self.copy_sc.activated.connect( lambda: self.page().triggerAction(self.page().Copy))
+            if self._tool_window:
+                self.copy_sc.activated.connect(lambda app=self._tool_window.session.ui:
+                    app.clipboard().setText(self.selectedText()))
+            else:
+                self.copy_sc.activated.connect( lambda: self.page().triggerAction(self.page().Copy))
 
         if self.require_native_window:
             # This is to work around ChimeraX bug #2537 where the entire
@@ -422,7 +426,10 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
             prev_dir = None
             try:
                 if from_dir:
-                    prev_dir = os.getcwd()
+                    try:
+                        prev_dir = os.getcwd()
+                    except OSError:
+                        prev_dir = None
                     try:
                         os.chdir(from_dir)
                     except OSError as e:

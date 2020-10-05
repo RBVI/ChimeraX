@@ -1,0 +1,75 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+TOP = ../../..
+CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+
+OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
+ifeq ($(OS),CYGWIN_NT)
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+endif
+ifeq ($(OS),Darwin)
+PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.7
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.7
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
+PYLINT = $(PYTHON_EXE) -I -m flake8
+
+BUNDLE_NAME = ChimeraX-ToolshedUtils
+BUNDLE_VERSION = 1.0
+PKG_NAME = chimerax.toolshed_utils
+
+BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
+WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
+
+PYSRCS = $(wildcard src/*.py)
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+
+wheel $(WHEEL): setup.py $(PYSRCS)
+	$(PYTHON_EXE) setup.py --no-user-cfg build
+	# $(PYTHON_EXE) setup.py --no-user-cfg test
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	rm -rf $(WHL_BNDL_NAME).egg-info
+
+install app-install: $(WHEEL)
+	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
+
+sync:
+	rsync -av dist/*.whl $(TOP)/build/sync/python-only
+
+build: install
+	# unlike normal bundles, install as well
+	$(MAKE) sync
+
+test:
+	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
+		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+	done
+
+debug:
+	$(CHIMERAX_EXE) --debug
+
+clean:
+	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+
+pylint:
+	$(PYLINT) $(PYSRCS)
+
+setup.py: setup.py.in Makefile
+	sed \
+		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
+		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
+		-e 's,PKG_NAME,$(PKG_NAME),' \
+		< setup.py.in > setup.py

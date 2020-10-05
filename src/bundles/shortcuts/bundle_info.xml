@@ -21,6 +21,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapFit" version="~=2.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
@@ -54,9 +55,11 @@
     <Provider tab="Molecule Display" section="Coloring"
       name="rB" display_name="rainbow" icon="rainbow.png" description="Rainbow color N to C-terminus"/>
     <Provider tab="Molecule Display" section="Coloring"
-      name="bf" display_name="b-factor" icon="bfactor.png" description="Color by b-factor"/>
+      name="ep" display_name="electrostatic" icon="esp.png" description="Color surface by electrostatic potential"/>
     <Provider tab="Molecule Display" section="Coloring"
       name="hp" display_name="hydrophobic" icon="hydrophobicity.png" description="Color surface by hydrophobicity"/>
+    <Provider tab="Molecule Display" section="Coloring"
+      name="bf" display_name="b-factor" icon="bfactor.png" description="Color by b-factor"/>
 
     <Provider tab="Molecule Display" section="Analysis"
       name="hb" display_name="H-bonds" icon="hbondsflat.png" description="Show hydrogen bonds"/>

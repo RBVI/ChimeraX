@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Maestro" version="1.6"
+<BundleInfo name="ChimeraX-Maestro" version="1.7"
 	    package="chimerax.maestro"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -16,7 +16,6 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-ChemGroup" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>

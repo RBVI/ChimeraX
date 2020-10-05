@@ -75,11 +75,13 @@ Center coordinates:
 </p>
 <ul>
 <li><a href="commands/measure.html#center"><b>measure center</b></a>
+<li><a href="commands/define.html#centroid"><b>define centroid</b></a>
 </ul>
 <p>
-Inertia ellipsoid:
+Best-fit plane or inertia ellipsoid, respectively:
 </p>
 <ul>
+<li><a href="commands/define.html#plane"><b>define plane</b></a>
 <li><a href="commands/measure.html#inertia"><b>measure inertia</b></a>
 </ul>
 <p>
@@ -108,6 +110,9 @@ Fit measures:
 &ndash; pairwise RMSD between biopolymers using one point per residue 
 <li><a href="commands/fitmap.html"><b>fitmap</b></a> 
 &ndash; average map value at atom positions, or map-map overlap or correlation
+<li><a href="commands/measure.html#rotation"><b>measure rotation</b></a> 
+&ndash; not exactly a measure of fit, but of the current transformation of
+one model coordinate system relative to another
 </ul>
 <p>
 Other map (<a href="tools/volumeviewer.html">volume data</a>) measurements:
@@ -142,9 +147,17 @@ Coloring or other display of spatially varying quantities:
 </p>
 <ul>
 <li><a href="commands/color.html#byattribute"><b>color byattribute</b></a>
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="tools/shortcut-icons/bfactor.png"></a>
 &ndash; coloring by atomic B-factor or other numerical attributes
 of atomic structures
+<li><a href="commands/coulombic.html"><b>coulombic</b></a>
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="tools/shortcut-icons/esp.png"></a>
+&ndash; molecular surface coloring by Coulombic electrostatic potential
 <li><a href="commands/mlp.html"><b>mlp</b></a>
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="tools/shortcut-icons/hydrophobicity.png"></a>
 &ndash; molecular surface coloring by lipophilicity potential
 <li><a href="commands/color.html#map"><b>color sample</b></a>,
 <a href="commands/color.html#map"><b>color electrostatic</b></a>
@@ -161,5 +174,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2019</address>
+August 2020</address>
 </body></html>

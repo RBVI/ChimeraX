@@ -1,0 +1,5 @@
+On macOS 10.15 ChimeraX started from an emacs shell crashes trying to enable the webcam
+apparently because it the parent app (shell or emacs) needs permission and does not have
+the needed Info.plist keys NSCameraUsageDescription, NSMicrophoneUsageDescription,
+causing ChimeraX to abort.  Solution is to start ChimeraX by double clicking or run
+it from Terminal (which does have the needed Info.plist keys).

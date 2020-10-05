@@ -1,0 +1,46 @@
+#version 330 core
+
+in vec2 texCoords;
+out vec4 fragColor;
+
+uniform sampler2D screenTex;
+
+#ifdef USE_TEXTURE_2D
+
+// Show quilt for debugging
+void main()
+{
+  fragColor = texture(screenTex, texCoords.xy);
+}
+
+#else
+
+// Calibration values
+uniform vec3 pitch;
+uniform vec3 rgb_pitch;
+
+// Quilt settings
+uniform vec3 tile;		// num columns, num rows, num tiles
+uniform vec2 texture_region;
+uniform vec2 adjust_aspect;
+
+vec2 tile_uv(vec2 uv, float z)
+{
+  // decide which tile image to interpolate based on z.
+  float t = floor(mod(z, 1.0) * tile.z);
+  float x = (mod(t, tile.x) + uv.x) / tile.x;
+  float y = (floor(t / tile.x) + uv.y) / tile.y;
+  return vec2(x, y) * texture_region.xy;
+}
+
+void main()
+{
+  vec2 uv = adjust_aspect.xy * (texCoords.xy - 0.5) + 0.5;
+  float z0 = texCoords.x*pitch.x + texCoords.y*pitch.y - pitch.z;
+  fragColor = vec4(texture(screenTex, tile_uv(uv, z0 + rgb_pitch.r)).r,
+  	      	   texture(screenTex, tile_uv(uv, z0 + rgb_pitch.g)).g,
+		   texture(screenTex, tile_uv(uv, z0 + rgb_pitch.b)).b,
+		   1.0);
+}
+
+#endif

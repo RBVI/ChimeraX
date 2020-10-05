@@ -12,6 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.webservices.opal_job import OpalJob
+from chimerax.webservices.cxservices_job import CxServicesJob
+from cxservices.rest import ApiException
 
 
 class CCDJob(OpalJob):
@@ -23,21 +25,17 @@ class CCDJob(OpalJob):
         self.start(self.OPAL_SERVICE, name)
 
     def on_finish(self):
-        self.session.logger.info("Standard output:\n" +
-                                 self.get_file("stdout.txt"))
+        self.session.logger.info("Standard output:\n" + self.get_stdout())
 
 
-class BlastProteinJob(OpalJob):
+class BlastProteinBase:
 
-    OPAL_SERVICE = "BlastProtein2Service"
     QUERY_FILENAME = "query.fa"
     RESULTS_FILENAME = "results.txt"
 
-    def __init__(self, session, seq, atomspec, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", max_seqs=500, log=None,
-                 tool_inst_name=None):
+    def setup(self, seq, atomspec, database="pdb", cutoff=1.0e-3,
+              matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None):
         from . import tool
-        super().__init__(session)
         self.seq = seq.replace('?', 'X')        # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
@@ -47,17 +45,6 @@ class BlastProteinJob(OpalJob):
         self.log = log
         self.tool_inst_name = tool_inst_name
         self.tool = tool.find(tool_inst_name)
-
-        options = ["-d", self.database,
-                   "-e", str(self.cutoff),
-                   "-M", self.matrix,
-                   "-b", str(self.max_seqs),
-                   "-i", self.QUERY_FILENAME,
-                   "-o", self.RESULTS_FILENAME]
-        cmd = ' '.join(options)
-        fasta = self._seq_to_fasta(self.seq, "query")
-        input_file_map = [(self.QUERY_FILENAME, "bytes", fasta.encode("utf-8"))]
-        self.start(self.OPAL_SERVICE, cmd, input_file_map=input_file_map)
 
     def _seq_to_fasta(self, seq, title):
         data = ["> %s\n" % title]
@@ -79,11 +66,11 @@ class BlastProteinJob(OpalJob):
     def on_finish(self):
         logger = self.session.logger
         logger.info("BlastProtein finished.")
-        out = self.get_file("stdout.txt")
+        out = self.get_stdout()
         if out:
             logger.error("Standard output:\n" + out)
         if not self.exited_normally():
-            err = self.get_file("stderr.txt")
+            err = self.get_stderr()
             if self.tool:
                 self.tool.job_failed(self, err)
             else:
@@ -96,7 +83,7 @@ class BlastProteinJob(OpalJob):
                 p = Parser("query", self.seq, results)
             except Exception as e:
                 if self.tool:
-                    err = self.get_file("stderr.txt")
+                    err = self.get_stderr()
                     self.tool.job_failed(self, err + str(e))
                 else:
                     logger.bug("BLAST output parsing error: %s" % str(e))
@@ -120,3 +107,52 @@ class BlastProteinJob(OpalJob):
                                                str(m.score),
                                                m.description]))
                     logger.info('\n'.join(msgs))
+
+
+class OpalBlastProteinJob(BlastProteinBase, OpalJob):
+    # Must inherit from BlastProteinBase first to get the right on_finish()
+
+    OPAL_SERVICE = "BlastProtein2Service"
+
+    def __init__(self, session, seq, atomspec, **kw):
+        super().__init__(session)
+        self.setup(seq, atomspec, **kw)
+        options = ["-d", self.database,
+                   "-e", str(self.cutoff),
+                   "-M", self.matrix,
+                   "-b", str(self.max_seqs),
+                   "-i", self.QUERY_FILENAME,
+                   "-o", self.RESULTS_FILENAME]
+        cmd = ' '.join(options)
+        fasta = self._seq_to_fasta(self.seq, "query")
+        input_file_map = [(self.QUERY_FILENAME, "bytes", fasta.encode("utf-8"))]
+        self.start(self.OPAL_SERVICE, cmd, input_file_map=input_file_map)
+
+
+class RestBlastProteinJob(BlastProteinBase, CxServicesJob):
+    # Must inherit from BlastProteinBase first to get the right on_finish()
+
+    def __init__(self, session, seq, atomspec, **kw):
+        super().__init__(session)
+        self.setup(seq, atomspec, **kw)
+        params = {"db": self.database,
+                  "evalue": str(self.cutoff),
+                  "matrix": self.matrix,
+                  "blimit": str(self.max_seqs),
+                  "input_seq": self.seq,
+                  "output_file": self.RESULTS_FILENAME}
+        self.start("blast", params)
+
+
+ServiceMap = {
+    "opal": OpalBlastProteinJob,
+    "rest": RestBlastProteinJob
+}
+
+
+def BlastProteinJob(session, seq, atomspec, **kw):
+    service = kw.get("service", "opal")
+    try:
+        return ServiceMap[service](session, seq, atomspec, **kw)
+    except KeyError:
+        raise ValueError("unknown service type: %s" % service)

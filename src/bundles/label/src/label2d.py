@@ -69,6 +69,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     if name == 'all':
         from chimerax.core.errors import UserError
         raise UserError("'all' is reserved to refer to all labels")
+    elif name:
+        lm = session_labels(session)
+        if lm and lm.named_label(name) is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('Label "%s" already exists' % name)
 
     kw = {'text':text, 'color':color, 'size':size, 'font':font,
           'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
@@ -84,6 +89,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
         kw['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         kw['background'] = None
+
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to draw 2D labels without rendering images")
         
     return Label(session, name, **kw)
 
@@ -249,9 +259,11 @@ def label_under_window_position(session, win_x, win_y):
         return None
     for lbl in lm.all_labels:
         dx,dy = fx - lbl.xpos, fy - lbl.ypos
-        lw,lh = lbl.drawing.size
-        if dx >=0 and dx < lw and dy >=0 and dy < lh:
-            return lbl
+        d = lbl.drawing
+        if d.display and d.parents_displayed:
+            lw,lh = d.size
+            if dx >=0 and dx < lw and dy >=0 and dy < lh:
+                return lbl
     return None
     
 # -----------------------------------------------------------------------------
@@ -271,6 +283,10 @@ def label_delete(session, labels = None):
 #
 def label_listfonts(session):
     '''Report available fonts.'''
+    has_graphics = session.main_view.render is not None
+    if not has_graphics:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Unable to do list fonts without being able to render images")
     from PyQt5.QtGui import QFontDatabase
     fdb = QFontDatabase()
     fnames = list(fdb.families())
@@ -488,6 +504,7 @@ class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
                  xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0):
+
         self.session = session
         self.name = name
         self.text = text
@@ -508,6 +525,7 @@ class Label:
         self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
         self.drawing = d = LabelModel(session, self)
+        d.display = visibility
         lb = session_labels(session, create = True)
         lb.add_label(self)
 

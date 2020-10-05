@@ -72,7 +72,8 @@ _polymer_res(Residue* r, Atom* a, bool* is_nucleic)
 {
     const std::set<AtomName>* min_names;
     AtomName missing_ok;
-    if (a->name() == "O3'" || a->name() == "P") {
+    // F86 can be polymeric and its phosphorus is named P1
+    if (a->name() == "O3'" || a->name() == "P" || a->name() == "P1") {
         // nucleic
         *is_nucleic = true;
         min_names = &Residue::na_min_backbone_names;
@@ -135,10 +136,11 @@ _polymeric_start_atom(Atom* a1, Atom* a2)
 
     if (n1) {
         // both nucleic
-        if (a1->name() == "O3'" && a2->name() == "P") {
+        // F86 can be polymeric and its phosphorus is named P1
+        if (a1->name() == "O3'" && (a2->name() == "P" || a2->name() == "P1")) {
             return a1;
         }
-        if (a1->name() == "P" && a2->name() == "O3'") {
+        if ((a1->name() == "P" || a1->name() == "P1") && a2->name() == "O3'") {
             return a2;
         }
     } else {

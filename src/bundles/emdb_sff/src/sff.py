@@ -17,7 +17,7 @@ EMDB SFF: Segmentation file reader
 
 Read EMDB SFF segmentation files
 """
-def read_sff(session, path):
+def read_sff(session, path, max_surfaces = 100, debug = False):
     """
     Create a model that is either polygon traces or a volume index map.
     """
@@ -25,13 +25,16 @@ def read_sff(session, path):
     from sfftkrw import SFFSegmentation
     seg = SFFSegmentation.from_file(path)
 
-    report_segmentation_info(seg)
-    lmodels = lattice_models(session, seg)
+    if debug:
+        report_segmentation_info(seg)
+    lmodels = lattice_models(session, seg, max_surfaces)
     mmodels = mesh_models(session, seg)
 
     models = lmodels + mmodels
     
-    msg = 'Read segmentation file %s' % path
+    msg = 'Read segmentation file %s\n%s' % (path, seg.name)
+    if len(models) == 0:
+        msg += '\nSegmentation file contains no lattices or meshes.'
     return models, msg
 
 def report_segmentation_info(seg):
@@ -66,8 +69,14 @@ def report_segmentation_info(seg):
                 print('npoly', m.num_polygons)
                 print('transf id', m.transform_id)
 
-def lattice_models(session, seg):
-    lattice_segs = {}	# Map lattice id to dictionary mapping segment index to (descrip, color)
+    for lattice in seg.lattices:
+        print('lattice', lattice.id,
+              'shape', lattice.data_array.shape,
+              'value type', lattice.mode)
+
+def lattice_models(session, seg, max_surfaces = 100):
+    # Map lattice id to dictionary mapping segment index to (descrip, color)
+    lattice_segs = {}
     for segment in seg.segments:
         v = segment.three_d_volume
         if v is not None:
@@ -76,26 +85,33 @@ def lattice_models(session, seg):
                 lseg[int(v.value)] = (segment.biological_annotation, segment.colour)
 
     scale, shift = guess_scale_and_shift(seg)
-    
+
+    # Create Volume model of segment indices for each lattice.
     models = []
-    for lattice in seg.lattices:
+    lattices = seg.lattices
+    for i,lattice in enumerate(lattices):
         d = lattice.data_array	# Docs say number array, but emd 1547 gives bytes
-        print('lattice', lattice.id, 'shape', d.shape, 'value type', lattice.mode)
-        name = seg.name + ' segmentation'
-        from chimerax.map.data import ArrayGridData
+        name = 'region map' if len(lattices) == 1 else 'region map %d' % i
+        from chimerax.map_data import ArrayGridData
         g = ArrayGridData(d, step=scale, origin=shift, name = name)
         from chimerax.map import volume_from_grid_data
-        v = volume_from_grid_data(g, session)
+        v = volume_from_grid_data(g, session, open_model = False)
+        v.display = False
         if lattice.id in lattice_segs:
             v.segments = lseg = lattice_segs[lattice.id]
             set_segmentation_image_colors(v, lseg)
             # Make a surface for each segment.
+            regions = list(lseg.items())
+            regions.sort()
             surfs = [segment_surface(v, sindex, descrip, color)
-                     for sindex, (descrip, color) in lseg.items()]
-            from chimerax.core.models import Model
-            surf_group = Model('segment surfaces', v.session)
-            surf_group.add(surfs)
-            v.add([surf_group])
+                     for sindex, (descrip, color) in regions[:max_surfaces]]
+            if surfs:
+                ns, nr = len(surfs), len(regions)
+                sname = ('%d surfaces' % ns) if ns == nr else ('%d of %d surfaces' % (ns,nr))
+                from chimerax.core.models import Model
+                surf_group = Model(sname, v.session)
+                surf_group.add(surfs)
+                models.append(surf_group)
         # TODO: Don't see how to get the transform id for the lattice.
         #  EMD 1547 segmentation has two transforms, identity and the
         #  map transform (2.8A voxel size, shift to center) but I didn't

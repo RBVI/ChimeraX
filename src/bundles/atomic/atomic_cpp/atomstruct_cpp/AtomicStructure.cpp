@@ -180,10 +180,11 @@ AtomicStructure::_compute_structure_cats() const
     }
     
     std::vector<Atom*> ligands;
-    auto ligand_cutoff = std::min(longest->size()/4, (size_t)250);
+    // CDL has 256 atoms
+    auto ligand_cutoff = std::min(longest->size()/4, (size_t)256);
     for (auto root: root_set) {
         auto grp = group_lookup[root];
-        if (grp->size() < ligand_cutoff) {
+        if (grp->size() <= ligand_cutoff) {
             // fewer than 10 residues?
             std::set<Residue*> residues;
             for (auto a: *grp) {
@@ -368,7 +369,7 @@ AtomicStructure::make_chains() const
             // skip if standard residues have been removed but the
             // sequence records haven't been...
             Sequence sr_seq(three_let_seq);
-            if ((unsigned)std::count(chain->begin(), chain->end(), 'X') == chain_size
+            if ((unsigned)std::count(chain->begin(), chain->end(), '?') == chain_size
             && std::search(sr_seq.begin(), sr_seq.end(),
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
@@ -395,7 +396,7 @@ AtomicStructure::make_chains() const
             && si+1 != ap.segments.end(); ++si, ++gi) {
                 auto seg = *si;
                 if (std::find_if_not(seg.begin(), seg.end(),
-                [](char c){return c == 'X';}) == seg.end()) {
+                [](char c){return c == '?';}) == seg.end()) {
                     // all 'X'
                     existing_Xs += seg.size();
                     additional_Xs += *gi;
@@ -404,9 +405,9 @@ AtomicStructure::make_chains() const
                 }
             }
             if (existing_Xs && sr_seq.size() >= existing_Xs
-            && std::count(sr_seq.begin(), sr_seq.begin() + existing_Xs, 'X')
+            && std::count(sr_seq.begin(), sr_seq.begin() + existing_Xs, '?')
             == existing_Xs)
-                sr_seq.insert(sr_seq.begin(), additional_Xs, 'X');
+                sr_seq.insert(sr_seq.begin(), additional_Xs, '?');
 
             // trailing Xs...
             additional_Xs = 0;
@@ -416,7 +417,7 @@ AtomicStructure::make_chains() const
             && rsi+1 != ap.segments.rend(); ++rsi, ++rgi) {
                 auto seg = *rsi;
                 if (std::find_if_not(seg.begin(), seg.end(),
-                [](char c){return c == 'X';}) == seg.end()) {
+                [](char c){return c == '?';}) == seg.end()) {
                     // all 'X'
                     existing_Xs += seg.size();
                     additional_Xs += *rgi;
@@ -425,9 +426,9 @@ AtomicStructure::make_chains() const
                 }
             }
             if (existing_Xs && sr_seq.size() >= existing_Xs
-            && std::count(sr_seq.rbegin(), sr_seq.rbegin() + existing_Xs, 'X')
+            && std::count(sr_seq.rbegin(), sr_seq.rbegin() + existing_Xs, '?')
             == existing_Xs)
-                sr_seq.insert(sr_seq.end(), additional_Xs, 'X');
+                sr_seq.insert(sr_seq.end(), additional_Xs, '?');
 
             // if a jump in numbering is in an unresolved part of the structure,
             // the estimated length can be too long...

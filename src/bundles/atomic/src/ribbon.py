@@ -64,7 +64,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
-        # properly unset when ribbons are completely undisplayed
+        # properly unset when ribbons are completely undisplayed.
+        # Guides are O amino acid positions or C1' nucleic acid positions
+        # but will be None if any of those atoms are missing.
         any_display, atoms, coords, guides = _get_polymer_spline(rlist)
         if not any_display:
             continue
@@ -718,7 +720,6 @@ class TethersDrawing(Drawing):
         
         Drawing.__init__(self, name)
         self.skip_bounds = True   # Don't include in bounds calculation. Optimization.
-        self.no_cofr = True	# Don't use for finding center of rotation. Optimization.
         self.pickable = False	# Don't allow mouse picking.
 
         if tether_shape == TETHER_CYLINDER:

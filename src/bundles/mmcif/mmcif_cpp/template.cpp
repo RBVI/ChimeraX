@@ -22,6 +22,10 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/tmpl/restmpl.h>
+#if 0
+// only needed if using tmpl::find_template_residue
+#include <atomstruct/tmpl/residues.h>
+#endif
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -63,24 +67,53 @@ tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
 const tmpl::Residue*
-find_template_residue(const ResName& name)
+find_template_residue(const ResName& name, bool start, bool stop)
 {
+    const tmpl::Residue* tr = nullptr;
     if (name.empty())
-        return nullptr;
+        return tr;
     if (templates == nullptr)
         templates = new tmpl::Molecule();
-    else {
-        tmpl::Residue* tr = templates->find_residue(name);
-        if (tr)
-            return tr;
+    else
+        tr = templates->find_residue(name);
+    if (tr == nullptr) {
+        if (locate_func == nullptr)
+            return nullptr;
+        string filename = locate_func(name);
+        if (filename.empty())
+            return nullptr;
+        load_mmCIF_templates(filename.c_str());
+        tr = templates->find_residue(name);
     }
-    if (locate_func == nullptr)
-        return nullptr;
-    string filename = locate_func(name);
-    if (filename.empty())
-        return nullptr;
-    load_mmCIF_templates(filename.c_str());
-    return templates->find_residue(name);
+    if (tr) {
+        if (tr->polymer_type() == PolymerType::PT_AMINO) {
+            if (start) {
+                ResName terminus = name + "_LSN3";
+                const tmpl::Residue* ttr = templates->find_residue(terminus);
+                if (ttr)
+                    return ttr;
+            } else if (stop) {
+                ResName terminus = name + "_LEO2H";
+                const tmpl::Residue* ttr = templates->find_residue(terminus);
+                if (ttr)
+                    return ttr;
+            }
+        }
+#if 0
+// The atomic module's templates are missing atoms, eg., OP3 in G.
+// So this gets rid of some warning about missing hydrogens
+// and add others.  Needs more investigation.
+        else if (tr->polymer_type() == PolymerType::PT_NUCLEIC) {
+            if (start || stop) {
+                // Until the PDB has mmCIF templates for RNA/DNA use built-ins
+                const tmpl::Residue* ttr = tmpl::find_template_residue(name, stop, start);
+                if (ttr)
+                    return ttr;
+            }
+        }
+#endif
+    }
+    return tr;
 }
 
 struct ExtractTemplate: public readcif::CIFFile
@@ -358,7 +391,7 @@ ExtractTemplate::parse_chem_comp_atom()
     }
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
-        tmpl::Atom* a = templates->new_atom(name, elem);
+        tmpl::Atom* a = templates->new_atom(name, elem, chirality);
         if (std::isnan(pdbx_x)) {
             tmpl::Coord c(x, y, z);
             a->set_coord(c);

@@ -116,7 +116,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
             title = struct.fields(['title'])[0][0]
         except TableMissingFieldsError:
             continue
-        from chimerax.atomic.pdb import process_chem_name
+        from chimerax.pdb import process_chem_name
         model.html_title = process_chem_name(title, sentences=True)
         model.has_formatted_metadata = lambda ses: True
         # use proxy to avoid circular ref
@@ -130,7 +130,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
 def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params
-    from chimerax.atomic.pdb import process_chem_name
+    from chimerax.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
     html += '  <tr>\n'
@@ -229,7 +229,7 @@ def _get_formatted_res_info(model, *, standalone=True):
                 row = substitute_none_for_unspecified(raw_row)
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
-    from chimerax.atomic.pdb import format_nonstd_res_info
+    from chimerax.pdb import format_nonstd_res_info
     return format_nonstd_res_info(model, update_nonstd, standalone)
 
 
@@ -242,7 +242,7 @@ def _process_src(src, caption, field_names):
             usable_rows.add(tuple(row))
     html = ""
     if usable_rows:
-        from chimerax.atomic.pdb.pdb import format_source_name
+        from chimerax.pdb.pdb import format_source_name
         rows = list(usable_rows)
         html += '  <tr>\n'
         if len(rows) > 1:
@@ -363,7 +363,7 @@ def _get_template(session, name):
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     try:
-        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
+        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
         return None
 
@@ -389,6 +389,8 @@ def load_mmCIF_templates(filename):
 def quote(s, max_len=60):
     """Return CIF 1.1 data value version of string"""
     # max_len is for mimicing the output from the PDB (see #2230)
+    if isinstance(s, (int, float)):
+        return str(s)
     s = str(s)
     examine = s[0:1]
     sing_quote = examine == "'"
@@ -1015,17 +1017,17 @@ class CIFTable:
             file = sys.stdout
         if n == len(self._data):
             for t, v in zip(self._tags, self._data):
-                print('_%s.%s %s' % (self.table_name, t, quote(v)), file=file)
+                print(f'_{self.table_name}.{t}', quote(v), file=file)
         else:
             print('loop_', file=file)
             for t in self._tags:
-                print('_%s.%s' % (self.table_name, t), file=file)
+                print(f'_{self.table_name}.{t}', file=file)
+            data = [quote(x) for x in self._data]
             if not fixed_width:
                 for i in range(0, len(self._data), n):
-                    print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
+                    print(' '.join(data[i:i + n]), file=file)
             else:
                 bad_fixed_width = False
-                data = [quote(x) for x in self._data]
                 columns = [data[i::n] for i in range(n)]
                 try:
                     widths = [max(len(f) if f[0] != '\n' else sys.maxsize for f in c) for c in columns]
@@ -1057,9 +1059,8 @@ def get_mmcif_tables(filename, table_names):
 
 def fetch_ccd(session, ccd_id, ignore_cache=False):
     """Get structure for CCD component"""
-    from .. import AtomicStructure
+    from chimerax.atomic.structure import AtomicStructure
     # TODO: support ignore_cache
-    from itertools import chain
     ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
     try:
         ccd = find_template_residue(session, ccd_id)
@@ -1085,7 +1086,7 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
         new_a1 = new_atoms[atoms[1]]
         new_structure.new_bond(new_a0, new_a1)
 
-    from chimerax.atomic.pdb import process_chem_name
+    from chimerax.pdb import process_chem_name
     new_structure.html_title = process_chem_name(ccd.description)
 
     return [new_structure], f"Opened CCD {ccd_id}"

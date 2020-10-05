@@ -151,7 +151,7 @@ class MapSeriesSlider(ToolInstance):
         n = s0.number_of_times()
         if t >= n - 1:
             t = 0
-        from chimerax.map.series.vseries_command import vseries_play
+        from .vseries_command import vseries_play
         p = vseries_play(self.session, self.series, start_time=t, loop=True, cache_frames=n*ns)
 
         def update_slider(t, self=self):
@@ -167,7 +167,7 @@ class MapSeriesSlider(ToolInstance):
     def stop(self):
         if self.series is None:
             return
-        from chimerax.map.series.vseries_command import vseries_stop
+        from .vseries_command import vseries_stop
         vseries_stop(self.session, self.series)
         self.playing = False
         self.set_play_button_icon(play=True)
@@ -235,7 +235,7 @@ def remove_slider_on_open(session):
 
 def models_added_cb(models, session):
     # Show slider when a map series is opened.
-    from chimerax.map.series import MapSeries
+    from .series import MapSeries
     ms = [m for m in models if isinstance(m, MapSeries)]
     if ms:
         msstable = {mss.size():mss for mss in getattr(session, '_map_series_sliders', [])}

@@ -471,7 +471,7 @@ class TableTool(_BaseTool):
         if path is None:
             return
         prefix = "##########"
-        from chimerax.atomic.mol2 import write_mol2
+        from chimerax.mol2 import write_mol2
         with open(path, "w") as outf:
             for s in self.structures:
                 with OutputCache() as sf:

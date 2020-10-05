@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MedicalToolbar" version="1.0"
+<BundleInfo name="ChimeraX-MedicalToolbar" version="1.0.1"
 	    package="chimerax.medical_toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 

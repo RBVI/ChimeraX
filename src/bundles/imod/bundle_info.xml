@@ -1,0 +1,35 @@
+<BundleInfo name="ChimeraX-IMOD" version="1.0"
+	    package="chimerax.imod"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>IMOD model file reader</Synopsis>
+  <Description>Read meshes and contours from IMOD model files.</Description>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="IMOD model" nicknames="imod" category="Volume data" suffixes=".imod,.mod"
+		reference_url="https://bio3d.colorado.edu/imod/betaDoc/binspec.html" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="IMOD model" want_path="true" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -18,6 +18,7 @@ class _SurfaceSettings(Settings):
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
         'clipping_cap_subdivision': 1.0,
+        'clipping_cap_on_mesh': False,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
@@ -35,6 +36,11 @@ def register_settings_options(session):
             FloatOption,
             'surface cap subdivision %s',
             'How fine to make the triangles on clip caps, for multi-coloring'),
+        'clipping_cap_on_mesh': (
+            'Cap mesh surfaces',
+            BooleanOption,
+            'surface cap mesh %s',
+            'Whether to cap mesh style surfaces'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, updater, balloon = setting_info

@@ -83,8 +83,10 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <li><b>Chemistry</b>
     <ul>
     <li><b>Element</b> &ndash; elements by atomic symbol
-    <li><b>Functional Group</b>
     <li><b>IDATM Type</b> &ndash; <a href="atomtypes.html">atom type</a>
+    <li><b>Functional Group</b>
+    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
+    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
     </ul>
   <li><b>Residues</b> 
   &ndash; <a href="commands/atomspec.html#hierarchy">residues</a>
@@ -98,10 +100,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
     <li><b>Ligand</b> 
     &ndash; <a href="commands/atomspec.html#surfcats">ligand</a>
     <li><b>Main</b> &ndash; <a href="commands/atomspec.html#surfcats">main</a>
-    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
-    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
-    <li><b>Ribose</b> &ndash; nucleic-acid backbone ribose and doxyribose moieties
-    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure types:
+    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure
       <ul>
       <li><b>Coil</b> &ndash; amino acid residues not in helix or strand
       <li><b>Helix</b> &ndash; amino acid residues in helices
@@ -136,7 +135,10 @@ deselect all items that are currently selected
 level in the <a href="selection.html#cascade">selection cascade</a> 
   <li><b>Narrow</b> &ndash; narrow a previously broadened selection down a
 level in the <a href="selection.html#cascade">selection cascade</a>
-  <li><b>Menu Mode: <i>mode</i></b>
+<a name="selectmode"></a>
+  <li><b>Menu Mode: <i>mode</i></b> (applies only to selecting with
+the <a href="#select"><b>Select</b> menu</a> and 
+<a href="tools/basicactions.html"><b>Basic Actions</b></a> tool)
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)
     <li><b>Add (+)</b>
@@ -241,10 +243,10 @@ to set width = thickness, for example: <b>cartoon style
   </ul>
 <br>
 <li><b>Surface</b>
-&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>;
-the <a href="commands/surface.html#style"><b>surface style</b></a>
-and <a href="commands/transparency.html"><b>transparency</b></a> options
-also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
+&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>,
+adjust <a href="commands/surface.html#style">style</a> and 
+<a href="commands/transparency.html">transparency</a> of molecular and/or
+<a href="tools/volumeviewer.html">volume surfaces</a>
   <ul>
   <li><b>Show</b>
   <li><b>Hide</b>
@@ -252,6 +254,9 @@ also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
   <li><b>Mesh</b>
   <li><b>Dot</b>
   <li><b>Transparency</b>
+&ndash; can be set differently for atomic patches within a single
+<a href="commands/surface.html">molecular surface</a>,
+whereas the styles above apply to entire models only
      <ul>
      <li><b>0%</b>
      <li><b>10%</b>
@@ -328,7 +333,12 @@ Examples:
     <li><b>Off</b>
     </ul>
   </ul>
+  <li><b>View</b>
+&ndash; see also <a href="commands/view.html"><b>view</b></a>
+  <li><b>Set Pivot</b>
+&ndash; see also <a href="commands/cofr.html"><b>cofr</b></a>
 </ul>
+
 <a name="tools"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Tools</b>
@@ -470,5 +480,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2020</address>
+July 2020</address>
 </body></html> 

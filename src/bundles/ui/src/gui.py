@@ -281,12 +281,16 @@ class UI(QApplication):
         if self.key_intercepted(k):
             return
         elif k == Qt.Key_Up:
-            from chimerax.core.commands import run
-            run(self.session, 'select up')
+            if not self.session.selection.empty():
+                from chimerax.core.commands import run
+                run(self.session, 'select up')
+                return
+            # Up arrow on an empty selection was probably intended for the command history...
         elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
-        elif self._keystroke_sinks:
+            return
+        if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
             # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
             event.setAccepted(True)
@@ -386,9 +390,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             dw = QDesktopWidget()
             main_screen_geom = ui.primaryScreen().availableGeometry()
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
-        else:
+        elif sizing_scheme == "fixed":
             width, height = size_data
-        self.resize(width, height)
+        if sizing_scheme not in ["full screen", "maximized"]:
+            self.resize(width, height)
+        # going into full screen / maximized causes events to happen, so delay until we're more
+        # fully initialized
 
         from PyQt5.QtCore import QSize
         class GraphicsArea(QStackedWidget):
@@ -474,12 +481,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
 
-        self.show()
+        # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
+        # so withdrawn in favor of just "maximized" for now
+        #if sizing_scheme == "full screen":
+        #    self.showFullScreen()
+        if sizing_scheme == "maximized" or sizing_scheme == "full screen":
+            self.showMaximized()
+        else:
+            self.show()
 
     def enable_stereo(self, stereo = True):
         '''
         Switching to a sequential stereo OpenGL context seems to require
-        replacing the graphics window with a stereo compatible window on 
+        replacing the graphics window with a stereo compatible window on
         Windows 10 with Qt 5.9.
         '''
         gw = self.graphics_window
@@ -533,7 +547,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._fill_tb_context_menu_cbs[tb] = (tool, fill_context_menu_cb)
         settings =  self.session.ui.settings
         if tool.tool_name in settings.tool_positions['toolbars']:
-            version, placement, geom_info = settings.tool_positions['toolbars'][tool.tool_name]
+            pos_info = settings.tool_positions['toolbars'][tool.tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
+            else:
+                version, *info = settings.tool_positions['toolbars'][tool.tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is None:
                 self.session.logger.info("Cannot restore toolbar as floating")
                 #from PyQt5.QtCore import Qt
@@ -868,6 +893,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         else:
             self._core_settings_panel.options_widget.add_option(category, option)
 
+    def show_settings(self, category=None):
+        self.settings_ui_widget.show()
+        if category is not None:
+            self._core_settings_panel.show_category(category)
+
     def _new_tool_window(self, tw):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
@@ -1163,7 +1193,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action = QAction(style.capitalize(), self)
             surface_menu.addAction(action)
             action.triggered.connect(lambda *args, run=self._run_surf_command,
-                cmd="surface style %%s %s" % style: run(cmd))
+                cmd="surface style %%s %s" % style: run(cmd, whole_surf=True))
         surface_menu.addSeparator()
         transparency_menu = surface_menu.addMenu("Transparency")
         for percent in range(0, 101, 10):
@@ -1286,30 +1316,33 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cd.hide()
         cd.show()
 
-    def _run_surf_command(self, cmd):
+    def _run_surf_command(self, cmd, *, whole_surf=False):
         from chimerax.core.commands import run, sel_or_all, NoneSelectedError
         from chimerax.core.models import Surface
-        try:
-            selector = sel_or_all(self.session, ['atoms', 'bonds'])
-        except NoneSelectedError:
-            try:
-                selector = sel_or_all(self.session, Surface)
-            except NoneSelectedError:
-                from chimerax.core.errors import UserError
-                if self.session.selection.empty():
-                    raise UserError("No atoms, bonds, or surfaces visible")
-                else:
-                    raise UserError("No visible atoms, bonds, or surfaces selected")
+        if whole_surf:
+            selector = sel_or_all(self.session, Surface, relevant_types=Surface)
         else:
-            if "sel" not in selector:
-                # no visible atoms/bonds selected, see if any surfaces are
+            try:
+                selector = sel_or_all(self.session, ['atoms', 'bonds'])
+            except NoneSelectedError:
                 try:
-                    surf_selector = sel_or_all(self.session, Surface)
+                    selector = sel_or_all(self.session, Surface)
                 except NoneSelectedError:
-                    pass
-                else:
-                    if "sel" in surf_selector:
-                        selector = surf_selector
+                    from chimerax.core.errors import UserError
+                    if self.session.selection.empty():
+                        raise UserError("No atoms, bonds, or surfaces visible")
+                    else:
+                        raise UserError("No visible atoms, bonds, or surfaces selected")
+            else:
+                if "sel" not in selector:
+                    # no visible atoms/bonds selected, see if any surfaces are
+                    try:
+                        surf_selector = sel_or_all(self.session, Surface)
+                    except NoneSelectedError:
+                        pass
+                    else:
+                        if "sel" in surf_selector:
+                            selector = surf_selector
         run(self.session, cmd % selector)
 
     def _get_label_text_arg(self):
@@ -1835,13 +1868,33 @@ class ToolWindow(StatusLogger):
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
-            version, placement, geom_info = settings.tool_positions['windows'][tool_name]
+            pos_info = settings.tool_positions['windows'][tool_name]
+            if type(pos_info) == dict:
+                placement = pos_info['placement']
+                geom_info = pos_info['geom_info']
+                tab_info = pos_info['tab_info']
+            else:
+                version, *info = settings.tool_positions['windows'][tool_name]
+                if version == 1:
+                    placement, geom_info = info
+                    tab_info = []
+                else:
+                    placement, geom_info, tab_info = info
             if placement is not None:
-                placement = self.window_placement_to_text[placement]
+                for tabbed_with in tab_info:
+                    for ti, tws in ui.main_window.tool_instance_to_windows.items():
+                        if ti.tool_name == tabbed_with:
+                            placement = tws[0]
+                            break
+                    else:
+                        continue
+                    break
+                else:
+                    placement = self.window_placement_to_text[placement]
             if geom_info is not None:
                 from PyQt5.QtCore import QRect
                 geometry = QRect(*geom_info)
-        self.tool_instance.session.ui.main_window._about_to_manage(self,
+        ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
         if initially_hidden:
@@ -2270,18 +2323,33 @@ def _remember_tool_pos(ui, tool_instance, widget):
             raise LimitationError("Cannot currently save toolbars as floating")
         get_side = mw.toolBarArea
         mem_location = remembered['toolbars']
+        tab_info = []
     else:
         get_side = mw.dockWidgetArea
         mem_location = remembered['windows']
+        tabbed_with = mw.tabifiedDockWidgets(widget)
+        if tabbed_with:
+            tab_info = []
+            for ti, tws in mw.tool_instance_to_windows.items():
+                if tws[0]._dock_widget in tabbed_with:
+                    tab_info.append(ti.tool_name)
+            mw.status('To save tabbed positions, use "Save Tool Position" on each tab', "blue", False)
+        else:
+            tab_info = []
     if widget.isFloating():
         side = None
         geom = widget.geometry()
-        pos_info = (geom.x(), geom.y(), geom.width(), geom.height())
+        geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         side = get_side(widget)
-        pos_info = None
-    version = 1
-    mem_location[tool_instance.tool_name] = (version, side, pos_info)
+        geom_info = None
+    version = 3
+    mem_location[tool_instance.tool_name] = {
+        'version': version,
+        'placement': side,
+        'geom_info': geom_info,
+        'tab_info': tab_info
+    }
     ui.settings.tool_positions = remembered
     ui.settings.save()
 
@@ -2610,7 +2678,7 @@ class InitWindowSizeOption(Option):
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()
-        for label in ("last used", "proportional", "fixed"):
+        for label in ("last used", "proportional", "fixed", "maximized"):
             action = QAction(label, self.push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)

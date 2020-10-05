@@ -173,6 +173,7 @@ class _MapBundle(BundleAPI):
                                 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc',
                                 'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
                             'compress_shuffle': BoolArg,
+                            'compress_level': IntArg,
                             'mask_zone': BoolArg,
                             'region': MapRegionArg,
                             'subsamples': RepeatOf(Int1or3Arg),

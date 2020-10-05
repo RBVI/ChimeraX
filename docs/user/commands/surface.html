@@ -55,6 +55,7 @@ either atomically detailed solvent-excluded surfaces (default) or
 lower-resolution Gaussian surfaces.
 See also:
 <a href="#sop"><b>surface</b> operations</a>,
+<a href="clip.html#model">per-model clipping</a>,
 <a href="show.html"><b>show</b></a>,
 <a href="preset.html"><b>preset</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -358,7 +359,8 @@ and HEM residues in model 1
 The representation of a surface model can be <b>solid</b>,
 <b>mesh</b>, or <b>dot</b>.
 This applies to surface models in general, including
-<a href="../tools/volumeviewer.html">volume</a> isosurfaces.
+<a href="../tools/volumeviewer.html">volume</a> isosurfaces,
+and always applies to the entire model.
 See also:
 <a href="volume.html"><b>volume</b></a>,
 <a href="transparency.html"><b>transparency</b></a>
@@ -386,8 +388,9 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <a name="cap"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>surface cap</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
-  [&nbsp;<b>offset</b>&nbsp;<i>d</i>&nbsp;]
-  [&nbsp;<b>subdivision</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>subdivision</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>mesh</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 Adjust capping, in which planar caps are drawn to hide the interior of a
 surface sliced by a <a href="clip.html">clipping plane</a>.
@@ -404,7 +407,11 @@ triangulation, which affects the appearance of caps when they are
 multicolored, such as <a href="color.html#map">by map value</a> or
 <a href="color.html#zone">by zone</a>. Higher values of <i>s</i>
 give finer triangulations (minimum 0.0, initial default <b>1.0</b>).
-See also: <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>
+The <b>mesh</b> option controls whether surface caps are shown for
+mesh-style surfaces (when capping is on), initial default <b>false</b>.
+See also:
+<a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>,
+<a href="clip.html#model">per-model clipping</a>
 </blockquote>
 
 <a name="dust"></a>
@@ -517,5 +524,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+August 2020</address>
 </body></html>

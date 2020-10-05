@@ -49,7 +49,7 @@ ifeq ($(OS),Windows)
 	cd $(app_shlibdir); mv OpenMM*.lib libs/
 endif
 
-$(SOURCE):
+$(SOURCE): $(DISTRIBUTION)
 	-mkdir $(SOURCE)
 	tar xf $(DISTRIBUTION) -C $(SOURCE)
 ifneq (,$(PATCHES))
@@ -63,6 +63,12 @@ ifeq ($(OS),Windows)
 	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
 	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
 endif
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openmm/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/openmm
 
 clean:
 	rm -rf $(SOURCE)

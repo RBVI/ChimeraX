@@ -87,7 +87,7 @@ class Model(State, Drawing):
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
         models = self.session.models
-        if models.have_id(self.id) and self in models.list(model_id = self.id):
+        if models.have_model(self):
             models.close([self])	# Remove from open models list.
             return
         self._deleted = True
@@ -202,9 +202,7 @@ class Model(State, Drawing):
             self._selection_changed()
 
     def _selection_changed(self):
-        from chimerax.core.selection import SELECTION_CHANGED
-        self.session.ui.thread_safe(self.session.triggers.activate_trigger,
-                                    SELECTION_CHANGED, None)
+        self.session.selection.trigger_fire_needed = True
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -273,7 +271,7 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
-        if om.have_id(self.id):
+        if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)
         else:
@@ -635,33 +633,33 @@ class Models(StateManager):
         if len(self._models) == 0:
             self._initialize_camera = True
 
-        if parent is None and not root_model:
-            parent = self.scene_root_model
-
-        # Add models to parent
-        if parent is not None:
-            for m in models:
-                if m.parent is None or m.parent is not parent:
-                    parent.add_drawing(m)
-
-        # Handle already added models being moved to a new parent.
+        # Add models to parents and assign model ids.
         for model in models:
-            if model.id and (parent is None or model.id[:-1] != parent.id) and model.id in self._models:
-                # Model has id that is not a subid of parent, so assign new id.
-                _need_fire_id_trigger.append(model)
-                del self._models[model.id]
-                model.id = None
-                if model.parent is not None:
-                    model.parent._next_unused_id = None
+            if self.have_model(model):
+                # Model is already added and is being reparented.
+                if parent is None:
+                    raise ValueError('Attempted to add model %s to scene twice' % model)
+                if model.parent is not parent:
+                    # Model is being moved to a new parent
+                    _need_fire_id_trigger.extend(model.all_models())
+                    self._reparent_model(model, parent, minimum_id = minimum_id)
+            else:
+                # Model has not yet been added.
+                p = self._parent_for_added_model(model, parent, root_model = root_model)
+                if p:
+                    p.add_drawing(model)
 
-        # Assign new model ids
-        for model in models:
-            if model.id is None:
-                model.id = self.next_id(parent = parent, minimum_id = minimum_id)
-            self._models[model.id] = model
-            children = model.child_models()
-            if children:
-                self.add(children, parent=model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
+                # Set model id
+                if model.id is None:
+                    # Assign a new model id.
+                    model.id = self.next_id(parent = p, minimum_id = minimum_id)
+                self._models[model.id] = model
+
+                # Add child models
+                children = model.child_models()
+                if children:
+                    self.add(children, parent=model, _notify=False,
+                             _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -688,19 +686,98 @@ class Models(StateManager):
 
         if _from_session:
             self._initialize_camera = False
-            
-    def assign_id(self, model, id):
-        '''
-        Change the id of an already added model.
-        The parent model for new id must already have been added.
-        '''
+
+    def have_model(self, model):
+        return model.id is not None and (self._models.get(model.id) is model
+                                         or model is self.scene_root_model)
+    
+    def _parent_for_added_model(self, model, parent, root_model = False):
+        if root_model:
+            if parent is not None:
+                raise ValueError('Tried to add model %s as a root model but specified parent %s'
+                                 % (model, parent))
+            if model.id is not None and len(model.id) != 1:
+                raise ValueError('Tried to add model %s as a root model but id is not a single integer'
+                                 % model)
+            p = None
+        elif model.id is None:
+            p = self.scene_root_model if parent is None else parent
+        else:
+            par_id = model.id[:-1]
+            p = self._models.get(par_id) if par_id else self.scene_root_model
+            if p is None:
+                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                                 % (model, '.'.join('%d'% i for i in par_id)))
+            if parent is not None and parent is not p:
+                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                                 % (model, parent))
+            if model.id in self._models:
+                raise ValueError('Tried to add model %s with the same id as another model %s'
+                                 % (model, self._models[model.id]))
+        return p
+
+    def _reparent_model(self, model, parent, minimum_id = 1):
+        # Remove old model id from table
         mt = self._models
         del mt[model.id]
+        p = model.parent
+        if p is not None:
+            p._next_unused_id = None
+
+        # Set new model id
+        id = self.next_id(parent = parent, minimum_id = minimum_id)
+        mt[id] = model
+        model.id = id
+
+        # Update model parent.
+        # This also removes drawing from former parent.
+        parent.add_drawing(model)
+
+        # Change child model ids.
+        self._update_child_ids(model)
+
+    def _update_child_ids(self, model):
+        id = model.id
+        mt = self._models
+        for child in model.all_models():
+            if child is not model:
+                del mt[child.id]
+                child.id = id + child.id[len(id):]
+                mt[child.id] = child
+            
+    def assign_id(self, model, id):
+        '''Parent model for new id must already exist.'''
+        cm = self._models.get(id)
+        if cm:
+            if cm is model:
+                return
+            else:
+                raise ValueError('Tried to change model %s id to one in use by %s'
+                                 % (model, cm))
+
+        # Remove old id
+        mt = self._models
+        del mt[model.id]
+        if model.parent:
+            model.parent._next_unused_id = None
+
+        # Set new id.
         model.id = id
         mt[id] = model
-        p = mt[id[:-1]] if len(id) > 1 else self.scene_root_model
-        p._next_unused_id = None
-        self.add([model], parent = p)
+
+        # Set parent model.
+        if len(id) > 1:
+            p = mt[id[:-1]]
+        elif model.parent is None:
+            p = None 		# Root model
+        else:
+            p = self.scene_root_model
+
+        if p:
+            p.add_drawing(model)
+
+        # Update child model ids.
+        self._update_child_ids(model)
 
     def have_id(self, id):
         return id in self._models
@@ -760,26 +837,37 @@ class Models(StateManager):
         return group
 
     def remove(self, models):
+        '''
+        Remove the specified models from the scene as well as all their
+        children to all depths.  The models are not deleted.  Their model
+        id numbers are set to None and they are removed as children from
+        parent models that are still in the scene.
+        '''
         # Also remove all child models, and remove deepest children first.
         dset = descendant_models(models)
         dset.update(models)
         mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
+
+        # Call remove_from_session() methods.
         session = self._session()  # resolve back reference
         for m in mlist:
             m._added_to_session = False
             m.removed_from_session(session)
+
+        # Remove model ids
         for model in mlist:
             model_id = model.id
             if model_id is not None:
                 del self._models[model_id]
                 model.id = None
-                parent = model.parent
-                if parent is not None:
-                    parent.remove_drawing(model, delete=False)
-                    parent._next_unused_id = None
-                else:
-                    self.scene_root_model._next_unused_id = None             
+
+        # Remove models from parent if parent was not removed.
+        for model in models:
+            parent = model.parent
+            if parent is not None and self.have_model(parent):
+                parent.remove_drawing(model, delete=False)
+                parent._next_unused_id = None
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last
@@ -788,10 +876,17 @@ class Models(StateManager):
         return mlist
 
     def close(self, models):
-        # Removed models include children of specified models.
-        mremoved = self.remove(models)
-        for m in mremoved:
-            m.delete()
+        '''
+        Remove the models from the scene as well as all child models
+        to all depths, and delete the models.  Models that are not
+        part of the scene are deleted, and models that have already
+        been deleted are ignored.
+        '''
+        mopen = [m for m in models if self.have_model(m)]
+        self.remove(mopen)
+        for m in models:
+            if not Model.deleted.fget(m):
+                m.delete()
 
 
 def descendant_models(models):

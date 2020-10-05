@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Map" version="1.0"
+<BundleInfo name="ChimeraX-Map" version="1.0.1"
 	    package="chimerax.map"
 	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -48,7 +48,9 @@
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
-    <Dependency name="ChimeraX-MapData" version="~=1.0"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-MapFilter" version="~=2.0"/>
+    <Dependency name="ChimeraX-MapSeries" version="~=2.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
@@ -56,34 +58,34 @@
   </Dependencies>
 
   <Providers manager="open command">
-    <Provider name="Amira mesh" want_path="true" />
-    <Provider name="APBS potential" want_path="true" />
-    <Provider name="BRIX density map" want_path="true" />
-    <Provider name="CCP4 density map" want_path="true" />
-    <Provider name="Chimera map" want_path="true" />
+    <Provider name="Amira mesh" want_path="true" batch="true" />
+    <Provider name="APBS potential" want_path="true" batch="true" />
+    <Provider name="BRIX density map" want_path="true" batch="true" />
+    <Provider name="CCP4 density map" want_path="true" batch="true" />
+    <Provider name="Chimera map" want_path="true" batch="true" />
     <Provider name="CNS or XPLOR density map" want_path="true" />
     <Provider name="DelPhi or GRASP potential" want_path="true" />
-    <Provider name="DeltaVision map" want_path="true" />
-    <Provider name="DSN6 density map" want_path="true" />
-    <Provider name="DOCK scoring grid" want_path="true" />
-    <Provider name="EMAN HDF map" want_path="true" />
-    <Provider name="Gaussian cube grid" want_path="true" />
-    <Provider name="gOpenMol grid" want_path="true" />
-    <Provider name="HDF map" want_path="true" />
+    <Provider name="DeltaVision map" want_path="true" batch="true" />
+    <Provider name="DSN6 density map" want_path="true" batch="true" />
+    <Provider name="DOCK scoring grid" want_path="true" batch="true" />
+    <Provider name="EMAN HDF map" want_path="true" batch="true" />
+    <Provider name="Gaussian cube grid" want_path="true" batch="true" />
+    <Provider name="gOpenMol grid" want_path="true" batch="true" />
+    <Provider name="HDF map" want_path="true" batch="true" />
     <Provider name="Image stack" want_path="true" batch="true" check_path="false" />
-    <Provider name="IMAGIC density map" want_path="true" />
-    <Provider name="Imaris map" want_path="true" />
-    <Provider name="IMOD map" want_path="true" />
-    <Provider name="MacMolPlt grid" want_path="true" />
-    <Provider name="MRC density map" want_path="true" />
-    <Provider name="NetCDF generic array" want_path="true" />
-    <Provider name="Priism microscope image" want_path="true" />
-    <Provider name="PROFEC free energy grid" want_path="true" />
-    <Provider name="Purdue image format" want_path="true" />
-    <Provider name="SITUS map file" want_path="true" />
-    <Provider name="SPIDER volume data" want_path="true" />
-    <Provider name="TOM toolbox EM density map" want_path="true" />
-    <Provider name="UHBD grid, binary" want_path="true" />
+    <Provider name="IMAGIC density map" want_path="true" batch="true" />
+    <Provider name="Imaris map" want_path="true" batch="true" />
+    <Provider name="IMOD map" want_path="true" batch="true" />
+    <Provider name="MacMolPlt grid" want_path="true" batch="true" />
+    <Provider name="MRC density map" want_path="true" batch="true" />
+    <Provider name="NetCDF generic array" want_path="true" batch="true" />
+    <Provider name="Priism microscope image" want_path="true" batch="true" />
+    <Provider name="PROFEC free energy grid" want_path="true" batch="true" />
+    <Provider name="Purdue image format" want_path="true" batch="true" />
+    <Provider name="SITUS map file" want_path="true" batch="true" />
+    <Provider name="SPIDER volume data" want_path="true" batch="true" />
+    <Provider name="TOM toolbox EM density map" want_path="true" batch="true" />
+    <Provider name="UHBD grid, binary" want_path="true" batch="true" />
 
     <Provider name="eds" type="fetch" format_name="CCP4 density map"/>
     <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"/>

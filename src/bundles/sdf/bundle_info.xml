@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-SDF" version="1.0"
-	    package="chimerax.atomic.sdf"
+<BundleInfo name="ChimeraX-SDF" version="2.0"
+	    package="chimerax.sdf"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

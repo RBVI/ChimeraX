@@ -80,7 +80,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -133,10 +133,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         print("# mmCIF", file=f)
         for g, models in grouped.items():
             if is_ensemble[g]:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -152,16 +152,10 @@ ChimeraX_audit_conform = mmcif.CIFTable(
     )
 )
 
-ChimeraX_audit_syntax = mmcif.CIFTable(
-    "audit_syntax",
-    (
-        "case_sensitive_flag",
-        "fixed_width"
-    ), (
-        "Y",
-        "atom_site atom_site_anisotrop"
-    )
-)
+ChimeraX_audit_syntax_info = {
+    "case_sensitive_flag": "Y",
+    "fixed_width": "atom_site atom_site_anisotrop"
+}
 
 ChimeraX_citation_id = "chimerax"
 ChimeraX_citation_info = {
@@ -236,14 +230,14 @@ def _save_metadata(model, categories, file, metadata):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
     #
-    from chimerax.atomic import concatenate
+    from chimerax.atomic import concatenate, Atoms
     if len(models) == 1:
         best_m = models[0]
     else:
@@ -267,8 +261,16 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     restrict = None
     if selected_only:
-        restrict = concatenate(session.selection.items("atoms"))
-        restrict = restrict.filter([st in models for st in restrict.structures])
+        atoms_list = session.selection.items("atoms")
+        if not atoms_list:
+            if not session.in_script:
+                from chimerax.core.errors import UserError
+                raise UserError("No atoms selected")
+            session.logger.warning("No atoms selected")
+            restrict = Atoms()
+        else:
+            restrict = concatenate(atoms_list)
+            restrict = restrict.filter([st in models for st in restrict.structures])
     if displayed_only:
         displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
         if restrict is None:
@@ -289,8 +291,14 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     _save_metadata(best_m, ['entry'], file, best_metadata)
 
-    ChimeraX_audit_conform.print(file=file, fixed_width=True)
-    ChimeraX_audit_syntax.print(file=file, fixed_width=True)
+    ChimeraX_audit_conform.print(file=file, fixed_width=fixed_width)
+
+    audit_syntax_info = ChimeraX_audit_syntax_info.copy()
+    if not fixed_width:
+        audit_syntax_info["fixed_width"] = ""
+    tags, data = zip(*audit_syntax_info.items())
+    audit_syntax = mmcif.CIFTable("audit_syntax", tags, data)
+    audit_syntax.print(file=file, fixed_width=fixed_width)
 
     from .mmcif import _add_citation, _add_software
 
@@ -300,14 +308,14 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     software = _add_software(
             best_m, ChimeraX_software_info['name'], ChimeraX_software_info,
             metadata=best_metadata, return_existing=True)
-    citation.print(file, fixed_width=True)
-    citation_author.print(file, fixed_width=True)
+    citation.print(file, fixed_width=fixed_width)
+    citation_author.print(file, fixed_width=fixed_width)
     if citation_editor is not None:
-        citation_editor.print(file, fixed_width=True)
-    software.print(file, fixed_width=True)
+        citation_editor.print(file, fixed_width=fixed_width)
+    software.print(file, fixed_width=fixed_width)
     del citation, citation_author, citation_editor, software
 
-    save_components(best_m, file, best_metadata)
+    save_components(best_m, file, best_metadata, fixed_width)
 
     _save_metadata(best_m, ['exptl'], file, best_metadata)
 
@@ -353,7 +361,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if not c.from_seqres:
+            if not best_guess and not c.from_seqres:
                 skipped_sequence_info = True
                 _1to3 = None
             else:
@@ -457,25 +465,25 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         het_entities[n][mcid] = (eid, label_asym_id)
 
     entity = mmcif.CIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
-    entity.print(file, fixed_width=True)
+    entity.print(file, fixed_width=fixed_width)
     entity_poly = mmcif.CIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
-    entity_poly.print(file, fixed_width=True)
+    entity_poly.print(file, fixed_width=fixed_width)
     entity_poly_seq = mmcif.CIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
-    entity_poly_seq.print(file, fixed_width=True)
+    entity_poly_seq.print(file, fixed_width=fixed_width)
     import itertools
     struct_asym = mmcif.CIFTable(
         'struct_asym', ['id', 'entity_id'],
         flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
-    struct_asym.print(file, fixed_width=True)
+    struct_asym.print(file, fixed_width=fixed_width)
     pdbx_poly_seq = mmcif.CIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
-    pdbx_poly_seq.print(file, fixed_width=True)
+    pdbx_poly_seq.print(file, fixed_width=fixed_width)
     del entity, entity_poly_seq, pdbx_poly_seq, struct_asym
 
     elements = list(set(best_m.atoms.elements))
     elements.sort(key=lambda e: e.number)
     atom_type_data = [e.name for e in elements]
     atom_type = mmcif.CIFTable("atom_type", ["symbol"], atom_type_data)
-    atom_type.print(file, fixed_width=True)
+    atom_type.print(file, fixed_width=fixed_width)
     del atom_type_data, atom_type
 
     atom_site_data = []
@@ -567,9 +575,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
 
     atom_site_data[:] = flattened(atom_site_data)
-    atom_site.print(file, fixed_width=True)
+    atom_site.print(file, fixed_width=fixed_width)
     atom_site_anisotrop_data[:] = flattened(atom_site_anisotrop_data)
-    atom_site_anisotrop.print(file, fixed_width=True)
+    atom_site_anisotrop.print(file, fixed_width=fixed_width)
     del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
 
     struct_conn_data = []
@@ -738,9 +746,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         struct_conn_bond('covale', b, a0, a1)
 
     struct_conn_data[:] = flattened(struct_conn_data)
-    struct_conn.print(file, fixed_width=True)
+    struct_conn.print(file, fixed_width=fixed_width)
     # struct_conn_type_data[:] = flattened(struct_conn_type_data)
-    struct_conn_type.print(file, fixed_width=True)
+    struct_conn_type.print(file, fixed_width=fixed_width)
     del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type
 
     # struct_conf
@@ -879,12 +887,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         struct_conf_type_data.append("HELX_P")
 
     struct_conf_data[:] = flattened(struct_conf_data)
-    struct_conf.print(file, fixed_width=True)
+    struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
-    struct_conf_type.print(file, fixed_width=True)
+    struct_conf_type.print(file, fixed_width=fixed_width)
     del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
     sheet_range_data[:] = flattened(sheet_range_data)
-    sheet_range.print(file, fixed_width=True)
+    sheet_range.print(file, fixed_width=fixed_width)
     del sheet_range_data, sheet_range
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file, best_metadata)
@@ -892,7 +900,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file, best_metadata)
 
 
-def save_components(model, file, metadata):
+def save_components(model, file, metadata, fixed_width):
     residues = model.residues
     unique_names = residues.unique_names
     names = None
@@ -931,7 +939,7 @@ def save_components(model, file, metadata):
             new_values.append('?')
 
     new_chem_comp = mmcif.CIFTable('chem_comp', chem_comp_fields, new_values)
-    new_chem_comp.print(file, fixed_width=True)
+    new_chem_comp.print(file, fixed_width=fixed_width)
 
     # TODO: chem_comp_atom
     # TODO: chem_comp_bond

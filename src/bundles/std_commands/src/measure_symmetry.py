@@ -247,7 +247,7 @@ def correlation(v, xyz, w, axis, angle, center, rise = None):
         tf = shift * tf
     xf = v.scene_position * tf
     wtf = v.interpolated_values(xyz, xf)
-    from chimerax.map.fit.fitmap import overlap_and_correlation
+    from chimerax.map_fit.fitmap import overlap_and_correlation
     olap, cor, corm = overlap_and_correlation(w, wtf)
     return cor, corm
 
@@ -323,7 +323,7 @@ def optimize_helix_paramters(v, xyz, w, axis, rise, angle, center):
     htf = helical_symmetry_matrix(rise, angle, axis, center)
     tf = xyz_to_ijk_transform * htf
 
-    from chimerax.map.fit.fitmap import locate_maximum
+    from chimerax.map_fit.fitmap import locate_maximum
     move_tf, stats = locate_maximum(xyz, w, m, tf, max_steps,
                                     ijk_step_size_min, ijk_step_size_max,
                                     optimize_translation, optimize_rotation,

@@ -199,7 +199,7 @@ exit
 
 fitmap
 ======
-.. autofunction:: chimerax.map.fit.fitcmd.fitmap
+.. autofunction:: chimerax.map_fit.fitcmd.fitmap
 
 graphics
 ========
@@ -293,9 +293,10 @@ mseries
 
 open
 ====
-Function defined in *chimerax.open_command.cmd*
+Function defined in *chimerax.open_command.manager* and called via `session.open_command.open_data(...)`
 
-.. autofunction:: chimerax.open_command.cmd.provider_open
+.. autoclass:: chimerax.open_command.manager.OpenManager
+	:members: open_data
 
 perframe
 ========
@@ -323,12 +324,15 @@ roll
 
 run
 ===
-.. autofunction:: chimerax.core.commands.run.run
+.. autofunction:: chimerax.core.commands.run
     :noindex:
 
 save
 ====
-Function defined in *chimerax.save_command.cmd*
+Function defined in *chimerax.save_command.manager* and called via `session.save_command.save_data(...)`
+
+.. autoclass:: chimerax.save_command.manager.SaveManager
+	:members: save_data
 
 .. autofunction:: chimerax.save_command.cmd.provider_save
 
@@ -431,44 +435,44 @@ view
 volume
 ======
 .. autofunction:: chimerax.map.volumecommand.volume
-.. autofunction:: chimerax.map.filter.vopcommand.volume_add
-.. autofunction:: chimerax.map.filter.vopcommand.volume_bin
-.. autofunction:: chimerax.map.filter.vopcommand.volume_boxes
-.. autofunction:: chimerax.map.filter.vopcommand.volume_copy
-.. autofunction:: chimerax.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.map_filter.vopcommand.volume_add
+.. autofunction:: chimerax.map_filter.vopcommand.volume_bin
+.. autofunction:: chimerax.map_filter.vopcommand.volume_boxes
+.. autofunction:: chimerax.map_filter.vopcommand.volume_copy
+.. autofunction:: chimerax.map_filter.vopcommand.volume_cover
 .. autofunction:: chimerax.map_eraser.eraser.volume_erase
-.. autofunction:: chimerax.map.filter.vopcommand.volume_falloff
-.. autofunction:: chimerax.map.filter.vopcommand.volume_flatten
-.. autofunction:: chimerax.map.filter.vopcommand.volume_flip
-.. autofunction:: chimerax.map.filter.vopcommand.volume_fourier
-.. autofunction:: chimerax.map.filter.vopcommand.volume_gaussian
-.. autofunction:: chimerax.map.filter.vopcommand.volume_laplacian
-.. autofunction:: chimerax.map.filter.vopcommand.volume_local_correlation
+.. autofunction:: chimerax.map_filter.vopcommand.volume_falloff
+.. autofunction:: chimerax.map_filter.vopcommand.volume_flatten
+.. autofunction:: chimerax.map_filter.vopcommand.volume_flip
+.. autofunction:: chimerax.map_filter.vopcommand.volume_fourier
+.. autofunction:: chimerax.map_filter.vopcommand.volume_gaussian
+.. autofunction:: chimerax.map_filter.vopcommand.volume_laplacian
+.. autofunction:: chimerax.map_filter.vopcommand.volume_local_correlation
 .. autofunction:: chimerax.mask.maskcommand.mask
-.. autofunction:: chimerax.map.filter.vopcommand.volume_maximum
-.. autofunction:: chimerax.map.filter.vopcommand.volume_median
-.. autofunction:: chimerax.map.filter.vopcommand.volume_minimum
-.. autofunction:: chimerax.map.filter.vopcommand.volume_morph
-.. autofunction:: chimerax.map.filter.vopcommand.volume_multiply
-.. autofunction:: chimerax.map.filter.vopcommand.volume_new
-.. autofunction:: chimerax.map.filter.vopcommand.volume_octant
+.. autofunction:: chimerax.map_filter.vopcommand.volume_maximum
+.. autofunction:: chimerax.map_filter.vopcommand.volume_median
+.. autofunction:: chimerax.map_filter.vopcommand.volume_minimum
+.. autofunction:: chimerax.map_filter.vopcommand.volume_morph
+.. autofunction:: chimerax.map_filter.vopcommand.volume_multiply
+.. autofunction:: chimerax.map_filter.vopcommand.volume_new
+.. autofunction:: chimerax.map_filter.vopcommand.volume_octant
 .. autofunction:: chimerax.mask.maskcommand.ones_mask
-.. autofunction:: chimerax.map.filter.vopcommand.volume_permute_axes
-.. autofunction:: chimerax.map.filter.vopcommand.volume_resample
-.. autofunction:: chimerax.map.filter.vopcommand.volume_ridges
-.. autofunction:: chimerax.map.filter.vopcommand.volume_scale
+.. autofunction:: chimerax.map_filter.vopcommand.volume_permute_axes
+.. autofunction:: chimerax.map_filter.vopcommand.volume_resample
+.. autofunction:: chimerax.map_filter.vopcommand.volume_ridges
+.. autofunction:: chimerax.map_filter.vopcommand.volume_scale
 .. autofunction:: chimerax.surface.colorzone.split_volume_by_color_zone
-.. autofunction:: chimerax.map.filter.vopcommand.volume_subtract
-.. autofunction:: chimerax.map.filter.vopcommand.volume_threshold
-.. autofunction:: chimerax.map.filter.vopcommand.volume_tile
-.. autofunction:: chimerax.map.filter.vopcommand.volume_unbend
-.. autofunction:: chimerax.map.filter.vopcommand.volume_unroll
-.. autofunction:: chimerax.map.filter.vopcommand.volume_unzone
-.. autofunction:: chimerax.map.filter.vopcommand.volume_zone
+.. autofunction:: chimerax.map_filter.vopcommand.volume_subtract
+.. autofunction:: chimerax.map_filter.vopcommand.volume_threshold
+.. autofunction:: chimerax.map_filter.vopcommand.volume_tile
+.. autofunction:: chimerax.map_filter.vopcommand.volume_unbend
+.. autofunction:: chimerax.map_filter.vopcommand.volume_unroll
+.. autofunction:: chimerax.map_filter.vopcommand.volume_unzone
+.. autofunction:: chimerax.map_filter.vopcommand.volume_zone
 
 vseries
 =======
-.. automodule:: chimerax.map.series.vseries_command
+.. automodule:: chimerax.map_series.vseries_command
   :members:
   :show-inheritance:
 

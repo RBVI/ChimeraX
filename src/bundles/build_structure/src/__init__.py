@@ -51,7 +51,7 @@ class BuildStructureAPI(BundleAPI):
             # add atoms to structure (process provider command string)
             structure, substring = command_info
             from .providers import process_command
-            process_command(session, name, structure, substring)
+            return process_command(session, name, structure, substring)
 
     @staticmethod
     def start_tool(session, tool_name):

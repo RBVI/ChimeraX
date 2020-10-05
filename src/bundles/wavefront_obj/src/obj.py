@@ -51,7 +51,7 @@ def read_obj(session, filename, name):
     vertices = []
     texcoords = []
     normals = []
-    triangles = []
+    faces = []
     voffset = 0
     for line_num, line in enumerate(input.readlines()):
         if line.startswith('#'):
@@ -64,40 +64,40 @@ def read_obj(session, filename, name):
             # Vertex
             xyz = [float(x) for x in fa]
             if len(xyz) != 3:
-                raise OBJError('OBJ reader only handles x,y,z vertices, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles x,y,z vertices, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             vertices.append(xyz)
         elif f0 == 'vt':
             # Texture coordinates
             uv = [float(u) for u in fa]
             if len(uv) != 2:
-                raise OBJError('OBJ reader only handles u,v texture coordinates, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles u,v texture coordinates, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             texcoords.append(uv)
         elif f0 == 'vn':
             # Vertex normal
             n = [float(x) for x in fa]
             if len(n) != 3:
-                raise OBJError('OBJ reader only handles x,y,z normals, line %d: "%s"'
-                               % (line_num, line))
+                raise OBJError('OBJ reader only handles x,y,z normals, file %s, line %d: "%s"'
+                               % (name, line_num, line))
             normals.append(n)
         elif f0 == 'f':
             # Polygonal face.
-            t = parse_triangle(fa, line, line_num)
-            triangles.append(t)
+            f = _parse_face(fa, line, line_num)
+            faces.append(f)
         elif f0 == 'o':
             # Object name
             if vertices or object_name is not None:
                 oname = object_name if object_name else name
-                m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
+                m = new_object(session, oname, vertices, normals, texcoords, faces, voffset)
                 models.append(m)
                 voffset += len(vertices)
-                vertices, normals, texcoords, triangles = [], [], [], []
+                vertices, normals, texcoords, faces = [], [], [], []
             object_name = line[2:].strip()
 
     if vertices:
         oname = object_name if object_name else name
-        m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
+        m = new_object(session, oname, vertices, normals, texcoords, faces, voffset)
         models.append(m)
 
     if input != filename:
@@ -110,16 +110,25 @@ def read_obj(session, filename, name):
         model = Model(name, session)
         model.add(models)
     else:
-        raise OBJError('OBJ file has no objects')
+        raise OBJError('OBJ file %s has no objects' % name)
 
-    return [model], ('Opened OBJ file containing %d objects, %d triangles'
-                     % (len(models), sum(len(m.triangles) for m in models)))
+    from os.path import basename
+    msg = ('Opened OBJ file %s containing %d objects, %d triangles'
+           % (basename(name), len(models), sum(len(m.triangles) for m in models)))
+    return [model], msg
 
 # -----------------------------------------------------------------------------
 #
-def new_object(session, object_name, vertices, normals, texcoords, triangles, voffset):
+def new_object(session, object_name, vertices, normals, texcoords, faces, voffset):
 
-    model = WavefrontOBJ(object_name, session)
+    if _need_vertex_split(faces):
+        # Texture coordinates or normals do not match vertices order.
+        # Need to make additional vertices if a vertex has different texture
+        # coordinates or normals in different faces.
+        vertices, normals, texcoords, triangles = _split_vertices(vertices, normals, texcoords, faces)
+    else:
+        triangles = faces
+        
     if len(vertices) == 0:
         raise OBJError('OBJ file has no vertices')
     if len(normals) > 0 and len(normals) != len(vertices):
@@ -129,49 +138,106 @@ def new_object(session, object_name, vertices, normals, texcoords, triangles, vo
         raise OBJError('OBJ file has different number of texture coordinates (%d) and vertices (%d)'
                        % (len(texcoords), len(vertices)))
 
+    from chimerax.core.models import Surface
+#    model = Surface(object_name, session)
+#    model.SESSION_SAVE_DRAWING = True
+#    model.clip_cap = True
+    model = WavefrontOBJ(object_name, session)
+
     from numpy import array, float32, int32, uint8
     if texcoords:
         model.texture_coordinates = array(texcoords, float32)
-    na = array(normals, float32) if normals else None
     ta = array(triangles, int32)
     if voffset > 0:
         ta -= voffset
     ta -= 1	# OBJ first vertex index is 1 while model first vertex index is 0
     va = array(vertices, float32)
+    if normals:
+        na = array(normals, float32)
+    else:
+        # na = None
+        from chimerax.surface import calculate_vertex_normals
+        na = calculate_vertex_normals(va, ta)
     model.set_geometry(va, na, ta)
     model.color = array((170,170,170,255), uint8)
     return model
 
 # -----------------------------------------------------------------------------
-#  Handle faces with vertex, normal and texture indices.
+#  Parse face vertex/texture/normal indices.
 #
 #	f 1 2 3
 #	f 1/1 2/2 3/3
 #	f 1/1/1 2/2/2 3/3/3
 #
-def parse_triangle(fields, line, line_num):
+def _parse_face(fields, line, line_num):
     if len(fields) != 3:
         raise OBJError('OBJ reader only handles triangle faces, line %d: "%s"'
                        % (line_num, line))
-    t = []
-    for f in fields:
-        vi = None
-        for s in f.split('/'):
-            if s == '':
-                continue
-            try:
-                i = int(s)
-            except Exception:
-                raise OBJError('OBJ reader could not parse face, non-integer field "%s"' % line)
-            if vi is None:
-                vi = i
-            elif i != vi:
-                raise OBJError('OBJ reader does not handle faces with differing'
-                               'vertex, normal, and texture coordinate indices, line %d: "%s"'
-                               % (line_num, line))
-        t.append(vi)
+    try:
+        face = [_parse_face_corner(f) for f in fields]
+    except ValueError:
+        raise OBJError('OBJ reader could not parse face, non-integer field, line %d: "%s"'
+                       % (line_num, line))
+    return face
 
-    return t
+# -----------------------------------------------------------------------------
+# Parse vertex/texture/normal.  If only one index or all match return an integer
+# otherwise return a tuple.
+#
+def _parse_face_corner(corner):
+    vtn = tuple((None if s == '' else int(s)) for s in corner.split('/'))
+    ni = len(vtn)
+    if ni == 1:
+        return vtn[0]
+    if (vtn[1] is None or vtn[1] == vtn[0]) and (ni < 3 or vtn[2] is None or vtn[2] == vtn[0]):
+        return vtn[0]
+    return vtn
+
+# -----------------------------------------------------------------------------
+#
+def _need_vertex_split(faces):
+    for f in faces:
+        for vtn in f:
+            if not isinstance(vtn, int):
+                return True
+    return False
+
+# -----------------------------------------------------------------------------
+#
+def _split_vertices(vertices, normals, texcoords, faces):
+    triangles = []
+    cvertex = {}
+    v = []
+    nv = 0
+    tc = []
+    n = []
+    for face in faces:
+        t = []
+        for corner in face:
+            if corner in cvertex:
+                vi = cvertex[corner]
+            else:
+                nv += 1
+                vi = nv
+                cvertex[corner] = vi
+                if isinstance(corner, int):
+                    vo = tco = no = corner
+                else:
+                    vo = corner[0]
+                    tco = corner[1] if len(corner) >= 2 else None
+                    no = corner[2] if len(corner) >= 3 else None
+                v.append(vertices[vo-1])
+                if tco is not None:
+                    tc.append(texcoords[tco-1])
+                if no is not None:
+                    n.append(normals[no-1])
+            t.append(vi)
+        triangles.append(t)
+    if len(tc) > 0 and len(tc) < len(v):
+        raise OBJError('Some faces specified texture coordinates and others did not.')
+    if len(n) > 0 and len(n) < len(v):
+        raise OBJError('Some faces specified normals and others did not.')
+    return v, n, tc, triangles
 
 # -----------------------------------------------------------------------------
 #
