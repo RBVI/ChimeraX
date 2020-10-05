@@ -114,7 +114,18 @@ info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
                            synopsis='Report scene bounding boxes for models')
 
 
-def info_models(session, atoms=None, type_=None, attribute="name"):
+def info_models(session, atoms=None, type_=None, attribute="name", *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of JSON objects, one per model.  Each object
+    will have the following name/value pairs:
+
+        spec:  the atom specifier for this model
+        class:  the Python class of the model
+        attribute:  the attribute being tested for
+        present:  whether the attribute is defined in the model instance
+        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+            also be the value for some instances where the attribute *is* present.
+    '''
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -124,6 +135,25 @@ def info_models(session, atoms=None, type_=None, attribute="name"):
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
     report_models(session.logger, models, attribute)
+    if return_json:
+        model_infos = []
+        for model in models:
+            present = True
+            try:
+                val = getattr(model, attribute)
+            except AttributeError:
+                present = False
+                val = None
+            model_infos.append({
+                'spec': model.atomspec,
+                'class': model.__class__.__name__,
+                'attribute': attribute,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult
+        import json
+        return JSONResult(json.JSONEncoder().encode(model_infos), None)
 info_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("type_", StringArg),
                                     ("attribute", StringArg),],
