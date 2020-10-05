@@ -178,7 +178,11 @@ info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            synopsis="Report chain information")
 
 
-def info_polymers(session, atoms=None):
+def info_polymers(session, atoms=None, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of lists, one per polymer.  Each list
+    will contain the atom specs that compose the polymer, in polymer order
+    '''
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -195,6 +199,15 @@ def info_polymers(session, atoms=None):
             # No chains, no problem
             pass
     report_polymers(session.logger, polymers)
+    if return_json:
+        polymer_infos = []
+        for polymer in polymers:
+            if len(polymer) < 2:
+                continue
+            polymer_infos.append([r.atomspec for r in polymer])
+        from chimerax.core.commands import JSONResult
+        import json
+        return JSONResult(json.JSONEncoder().encode(polymer_infos), None)
 info_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                              synopsis="Report polymer information")
 

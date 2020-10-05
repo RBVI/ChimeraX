@@ -275,7 +275,7 @@ class RESTTransaction(Task):
 class Notifier:
 
     SupportedTypes = ["models", "selection"]
-    # A TYPE is suppored when both _create_TYPE_handler
+    # A TYPE is supported when both _create_TYPE_handler
     # and _destroy_TYPE_handler methods are defined
 
     def __init__(self, what, client_id, session, prefix, url):
