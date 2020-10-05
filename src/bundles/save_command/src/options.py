@@ -21,6 +21,7 @@ class SaveModelOptionWidget(QFrame):
         mlayout.setSpacing(10)
         self.setLayout(mlayout)
 
+        self._name = name
         sm = QLabel(name)
         mlayout.addWidget(sm)
         from chimerax.ui.widgets import ModelMenuButton
