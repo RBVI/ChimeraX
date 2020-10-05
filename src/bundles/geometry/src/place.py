@@ -465,6 +465,7 @@ def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
     Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
+    If the zaxis is 0 then (0,0,1) is used.
     '''
     axes = m34.orthonormal_frame(zaxis, ydir, xdir)
     result = _reuse_place()
