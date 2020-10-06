@@ -475,6 +475,8 @@ class Drawing:
                 d.clear_highlight()
 
     def _drawing_get_position(self):
+        if self.was_deleted:
+            raise RuntimeError('Tried to get the position of deleted drawing "%s"' % self.name)
         return self._positions[0]
 
     def _drawing_set_position(self, pos):

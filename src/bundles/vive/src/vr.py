@@ -1430,8 +1430,7 @@ class UserInterface:
     def close(self):
         ui = self._ui_model
         if ui:
-            if not ui.deleted:
-                self._session.models.close([ui])
+            self._session.models.close([ui])
             self._ui_model = None
 
         for h in (self._tool_show_handler, self._tool_hide_handler):
@@ -1453,9 +1452,6 @@ class UserInterface:
     def shown(self):
         ui = self._ui_model
         if ui is None:
-            return False
-        if ui.deleted:
-            self._ui_model = None
             return False
         return ui.display
     
@@ -1850,17 +1846,14 @@ class UserInterface:
     
     def _create_ui_model(self, parent):
         ses = self._session
-        from chimerax.core.models import Model
-        m = Model('User interface', ses)
-        m.color = (255,255,255,255)
-        m.use_lighting = False
-        # m.skip_bounds = True  # User interface clipped if far from models.
-        m.casts_shadows = False
-        m.pickable = False
-        m.SESSION_SAVE = False
-        ses.models.add([m], parent = parent)
-        return m
+        uim = UIModel(ses, self._ui_model_closed)
+        ses.models.add([uim], parent = parent)
+        return uim
 
+    def _ui_model_closed(self):
+        self._ui_model = None
+        self._panels = []
+        
     def display_ui(self, hand_room_position, camera_position):
         rp = hand_room_position
         # Orient horizontally and facing camera.
@@ -1878,6 +1871,21 @@ class UserInterface:
         for p in self._panels:
             p.scale_panel(scale_factor, center)
 
+from chimerax.core.models import Model
+class UIModel(Model):
+    def __init__(self, session, close_cb = None):
+        self._close_cb = close_cb
+        Model.__init__(self, 'User interface', session)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        self.pickable = False
+        self.SESSION_SAVE = False
+    def delete(self):
+        if self._close_cb is not None:
+            self._close_cb()
+        Model.delete(self)
+        
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
     def __init__(self, tool_or_widget, drawing_parent, ui,
