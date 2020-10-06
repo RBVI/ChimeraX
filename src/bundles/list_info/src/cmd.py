@@ -81,9 +81,9 @@ def info(session, models=None, *, return_json=False):
                     util.volume_info(m))
             lines.append(line)
     if return_json:
-        from chimerax.core.commands import JSONResult
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
-        return JSONResult(json.JSONEncoder().encode(model_infos), None)
+        return JSONResult(ArrayJSONEncoder().encode(model_infos), None)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
     session.logger.info(msg)
 
@@ -91,7 +91,7 @@ info_desc = CmdDesc(optional=[('models', ModelsArg)],
                     synopsis='Report info about models')
 
 
-def info_bounds(session, models=None):
+def info_bounds(session, models=None, *, return_json=False):
     '''
     Report bounds of displayed parts of models in scene coordinates.
     If not models are given the bounds for the entire scene is reported.
@@ -99,16 +99,32 @@ def info_bounds(session, models=None):
     Parameters
     ----------
     models : list of models
+
+    If 'return_json' is True, the JSON returned depends on if 'models' is None.  If models is None,
+    then the bounds of the scene is returned (null if no bounds), as a list [min, max] where min and max
+    are 3 numbers (xyz).  Otherwise, a JSON object is returned where names are model atom specifiers and
+    values are bounds for that model (in the same form as the scene bounds).
     '''
     from .util import bounds_description
     if models is None:
         b = session.main_view.drawing_bounds()
         msg = 'Scene %s' % bounds_description(b)
+        if return_json:
+            bounds_info = None if b is None else (b.xyz_min, b.xyz_max)
     else:
         lines = ['#%s, %s, %s' % (m.id_string, m.name, bounds_description(m.bounds()))
                  for m in sorted(models, key = lambda m: m.id)]
         msg = '\n'.join(lines)
+        if return_json:
+            bounds_info = {}
+            for m in models:
+                b = m.bounds()
+                bounds_info[m.atomspec] = None if b is None else (b.xyz_min, b.xyz_max)
     session.logger.info(msg)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(bounds_info), None)
 
 info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
                            synopsis='Report scene bounding boxes for models')
@@ -134,33 +150,27 @@ def info_models(session, atoms=None, type_=None, attribute="name", *, return_jso
         type_ = type_.lower()
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
-    report_models(session.logger, models, attribute)
-    if return_json:
-        model_infos = []
-        for model in models:
-            present = True
-            try:
-                val = getattr(model, attribute)
-            except AttributeError:
-                present = False
-                val = None
-            model_infos.append({
-                'spec': model.atomspec,
-                'class': model.__class__.__name__,
-                'attribute': attribute,
-                'present': present,
-                'value': val
-            })
-        from chimerax.core.commands import JSONResult
-        import json
-        return JSONResult(json.JSONEncoder().encode(model_infos), None)
+    return report_models(session.logger, models, attribute, return_json=return_json)
 info_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("type_", StringArg),
                                     ("attribute", StringArg),],
                            synopsis="Report model information")
 
 
-def info_chains(session, atoms=None, attribute="chain_id"):
+def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of JSON objects, one per chain.  Each object
+    will have the following name/value pairs:
+
+        spec:  the atom specifier for this chain
+        sequence: a string containing the chain sequence
+        residues: a list of residue specifiers in the chain; for residues with no structure the "specifier"
+            will be null
+        attribute:  the attribute being tested for
+        present:  whether the attribute is defined in the chain instance
+        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+            also be the value for some instances where the attribute *is* present.
+    '''
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -172,7 +182,7 @@ def info_chains(session, atoms=None, attribute="chain_id"):
         except AttributeError:
             # No chains, no problem
             pass
-    report_chains(session.logger, chains, attribute)
+    return report_chains(session.logger, chains, attribute, return_json=return_json)
 info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("attribute", StringArg),],
                            synopsis="Report chain information")
@@ -198,52 +208,64 @@ def info_polymers(session, atoms=None, *, return_json=False):
         except AttributeError:
             # No chains, no problem
             pass
-    report_polymers(session.logger, polymers)
-    if return_json:
-        polymer_infos = []
-        for polymer in polymers:
-            if len(polymer) < 2:
-                continue
-            polymer_infos.append([r.atomspec for r in polymer])
-        from chimerax.core.commands import JSONResult
-        import json
-        return JSONResult(json.JSONEncoder().encode(polymer_infos), None)
+    return report_polymers(session.logger, polymers, return_json=return_json)
 info_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                              synopsis="Report polymer information")
 
 
-def info_residues(session, atoms=None, attribute="name"):
+def info_residues(session, atoms=None, attribute="name", *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of JSON objects, one per residue.  Each object
+    will have the following name/value pairs:
+
+        spec:  the atom specifier for this residue
+        attribute:  the attribute being tested for
+        present:  whether the attribute is defined in the residue instance
+        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+            also be the value for some instances where the attribute *is* present.
+    '''
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
-    report_residues(session.logger, residues, attribute)
+    return report_residues(session.logger, residues, attribute, return_json=return_json)
 info_residues_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                              keyword=[("attribute", StringArg),],
                              synopsis="Report residue information")
 
 
-def info_atoms(session, atoms=None, attribute="idatm_type"):
+def info_atoms(session, atoms=None, attribute="idatm_type", *, return_json=False):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
-    report_atoms(session.logger, results.atoms, attribute)
+    return report_atoms(session.logger, results.atoms, attribute, return_json=return_json)
 info_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                           keyword=[("attribute", StringArg),],
                           synopsis="Report atom information")
 
 
-def info_selection(session, level=None, attribute=None):
+def info_selection(session, level=None, attribute=None, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will correspond to the function appropriate for the 'level',
+    namely, but restricted to selected items:
+
+        atom/None   info_atoms
+        residue     info_residues
+        chain       info_chains
+        structure   info_models (but only Structure/AtomicStructure models)
+        models      info_models
+    '''
+    json_info = None
     if level is None or level == "atom":
         if attribute is None:
             attribute = "idatm_type"
         atoms = session.selection.items("atoms")
         if atoms:
             from chimerax.atomic import concatenate
-            report_atoms(session.logger, concatenate(atoms), attribute)
+            json_info = report_atoms(session.logger, concatenate(atoms), attribute, return_json=return_json)
     elif level == "residue":
         if attribute is None:
             attribute = "name"
@@ -251,7 +273,7 @@ def info_selection(session, level=None, attribute=None):
         if atoms:
             from chimerax.atomic import concatenate
             residues = concatenate([a.unique_residues for a in atoms])
-            report_residues(session.logger, residues, attribute)
+            json_info = report_residues(session.logger, residues, attribute, return_json=return_json)
     elif level == "chain":
         if attribute is None:
             attribute = "chain_id"
@@ -259,7 +281,7 @@ def info_selection(session, level=None, attribute=None):
         if atoms:
             from chimerax.atomic import concatenate
             chains = concatenate([a.residues.unique_chains for a in atoms])
-            report_chains(session.logger, chains, attribute)
+            json_info = report_chains(session.logger, chains, attribute, return_json=return_json)
     elif level == "structure":
         if attribute is None:
             attribute = "name"
@@ -267,11 +289,14 @@ def info_selection(session, level=None, attribute=None):
         if atoms:
             from chimerax.atomic import concatenate
             mols = concatenate([a.unique_structures for a in atoms])
-            report_models(session.logger, mols, attribute)
+            json_info = report_models(session.logger, mols, attribute, return_json=return_json)
     elif level == "model":
         if attribute is None:
             attribute = "name"
-        report_models(session.logger, session.selection.models(), attribute)
+        json_info = report_models(session.logger, session.selection.models(), attribute,
+            return_json=return_json)
+    if return_json:
+        return json_info
 info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                                                          "residue",
                                                          "chain",
