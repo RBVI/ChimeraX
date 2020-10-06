@@ -33,5 +33,5 @@ class SaveModelOptionWidget(QFrame):
         m = self._model_menu.value
         if m is None:
             from chimerax.core.errors import UserError
-            raise UserError("No %s to save" % self._name.lower())
+            raise UserError("No %s chosen to save" % self._name.lower())
         return 'model #%s' % m.id_string
