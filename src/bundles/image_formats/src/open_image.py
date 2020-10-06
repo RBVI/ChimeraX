@@ -61,6 +61,8 @@ class ImageSurface(Surface):
         tc = array(((0,1),(1,1),(1,0),(0,0)), float32)
         self.set_geometry(va, na, ta)
 
+        self.use_lighting = False
+        self.allow_depth_cue = False
         self.color = (255,255,255,255)
         from chimerax.graphics import Texture
         self.texture = Texture(rgba)

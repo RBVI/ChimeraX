@@ -446,8 +446,7 @@ class Log(ToolInstance, HtmlLog):
     def set_state_from_snapshot(self, session, data):
         super().set_state_from_snapshot(session, data)
         log_data = data['log data']
-        prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
-            log_data['date'], log_data['contents'])
+        prev_ses_html = "<details><summary>Log from %s</summary>%s<p>=== End of log from %s ===</p></details>" % (log_data['date'], log_data['contents'], log_data['date'])
         if self.settings.session_restore_clears:
             # "retain" version info
             class FakeLogger:
