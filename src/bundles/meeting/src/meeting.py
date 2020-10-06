@@ -447,7 +447,10 @@ class MeetingServer:
         msg = msg_bytes[4:4+msg_len].decode('utf-8')
         mbuf[socket] = msg_bytes[4+msg_len:]
         import ast
-        msg_data = ast.literal_eval(msg)
+        try:
+            msg_data = ast.literal_eval(msg)
+        except ValueError as e:
+            raise ValueError('ChimeraX meeting message could not be parsed, length %d, content "%s"' % (msg_len, msg)) from e
         return msg_data
 
     def _report_message_status(self, bytes_received, message_bytes):
@@ -800,7 +803,10 @@ class VRTracking(PointerModels):
             # Notify about changes in panel size, position or image.
             pchanges = []	# GUI panel changes
             for panel in ui.panels:
-                name, size, pos, rgba = panel.name, panel.size, panel.drawing.position, panel.panel_image_rgba()
+                name, size, pos = panel.name, panel.size, panel.drawing.position
+                rgba = panel.panel_image_rgba()
+                if rgba is None:
+                    continue  # Panel has not yet been drawn.
                 pstate = gui_state.setdefault(('panel', name), {})
                 pchange = {}
                 if 'size' not in pstate or size != pstate['size'] or shown_changed:
@@ -982,15 +988,16 @@ class VRHeadModel(Model):
 
 class VRGUIModel(Model):
     '''Size in meters.'''
-    casts_shadows = False
-    pickable = False
-    skip_bounds = True
     SESSION_SAVE = False
 
     def __init__(self, session, name = 'GUI Panel'):
         Model.__init__(self, name, session)
         self.room_position = None
         self._panels = {}		# Maps panel name to VRGUIPanel
+        self.casts_shadows = False
+        self.pickable = False
+        self.skip_bounds = True		# Panels should not effect view all command.
+        self.allow_depth_cue = False	# Avoid panels fading out far from models.
 
     def update_panel(self, panel_changes):
         name = panel_changes['name']

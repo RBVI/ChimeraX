@@ -282,6 +282,91 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
     }
 }
 
+typedef std::map<char, const char*> CharToResName;
+static CharToResName protein_name_map = {
+    {'A', "ALA"},
+    {'C', "CYS"},
+    {'D', "ASP"},
+    {'E', "GLU"},
+    {'F', "PHE"},
+    {'G', "GLY"},
+    {'H', "HIS"},
+    {'I', "ILE"},
+    {'K', "LYS"},
+    {'L', "LEU"},
+    {'M', "MET"},
+    {'N', "ASN"},
+    {'P', "PRO"},
+    {'Q', "GLN"},
+    {'R', "ARG"},
+    {'S', "SER"},
+    {'T', "THR"},
+    {'V', "VAL"},
+    {'W', "TRP"},
+    {'Y', "TYR"}
+};
+
+static void
+push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::string>& seqres)
+{
+    PDB sr_rec(PDB::SEQRES);
+    sr_rec.seqres.ser_num = record_num;
+    sr_rec.seqres.chain_id = chain->chain_id()[0];
+    sr_rec.seqres.num_res = chain->residues().size();
+    int is_rna = -1;
+    for (size_t i = 0; i < 13; ++i) {
+        size_t index = start_index + i;
+        if (index >= chain->residues().size())
+            break;
+        auto res = chain->residues()[index];
+        if (res == nullptr) {
+            auto seq_char = chain->characters()[index];
+            if (chain->polymer_type() == PT_AMINO) {
+                auto char_rn_i = protein_name_map.find(seq_char);
+                if (char_rn_i == protein_name_map.end()) {
+                    strcpy(sr_rec.seqres.res_name[i], "UNK");
+                } else {
+                    strcpy(sr_rec.seqres.res_name[i], (*char_rn_i).second);
+                }
+            } else {
+                if (is_rna == -1) {
+                    // need to try do figure out if it's RNA or DNA: look through actual residues
+                    is_rna = 1; // default to RNA if no residues exist
+                    for (auto r: chain->residues()) {
+                        if (r != nullptr) {
+                            is_rna = r->name().size() == 1 ? 1 : 0;
+                            break;
+                        }
+                    }
+                }
+                if (is_rna) {
+                    ResName rna_name;
+                    rna_name.append(1, seq_char);
+                    strcpy(sr_rec.seqres.res_name[i], rna_name.c_str());
+                } else {
+                    ResName dna_name("D");
+                    dna_name.append(1, seq_char);
+                    strcpy(sr_rec.seqres.res_name[i], dna_name.c_str());
+                }
+            }
+        } else {
+            strcpy(sr_rec.seqres.res_name[i], res->name().c_str());
+        }
+    }
+    seqres.push_back(sr_rec.c_str());
+}
+
+static void
+compile_seqres(const Structure* s, std::vector<std::string>& seqres)
+{
+    for (auto chain: s->chains()) {
+        int record_num = 1;
+        for (size_t i = 0; i < chain->characters().size(); i += 13) {
+                push_seqres(chain, i, record_num++, seqres);
+        }
+    }
+}
+
 class StringIOStream
 {
     PyObject* _string_io_write;
@@ -1906,7 +1991,7 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
-    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK");
+    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK"), Seqres("SEQRES");
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -1914,15 +1999,17 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // generate HELIX/SHEET records relevant to current structure
-            std::vector<std::string> helices, sheets, ssbonds, links;
+            std::vector<std::string> helices, sheets, ssbonds, links, seqres;
             compile_helices_sheets(s, helices, sheets);
             compile_links_ssbonds(s, links, ssbonds);
+            compile_seqres(s, seqres);
             // since we need to munge the headers, make a copy instead of using a const reference
             auto headers = s->metadata;
             headers[Helix] = helices;
             headers[Sheet] = sheets;
             headers[Ssbond] = ssbonds;
             headers[Link] = links;
+            headers[Seqres] = seqres;
             // write out known headers first
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")

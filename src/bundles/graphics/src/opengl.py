@@ -107,7 +107,7 @@ class OpenGLContext:
     def delete(self):
         self._deleted = True
         for oc in self._contexts.values():
-            if oc:
+            if oc and not _qobject_deleted(oc):
                 oc.deleteLater()
         self._contexts.clear()
         self._share_context = None
@@ -287,6 +287,10 @@ class OpenGLContext:
             for fb in tuple(self._framebuffers):
                 fb.set_color_bits(bits)
             self.done_current()
+
+def _qobject_deleted(o):
+    import sip
+    return sip.isdeleted(o)
 
 def remember_current_opengl_context():
     '''

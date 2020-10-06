@@ -36,7 +36,11 @@ def exists_locally(text, format):
         return True
     return False
 
-def cmd_open(session, file_names, rest_of_line, *, log=True):
+def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
+    """If return_json is True, the returned JSON object has one name/value pair:
+        (name) model specs
+        (value) a list of atom specifiers, one for each model opened by the command
+    """
     tokens = []
     remainder = rest_of_line
     while remainder:
@@ -97,7 +101,16 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         # want to log command even for keyboard interrupts
         log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
         raise
-    return Command(session, registry=registry).run(provider_cmd_text, log=log)
+    models = Command(session, registry=registry).run(provider_cmd_text, log=log)
+    if return_json:
+        from chimerax.core.commands import JSONResult
+        from json import JSONEncoder
+        # chimera.core.commands.run() is going to return the first element of a one-element list,
+        # so 'models' is a list of a single list, so that the return value of run() is always
+        # a list of models.  Consequently, we have to use models[0] in the line below
+        open_data = { 'model specs': [m.string(style="command") for m in models[0]] }
+        return JSONResult(JSONEncoder().encode(open_data), models[0])
+    return models
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):

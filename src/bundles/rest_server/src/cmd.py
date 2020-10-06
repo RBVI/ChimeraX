@@ -21,7 +21,28 @@ def _get_server():
         _server = None
     return _server
 
-def start_server(session, port=None, ssl=None):
+def start_server(session, port=None, ssl=None, json=False):
+    """If 'json' is True, then the return value from a command will be a JSON object with the following
+       name/value pairs:
+
+       (name) json values
+       (value) A list of json strings.  Typically a list of one string, but if the "command" executed is
+            actually a series of commands separated by semicolons, then there will be a corresponding
+            number of strings.  The contents of string varies from command to command, and should be
+            documented in the doc string for the function that actually implements the commands.  Commands
+            that don't (yet) implement JSON return values will have 'null' as their JSON value.
+
+       (name) python values
+       (value) A list of Python objects, with a list structure similar to that for 'json values'.  If the
+            command's normal return value is None or can't be encoded into JSON, then the value will be
+            'null'.
+
+       (name) log messages
+       (value) A JSON object, with names corresponding to log levels as given in chimerax.core.logger.Log.
+            LEVEL_DESCRIPTS, and values that are lists of messages logged at that level during command
+            execution.
+    """
+
     global _server
     server = _get_server()
     if server is not None:
@@ -30,10 +51,11 @@ def start_server(session, port=None, ssl=None):
         from .server import RESTServer
         _server = RESTServer(session)
         # Run code will report port number
-        _server.start(port, ssl)
+        _server.start(port, ssl, json)
 from chimerax.core.commands import CmdDesc, IntArg, BoolArg
 start_desc = CmdDesc(keyword=[("port", IntArg),
                               ("ssl", BoolArg),
+                              ("json", BoolArg),
                              ],
                      synopsis="Start REST server")
 
