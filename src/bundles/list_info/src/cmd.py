@@ -314,27 +314,58 @@ def _type_attrs(t):
     attrs.sort()
     return attrs
 
-def info_atomattr(session):
+def info_atomattr(session, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of atom attribute names.
+    '''
     from chimerax.atomic import Atom
-    for a in _type_attrs(Atom):
+    attrs = _type_attrs(Atom)
+    for a in attrs:
         report_attr(session.logger, "atom", a)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(attrs), None)
 info_atomattr_desc = CmdDesc(synopsis="Report atom attribute information")
 
-def info_bondattr(session):
+def info_bondattr(session, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of bond attribute names.
+    '''
     from chimerax.atomic import Bond
-    for a in _type_attrs(Bond):
+    attrs = _type_attrs(Bond)
+    for a in attrs:
         report_attr(session.logger, "bond", a)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(attrs), None)
 info_bondattr_desc = CmdDesc(synopsis="Report bond attribute information")
 
-def info_resattr(session):
+def info_resattr(session, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of residue attribute names.
+    '''
     from chimerax.atomic import Residue
-    for a in _type_attrs(Residue):
+    attrs = _type_attrs(Residue)
+    for a in attrs:
         report_attr(session.logger, "res", a)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(attrs), None)
 info_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
 
 
-def info_distmat(session, atoms):
-    from scipy.spatial.distance import pdist, squareform
+def info_distmat(session, atoms, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a JSON object, with the following name/value pairs:
+
+        atoms:  a list of the specifiers for the atoms used when computing the distance matrix
+        distance matrix:  the "flattened" upper-right triangle of the distance matrix, as per
+            http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+    '''
+    from scipy.spatial.distance import pdist
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
@@ -343,6 +374,13 @@ def info_distmat(session, atoms):
     coords = atoms.scene_coords
     distmat = pdist(coords, "euclidean")
     report_distmat(session.logger, atoms, distmat)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode({
+            'atoms': [a.atomspec for a in atoms],
+            'distance matrix': distmat
+        }), None)
 info_distmat_desc = CmdDesc(required=([("atoms", Or(AtomSpecArg, EmptyArg))]),
                             synopsis="Report distance matrix information")
 
@@ -379,18 +417,34 @@ info_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
                                   synopsis="Resume notifications")
 
 
-def info_path(session, which="all", version="all", what=None):
+def info_path(session, which="all", version="all", what=None, *, return_json=False):
+    '''
+    If 'return_json' is True, the returned JSON will be a JSON object with one or two names (depending on
+    the arguments given), namely "versioned" and/or "unversioned".  The value(s) will also be JSON objects
+    with one or more names (again, depending on the args) from among: site_config_dir, site_data_dir,
+    user_cache_dir, user_config_dir, user_data_dir, user_log_dir, and/or user_state_dir.  The values will
+    be the appropriate directory name.
+    '''
     logger = session.logger
+    if return_json:
+        info_dict = {}
+        kw = { 'info_dict': info_dict }
+    else:
+        kw = {}
     if which in ["all", "system"]:
         if version in ["all", "versioned"]:
-            _info_path_show(logger, "system", "versioned", what)
+            _info_path_show(logger, "system", "versioned", what, **kw)
         if version in ["all", "unversioned"]:
-            _info_path_show(logger, "system", "unversioned", what)
+            _info_path_show(logger, "system", "unversioned", what, **kw)
     if which == "all" or which == "user":
         if version in ["all", "versioned"]:
-            _info_path_show(logger, "user", "versioned", what)
+            _info_path_show(logger, "user", "versioned", what, **kw)
         if version in ["all", "unversioned"]:
-            _info_path_show(logger, "user", "unversioned", what)
+            _info_path_show(logger, "user", "unversioned", what, **kw)
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(info_dict), None)
 path_names = EnumOf(["config", "data", "log", "state", "cache"])
 info_path_desc = CmdDesc(optional=[("which", EnumOf(["all",
                                                        "system",
@@ -403,7 +457,7 @@ info_path_desc = CmdDesc(optional=[("which", EnumOf(["all",
                            synopsis="Report directory paths")
 
 
-def _info_path_show(logger, which, version, what):
+def _info_path_show(logger, which, version, what, *, info_dict=None):
     if what is None:
         names = path_names.values
     else:
@@ -428,3 +482,5 @@ def _info_path_show(logger, which, version, what):
         else:
             logger.info("%s %s %s directory: %s" %
                         (which, version, n, attr_value))
+            if info_dict is not None:
+                info_dict.setdefault(version, {})[attr_name] = attr_value
