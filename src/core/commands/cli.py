@@ -2001,7 +2001,7 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis', 'self_logging'
+        '_hidden', '_can_return_json', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
@@ -2027,6 +2027,7 @@ class CmdDesc:
         self.synopsis = synopsis
         self.self_logging = self_logging
         self._function = None
+        self._can_return_json = False
 
     @property
     def function(self):
@@ -2047,7 +2048,9 @@ class CmdDesc:
             var_positional = inspect.Parameter.VAR_POSITIONAL
             var_keyword = inspect.Parameter.VAR_KEYWORD
             signature = inspect.signature(function)
-            params = list(signature.parameters.values())
+            sig_params = signature.parameters
+            self._can_return_json = 'return_json' in sig_params
+            params = list(sig_params.values())
             if len(params) < 1 or params[0].name != "session":
                 raise ValueError('Missing initial "session" argument')
             for p in params[1:]:
@@ -2058,6 +2061,10 @@ class CmdDesc:
                 raise ValueError("Wrong function or '%s' argument must be "
                                  "required or have a default value" % p.name)
         self._function = function
+
+    @property
+    def can_return_json(self):
+        return self._can_return_json
 
     def copy(self):
         """Return a copy suitable for use with another function."""
@@ -2732,7 +2739,7 @@ class Command:
             if not text:
                 break
 
-    def run(self, text, *, log=True, log_only=False, _used_aliases=None):
+    def run(self, text, *, log=True, log_only=False, return_json=False, _used_aliases=None):
         """Parse and execute commands in the text
 
         :param text: The text to be parsed.
@@ -2812,6 +2819,8 @@ class Command:
             with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
+                        if ci.can_return_json:
+                            kw_args['return_json'] = return_json
                         result = ci.function(session, **kw_args)
                         results.append(result)
                 else:

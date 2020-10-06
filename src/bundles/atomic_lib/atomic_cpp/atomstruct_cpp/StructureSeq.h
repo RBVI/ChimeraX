@@ -78,6 +78,7 @@ public:
             const Sequence::Contents* chars = nullptr);
     StructureSeq*  copy() const;
     const ChainID&  chain_id() const { return _chain_id; }
+    const Contents&  characters() const { return _contents; }
     Contents::const_iterator  end() const { return Sequence::end(); }
     virtual void  destructors_done(const std::set<void*>& destroyed);
     // is character sequence derived from SEQRES records (or equivalent)?

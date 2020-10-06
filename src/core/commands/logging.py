@@ -32,8 +32,15 @@ def log_equivalent_command(session, command_text):
 
 def residues_specifier(objects):
     res = objects.atoms.unique_residues
-    spec = ''.join('#%s/%s:%s' % (s.id_string, cid, ','.join('%d' % rnum for rnum in cres.numbers))
-                   for s, cid, cres in res.by_chain)
+    specs = []
+    for s, cid, cres in res.by_chain:
+        rnums = ','.join('%d' % rnum for rnum in cres.numbers)
+        if ' ' in cid:
+            cspec = "(#%s::chain_id='%s'&:%s)" % (s.id_string, cid, rnums)
+        else:
+            cspec = '#%s/%s:%s' % (s.id_string, cid, rnums)
+        specs.append(cspec)
+    spec = ''.join(specs)
     return spec
 
 def camel_case(text):

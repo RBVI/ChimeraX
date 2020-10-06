@@ -21,6 +21,7 @@ class SaveModelOptionWidget(QFrame):
         mlayout.setSpacing(10)
         self.setLayout(mlayout)
 
+        self._name = name
         sm = QLabel(name)
         mlayout.addWidget(sm)
         from chimerax.ui.widgets import ModelMenuButton
@@ -32,5 +33,5 @@ class SaveModelOptionWidget(QFrame):
         m = self._model_menu.value
         if m is None:
             from chimerax.core.errors import UserError
-            raise UserError("No %s to save" % self._name.lower())
+            raise UserError("No %s chosen to save" % self._name.lower())
         return 'model #%s' % m.id_string

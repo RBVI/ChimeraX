@@ -1430,8 +1430,7 @@ class UserInterface:
     def close(self):
         ui = self._ui_model
         if ui:
-            if not ui.deleted:
-                self._session.models.close([ui])
+            self._session.models.close([ui])
             self._ui_model = None
 
         for h in (self._tool_show_handler, self._tool_hide_handler):
@@ -1453,9 +1452,6 @@ class UserInterface:
     def shown(self):
         ui = self._ui_model
         if ui is None:
-            return False
-        if ui.deleted:
-            self._ui_model = None
             return False
         return ui.display
     
@@ -1850,17 +1846,14 @@ class UserInterface:
     
     def _create_ui_model(self, parent):
         ses = self._session
-        from chimerax.core.models import Model
-        m = Model('User interface', ses)
-        m.color = (255,255,255,255)
-        m.use_lighting = False
-        # m.skip_bounds = True  # User interface clipped if far from models.
-        m.casts_shadows = False
-        m.pickable = False
-        m.SESSION_SAVE = False
-        ses.models.add([m], parent = parent)
-        return m
+        uim = UIModel(ses, self._ui_model_closed)
+        ses.models.add([uim], parent = parent)
+        return uim
 
+    def _ui_model_closed(self):
+        self._ui_model = None
+        self._panels = []
+        
     def display_ui(self, hand_room_position, camera_position):
         rp = hand_room_position
         # Orient horizontally and facing camera.
@@ -1878,6 +1871,21 @@ class UserInterface:
         for p in self._panels:
             p.scale_panel(scale_factor, center)
 
+from chimerax.core.models import Model
+class UIModel(Model):
+    def __init__(self, session, close_cb = None):
+        self._close_cb = close_cb
+        Model.__init__(self, 'User interface', session)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        self.pickable = False
+        self.SESSION_SAVE = False
+    def delete(self):
+        if self._close_cb is not None:
+            self._close_cb()
+        Model.delete(self)
+        
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
     def __init__(self, tool_or_widget, drawing_parent, ui,
@@ -2392,9 +2400,8 @@ class PanelDrawing(Drawing):
         self.color = (255,255,255,255)
         self.use_lighting = False
         self.casts_shadows = False
-        self.skip_bounds = True	# Panels should not effect view all command.
-        # Avoid panels fading out far from models.
-        self.allow_depth_cue = False
+        self.skip_bounds = True		# Panels should not effect view all command.
+        self.allow_depth_cue = False	# Avoid panels fading out far from models.
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
@@ -2583,6 +2590,7 @@ class HandController:
     
     def close(self):
         self._device_index = None
+        self._active_drag_modes.clear()
         self._close_hand_model()
 
     def _close_hand_model(self):
@@ -3265,6 +3273,7 @@ class MoveUIMode(HandMode):
         oc = e.camera.other_controller(hc)
         if oc and self._ui_zoom(oc):
             scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
+            scale = max(min(scale, 10.0), 0.1)	# Limit scaling
             ui.scale_ui(scale)
             self._last_hand_position.clear()	# Avoid jump when one button released
         else:
@@ -3385,7 +3394,6 @@ def _pinch_scale(prev_pos, pos, other_pos):
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
     if dp > 0:
         s = d / dp
-        s = max(min(s, 10.0), 0.1)	# Limit scaling
     else:
         s = 1.0
     center = 0.5*(pos+other_pos)
@@ -3415,8 +3423,7 @@ class ZoomMode(HandMode):
         if center is None:
             return
         y_motion = (e.pose.origin() - e.previous_pose.origin())[1]  # meters
-        s = 2 ** (y_motion/self.size_doubling_distance)
-        scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
+        scale_factor = 2 ** (y_motion/self.size_doubling_distance)
         _pinch_zoom(e.camera, scale_factor, center)
     def released(self, hand_event):
         self._zoom_center = None
@@ -3442,7 +3449,16 @@ def _choose_zoom_center(camera, center = None):
         return camera.room_position.origin()
     return center
 
-def _pinch_zoom(camera, scale_factor, center):
+def _pinch_zoom(camera, scale_factor, center, max_scale_factor = 10, max_scale = 1e12):
+    if max_scale_factor is not None:
+        if scale_factor > max_scale_factor:
+            scale_factor = max_scale_factor
+        elif scale_factor < 1/max_scale_factor:
+            scale_factor = 1/max_scale_factor
+    if max_scale is not None:
+        s = camera.scene_scale * scale_factor
+        if s > max_scale or s < 1/max_scale:
+            return
     from chimerax.geometry import distance, translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)

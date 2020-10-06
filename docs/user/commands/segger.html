@@ -1,0 +1,78 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: segger</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: segger</h3>
+<p>
+The <b>segger</b> command acts on segmentations
+created with <a href="../tools/segment.html"><b>Segment Map</b></a>.
+See also: 
+<a href="segmentation.html"><b>segmentation</b></a>,
+<a href="volume.html#mask"><b>volume mask</b></a>,
+<a href="save.html#map"><b>save</b></a>
+</p>
+
+<a name="exportmask"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>segger exportmask</b> &nbsp;<a href="atomspec.html#othermodels"><i>segmodel</i></a>
+[&nbsp;<b>savePath</b> &nbsp;<i>pathname</i>&nbsp;]
+[&nbsp;<b>format</b> &nbsp;<b>mrc</b>&nbsp;|&nbsp;cmap&nbsp;]
+[&nbsp;<b>sequentialIds</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+<blockquote>
+<p>
+Export a segmentation model from 
+<a href="../tools/segment.html"><b>Segment Map</b></a>
+as an <b><i>index map</i></b>,
+a type of <a href="../tools/volumeviewer.html">volume data</a>
+in which the value at each grid point is the integer ID number of the 
+segmentation region that contains it, or zero if the point is
+outside of any regions.
+</p><p>
+A <i>pathname</i> for saving the map can be specified with <b>savePath</b>. 
+Giving <i>pathname</i> as the word
+<a href="usageconventions.html#browse"><b>browse</b></a> opens
+a file browser window for choosing the name and location interactively.
+If <b>savePath</b> is not used,
+the map will be opened in ChimeraX but not saved to a file.
+The file format can be specified with <b>format</b> (default <b>mrc</b>). 
+Segmentation region ID numbers are often nonsequential.
+If <b>sequentialIds</b> is <b>true</b> (default),
+the regions will be renumbered starting from 1 in the created map;
+otherwise, the original ID numbers will be used.
+By default, the map will be the same size as the map that was segmented.
+If the segmentation was done on a binned map, however, the <b>binSize</b>
+option is useful for exporting to the original, unbinned size given as
+either a single integer <i>N</i> (number of points in each dimension) or
+three integers separated by commas only, where
+<i>Nx</i>, <i>Ny</i>, and <i>Nz</i> are the numbers of grid points in
+the X, Y, and Z dimensions, respectively.
+</p>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2020</address>
+</body></html>
+

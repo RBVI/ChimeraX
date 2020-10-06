@@ -17,33 +17,57 @@ class _ImageFormatsBundleAPI(BundleAPI):
     
     @staticmethod
     def run_provider(session, name, mgr):
-        from chimerax.save_command import SaverInfo
-        class ImageInfo(SaverInfo):
-            def save(self, session, path, format_name=name.split()[0], **kw):
-                from .save import save_image
-                save_image(session, path, format_name, **kw)
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class OpenImageInfo(OpenerInfo):
+                def open(self, session, path, file_name, **kw):
+                    from .open_image import open_image
+                    return open_image(session, path, **kw)
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import FloatArg
+                    return {
+                        'width': FloatArg,
+                        'height': FloatArg,
+                        'pixel_size': FloatArg,
+                    }
+            return OpenImageInfo()
+        else:
+            from chimerax.save_command import SaverInfo
+            class SaveImageInfo(SaverInfo):
+                def save(self, session, path, format_name=name.split()[0], **kw):
+                    from .save import save_image
+                    save_image(session, path, format_name, **kw)
 
-            @property
-            def save_args(self, _name=name):
-                from chimerax.core.commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg
-                args = {
-                    'height': PositiveIntArg,
-                    'pixel_size': FloatArg,
-                    'supersample': PositiveIntArg,
-                    'transparent_background': BoolArg,
-                    'width': PositiveIntArg,
-                }
-                if _name == "JPEG image":
-                    args['quality'] = Bounded(IntArg, min=0, max=100)
-                return args
+                @property
+                def save_args(self, _name=name):
+                    from chimerax.core.commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg
+                    args = {
+                        'height': PositiveIntArg,
+                        'pixel_size': FloatArg,
+                        'supersample': PositiveIntArg,
+                        'transparent_background': BoolArg,
+                        'width': PositiveIntArg,
+                    }
+                    if _name == "JPEG image":
+                        args['quality'] = Bounded(IntArg, min=0, max=100)
+                    return args
 
-            def save_args_widget(self, session):
-                from .gui import SaveOptionsWidget
-                return SaveOptionsWidget(session)
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
 
-            def save_args_string_from_widget(self, widget):
-                return widget.options_string()
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
 
-        return ImageInfo()
+            return SaveImageInfo()
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'ImageSurface':
+            from .open_image import ImageSurface
+            return ImageSurface
+        return None
 
 bundle_api = _ImageFormatsBundleAPI()

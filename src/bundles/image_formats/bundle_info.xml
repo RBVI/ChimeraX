@@ -32,6 +32,8 @@
 		reference_url="https://en.wikipedia.org/wiki/Netpbm" />
     <Provider name="TIFF image" category="Image" suffixes=".tif,.tiff"
 		reference_url="https://en.wikipedia.org/wiki/TIFF" />
+    <Provider name="photo" category="Image" suffixes=".jpg"
+		reference_url="https://en.wikipedia.org/wiki/JPEG" />
   </Providers>
 
   <Providers manager="save command">
@@ -42,6 +44,11 @@
     <Provider name="PPM image" />
     <Provider name="TIFF image" />
   </Providers>
+
+  <Providers manager="open command">
+    <Provider name="photo" want_path="true" />
+  </Providers>
+
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
