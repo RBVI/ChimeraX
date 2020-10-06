@@ -94,6 +94,8 @@ def save_image(session, path, format_name, width=None, height=None,
         #     metadata['x resolution'] = dpcm
         #     metadata['y resolution'] = dpcm
     elif format_name == 'JPEG':
+        if transparent_background:
+            raise UserError('The JPEG file format does not support transparency, use PNG or TIFF instead.')
         metadata['quality'] = quality
         # if dpi is not None:
         #     # PIL's jpeg_encoder requires integer dpi values
