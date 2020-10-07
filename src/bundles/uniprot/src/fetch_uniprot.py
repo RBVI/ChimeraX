@@ -96,6 +96,7 @@ def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
 def expand_features(features):
     from chimerax.atomic.seq_support import feature_type_to_class
     expanded = {}
+    feature_lookup = {}
     for feature in features:
         locs = [cn for cn in feature.childNodes if getattr(cn, 'tagName', None) == "location"]
         if not locs:
@@ -139,63 +140,12 @@ def expand_features(features):
             blocks = []
             for block in old_blocks:
                 blocks.extend([(block[0], block[0]), (block[1], block[1])])
-        expanded.setdefault(ftype, []).append(feature_type_to_class(ftype)(strings, blocks))
-
-    return expanded
-def old_expand_features(features):
-    expanded = {}
-    location_info = {}
-    feature_lookup = {}
-    for feature in features:
-        locs = [cn for cn in feature.childNodes if getattr(cn, 'tagName', None) == "location"]
-        if not locs:
+        lookup_key = (ftype, tuple(strings))
+        if lookup_key in feature_lookup:
+            feature_lookup[lookup_key].positions.extend(blocks)
             continue
-        f_type = feature.getAttribute("type")
-        # try to coalesce features with the exact same attributes into one...
-        attr_map = {}
-        xml_attrs = feature.attributes
-        for attr in [xml_attrs.item(i) for i in range(xml_attrs.length)]:
-            if attr.localName == "type":
-                continue
-            attr_map[attr.localName] = attr.value
-        reg_key = (f_type, tuple(sorted(attr_map.items())))
-        feature_lookup.setdefault(reg_key, []).append(feature)
-        for loc in locs:
-            begin = end = None
-            for cn in loc.childNodes:
-                tn = getattr(cn, 'tagName', None)
-                if tn == "position":
-                    begin = end = int(cn.getAttribute("position"))
-                elif tn == "begin" and cn.getAttribute("status") != "unknown":
-                    begin = int(cn.getAttribute("position"))
-                elif tn == "end" and cn.getAttribute("status") != "unknown":
-                    end = int(cn.getAttribute("position"))
-            if begin is None or end is None:
-                continue
-            location_info.setdefault(reg_key, []).append((begin, end))
+        f = feature_type_to_class(ftype)(strings, blocks)
+        feature_lookup[lookup_key] = f
+        expanded.setdefault(ftype, []).append(f)
 
-    for reg_key, blocks in location_info.items():
-        f_type, attr_list = reg_key
-        attr_map = dict(attr_list)
-        strings = [f_type]
-        if 'bond' in f_type:
-            old_blocks = blocks[:]
-            blocks = []
-            for block in old_blocks:
-                blocks.extend([(block[0], block[0]), (block[1], block[1])])
-        features = feature_lookup[reg_key]
-        if len(features) == 1:
-            feature = features[0]
-            origs = [cn for cn in feature.childNodes if getattr(cn, 'tagName', None) == "original"]
-            if len(origs) == 1:
-                variants = [cn for cn in feature.childNodes
-                    if getattr(cn, 'tagName', None) == "variation"]
-                if len(variants) == 1:
-                    strings.append(origs[0].firstChild.nodeValue + "\N{RIGHTWARDS ARROW}" \
-                        + variants[0].firstChild.nodeValue)
-        if attr_map:
-            if 'description' in attr_map:
-                strings.append(attr_map.pop('description').strip())
-                strings.extend(["%s=%s" % (k,v) for k,v in attr_map.items()])
-        expanded.setdefault(tuple(strings), []).extend(blocks)
     return expanded

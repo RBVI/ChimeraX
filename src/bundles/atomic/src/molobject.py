@@ -912,7 +912,7 @@ class Sequence(State):
         else:
             self.characters = chars[:key] + val + chars[key+1:]
 
-    # no __str__, since it's confusing whether it should be self.name or self.characters
+    # no __str__, since it's unclear whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
         self.name = data['name']
