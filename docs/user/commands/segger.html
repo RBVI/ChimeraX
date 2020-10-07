@@ -37,9 +37,9 @@ See also:
 <a href="#top" class="nounder">&bull;</a>
 <b>segger exportmask</b> &nbsp;<a href="atomspec.html#othermodels"><i>segmodel</i></a>
 [&nbsp;<b>savePath</b> &nbsp;<i>pathname</i>&nbsp;]
-[&nbsp;<b>format</b> &nbsp;<b>mrc</b>&nbsp;|&nbsp;dsn6&nbsp;|&nbsp;cmap&nbsp;|&nbsp;netcdf&nbsp;]
+[&nbsp;<b>format</b> &nbsp;<b>mrc</b>&nbsp;|&nbsp;cmap&nbsp;]
 [&nbsp;<b>sequentialIds</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>bi,bj,bk</i>&nbsp;]
+[&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 <blockquote>
 <p>
 Export a segmentation model from 
@@ -63,8 +63,10 @@ the regions will be renumbered starting from 1 in the created map;
 otherwise, the original ID numbers will be used.
 By default, the map will be the same size as the map that was segmented.
 If the segmentation was done on a binned map, however, the <b>binSize</b>
-option is useful for exporting to the original, unbinned size, where
-<i>bi</i>, <i>bj</i>, and <i>bk</i> are the numbers of grid points in
+option is useful for exporting to the original, unbinned size given as
+either a single integer <i>N</i> (number of points in each dimension) or
+three integers separated by commas only, where
+<i>Nx</i>, <i>Ny</i>, and <i>Nz</i> are the numbers of grid points in
 the X, Y, and Z dimensions, respectively.
 </p>
 </blockquote>

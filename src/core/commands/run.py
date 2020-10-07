@@ -54,6 +54,33 @@ class JSONResult:
         self.json_value = json_value
         self.python_value = python_value
 
+import json
+class ArrayJSONEncoder(json.JSONEncoder):
+    """A version of json.JSONEncoder that can also encode numpy and tinyarray arrays"""
+
+    def __init__(self, *args, **kw):
+        self._user_default = kw.get('default', None)
+        kw['default'] = self._encode_array
+        super().__init__(*args, **kw)
+
+    def _encode_array(self, val):
+        # Does this look like an array?
+        if hasattr(val, "__len__") and hasattr(val, "shape"):
+            return [self._translate(v) for v in val]
+        if self._user_default is None:
+            raise TypeError("Can't JSON-encode '%s'" % repr(val))
+        return self._user_default(val)
+
+    def _translate(self, val):
+        if hasattr(val, "__len__"):
+            return [self._translate(v) for v in val]
+        import numpy
+        if isinstance(val, numpy.number):
+            if isinstance(val, numpy.integer):
+                return int(val)
+            return float(val)
+        return val
+
 def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=True):
     """For commands where the spec will be automatically narrowed down to specific types of models
        (e.g. command uses AtomicStructureArg rather than ModelsArgs), providing the 'relevant_types'

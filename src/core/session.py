@@ -592,7 +592,7 @@ class Session:
             self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, path=None, resize_window=None, restore_camera=True,
-                metadata_only=False):
+                clear_log = True, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -641,6 +641,7 @@ class Session:
         if resize_window is not None:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
+        self.restore_options['clear log'] = clear_log
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui

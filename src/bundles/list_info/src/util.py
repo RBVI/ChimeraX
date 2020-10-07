@@ -54,7 +54,7 @@ def spec(o):
         except AttributeError:
             return ""
 
-def report_models(logger, models, attr):
+def report_models(logger, models, attr, *, return_json=False):
     for m in models:
         try:
             value = attr_string(m, attr)
@@ -62,22 +62,70 @@ def report_models(logger, models, attr):
             value = "[undefined]"
         logger.info("model id %s type %s %s %s" % (spec(m), type(m).__name__,
                                                    attr, value))
+    if return_json:
+        model_infos = []
+        for model in models:
+            present = True
+            try:
+                val = getattr(model, attr)
+            except AttributeError:
+                present = False
+                val = None
+            model_infos.append({
+                'spec': model.atomspec,
+                'class': model.__class__.__name__,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(model_infos), None)
 
-def report_chains(logger, chains, attr):
+def report_chains(logger, chains, attr, *, return_json=False):
     for c in chains:
         try:
             value = attr_string(c, attr)
         except AttributeError:
             continue
         logger.info("chain id %s %s %s" % (spec(c), attr, value))
+    if return_json:
+        chain_infos = []
+        for chain in chains:
+            present = True
+            try:
+                val = getattr(chain, attr)
+            except AttributeError:
+                present = False
+                val = None
+            chain_infos.append({
+                'spec': chain.atomspec,
+                'attribute': attr,
+                'sequence': chain.characters,
+                'residues': [r.atomspec if r else None for r in chain.residues],
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(chain_infos), None)
 
-def report_polymers(logger, polymers):
+def report_polymers(logger, polymers, *, return_json=False):
     for p in polymers:
         if len(p) < 2:
             continue
         logger.info("physical chain %s %s" % (spec(p[0]), spec(p[-1])))
+    if return_json:
+        polymer_infos = []
+        for polymer in polymers:
+            if len(polymer) < 2:
+                continue
+            polymer_infos.append([r.atomspec for r in polymer])
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(polymer_infos), None)
 
-def report_residues(logger, residues, attr):
+def report_residues(logger, residues, attr, *, return_json=False):
     for r in residues:
         try:
             value = attr_string(r, attr)
@@ -91,8 +139,26 @@ def report_residues(logger, residues, attr):
         else:
             info += " index %s" % index
         logger.info(info)
+    if return_json:
+        residue_infos = []
+        for r in residues:
+            present = True
+            try:
+                val = getattr(r, attr)
+            except AttributeError:
+                present = False
+                val = None
+            residue_infos.append({
+                'spec': r.atomspec,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(residue_infos), None)
 
-def report_atoms(logger, atoms, attr):
+def report_atoms(logger, atoms, attr, *, return_json=False):
     for a in atoms:
         try:
             value = attr_string(a, attr)
@@ -100,6 +166,24 @@ def report_atoms(logger, atoms, attr):
             pass
         else:
             logger.info("atom id %s %s %s" % (spec(a), attr, value))
+    if return_json:
+        atom_infos = []
+        for a in atoms:
+            present = True
+            try:
+                val = getattr(a, attr)
+            except AttributeError:
+                present = False
+                val = None
+            atom_infos.append({
+                'spec': a.atomspec,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(atom_infos), None)
 
 def report_attr(logger, prefix, attr):
     logger.info("%sattr %s" % (prefix, attr))
@@ -275,7 +359,7 @@ class RESTTransaction(Task):
 class Notifier:
 
     SupportedTypes = ["models", "selection"]
-    # A TYPE is suppored when both _create_TYPE_handler
+    # A TYPE is supported when both _create_TYPE_handler
     # and _destroy_TYPE_handler methods are defined
 
     def __init__(self, what, client_id, session, prefix, url):
