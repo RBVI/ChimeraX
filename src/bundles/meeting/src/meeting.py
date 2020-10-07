@@ -334,7 +334,8 @@ class MeetingServer:
         from io import BytesIO
         stream = BytesIO(sbytes)
         restore_camera = (ses.main_view.camera.name != 'vr')
-        ses.restore(stream, resize_window = False, restore_camera = restore_camera)
+        ses.restore(stream, resize_window = False, restore_camera = restore_camera,
+                    clear_log = False)
         t2 = time()
         ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
                           % (len(sbytes)/2**20, (t2-t1)))

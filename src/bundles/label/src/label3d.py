@@ -81,11 +81,11 @@ def label(session, objects = None, object_type = None, text = None,
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         settings['color'] = color.uint8x4()
-    elif color == 'default':
+    elif isinstance(color, str) and color == 'default':
         settings['color'] = None
     if isinstance(bg_color, Color):
         settings['background'] = bg_color.uint8x4()
-    elif bg_color == 'none':
+    elif isinstance(bg_color, str) and bg_color == 'none':
         settings['background'] = None
     if size == 'default':
         settings['size'] = 48
