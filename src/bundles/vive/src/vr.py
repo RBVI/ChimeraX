@@ -1498,9 +1498,6 @@ class UserInterface:
         # Position panels on top of each other
         self._stack_panels(panels)
 
-        # Add panels for non-tools like recent files panel.
-        self._check_for_new_panels()
-        
         # Monitor when windows are shown and hidden.
         triggers = self._session.ui.triggers
         self._tool_show_handler = triggers.add_handler('tool window show',
