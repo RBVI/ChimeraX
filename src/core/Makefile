@@ -39,7 +39,7 @@ datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-BUNDLE_VERSION = 1.1
+BUNDLE_VERSION = 1.1.1
 BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 GENSRCS = buildinfo.py
