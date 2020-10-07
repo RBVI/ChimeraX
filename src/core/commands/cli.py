@@ -2473,7 +2473,11 @@ class Command:
                 return
             if _debugging:
                 orig_text = text
-            word, chars, text = next_token(text)
+            try:
+                word, chars, text = next_token(text)
+            except AnnotationError as err:
+                self._error = str(err)
+                return
             if _debugging:
                 print('cmd next_token(%r) -> %r %r %r' % (
                     orig_text, word, chars, text))
@@ -2624,7 +2628,10 @@ class Command:
         # check if next token matches a keyword
         if not text:
             return True
-        _, tmp, _ = next_token(text)
+        try:
+            _, tmp, _ = next_token(text)
+        except AnnotationError:
+            return False
         if not tmp:
             return True
         if tmp[0].isalpha():
@@ -2650,7 +2657,11 @@ class Command:
         while 1:
             if _debugging:
                 orig_text = text
-            word, chars, text = next_token(text)
+            try:
+                word, chars, text = next_token(text)
+            except AnnotationError as err:
+                self._error = str(err)
+                return
             if _debugging:
                 print('key next_token(%r) -> %r %r %r' % (
                     orig_text, word, chars, text))
