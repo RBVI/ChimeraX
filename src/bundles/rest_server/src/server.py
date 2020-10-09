@@ -189,6 +189,7 @@ class RESTHandler(BaseHTTPRequestHandler):
             log_class = ByLevelPlainTextLog if json else StringPlainTextLog
             with log_class(logger) as rest_log:
                 from chimerax.core.commands import run
+                error_info = None
                 try:
                     commands = args["command"]
                 except KeyError:
@@ -201,8 +202,16 @@ class RESTHandler(BaseHTTPRequestHandler):
                                 cmd = cmd.decode('utf-8')
                             ret_val = run(session, cmd, log=False, return_json=json, return_list=True)
                     except NotABug as e:
-                        ret_val = []
+                        if json:
+                            ret_val = []
+                            error_info = e
                         logger.info(str(e))
+                    except Exception as e:
+                        if json:
+                            ret_val = []
+                            error_info = e
+                        else:
+                            raise
                 # if json, compose Python and JSON return values into a JSON string,
                 # along with log messages broken down by logging level
                 if json:
@@ -221,6 +230,13 @@ class RESTHandler(BaseHTTPRequestHandler):
                     response['json values'] = json_vals
                     response['python values'] = python_vals
                     response['log messages'] = rest_log.getvalue()
+                    if error_info is None:
+                        response['error'] = None
+                    else:
+                        response['error'] = {
+                            'type': error_info.__class__.__name__,
+                            'message': str(error_info)
+                        }
                     q.put(JSONEncoder(default=lambda x: None).encode(response))
                 else:
                     q.put(rest_log.getvalue())
