@@ -187,7 +187,7 @@ def copy_state(data, convert=None):
         def convert(x):
             return x
 
-    from collections import Mapping  # deque, Sequence, Set
+    from collections.abc import Mapping  # deque, Sequence, Set
     import numpy
 
     def _copy(data):
@@ -221,7 +221,7 @@ def dereference_state(data, convert, convert_cls):
     if not _final_primitives:
         _init_primitives()
 
-    from collections import Mapping  # deque, Sequence, Set
+    from collections.abc import Mapping  # deque, Sequence, Set
     import numpy
 
     def _copy(data):

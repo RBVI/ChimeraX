@@ -82,12 +82,12 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         kw['color'] = color.uint8x4()
-    elif color == 'default':
+    elif isinstance(color, str) and color == 'default':
         kw['color'] = None
 
     if isinstance(bg_color, Color):
         kw['background'] = bg_color.uint8x4()
-    elif bg_color == 'none':
+    elif isinstance(bg_color, str) and bg_color == 'none':
         kw['background'] = None
 
     has_graphics = session.main_view.render is not None
