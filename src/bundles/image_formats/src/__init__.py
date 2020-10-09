@@ -56,9 +56,9 @@ class _ImageFormatsBundleAPI(BundleAPI):
                         args['quality'] = Bounded(IntArg, min=0, max=100)
                     return args
 
-                def save_args_widget(self, session):
+                def save_args_widget(self, session, _name=PIL_name):
                     from .gui import SaveOptionsWidget
-                    return SaveOptionsWidget(session)
+                    return SaveOptionsWidget(session, _name)
 
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()
