@@ -28,7 +28,7 @@ from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, Rest
 from .cli import FileNameArg, OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
 from .cli import AttrNameArg, PasswordArg
 
-from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
+from .colorarg import ColorArg, Color8Arg, Color8TupleArg, ColormapArg, ColormapRangeArg
 
 from .atomspec import AtomSpecArg, all_objects
 from .atomspec import register_selector, deregister_selector
