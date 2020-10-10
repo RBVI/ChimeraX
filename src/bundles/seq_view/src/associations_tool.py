@@ -23,13 +23,25 @@ class AssociationsTool:
         from PyQt5.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         from chimerax.atomic.widgets import ChainListWidget
-        self.chain_list = ChainListWidget(sv.session)
+        self.chain_list = ChainListWidget(sv.session, autoselect='single')
         self.chain_list.value_changed.connect(self._chain_changed)
         layout.addWidget(self.chain_list)
 
         from chimerax.seqalign.widgets import AlignSeqMenuButton
+        not_associated_text = "Not associated"
+        class AllowMultiASMB(AlignSeqMenuButton):
+            def showEvent(s, *args):
+                if s.text() == self.multiseq_text:
+                    s.setText(not_associated_text)
+                super().showEvent(*args)
+                self.assoc_button.blockSignals(True)
+                self.chain_list.blockSignals(True)
+                self._chain_changed()
+                self.chain_list.blockSignals(False)
+                self.assoc_button.blockSignals(False)
+
         self.best_assoc_label = "Best matching sequence"
-        self.assoc_button = AlignSeqMenuButton(sv.alignment, no_value_button_text="Not associated",
+        self.assoc_button = AllowMultiASMB(sv.alignment, no_value_button_text=not_associated_text,
             no_value_menu_text="(none)", special_items=[self.best_assoc_label])
         self.assoc_button.value_changed.connect(self._seq_changed)
         layout.addWidget(self.assoc_button)
