@@ -30,10 +30,10 @@ def label(session, objects = None, object_type = None, text = None,
       Displayed text of the label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    color : Color or "default"
+    color : (r,g,b,a) or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    bg_color : Color or "none"
+    bg_color : (r,g,b,a) or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     attribute : string
       Attribute name whose value to display as text
@@ -79,14 +79,19 @@ def label(session, objects = None, object_type = None, text = None,
     elif offset is not None:
         settings['offset'] = offset
     from chimerax.core.colors import Color
+    from numpy import ndarray
     if isinstance(color, Color):
         settings['color'] = color.uint8x4()
     elif isinstance(color, str) and color == 'default':
         settings['color'] = None
+    elif isinstance(color, (tuple, list, ndarray)):
+        settings['color'] = tuple(color)
     if isinstance(bg_color, Color):
         settings['background'] = bg_color.uint8x4()
     elif isinstance(bg_color, str) and bg_color == 'none':
         settings['background'] = None
+    elif isinstance(bg_color, (tuple, list, ndarray)):
+        settings['background'] = tuple(bg_color)
     if size == 'default':
         settings['size'] = 48
     elif size is not None:
@@ -256,15 +261,15 @@ NoneArg = EnumOf(['none'])
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
-    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
+    from chimerax.core.commands import Float3Arg, Color8Arg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
-                              ('color', Or(DefArg, ColorArg)),
-                              ('bg_color', Or(NoneArg, ColorArg)),
+                              ('color', Or(DefArg, Color8Arg)),
+                              ('bg_color', Or(NoneArg, Color8Arg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('default_height', FloatArg),
