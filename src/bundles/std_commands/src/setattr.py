@@ -77,16 +77,28 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
         return
     session.logger.info(match_msg)
 
+    # Use None as the "string parser", since we don't want to lose a level of embedded quotes by parsing
+    # the value a second time
     if type_ is None:
         if attr_name.lower().endswith("color"):
-            parsers = [ColorArg]
+            parsers = [Color8Arg]
         elif attr_value in ('true', 'false'):
             parsers = [BoolArg]
+        elif attr_value and attr_value[0] in ['"', "'"]:
+            # prevent the value '3' (originally typed as "'3'") from evaluating to integer
+            parsers = [None]
         else:
-            parsers = [IntArg, FloatArg, StringArg]
+            parsers = [IntArg, FloatArg, None]
     else:
-        parsers = [type_]
+        if parser == StringArg:
+            parsers = [None]
+        else:
+            parsers = [type_]
     for parser in parsers:
+        if parser is None:
+            print("Using raw attr_value:", attr_value)
+            value = attr_value
+            break
         try:
             val, cmd_text, remainder = parser.parse(attr_value, session)
         except Exception as e:
@@ -163,6 +175,6 @@ def register_command(logger):
                             ('attr_value', StringArg)],
                    keyword=[('create', BoolArg),
                             ('type_', EnumOf((Color8Arg, BoolArg, IntArg, FloatArg, StringArg),
-                                            ("color", "bool", "int", "float", "string")))],
+                                            ("color", "boolean", "integer", "float", "string")))],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=logger)

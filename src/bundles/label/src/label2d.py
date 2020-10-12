@@ -82,7 +82,7 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         kw['color'] = color.uint8x4()
-    elif isinstance(color, str) and color == 'default':
+    elif isinstance(color, str) and color in ('default', 'auto'):
         kw['color'] = None
 
     if isinstance(bg_color, Color):
@@ -123,7 +123,7 @@ def _update_label(session, l, *, text = None, color = None, bg_color = None,
     if italic is not None: l.italic = italic
     if frames is None:
         if color is not None:
-            l.color = None if color == 'default' else color.uint8x4()
+            l.color = None if color in ('default','auto') else color.uint8x4()
         if bg_color is not None:
             l.background = None if bg_color == 'none' else bg_color.uint8x4()
         if size is not None: l.size = size
@@ -354,12 +354,12 @@ def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
     from chimerax.core.commands import NonNegativeFloatArg, EnumOf
-    from .label3d import DefArg, NoneArg
+    from .label3d import NoneArg
 
     labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
     # Create and change have same arguments
     cargs = [('text', StringArg),
-             ('color', Or(DefArg, ColorArg)),
+             ('color', Or(EnumOf(['default', 'auto']), ColorArg)),
              ('bg_color', Or(NoneArg, ColorArg)),
              ('size', IntArg),
              ('font', StringArg),
