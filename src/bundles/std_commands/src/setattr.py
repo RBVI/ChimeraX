@@ -175,6 +175,6 @@ def register_command(logger):
                             ('attr_value', StringArg)],
                    keyword=[('create', BoolArg),
                             ('type_', EnumOf((Color8Arg, BoolArg, IntArg, FloatArg, StringArg),
-                                            ("color", "bool", "int", "float", "string")))],
+                                            ("color", "boolean", "integer", "float", "string")))],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=logger)
