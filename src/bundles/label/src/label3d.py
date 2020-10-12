@@ -30,7 +30,7 @@ def label(session, objects = None, object_type = None, text = None,
       Displayed text of the label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    color : (r,g,b,a) or "default"
+    color : (r,g,b,a) or "auto" or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
     bg_color : (r,g,b,a) or "none"
@@ -82,7 +82,7 @@ def label(session, objects = None, object_type = None, text = None,
     from numpy import ndarray
     if isinstance(color, Color):
         settings['color'] = color.uint8x4()
-    elif isinstance(color, str) and color == 'default':
+    elif isinstance(color, str) and color in ('default', 'auto'):
         settings['color'] = None
     elif isinstance(color, (tuple, list, ndarray)):
         settings['color'] = tuple(color)
@@ -268,7 +268,7 @@ def register_label_command(logger):
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
-                              ('color', Or(DefArg, Color8Arg)),
+                              ('color', Or(EnumOf(['default', 'auto']), Color8Arg)),
                               ('bg_color', Or(NoneArg, Color8Arg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
