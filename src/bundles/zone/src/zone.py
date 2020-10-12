@@ -44,8 +44,8 @@ class AtomZoneMouseMode(MouseMode):
             from chimerax.core.settings import Settings
             class _ZoneMouseModeSettings(Settings):
                 EXPLICIT_SAVE = {
-                    'label_color': (255, 255, 0, 255),
-                    'label_background_color': (0, 0, 0, 255),
+                    'label_color': 'default',
+                    'label_background_color': 'none',
                 }
             self._settings = settings = _ZoneMouseModeSettings(self.session, "zone_mouse_mode")
         return settings
@@ -163,7 +163,6 @@ class AtomZoneMouseMode(MouseMode):
         from chimerax.label.label3d import label, label_delete
         ses = self.session
         label_delete(ses)
-        print ('zone label color', self._label_color)
         label(ses, aobj, 'residues', size = self._label_size, height = self._label_height,
               color = self._label_color, bg_color = self._label_background)
         self._labeled_residues = aobj
