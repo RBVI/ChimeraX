@@ -44,7 +44,7 @@ class AtomZoneMouseMode(MouseMode):
             from chimerax.core.settings import Settings
             class _ZoneMouseModeSettings(Settings):
                 EXPLICIT_SAVE = {
-                    'label_color': 'default',
+                    'label_color': 'auto',
                     'label_background_color': 'none',
                 }
             self._settings = settings = _ZoneMouseModeSettings(self.session, "zone_mouse_mode")
@@ -329,7 +329,7 @@ def register_zone_command(logger):
     register('zone clear', desc, zone_clear, logger=logger)
 
     desc = CmdDesc(
-        keyword = [('label_color', Or(EnumOf(["default"]), Color8TupleArg)),
+        keyword = [('label_color', Or(EnumOf(['default','auto']), Color8TupleArg)),
                    ('label_background_color', Or(EnumOf(["none"]), Color8TupleArg)),
                    ('save', BoolArg)],
         synopsis = 'Set zone mouse mode default settings'
