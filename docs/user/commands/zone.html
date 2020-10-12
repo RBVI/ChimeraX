@@ -33,8 +33,16 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>label</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ribbons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
+<a name="clear"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>zone clear</b>
+</h3>
+<a name="setting"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>zone setting</b>
+[&nbsp;<b>labelColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>labelBackgroundColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;none&nbsp;]
+[&nbsp;<b>save</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>zone</b> command shows atomic detail and residue labels near a 
@@ -46,11 +54,11 @@ and volume displays:
 </p>
 <ul>
 <li><b>residueDistance</b> (initial default <b>5</b> &Aring;)
-- for all-atom display of nearby residues
+&ndash; for all-atom display of nearby residues
 <li><b>labelDistance</b> (initial default <b>4</b> &Aring;)
-- for labels on nearby residues
+&ndash; for labels on nearby residues
 <li><b>surfaceDistance</b> (initial default <b>8</b> &Aring;)
-- for <a href="../tools/volumeviewer.html">volume data</a> displays
+&ndash; for <a href="../tools/volumeviewer.html">volume data</a> displays
 (surface, mesh, or solid);
 does not affect <a href="surface.html">molecular surfaces</a>
 </ul>
@@ -71,6 +79,17 @@ of the same atomic model as a narrow ribbon
 The <b>zone clear</b> command clears the labels and returns to what
 was shown before zoning.
 </p><p>
+The <b>zone setting</b> command sets zone label color (initial default
+<b>yellow</b> <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>) and
+label background color, if any (initial default <b>black</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=black width="10px" title="black"></td></tr></table>),
+optionally saving them as 
+<a href="../preferences.html#other">preferences</a> (<b>save true</b>, default).
+</p><p>
 For <a href="surface.html">molecular surfaces</a>,
 see <a href="surface.html#zone"><b>surface zone</b></a>.
 See also: 
@@ -84,5 +103,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+October 2020</address>
 </body></html> 
