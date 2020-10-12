@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def set_attr(session, objects, target, attr_name, attr_value, create=False):
+from chimerax.core.commands import Color8Arg, IntArg, FloatArg, BoolArg, StringArg
+
+def set_attr(session, objects, target, attr_name, attr_value, create=False, type_=None):
     """set attributes on objects
 
     Parameters
@@ -29,6 +31,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       whatever type it "looks like": int, bool, float, string.
     create : bool
       Whether to create the attribute if the class doesn't already have it
+    type_ : Annotation (e.g. BoolArg) from chimerax.core.commands
+      If None, heuristics will be used to guess the type of the attr_value.
     """
     if objects is None:
         from chimerax.core.objects import all_objects
@@ -73,16 +77,27 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         return
     session.logger.info(match_msg)
 
-    if attr_name.lower().endswith("color"):
-        if not isinstance(attr_value, str):
-            raise UserError("Trouble parsing shortened color name; please use full name")
-        from chimerax.core.commands import ColorArg
-        try:
-            value = ColorArg.parse(attr_value, session)[0].uint8x4()
-        except Exception as e:
-            raise UserError(str(e))
+    if type_ is None:
+        if attr_name.lower().endswith("color"):
+            parsers = [ColorArg]
+        elif attr_value in ('true', 'false'):
+            parsers = [BoolArg]
+        else:
+            parsers = [IntArg, FloatArg, StringArg]
     else:
-        value = attr_value
+        parsers = [type_]
+    for parser in parsers:
+        try:
+            val, cmd_text, remainder = parser.parse(attr_value, session)
+        except Exception as e:
+            if len(parsers) == 1:
+                raise UserError(str(e))
+        else:
+            if not remainder:
+                value = val
+                break
+    else:
+        raise UserError("Could not determine type of value '%s'" % attr_value)
 
     from chimerax.atomic.molarray import Collection
     if isinstance(items, Collection):
@@ -141,12 +156,13 @@ def register_attr(session, class_obj, attr_name, attr_type):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, ObjectsArg
-    from chimerax.core.commands import EmptyArg, Or, StringArg, BoolArg, IntArg, FloatArg
+    from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, Or, EnumOf
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),
-                            ('attr_value', Or(IntArg, FloatArg, BoolArg, StringArg))],
-                   keyword=[('create', BoolArg)],
+                            ('attr_value', StringArg)],
+                   keyword=[('create', BoolArg),
+                            ('type_', EnumOf((Color8Arg, BoolArg, IntArg, FloatArg, StringArg),
+                                            ("color", "bool", "int", "float", "string")))],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=logger)
