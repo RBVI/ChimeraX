@@ -159,13 +159,15 @@ the <a href="set.html#bgColor">window background color</a>).
 See also: <a href="label.html"><b>label</b></a>
 </p><p>
 The <b>marker connected</b> command adds a marker at the center of each
-connected blob of the specified surface(s), ignoring any blobs that have been
-hidden with <a href="surface.html#dust"><b>surface dust</b></a>,
+connected piece (blob) of the specified surface(s).
+Parts of the surface hidden with
+<a href="surface.html#dust"><b>surface dust</b></a>,
 <a href="surface.html#zone"><b>surface zone</b></a>, or
-<a href="volume.html#zone"><b>volume zone</b></a>.
-If zoning hides part of a blob, only the part within the zone is considered.
+<a href="volume.html#zone"><b>volume zone</b></a>
+are not marked and are not used to determine connectivity.
 The <b>markers</b> option allows adding the new markers and links 
-to an existing marker model.
+to an existing marker model. See also:
+<a href="measure.html#blob"><b>measure blob</b></a>
 </p><p>
 The <b>marker fromMesh</b> command creates markers and links (shown as sticks)
 from a surface mesh, which can only be shown as lines.
