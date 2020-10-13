@@ -30,7 +30,7 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Optional port number.  Can be omitted in which case default port 52194 is used.
     name : string
       Name to identify this ChimeraX on remote machines.
-    color : Color
+    color : r,g,b,a (range 0-255)
       Color for my mouse pointer shown on other machines
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction.
@@ -43,93 +43,137 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Default true.
     update_interval : int
       How often VR hand and head model positions are sent for this ChimeraX instance in frames.
-      Value of 1 updates every frame.  Default 9.
+      Value of 1 updates every frame.  Default 1.
     '''
 
     if host is None:
-        p = meeting_participant(session)
+        p = _meeting_participant(session)
         if p is None:
-            msg = "No ChimeraX meeting started"
-        else:
-            h = p.hub
-            lines = []
-            if h:
-                if h.listening:
-                    lines.append("Meeting at %s" % h.listen_host_info())
-                    clist = h.connected_ip_port_list()
-                    lines.extend(["Connected to %s port %d" % (ip,port)
-                                  for (ip,port) in clist])
-            else:
-                ms = p._message_stream
-                if ms:
-                    lines.append('Connected to meeting at %s port %d' % ms.host_and_port())
-            msg = '\n'.join(lines) if lines else "No ChimeraX meeting started"
-        session.logger.status(msg, log = True)
+            session.logger.status('No ChimeraX meeting started', log = True)
+            return
+        _report_connection(session, p)
     elif host == 'start':
-        p = meeting_participant(session, create = True, start_hub = True)
-        h = p.hub
-        if h is None:
-            from chimerax.core.errors import UserError
-            raise UserError('To start a meeting you must exit'
-                            ' the meeting you are currently in using'
-                            ' command "meeting close"')
-        if copy_scene is None:
-            h.copy_scene(True)
-        h.listen(port)
-        msg = "Meeting at %s" % h.listen_host_info()
-        session.logger.status(msg, log = True)
+        p = _start_meeting(session, port, copy_scene)
     else:
-        p = meeting_participant(session, create = True)
-        if p.connected:
-            from chimerax.core.errors import UserError
-            raise UserError('To join another meeting you must exit'
-                            ' the meeting you are currently in using'
-                            ' command "meeting close"')
-        p.connect(host, port)
+        p = _join_meeting(session, host, port)
 
-    if name is not None:
-        p = meeting_participant(session)
-        if p:
-            p._name = name
+    _set_appearance(session, p, name, color, face_image)
 
-    if color is not None:
-        p = meeting_participant(session)
-        if p:
-            p.set_color(color.uint8x4())
-
-    if face_image is not None:
-        from os.path import isfile
-        if isfile(face_image):
-            p = meeting_participant(session)
-            if p:
-                p.vr_tracker.new_face_image(face_image)
-        else:
-            msg = 'Face image file "%s" does not exist' % face_image
-            log = session.logger
-            log.warning(msg)
-            log.status(msg, color = 'red')
-
-    if copy_scene is not None:
-        p = meeting_participant(session)
-        h = p.hub
-        if h:
-            h.copy_scene(copy_scene)
+    if copy_scene is not None and p.hub:
+        p.hub.copy_scene(copy_scene)
 
     if relay_commands is not None:
-        p = meeting_participant(session)
-        if p:
-            p.send_and_receive_commands(relay_commands)
+        p.send_and_receive_commands(relay_commands)
 
     if update_interval is not None:
-        p = meeting_participant(session)
-        if p:
-            p.vr_tracker.update_interval = update_interval
+        p.vr_tracker.update_interval = update_interval
+
+# -----------------------------------------------------------------------------
+#
+def _start_meeting(session, port, copy_scene):
+    p = _meeting_participant(session, create = True, start_hub = True)
+    h = p.hub
+    if h is None:
+        from chimerax.core.errors import UserError
+        raise UserError('To start a meeting you must exit'
+                        ' the meeting you are currently in using'
+                        ' command "meeting close"')
+    if copy_scene is None:
+        h.copy_scene(True)
+    h.listen(port)
+    msg = "Meeting at %s" % h.listen_host_info()
+    session.logger.status(msg, log = True)
+    return p
+
+# -----------------------------------------------------------------------------
+#
+def _join_meeting(session, host, port):
+    p = _meeting_participant(session, create = True)
+    if p.connected:
+        from chimerax.core.errors import UserError
+        raise UserError('To join another meeting you must exit'
+                        ' the meeting you are currently in using'
+                        ' command "meeting close"')
+    p.connect(host, port)
+    return p
+
+# -----------------------------------------------------------------------------
+#
+def _report_connection(session, participant):
+    h = participant.hub
+    lines = []
+    if h:
+        if h.listening:
+            lines.append("Meeting at %s" % h.listen_host_info())
+            clist = h.connected_ip_port_list()
+            lines.extend(["Connected to %s port %d" % (ip,port)
+                          for (ip,port) in clist])
+    else:
+        ms = participant._message_stream
+        if ms:
+            lines.append('Connected to meeting at %s port %d'
+                         % ms.host_and_port())
+    msg = '\n'.join(lines) if lines else "No ChimeraX meeting started"
+    session.logger.status(msg, log = True)
+
+# -----------------------------------------------------------------------------
+#
+def _set_appearance(session, participant, name, color, face_image):
+    p = participant
+    settings = _meeting_settings(session)
+    save_settings = False
+    
+    if name is not None:
+        p.name = settings.name = name
+        save_settings = True
+    else:
+        p.name = settings.name
+
+    if color is not None:
+        p.color = settings.color = color
+        save_settings = True
+    else:
+        p.color = settings.color
+
+    from os.path import isfile
+    if face_image is None:
+        fimage = settings.face_image
+        if fimage and isfile(fimage):
+            p.vr_tracker.new_face_image(fimage)
+    elif isfile(face_image):
+        settings.face_image = face_image
+        save_settings = True
+        p.vr_tracker.new_face_image(face_image)
+    else:
+        msg = 'Face image file "%s" does not exist' % face_image
+        log = session.logger
+        log.warning(msg)
+        log.status(msg, color = 'red')
+
+    if save_settings:
+        settings.save()
+
+# -----------------------------------------------------------------------------
+#
+def _meeting_settings(session):
+    settings = getattr(session, '_meeting_settings', None)
+    if settings is None:
+        from chimerax.core.settings import Settings
+        class _MeetingSettings(Settings):
+            EXPLICIT_SAVE = {
+                'name': 'Remote',	# Name seen by other participants
+                'color': (0,255,0,255),	# Hand color seen by others
+                'face_image': None,	# Path to image file
+            }
+        settings = _MeetingSettings(session, "meeting")
+        session._meeting_settings = settings
+    return settings
 
 # -----------------------------------------------------------------------------
 #
 def meeting_close(session):
     '''Close all connection shared pointers.'''
-    p = meeting_participant(session)
+    p = _meeting_participant(session)
     if p:
         p.close()
 
@@ -137,7 +181,7 @@ def meeting_close(session):
 #
 def meeting_send(session):
     '''Send my scene to all participants in the meeting.'''
-    p = meeting_participant(session)
+    p = _meeting_participant(session)
     if p:
         p.send_scene()
         
@@ -146,11 +190,11 @@ def meeting_send(session):
 #
 def register_meeting_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import StringArg, IntArg, ColorArg, OpenFileNameArg, BoolArg
+    from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg
     desc = CmdDesc(optional = [('host', StringArg)],
                    keyword = [('port', IntArg),
                               ('name', StringArg),
-                              ('color', ColorArg),
+                              ('color', Color8TupleArg),
                               ('face_image', OpenFileNameArg),
                               ('copy_scene', BoolArg),
                               ('relay_commands', BoolArg),
@@ -164,7 +208,7 @@ def register_meeting_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def meeting_participant(session, create = False, start_hub = False):
+def _meeting_participant(session, create = False, start_hub = False):
     p = getattr(session, '_meeting_participant', None)
     if p and p.closed:
         session._meeting_participant = p = None
@@ -179,7 +223,8 @@ class MeetingParticipant:
     def __init__(self, session, start_hub = False):
         self._session = session
         self._name = 'Remote'
-        self._color = (0,255,0,255)	# Tracking model color
+        self._color = (0,255,0,255)
+	# Tracking model color
         self._message_stream = None	# MessageStream for communicating with hub
         self._hub = None		# MeetingHub if we are hosting the meeting
         self._trackers = []
@@ -195,9 +240,19 @@ class MeetingParticipant:
             self._hub = h = MeetingHub(session, self)
             self._message_stream = MessageStreamLocal(h._message_received)
             
-    def set_color(self, color):
-        self._color = color
 
+    def _get_name(self):
+        return self._name
+    def _set_name(self, name):
+        self._name = name
+    name = property(_get_name, _set_name)
+    
+    def _get_color(self):
+        return self._color
+    def _set_color(self, color):
+        self._color = color
+    color = property(_get_color, _set_color)
+    
     @property
     def connected(self):
         return self._message_stream is not None

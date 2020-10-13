@@ -17,12 +17,12 @@
 def register_command(ci, logger):
     from chimerax.core.commands import CmdDesc, register
     if ci.name == "meeting":
-        from chimerax.core.commands import (StringArg, IntArg, ColorArg,
+        from chimerax.core.commands import (StringArg, IntArg, Color8TupleArg,
                                             OpenFileNameArg, BoolArg)
         desc = CmdDesc(optional = [('host', StringArg)],
                        keyword = [('port', IntArg),
                                   ('name', StringArg),
-                                  ('color', ColorArg),
+                                  ('color', Color8TupleArg),
                                   ('face_image', OpenFileNameArg),
                                   ('copy_scene', BoolArg),
                                   ('relay_commands', BoolArg),
