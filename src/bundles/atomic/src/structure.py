@@ -2158,12 +2158,8 @@ def structure_atoms(structures):
 #
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
-    alist = []
-    for m in session.models.list(type = Structure):
-        alist.extend(m.selected_items('atoms'))
-    from .molarray import concatenate, Atoms
-    atoms = concatenate(alist, Atoms)
-    return atoms
+    from . import changes
+    return changes.selected_atoms(session)
 
 # -----------------------------------------------------------------------------
 #
