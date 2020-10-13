@@ -281,7 +281,7 @@ class MoveMouseMode(MouseMode):
             shift = self._translation(event)
             self._translate(shift)
         self._moved = True
-
+        self._log_motion()
 
     def mouse_up(self, event):
         if self.click_to_select:
@@ -464,13 +464,31 @@ class MoveMouseMode(MouseMode):
         self._starting_model_positions = None
 
     def _log_command(self):
-        if self._moved:
-            models = self.models()
-            if models:
-                from chimerax.std_commands.view import model_positions_string
-                cmd = 'view matrix models %s' % model_positions_string(models)
-                from chimerax.core.commands import log_equivalent_command
-                log_equivalent_command(self.session, cmd)
+        if not self._moved:
+            return
+        cmd = self._move_command()
+        if not cmd:
+            return
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, cmd)
+
+    def _move_command(self):
+        models = self.models()
+        if models:
+            from chimerax.std_commands.view import model_positions_string
+            cmd = 'view matrix models %s' % model_positions_string(models)
+        else:
+            cmd = None
+        return cmd
+
+    def _log_motion(self):
+        from chimerax.core.commands import motion_commands_enabled, motion_command
+        if not motion_commands_enabled(self.session):
+            return
+        cmd = self._move_command()
+        if not cmd:
+            return
+        motion_command(self.session, cmd)
 
     def vr_press(self, event):
         # Virtual reality hand controller button press.
@@ -486,6 +504,7 @@ class MoveMouseMode(MouseMode):
         else:
             self.view.move(event.motion, self.models())
         self._moved = True
+        self._log_motion()
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
