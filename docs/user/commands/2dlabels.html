@@ -113,7 +113,7 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>2dlabels</b> &nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
 [&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
 [&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
@@ -153,11 +153,11 @@ for arrows pointing in any direction in the X,Y plane, see
 <p>
 The label can be shown over a rectangular background of another color 
 given with the <b>bgColor</b> option (default <b>none</b>, no background).
-If the <b>color</b> is specified as <b>default</b>
-(or the <b>color</b> option is not used), the label color will
-automatically adjust to <b>white</b> or <b>black</b>
-depending on the color of the label background, if any, 
-otherwise the <a href="set.html#bgColor">window background</a>.
+If the label <b>color</b> is specified as <b>default</b> or <b>auto</b>,
+it will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the label background, 
+or if there is no label background, depending on the color of
+the <a href="set.html#bgColor">window background</a>.
 The colored rectangle will extend beyond the text in each direction
 by a <b>margin</b> of <i>rectangle-padding</i> pixels (default <b>9</b>) 
 and an additional <b>outline</b> in <b>white</b>
@@ -313,5 +313,5 @@ Alternatively, the models can be closed with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+October 2020</address>
 </body></html> 

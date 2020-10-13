@@ -83,10 +83,11 @@ The <b>zone setting</b> command allows changing:
 </p>
 <ul>
 <li><b>labelColor</b> 
-&ndash; label text color
-(where the initial <b>default</b> means white or black
-depending on the color of the label background, if any, otherwise
-depending on the color of the <a href="set.html#bgColor">window background</a>)
+&ndash; label text color; if specified as <b>default</b> or <b>auto</b>,
+the label color will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the label background, or if there is no 
+label background, depending on the color of the 
+<a href="set.html#bgColor">window background</a>
 <li><b>labelBackgroundColor</b>
 &ndash; color of the rectangular backgrounds shown behind the labels
 (initial default <b>none</b>, meaning no backgrounds)
@@ -100,8 +101,8 @@ changes the zone-label color to <b>yellow</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=yellow width="10px" title="yellow"></td></tr></table>
-and zone-label background color to <b>black</b>
-without saving them as <a href="../preferences.html#other">preferences</a>.
+and zone-label background color to <b>black</b> without saving 
+these values as <a href="../preferences.html#other">preferences</a>.
 </p><p>
 For <a href="surface.html">molecular surfaces</a>,
 see <a href="surface.html#zone"><b>surface zone</b></a>.
