@@ -113,6 +113,14 @@ inline std::string string_from_unicode(PyObject* obj)
     return result;
 }
 
+inline const char* CheckedPyUnicode_AsUTF8(PyObject* unicode)
+{
+    if (PyUnicode_Check(unicode)) {
+        return PyUnicode_AsUTF8(unicode);
+    }
+    throw std::invalid_argument("Not a Unicode string");
+}
+
 static void
 molc_error()
 {
@@ -634,7 +642,7 @@ extern "C" EXPORT void set_atom_alt_loc(void *atoms, size_t n, pyobject_t *alt_l
     // can't use error_wrap_array_set because set_alt_loc takes multiple args
     try {
         for (size_t i = 0; i < n; ++i)
-            a[i]->set_alt_loc(PyUnicode_AsUTF8(static_cast<PyObject *>(alt_locs[i]))[0]);
+            a[i]->set_alt_loc(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(alt_locs[i]))[0]);
     } catch (...) {
         molc_error();
     }
@@ -827,7 +835,7 @@ extern "C" EXPORT void set_atom_idatm_type(void *atoms, size_t n, pyobject_t *id
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            a[i]->set_idatm_type(PyUnicode_AsUTF8(static_cast<PyObject *>(idatm_types[i])));
+            a[i]->set_idatm_type(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(idatm_types[i])));
     } catch (...) {
         molc_error();
     }
@@ -945,7 +953,7 @@ extern "C" EXPORT void set_atom_name(void *atoms, size_t n, pyobject_t *names)
     Atom **a = static_cast<Atom **>(atoms);
     try {
         for (size_t i = 0; i != n; ++i)
-            a[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+            a[i]->set_name(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }
@@ -2567,7 +2575,7 @@ extern "C" EXPORT void set_residue_chain_id(void *residues, size_t n, pyobject_t
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-            r[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
+            r[i]->set_chain_id(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
     } catch (...) {
         molc_error();
     }
@@ -2824,7 +2832,7 @@ extern "C" EXPORT void set_residue_name(void *residues, size_t n, pyobject_t *na
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-        r[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+        r[i]->set_name(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }
@@ -3235,7 +3243,7 @@ extern "C" EXPORT void set_sseq_chain_id(void *chains, size_t n, pyobject_t *cid
     StructureSeq **sseq = static_cast<StructureSeq **>(chains);
     try {
         for (size_t i = 0; i != n; ++i)
-            sseq[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
+            sseq[i]->set_chain_id(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
     } catch (...) {
         molc_error();
     }
@@ -3668,7 +3676,7 @@ extern "C" EXPORT void set_sequence_characters(void *seqs, size_t n, pyobject_t 
     try {
         for (size_t i = 0; i != n; ++i) {
             Sequence::Contents contents;
-            auto ptr = PyUnicode_AsUTF8(static_cast<PyObject *>(chars[i]));
+            auto ptr = CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(chars[i]));
             while (*ptr) contents.push_back(*ptr++);
             s[i]->swap(contents);
         }
@@ -3739,7 +3747,7 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     Sequence **s = static_cast<Sequence **>(seqs);
     try {
         for (size_t i = 0; i != n; ++i)
-            s[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+            s[i]->set_name(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }
@@ -4355,7 +4363,7 @@ extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_
         for (int i = 0; i < size; ++i) {
             changing.push_back(
                 static_cast<StructureSeq*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_chains, i))));
-            chain_ids.push_back(static_cast<ChainID>(PyUnicode_AsUTF8(PyList_GET_ITEM(py_chain_ids, i))));
+            chain_ids.push_back(static_cast<ChainID>(CheckedPyUnicode_AsUTF8(PyList_GET_ITEM(py_chain_ids, i))));
         }
         s->change_chain_ids(changing, chain_ids, non_polymeric);
     } catch (...) {
