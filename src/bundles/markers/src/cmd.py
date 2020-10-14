@@ -89,19 +89,34 @@ def marker_link(session, markers, radius = 0.5, color = (255,255,0,255)):
     return link
 
 def marker_segment(session, marker_set, position, to_position,
-                   radius = 0.5, color = (255,255,0,255), coordinate_system = None,
-                   label = None, label_height = 1.0, label_color = 'default'):
+                   coordinate_system = None, radius = 0.5,
+                   color = (255,255,0,255),
+                   label = None, label_height = 1.0, label_color = 'auto',
+                   adjust = None):
 
     mset = _create_marker_set(session, marker_set)
     center1 = position.scene_coordinates(coordinate_system)
     center2 = to_position.scene_coordinates(coordinate_system)
 
-    m1 = mset.create_marker(center1, color, radius)
-    m2 = mset.create_marker(center2, color, radius)
-    from . import create_link
-    link = create_link(m1, m2, color, radius)
+    if adjust is None:
+        m1 = mset.create_marker(center1, color, radius)
+        m2 = mset.create_marker(center2, color, radius)
+        from . import create_link
+        link = create_link(m1, m2, color, radius)
+    elif len(adjust) != 2:
+        from chimerax.core.errors import UserError
+        raise UserError('marker segment adjust option requires exactly 2 markers, got %d' % len(adjust))
+    else:
+        m1, m2 = adjust
+        m1.coord, m2.coord = center1, center2
+        m1.color = m2.color = color
+        m1.radius =  m2.radius = radius
+        link = _bond_between_atoms(m1, m2)
+        if link:
+            link.color = color
+            link.radius = radius
 
-    if label is not None:
+    if label is not None and link is not None:
         from chimerax.label.label3d import label as make_label
         from chimerax.core.objects import Objects
         from chimerax.atomic import Bonds
@@ -110,6 +125,12 @@ def marker_segment(session, marker_set, position, to_position,
                    text = label, color = label_color, height = label_height)
         
     return m1, m2
+
+def _bond_between_atoms(atom1, atom2):
+    for b in atom1.bonds:
+        if b.other_atom(atom1) is atom2:
+            return b
+    return None
 
 # -----------------------------------------------------------------------------
 # Create a marker model from a surface mesh.
@@ -295,12 +316,13 @@ def register_marker_command(logger):
         required = [('marker_set', MarkerSetOrIdArg)],
         keyword = [('position', CenterArg),
                    ('to_position', CenterArg),
+                   ('coordinate_system', CoordSysArg),
                    ('radius', FloatArg),
                    ('color', Color8Arg),
-                   ('coordinate_system', CoordSysArg),
                    ('label', StringArg),
                    ('label_height', FloatArg),
-                   ('label_color', Or(EnumOf(['default']),Color8Arg))],
+                   ('label_color', Or(EnumOf(['auto','default']),Color8Arg)),
+                   ('adjust', MarkersArg)],
         required_arguments = ['position', 'to_position'],
         synopsis = 'Create two markers and a link between them'
     )

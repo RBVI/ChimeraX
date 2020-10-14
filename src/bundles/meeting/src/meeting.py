@@ -232,7 +232,7 @@ class MeetingParticipant:
         self._vr_tracker = None
         self._copy_scene = False
 
-        self._monitor_commands_handler = None	# Trigger handler to capture executed commands
+        self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
         self.send_and_receive_commands(True)
 
@@ -327,32 +327,45 @@ class MeetingParticipant:
         ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
                           % (len(sbytes)/2**20, (t2-t1)))
 
-    def send_and_receive_commands(self, enable=True):
-        h = self._monitor_commands_handler
-        triggers = self._session.triggers
-        if enable and h is None:
-            h = triggers.add_handler('command finished', self._ran_command)
-            self._monitor_commands_handler = h
+    def send_and_receive_commands(self, enable=True): 
+        h = self._command_handlers
+        ses = self._session
+        triggers = ses.triggers
+        from chimerax.core.commands import enable_motion_commands
+        if enable and not h:
+            enable_motion_commands(ses, True, frame_skip = 0)
+            h = [triggers.add_handler('command finished', self._ran_command),
+                 triggers.add_handler('motion command', self._motion_command)]
+            self._command_handlers = h
         elif not enable and h:
-            triggers.remove_handler(h)
-            self._monitor_commands_handler = None
+            enable_motion_commands(ses, False)
+            for handler in h:
+                triggers.remove_handler(handler)
+            self._command_handlers.clear()
 
-    def _ran_command(self, trigger_name, command):
+    def _ran_command(self, trigger_name, command, motion = False):
         if self._running_received_command:
             return
         if command.lstrip().startswith('meeting'):
             return
-        msg = {'command': command}  # Send command to other participants
+        msg = {
+            'command': command,   # Send command to other participants
+            'motion': motion,	  # Others will not log motion commands
+        }
         self._send_message(msg)
 
+    def _motion_command(self, trigger_name, command):
+        self._ran_command(trigger_name, command, motion = True)
+        
     def _run_command(self, msg):
-        if self._monitor_commands_handler is None:
+        if not self._command_handlers:
             return	# Don't run commands from others if we are not relaying commands.
         command = msg['command']
+        log_cmd = not msg.get('motion')
         self._running_received_command = True
         from chimerax.core.commands import run
         try:
-            run(self._session, command)
+            run(self._session, command, log=log_cmd)
         finally:
             self._running_received_command = False
 
@@ -701,6 +714,9 @@ class MessageStream:
         socket = self._socket
         if socket is None:
             return
+        import sip
+        if sip.isdeleted(socket):
+            return	# Happens when exiting ChimeraX
         host, port = (socket.peerAddress().toString(), socket.peerPort())
         msg = 'Disconnected from %s:%d' % (host, port)
         self._log.info(msg)
@@ -825,6 +841,7 @@ class MousePointerModel(Model):
         va[:,2] -= 0.5*height	# Place tip of cone at origin
         self.set_geometry(va, na, ta)
         self.color = color
+        self.pickable = False
 
     def update_pointer(self, msg):
         if 'name' in msg:
