@@ -108,6 +108,7 @@ def marker_segment(session, marker_set, position, to_position,
         raise UserError('marker segment adjust option requires exactly 2 markers, got %d' % len(adjust))
     else:
         m1, m2 = adjust
+        m1.coord, m2.coord = center1, center2
         m1.color = m2.color = color
         m1.radius =  m2.radius = radius
         link = _bond_between_atoms(m1, m2)
