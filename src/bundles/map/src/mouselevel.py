@@ -108,10 +108,12 @@ def mouse_maps(models):
 def adjust_threshold_levels(maps, f):
     for m in maps:
         if isinstance(m, tuple):
-            adjust_threshold_level(m[0], f, surf = m[1])
+            v = m[0]
+            adjust_threshold_level(v, f, surf = m[1])
         else:
-            adjust_threshold_level(m, f)
-        log_volume_level_command(m, final = False)
+            v = m
+            adjust_threshold_level(v, f)
+        log_volume_level_command(v, final = False)
 
 def adjust_threshold_level(m, f, surf=None):
     ms = m.matrix_value_statistics()
