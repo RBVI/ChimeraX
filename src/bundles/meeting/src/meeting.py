@@ -334,8 +334,8 @@ class MeetingParticipant:
         from chimerax.core.commands import enable_motion_commands
         if enable and not h:
             enable_motion_commands(ses, True, frame_skip = 0)
-            h = [triggers.add_handler(trigger_name, self._ran_command)
-                 for trigger_name in ('command finished', 'motion command')]
+            h = [triggers.add_handler('command finished', self._ran_command),
+                 triggers.add_handler('motion command', self._motion_command)]
             self._command_handlers = h
         elif not enable and h:
             enable_motion_commands(ses, False)
@@ -343,22 +343,29 @@ class MeetingParticipant:
                 triggers.remove_handler(handler)
             self._command_handlers.clear()
 
-    def _ran_command(self, trigger_name, command):
+    def _ran_command(self, trigger_name, command, motion = False):
         if self._running_received_command:
             return
         if command.lstrip().startswith('meeting'):
             return
-        msg = {'command': command}  # Send command to other participants
+        msg = {
+            'command': command,   # Send command to other participants
+            'motion': motion,	  # Others will not log motion commands
+        }
         self._send_message(msg)
 
+    def _motion_command(self, trigger_name, command):
+        self._ran_command(trigger_name, command, motion = True)
+        
     def _run_command(self, msg):
         if not self._command_handlers:
             return	# Don't run commands from others if we are not relaying commands.
         command = msg['command']
+        log_cmd = not msg.get('motion')
         self._running_received_command = True
         from chimerax.core.commands import run
         try:
-            run(self._session, command)
+            run(self._session, command, log=log_cmd)
         finally:
             self._running_received_command = False
 
