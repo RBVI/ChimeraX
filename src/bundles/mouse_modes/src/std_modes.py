@@ -213,6 +213,10 @@ def select_pick(session, pick, mode = 'replace'):
             if mode == 'add' and spec:
                 from chimerax.core.commands import run
                 run(session, 'select %s' % spec)
+            elif mode == 'toggle' and spec and hasattr(pick, 'selected'):
+                from chimerax.core.commands import run
+                operation = 'subtract' if pick.selected() else 'add'
+                run(session, 'select %s %s' % (operation, spec))
             else:
                 pick.select(mode)
     sel.clear_promotion_history()
