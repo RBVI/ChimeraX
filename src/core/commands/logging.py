@@ -60,7 +60,6 @@ def motion_command(session, command_text):
     The command is not executed in the current ChimeraX.
     '''
     if motion_commands_enabled(session):
-      if session.main_view.frame_number % 10 == 0:
         session.triggers.activate_trigger('motion command', command_text)
         
 def residues_specifier(objects):
