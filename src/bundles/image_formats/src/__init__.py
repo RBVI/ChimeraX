@@ -33,14 +33,17 @@ class _ImageFormatsBundleAPI(BundleAPI):
                     }
             return OpenImageInfo()
         else:
+            # convert formal format name (e.g. Portable Network Graphics) to "punchy" name usable
+            # by PIL (e.g. PNG)
+            PIL_name = session.data_formats[name].nicknames[0].upper()
             from chimerax.save_command import SaverInfo
             class SaveImageInfo(SaverInfo):
-                def save(self, session, path, format_name=name.split()[0], **kw):
+                def save(self, session, path, format_name=PIL_name, **kw):
                     from .save import save_image
                     save_image(session, path, format_name, **kw)
 
                 @property
-                def save_args(self, _name=name):
+                def save_args(self, _name=PIL_name):
                     from chimerax.core.commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg
                     args = {
                         'height': PositiveIntArg,
@@ -49,13 +52,13 @@ class _ImageFormatsBundleAPI(BundleAPI):
                         'transparent_background': BoolArg,
                         'width': PositiveIntArg,
                     }
-                    if _name == "JPEG image":
+                    if _name == "JPEG":
                         args['quality'] = Bounded(IntArg, min=0, max=100)
                     return args
 
-                def save_args_widget(self, session):
+                def save_args_widget(self, session, _name=PIL_name):
                     from .gui import SaveOptionsWidget
-                    return SaveOptionsWidget(session)
+                    return SaveOptionsWidget(session, _name)
 
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()

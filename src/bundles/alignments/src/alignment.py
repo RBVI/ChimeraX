@@ -406,7 +406,6 @@ class Alignment(State):
                 # ensemble
                 struct_name += " (" + struct.id_string + ")"
             self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
-        # delay notifying the observers until all chain demotions/deletions have been received
         num_unknown = 0
         structures = set()
         for sseq in self.associations:
@@ -421,6 +420,11 @@ class Alignment(State):
             'max previous structures': len(structures) + num_unknown,
             'num remaining structures': len(structures)
         }
+        if not demotion:
+            # do immediately, since 'changes done' trigger may never fire for manual disassociations
+            self._notify_observers(self.NOTE_DEL_ASSOC, data)
+            return
+        # delay notifying the observers until all chain demotions/deletions have been received
         def _delay_disassoc(_, __, data=data):
             self._notify_observers(self.NOTE_DEL_ASSOC, data)
             from chimerax.core.triggerset import DEREGISTER

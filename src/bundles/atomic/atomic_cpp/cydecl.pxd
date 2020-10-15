@@ -81,7 +81,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool selected()
         bool  thin_rings()
         void set_alt_loc(char) except +
-        void set_chain_id(const char*)
+        void set_chain_id(const char*) except +
         void set_insertion_code(char)
         void set_is_helix(bool)
         void set_is_strand(bool)

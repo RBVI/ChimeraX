@@ -338,7 +338,8 @@ class VRModeArg(Annotation):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session, multishadow_allowed = False, simplify_graphics = True, label_reorient = 45):
+def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
+             label_reorient = 45, zone_label_color = (255,255,0,255), zone_label_background = (0,0,0,255)):
 
     v = session.main_view
     if not multishadow_allowed and v.lighting.multishadow > 0:
@@ -357,6 +358,11 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     from chimerax.label.label3d import label_orient
     label_orient(session, label_reorient)
 
+    # Make zone mouse mode labels easier to read
+    from chimerax.zone.zone import zone_setting
+    zone_setting(session, label_color = zone_label_color,
+                 label_background_color = zone_label_background, save = False)
+    
     c = vr_camera(session)
     if c is session.main_view.camera:
         return

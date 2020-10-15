@@ -1804,6 +1804,8 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, mode = 'add'):
         select_atom(self.atom, mode)
+    def selected(self):
+        return self.atom.selected
     def drawing(self):
         return self.atom.structure
     
@@ -1987,6 +1989,8 @@ class PickedResidue(Pick):
             a.selected = False
         elif mode == 'toggle':
             a.selected = not a.selected.any()
+    def selected(self):
+        return self.residue.atoms.selected.any()
     def drawing(self):
         return self.residue.structure
 
@@ -2158,12 +2162,8 @@ def structure_atoms(structures):
 #
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
-    alist = []
-    for m in session.models.list(type = Structure):
-        alist.extend(m.selected_items('atoms'))
-    from .molarray import concatenate, Atoms
-    atoms = concatenate(alist, Atoms)
-    return atoms
+    from . import changes
+    return changes.selected_atoms(session)
 
 # -----------------------------------------------------------------------------
 #
