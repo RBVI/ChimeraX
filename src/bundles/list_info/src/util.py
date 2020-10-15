@@ -90,6 +90,7 @@ def report_chains(logger, chains, attr, *, return_json=False):
             continue
         logger.info("chain id %s %s %s" % (spec(c), attr, value))
     if return_json:
+        from chimerax.atomic import Residue
         chain_infos = []
         for chain in chains:
             present = True
@@ -103,6 +104,7 @@ def report_chains(logger, chains, attr, *, return_json=False):
                 'attribute': attr,
                 'sequence': chain.characters,
                 'residues': [r.atomspec if r else None for r in chain.residues],
+                'polymer type': 'nucleic' if chain.polymer_type == Residue.PT_NUCLEIC else "protein",
                 'present': present,
                 'value': val
             })
