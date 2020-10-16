@@ -69,4 +69,26 @@ class StdCommandsAPI(BundleAPI):
         from .selectors import register_selectors
         register_selectors(logger)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        from chimerax.save_command import SaverInfo
+        class DefattrSaverInfo(SaverInfo):
+            def save(self, session, path, **kw):
+                from .defattr import write_defattr
+                write_defattr(session, path, **kw)
+
+            @property
+            def save_args(self):
+                from chimerax.core.commands import StringArg, BoolArg, EnumOf
+                from chimerax.atomic import StructuresArg
+                return {
+                    'attr_name': StringArg,
+                    'model_ids': BoolArg,
+                    'match_mode': EnumOf(["any", "non-zero", "1-to-1"]),
+                    'selected': BoolArg,
+                    'structures': StructuresArg,
+                }
+
+        return DefattrSaverInfo()
+
 bundle_api = StdCommandsAPI()

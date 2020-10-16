@@ -690,7 +690,7 @@ cdef class CyAtom:
         import numpy
         return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
 
-    def string(self, atom_only = False, style = None, relative_to=None):
+    def string(self, atom_only = False, style = None, relative_to=None, omit_structure=False):
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing)"
         if style == None:
@@ -723,8 +723,8 @@ cdef class CyAtom:
         if atom_only:
             return atom_str
         if not style.startswith('simple'):
-            return '%s%s' % (self.residue.string(style=style), atom_str)
-        return '%s %s' % (self.residue.string(style=style), atom_str)
+            return '%s%s' % (self.residue.string(style=style, omit_structure=omit_structure), atom_str)
+        return '%s %s' % (self.residue.string(style=style, omit_structure=omit_structure), atom_str)
 
     def use_default_radius(self):
         "Supported API.  If an atom's radius has previously been explicitly set,"

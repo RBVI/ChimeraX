@@ -1076,24 +1076,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
 
     from chimerax.core.errors import UserError
     from chimerax.atomic import Atom, Residue, Structure
-    if len(attr_name) > 1 and attr_name[1] == ':':
-        attr_level = attr_name[0]
-        if attr_level not in "arm":
-            raise UserError("Unknown attribute level: '%s'" % attr_level)
-        attr_name = attr_name[2:]
-        class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
-        numeric_attrs = session.attr_registration.attributes_returning(class_obj, [int, float], none_okay=True)
-        if attr_name not in numeric_attrs:
-            raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
-    else:
-        # try to find the attribute, in the order Atom->Residue->Structure
-        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
-            numeric_attrs = session.attr_registration.attributes_returning(
-                class_obj, [int, float], none_okay=True)
-            if attr_name in numeric_attrs:
-                break
-        else:
-            raise UserError("No known/registered attribute %s" % attr_name)
+    from .defattr import parse_attribute_name
+    attr_name, class_obj = parse_attribute_name(attr_name, allowable_types=[int, float])
 
     if atoms is None:
         from chimerax.atomic import all_atoms
