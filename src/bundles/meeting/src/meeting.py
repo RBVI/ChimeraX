@@ -234,6 +234,7 @@ class MeetingParticipant:
 
         self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
+        self._last_command_frame = 0
         self.send_and_receive_commands(True)
 
         if start_hub:
@@ -361,11 +362,18 @@ class MeetingParticipant:
         if not self._command_handlers:
             return	# Don't run commands from others if we are not relaying commands.
         command = msg['command']
-        log_cmd = not msg.get('motion')
+        motion = msg.get('motion')
+        frame = self._session.main_view.frame_number
+        if motion and frame == self._last_command_frame:
+            # Only execute one motion command per frame
+            # otherwise we can fall behind and the commands snowball
+            # causing massive flicker.
+            return
+        self._last_command_frame = frame
         self._running_received_command = True
         from chimerax.core.commands import run
         try:
-            run(self._session, command, log=log_cmd)
+            run(self._session, command, log = not motion)
         finally:
             self._running_received_command = False
 
