@@ -1855,7 +1855,7 @@ class UserInterface:
 
     def _ui_model_closed(self):
         self._ui_model = None
-        self._panels = []
+        self.close()
         
     def display_ui(self, hand_room_position, camera_position):
         rp = hand_room_position

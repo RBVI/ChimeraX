@@ -11,11 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+
 def cmd_defattr(session, structures, file_name, *, log=False):
     try:
         defattr(session, file_name, log=log, restriction=structures)
     except SyntaxError as e:
-        from chimerax.core.errors import UserError
         raise UserError(str(e))
 
 def defattr(session, file_name, *, log=False, restriction=None):
@@ -80,6 +81,8 @@ def defattr(session, file_name, *, log=False, restriction=None):
 
             if line[0] == '\t':
                 # data line
+                if 'attribute' not in attrs:
+                    raise SyntaxError("'attribute' control line must precede any data lines")
                 datum = line[1:].split('\t')
                 if len(datum) != 2:
                     raise SyntaxError("Data line %d in %s not of the form: <tab> atomspec <tab> value"
@@ -94,10 +97,9 @@ def defattr(session, file_name, *, log=False, restriction=None):
                     " or is missing initial tab" % (lnum+1, file_name))
             name = name.strip().lower()
             value = value.strip()
-            if name in attrs:
-                # presumably another set of control/data lines starting
+            if data:
+                # control change; stow current controls/data
                 append_all_info(attrs, data, lnum+1)
-                attrs = {}
                 data = []
             if name == 'attribute':
                 try:
@@ -244,6 +246,117 @@ def defattr(session, file_name, *, log=False, restriction=None):
                 attr_type = None
             recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
                 can_return_none=can_return_none)
+
+def parse_attribute_name(attr_name, *, allowable_types=None):
+    from chimerax.atomic import Atom, Residue, Structure
+    if len(attr_name) > 1 and attr_name[1] == ':':
+        attr_level = attr_name[0]
+        if attr_level not in "arm":
+            raise UserError("Unknown attribute level: '%s'" % attr_level)
+        attr_name = attr_name[2:]
+        class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
+        if allowable_types:
+            allowable_attrs = session.attr_registration.attributes_returning(class_obj, allowable_types,
+                none_okay=True)
+        else:
+            from chimerax.list_info.cmd import _type_attrs
+            allowable_attrs = _type_attrs(class_obj)
+        if attr_name not in allowable_attrs:
+            raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
+    else:
+        # try to find the attribute, in the order Atom->Residue->Structure
+        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
+            if allowable_types:
+                allowable_attrs = session.attr_registration.attributes_returning(
+                    class_obj, allowable_types, none_okay=True)
+            else:
+                from chimerax.list_info.cmd import _type_attrs
+                allowable_attrs = _type_attrs(class_obj)
+            if attr_name in allowable_attrs:
+                break
+        else:
+            raise UserError("No known/registered attribute %s" % attr_name)
+    return attr_name, class_obj
+
+def write_defattr(session, output, *, attr_name=None, match_mode="1-to-1", model_ids=True,
+            selected=False, structures=None):
+    """'attr_name' is the same as for "color byattr": it can be the plain attribute name or prefixed with
+       'a:', 'r:' or 'm:' to indicate what "level" (atom, residue, model/structure) to look for the
+       attribute.  If no prefix, then look in the order a->r->m until one is found.
+
+       'model_ids' indicates whether the atom specifiers written should include the model component.
+
+       'match_mode' will be written into the defattr header section.
+
+       If 'selected' is True, then only items that are also selected will be written.
+    """
+    if attr_name is None:
+        raise UserError("Must specify an attribute name to save")
+
+    from chimerax.atomic import Atom, Residue, Structure, concatenate
+    if structures is None:
+        structures = session.models.list(type=Structure)
+
+    # gather items whose attributes will be saved
+    attr_name, class_obj = parse_attribute_name(attr_name)
+    recipient = {Atom: 'atoms', Residue: 'residues', Structure: 'structures'}[class_obj]
+    sources = []
+    if selected:
+        for s in structures:
+            if recipient == "structures":
+                if s.selected:
+                    sources.append(s)
+            else:
+                sources.extend(s.selected_items(recipient))
+    else:
+        if recipient == "structures":
+            sources = structures
+        else:
+            for s in structures:
+                sources.append(getattr(s, recipient))
+    if recipient != "structures":
+        if sources:
+            sources = concatenate(sources)
+
+    none_handling = None
+    type_warning_issued = False
+    from chimerax import io
+    with io.open_output(output, 'utf-8') as stream:
+        print("attribute: %s" % attr_name, file=stream)
+        print("recipient: %s" % recipient, file=stream)
+        print("match mode: %s" % match_mode, file=stream)
+        for source in sources:
+            try:
+                val = getattr(source, attr_name)
+            except AttributeError:
+                continue
+            if val is None:
+                if none_handling != "python":
+                    print("none handling: None", file=stream)
+                    none_handling = "python"
+                val = "None"
+            elif type(val) == str:
+                try:
+                    float(val)
+                except ValueError:
+                    # string can't be misinterpreted as numeric, check for none/None
+                    if (val == "none" or val == "None") and none_handling != "string":
+                        print("none handling: string", file=stream)
+                        none_handling = "string"
+                else:
+                    val = '"%s"' % val
+            elif not isinstance(val, (int, float)):
+                if not type_warning_issued:
+                    session.logger.warning("One or more attribute values aren't integer, floating-point,"
+                        " string or None (e.g. %s); skipping those" % repr(val))
+                    type_warning_issued = True
+                continue
+            if model_ids or recipient == "structures":
+                spec = source.atomspec
+            else:
+                spec = source.string(style="command", omit_structure=True)
+            print("\t%s\t%s" % (spec, str(val)), file=stream)
+
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc

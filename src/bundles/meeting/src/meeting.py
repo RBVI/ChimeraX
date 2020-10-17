@@ -635,7 +635,7 @@ class MessageStream:
 
     def _check_for_null_bytes(self, rbytes):
         '''Debug code. Ticket #3784. Getting null bytes in messages.'''
-        if self._msg_length is None:
+        if self._msg_length is None or len(self._bytes_list) == 0:
             return
         last_block = self._bytes_list[-1]
         null_count = last_block.count(b'\0')
