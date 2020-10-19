@@ -15,6 +15,14 @@
 Obtaining Code
 ==============
 
+Most of ChimeraX is written in Python and that code is included in the ChimeraX distribution::
+
+	Windows: ChimeraX/bin/Lib/site-packages/chimerax
+	macOS: ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax
+	Linux: chimerax/lib/python3.7/site-packages/chimerax
+
+Small modifications to the code can be tested by simply editing the Python code and restarting ChimeraX.
+
 Git Repository
 --------------
 
