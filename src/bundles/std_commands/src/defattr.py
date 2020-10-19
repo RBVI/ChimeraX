@@ -13,6 +13,8 @@
 
 from chimerax.core.errors import UserError
 
+match_modes = ["any", "non-zero", "1-to-1"]
+
 def cmd_defattr(session, structures, file_name, *, log=False):
     try:
         defattr(session, file_name, log=log, restriction=structures)
@@ -278,8 +280,8 @@ def parse_attribute_name(attr_name, *, allowable_types=None):
             raise UserError("No known/registered attribute %s" % attr_name)
     return attr_name, class_obj
 
-def write_defattr(session, output, *, attr_name=None, match_mode="1-to-1", model_ids=True,
-            selected=False, structures=None):
+def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1-to-1", model_ids=True,
+            selected=False):
     """'attr_name' is the same as for "color byattr": it can be the plain attribute name or prefixed with
        'a:', 'r:' or 'm:' to indicate what "level" (atom, residue, model/structure) to look for the
        attribute.  If no prefix, then look in the order a->r->m until one is found.
@@ -294,8 +296,10 @@ def write_defattr(session, output, *, attr_name=None, match_mode="1-to-1", model
         raise UserError("Must specify an attribute name to save")
 
     from chimerax.atomic import Atom, Residue, Structure, concatenate
-    if structures is None:
+    if models is None:
         structures = session.models.list(type=Structure)
+    else:
+        structures = [m for m in models if isinstance(m, Structure)]
 
     # gather items whose attributes will be saved
     attr_name, class_obj = parse_attribute_name(attr_name)
