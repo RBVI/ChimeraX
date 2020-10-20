@@ -81,13 +81,21 @@ class StdCommandsAPI(BundleAPI):
             def save_args(self):
                 from chimerax.core.commands import StringArg, BoolArg, EnumOf
                 from chimerax.atomic import StructuresArg
+                from .defattr import match_modes
                 return {
                     'attr_name': StringArg,
                     'model_ids': BoolArg,
-                    'match_mode': EnumOf(["any", "non-zero", "1-to-1"]),
-                    'selected': BoolArg,
-                    'structures': StructuresArg,
+                    'match_mode': EnumOf(match_modes),
+                    'selected_only': BoolArg,
+                    'models': StructuresArg,
                 }
+
+            def save_args_widget(self, session):
+                from .defattr_gui import SaveOptionsWidget
+                return SaveOptionsWidget(session)
+
+            def save_args_string_from_widget(self, widget):
+                return widget.options_string()
 
         return DefattrSaverInfo()
 

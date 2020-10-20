@@ -28,7 +28,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="define attribute" synopsis="attributes" nicknames="defattr"
+    <Provider name="define attribute" synopsis="Attributes" nicknames="defattr"
 		category="Structure Analysis" suffixes=".defattr" encoding="utf-8" />
   </Providers>
 

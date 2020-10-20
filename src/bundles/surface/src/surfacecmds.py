@@ -322,6 +322,45 @@ def surface_style(session, surfaces, style):
 
 # -------------------------------------------------------------------------------------
 #
+def surface_square_mesh(session, surfaces = None):
+    '''
+    Show only mesh lines parallel x, y or z axes
+
+    Parameters
+    ----------
+    surfaces : List of Surface
+    '''
+    if surfaces is None:
+        from chimerax.core.models import Surface
+        surfaces = session.models.list(type = Surface)
+    from .squaremesh import hide_diagonals
+    for s in surfaces:
+        hide_diagonals(s)
+
+    return surfaces
+
+# -------------------------------------------------------------------------------------
+#
+def surface_show_all(session, surfaces = None):
+    '''
+    Set surface to no masking.
+
+    Parameters
+    ----------
+    surfaces : List of Surface
+    '''
+    if surfaces is None:
+        from chimerax.core.models import Surface
+        surfaces = session.models.list(type = Surface)
+    for s in surfaces:
+        s.auto_remask_triangles = None
+        s.triangle_mask = None
+        s.edge_mask = None
+
+    return surfaces
+
+# -------------------------------------------------------------------------------------
+#
 def surface_cap(session, enable = None, offset = None, subdivision = None, mesh = None):
     '''
     Control whether clipping shows surface caps covering the hole produced by the clip plane.
@@ -424,6 +463,16 @@ def register_command(logger):
                     ('style', EnumOf(('mesh', 'dot', 'solid')))],
         synopsis = 'Change surface style to mesh, dot or solid')
     register('surface style', style_desc, surface_style, logger=logger)
+
+    square_desc = CmdDesc(
+        optional = [('surfaces', SurfacesArg)],
+        synopsis = 'Show only mesh lines parallel x, y or z axes')
+    register('surface squaremesh', square_desc, surface_square_mesh, logger=logger)
+
+    showall_desc = CmdDesc(
+        optional = [('surfaces', SurfacesArg)],
+        synopsis = 'Turn off masking of triangles or edges')
+    register('surface showall', showall_desc, surface_show_all, logger=logger)
 
     cap_desc = CmdDesc(
         optional = [('enable', BoolArg),],

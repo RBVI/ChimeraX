@@ -560,14 +560,19 @@ def _make_bundle_info(d, installed, logger):
             fi.has_save = True
             fi.save_kwds = kwds
         elif parts[1] == 'DataDir':
+            # ChimeraX :: DataDir :: directory
             bi.installed_data_dir = parts[2]
         elif parts[1] == 'IncludeDir':
+            # ChimeraX :: IncludeDir :: directory
             bi.installed_include_dir = parts[2]
         elif parts[1] == 'LibraryDir':
+            # ChimeraX :: LibraryDir :: directory
             bi.installed_library_dir = parts[2]
         elif parts[1] == 'ExecutableDir':
+            # ChimeraX :: ExecutableDir :: directory
             bi.installed_executable_dir = parts[2]
         elif parts[1] == 'Manager':
+            # ChimeraX :: Mangager :: name [:: key:value]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
@@ -586,6 +591,7 @@ def _make_bundle_info(d, installed, logger):
                 kw[k] = v
             bi.managers[name] = kw
         elif parts[1] == 'Provider':
+            # ChimeraX :: Provider :: name :: manager [:: key:value]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
@@ -605,6 +611,7 @@ def _make_bundle_info(d, installed, logger):
                 kw[k] = v
             bi.providers[mgr + '/' + name] = kw
         elif parts[1] == 'InitAfter':
+            # ChimeraX :: InitAfter :: type :: name [:: name]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None

@@ -690,9 +690,10 @@ cdef class CyAtom:
         import numpy
         return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
 
-    def string(self, atom_only = False, style = None, relative_to=None, omit_structure=False):
+    def string(self, atom_only = False, style = None, relative_to=None, omit_structure=None):
         "Supported API.  Get text representation of Atom"
-        " (also used by __str__ for printing)"
+        " (also used by __str__ for printing); if omit_structure is None, the the structure"
+        " will be omitted if only one structure is open"
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
@@ -1579,8 +1580,9 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, *, residue_only = False, omit_structure = False, style = None):
+    def string(self, *, residue_only=False, omit_structure=None, style=None):
         "Supported API.  Get text representation of Residue"
+        "  If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open"
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
@@ -1592,16 +1594,19 @@ cdef class CyResidue:
         if residue_only:
             return res_str
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        if omit_structure is None:
+            from .structure import Structure
+            omit_structure = len([s for s in self.structure.session.models.list()
+                if isinstance(s, Structure)]) == 1
         if omit_structure:
             format_string = "%s%s" if style.startswith("command") else "%s %s"
             return format_string % (chain_str, res_str)
-        from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+        if omit_structure:
+            struct_string = ""
+        else:
             struct_string = self.structure.string(style=style)
             if style.startswith("serial"):
                 struct_string += " "
-        else:
-            struct_string = ""
         if style.startswith("simple"):
             return '%s%s %s' % (struct_string, chain_str, res_str)
         if style.startswith("command"):
