@@ -1449,6 +1449,6 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
 def aromatic(ring):
     # need this since ring.aromatic can cause IDATM type computation, which in turn can wipe out ring lists
     for ring_atom in ring.atoms:
-        if ring_atom.element == "C" and idatm_type[ring_atom] == 'Car':
+        if idatm_type[ring_atom] == 'Car':
             return True
     return False
