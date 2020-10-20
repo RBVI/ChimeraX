@@ -767,6 +767,16 @@ cdef class Element:
             self._deleted = True
         else:
             super().__delattr__(name)
+
+    def __eq__(self, val):
+        if type(val) == Element:
+            return val is self
+        elif type(val) == int:
+            return val == self.number
+        elif type(val) == str:
+            return val == self.name
+        raise ValueError("Cannot compare Element to %s" % repr(val))
+
     @property
     def cpp_pointer(self):
         return int(<ptr_type>self.cpp_element)
