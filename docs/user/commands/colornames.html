@@ -893,10 +893,11 @@ ChimeraX does not correctly render the transparency of multiple models
 because it draws one model at a time and only keeps track of the front-most
 as drawing occurs. When more than one model is transparent, ChimeraX shows 
 only the frontmost transparent model at each pixel position.  
-Rendering is correct for opaque models behind transparent ones, 
-but not for transparent behind transparent. An alternative to transparency
-for surfaces is to show them in the <b>mesh</b> style.
-Another possibility is to make only the outermost surface transparent, 
+Any transparent models that are behind another transparent model
+will simply be invisible. An alternative to transparency for surfaces 
+is to show them in the <b>mesh</b> style.
+Since rendering is correct for opaque models behind transparent ones,
+another possibility is to make only the outermost surface transparent,
 keeping inner objects opaque.
 </p>
 
