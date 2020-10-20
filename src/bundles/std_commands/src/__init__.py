@@ -86,7 +86,7 @@ class StdCommandsAPI(BundleAPI):
                     'attr_name': StringArg,
                     'model_ids': BoolArg,
                     'match_mode': EnumOf(match_modes),
-                    'selected': BoolArg,
+                    'selected_only': BoolArg,
                     'models': StructuresArg,
                 }
 

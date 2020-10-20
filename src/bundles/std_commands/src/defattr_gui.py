@@ -50,6 +50,12 @@ class SaveOptionsWidget(QFrame):
         self._match_mode_opt = MatchModesOption("Match mode", "1-to-1", None, balloon=
             "Expected matches per assignment line")
         right_options.add_option(self._match_mode_opt)
+        class IncludeModelOption(EnumOption):
+            values = ('auto', 'true', 'false')
+        self._include_model_opt = IncludeModelOption("Include model in specifiers", 'auto', None,
+            balloon="Include model part of atom specifiers.  If 'auto' in the model part\n"
+            " will be included only if multiple structures are open.")
+        right_options.add_option(self._include_model_opt)
 
         self.setLayout(layout)
 
@@ -82,5 +88,9 @@ class SaveOptionsWidget(QFrame):
         match_mode = self._match_mode_opt.value
         if match_mode != "1-to-1":
             arglets.append("matchMode " + match_mode)
+
+        include_model = self._include_model_opt.value
+        if include_model != "auto":
+            arglets.append("modelIds " + include_model)
         return " ".join(arglets)
 
