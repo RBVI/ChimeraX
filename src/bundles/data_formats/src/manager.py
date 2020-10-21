@@ -49,11 +49,14 @@ class FormatsManager(ProviderManager):
 
         logger = self.session.logger
         if name in self._formats:
-            registrant = lambda bi: "unknown registrant" \
-                if bi is None else "%s bundle" % bi.name
-            logger.info("Replacing data format '%s' as defined by %s with definition"
-                " from %s" % (name, registrant(self._formats[name][0]),
-                registrant(bundle_info)))
+            if bundle_info is None or not bundle_info.installed:
+                return
+            prev_bundle = self._formats[name][0]
+            if prev_bundle is not None and prev_bundle.installed:
+                registrant = lambda bi: "unknown registrant" \
+                    if bi is None else "%s bundle" % bi.name
+                logger.info("Replacing data format '%s' as defined by %s with definition"
+                    " from %s" % (name, registrant(prev_bundle), registrant(bundle_info)))
         from .format import DataFormat
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)

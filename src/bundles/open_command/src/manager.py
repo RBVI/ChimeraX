@@ -64,7 +64,9 @@ class OpenManager(ProviderManager):
                 logger.warning("Open-command provider in bundle %s specified unknown"
                     " data format '%s';" " skipping" % (bundle_name, name))
                 return
-            if data_format in self._openers:
+            if data_format in self._openers and self._openers[data_format].bundle_info.installed:
+                if not bundle_info.installed:
+                    return
                 logger.warning("Replacing opener for '%s' from %s bundle with that from"
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
