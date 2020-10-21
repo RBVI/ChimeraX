@@ -809,6 +809,8 @@ class MessageStreamLocal:
     def send_message_bytes(self, msg_bytes):
         msg = _decode_message_bytes(msg_bytes[4:])
         self._send_message_cb(msg, self)
+    def write_backlogged(self):
+        return False
     def close(self):
         pass
 
