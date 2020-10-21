@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml -->
-<BundleInfo name="ChimeraX-Atomic" version="1.9.2"
+<BundleInfo name="ChimeraX-Atomic" version="1.9.3"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
