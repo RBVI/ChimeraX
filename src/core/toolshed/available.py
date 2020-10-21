@@ -41,8 +41,11 @@ class AvailableBundleCache(list):
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
         _debug("AvailableBundleCache.load: url", url)
-        from urllib.request import urlopen
-        with urlopen(url) as f:
+        from urllib.request import urlopen, Request
+        from ..fetch import html_user_agent
+        headers = {"User-Agent": html_user_agent(app_dirs)}
+        request = Request(url, headers=headers)
+        with urlopen(request) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])
@@ -223,7 +226,6 @@ def _build_bundle(d):
     #
     # Process manager information
     #
-    format_map = {}
     try:
         manager_d = d["manager"]
     except KeyError:
