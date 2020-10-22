@@ -463,11 +463,11 @@ class MeetingHub:
             return
         from PyQt5.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
-        aa = self._available_server_ipv4_addresses()
-        a = aa[0] if aa else QHostAddress.Any
+        a = QHostAddress.Any
         if not s.listen(a, port):
-            self._session.logger.warning('QTcpServer.listen() failed for address %s, port %d: %s'
-                                         % (a.toString(), port, s.errorString()))
+            msg = ('QTcpServer.listen() failed for address %s, port %d: %s'
+                   % (a.toString(), port, s.errorString()))
+            self._session.logger.warning(msg)
         else:
             s.newConnection.connect(self._new_connection)
     
@@ -476,7 +476,9 @@ class MeetingHub:
             return None
         
         s = self._server
-        hi = '%s port %d' % (s.serverAddress().toString(), s.serverPort())
+        aa = self._available_server_ipv4_addresses()
+        addresses = ' or '.join(a.toString() for a in aa)
+        hi = '%s port %d' % (addresses, s.serverPort())
         from PyQt5.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
