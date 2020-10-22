@@ -418,7 +418,7 @@ class MeetingParticipant:
 # -----------------------------------------------------------------------------
 #
 def _optional_message(msg):
-    if len(msg) == 2:
+    if len(msg) == 2 or (len(msg) == 3 and 'id' in msg):
         if 'vr head' in msg and 'vr hands' in msg:
             return True	# Reporting only head and hand positions.
         if 'command' in msg and msg.get('motion'):
@@ -561,6 +561,7 @@ class MeetingHub:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
                 if msg_stream.write_backlogged() and _optional_message(msg):
+                    msg_stream._dropped_messages += 1
                     continue
                 msg_stream.send_message_bytes(msg_bytes)
 
@@ -586,7 +587,7 @@ class MessageStream:
 
         # If write buffer grows beyond this limit
         # optional messages will not be sent.
-        self._max_write_backlog_bytes = 100000
+        self._max_write_backlog_bytes = 50000
         
         self._status_report_interval = 0.5	# seconds
         self._status_start_time = None
@@ -598,6 +599,7 @@ class MessageStream:
         self._bandwidth_bytes_read = 0
         self._bandwidth_last_time = None
         self._bandwidth_message_count = 0
+        self._dropped_messages = 0
 #        self._bandwidth_last_message = b'none'
         
         socket.error.connect(self._socket_error)
@@ -772,6 +774,8 @@ class MessageStream:
             msg = ('Read %.2f Mbit/sec (%.2f Mbits in %.1f sec), %.1f messages/sec'
                    % (rmbits/rsec, rmbits, rsec, mc/rsec))
             self._log.status(msg, log = True)
+            self._log.info('Dropped %d messages' % self._dropped_messages)
+            self._dropped_messages = 0
 #            self._log.info('last message %s' % self._bandwidth_last_message)
             
     def _socket_error(self, error_type):
