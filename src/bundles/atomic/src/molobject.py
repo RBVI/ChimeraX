@@ -121,6 +121,7 @@ class Bond(State):
 
     @property
     def atomspec(self):
+        a1, a2 = self.atoms
         return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = convert.atom_pair, read_only = True,
