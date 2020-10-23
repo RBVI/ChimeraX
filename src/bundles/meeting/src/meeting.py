@@ -208,8 +208,13 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
     import sys
     if sys.platform == 'win32':
         ssh_exe = 'C:\\Windows\\System32\\OpenSSH\\ssh.exe'
+        # Prevent console window from showing.
+        from subprocess import STARTUPINFO, STARTF_USESHOWWINDOW
+        startupinfo = STARTUPINFO()
+        startupinfo.dwFlags |= STARTF_USESHOWWINDOW
     else:
         ssh_exe = 'ssh'
+        startupinfo = None
     command = [ssh_exe,
                '-N',					# Do not execute remote command
                '-i', key_path,				# Private key for authentication
@@ -219,7 +224,7 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
     ]
     from subprocess import Popen, PIPE
     try:
-        p = Popen(command, stdout=PIPE, stderr=PIPE)
+        p = Popen(command, stdout=PIPE, stderr=PIPE, startupinfo=startupinfo)
     except Exception as e:
         log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
         return None
