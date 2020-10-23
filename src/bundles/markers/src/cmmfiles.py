@@ -55,12 +55,15 @@ def markerset_as_xml(mset):
     else:
       note_text = ''
       note_rgb_text = ''
+
     
+    frame_text = ' frame="%d"' % m.frame if hasattr(m, 'frame') else ''
+        
     ea = getattr(m, 'marker_extra_attributes', {})
 
-    lines.append('<marker %s %s %s %s%s%s%s/>' %
+    lines.append('<marker %s %s %s %s%s%s%s%s/>' %
                  (id_text, xyz_text, rgb_text, radius_text,
-                  note_text, note_rgb_text, attribute_strings(ea)))
+                  note_text, note_rgb_text, frame_text, attribute_strings(ea)))
 
   links = mset.bonds
   for e in links:
@@ -192,6 +195,7 @@ def create_marker_sets(session, marker_set_tuples):
     ms.markerset_extra_attributes = leftover_keys(set_attributes, ('name',))
 
     id_to_marker = {}
+    have_frame_attr = False
     for mdict in marker_attributes:
       id = int(mdict.get('id', '0'))
       x = float(mdict.get('x', '0'))
@@ -211,11 +215,17 @@ def create_marker_sets(session, marker_set_tuples):
           m.marker_note = str(mdict['note'])
           if 'nr' in mdict and 'ng' in mdict and 'nb' in mdict:
               m.marker_note_rgba = (float(mdict['nr']),float(mdict['ng']),float(mdict['nb']),1)
+      if 'frame' in mdict:
+          m.frame = int(mdict['frame'])
+          have_frame_attr = True
       e = leftover_keys(mdict, ('id','x','y','z','r','g','b', 'radius','note',
-				'nr','ng','nb'))
+				'nr','ng','nb','frame'))
       m.marker_extra_attributes = e
       id_to_marker[id] = m
 
+    if have_frame_attr:
+        ms.save_marker_attribute_in_sessions('frame', int)
+        
     for ldict in link_attributes:
       if 'id1' not in ldict or 'id2' not in ldict:
           continue

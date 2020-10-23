@@ -218,6 +218,7 @@ def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), m
         centers = surface_blob_centers(surface)
         scene_centers = surface.scene_position * centers
         surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
+        _set_markers_frame_number(mset, surf_markers, surface)
         markers.extend(surf_markers)
 
     if mset.id is None:
@@ -226,6 +227,21 @@ def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), m
     session.logger.status('Found %d connected surface pieces' % len(markers), log = True)
     
     return markers
+
+def _set_markers_frame_number(mset, markers, surface):
+    from chimerax.map import VolumeSurface
+    if not isinstance(surface, VolumeSurface):
+        return
+    v = surface.volume
+    series = getattr(v, 'series', None)
+    if series is None:
+        return
+    from chimerax.map_series import MapSeries
+    if isinstance(series, MapSeries):
+        frame = series.maps.index(v)
+        for m in markers:
+            m.frame = frame
+        mset.save_marker_attribute_in_sessions('frame', int)
 
 def surface_blob_centers(surface):
     '''
