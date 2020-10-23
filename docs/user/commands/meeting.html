@@ -130,25 +130,32 @@ file interactively. The meeting image pathname is remembered as a
 </blockquote>
 
 <blockquote>
+<a name="proxy"></a>
 <b>proxy</b> &nbsp;<i>proxy-host</i>
 <br>
-User and host name for a proxy server, for example chimerax@13.56.160.227.
+User and host name for a proxy server, for example,
+<b>chimerax@13.56.160.227</b>.
 An ssh tunnel is made to the proxy server so that participants can connect to
-the proxy when the meeting host is not directly reachable due to a firewall.
-The private key for connecting with ssh is provided with the <b>keyForProxy</b> option.
-If the connection to the proxy server fails because the proxy is not reachable it
-takes typically 75 seconds before the ssh connection attempt times out and an
+the proxy when the meeting host is not directly reachable due to a firewall
+(<a href="#useproxy">details...</a>).
+The private key for connecting with ssh is provided with the 
+<a href="#keyForProxy"><b>keyForProxy</b></a> option.
+If the connection to the proxy server fails because the proxy is not reachable,
+it takes typically 75 seconds before the ssh connection attempt times out and an
 error message is logged. This option can only be used by the meeting host.
 </blockquote>
 
 <blockquote>
+<a name="keyForProxy"></a>
 <b>keyForProxy</b> &nbsp;<i>ssh-identity-file</i>
 <br>
-File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
-ssh tunnel to a proxy server that is specified with the proxy command.
+The ssh identity file (<i>e.g.</i>, <b>vr-key-private.pem</b>)
+used to make an ssh tunnel to the proxy server given with the 
+<a href="#proxy"><b>proxy</b></a> option.
 This identity file is the private key used to connect to the proxy using
-the ssh <i>-i</i> option when creating the tunnel.  The file must not
-have read permissions by others or ssh will consider it insecure and not accept it.
+the ssh <i>-i</i> option when creating the tunnel. The file must not
+have read permissions by others or ssh will consider it insecure and 
+not accept it.
 </blockquote>
 
 <blockquote>
@@ -337,6 +344,7 @@ It took about 10 days before they processed the request. Some institutions
 will not allow these exceptions due to stricter security requirements.
 </ul>
 
+<a name="useproxy"></a>
 <p><b>Forward connections from a proxy virtual machine</b><br>
 If a firewall exception cannot be made, a more difficult solution is to 
 set up a virtual machine that is publicly visible on the internet,
@@ -366,14 +374,15 @@ and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
 This will allow other computers to connect to ssh tunnels.
 The normal use of ssh tunnels just allows the local computer use the tunnel,
 so this setting change is necessary.
-  <li>Create the tunnel when starting the meeting using the meeting command proxy
-option, for example:
-<pre>
-      meeting start proxy ubuntu@54.215.157.17 key vr-key-private.pem
-</pre>
-The key option vr-key-private.pem is the public key encryption file made when I created
-the AWS virtual machine. It allows ssh access to the virtual machine without 
-typing a password. 
+  <li>Create the tunnel using the <a href="#proxy"><b>proxy</b></a> option
+when starting the meeting, for example:
+<blockquote>
+<b>meeting start proxy ubuntu@54.215.157.17 key vr-key-private.pem</b>
+</blockquote>
+The <a href="#keyForProxy"><b>key</b></a> option specifies
+the public key encryption file <b>vr-key-private.pem</b>
+that was made when I created the AWS virtual machine. 
+It allows ssh access to the virtual machine without typing a password. 
 The &ldquo;ubuntu&rdquo; is the user account name on the AWS virtual machine.
 The meeting command creates the tunnel using ssh by executing a command like
 <pre>
@@ -397,7 +406,9 @@ and handling of firewalls.
 
 <ol>
 <li><b>Remember proxy settings.</b>
-Would like an option to remember the meeting command proxy and keyForProxy settings
+Would like an option to remember the meeting command 
+<a href="#proxy"><b>proxy</b></a> and 
+<a href="#keyForProxy"><b>keyForProxy</b></a> settings
 so they don't need to be re-entered for each meeting.
 
 <li><b>Free proxy service</b>.
