@@ -130,6 +130,28 @@ file interactively. The meeting image pathname is remembered as a
 </blockquote>
 
 <blockquote>
+<b>proxy</b> &nbsp;<i>proxy-host</i>
+<br>
+User and host name for a proxy server, for example chimerax@13.56.160.227.
+An ssh tunnel is made to the proxy server so that participants can connect to
+the proxy when the meeting host is not directly reachable due to a firewall.
+The private key for connecting with ssh is provided with the <b>keyForProxy</b> option.
+If the connection to the proxy server fails because the proxy is not reachable it
+takes typically 75 seconds before the ssh connection attempt times out and an
+error message is logged. This option can only be used by the meeting host.
+</blockquote>
+
+<blockquote>
+<b>keyForProxy</b> &nbsp;<i>ssh-identity-file</i>
+<br>
+File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
+ssh tunnel to a proxy server that is specified with the proxy command.
+This identity file is the private key used to connect to the proxy using
+the ssh <i>-i</i> option when creating the tunnel.  The file must not
+have read permissions by others or ssh will consider it insecure and not accept it.
+</blockquote>
+
+<blockquote>
 <b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Specified with <b>meeting start</b>,
@@ -344,25 +366,20 @@ and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
 This will allow other computers to connect to ssh tunnels.
 The normal use of ssh tunnels just allows the local computer use the tunnel,
 so this setting change is necessary.
-  <li>Create the tunnel using the ssh command on the computer
-(behind the firewall) that will host the ChimeraX meeting, for example:
-    <pre>
-      ssh -N -i vr-key-private.pem -R 52194:169.230.21.34:52194 ubuntu@54.215.157.17
-    </pre>
-Here vr-key-private.pem is the public key encryption file made when I created
+  <li>Create the tunnel when starting the meeting using the meeting command proxy
+option, for example:
+<pre>
+      meeting start proxy ubuntu@54.215.157.17 key vr-key-private.pem
+</pre>
+The key option vr-key-private.pem is the public key encryption file made when I created
 the AWS virtual machine. It allows ssh access to the virtual machine without 
-typing a password. The 169.230.21.34 is the IP address of the computer 
-hosting the ChimeraX meeting. This address is reported in the
-<a href="../tools/log.html"><b>Log</b></a> when the 
-<b>meeting start</b> command is used. The 52194 is the port number on 
-the AWS machine that will be forwarded to the same port on the meeting host.
-The &ldquo;ubuntu&rdquo; is the default user account on the AWS virtual machine.
-You will likely use this command on a Windows PC since that is most often 
-used for virtual reality meetings. It should work with ssh built 
-into Windows 10, but I have only tested with cygwin ssh.
-The tunnel can be set up before or after the meeting is started, since
-ChimeraX is unaware of the tunnel; connections through the tunnel
-appear to come from the host machine.
+typing a password. 
+The &ldquo;ubuntu&rdquo; is the user account name on the AWS virtual machine.
+The meeting command creates the tunnel using ssh by executing a command like
+<pre>
+      ssh -N -i vr-key-private.pem -R 52194:localhost:52194 ubuntu@54.215.157.17
+</pre>
+Connections through the tunnel appear to come from the host machine.
   <li>Tell participants to join the meeting using the AWS virtual machine 
 public IP address (for example, command: <b>meet 54.215.157.17</b>).
 The participants do not need any authentication or account on the 
@@ -379,14 +396,9 @@ and handling of firewalls.
 </p>
 
 <ol>
-<li><b>ChimeraX creates tunnel.</b>
-I hope in the future to simplify use of the proxy by having ChimeraX 
-create the tunnel when starting the meeting, for example, command:
-<blockquote>
-<b>meeting start proxy ubuntu@54.215.157.17 key vr-key-private.pem</b>
-</blockquote>
-...with an option to remember the proxy settings instead of requiring them
-to be re-entered for each meeting.
+<li><b>Remember proxy settings.</b>
+Would like an option to remember the meeting command proxy and keyForProxy settings
+so they don't need to be re-entered for each meeting.
 
 <li><b>Free proxy service</b>.
 We will look into providing a free, always-available proxy service 
