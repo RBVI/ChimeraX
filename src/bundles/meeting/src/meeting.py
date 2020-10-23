@@ -11,9 +11,10 @@
 
 # -----------------------------------------------------------------------------
 #
-def meeting(session, host = None, port = 52194, name = None, color = None,
-            face_image = None, copy_scene = None, relay_commands = None,
-            update_interval = None):
+def meeting(session, host = None, port = 52194,
+            name = None, color = None, face_image = None,
+            proxy = None, key_for_proxy = None,
+            copy_scene = None, relay_commands = None, update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
 
@@ -34,6 +35,15 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Color for my mouse pointer shown on other machines
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction.
+    proxy : string
+      User and host name for a proxy server, for example chimerax@13.56.160.227.
+      An ssh tunnel is made to the proxy server so that participants can connect to
+      the proxy when the meeting host is not directly reachable due to a firewall.
+      The private key for connecting with ssh is provided with the key_for_proxy option.
+      This option can only be used by the meeting host.
+    key_for_proxy : string
+      File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
+      ssh tunnel to a proxy server that is specified with the proxy command.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
@@ -68,6 +78,17 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     if update_interval is not None:
         p.vr_tracker.update_interval = update_interval
 
+    if proxy is not None:
+        from chimerax.core.errors import UserError
+        if p.hub is None:
+            raise UserError('meeting: proxy option can only be used by meeting host')
+        if key_for_proxy is None:
+            raise UserError('meeting: must specify keyForProxy option if proxy option used')
+        ssh_process = _create_ssh_tunnel(proxy, port, key_for_proxy, log=session.logger)
+        if ssh_process is None:
+            raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
+        p.hub._ssh_tunnel_process = ssh_process
+        
 # -----------------------------------------------------------------------------
 #
 def _start_meeting(session, port, copy_scene):
@@ -171,6 +192,35 @@ def _meeting_settings(session):
 
 # -----------------------------------------------------------------------------
 #
+def _create_ssh_tunnel(remote, port, key_path, log=None, wait=0.5):
+    command = ['ssh',
+               '-N',					# Do not execute remote command
+               '-i', key_path,				# Private key for authentication
+               '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
+               remote,	# Remote machine
+    ]
+    import subprocess
+    try:
+        p = subprocess.Popen(command)
+    except Exception as e:
+        log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
+        return None
+
+    # Assure at exit that the process is terminated.
+    import atexit
+    atexit.register(lambda p=p: p.poll() is None and p.terminate())
+
+    import time
+    time.sleep(wait)
+    exit_code = p.poll()
+    if exit_code is not None:
+        log.warning('meeting: ssh tunnel setup failed %s, exit code %d' % (str(command), exit_code))
+        return None
+    
+    return p
+
+# -----------------------------------------------------------------------------
+#
 def meeting_close(session):
     '''Close all connection shared pointers.'''
     p = _meeting_participant(session)
@@ -196,6 +246,8 @@ def register_meeting_command(logger):
                               ('name', StringArg),
                               ('color', Color8TupleArg),
                               ('face_image', OpenFileNameArg),
+                              ('proxy', StringArg),
+                              ('key_for_proxy', OpenFileNameArg),
                               ('copy_scene', BoolArg),
                               ('relay_commands', BoolArg),
                               ('update_interval', IntArg)],
@@ -422,6 +474,7 @@ class MeetingHub:
         self._next_participant_id = 1
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
+        self._ssh_tunnel_process = None # Popen object for ssh tunnel to proxy.
 
     def close(self):
         for msg_stream in tuple(self._connections):
@@ -432,6 +485,16 @@ class MeetingHub:
         self._server = None
 
         self._host = None
+
+        self._close_proxy_tunnel()
+
+    def _close_proxy_tunnel(self):
+        # Close ssh tunnel to proxy
+        t = self._ssh_tunnel_process
+        if t is not None:
+            if t.poll() is None:
+                t.terminate()
+            self._ssh_tunnel_process = None
         
     @property
     def listening(self):
