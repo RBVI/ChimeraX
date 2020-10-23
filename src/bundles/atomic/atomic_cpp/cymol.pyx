@@ -777,6 +777,9 @@ cdef class Element:
             return val == self.name
         raise ValueError("Cannot compare Element to %s" % repr(val))
 
+    def __hash__(self):
+        return id(self)
+
     @property
     def cpp_pointer(self):
         return int(<ptr_type>self.cpp_element)

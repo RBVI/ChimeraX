@@ -78,7 +78,7 @@ class ModellerLauncher(ToolInstance):
             "Number of model structures to generate.  Must be no more than %d.\n"
             "Warning: please consider the calculation time" % max_models))
         key = "" if settings.license_key is None else settings.license_key
-        panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
+        panel.add_option("Basic", PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller license key</a>', key, None, attr_name="license_key",
             settings=settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
         panel.add_option("Advanced", BooleanOption("Use fast/approximate mode (produces only one model)",

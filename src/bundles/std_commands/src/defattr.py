@@ -249,7 +249,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
             recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
                 can_return_none=can_return_none)
 
-def parse_attribute_name(attr_name, *, allowable_types=None):
+def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure
     if len(attr_name) > 1 and attr_name[1] == ':':
         attr_level = attr_name[0]
@@ -303,7 +303,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
         structures = [m for m in models if isinstance(m, Structure)]
 
     # gather items whose attributes will be saved
-    attr_name, class_obj = parse_attribute_name(attr_name)
+    attr_name, class_obj = parse_attribute_name(session, attr_name)
     recipient = {Atom: 'atoms', Residue: 'residues', Structure: 'structures'}[class_obj]
     sources = []
     if selected_only:

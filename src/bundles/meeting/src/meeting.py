@@ -452,8 +452,12 @@ class MeetingParticipant:
             self._participant_left(msg)
 
     def _send_message(self, msg):
+        ms = self._message_stream
+        if ms.write_backlogged() and _optional_message(msg):
+            return False
         msg_bytes = MessageStream.message_as_bytes(msg)
-        self._message_stream.send_message_bytes(msg_bytes)
+        ms.send_message_bytes(msg_bytes)
+        return True
 
     def _participant_left(self, msg):
         participant_id = msg['id']
@@ -462,6 +466,18 @@ class MeetingParticipant:
 
     def _disconnected(self, msg_stream):
         self.close()
+
+# -----------------------------------------------------------------------------
+#
+def _optional_message(msg):
+    if len(msg) == 2 or (len(msg) == 3 and 'id' in msg):
+        if 'vr head' in msg and 'vr hands' in msg:
+            return True	# Reporting only head and hand positions.
+        if 'command' in msg and msg.get('motion'):
+            return True # Motion command
+        # TODO: Allow 'vr coords' update to be optional.
+        #  But need to make sure everyone eventually gets current coords.
+    return False
 
 # -----------------------------------------------------------------------------
 #
@@ -510,11 +526,11 @@ class MeetingHub:
             return
         from PyQt5.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
-        aa = self._available_server_ipv4_addresses()
-        a = aa[0] if aa else QHostAddress.Any
+        a = QHostAddress.Any
         if not s.listen(a, port):
-            self._session.logger.warning('QTcpServer.listen() failed for address %s, port %d: %s'
-                                         % (a.toString(), port, s.errorString()))
+            msg = ('QTcpServer.listen() failed for address %s, port %d: %s'
+                   % (a.toString(), port, s.errorString()))
+            self._session.logger.warning(msg)
         else:
             s.newConnection.connect(self._new_connection)
     
@@ -523,7 +539,9 @@ class MeetingHub:
             return None
         
         s = self._server
-        hi = '%s port %d' % (s.serverAddress().toString(), s.serverPort())
+        aa = self._available_server_ipv4_addresses()
+        addresses = ' or '.join(a.toString() for a in aa)
+        hi = '%s port %d' % (addresses, s.serverPort())
         from PyQt5.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
@@ -607,6 +625,9 @@ class MeetingHub:
         if message_streams:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
+                if msg_stream.write_backlogged() and _optional_message(msg):
+                    msg_stream._dropped_messages += 1
+                    continue
                 msg_stream.send_message_bytes(msg_bytes)
 
     def _disconnected(self, msg_stream):
@@ -629,11 +650,23 @@ class MessageStream:
         self._byte_count = 0
         self._msg_length = None
 
-        self._status_report_interval = 0.5
+        # If write buffer grows beyond this limit
+        # optional messages will not be sent.
+        self._max_write_backlog_bytes = 50000
+        
+        self._status_report_interval = 0.5	# seconds
         self._status_start_time = None
         self._last_status_time = None
         self._last_status_bytes = None
 
+        # Report network bandwidth used by received messages.
+        self._bandwidth_report_interval = 0	# seconds, 0 = no reporting
+        self._bandwidth_bytes_read = 0
+        self._bandwidth_last_time = None
+        self._bandwidth_message_count = 0
+        self._dropped_messages = 0
+#        self._bandwidth_last_message = b'none'
+        
         socket.error.connect(self._socket_error)
         socket.disconnected.connect(self._socket_disconnected)
 
@@ -657,6 +690,9 @@ class MessageStream:
         qbytes = QByteArray(msg_bytes)
         self._socket.write(qbytes)
 
+    def write_backlogged(self):
+        return self._socket.bytesToWrite() >= self._max_write_backlog_bytes
+    
     @staticmethod
     def message_as_bytes(message):
         '''
@@ -693,9 +729,10 @@ class MessageStream:
         else:
             self._report_message_progress()
             msg = None
+        self._report_read_bandwidth(len(rbytes))
         self._check_for_null_bytes(rbytes)  # Debug code. Ticket #3784
         return msg
-
+        
     def _check_for_null_bytes(self, rbytes):
         '''Debug code. Ticket #3784. Getting null bytes in messages.'''
         if self._msg_length is None or len(self._bytes_list) == 0:
@@ -728,6 +765,8 @@ class MessageStream:
         bytes = self._take_bytes(self._message_length)
         self._msg_length = None
         msg = _decode_message_bytes(bytes)
+        self._bandwidth_message_count += 1
+#        self._bandwidth_last_message = bytes
         return msg
 
     def _take_bytes(self, nbytes):
@@ -748,6 +787,9 @@ class MessageStream:
         lt = self._last_status_time
         self._last_status_time = None
         if lt is None or lt <= self._status_start_time:
+            # No progress was reported because message took
+            # less than _status_report_interval to receive.
+            # So don't report message received.
             return
         from time import time
         t = time()
@@ -776,6 +818,30 @@ class MessageStream:
             self._log.status(msg)
             self._last_status_time = t
             self._last_status_bytes = bytes_received
+
+    def _report_read_bandwidth(self, nbytes):
+        dt = self._bandwidth_report_interval
+        if dt <= 0:
+            return
+        self._bandwidth_bytes_read += nbytes
+        from time import time
+        t = time()
+        lt = self._bandwidth_last_time
+        if lt is None:
+            self._bandwidth_last_time = t
+        elif t-lt > dt:
+            rmbits = 8e-6 * self._bandwidth_bytes_read
+            mc = self._bandwidth_message_count
+            self._bandwidth_bytes_read = 0
+            self._bandwidth_last_time = t
+            self._bandwidth_message_count = 0
+            rsec = t-lt
+            msg = ('Read %.2f Mbit/sec (%.2f Mbits in %.1f sec), %.1f messages/sec'
+                   % (rmbits/rsec, rmbits, rsec, mc/rsec))
+            self._log.status(msg, log = True)
+            self._log.info('Dropped %d messages' % self._dropped_messages)
+            self._dropped_messages = 0
+#            self._log.info('last message %s' % self._bandwidth_last_message)
             
     def _socket_error(self, error_type):
         self._log.info('Socket error %s' % self._socket.errorString())
@@ -812,6 +878,8 @@ class MessageStreamLocal:
     def send_message_bytes(self, msg_bytes):
         msg = _decode_message_bytes(msg_bytes[4:])
         self._send_message_cb(msg, self)
+    def write_backlogged(self):
+        return False
     def close(self):
         pass
 
@@ -937,6 +1005,8 @@ class VRTracking(PointerModels):
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
         self._last_room_to_scene = c.room_to_scene if c else None
+        self._name = None
+        self._color = None
         self._new_face_image = None	# Path to image file
         self._face_image = None		# Encoded image
         self._send_face_image = False
@@ -972,7 +1042,10 @@ class VRTracking(PointerModels):
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        # Make sure new meeting participant gets my head image and button modes.
+        # Make sure new meeting participant gets my
+        # name, color, head image and button modes.
+        self._name = None
+        self._color = None
         self._send_face_image = True
         self._send_button_modes()
         
@@ -1007,12 +1080,19 @@ class VRTracking(PointerModels):
             return
 
         # Report VR hand and head motions.
-        msg = {'name': self._participant._name,
-               'color': tuple(self._participant._color),
-               'vr head': self._head_position(c),	# In room coordinates
-               'vr hands': self._hand_positions(c),	# In room coordinates
-               }
+        msg = {
+            'vr head': self._head_position(c),	 # In room coordinates
+            'vr hands': self._hand_positions(c), # In room coordinates
+        }
 
+        nu = self._name_update()
+        if nu:
+            msg['name'] = nu
+
+        cu = self._color_update()
+        if cu:
+            msg['color'] = cu
+            
         fi = self._face_image_update()
         if fi:
             msg['vr head image'] = fi
@@ -1038,6 +1118,20 @@ class VRTracking(PointerModels):
         from chimerax.geometry import scale
         return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
 
+    def _name_update(self):
+        name = self._participant._name
+        if name != self._name:
+            self._name = name
+            return name
+        return None
+
+    def _color_update(self):
+        color = tuple(self._participant._color)
+        if color != self._color:
+            self._color = color
+            return color
+        return None
+    
     def _face_image_update(self):
         # Report VR face image change.
         fi = None

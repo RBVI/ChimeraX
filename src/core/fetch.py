@@ -316,6 +316,13 @@ def html_user_agent(app_dirs):
         user_agent += "/%s" % token(app_version)
     import platform
     system = platform.system()
+    if system == "Darwin":
+        system = f"{system} {platform.mac_ver()}"
+    elif system == "Windows":
+        system = f"{system} {platform.win32_ver()[1]}"
+    elif system == "Linux":
+        import distro
+        system = f"{system} {' '.join(distro.linux_distribution())}"
     if system:
         user_agent += " (%s)" % comment(system)
     return user_agent

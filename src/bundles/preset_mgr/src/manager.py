@@ -49,6 +49,8 @@ class PresetsManager(ProviderManager):
 
     def add_provider(self, bundle_info, name,
                      order=None, category="General", **kw):
+        if not bundle_info.installed:
+            return
         from chimerax.core.utils import CustomSortString
         if order is None:
             cname = name
