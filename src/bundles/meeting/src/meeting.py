@@ -40,6 +40,9 @@ def meeting(session, host = None, port = 52194,
       An ssh tunnel is made to the proxy server so that participants can connect to
       the proxy when the meeting host is not directly reachable due to a firewall.
       The private key for connecting with ssh is provided with the key_for_proxy option.
+      If the connection to the proxy server fails because the proxy is not reachable it
+      takes typically 75 seconds before the ssh connection attempt times out and an
+      error message is logged.
       This option can only be used by the meeting host.
     key_for_proxy : string
       File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
@@ -192,16 +195,23 @@ def _meeting_settings(session):
 
 # -----------------------------------------------------------------------------
 #
-def _create_ssh_tunnel(remote, port, key_path, log=None, wait=0.5):
+def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
+    '''
+    Run ssh to set up a tunnel to a remote host.
+    If the host just does not accept ssh connections it typically will take 60 seconds
+    or more to time out.  This routine will return the process object and the client
+    will have to call its poll() method after a minute or two to know if it failed.
+    '''
     command = ['ssh',
                '-N',					# Do not execute remote command
                '-i', key_path,				# Private key for authentication
+               '-o', 'StrictHostKeyChecking=no',	# Don't ask about host authenticity on first connection
                '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
                remote,	# Remote machine
     ]
-    import subprocess
+    from subprocess import Popen, PIPE
     try:
-        p = subprocess.Popen(command)
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
     except Exception as e:
         log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
         return None
@@ -210,14 +220,45 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, wait=0.5):
     import atexit
     atexit.register(lambda p=p: p.poll() is None and p.terminate())
 
-    import time
-    time.sleep(wait)
-    exit_code = p.poll()
-    if exit_code is not None:
-        log.warning('meeting: ssh tunnel setup failed %s, exit code %d' % (str(command), exit_code))
-        return None
-    
+    if exit_check_interval is not None:
+        t = _periodic_callback(exit_check_interval, _check_for_process_exit, p, log)
+        p._exit_check_timer = t # Have to hold reference to timer or it is deleted.
+        
     return p
+
+# -----------------------------------------------------------------------------
+#
+def _check_for_process_exit(p, log):
+    exit_code = p.poll()
+    if exit_code is None:
+        return
+
+    if exit_code == 0:
+        log.info('meeting: ssh tunnel closed.')
+    else:
+        command = ' '.join(p.args)
+        msg = 'meeting: ssh tunnel setup failed %s, exit code %d' % (command, exit_code)
+        out = p.stdout.read().decode('utf-8')
+        err = p.stderr.read().decode('utf-8')
+        if out:
+            msg += '\nssh stdout:\n%s' % out
+        if err:
+            msg += '\nssh stderr:\n%s' % err
+        log.warning(msg)
+
+    p._exit_check_timer.stop()
+
+# -----------------------------------------------------------------------------
+#
+def _periodic_callback(interval, callback, *args, **kw):
+    from PyQt5.QtCore import QTimer
+    t = QTimer()
+    def cb(callback=callback, args=args, kw=kw):
+        callback(*args, **kw)
+    t.timeout.connect(cb)
+    t.setSingleShot(False)
+    t.start(int(1000*interval))
+    return t
 
 # -----------------------------------------------------------------------------
 #
@@ -239,6 +280,9 @@ def meeting_send(session):
 # Register the connect command for ChimeraX.
 #
 def register_meeting_command(logger):
+    '''
+    Currently unused.  Registered instead in reg_cmd.py.
+    '''
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg
     desc = CmdDesc(optional = [('host', StringArg)],
