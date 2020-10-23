@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -121,6 +120,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
         append_all_info(attrs, data, lnum+1)
 
     for attr_info, data_info in all_info:
+        num_assignments = 0
         attr_name = attr_info['attribute']
         color_attr = attr_name.lower().endswith('color') or attr_name.lower().endswith('colour')
 
@@ -168,6 +168,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
             if len(matches) > 1 and match_mode == "1-to-1":
                 raise SyntaxError("Selector (%s) on line %d of %s matched multiple %s"
                     % (spec, line_num, file_name, recipient))
+            num_assignments += len(matches)
 
             if log:
                 session.logger.info("Selector %s matched %s"
@@ -248,6 +249,9 @@ def defattr(session, file_name, *, log=False, restriction=None):
                 attr_type = None
             recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
                 can_return_none=can_return_none)
+
+        session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
+            num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure
