@@ -222,9 +222,16 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
 
     if exit_check_interval is not None:
         t = _periodic_callback(exit_check_interval, _check_for_process_exit, p, log)
-        p._exit_check_timer = t # Have to hold reference to timer or it is deleted.
+        p._exit_check_timer = t
         
     return p
+
+# -----------------------------------------------------------------------------
+#
+def _close_proxy_tunnel(p):
+    if p.poll() is None:
+        p._exit_check_timer.stop()
+        p.terminate()
 
 # -----------------------------------------------------------------------------
 #
@@ -546,14 +553,10 @@ class MeetingHub:
 
         self._host = None
 
-        self._close_proxy_tunnel()
-
-    def _close_proxy_tunnel(self):
         # Close ssh tunnel to proxy
         t = self._ssh_tunnel_process
         if t is not None:
-            if t.poll() is None:
-                t.terminate()
+            _close_proxy_tunnel(t)
             self._ssh_tunnel_process = None
         
     @property
