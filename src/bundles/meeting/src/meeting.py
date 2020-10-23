@@ -205,7 +205,12 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
     or more to time out.  This routine will return the process object and the client
     will have to call its poll() method after a minute or two to know if it failed.
     '''
-    command = ['ssh',
+    import sys
+    if sys.platform == 'win32':
+        ssh_exe = 'C:\\Windows\\System32\\OpenSSH\\ssh.exe'
+    else:
+        ssh_exe = 'ssh'
+    command = [ssh_exe,
                '-N',					# Do not execute remote command
                '-i', key_path,				# Private key for authentication
                '-o', 'StrictHostKeyChecking=no',	# Don't ask about host authenticity on first connection
