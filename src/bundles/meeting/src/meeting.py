@@ -11,9 +11,10 @@
 
 # -----------------------------------------------------------------------------
 #
-def meeting(session, host = None, port = 52194, name = None, color = None,
-            face_image = None, copy_scene = None, relay_commands = None,
-            update_interval = None):
+def meeting(session, host = None, port = 52194,
+            name = None, color = None, face_image = None,
+            proxy = None, key_for_proxy = None,
+            copy_scene = None, relay_commands = None, update_interval = None):
     '''Allow two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.
 
@@ -34,6 +35,21 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
       Color for my mouse pointer shown on other machines
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction.
+    proxy : string
+      User and host name for a proxy server, for example chimerax@13.56.160.227.
+      An ssh tunnel is made to the proxy server so that participants can connect to
+      the proxy when the meeting host is not directly reachable due to a firewall.
+      The private key for connecting with ssh is provided with the key_for_proxy option.
+      If the connection to the proxy server fails because the proxy is not reachable it
+      takes typically 75 seconds before the ssh connection attempt times out and an
+      error message is logged.
+      This option can only be used by the meeting host.
+    key_for_proxy : string
+      File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
+      ssh tunnel to a proxy server that is specified with the proxy command.
+      This identity file is the private key used to connect to the proxy using
+      the ssh <i>-i</i> option when creating the tunnel.  The file must not
+      have access permissions by others or ssh will consider it insecure and not accept it.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
@@ -68,6 +84,17 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
     if update_interval is not None:
         p.vr_tracker.update_interval = update_interval
 
+    if proxy is not None:
+        from chimerax.core.errors import UserError
+        if p.hub is None:
+            raise UserError('meeting: proxy option can only be used by meeting host')
+        if key_for_proxy is None:
+            raise UserError('meeting: must specify keyForProxy option if proxy option used')
+        ssh_process = _create_ssh_tunnel(proxy, port, key_for_proxy, log=session.logger)
+        if ssh_process is None:
+            raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
+        p.hub._ssh_tunnel_process = ssh_process
+        
 # -----------------------------------------------------------------------------
 #
 def _start_meeting(session, port, copy_scene):
@@ -171,6 +198,85 @@ def _meeting_settings(session):
 
 # -----------------------------------------------------------------------------
 #
+def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
+    '''
+    Run ssh to set up a tunnel to a remote host.
+    If the host just does not accept ssh connections it typically will take 60 seconds
+    or more to time out.  This routine will return the process object and the client
+    will have to call its poll() method after a minute or two to know if it failed.
+    '''
+    import sys
+    if sys.platform == 'win32':
+        ssh_exe = 'C:\\Windows\\System32\\OpenSSH\\ssh.exe'
+    else:
+        ssh_exe = 'ssh'
+    command = [ssh_exe,
+               '-N',					# Do not execute remote command
+               '-i', key_path,				# Private key for authentication
+               '-o', 'StrictHostKeyChecking=no',	# Don't ask about host authenticity on first connection
+               '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
+               remote,	# Remote machine
+    ]
+    from subprocess import Popen, PIPE
+    try:
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
+    except Exception as e:
+        log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
+        return None
+
+    # Assure at exit that the process is terminated.
+    import atexit
+    atexit.register(lambda p=p: p.poll() is None and p.terminate())
+
+    if exit_check_interval is not None:
+        t = _periodic_callback(exit_check_interval, _check_for_process_exit, p, log)
+        p._exit_check_timer = t
+        
+    return p
+
+# -----------------------------------------------------------------------------
+#
+def _close_proxy_tunnel(p):
+    if p.poll() is None:
+        p._exit_check_timer.stop()
+        p.terminate()
+
+# -----------------------------------------------------------------------------
+#
+def _check_for_process_exit(p, log):
+    exit_code = p.poll()
+    if exit_code is None:
+        return
+
+    if exit_code == 0:
+        log.info('meeting: ssh tunnel closed.')
+    else:
+        command = ' '.join(p.args)
+        msg = 'meeting: ssh tunnel setup failed %s, exit code %d' % (command, exit_code)
+        out = p.stdout.read().decode('utf-8')
+        err = p.stderr.read().decode('utf-8')
+        if out:
+            msg += '\nssh stdout:\n%s' % out
+        if err:
+            msg += '\nssh stderr:\n%s' % err
+        log.warning(msg)
+
+    p._exit_check_timer.stop()
+
+# -----------------------------------------------------------------------------
+#
+def _periodic_callback(interval, callback, *args, **kw):
+    from PyQt5.QtCore import QTimer
+    t = QTimer()
+    def cb(callback=callback, args=args, kw=kw):
+        callback(*args, **kw)
+    t.timeout.connect(cb)
+    t.setSingleShot(False)
+    t.start(int(1000*interval))
+    return t
+
+# -----------------------------------------------------------------------------
+#
 def meeting_close(session):
     '''Close all connection shared pointers.'''
     p = _meeting_participant(session)
@@ -189,6 +295,9 @@ def meeting_send(session):
 # Register the connect command for ChimeraX.
 #
 def register_meeting_command(logger):
+    '''
+    Currently unused.  Registered instead in reg_cmd.py.
+    '''
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg
     desc = CmdDesc(optional = [('host', StringArg)],
@@ -196,6 +305,8 @@ def register_meeting_command(logger):
                               ('name', StringArg),
                               ('color', Color8TupleArg),
                               ('face_image', OpenFileNameArg),
+                              ('proxy', StringArg),
+                              ('key_for_proxy', OpenFileNameArg),
                               ('copy_scene', BoolArg),
                               ('relay_commands', BoolArg),
                               ('update_interval', IntArg)],
@@ -438,6 +549,7 @@ class MeetingHub:
         self._next_participant_id = 1
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
+        self._ssh_tunnel_process = None # Popen object for ssh tunnel to proxy.
 
     def close(self):
         for msg_stream in tuple(self._connections):
@@ -448,6 +560,12 @@ class MeetingHub:
         self._server = None
 
         self._host = None
+
+        # Close ssh tunnel to proxy
+        t = self._ssh_tunnel_process
+        if t is not None:
+            _close_proxy_tunnel(t)
+            self._ssh_tunnel_process = None
         
     @property
     def listening(self):
