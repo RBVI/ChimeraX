@@ -47,6 +47,9 @@ def meeting(session, host = None, port = 52194,
     key_for_proxy : string
       File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
       ssh tunnel to a proxy server that is specified with the proxy command.
+      This identity file is the private key used to connect to the proxy using
+      the ssh <i>-i</i> option when creating the tunnel.  The file must not
+      have access permissions by others or ssh will consider it insecure and not accept it.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
