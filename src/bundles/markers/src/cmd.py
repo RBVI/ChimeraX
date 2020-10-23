@@ -324,6 +324,7 @@ def register_marker_command(logger):
                    ('label_color', Or(EnumOf(['auto','default']),Color8Arg)),
                    ('adjust', MarkersArg)],
         required_arguments = ['position', 'to_position'],
+        hidden = ['adjust'],
         synopsis = 'Create two markers and a link between them'
     )
     register('marker segment', desc, marker_segment, logger=logger)
