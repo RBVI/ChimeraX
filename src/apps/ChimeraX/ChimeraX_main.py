@@ -656,8 +656,15 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
+        from chimerax.core import errors
         for script in opts.scripts:
-            run(sess, 'runscript %s' % script)
+            try:
+                run(sess, 'runscript %s' % script)
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
