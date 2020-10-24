@@ -186,7 +186,7 @@ class Play_Series:
 
     if tslist:
       self.update_marker_display()
-#      self.update_color_zone()
+      self.update_color_zone()
 
     if self.time_step_cb:
       self.time_step_cb(t)
@@ -293,7 +293,8 @@ class Play_Series:
     llist = [l for l in markers.intra_bonds
              if getattr(l.atoms[0], 'frame', None) == t and getattr(l.atoms[1], 'frame', None) == t]
 
-    return mlist, llist
+    from chimerax.atomic import Atoms, Bonds
+    return Atoms(mlist), Bonds(llist)
         
   # ---------------------------------------------------------------------------
   #
@@ -309,40 +310,25 @@ class Play_Series:
   # ---------------------------------------------------------------------------
   #
   def update_color_zone(self):
+    r = self.color_range
+    if r is None:
+      return
 
     t = self.current_time
     if t is None:
       return
 
     tslist = self.series
-    tslist = [ts for ts in tslist if not ts.surface_model(t) is None]
+    tslist = [ts for ts in tslist if not ts.volume_model(t) is None]
 
+    from chimerax.surface.colorzone import points_and_colors, color_zone
     for ts in tslist:
-      r = self.color_range
-      if not r is None:
         mlist, llist = self.current_markers_and_links()
         if mlist or llist:
-          atoms = [m.atom for m in mlist]
-          bonds = [l.bond for l in llist]
-          model = ts.surface_model(t)
-          xform_to_surface = model.openState.xform.inverse()
-          from ColorZone import points_and_colors, color_zone
-          points, point_colors = points_and_colors(atoms, bonds,
-                                                   xform_to_surface)
-          if hasattr(model, 'series_zone_coloring'):
-            zp, zpc, zr = model.series_zone_coloring
-            from numpy import all
-            if all(zp == points) and all(zpc == point_colors) and zr == r:
-              return        # No change in coloring.
-          model.series_zone_coloring = (points, point_colors, r)
-          color_zone(model, points, point_colors, r, auto_update = True)
-      else:
-        for t in range(ts.number_of_times()):
-          model = ts.surface_model(t)
-          if model and hasattr(model, 'series_zone_coloring'):
-            from ColorZone import uncolor_zone
-            uncolor_zone(model)
-            delattr(model, 'series_zone_coloring')
+          v = ts.volume_model(t)
+          points, point_colors = points_and_colors(mlist, llist)
+          for surf in v.surfaces:
+            color_zone(surf, points, point_colors, r, auto_update = True)
 
 from chimerax.mouse_modes import MouseMode
 class PlaySeriesMouseMode(MouseMode):
