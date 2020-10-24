@@ -258,49 +258,40 @@ class Play_Series:
 
   # ---------------------------------------------------------------------------
   #
-  def marker_set(self):
-
-    return None
-
-    import VolumePath
-    d = VolumePath.volume_path_dialog(create = False)
-    if d is None:
-      return None
-    return d.active_marker_set
-
-  # ---------------------------------------------------------------------------
-  #
   def update_marker_display(self):
 
-    m = self.markers
-    if m is None:
+    markers = self.markers
+    if markers is None:
       return
 
     fmin, fmax = self.marker_frame_range()
     if fmin is None or fmax is None:
       return
 
-    m.display = True
-    m.atoms.displays = False
-    a = m.atom_subset(residue_range = (fmin, fmax))
-    a.displays = True
+    for m in markers:
+      m.display = (hasattr(m, 'frame') and m.frame >= fmin and m.frame <= fmax)
+
+      for l in markers.intra_bonds:
+        a1,a2 = l.atoms
+        f1, f2 = getattr(a1, 'frame', None), getattr(a2, 'frame', None)
+        l.display = (f1 is not None and f1 >= fmin and f1 <= fmax and
+                     f2 is not None and f2 >= fmin and f2 <= fmax)
         
   # ---------------------------------------------------------------------------
   #
   def current_markers_and_links(self):
 
-    mset = self.marker_set()
-    if mset == None:
+    markers = self.markers
+    if markers is None:
       return [], []
 
     t = self.current_time
     if t is None:
       return [], []
-    tstr = str(t)
 
-    mlist = [m for m in mset.markers() if m.note_text == tstr]
-    llist = [l for l in mset.links()
-             if l.marker1.note_text == tstr and l.marker2.note_text == tstr]
+    mlist = [m for m in markers if hasattr(m, 'frame') and m.frame == t]
+    llist = [l for l in markers.intra_bonds
+             if getattr(l.atoms[0], 'frame', None) == t and getattr(l.atoms[1], 'frame', None) == t]
 
     return mlist, llist
         
