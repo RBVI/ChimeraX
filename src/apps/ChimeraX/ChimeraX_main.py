@@ -665,6 +665,8 @@ def init(argv, event_loop=True):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
+            except SystemExit as e:
+                return e.code
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
