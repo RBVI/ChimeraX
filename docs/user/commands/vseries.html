@@ -156,40 +156,40 @@ This is useful when the signal level in the data changes over time or
 between states.
 </blockquote>
 <blockquote>
-<font color="brown">
 <a name="markers"></a>
 <b>markers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-<br>(not yet supported)
 <br>
 Display the specified markers to trace spatial and temporal paths. 
 (A <a href="../markers.html">marker</a> is implemented as an atom and can be
 <a href="atomspec.html">specified</a> similarly by model number, <i>etc.</i>)
-The markers could have been created manually with the mouse
-(see <a href="ui.html#mousemode"><b>mousemode</b></a>)
-or automatically with <a href="#measure"><b>vseries measure</b></a>.
-For marker display to be synchronized with playback, 
-each marker should be labeled with the <a href="#time">time</a> 
-of the data set on which it was placed.
-The labels are not shown, but used by <b>vseries</b> to limit marker display
+For marker display to be synchronized with playback, each marker should have a
+<a href="../attributes.html#atom"><b>frame</b> attribute</a> with value 
+corresponding to the <a href="#time">time</a>
+of the data set on which it was placed (0, 1, 2, <i>etc.</i>).
+This attribute is assigned when
+markers are created manually by clicking volume series data
+(see <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>)
+or automatically with <a href="marker.html#connected"><b>marker 
+connected</b></a> or <a href="#measure"><b>vseries measure</b></a>.
+The attribute is used to limit marker display 
 to the corresponding <a href="#time">time</a>. Simultaneously, markers
 can also be displayed for <i>N</i> earlier time points (default <b>0</b>)
 and <i>M</i> later time points (default <b>0</b>) using
 <b>precedingMarkerFrames</b> and <b>followingMarkerFrames</b>, respectively.
 <p>
-</font>
 </blockquote>
 <blockquote>
-<font color="brown">
 <b>colorRange</b> &nbsp;<i>cutoff</i>
-<br>(not yet supported)
 <br>
 Whether to color volume contour surfaces to match 
 <a href="../markers.html">markers</a> within
 a specified distance <i>cutoff</i> (regardless of whether the markers are
-<a href="#markers">shown</a>). All of the markers associated with the
-current <a href="#time">time</a> are used to color the current surface.
+<a href="#markers">shown</a>). 
+All of the markers with
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+matching the current <a href="#time">time</a>
+are used to color the current surface.
 The coloring does not apply to <b>solid</b> displays.
-</font>
 </blockquote>
 <blockquote>
 <a name="maxFrameRate"></a>
@@ -293,11 +293,11 @@ the maps) and <b>color</b> (default <b>#aaaaaa</b>
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#aaaaaa width="10px" title="#aaaaaa"></td></tr></table>).
 Successive markers are linked.
-<!--
-The markers can be shown during playback with the
-<a href="#markers"><b>markers</b></a> option of
+The markers are assigned a 
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+with value indicating the associated time step (0, 1, 2, <i>etc.</i>)
+in the series, allowing synchronization during playback with
 <a href="#play"><b>vseries play</b></a>.
--->
 </p>
 </blockquote>
 
@@ -425,5 +425,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+October 2020</address>
 </body></html>
