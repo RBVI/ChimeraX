@@ -34,9 +34,9 @@ class FormatsManager(ProviderManager):
         self.triggers.add_trigger("data formats changed")
         super().__init__(name)
 
-    def add_format(self, name, category, *, suffixes=None, nicknames=None,
-            bundle_info=None, mime_types=None, reference_url=None, insecure=None,
-            encoding=None, synopsis=None, allow_directory=False, raise_trigger=True):
+    def add_format(self, bundle_info, name, category, *, suffixes=None, nicknames=None,
+            mime_types=None, reference_url=None, insecure=None, encoding=None,
+            synopsis=None, allow_directory=False, raise_trigger=True):
 
         def convert_arg(arg, default=None):
             if arg and isinstance(arg, str):
@@ -49,14 +49,12 @@ class FormatsManager(ProviderManager):
 
         logger = self.session.logger
         if name in self._formats:
-            if bundle_info is None or not bundle_info.installed:
+            if not bundle_info.installed:
                 return
             prev_bundle = self._formats[name][0]
-            if prev_bundle is not None and prev_bundle.installed:
-                registrant = lambda bi: "unknown registrant" \
-                    if bi is None else "%s bundle" % bi.name
+            if prev_bundle.installed:
                 logger.info("Replacing data format '%s' as defined by %s with definition"
-                    " from %s" % (name, registrant(prev_bundle), registrant(bundle_info)))
+                    " from %s" % (name, prev_bundle.name, bundle_info.name))
         from .format import DataFormat
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)
