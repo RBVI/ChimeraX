@@ -74,7 +74,8 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        _mouse_place_marker(s, c, link_to_selected = self.link_new)
+        d = p.drawing() if hasattr(p, 'drawing') else None
+        _mouse_place_marker(s, c, link_to_selected = self.link_new, on_model = d)
             
     def place_on_maximum(self, event):
         from chimerax.map import Volume
@@ -83,7 +84,7 @@ class MarkerMouseMode(MouseMode):
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
-            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
+            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new, on_model = v)
 
     def _set_sizes(self, volume):
         if not self._set_initial_sizes:
@@ -101,7 +102,7 @@ class MarkerMouseMode(MouseMode):
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         if sxyz is not None:
             self._set_sizes(v)
-            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
+            _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new, on_model = v)
 
     def place_on_point(self, event):
         if isinstance(event, LaserEvent):
@@ -344,7 +345,7 @@ def mark_map_center(volume):
         varea = surface.vertex_areas(va, ta)
         a = varea.sum()
         c = varea.dot(va)/a
-        _mouse_place_marker(volume.session, c)
+        _mouse_place_marker(volume.session, c, on_model = volume)
         
 # -----------------------------------------------------------------------------
 #
@@ -475,10 +476,12 @@ def _mouse_markerset(session):
         ms['molecule'] = m
     return m
     
-def _mouse_place_marker(session, center, link_to_selected = False, select = True, log = True):
+def _mouse_place_marker(session, center, link_to_selected = False, select = True, log = True, on_model = None):
     m = _mouse_markerset(session)
     ms = _mouse_marker_settings(session)
     a = m.create_marker(center, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    if on_model:
+        _set_marker_frame_number(a, on_model)
     if log:
         _log_place_marker(m, center, ms['marker color'], ms['marker radius'])
     ms['next_marker_num'] += 1
@@ -495,6 +498,19 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
         session.selection.clear()
         a.selected = True
 
+def _set_marker_frame_number(marker, model):
+    from chimerax.map import Volume
+    if not isinstance(model, Volume):
+        return
+    series = getattr(model, 'series', None)
+    if series is None:
+        return
+    from chimerax.map_series import MapSeries
+    if not isinstance(series, MapSeries):
+        return
+    marker.frame = series.maps.index(model)
+    marker.structure.save_marker_attribute_in_sessions('frame', int)
+    
 def _log_place_marker(mset, center, color, radius):
     c = '%.4g,%.4g,%.4g' % tuple(center)
     from chimerax.core.colors import color_name

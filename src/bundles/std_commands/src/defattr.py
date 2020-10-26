@@ -330,6 +330,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
     none_handling = None
     type_warning_issued = False
     from chimerax import io
+    num_saved = 0
     with io.open_output(output, 'utf-8') as stream:
         print("attribute: %s" % attr_name, file=stream)
         print("recipient: %s" % recipient, file=stream)
@@ -366,7 +367,10 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
                 spec = source.string(style="command",
                     omit_structure=(None if model_ids is None else not model_ids))
             print("\t%s\t%s" % (spec, str(val)), file=stream)
+            num_saved += 1
 
+        session.logger.info("Saved attribute '%s' of %d %s using match mode: %s to %s" % (attr_name,
+            num_saved, (recipient if num_saved != 1 else recipient[:-1]), match_mode, output))
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc
