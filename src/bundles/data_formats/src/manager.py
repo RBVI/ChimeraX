@@ -86,7 +86,7 @@ class FormatsManager(ProviderManager):
             Returns None if there is no such format.
         """
         from chimerax.open_command import NoOpenerError
-        return self._format_from_suffix(self.session.open_command.open_info,
+        return self._format_from_suffix(self.session.open_command.provider_info,
             NoOpenerError, suffix)
 
     def open_format_from_file_name(self, file_name):

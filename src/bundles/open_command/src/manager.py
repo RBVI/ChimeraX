@@ -193,14 +193,18 @@ class OpenManager(ProviderManager):
         return provider_info.bundle_info.run_provider(self.session, provider_info.name,
             self).open_args
 
-    def open_info(self, data_format):
+    def opener_info(self, data_format):
+        provider_info = self.provider_info(data_format)
+        if not provider_info.bundle_info.installed:
+            return None
+        return provider_info.bundle_info.run_provider(self.session, provider_info.name, self)
+
+    def provider_info(self, data_format):
         try:
             provider_info = self._openers[data_format]
-            return (provider_info.bundle_info.run_provider(self.session,
-                provider_info.name, self), provider_info)
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'"
-                % data_format.name)
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+        return provider_info
 
 def bool_cvt(val, name, bundle_name, var_name):
     if not isinstance(val, bool):
