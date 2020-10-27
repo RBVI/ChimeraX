@@ -1077,7 +1077,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     from chimerax.core.errors import UserError
     from chimerax.atomic import Atom, Residue, Structure
     from .defattr import parse_attribute_name
-    attr_name, class_obj = parse_attribute_name(attr_name, allowable_types=[int, float])
+    attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
 
     if atoms is None:
         from chimerax.atomic import all_atoms

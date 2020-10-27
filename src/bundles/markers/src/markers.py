@@ -38,6 +38,9 @@ class MarkerSet(Structure):
         Structure.set_state_from_snapshot(s, session, data)
         return s
 
+    def save_marker_attribute_in_sessions(self, attr_name, attr_type):
+        from chimerax.atomic import Atom
+        Atom.register_attr(self.session, attr_name, "markers", attr_type=attr_type)
     
 def create_link(atom1, atom2, rgba = None, radius = None, log = False):
     m = atom1.structure

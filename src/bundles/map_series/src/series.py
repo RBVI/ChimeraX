@@ -153,7 +153,7 @@ class MapSeries(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def surface_model(self, time):
+  def volume_model(self, time):
 
     return self.maps[time]
       

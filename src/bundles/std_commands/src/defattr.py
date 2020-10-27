@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -121,6 +120,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
         append_all_info(attrs, data, lnum+1)
 
     for attr_info, data_info in all_info:
+        num_assignments = 0
         attr_name = attr_info['attribute']
         color_attr = attr_name.lower().endswith('color') or attr_name.lower().endswith('colour')
 
@@ -168,6 +168,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
             if len(matches) > 1 and match_mode == "1-to-1":
                 raise SyntaxError("Selector (%s) on line %d of %s matched multiple %s"
                     % (spec, line_num, file_name, recipient))
+            num_assignments += len(matches)
 
             if log:
                 session.logger.info("Selector %s matched %s"
@@ -249,7 +250,10 @@ def defattr(session, file_name, *, log=False, restriction=None):
             recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
                 can_return_none=can_return_none)
 
-def parse_attribute_name(attr_name, *, allowable_types=None):
+        session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
+            num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
+
+def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure
     if len(attr_name) > 1 and attr_name[1] == ':':
         attr_level = attr_name[0]
@@ -303,7 +307,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
         structures = [m for m in models if isinstance(m, Structure)]
 
     # gather items whose attributes will be saved
-    attr_name, class_obj = parse_attribute_name(attr_name)
+    attr_name, class_obj = parse_attribute_name(session, attr_name)
     recipient = {Atom: 'atoms', Residue: 'residues', Structure: 'structures'}[class_obj]
     sources = []
     if selected_only:
@@ -326,6 +330,7 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
     none_handling = None
     type_warning_issued = False
     from chimerax import io
+    num_saved = 0
     with io.open_output(output, 'utf-8') as stream:
         print("attribute: %s" % attr_name, file=stream)
         print("recipient: %s" % recipient, file=stream)
@@ -362,7 +367,10 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
                 spec = source.string(style="command",
                     omit_structure=(None if model_ids is None else not model_ids))
             print("\t%s\t%s" % (spec, str(val)), file=stream)
+            num_saved += 1
 
+        session.logger.info("Saved attribute '%s' of %d %s using match mode: %s to %s" % (attr_name,
+            num_saved, (recipient if num_saved != 1 else recipient[:-1]), match_mode, output))
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc

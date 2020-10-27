@@ -435,6 +435,7 @@ class Log(ToolInstance, HtmlLog):
     # Override ToolInstance methods
     #
     def delete(self):
+        self.regulating_timer.stop()
         self.session.logger.remove_log(self)
         super().delete()
 

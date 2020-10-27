@@ -24,6 +24,8 @@ def register_command(ci, logger):
                                   ('name', StringArg),
                                   ('color', Color8TupleArg),
                                   ('face_image', OpenFileNameArg),
+                                  ('proxy', StringArg),
+                                  ('key_for_proxy', OpenFileNameArg),
                                   ('copy_scene', BoolArg),
                                   ('relay_commands', BoolArg),
                                   ('update_interval', IntArg)])
