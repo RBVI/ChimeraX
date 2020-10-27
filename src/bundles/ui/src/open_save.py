@@ -23,7 +23,8 @@ from PyQt5.QtCore import Qt
 class SaveDialog(QFileDialog):
     def __init__(self, session, parent = None, *args, data_formats=None, **kw):
         if data_formats is None:
-            data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
+            data_formats = [fmt for fmt in session.save_command.save_data_formats
+                if fmt.suffixes and session.save_command.save_info(fmt).bundle_info.installed]
         data_formats.sort(key=lambda fmt: fmt.name.casefold())
         # make some things public
         self.data_formats = data_formats

@@ -145,7 +145,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     opened_models.append(name_and_group_models(models, name, [ident]))
                     ungrouped_models.extend(models)
         else:
-            opener_info, provider_info = mgr.open_info(data_format)
+            opener_info = mgr.opener_info(data_format)
+            if opener_info is None:
+                raise NotImplementedError("Don't know how to open uninstalled format %s" % data_format.name)
+            provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
@@ -173,7 +176,12 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         ungrouped_models.extend(models)
     else:
         for fi in file_infos:
-            opener_info, provider_info = mgr.open_info(fi.data_format)
+
+            opener_info = mgr.opener_info(fi.data_format)
+            if opener_info is None:
+                raise NotImplementedError("Don't know how to fetch uninstalled format %s"
+                    % fi.data_format.name)
+            provider_info = mgr.provider_info(fi.data_format)
             if provider_info.want_path:
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
@@ -544,6 +552,8 @@ def cmd_open_formats(session):
     all_formats = session.open_command.open_data_formats
     by_category = {}
     for fmt in all_formats:
+        if not session.open_command.provider_info(fmt).bundle_info.installed:
+            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()

@@ -125,6 +125,8 @@ def cmd_save_formats(session):
     all_formats = session.save_command.save_data_formats
     by_category = {}
     for fmt in all_formats:
+        if not session.save_command.save_info(fmt).bundle_info.installed:
+            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()
