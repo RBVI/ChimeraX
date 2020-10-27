@@ -1016,8 +1016,10 @@ class MouseTracking(PointerModels):
         xyz = getattr(pick, 'position', None)
         if xyz is None:
             return
+        # Show pointer perpendicular to the view direction at 45 degrees
+        # for best visibility of the atom being pointed to.
         c = self._session.main_view.camera
-        axis = c.view_direction()
+        axis = c.position.transform_vector((-0.707, 0.707, 0))
         msg = {'name': self._participant._name,
                'color': tuple(self._participant._color),
                'mouse': (tuple(xyz), tuple(axis)),
