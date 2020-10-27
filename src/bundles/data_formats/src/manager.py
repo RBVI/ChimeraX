@@ -75,8 +75,8 @@ class FormatsManager(ProviderManager):
             logger.warning("Data format provider '%s' didn't specify a category."
                 "  Using catch-all category '%s'" % (name, self.CAT_GENERAL))
             category = self.CAT_GENERAL
-        self.add_format(name, category, suffixes=suffixes, nicknames=nicknames,
-            bundle_info=bundle_info, mime_types=mime_types, reference_url=reference_url,
+        self.add_format(bundle_info, name, category, suffixes=suffixes, nicknames=nicknames,
+            mime_types=mime_types, reference_url=reference_url,
             insecure=insecure, encoding=encoding, synopsis=synopsis,
             allow_directory=allow_directory, raise_trigger=False)
 
