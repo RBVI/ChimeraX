@@ -80,11 +80,13 @@ class OptionsPanel(QWidget):
                 insert_row = len(self._options)
         self._form.insertRow(insert_row, option.name, option.widget)
         self._options.insert(insert_row, option)
-        label_widget = self._form.itemAt(insert_row, QFormLayout.LabelRole).widget()
-        label_widget.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        label_widget.setOpenExternalLinks(True)
-        if option.balloon:
-            label_widget.setToolTip(option.balloon)
+        label_item = self._form.itemAt(insert_row, QFormLayout.LabelRole)
+        if label_item:
+            label_widget = label_item.widget()
+            label_widget.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            label_widget.setOpenExternalLinks(True)
+            if option.balloon:
+                label_widget.setToolTip(option.balloon)
 
     def add_option_group(self, group_label=None, checked=None, group_alignment=None, **kw):
         if group_label is None:
