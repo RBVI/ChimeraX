@@ -188,10 +188,11 @@ class OpenManager(ProviderManager):
         try:
             provider_info = self._openers[data_format]
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'"
-                % data_format.name)
-        return provider_info.bundle_info.run_provider(self.session, provider_info.name,
-            self).open_args
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+        opener_info = self.opener_info(data_format):
+        if opener_info is None:
+            raise NoOpenerError("Opener for format '%s' is not installed" % data_format.name)
+        return opener_info.open_args
 
     def opener_info(self, data_format):
         provider_info = self.provider_info(data_format)
