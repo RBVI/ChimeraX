@@ -356,7 +356,9 @@ class MeetingParticipant:
         if start_hub:
             self._hub = h = MeetingHub(session, self)
             self._message_stream = MessageStreamLocal(h._message_received)
-            
+        
+        # Exit cleanly
+        self._app_quit_handler = session.triggers.add_handler('app quit', self._app_quit)
 
     def _get_name(self):
         return self._name
@@ -408,11 +410,21 @@ class MeetingParticipant:
         if self._hub:
             self._hub.close()
             self._hub = None
+
+        aqh = self._app_quit_handler
+        if aqh:
+            self._session.triggers.remove_handler(aqh)
+            self._app_quit_handler = None
             
     def _close_trackers(self):
         for t in self._trackers:
             t.delete()
         self._trackers = []
+    
+    def _app_quit(self, tname, tdata):
+        # Catch app quit otherwise we get socket closed event after OpenGL is gone
+        # and cleaning up meeting models raises errors.
+        self.close()
 
     def send_scene(self):
         if self._session.models.empty():
@@ -998,8 +1010,6 @@ class MouseTracking(PointerModels):
         self._camera_move_handler = t.add_handler('new frame', self._camera_move_cb)
 
     def delete(self):
-        print ('deleted mouse tracking')
-        
         t = self._session.triggers
         t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
