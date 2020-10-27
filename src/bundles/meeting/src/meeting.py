@@ -994,21 +994,43 @@ class MouseTracking(PointerModels):
 
         t = session.triggers
         self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
+        self._last_camera_position = None
+        self._camera_move_handler = t.add_handler('new frame', self._camera_move_cb)
 
     def delete(self):
+        print ('deleted mouse tracking')
+        
         t = self._session.triggers
         t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
+        t.remove_handler(self._camera_move_handler)
+        self._camera_move_handler = None
 
         PointerModels.delete(self)
 
     def update_model(self, msg):
         if 'mouse' in msg:
             PointerModels.update_model(self, msg)
-
+        if 'camera position' in msg and _vr_camera(self._session) is None:
+            c = self._session.main_view.camera
+            c.position = _matrix_place(msg['camera position'])
+            self._last_camera_position = c.position
+            
     def make_pointer_model(self, session):
         return MousePointerModel(self._session, 'my pointer')
 
+    def _camera_move_cb(self, trigger_name, update_loop):
+        if _vr_camera(self._session):
+            return
+                        
+        p = self._session.main_view.camera.position
+        lp = self._last_camera_position
+        if lp is None or p != lp:
+            self._last_camera_position = p
+            msg = {'camera position': _place_matrix(p)}
+            # Tell other participants my new mouse pointer position.
+            self._participant._send_message(msg)
+            
     def _mouse_hover_cb(self, trigger_name, pick):
         if _vr_camera(self._session):
             return
