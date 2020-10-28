@@ -101,7 +101,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         # want to log command even for keyboard interrupts
         log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
         raise
-    models = Command(session, registry=registry).run(provider_cmd_text, log=log)
+    # Unlike run(), Command.run returns a list of results
+    models = Command(session, registry=registry).run(provider_cmd_text, log=log)[0]
     if return_json:
         from chimerax.core.commands import JSONResult
         from json import JSONEncoder

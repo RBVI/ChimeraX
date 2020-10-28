@@ -347,6 +347,7 @@ class MeetingParticipant:
         self._mouse_tracker = None
         self._vr_tracker = None
         self._copy_scene = False
+        self._received_scene = start_hub
 
         self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
@@ -356,7 +357,9 @@ class MeetingParticipant:
         if start_hub:
             self._hub = h = MeetingHub(session, self)
             self._message_stream = MessageStreamLocal(h._message_received)
-            
+        
+        # Exit cleanly
+        self._app_quit_handler = session.triggers.add_handler('app quit', self._app_quit)
 
     def _get_name(self):
         return self._name
@@ -408,11 +411,21 @@ class MeetingParticipant:
         if self._hub:
             self._hub.close()
             self._hub = None
+
+        aqh = self._app_quit_handler
+        if aqh:
+            self._session.triggers.remove_handler(aqh)
+            self._app_quit_handler = None
             
     def _close_trackers(self):
         for t in self._trackers:
             t.delete()
         self._trackers = []
+    
+    def _app_quit(self, tname, tdata):
+        # Catch app quit otherwise we get socket closed event after OpenGL is gone
+        # and cleaning up meeting models raises errors.
+        self.close()
 
     def send_scene(self):
         if self._session.models.empty():
@@ -440,6 +453,7 @@ class MeetingParticipant:
         restore_camera = (ses.main_view.camera.name != 'vr')
         ses.restore(stream, resize_window = False, restore_camera = restore_camera,
                     clear_log = False)
+        self._received_scene = True
         t2 = time()
         ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
                           % (len(sbytes)/2**20, (t2-t1)))
@@ -994,21 +1008,45 @@ class MouseTracking(PointerModels):
 
         t = session.triggers
         self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
+        self._last_camera_position = None
+        self._camera_move_handler = t.add_handler('new frame', self._camera_move_cb)
 
     def delete(self):
         t = self._session.triggers
         t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
+        t.remove_handler(self._camera_move_handler)
+        self._camera_move_handler = None
 
         PointerModels.delete(self)
 
     def update_model(self, msg):
         if 'mouse' in msg:
             PointerModels.update_model(self, msg)
-
+        if ('camera position' in msg and
+            _vr_camera(self._session) is None and
+            self._participant._received_scene):
+            c = self._session.main_view.camera
+            c.position = _matrix_place(msg['camera position'])
+            self._last_camera_position = c.position
+            
     def make_pointer_model(self, session):
         return MousePointerModel(self._session, 'my pointer')
 
+    def _camera_move_cb(self, trigger_name, update_loop):
+        if _vr_camera(self._session):
+            return
+        if not self._participant._received_scene:
+            return
+                        
+        p = self._session.main_view.camera.position
+        lp = self._last_camera_position
+        if lp is None or p != lp:
+            self._last_camera_position = p
+            msg = {'camera position': _place_matrix(p)}
+            # Tell other participants my new mouse pointer position.
+            self._participant._send_message(msg)
+            
     def _mouse_hover_cb(self, trigger_name, pick):
         if _vr_camera(self._session):
             return
@@ -1016,8 +1054,10 @@ class MouseTracking(PointerModels):
         xyz = getattr(pick, 'position', None)
         if xyz is None:
             return
+        # Show pointer perpendicular to the view direction at 45 degrees
+        # for best visibility of the atom being pointed to.
         c = self._session.main_view.camera
-        axis = c.view_direction()
+        axis = c.position.transform_vector((-0.707, 0.707, 0))
         msg = {'name': self._participant._name,
                'color': tuple(self._participant._color),
                'mouse': (tuple(xyz), tuple(axis)),
