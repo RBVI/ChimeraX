@@ -347,6 +347,7 @@ class MeetingParticipant:
         self._mouse_tracker = None
         self._vr_tracker = None
         self._copy_scene = False
+        self._received_scene = start_hub
 
         self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
@@ -452,6 +453,7 @@ class MeetingParticipant:
         restore_camera = (ses.main_view.camera.name != 'vr')
         ses.restore(stream, resize_window = False, restore_camera = restore_camera,
                     clear_log = False)
+        self._received_scene = True
         t2 = time()
         ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
                           % (len(sbytes)/2**20, (t2-t1)))
@@ -1021,7 +1023,9 @@ class MouseTracking(PointerModels):
     def update_model(self, msg):
         if 'mouse' in msg:
             PointerModels.update_model(self, msg)
-        if 'camera position' in msg and _vr_camera(self._session) is None:
+        if ('camera position' in msg and
+            _vr_camera(self._session) is None and
+            self._participant._received_scene):
             c = self._session.main_view.camera
             c.position = _matrix_place(msg['camera position'])
             self._last_camera_position = c.position
@@ -1031,6 +1035,8 @@ class MouseTracking(PointerModels):
 
     def _camera_move_cb(self, trigger_name, update_loop):
         if _vr_camera(self._session):
+            return
+        if not self._participant._received_scene:
             return
                         
         p = self._session.main_view.camera.position
