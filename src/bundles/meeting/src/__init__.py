@@ -25,7 +25,12 @@ class _MeetingAPI(BundleAPI):
     @staticmethod
     def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import reg_cmd
-        reg_cmd.register_command(ci, logger)
+        cmd_name = ci.name
+        if cmd_name.startswith('meeting'):
+            from . import meeting
+            meeting.register_meeting_command(cmd_name, logger)
+        elif cmd_name.startswith('conference'):
+            from . import reg_cmd
+            reg_cmd.register_command(ci, logger)
 
 bundle_api = _MeetingAPI()

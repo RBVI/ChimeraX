@@ -13,28 +13,68 @@
 #
 def meeting(session, host = None, port = 52194,
             name = None, color = None, face_image = None,
-            proxy = None, key_for_proxy = None,
-            copy_scene = None, relay_commands = None, update_interval = None):
-    '''Allow two or more ChimeraX instances to show each others' VR hand-controller
-    and headset positions or mouse positions.
+            relay_commands = None, update_interval = None):
+    '''
+    Join a meeting where two or more ChimeraX instances show the same models
+    and show each others' VR hands and face or mouse positions.
 
     Parameters
     ----------
     host : string
-      If the value is "start" then a shared session is started that other ChimeraX instances can join.
-      The log will output the host name or IP address that other ChimeraX users should connect to.
-      To connect to a meeting started by another ChimeraX the host value should be the host name or
-      IP address of the ChimeraX that started the meeting, for example, "descartes.cgl.ucsf.edu" or "169.230.21.39".
-      One ChimeraX specifies this as "start" which starts listening for connections
-      If no address is specified, the current meeting connections are reported to the log.
+      Host name or IP address of the ChimeraX that started the meeting,
+      for example, "descartes.cgl.ucsf.edu" or "169.230.21.39".
+      If host is not specified, the info about the current meeting is reported to the log.
     port : int
-      Optional port number.  Can be omitted in which case default port 52194 is used.
+      Port number used by ChimeraX that started the meeting.
+      Can be omitted in which case default port 52194 is used.
     name : string
       Name to identify this ChimeraX on remote machines.
     color : r,g,b,a (range 0-255)
       Color for my mouse pointer shown on other machines
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction.
+    relay_commands : bool
+      Whether to have every command you run sent to the other participants and their commands
+      sent to you and automatically run so changes to the scene are mirrored for all participants.
+      Default true.
+    update_interval : int
+      How often VR hand and head model positions are sent for this ChimeraX instance in frames.
+      Value of 1 updates every frame.  Default 1.
+    '''
+
+    if host is None:
+        p = _meeting_participant(session)
+        if p is None:
+            session.logger.status('No ChimeraX meeting started', log = True)
+            return
+        _report_connection(session, p)
+    else:
+        p = _join_meeting(session, host, port)
+
+    _set_appearance(session, p, name, color, face_image)
+
+    if relay_commands is not None:
+        p.send_and_receive_commands(relay_commands)
+
+    if update_interval is not None:
+        p.vr_tracker.update_interval = update_interval
+
+# -----------------------------------------------------------------------------
+#
+def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
+                  copy_scene = None,
+                  name = None, color = None, face_image = None,
+                  relay_commands = None, update_interval = None):
+    '''
+    Start a meeting allowing two or more ChimeraX instances to show each others' VR hand-controller
+    and headset positions or mouse positions.  One participant starts the meeting with this command
+    and the others join the meeting with the meeting command. The log will output the host name or
+    IP address that other ChimeraX users should join this meeting.
+
+    Parameters
+    ----------
+    port : int
+      Optional port number.  Can be omitted in which case default port 52194 is used.
     proxy : string
       User and host name for a proxy server, for example chimerax@13.56.160.227.
       An ssh tunnel is made to the proxy server so that participants can connect to
@@ -53,6 +93,12 @@ def meeting(session, host = None, port = 52194,
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
+    name : string
+      Name to identify this ChimeraX on remote machines.
+    color : r,g,b,a (range 0-255)
+      Color for my mouse pointer shown on other machines
+    face_image : string
+      Path to PNG or JPG image file for image to use for VR face depiction.
     relay_commands : bool
       Whether to have every command you run sent to the other participants and their commands
       sent to you and automatically run so changes to the scene are mirrored for all participants.
@@ -62,21 +108,9 @@ def meeting(session, host = None, port = 52194,
       Value of 1 updates every frame.  Default 1.
     '''
 
-    if host is None:
-        p = _meeting_participant(session)
-        if p is None:
-            session.logger.status('No ChimeraX meeting started', log = True)
-            return
-        _report_connection(session, p)
-    elif host == 'start':
-        p = _start_meeting(session, port, copy_scene)
-    else:
-        p = _join_meeting(session, host, port)
+    p = _start_meeting(session, port, copy_scene)
 
     _set_appearance(session, p, name, color, face_image)
-
-    if copy_scene is not None and p.hub:
-        p.hub.copy_scene(copy_scene)
 
     if relay_commands is not None:
         p.send_and_receive_commands(relay_commands)
@@ -86,8 +120,6 @@ def meeting(session, host = None, port = 52194,
 
     if proxy is not None:
         from chimerax.core.errors import UserError
-        if p.hub is None:
-            raise UserError('meeting: proxy option can only be used by meeting host')
         if key_for_proxy is None:
             raise UserError('meeting: must specify keyForProxy option if proxy option used')
         ssh_process = _create_ssh_tunnel(proxy, port, key_for_proxy, log=session.logger)
@@ -106,7 +138,8 @@ def _start_meeting(session, port, copy_scene):
                         ' the meeting you are currently in using'
                         ' command "meeting close"')
     if copy_scene is None:
-        h.copy_scene(True)
+        copy_scene = True
+    h.copy_scene(copy_scene)
     h.listen(port)
     msg = "Meeting at %s" % h.listen_host_info()
     session.logger.status(msg, log = True)
@@ -299,28 +332,39 @@ def meeting_send(session):
 # -----------------------------------------------------------------------------
 # Register the connect command for ChimeraX.
 #
-def register_meeting_command(logger):
+def register_meeting_command(cmd_name, logger):
     '''
     Currently unused.  Registered instead in reg_cmd.py.
     '''
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg
-    desc = CmdDesc(optional = [('host', StringArg)],
-                   keyword = [('port', IntArg),
-                              ('name', StringArg),
-                              ('color', Color8TupleArg),
-                              ('face_image', OpenFileNameArg),
-                              ('proxy', StringArg),
-                              ('key_for_proxy', OpenFileNameArg),
-                              ('copy_scene', BoolArg),
-                              ('relay_commands', BoolArg),
-                              ('update_interval', IntArg)],
-                   synopsis = 'Show synchronized mouse or VR hand controllers between two ChimeraX instances')
-    register('meeting', desc, meeting, logger=logger)
-    desc = CmdDesc(synopsis = 'Close meeting')
-    register('meeting close', desc, meeting_close, logger=logger)
-    desc = CmdDesc(synopsis = 'Copy my scene to all other meeting participants')
-    register('meeting send', desc, meeting_send, logger=logger)
+
+    participant_kw = [
+        ('name', StringArg),
+        ('color', Color8TupleArg),
+        ('face_image', OpenFileNameArg),
+        ('relay_commands', BoolArg),
+        ('update_interval', IntArg)
+    ]
+
+    if cmd_name == 'meeting':
+        desc = CmdDesc(optional = [('host', StringArg)],
+                   keyword = [('port', IntArg)] + participant_kw,
+                   synopsis = 'Join a ChimeraX meeting')
+        register('meeting', desc, meeting, logger=logger)
+    elif cmd_name == 'meeting start':
+        desc = CmdDesc(keyword = [('port', IntArg),
+                                  ('proxy', StringArg),
+                                  ('key_for_proxy', OpenFileNameArg),
+                                  ('copy_scene', BoolArg)] + participant_kw,
+                       synopsis = 'Create a ChimeraX meeting')
+        register('meeting start', desc, meeting_start, logger=logger)
+    elif cmd_name == 'meeting close':
+        desc = CmdDesc(synopsis = 'Close meeting')
+        register('meeting close', desc, meeting_close, logger=logger)
+    elif cmd_name == 'meeting send':
+        desc = CmdDesc(synopsis = 'Copy my scene to all other meeting participants')
+        register('meeting send', desc, meeting_send, logger=logger)
 
 # -----------------------------------------------------------------------------
 #
