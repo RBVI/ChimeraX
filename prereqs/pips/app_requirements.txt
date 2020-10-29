@@ -32,6 +32,7 @@ PyOpenGL==3.1.5
 PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
 qtconsole==4.7.7
+requests==2.24.0
 scipy==1.5.2
 six==1.15.0
 sortedcontainers==2.2.2
