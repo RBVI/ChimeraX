@@ -38,6 +38,8 @@ class ToolbarManager(ProviderManager):
 
     def add_provider(self, bundle_info, name, **kw):
 
+        if not bundle_info.installed:
+            return
         def where():
             return 'for toolbar provider %r in bundle %r' % (name, bundle_info.name)
         # <Provider tab="Graphics" help="help:..."
