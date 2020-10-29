@@ -13,7 +13,8 @@
 #
 def meeting(session, host = None, port = 52194,
             name = None, color = None, face_image = None,
-            relay_commands = None, update_interval = None):
+            relay_commands = None, update_interval = None,
+            id = None, name_server = 'chimeraxmeeting.net', name_server_port = 51472):
     '''
     Join a meeting where two or more ChimeraX instances show the same models
     and show each others' VR hands and face or mouse positions.
@@ -40,15 +41,26 @@ def meeting(session, host = None, port = 52194,
     update_interval : int
       How often VR hand and head model positions are sent for this ChimeraX instance in frames.
       Value of 1 updates every frame.  Default 1.
+    id : string
+      Name for the meeting that participants can use to join the meeting instead of a host address.
+      Should not contain "." or ":" and is case insensitive.  The meeting can only be named if there
+      is a name server tunning given by the the name_server and name_server_port options.
+    name_server : string
+      Host name or IP address for the name server which maps meeting names given by the id option
+      to the host address and port for connecting to the meeting.
+    name_server_port : int
+      Port number for the name server given by the name_server option.
     '''
 
-    if host is None:
+    if host is None and id is None:
         p = _meeting_participant(session)
         if p is None:
             session.logger.status('No ChimeraX meeting started', log = True)
             return
         _report_connection(session, p)
     else:
+        if id is not None:
+            host, port = _lookup_meeting_id(id, name_server, name_server_port)
         p = _join_meeting(session, host, port)
 
     _set_appearance(session, p, name, color, face_image)
@@ -64,7 +76,8 @@ def meeting(session, host = None, port = 52194,
 def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
                   copy_scene = None,
                   name = None, color = None, face_image = None,
-                  relay_commands = None, update_interval = None):
+                  relay_commands = None, update_interval = None,
+                  id = None, name_server = 'chimeraxmeeting.net', name_server_port = 51472):
     '''
     Start a meeting allowing two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.  One participant starts the meeting with this command
@@ -93,22 +106,11 @@ def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
       when they join the meeting.
-    name : string
-      Name to identify this ChimeraX on remote machines.
-    color : r,g,b,a (range 0-255)
-      Color for my mouse pointer shown on other machines
-    face_image : string
-      Path to PNG or JPG image file for image to use for VR face depiction.
-    relay_commands : bool
-      Whether to have every command you run sent to the other participants and their commands
-      sent to you and automatically run so changes to the scene are mirrored for all participants.
-      Default true.
-    update_interval : int
-      How often VR hand and head model positions are sent for this ChimeraX instance in frames.
-      Value of 1 updates every frame.  Default 1.
+    name, color, face_image, relay_commands, update_interval, id, name_server, name_server_port :
+      See the meeting command documentation for these options.
     '''
 
-    p = _start_meeting(session, port, copy_scene)
+    p = _start_meeting(session, port, copy_scene = copy_scene)
 
     _set_appearance(session, p, name, color, face_image)
 
@@ -126,7 +128,47 @@ def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
         if ssh_process is None:
             raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
         p.hub._ssh_tunnel_process = ssh_process
-        
+
+    if id is not None:
+        _set_meeting_id(p.hub, id, name_server, name_server_port)
+
+    # Log meeting info
+    addresses = [ssh_process._tunnel_host_and_port[0]] if proxy else p.hub.listening_addresses_and_port()[0]
+    _report_start(addresses, port, id, session.logger)
+
+# -----------------------------------------------------------------------------
+#
+def _set_meeting_id(hub, id, name_server, name_server_port):
+    from chimerax.core.errors import UserError
+    try:
+        success = hub.set_meeting_id(id, name_server, name_server_port)
+    except ConnectionError as e:
+        raise UserError('meeting: Could not register meeting id "%s"' % id +
+                        ', unable to connect to name server %s:%d' % (name_server, name_server_port))
+    except TimeoutError as e:
+        raise UserError('meeting: Could not register meeting id "%s"' % id +
+                        ', timed out connecting to name server %s:%d' % (name_server, name_server_port))
+    if not success:
+        raise UserError('meeting: Meeting id "%s" already in use' % id)
+
+# -----------------------------------------------------------------------------
+#
+def _lookup_meeting_id(id, name_server, name_server_port):
+    from chimerax.core.errors import UserError
+    from .nameserver import get_address
+    try:
+        host, port = get_address(id.casefold(), name_server, name_server_port)
+    except ConnectionError as e:
+        raise UserError('meeting: Could not lookup meeting id "%s"' % id +
+                        ', unable to connect to name server %s:%d' % (name_server, name_server_port))
+    except TimeoutError as e:
+        raise UserError('meeting: Could not lookup meeting id "%s"' % id +
+                        ', timed out connecting to name server %s:%d' % (name_server, name_server_port))
+    if host is None:
+        raise UserError('meeting: Meeting id "%s" not found using name server %s:%d'
+                        % (id, name_server, name_server_port))
+    return host, port
+            
 # -----------------------------------------------------------------------------
 #
 def _start_meeting(session, port, copy_scene):
@@ -141,8 +183,6 @@ def _start_meeting(session, port, copy_scene):
         copy_scene = True
     h.copy_scene(copy_scene)
     h.listen(port)
-    msg = "Meeting at %s" % h.listen_host_info()
-    session.logger.status(msg, log = True)
     return p
 
 # -----------------------------------------------------------------------------
@@ -156,6 +196,25 @@ def _join_meeting(session, host, port):
                         ' command "meeting close"')
     p.connect(host, port)
     return p
+
+# -----------------------------------------------------------------------------
+#
+def _report_start(addresses, port, id, log):
+    loc = ' or '.join(addresses)
+    if port != 52194:
+        loc += ' port %d' % port
+    if id is not None:
+        status = 'Meeting "%s" started at %s' % (id, loc)
+        cmds = ['meeting id %s' % id]
+    else:
+        status = 'Meeting started at %s' % loc
+        cmds = [('meeting %s' % host) if port == 52194 else ('meeting %s port %s' % (host, port))
+                for host in addresses]
+    cmd = ' or '.join(['"%s"' % cmd for cmd in cmds])
+    info = status + '\nParticipants can join with command %s' % cmd
+
+    log.status(status)
+    log.info(info)
 
 # -----------------------------------------------------------------------------
 #
@@ -262,6 +321,9 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
         log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
         return None
 
+    host = remote.split('@')[1] if '@' in remote else remote
+    p._tunnel_host_and_port = (host, port)
+    
     # Assure at exit that the process is terminated.
     import atexit
     atexit.register(lambda p=p: p.poll() is None and p.terminate())
@@ -344,17 +406,20 @@ def register_meeting_command(cmd_name, logger):
         ('color', Color8TupleArg),
         ('face_image', OpenFileNameArg),
         ('relay_commands', BoolArg),
-        ('update_interval', IntArg)
+        ('update_interval', IntArg),
+        ('port', IntArg),
+        ('id', StringArg),
+        ('name_server', StringArg),
+        ('name_server_port', IntArg),
     ]
 
     if cmd_name == 'meeting':
         desc = CmdDesc(optional = [('host', StringArg)],
-                   keyword = [('port', IntArg)] + participant_kw,
+                   keyword = participant_kw,
                    synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
-        desc = CmdDesc(keyword = [('port', IntArg),
-                                  ('proxy', StringArg),
+        desc = CmdDesc(keyword = [('proxy', StringArg),
                                   ('key_for_proxy', OpenFileNameArg),
                                   ('copy_scene', BoolArg)] + participant_kw,
                        synopsis = 'Create a ChimeraX meeting')
@@ -613,6 +678,7 @@ class MeetingHub:
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
         self._ssh_tunnel_process = None # Popen object for ssh tunnel to proxy.
+        self._meeting_id = None		# Name server meeting id (id, name_server, name_server_port)
 
     def close(self):
         for msg_stream in tuple(self._connections):
@@ -629,7 +695,28 @@ class MeetingHub:
         if t is not None:
             _close_proxy_tunnel(t)
             self._ssh_tunnel_process = None
-        
+
+        # Remove meeting id from name server
+        if self._meeting_id is not None:
+            self._release_meeting_id()
+
+    def _release_meeting_id(self):
+        '''Remove meeting id from name server.'''
+        mid = self._meeting_id
+        if mid is None:
+            return
+        meeting_id, name_server, name_server_port = mid
+        self._meeting_id = None
+        from .nameserver import clear_value
+        try:
+            success = clear_value(meeting_id, name_server, name_server_port)
+        except (ConnectionError, TimeoutError):
+            success = False
+        if not success:
+            msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
+                   % (meeting_id, name_server, name_server_port))
+            self._session.logger.warning(msg)
+
     @property
     def listening(self):
         s = self._server
@@ -653,18 +740,25 @@ class MeetingHub:
             s.newConnection.connect(self._new_connection)
     
     def listen_host_info(self):
-        if not self.listening:
+        addr_list, port = self.listening_addresses_and_port()
+        if not addr_list:
             return None
+        hinfo = '%s port %d' % (' or '.join(addr_list), port)
+        return hinfo
+    
+    def listening_addresses_and_port(self):
+        if not self.listening:
+            return [], None
         
         s = self._server
-        aa = self._available_server_ipv4_addresses()
-        addresses = ' or '.join(a.toString() for a in aa)
-        hi = '%s port %d' % (addresses, s.serverPort())
+        port = s.serverPort()
+        addresses = [a.toString() for a in self._available_server_ipv4_addresses()]
         from PyQt5.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
-            hi = '%s or %s' % (host, hi)
-        return hi
+            addresses.insert(0, host)
+        
+        return addresses, port
     
     def connected_ip_port_list(self):
         return [c.host_and_port() for c in self._connections
@@ -685,6 +779,23 @@ class MeetingHub:
                         a.append(ha)
         return a
 
+    def set_meeting_id(self, id, name_server, name_server_port):
+        proxy = self._ssh_tunnel_process
+        if proxy:
+            host, port = proxy._tunnel_host_and_port
+        else:
+            addresses, port = self.listening_addresses_and_port()
+            if not addresses:
+                return False
+            host = addresses[0]
+        from .nameserver import set_address
+        success = set_address(id.casefold(), host, port,
+                              name_server, name_server_port, replace = False)
+        if success:
+            # Remember id and clear it when meeting is closed
+            self._meeting_id = (id, name_server, name_server_port)
+        return success
+    
     def copy_scene(self, copy):
         self._copy_scene = copy
         
@@ -962,7 +1073,13 @@ class MessageStream:
 #            self._log.info('last message %s' % self._bandwidth_last_message)
             
     def _socket_error(self, error_type):
-        self._log.info('Socket error %s' % self._socket.errorString())
+        socket = self._socket
+        if socket.error() == socket.RemoteHostClosedError:
+            return
+        host = socket.peerAddress().toString()
+        port = socket.peerPort()
+        err = socket.errorString()
+        self._log.info('Socket error for message stream to %s:%d: %s' % (host, port, err))
 #        self._socket_disconnected()
 
     def _socket_disconnected(self):
