@@ -27,16 +27,19 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<a href="#start-options"><b>proxy</b></a>&nbsp;&nbsp;<i>proxy-host</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>keyForProxy</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>copyScene</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<i>host</i>&nbsp;
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
 <span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -49,11 +52,16 @@ class="clRight" title="User Guide Index"/></a>
 The <b>meeting</b> command shares a scene between
 two or more ChimeraX instances running on different computers.
 Its main purpose is to allow multi-person
-<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX, 
-although it can also be used without VR. 
+<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX.
+It can also be used without VR, but in that case, 
+a desktop screen-sharing program may be a more reliable alternative.
 Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
 so that participants can see each other pointing at objects in the scene.
+For non-VR participants, the camera view is synchronized, but
+the cone indicating the mouse pointer position of a non-VR user
+is only displayed to others when the user pauses the mouse over a model,
+as for picking.
 </p><p>
 The computer that started the meeting must be reachable over the 
 network by the other participants. Firewalls can block the connection;
@@ -89,12 +97,55 @@ The <b>meeting</b> command is under development
 and has several <a href="#limitations">limitations</a>.
 </p>
 
+<a name="start-options"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Meeting Start Options</h3>
+
+<blockquote>
+<a name="proxy"></a>
+<b>proxy</b> &nbsp;<i>proxy-host</i>
+<br>
+User and host name for a proxy server, for example,
+<b>chimerax@13.56.160.227</b>.
+An ssh tunnel is made to the proxy server so that participants can connect to
+the proxy when the meeting host is not directly reachable due to a firewall
+(<a href="#useproxy">details...</a>).
+The private key for connecting with ssh is provided with the 
+<a href="#keyForProxy"><b>keyForProxy</b></a> option.
+If the connection to the proxy server fails because the proxy is not reachable,
+it takes typically 75 seconds before the ssh connection attempt times out and an
+error message is logged. This option can only be used by the meeting host.
+</blockquote>
+<blockquote>
+<a name="keyForProxy"></a>
+<b>keyForProxy</b> &nbsp;<i>ssh-identity-file</i>
+<br>
+The ssh identity file (<i>e.g.</i>, <b>vr-key-private.pem</b>)
+used to make an ssh tunnel to the proxy server given with the 
+<a href="#proxy"><b>proxy</b></a> option.
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the pathname brings up a file browser window for choosing the
+file interactively.
+This identity file is the private key used to connect to the proxy using
+the ssh <i>-i</i> option when creating the tunnel. The file must not
+have read permissions by others or ssh will consider it insecure and 
+not accept it.
+</blockquote>
+<blockquote>
+<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to copy the session from the starting instance
+to each person who joins the meeting (default <b>true</b>).
+This copying is done only when a person joins the meeting. 
+</blockquote>
+
 <a name="options"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Options</h3>
-
+<h3>General Options</h3>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
@@ -128,44 +179,6 @@ for the pathname brings up a file browser window for choosing the
 file interactively. The meeting image pathname is remembered as a
 <a href="../preferences.html#other">preference</a>.
 </blockquote>
-
-<blockquote>
-<a name="proxy"></a>
-<b>proxy</b> &nbsp;<i>proxy-host</i>
-<br>
-User and host name for a proxy server, for example,
-<b>chimerax@13.56.160.227</b>.
-An ssh tunnel is made to the proxy server so that participants can connect to
-the proxy when the meeting host is not directly reachable due to a firewall
-(<a href="#useproxy">details...</a>).
-The private key for connecting with ssh is provided with the 
-<a href="#keyForProxy"><b>keyForProxy</b></a> option.
-If the connection to the proxy server fails because the proxy is not reachable,
-it takes typically 75 seconds before the ssh connection attempt times out and an
-error message is logged. This option can only be used by the meeting host.
-</blockquote>
-
-<blockquote>
-<a name="keyForProxy"></a>
-<b>keyForProxy</b> &nbsp;<i>ssh-identity-file</i>
-<br>
-The ssh identity file (<i>e.g.</i>, <b>vr-key-private.pem</b>)
-used to make an ssh tunnel to the proxy server given with the 
-<a href="#proxy"><b>proxy</b></a> option.
-This identity file is the private key used to connect to the proxy using
-the ssh <i>-i</i> option when creating the tunnel. The file must not
-have read permissions by others or ssh will consider it insecure and 
-not accept it.
-</blockquote>
-
-<blockquote>
-<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Specified with <b>meeting start</b>,
-whether to copy the session from the starting instance
-to each person who joins the meeting (default <b>true</b>).
-This copying is done only when a person joins the meeting. 
-</blockquote>
 <blockquote>
 <a name="relayCommands"></a>
 <b>relayCommands</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -190,8 +203,6 @@ as specified with <b>meeting start</b>.
 How often to send a participant's
 VR headset and hand-controller positions to the other participants
 (every <i>M</i><sup>th</sup> frame, default <b>1</b>, every frame).
-For non-VR users, the mouse pointer is not tracked continuously;
-the position is only displayed to others when it hovers over an atom.
 </blockquote>
 
 <a name="limitations"></a>
@@ -425,7 +436,7 @@ to join a meeting, I hope to use a name service where the meeting host
 would give the meeting a name that would be used instead of the host 
 computer address. For example, the meeting could be started with command:
 <blockquote>
-<b>meeting start name sars-antibody</b>
+<b>meeting start meetingName sars-antibody</b>
 </blockquote>
 ...and participants could join with:
 <blockquote>
