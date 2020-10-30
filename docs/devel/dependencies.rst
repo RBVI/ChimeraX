@@ -54,6 +54,7 @@ Packages from PyPi Python package manager
 * python-dateutil - extends Python's datetime module, used by numpy/pycollada/matplotlib and session save
 * pywin32 - Windows operating system APIs, seems to only be used by WMI for bug reporting
 * qtconsole - used to implement ChimeraX Python shell
+* requests - simplifies handling HTTP requests; used in scripts for NIH3D printing service
 * scipy - math/science library used to compute helix tubes
 * six -	compatibility module for Python 2 and 3, used by numpy/matplotlib and more
 * sortedcontainers - use sorted dictionary SortedDict for color and command managers
