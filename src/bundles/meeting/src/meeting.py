@@ -310,6 +310,9 @@ def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
     command = [ssh_exe,
                '-N',					# Do not execute remote command
                '-i', key_path,				# Private key for authentication
+               # '-f',  # Test: Fork and exit when tunnel created, leaves no way to kill process
+               '-o', 'ExitOnForwardFailure=yes',	# If remote port in use already exit instead of warn
+               '-o', 'ConnectTimeout=5',		# Fail faster than 75 second TCP timeout if can't connect
                '-o', 'StrictHostKeyChecking=no',	# Don't ask about host authenticity on first connection
                '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
                remote,	# Remote machine
@@ -733,8 +736,8 @@ class MeetingHub:
         self._server = s = QTcpServer()
         a = QHostAddress.Any
         if not s.listen(a, port):
-            msg = ('QTcpServer.listen() failed for address %s, port %d: %s'
-                   % (a.toString(), port, s.errorString()))
+            msg = ('QTcpServer.listen(Any, %d) failed on local machine: %s'
+                   % (port, s.errorString()))
             self._session.logger.warning(msg)
         else:
             s.newConnection.connect(self._new_connection)
