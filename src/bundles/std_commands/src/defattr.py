@@ -20,18 +20,20 @@ def cmd_defattr(session, structures, file_name, *, log=False):
     except SyntaxError as e:
         raise UserError(str(e))
 
-def defattr(session, file_name, *, log=False, restriction=None):
+def defattr(session, data, *, log=False, restriction=None, file_name=None):
     """define attributes on objects
 
     Parameters
     ----------
-    file_name : string
+    data : file name or stream
       Input file in 'defattr' format
     log : bool
       Whether to log assignment info
     restriction : Structures Collection or None
       If not None, structures to restrict the assignments to
       (in addition to any restrictions in the defattr file)
+    file_name : string
+      If data is a stream, the original file name can be provided here
     """
 
     if restriction is None:
@@ -59,6 +61,8 @@ def defattr(session, file_name, *, log=False, restriction=None):
         'recipient': set(recipient_info.keys()),
         'none handling': set(["None", "string", "delete"])
     }
+    if file_name is None:
+        file_name = data if isinstance(data, str) else getattr(data, 'name', "unknown file")
     all_info = []
     def append_all_info(attr_info, data_info, line_num, *, ai=all_info, fn=file_name):
         if 'attribute' not in attr_info:
@@ -70,7 +74,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
     from chimerax.core.commands import AtomSpecArg, AttrNameArg, AnnotationError, NoneArg, ColorArg, commas
     from chimerax.core.commands import IntArg, FloatArg
     from chimerax.io import open_input
-    with open_input(file_name, encoding="utf-8") as f:
+    with open_input(data, encoding="utf-8") as f:
         data = []
         attrs = {}
         for lnum, raw_line in enumerate(f):
@@ -377,7 +381,7 @@ def register_command(logger):
     from chimerax.core.commands import EmptyArg, Or, OpenFileNameArg, BoolArg
     from chimerax.atomic import StructuresArg
     desc = CmdDesc(required=[('structures', Or(StructuresArg, EmptyArg)),
-                            ('file_name', OpenFileNameArg),],
+                            ('data', OpenFileNameArg),],
                    keyword=[('log', BoolArg)],
                    synopsis="define attributes in bulk")
     register('defattr', desc, cmd_defattr, logger=logger)

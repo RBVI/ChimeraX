@@ -34,8 +34,9 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: meeting :: General :: Show synchronized mouse or VR hand controllers between two ChimeraX instances (direct connection)</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: meeting close :: General :: Close meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting :: General :: Join a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting start :: General :: Create a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting close :: General :: Close a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting send :: General :: Copy my scene to all other meeting participants</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: conference :: General :: Show synchronized mouse or VR hand controllers between two ChimeraX instances (shared hub)</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: conference set :: General :: Set options for current conference</ChimeraXClassifier>
