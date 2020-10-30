@@ -32,6 +32,10 @@
 		category="Structure Analysis" suffixes=".defattr" encoding="utf-8" />
   </Providers>
 
+  <Providers manager="open command">
+    <Provider name="define attribute" />
+  </Providers>
+
   <Providers manager="save command">
     <Provider name="define attribute" />
   </Providers>
