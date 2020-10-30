@@ -39,10 +39,11 @@ of the specified items at the indicated <i>level</i>
 to a single user-supplied value.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
 A new attribute will not be created unless <b>create</b> is true 
-(default <b>false</b>). 
-The related command <a href="defattr.html"><b>defattr</b></a> assigns
-many attribute values at once by reading a separately generated
-<a href="defattr.html#attrfile">attribute assignment file</a>.
+(default <b>false</b>).
+Whereas <b>setattr</b> assigns only a single value per command,
+many values can be assigned at once by reading a separately generated
+<a href="../formats/defattr.html">attribute assignment file</a>
+with the <a href="open.html#defattr"><b>open</b></a> command.
 See also: <a href="info.html"><b>info</b></a>,
 the <a href="../preferences.html#startup">custom preset example</a>
 </p><p>

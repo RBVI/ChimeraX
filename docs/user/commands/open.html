@@ -689,6 +689,14 @@ command file</a></td>
 <td align="center">
 <a href="../index.html#commands">ChimeraX commands</a></td>
 </tr><tr>
+<td align="center"><a href="../formats/defattr.html">attribute
+assignment file</a></td>
+<td align="center"><b>defattr</b></td>
+<td align="center">.defattr</td>
+<td align="center">
+<a href="../attributes.html">attribute</a> assignments
+<br>(<a href="#defattr">details...</a>)</td>
+</tr><tr>
 <td align="center">photo (single image)</td>
 <td align="center"><b>photo</b></td>
 <td align="center">.jpg
@@ -975,6 +983,12 @@ Maximum number of surface models to create when opening an
 <br>
 Whether to read the meshes from an
 <a href="../formats/imod.html">IMOD segmentation file</a>.
+</blockquote>
+<blockquote>
+<a name="models"></a>
+<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Limit <a href="#defattr">attribute assignment</a> to the specified models.
 </blockquote>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
@@ -1388,6 +1402,43 @@ The file types that can be read by ChimeraX in compressed form
 ALN, BILD, Collada, compiled Python code, directional FSC,
 FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
 RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
+</p>
+
+<a name="defattr"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Attribute Assignments</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>attr-file</i>&nbsp;
+[&nbsp;<a href="#miscellaneous"><b>format&nbsp;&nbsp;defattr</b></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The <b>open</b> command can read and assign
+<a href="../attributes.html">attribute</a> values
+from an <a href="../formats/defattr.html">attribute assignment file</a>.
+It is possible to define new attributes or
+to (re)assign values for existing attributes
+of atoms, residues, and atomic models.
+The <i>attr-file</i> is specified by its pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+If the <a href="#models"><b>models</b></a> option is used, assignment
+will consider only the models containing the specified atoms.
+Of course, whether attribute values are actually assigned to those models
+or their parts depends on the contents of the
+<a href="../formats/defattr.html">attribute assignment file</a>.
+The <b>log</b> option indicates whether to report details of the
+assignments to the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+The related command <a href="setattr.html"><b>setattr</b></a>
+assigns attribute values directly, but is less practical for large-scale
+assignment since only a single value can be given per command.
+See also:
+<a href="info.html"><b>info</b></a>
 </p>
 
 <a name="photo"></a>
