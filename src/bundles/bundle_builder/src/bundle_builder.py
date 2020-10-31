@@ -623,7 +623,6 @@ class BundleBuilder:
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
     def _run_setup(self, cmd):
-        print("!!!! _run_setup:", cmd)
         import os
         import sys
         cwd = os.getcwd()
