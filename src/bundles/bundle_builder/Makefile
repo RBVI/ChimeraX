@@ -37,12 +37,12 @@ BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py${PYVER_NODOT}-none-any.whl
 
 wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	# $(PYTHON_EXE) setup.py --no-user-cfg test
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
