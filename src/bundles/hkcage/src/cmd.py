@@ -35,13 +35,13 @@ def _show_citation_message(alpha, log):
         return
 
     log.info(
-        'hkcage %s pattern developed by Colin Brown and Antoni Luque.<br>'
-        'Please cite:'
+        'hkcage %s pattern was developed by Colin Brown and Antoni Luque supported by '
+        'National Science Foundation Award #1951678. Please cite:<br>'
         '<div style="background-color:lightyellow;">'
         'Structural puzzles in virology solved with an overarching icosahedral design principle<br>'
         'Reidun Twarock, Antoni Luque<br>'
         'Nat Commun. 2019; 10: 4414. Published online 2019 Sep 27.<br>'
-        '<a href="https://doi.org/10.1038/s41467-019-12367-3">https://doi.org/10.1038/s41467-019-12367-3</a>'
+        '<a href="https://doi.org/10.1038/s41467-019-12367-3">https://doi.org/10.1038/s41467-019-12367-3</a><br>'
         '</div>' % alpha, is_html=True)
     _citation_shown = True
 
