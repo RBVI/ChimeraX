@@ -79,6 +79,10 @@ class BundleBuilder:
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
+        if self._is_pure_python():
+            setup_args.extend(["--python-tag", self.tag.interpreter])
+        else:
+            setup_args.extend(["--plat-name", self.tag.platform])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
             raise RuntimeError("Building wheel failed")
@@ -614,7 +618,7 @@ class BundleBuilder:
         self.tag = tag(self._is_pure_python())
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace('-', '_')
-        wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
+        wheel = f"{bundle_wheel_name}-{self.version}-{self.tag}.whl"
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 

@@ -124,16 +124,17 @@ def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
         from chimerax.core.errors import UserError
         if key_for_proxy is None:
             raise UserError('meeting: must specify keyForProxy option if proxy option used')
-        ssh_process = _create_ssh_tunnel(proxy, port, key_for_proxy, log=session.logger)
-        if ssh_process is None:
+        from .sshtunnel import SSHRemoteTunnel
+        tunnel = SSHRemoteTunnel(proxy, port, key_for_proxy, log=session.logger)
+        if tunnel is None:
             raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
-        p.hub._ssh_tunnel_process = ssh_process
+        p.hub._ssh_tunnel = tunnel
 
     if id is not None:
         _set_meeting_id(p.hub, id, name_server, name_server_port)
 
     # Log meeting info
-    addresses = [ssh_process._tunnel_host_and_port[0]] if proxy else p.hub.listening_addresses_and_port()[0]
+    addresses = [tunnel.host] if proxy else p.hub.listening_addresses_and_port()[0]
     _report_start(addresses, port, id, session.logger)
 
 # -----------------------------------------------------------------------------
@@ -287,93 +288,6 @@ def _meeting_settings(session):
         settings = _MeetingSettings(session, "meeting")
         session._meeting_settings = settings
     return settings
-
-# -----------------------------------------------------------------------------
-#
-def _create_ssh_tunnel(remote, port, key_path, log=None, exit_check_interval=1):
-    '''
-    Run ssh to set up a tunnel to a remote host.
-    If the host just does not accept ssh connections it typically will take 60 seconds
-    or more to time out.  This routine will return the process object and the client
-    will have to call its poll() method after a minute or two to know if it failed.
-    '''
-    import sys
-    if sys.platform == 'win32':
-        ssh_exe = 'C:\\Windows\\System32\\OpenSSH\\ssh.exe'
-        # Prevent console window from showing.
-        from subprocess import STARTUPINFO, STARTF_USESHOWWINDOW
-        startupinfo = STARTUPINFO()
-        startupinfo.dwFlags |= STARTF_USESHOWWINDOW
-    else:
-        ssh_exe = 'ssh'
-        startupinfo = None
-    command = [ssh_exe,
-               '-N',					# Do not execute remote command
-               '-i', key_path,				# Private key for authentication
-               '-o', 'StrictHostKeyChecking=no',	# Don't ask about host authenticity on first connection
-               '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
-               remote,	# Remote machine
-    ]
-    from subprocess import Popen, PIPE
-    try:
-        p = Popen(command, stdout=PIPE, stderr=PIPE, startupinfo=startupinfo)
-    except Exception as e:
-        log.warning('meeting: failed to run "%s"\n%s' % (str(command), str(e)))
-        return None
-
-    host = remote.split('@')[1] if '@' in remote else remote
-    p._tunnel_host_and_port = (host, port)
-    
-    # Assure at exit that the process is terminated.
-    import atexit
-    atexit.register(lambda p=p: p.poll() is None and p.terminate())
-
-    if exit_check_interval is not None:
-        t = _periodic_callback(exit_check_interval, _check_for_process_exit, p, log)
-        p._exit_check_timer = t
-        
-    return p
-
-# -----------------------------------------------------------------------------
-#
-def _close_proxy_tunnel(p):
-    if p.poll() is None:
-        p._exit_check_timer.stop()
-        p.terminate()
-
-# -----------------------------------------------------------------------------
-#
-def _check_for_process_exit(p, log):
-    exit_code = p.poll()
-    if exit_code is None:
-        return
-
-    if exit_code == 0:
-        log.info('meeting: ssh tunnel closed.')
-    else:
-        command = ' '.join(p.args)
-        msg = 'meeting: ssh tunnel setup failed %s, exit code %d' % (command, exit_code)
-        out = p.stdout.read().decode('utf-8')
-        err = p.stderr.read().decode('utf-8')
-        if out:
-            msg += '\nssh stdout:\n%s' % out
-        if err:
-            msg += '\nssh stderr:\n%s' % err
-        log.warning(msg)
-
-    p._exit_check_timer.stop()
-
-# -----------------------------------------------------------------------------
-#
-def _periodic_callback(interval, callback, *args, **kw):
-    from PyQt5.QtCore import QTimer
-    t = QTimer()
-    def cb(callback=callback, args=args, kw=kw):
-        callback(*args, **kw)
-    t.timeout.connect(cb)
-    t.setSingleShot(False)
-    t.start(int(1000*interval))
-    return t
 
 # -----------------------------------------------------------------------------
 #
@@ -677,7 +591,7 @@ class MeetingHub:
         self._next_participant_id = 1
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
-        self._ssh_tunnel_process = None # Popen object for ssh tunnel to proxy.
+        self._ssh_tunnel = None		# SSHRemoteTunnel instance for ssh tunnel to proxy.
         self._meeting_id = None		# Name server meeting id (id, name_server, name_server_port)
 
     def close(self):
@@ -691,10 +605,10 @@ class MeetingHub:
         self._host = None
 
         # Close ssh tunnel to proxy
-        t = self._ssh_tunnel_process
+        t = self._ssh_tunnel
         if t is not None:
-            _close_proxy_tunnel(t)
-            self._ssh_tunnel_process = None
+            t.close()
+            self._ssh_tunnel = None
 
         # Remove meeting id from name server
         if self._meeting_id is not None:
@@ -733,8 +647,8 @@ class MeetingHub:
         self._server = s = QTcpServer()
         a = QHostAddress.Any
         if not s.listen(a, port):
-            msg = ('QTcpServer.listen() failed for address %s, port %d: %s'
-                   % (a.toString(), port, s.errorString()))
+            msg = ('QTcpServer.listen(Any, %d) failed on local machine: %s'
+                   % (port, s.errorString()))
             self._session.logger.warning(msg)
         else:
             s.newConnection.connect(self._new_connection)
@@ -780,9 +694,9 @@ class MeetingHub:
         return a
 
     def set_meeting_id(self, id, name_server, name_server_port):
-        proxy = self._ssh_tunnel_process
+        proxy = self._ssh_tunnel
         if proxy:
-            host, port = proxy._tunnel_host_and_port
+            host, port = proxy.host, proxy.port
         else:
             addresses, port = self.listening_addresses_and_port()
             if not addresses:

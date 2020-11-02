@@ -206,12 +206,12 @@ see <a href="#mol2">Mol2 options</a></td>
 <a href="../pseudobonds.html">pseudobonds</a><br>
 (see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
 </tr><tr id="attrformat">
-<td align="center"><a href="defattr.html#attrfile">attribute 
+<td align="center"><a href="../formats/defattr.html">attribute 
 assignment file</a></td>
 <td align="center"><b>defattr</b></td>
 <td align="center">.defattr</td>
 <td align="center"><a href="../attributes.html">attribute</a> values
-in the format read by <a href="defattr.html"><b>defattr</b></a></td>
+in the format read by <a href="open.html#defattr"><b>open</b></a></td>
 </tr><tr id="seqformats">
 <td align="center" rowspan="3">&nbsp;<br>&nbsp;<a href="#sequence">sequence</a></td>
 <td align="center"><b>aln</b></td>
@@ -775,8 +775,8 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 The <a href="../attributes.html">attributes</a> of atoms, residues,
 and atomic models (or equivalently, <a href="../markers.html">markers</a>
 and their models) can be saved in the simple, human-readable
-<a href="defattr.html#attrfile">attribute assignment format</a>
-used by <a href="defattr.html"><b>defattr</b></a>.
+<a href="../formats/defattr.html">attribute assignment format</a>
+that can be read with the <a href="open.html#defattr"><b>open</b></a> command.
 The <b>attrName</b> keyword and 
 <a href="../attributes.html#attrnames">attribute name</a> are required.
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
@@ -790,7 +790,7 @@ Options:
 <br>
 What to write as the <b>match mode</b> in the file; this only matters if 
 the file will be used to assign values with 
-<a href="defattr.html"><b>defattr</b></a>.
+<a href="open.html#defattr"><b>open</b></a>.
 </blockquote>
 <blockquote>
 <b>modelIds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false

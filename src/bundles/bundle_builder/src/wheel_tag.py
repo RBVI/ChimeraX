@@ -14,7 +14,7 @@ Basic Usage
 """
 
 
-def tag(pure):
+def tag(pure, limited=False):
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -27,40 +27,43 @@ def tag(pure):
     -----------
     pure : boolean
         Whether the bundle only contains Python code (no C/C++)
+    limited : boolean
+        True if Py_LIMITED_API is used to limit API
 
     Returns:
     --------
     str
         Dash-separated tag string, *e.g.*, **cp36-cp36m-win_amd64**
     """
-    # Code below is taken from wheel==0.29 bdist_wheel.py
-    from wheel.pep425tags import get_impl_ver
-    impl_ver = get_impl_ver()
+    import sys
+    from packaging import tags
+    vi = sys.version_info
     if pure:
-        impl = "py" + impl_ver[0]
-        abi = "none"
-        platform = "any"
+        # limit to current Python version, e.g., py38 instead of py3
+        tag = tags.Tag(f"py{vi.major}{vi.minor}", "none", "any")
     else:
-        from wheel.pep425tags import get_abbr_impl, get_abi_tag
-        impl = get_abbr_impl() + impl_ver
-        # get_abi_tag generates warning messages
-        import warnings
-        warnings.simplefilter("ignore", RuntimeWarning)
-        abi = get_abi_tag()
-        from distutils.util import get_platform
-        platform = get_platform()
-
-    def fix_name(name):
-        return name.replace('-', '_').replace('.', '_')
-    return "%s-%s-%s" % (fix_name(impl), fix_name(abi), fix_name(platform))
+        # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
+        if limited:
+            abi = f"abi{vi.major}"
+        for tag in tags.sys_tags():
+            if not limited:
+                break
+            if tag.abi == abi:
+                break
+        else:
+            raise RuntimeError("unable to find suitable tag")
+    return tag
 
 
 if "__main__" in __name__:
     import sys
     import getopt
     pure = False
-    opts, args = getopt.getopt(sys.argv[1:], "p")
+    limited = False
+    opts, args = getopt.getopt(sys.argv[1:], "pl")
     for opt, val in opts:
         if opt == "-p":
             pure = True
-    print(tag(pure))
+        elif opt == "-l":
+            limited = True
+    print(tag(pure, limited))
