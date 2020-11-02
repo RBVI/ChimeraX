@@ -15,6 +15,8 @@ from chimerax.core.errors import UserError
 match_modes = ["any", "non-zero", "1-to-1"]
 
 def cmd_defattr(session, structures, file_name, *, log=False):
+    session.logger.warning("The 'defattr' command is deprecated."
+        "  Just use the 'open' command with your .defattr file.")
     try:
         defattr(session, file_name, log=log, restriction=structures)
     except SyntaxError as e:
@@ -381,7 +383,7 @@ def register_command(logger):
     from chimerax.core.commands import EmptyArg, Or, OpenFileNameArg, BoolArg
     from chimerax.atomic import StructuresArg
     desc = CmdDesc(required=[('structures', Or(StructuresArg, EmptyArg)),
-                            ('data', OpenFileNameArg),],
+                            ('file_name', OpenFileNameArg),],
                    keyword=[('log', BoolArg)],
                    synopsis="define attributes in bulk")
     register('defattr', desc, cmd_defattr, logger=logger)
