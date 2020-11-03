@@ -54,6 +54,7 @@ def struts(session, atoms, length = 7.0, loop = 30.0, radius = 0.6, color = None
 
     log = session.logger
     log.status('Computing struts, %d atoms' % (len(atoms),))
+    _update_hidden_atoms(atoms)
     brace(atoms, length, loop, pbg, log)
 
     c = (178,178,178,255) if color is None else color.uint8x4()
@@ -97,6 +98,18 @@ def register_struts_command(logger):
     register('struts delete', desc, struts_delete, logger=logger)
     create_alias('~struts', 'struts delete $*')
 
+def _update_hidden_atoms(atoms):
+    '''
+    Update the structure graphics before computing struts.  Fixes bug #3902.
+    Make sure the atoms marked hidden due to ribbon display are up to date
+    since the struts command considers hidden atoms for determining connectivity.
+    If a structure has changed its ribbon display but not yet been drawn then
+    then the ribbon has not been calculated.  The backbone atom hide bits are
+    set during ribbon calculation.
+    '''
+    for s in atoms.unique_structures:
+        s.update_graphics_if_needed()
+        
 def brace(atoms, max_length, max_loop_length, model, log):
 
     # Find all atom pairs within distance d of each other.
