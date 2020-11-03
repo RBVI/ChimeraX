@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 def hkcage(session, h, k, radius = 100.0, orientation = '222', color = (255,255,255,255),
-           sphere_factor = 0.0, edge_radius = None, mesh = False, replace = True, alpha = 'standard'):
+           sphere_factor = 0.0, edge_radius = None, mesh = False, replace = True, alpha = 'hexagonal'):
 
     if h == 0 and k == 0:
         from chimerax.core.errors import UserError
@@ -31,7 +31,7 @@ def hkcage(session, h, k, radius = 100.0, orientation = '222', color = (255,255,
 _citation_shown = False
 def _show_citation_message(alpha, log):
     global _citation_shown
-    if _citation_shown or alpha == 'standard':
+    if _citation_shown or alpha == 'hexagonal':
         return
 
     log.info(
@@ -52,7 +52,7 @@ def register_hkcage_command(logger):
                                        FloatArg, EnumOf, Color8Arg, BoolArg
 
     from chimerax.geometry.icosahedron import coordinate_system_names
-    alpha_values = ['standard', 'standard-dual', 'trihex', 'trihex-dual',
+    alpha_values = ['hexagonal', 'hexagonal-dual', 'trihex', 'trihex-dual',
                     'snub', 'snub-dual', 'rhomb', 'rhomb-dual']
     desc = CmdDesc(
         required = [('h', NonNegativeIntArg),
