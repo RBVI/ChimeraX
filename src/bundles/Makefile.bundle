@@ -38,8 +38,6 @@ PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
-PYVER_NODOT = $(shell $(CHIMERAX_EXE) -c 'import sys; vi = sys.version_info; print(f"{vi.major}{vi.minor}")')
-
 PYSRCS = $(wildcard src/*.py)
 # Some bundles (e.g. chem_group) need to add to PYSRCS
 .SECONDEXPANSION:
@@ -51,7 +49,7 @@ install app-install:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 sync:
-ifneq (,$(wildcard dist/*-py$(PYVER_NODOT)-none-any.whl))
+ifneq (,$(wildcard dist/*-py*-none-any.whl))
 	rsync -av dist/*.whl $(SYNC_DIR)/python-only
 else
 	rsync -av dist/*.whl $(SYNC_DIR)/binary
