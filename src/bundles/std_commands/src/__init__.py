@@ -76,8 +76,8 @@ class StdCommandsAPI(BundleAPI):
             class DefattrInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from .defattr import defattr
-                    if 'structure_models' in kw:
-                        kw['restriction'] = kw.pop('structure_models')
+                    if 'models' in kw:
+                        kw['restriction'] = kw.pop('models')
                     defattr(session, data, file_name=file_name, **kw)
                     return [], ""
 
@@ -87,7 +87,7 @@ class StdCommandsAPI(BundleAPI):
                     from chimerax.atomic import StructuresArg
                     return {
                         'log': BoolArg,
-                        'structure_models': StructuresArg
+                        'models': StructuresArg
                     }
         else:
             from chimerax.save_command import SaverInfo
