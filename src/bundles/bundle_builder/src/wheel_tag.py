@@ -14,7 +14,7 @@ Basic Usage
 """
 
 
-def tag(pure, limited=False):
+def tag(pure, limited=None):
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -27,8 +27,8 @@ def tag(pure, limited=False):
     -----------
     pure : boolean
         Whether the bundle only contains Python code (no C/C++)
-    limited : boolean
-        True if Py_LIMITED_API is used to limit API
+    limited : string
+        Python version major[.minor[.micro]]
 
     Returns:
     --------
@@ -39,16 +39,25 @@ def tag(pure, limited=False):
     from packaging import tags
     vi = sys.version_info
     if pure:
-        # limit to current Python version, e.g., py38 instead of py3
-        tag = tags.Tag(f"py{vi.major}{vi.minor}", "none", "any")
+        if limited:
+            version = ''.join(str(v) for v in limited.release[:2])
+            tag = tags.Tag(f"py{version}", "none", "any")
+        else:
+            # limit to current Python version, e.g., py38 instead of py3
+            tag = tags.Tag(f"py{vi.major}{vi.minor}", "none", "any")
     else:
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
-            abi = f"abi{vi.major}"
+            abi = f"abi{limited.major}"
+            if limited.release < (3, 2):
+                version = "32"
+            else:
+                version = ''.join(str(v) for v in limited.release[:2])
+            interpreter = f"{tags.interpreter_name()}{version}"
         for tag in tags.sys_tags():
             if not limited:
                 break
-            if tag.abi == abi:
+            if tag.abi == abi and tag.interpreter == interpreter:
                 break
         else:
             raise RuntimeError("unable to find suitable tag")
@@ -60,10 +69,11 @@ if "__main__" in __name__:
     import getopt
     pure = False
     limited = False
-    opts, args = getopt.getopt(sys.argv[1:], "pl")
+    opts, args = getopt.getopt(sys.argv[1:], "pl:")
     for opt, val in opts:
         if opt == "-p":
             pure = True
         elif opt == "-l":
-            limited = True
+            from packaging.version import Version
+            limited = Version(val)
     print(tag(pure, limited))
