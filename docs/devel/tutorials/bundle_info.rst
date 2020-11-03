@@ -76,6 +76,7 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
