@@ -93,13 +93,22 @@ def surface(session, atoms = None, enclose = None, include = None,
     new_surfs = []
     if enclose is None:
         atoms = check_atoms(atoms, session) # Warn if no atoms specifed
+        num_structure_atoms = sum([s.num_atoms for s in atoms.unique_structures], 0)
+        full_structures = (len(atoms) == num_structure_atoms)
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
                 enclose_atoms = show_atoms
             else:
-                matoms = m.atoms
-                chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
+                # This code is handling the case that the specified atoms don't contain
+                # all of the chain atoms, otherwise we could just use show_atoms.
+                if full_structures:
+                    chain_atoms = show_atoms
+                else:
+                    # May have only some of the chain atoms, get all of them.
+                    # This is very slow for 863 chains, pdb 5y6p, bug #3908.
+                    matoms = m.atoms
+                    chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             s = all_surfs.get(enclose_atoms.hash())
             if s is None:
