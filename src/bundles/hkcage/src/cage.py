@@ -84,9 +84,9 @@ def _cage_surface(session, name, replace):
 def hk_icosahedron_lattice(h, k, radius, orientation, alpha):
     # Find triangles for the hk lattice covering one asymmetric unit equilateral triangle.
     # The asym unit triangle (corners) and hk lattice triangles are in the xy plane in 3-d.
-    if alpha == 'standard':
+    if alpha == 'hexagonal':
         corners, triangles, t_hex_edges = hk_triangle(h, k)
-    elif alpha == 'standard-dual':
+    elif alpha == 'hexagonal-dual':
         corners, triangles, t_hex_edges = hk_triangle_dual(h, k)
     elif alpha == 'trihex':
         corners, triangles, t_hex_edges = hk_triangle_trihex(h, k)
