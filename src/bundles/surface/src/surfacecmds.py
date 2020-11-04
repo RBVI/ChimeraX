@@ -166,12 +166,14 @@ def surface(session, atoms = None, enclose = None, include = None,
     #       to write an error message to the log, not in the main thread.
 
     if not resolution is None and resolution > 0 and level is None:
-        msg = '\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
-                        for s in surfs if hasattr(s, 'gaussian_level'))
-        if msg:
-            log = session.logger
-            log.info(msg)
-            
+        gsurfs = [s for s in surfs if hasattr(s, 'gaussian_level')]
+        if gsurfs:
+            levels = [s.gaussian_level for s in gsurfs]
+            min_lev, max_lev = ('%.3f' % min(levels)), ('%.3f' % max(levels))
+            level_range = '%s - %s' % (min_lev, max_lev) if max_lev != min_lev else max_lev
+            msg = '%d Gaussian surfaces, threshold level %s' % (len(gsurfs), level_range)
+            session.logger.info(msg)
+
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
         session.models.add([s], parent = parent)
