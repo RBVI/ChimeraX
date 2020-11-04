@@ -361,6 +361,43 @@ extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
     }
 }
 
+// Return list of (structure, chain_id, atoms).
+typedef std::pair<Structure *, std::string> StructureChain;
+extern "C" EXPORT PyObject *atom_by_chain(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+
+    try {
+        std::map<StructureChain, Structure::Atoms> sca;
+        for (size_t i = 0; i < n; ++i) {
+  	    Atom *atom = a[i];
+	    Structure *s = atom->structure();
+	    const ChainID &cid = atom->residue()->chain_id();
+	    Structure::Atoms &catoms = sca[StructureChain(s,cid)];
+	    catoms.push_back(atom);
+        }
+	PyObject *sca_tuple = PyTuple_New(sca.size());
+	size_t i = 0;
+	for (auto mi = sca.begin() ; mi != sca.end() ; ++mi) {
+	    const StructureChain &sc = mi->first;
+	    Structure *s = sc.first;
+	    const ChainID &cid = sc.second;
+	    PyObject *py_cid = PyUnicode_FromString(cid.c_str());
+	    Structure::Atoms &atoms = mi->second;
+	    const Atom **aa;
+	    PyObject *atoms_array = python_voidp_array(atoms.size(), (void***)&aa);
+	    for (size_t ai = 0 ; ai < atoms.size() ; ++ai)
+	        aa[ai] = atoms[ai];
+	    PyObject *sca_item = python_tuple(s->py_instance(true), py_cid, atoms_array);
+	    PyTuple_SET_ITEM(sca_tuple, i++, sca_item);
+	}
+	return sca_tuple;
+    } catch (...) {
+        molc_error();
+    }
+    return NULL;
+}
+
 extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *neighbors)
 {
     Atom **a = static_cast<Atom **>(atoms);
