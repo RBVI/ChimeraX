@@ -225,8 +225,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     status ='\n'.join(statuses) if statuses else ""
     if _return_status:
         return ungrouped_models, status
-    elif status:
-        session.logger.status(status, log=True)
+    else:
+        session.logger.status(status, log=status)
     return ungrouped_models
 
 def _fetch_info(mgr, database_name, default_format_name):
