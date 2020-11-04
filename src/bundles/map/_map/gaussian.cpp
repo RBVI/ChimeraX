@@ -106,7 +106,9 @@ extern "C" PyObject *py_sum_of_gaussians(PyObject *, PyObject *args,
       return NULL;
     }
 
+  Py_BEGIN_ALLOW_THREADS
   sum_of_gaussians(centers, coef, sdev, maxrange, matrix);
+  Py_END_ALLOW_THREADS
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -185,7 +187,9 @@ extern "C" PyObject *py_sum_of_balls(PyObject *, PyObject *args, PyObject *keywd
       return NULL;
     }
 
+  Py_BEGIN_ALLOW_THREADS
   sum_of_balls(centers, radii, sdev, maxrange, matrix);
+  Py_END_ALLOW_THREADS
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -226,7 +230,9 @@ extern "C" PyObject *covariance_sum(PyObject *, PyObject *args, PyObject *keywds
 				   parse_writable_float_3d_array, &array))
     return NULL;
 
+  Py_BEGIN_ALLOW_THREADS
   covariance_sum(cov_inv, center, scale, array);
+  Py_END_ALLOW_THREADS
 
   Py_INCREF(Py_None);
   return Py_None;
