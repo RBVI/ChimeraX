@@ -22,7 +22,6 @@ class DialogType(Enum):
 
 
 def show(session, dialog_type=None):
-    return  # Update dialog broken, appears on every ChimeraX start.  Disable for now.  Bug #3901
     if not session.ui.is_gui:
         return
     return UpdateTool(session, "Update Bundles", dialog_type)
