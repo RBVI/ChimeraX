@@ -23,6 +23,8 @@ class SchemesManager(ProviderManager):
         super().__init__(name)
 
     def add_provider(self, bundle_info, name, **kw):
+        if not bundle_info.installed:
+            return
         self.schemes.add(name)
 
         def is_true(value):
