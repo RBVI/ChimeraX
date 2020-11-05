@@ -217,6 +217,7 @@ ChimeraX bundles.  Bundles containing code that
 compile against ChimeraX C++ APIs are only guaranteed
 to work with the exact version used in development.)
 
+.. _Seven Steps:
 
 Writing Bundles in Seven Easy Steps
 -----------------------------------
