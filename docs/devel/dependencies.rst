@@ -42,6 +42,7 @@ Packages from PyPi Python package manager
 * ipython - Jupyter kernel, used by ChimeraX shell which allows html rich output
 * jupyter-client - front end for Jupyter kernel, used by ChimeraX shell
 * lxml - used to convert html to plain text for nogui log messages, also for making bundle documentation index
+* lz4 - very fast compression used when saving session files
 * matplotlib - makes graphical plots for crosslinks and intefaces plots
 * msgpack - format for saving ChimeraX sessions
 * networkx - graph layout for interfaces plots
