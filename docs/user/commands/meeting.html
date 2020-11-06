@@ -27,6 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
+[&nbsp;<i>meeting-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
@@ -36,7 +37,8 @@ class="clRight" title="User Guide Index"/></a>
 <span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<i>host</i>&nbsp;
+<br><b>meeting</b> 
+(&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
 [&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
@@ -70,16 +72,20 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
 The meeting is initiated with <b>meeting start</b>, which reports the 
 hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
-Subsequently, others join using <b>meeting</b> <i>host</i>,
-where <i>host</i> is the hostname or IP address of the starting instance
+Optionally, a character-string <i>meeting-name</i> can be given
+in the <b>meeting start</b> command and then used by other participants
+when they join. If no <i>meeting-name</i> is assigned, joiners must
+specify the <i>host</i> as the hostname or IP address of the starting instance
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
+A default meeting-name server is provided, but a different one can be
+<a href="#start-options">specified</a>.
 </p><p>
-Each participant can specify a <b>name</b> to serve as an identifier 
-within the shared environment, a <b>faceImage</b> file, 
+Participants can specify a <b>name</b> to identify themselves
+within the shared environment, a <b>faceImage</b> file,
 and a pointer-cone <b>color</b>.
 </p><p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
-<a href="#options">copy</a>
+<a href="#start-options">copy</a>
 a session from the ChimeraX instance that initiates the meeting 
 to each person who joins the meeting.
 This copying is done only when a person joins the meeting. 
@@ -139,6 +145,19 @@ not accept it.
 Whether to copy the session from the starting instance
 to each person who joins the meeting (default <b>true</b>).
 This copying is done only when a person joins the meeting. 
+</blockquote>
+<blockquote>
+<b>nameServer</b> &nbsp;<i>name-host</i>
+<br>
+Specify the hostname or IP address to use as the meeting-name server
+(default <b>chimeraxmeeting.net</b> provided by the 
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>).
+</blockquote>
+<blockquote>
+<b>nameServerPort</b> &nbsp;<i>N</i>
+<br>
+Port number for the meeting-name server.
 </blockquote>
 
 <a name="options"></a>
@@ -429,20 +448,6 @@ and it would likely be just a single virtual machine
 based in California where ChimeraX is developed.
 This may have significant lag for users on other continents.
 
-<li><b>Named meetings.</b>
-A cloud virtual machine typically changes IP addresses when stopped and started.
-To avoid meeting participants having to know the latest proxy IP address 
-to join a meeting, I hope to use a name service where the meeting host 
-would give the meeting a name that would be used instead of the host 
-computer address. For example, the meeting could be started with command:
-<blockquote>
-<b>meeting start meetingName sars-antibody</b>
-</blockquote>
-...and participants could join with:
-<blockquote>
-<b>meeting sars-antibody</b>
-</blockquote>
-
 <li><b>User interface panel</b>.
 It would be nice to have a user interface panel as an alternative
 to typed commands for starting and joining meetings.
@@ -452,5 +457,5 @@ proxy, face image, and participant name.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+November 2020</address>
 </body></html>

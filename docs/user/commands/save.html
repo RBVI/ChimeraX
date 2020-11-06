@@ -355,6 +355,7 @@ interpreted correctly by Adobe Photoshop.)
 <b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>compress</b>&nbsp;&nbsp;gzip&nbsp;|&nbsp;<b>lz4</b>&nbsp;|&nbsp;none&nbsp;]
 </blockquote>
 <p>
 A <b><i>ChimeraX session file</i></b> encodes most aspects of a
@@ -411,6 +412,14 @@ directory as the session file, or in a subdirectory of that directory.
 If the map file is in neither the same directory as the session file nor
 a subdirectory of that directory, its location will be stored 
 as an absolute path.
+</p><p>
+The <b>compress</b> option defaults to <b>lz4</b>, which gives a file
+approximately 4x smaller (depending on the data being saved)
+than the uncompressed version obtained with <b>none</b>;
+using <b>gzip</b> gives a file approximately 7x smaller than uncompressed,
+but takes about twice as long as the other choices.
+Compressed and uncompressed session files have the same .cxs filename suffix,
+but compression is recognized automatically when the file is read.
 </p>
 
 <a name="map"></a>
@@ -896,5 +905,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+November 2020</address>
 </body></html>
