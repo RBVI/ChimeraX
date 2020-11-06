@@ -18,11 +18,16 @@ class SSHRemoteTunnel:
     or more to time out.  This routine will return the process object and the client
     will have to call its poll() method after a minute or two to know if it failed.
     '''
-    def __init__(self, remote, port, key_path, log = None,
+    def __init__(self, remote, key_path, remote_port_range, local_port, log = None,
                  connection_timeout = 5, exit_check_interval = 1.0):
         host = remote.split('@')[1] if '@' in remote else remote
         self.host = host
-        self.port = port
+        # TODO: If first port tried fails, try other ports.
+        port_min, port_max = remote_port_range
+        from random import randint
+        remote_port = randint(port_min, port_max)
+        self.remote_port = remote_port
+        self.local_port = local_port
         self._log = log
 
         import sys
@@ -43,7 +48,7 @@ class SSHRemoteTunnel:
             '-o', 'ExitOnForwardFailure=yes',		# If remote port in use already exit instead of warn
             '-o', 'ConnectTimeout=%d' % connection_timeout, # Fail faster than 75 second TCP timeout if can't connect
             '-o', 'StrictHostKeyChecking=no',		# Don't ask about host authenticity on first connection
-            '-R', '%d:localhost:%d' % (port,port),	# Remote port forwarding
+            '-R', '%d:localhost:%d' % (remote_port,local_port),	# Remote port forwarding
             remote,	# Remote machine
         ]
         from subprocess import Popen, PIPE

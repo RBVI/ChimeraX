@@ -11,29 +11,28 @@
 
 # -----------------------------------------------------------------------------
 #
-def meeting(session, host = None, port = 52194,
+def meeting(session, meeting_name = None,
             name = None, color = None, face_image = None,
             relay_commands = None, update_interval = None,
-            id = None, name_server = 'chimeraxmeeting.net', name_server_port = 51472):
+            id = None, host = None, port = 52194, timeout = 5,
+            name_server = None, name_server_port = None):
     '''
     Join a meeting where two or more ChimeraX instances show the same models
     and show each others' VR hands and face or mouse positions.
 
     Parameters
     ----------
-    host : string
-      Host name or IP address of the ChimeraX that started the meeting,
-      for example, "descartes.cgl.ucsf.edu" or "169.230.21.39".
-      If host is not specified, the info about the current meeting is reported to the log.
-    port : int
-      Port number used by ChimeraX that started the meeting.
-      Can be omitted in which case default port 52194 is used.
+    meeting_name : string
+      Name of the meeting.  The host of the meeting creates this name and tells it
+      to the participants so they can join.  Alternatively if the value contains "." or ":"
+      characters it is treated as an IP address or host name of the machine that started
+      the meeting or the proxy server being used for the meeting.
     name : string
-      Name to identify this ChimeraX on remote machines.
+      Name to identify this participant on remote machines.
     color : r,g,b,a (range 0-255)
-      Color for my mouse pointer shown on other machines
+      Color of this participant's mouse pointer cone.
     face_image : string
-      Path to PNG or JPG image file for image to use for VR face depiction.
+      Path to PNG or JPG image file for image to use for VR face depiction of this partipant.
     relay_commands : bool
       Whether to have every command you run sent to the other participants and their commands
       sent to you and automatically run so changes to the scene are mirrored for all participants.
@@ -41,10 +40,19 @@ def meeting(session, host = None, port = 52194,
     update_interval : int
       How often VR hand and head model positions are sent for this ChimeraX instance in frames.
       Value of 1 updates every frame.  Default 1.
+    host : string
+      This option is an alternative to specifying meeting_name.
+      The value will be interpreted as a host name or IP address of the machine
+      that started the meeting or a proxy server, for example, "descartes.cgl.ucsf.edu",
+      "169.230.21.39", or "chimeraxmeeting.net".
+    port : int
+      Port number used by ChimeraX that started the meeting.
+      Can be omitted in which case default port 52194 is used.
+    timeout : float
+      Time to wait for connection before giving up in seconds.  Default 5.
     id : string
-      Name for the meeting that participants can use to join the meeting instead of a host address.
-      Should not contain "." or ":" and is case insensitive.  The meeting can only be named if there
-      is a name server tunning given by the the name_server and name_server_port options.
+      This option is an alternative to specifying meeting_name.
+      The value will only be interpreted as a text name and not an IP address or host name.
     name_server : string
       Host name or IP address for the name server which maps meeting names given by the id option
       to the host address and port for connecting to the meeting.
@@ -52,16 +60,24 @@ def meeting(session, host = None, port = 52194,
       Port number for the name server given by the name_server option.
     '''
 
-    if host is None and id is None:
-        p = _meeting_participant(session)
-        if p is None:
-            session.logger.status('No ChimeraX meeting started', log = True)
-            return
-        _report_connection(session, p)
-    else:
-        if id is not None:
-            host, port = _lookup_meeting_id(id, name_server, name_server_port)
-        p = _join_meeting(session, host, port)
+    if meeting_name is not None:
+        if '.' in meeting_name or ':' in meeting_name:
+            host = meeting_name
+        else:
+            id = meeting_name
+
+    name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
+    if id is not None:
+        host, port = _lookup_meeting_name(id, name_server, name_server_port)
+        
+    if host is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Must specify meeting name, or host or id options')
+    
+    p = _join_meeting(session, host, port, timeout = timeout)
+
+    mname = '"%s"' % id if id else ''
+    session.logger.info('Joining meeting%s at %s port %d' % (mname, host, port))
 
     _set_appearance(session, p, name, color, face_image)
 
@@ -73,11 +89,14 @@ def meeting(session, host = None, port = 52194,
 
 # -----------------------------------------------------------------------------
 #
-def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
-                  copy_scene = None,
+def meeting_start(session, meeting_name = None,
                   name = None, color = None, face_image = None,
+                  port = 52194,
+                  proxy = None, proxy_server = None, proxy_key = None,
+                  proxy_port_range = None, proxy_timeout = None,
+                  copy_scene = None,
                   relay_commands = None, update_interval = None,
-                  id = None, name_server = 'chimeraxmeeting.net', name_server_port = 51472):
+                  name_server = None, name_server_port = None):
     '''
     Start a meeting allowing two or more ChimeraX instances to show each others' VR hand-controller
     and headset positions or mouse positions.  One participant starts the meeting with this command
@@ -86,27 +105,51 @@ def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
 
     Parameters
     ----------
+    meeting_name : string
+      Name of the meeting that participants use to join the meeting.  If omitted then
+      participants need to specify the host address to join the meeting.  The host address
+      will be logged after the meeting start command and is tupically the IP address of
+      the computer or its domain name.  Meeting names should not include "." or ":" characters
+      since those are used to distinguish host names from meeting names.
+    name : string
+      Name to identify this participant on remote machines.
+    color : r,g,b,a (range 0-255)
+      Color of this participant's mouse pointer cone.
+    face_image : string
+      Path to PNG or JPG image file for image to use for VR face depiction of this partipant.
     port : int
-      Optional port number.  Can be omitted in which case default port 52194 is used.
-    proxy : string
-      User and host name for a proxy server, for example chimerax@13.56.160.227.
-      An ssh tunnel is made to the proxy server so that participants can connect to
-      the proxy when the meeting host is not directly reachable due to a firewall.
-      The private key for connecting with ssh is provided with the key_for_proxy option.
-      If the connection to the proxy server fails because the proxy is not reachable it
-      takes typically 75 seconds before the ssh connection attempt times out and an
-      error message is logged.
-      This option can only be used by the meeting host.
-    key_for_proxy : string
-      File path to the ssh identity file (e.g. 'vr-key-private.pem') used to make an
+      Port number participants use to connect directly to the host machine.  Can be omitted
+      in which case default port 52194 is used.  If the proxy option is used this port number
+      is the port on the local machine while the proxy machine port is chosen from available
+      ports specified with proxy_port_range.
+    proxy : bool
+      Whether to have participants connect through a proxy server.  This is needed if
+      the machine that started the meeting cannot be reached by some participants because
+      it is behind a firewall.  Instead the participants will connect to the machine
+      specified by the proxy_server option.  Default false.
+    proxy_server : string
+      User and host name for a proxy server.  Default tunnel@chimeraxmeeting.net.
+      If the proxy option is true an ssh tunnel is made to this proxy server.
+      This allows participants that cannot directly connect to the meeting host due
+      to a firewall to instead connectcan connect to the proxy host machine.
+      Usually a proxy_key ssh authentication file needs to be specfied to make
+      the tunnel.
+    proxy_key : string
+      File path to the ssh identity file (e.g. 'proxy-key-private.pem') used to make an
       ssh tunnel to a proxy server that is specified with the proxy command.
       This identity file is the private key used to connect to the proxy using
       the ssh <i>-i</i> option when creating the tunnel.  The file must not
       have access permissions by others or ssh will consider it insecure and not accept it.
+    proxy_port_range : int, int
+      The range of ports on the proxy server to use.  An available port from this range
+      will be chosen and reported by the command.  A range of ports allows multiple
+      simultaneous meetings to be hosted by one proxy server.
+    proxy_timeout : int
+      Time to wait for a setting up the proxy tunnel before giving up.  Default 5 seconds.
     copy_scene : bool
-      Whether to copy the open models from the ChimeraX that started the meeting to other ChimeraX instances
-      when they join the meeting.
-    name, color, face_image, relay_commands, update_interval, id, name_server, name_server_port :
+      Whether to copy the open models from the ChimeraX that started the meeting
+      to other participants when they join the meeting.
+    relay_commands, update_interval, name_server, name_server_port :
       See the meeting command documentation for these options.
     '''
 
@@ -120,54 +163,71 @@ def meeting_start(session, port = 52194, proxy = None, key_for_proxy = None,
     if update_interval is not None:
         p.vr_tracker.update_interval = update_interval
 
-    if proxy is not None:
+    proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout = \
+        _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout)
+    if proxy:
         from chimerax.core.errors import UserError
-        if key_for_proxy is None:
-            raise UserError('meeting: must specify keyForProxy option if proxy option used')
+        if proxy_key is None:
+            if proxy_server == 'tunnel@chimeraxmeeting.net':
+                proxy_key = _default_proxy_key_file()
+            else:
+                raise UserError('meeting: must specify proxyKey option if proxy option used')
         from .sshtunnel import SSHRemoteTunnel
-        tunnel = SSHRemoteTunnel(proxy, port, key_for_proxy, log=session.logger)
+        tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
+                                 connection_timeout = proxy_timeout, log=session.logger)
         if tunnel is None:
             raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
         p.hub._ssh_tunnel = tunnel
 
-    if id is not None:
-        _set_meeting_id(p.hub, id, name_server, name_server_port)
+    name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
+    if meeting_name is not None:
+        _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
 
     # Log meeting info
-    addresses = [tunnel.host] if proxy else p.hub.listening_addresses_and_port()[0]
-    _report_start(addresses, port, id, session.logger)
+    addresses, cport = ([tunnel.host], tunnel.remote_port) if proxy else p.hub.listening_addresses_and_port()
+    _report_start(addresses, cport, meeting_name, session.logger)
 
 # -----------------------------------------------------------------------------
 #
-def _set_meeting_id(hub, id, name_server, name_server_port):
+def meeting_info(session):
+    '''Report info about a current meeting in progress.'''
+    p = _meeting_participant(session)
+    if p is None:
+        session.logger.status('No ChimeraX meeting started', log = True)
+    else:
+        _report_connection(session, p)
+
+# -----------------------------------------------------------------------------
+#
+def _set_meeting_name(hub, meeting_name, name_server, name_server_port):
     from chimerax.core.errors import UserError
     try:
-        success = hub.set_meeting_id(id, name_server, name_server_port)
+        success = hub.set_meeting_name(meeting_name, name_server, name_server_port)
     except ConnectionError as e:
-        raise UserError('meeting: Could not register meeting id "%s"' % id +
-                        ', unable to connect to name server %s:%d' % (name_server, name_server_port))
+        raise UserError('meeting: Could not register meeting name "%s"' % meeting_name +
+                        ', unable to connect to name server %s port %d' % (name_server, name_server_port))
     except TimeoutError as e:
-        raise UserError('meeting: Could not register meeting id "%s"' % id +
-                        ', timed out connecting to name server %s:%d' % (name_server, name_server_port))
+        raise UserError('meeting: Could not register meeting name "%s"' % meeting_name +
+                        ', timed out connecting to name server %s port %d' % (name_server, name_server_port))
     if not success:
-        raise UserError('meeting: Meeting id "%s" already in use' % id)
+        raise UserError('meeting: Meeting name "%s" already in use' % meeting_name)
 
 # -----------------------------------------------------------------------------
 #
-def _lookup_meeting_id(id, name_server, name_server_port):
+def _lookup_meeting_name(meeting_name, name_server, name_server_port):
     from chimerax.core.errors import UserError
     from .nameserver import get_address
     try:
-        host, port = get_address(id.casefold(), name_server, name_server_port)
+        host, port = get_address(meeting_name.casefold(), name_server, name_server_port)
     except ConnectionError as e:
-        raise UserError('meeting: Could not lookup meeting id "%s"' % id +
-                        ', unable to connect to name server %s:%d' % (name_server, name_server_port))
+        raise UserError('meeting: Could not lookup meeting name "%s"' % meeting_name +
+                        ', unable to connect to name server %s port %d' % (name_server, name_server_port))
     except TimeoutError as e:
-        raise UserError('meeting: Could not lookup meeting id "%s"' % id +
-                        ', timed out connecting to name server %s:%d' % (name_server, name_server_port))
+        raise UserError('meeting: Could not lookup meeting name "%s"' % meeting_name +
+                        ', timed out connecting to name server %s port %d' % (name_server, name_server_port))
     if host is None:
-        raise UserError('meeting: Meeting id "%s" not found using name server %s:%d'
-                        % (id, name_server, name_server_port))
+        raise UserError('meeting: Meeting name "%s" not found using name server %s port %d'
+                        % (meeting_name, name_server, name_server_port))
     return host, port
             
 # -----------------------------------------------------------------------------
@@ -188,25 +248,38 @@ def _start_meeting(session, port, copy_scene):
 
 # -----------------------------------------------------------------------------
 #
-def _join_meeting(session, host, port):
+def _default_proxy_key_file():
+    k = b'H4sIAOa8pF8C/22Vt7ajWBREc76ic1Yv4U3QwcWD8MJneOGdcPr6eT2TzklPsmtXUL9//xwnyqr5y32BX7arBsATfz3F+O/jN2SoqjgDlQPgyQNHBJfjSX41PwW/LR4b2+RU9SiEBA2CBM2NwT1FlLCbVCpYFuAP84CKAEeoSvYSwSw+YztlkvK88QUtxpXnzDLng3W5P5kZBMYyyZg3Gq7x5BYzO9gR7mcSCkJ6dtsVdXAzLgl2YkepWR/XnTgar1mld43So55TrLE3OC+nNSpzvTTELBpMx+v0N8Riko2d++Z3sojKO3OdgBbntj7Hd4MxgVt3j93MHgDB/HK9V/1YjfRNz4Y+iKGMgAZSJESySW4JfT92WTqTsMbNRBEUap2GBvxsLcal6ZRFNxHu/C2Ij8Qq+HXtaU6cRuwFGRSHrJji76FDvoGX5ibJXQlNZqDceYI5ai8MnFMVgAM4MP3IVqo8bT5n89I50vEFaJH01/rlpCpMibF0dS+oaj6bTfbLXNGzbBC87+CD7BA3cq+WquWO7jj4Qxq2vl+NsEAchphDxbWFoI1I5JR9rWHf96yTryjwFjwhLrS4yIdW6mZWdElxNLQazELc5/bKbjAF0URAOOF4u46XeWHBR2sU2dG1v7+55lo+VyzpDyr68bn4QOTqFis+Rt+GNXXkxss/EkOK5g7zTX7JbZ45uRlNPrJlj/nuNhoN4kcw3mvVUp098XKiwsgDeeGeVXaqtBQm6zNQUpH3Vwc7Hh1y/HLu7qeadfhQ5HfsEGx4aYw+TfUjCImsqoDmLv7UVhRmKYcUMH6jQUrL7ekp8nUsAvrwJf+Ho8uVxHuGCbCQwWSlBldnxPIqWPviByx4vOPCFHoQ6wuuUuj0Q4oM0kcWKYd8hjDcnOli6HYBItWwgir4iaWXPmtq3+dyLVZlsMJ5kVhG0FrfFRS0scaLuY/dkAGtyUmEYmw9tANnC2Cnr7UTTFDnZVEpjRL1S48x0SO9cuNfYuRSJYgfcAbzqe2p3otSLIfknZVJ6Yqp+nXpPOthHs2OHbcM7lSbezMWalkuDviDUYgblDrEIwRZqqaWt9iAxYvw5R5cfYC4LeFUjQR1iBuP6Jn1PC58GN0g+6J36O3vMS7cRO0OqJNoLQ85U+yCQYuTdtN/mvgwoOYMaaiYgt4yr5z+k1wD9HMYiWnbtD/BZPJg/RCSKvMwb0DzPDX7D+LDLyFtECubuO2xb5h/mLhrVf59ihYsTEiwz6tCTxXOgSgwCoqEtNvRWevyEBFH22RnR+Z1hximLAO/uBMx1lc8T3FC6m+zHRuc4oyWuqm1d6dDH460hJQDnmNM0Cj+SFtB66w7IcjhLzJAHcQLo53hKuynSF0IZObE0CRvZSetGJETGg/ckIgoUUR6/qTDhbU0FgW8T1bfbfMNwsISop6wAx0/R6fan1dlgcjbCiq9p/4JwkIYnhBqJ0ZP7Uny4aqDhKP++SBSDS8e+ihEp6FvEXxyc74F93ot3pRSX6Iiq7kOsBvk5cJBt5lewHlytSO8YufxNhvMk7Kd7+BSS9LmmyEUNR7k0ldw+xxm5W7G16RPFWo/3k4iCJCSkXFLyRVnayYx1HC3xUvPbOIoj3qkv3oayS+lDwqbgIfaRHo7U2bG9PIGBqyL+i6UXsXcL2YnXrf29r4KHjHMZ5Zb7qToOp+SMd702GZqpim6ydntF1f62/nnD/TvrIim8P9z8w/ecc3fjwYAAA=='
+    import gzip, base64, tempfile, atexit, os
+    key = gzip.decompress(base64.b64decode(k))
+    f = tempfile.NamedTemporaryFile(delete = False)
+    f.write(key)
+    f.close()
+    atexit.register(lambda path=f.name: os.remove(path))
+    return f.name
+
+# -----------------------------------------------------------------------------
+#
+def _join_meeting(session, host, port, timeout = None):
     p = _meeting_participant(session, create = True)
     if p.connected:
         from chimerax.core.errors import UserError
         raise UserError('To join another meeting you must exit'
                         ' the meeting you are currently in using'
                         ' command "meeting close"')
-    p.connect(host, port)
+    p.connect(host, port, timeout = timeout)
     return p
 
 # -----------------------------------------------------------------------------
 #
-def _report_start(addresses, port, id, log):
+def _report_start(addresses, port, meeting_name, log):
     loc = ' or '.join(addresses)
     if port != 52194:
         loc += ' port %d' % port
-    if id is not None:
-        status = 'Meeting "%s" started at %s' % (id, loc)
-        cmds = ['meeting id %s' % id]
+    if meeting_name is not None:
+        status = 'Meeting "%s" started at %s' % (meeting_name, loc)
+        from chimerax.core.commands import quote_if_necessary
+        cmds = ['meeting %s' % quote_if_necessary(meeting_name)]
     else:
         status = 'Meeting started at %s' % loc
         cmds = [('meeting %s' % host) if port == 52194 else ('meeting %s port %s' % (host, port))
@@ -284,10 +357,48 @@ def _meeting_settings(session):
                 'name': 'Remote',	# Name seen by other participants
                 'color': (0,255,0,255),	# Hand color seen by others
                 'face_image': None,	# Path to image file
+                'proxy': False,         # Whether to use proxy server
+                'proxy_server': 'tunnel@chimeraxmeeting.net',
+                'proxy_key': None,	# Ssh authentication key file
+                'proxy_port_range': (52194,52203),
+                'proxy_timeout': 5,	# Proxy connect timeout in seconds
+                'name_server': 'chimeraxmeeting.net',
+                'name_server_port': 51472,
             }
         settings = _MeetingSettings(session, "meeting")
         session._meeting_settings = settings
     return settings
+    
+# -----------------------------------------------------------------------------
+#
+def _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout):
+    return _get_defaults(session,
+                         (('proxy', proxy), ('proxy_server', proxy_server),
+                          ('proxy_key', proxy_key), ('proxy_port_range', proxy_port_range),
+                          ('proxy_timeout', proxy_timeout)))
+    
+# -----------------------------------------------------------------------------
+#
+def _name_server_defaults(session, name_server, name_server_port):
+    return _get_defaults(session,
+                         (('name_server', name_server),
+                          ('name_server_port', name_server_port)))
+    
+# -----------------------------------------------------------------------------
+#
+def _get_defaults(session, named_values):
+    settings = _meeting_settings(session)
+    save_settings = False
+    values = dict(named_values)
+    for attr, value in tuple(values.items()):
+        if value is None:
+            values[attr] = getattr(settings, attr, None)
+        else:
+            setattr(settings, attr, value)
+            save_settings = True
+    if save_settings:
+        settings.save()
+    return [values[name] for name,val in named_values]
 
 # -----------------------------------------------------------------------------
 #
@@ -313,7 +424,7 @@ def register_meeting_command(cmd_name, logger):
     Currently unused.  Registered instead in reg_cmd.py.
     '''
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg
+    from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg, Int2Arg
 
     participant_kw = [
         ('name', StringArg),
@@ -322,22 +433,32 @@ def register_meeting_command(cmd_name, logger):
         ('relay_commands', BoolArg),
         ('update_interval', IntArg),
         ('port', IntArg),
-        ('id', StringArg),
         ('name_server', StringArg),
         ('name_server_port', IntArg),
     ]
 
     if cmd_name == 'meeting':
-        desc = CmdDesc(optional = [('host', StringArg)],
-                   keyword = participant_kw,
-                   synopsis = 'Join a ChimeraX meeting')
+        desc = CmdDesc(
+            optional = [('meeting_name', StringArg),
+                        ('id', StringArg),
+                        ('host', StringArg)],
+            keyword = participant_kw,
+            synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
-        desc = CmdDesc(keyword = [('proxy', StringArg),
-                                  ('key_for_proxy', OpenFileNameArg),
-                                  ('copy_scene', BoolArg)] + participant_kw,
-                       synopsis = 'Create a ChimeraX meeting')
+        desc = CmdDesc(
+            optional = [('meeting_name', StringArg)],
+            keyword = [('proxy', BoolArg),
+                       ('proxy_server', StringArg),
+                       ('proxy_key', OpenFileNameArg),
+                       ('proxy_port_range', Int2Arg),
+                       ('proxy_timeout', IntArg),
+                       ('copy_scene', BoolArg)] + participant_kw,
+            synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
+    elif cmd_name == 'meeting info':
+        desc = CmdDesc(synopsis = 'Report meeting info')
+        register('meeting info', desc, meeting_info, logger=logger)
     elif cmd_name == 'meeting close':
         desc = CmdDesc(synopsis = 'Close meeting')
         register('meeting close', desc, meeting_close, logger=logger)
@@ -400,19 +521,19 @@ class MeetingParticipant:
     def connected(self):
         return self._message_stream is not None
     
-    def connect(self, host, port):
+    def connect(self, host, port, timeout = None):
         if self._hub:
             raise RuntimeError('Cannot join a meeting when currently hosting a meeting.')
         from PyQt5.QtNetwork import QTcpSocket
         socket = QTcpSocket()
-        msg_stream = MessageStream(socket, self._message_received,
-                                   self._disconnected, self._session.logger)
+        msg_stream = MessageStream(socket, self._message_received, self._disconnected,
+                                   self._session.logger, connection_timeout = timeout)
         self._message_stream = msg_stream
         socket.connectToHost(host, port)
         self._session.logger.status('Waiting for scene data from meeting host')
 
         self._initiate_tracking()
-        
+
     @property
     def hub(self):
         return self._hub
@@ -693,21 +814,21 @@ class MeetingHub:
                         a.append(ha)
         return a
 
-    def set_meeting_id(self, id, name_server, name_server_port):
+    def set_meeting_name(self, meeting_name, name_server, name_server_port):
         proxy = self._ssh_tunnel
         if proxy:
-            host, port = proxy.host, proxy.port
+            host, port = proxy.host, proxy.remote_port
         else:
             addresses, port = self.listening_addresses_and_port()
             if not addresses:
                 return False
             host = addresses[0]
         from .nameserver import set_address
-        success = set_address(id.casefold(), host, port,
+        success = set_address(meeting_name.casefold(), host, port,
                               name_server, name_server_port, replace = False)
         if success:
-            # Remember id and clear it when meeting is closed
-            self._meeting_id = (id, name_server, name_server_port)
+            # Remember meeting name and clear it when meeting is closed
+            self._meeting_id = (meeting_name, name_server, name_server_port)
         return success
     
     def copy_scene(self, copy):
@@ -783,7 +904,8 @@ class MeetingHub:
         self._send_message(msg)
 
 class MessageStream:
-    def __init__(self, socket, message_received_cb, disconnected_cb, log):
+    def __init__(self, socket, message_received_cb, disconnected_cb, log,
+                 connection_timeout = None):
         self._socket = socket
         self._message_received_cb = message_received_cb
         self._disconnected_cb = disconnected_cb
@@ -815,6 +937,11 @@ class MessageStream:
 
         # Register callback called when data available to read on socket.
         socket.readyRead.connect(self._data_available)
+
+        self._connection_timeout = connection_timeout
+        if connection_timeout is not None:
+            self._timeout_timer = _set_timer(connection_timeout,
+                                             self._check_connection_timeout)
 
     def close(self):
         # Calling close crashes if it is in disconnect callback.
@@ -993,24 +1120,42 @@ class MessageStream:
         host = socket.peerAddress().toString()
         port = socket.peerPort()
         err = socket.errorString()
-        self._log.info('Socket error for message stream to %s:%d: %s' % (host, port, err))
+        self._log.info('Socket error for message stream to %s port %d: %s' % (host, port, err))
 #        self._socket_disconnected()
 
-    def _socket_disconnected(self):
+    def _socket_disconnected(self, report = True):
         socket = self._socket
         if socket is None:
             return
         import sip
         if sip.isdeleted(socket):
             return	# Happens when exiting ChimeraX
-        host, port = (socket.peerAddress().toString(), socket.peerPort())
-        msg = 'Disconnected from %s:%d' % (host, port)
-        self._log.info(msg)
+        if report:
+            host, port = (socket.peerAddress().toString(), socket.peerPort())
+            msg = 'Disconnected from %s port %d' % (host, port)
+            self._log.info(msg)
         # Closing or deallocating the socket in this socket callback causes a crash.
         # So close routine must use deleteLater()
         # self.close()
         self._disconnected_cb(self)
 
+    def _check_connection_timeout(self):
+        socket = self._socket
+        if socket is None:
+            return
+        state = socket.state()
+        if state != socket.ConnectedState and state != socket.UnconnectedState:
+            socket.abort()
+            msg = 'Failed to connect after %d seconds' % self._connection_timeout
+            self._log.status(msg, color='red')
+            self._log.warning(msg)
+            self._socket_disconnected(report = False)  # QTcpSocket is not firing the disconnected signal
+
+def _set_timer(timeout, callback):
+    from PyQt5.QtCore import QTimer
+    delay_msec = int(1000*timeout)
+    return QTimer.singleShot(delay_msec, callback)
+    
 def _decode_message_bytes(bytes):
     msg_string = bytes.decode('utf-8')
     import ast
