@@ -72,6 +72,7 @@ class UpdateTool(ToolInstance):
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
 
+        self.all_items = None
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize
@@ -96,9 +97,11 @@ class UpdateTool(ToolInstance):
         button.clicked.connect(self.help_button)
         buttons_layout.addWidget(button)
         buttons_layout.addStretch()
-        button = QPushButton("Install")
-        button.clicked.connect(self.install)
-        buttons_layout.addWidget(button)
+        self.install_button = QPushButton("Install")
+        self.install_button.clicked.connect(self.install)
+        self.install_button.setEnabled(False)
+        buttons_layout.addWidget(self.install_button)
+        self.updates.itemClicked.connect(self.update_install_button)
         button = QPushButton("Cancel")
         button.clicked.connect(self.cancel)
         buttons_layout.addWidget(button)
@@ -113,6 +116,16 @@ class UpdateTool(ToolInstance):
 
     def cancel(self):
         self.session.ui.main_window.close_request(self.tool_window)
+
+    def update_install_button(self, *args):
+        from PyQt5.QtCore import Qt
+        all_items = self.all_items
+        for i in range(all_items.childCount()):
+            item = all_items.child(i)
+            if item.checkState(self.NAME_COLUMN) == Qt.Checked:
+                self.install_button.setEnabled(True)
+                return
+        self.install_button.setEnabled(False)
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
@@ -156,6 +169,7 @@ class UpdateTool(ToolInstance):
                 ([], installed_version, available.synopsis, available.categories[0]))
             data[0].append(new_version)
 
+        self.all_items = None
         self.updates.clear()
         if not new_bundles:
             return
