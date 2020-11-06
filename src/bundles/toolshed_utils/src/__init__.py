@@ -332,7 +332,7 @@ def _add_restart_action(action_type, bundles, extra_args, logger, message, sessi
         for bundle in bundles:
             if not isinstance(bundle, str):
                 # Must be a BundleInfo instance
-                bundle_args.append("%s==%s" % (bundle.name, bundle.version))
+                bundle_args.append(f"{bundle.name}=={bundle.version}")
             else:
                 # Must be a file
                 import shutil
@@ -459,7 +459,7 @@ def _install_module(toolshed, bundle, logger, install, session):
     return module
 
 
-def _pip_install(toolshed, bundle_name, logger, per_user=True, reinstall=False, no_deps=False):
+def _pip_install(toolshed, bundles, logger, per_user=True, reinstall=False, no_deps=False):
     # Run "pip" with our standard arguments (index location, update
     # strategy, etc) plus the given arguments.  Return standard
     # output as string.  If there was an error, raise RuntimeError
@@ -477,11 +477,14 @@ def _pip_install(toolshed, bundle_name, logger, per_user=True, reinstall=False, 
         # XXX: Not sure how this interacts with "only-if-needed"
         # For now, prevent --force-reinstall from reinstalling dependencies
         command.extend(["--force-reinstall", "--no-deps"])
-    # bundle_name can be either a file path or a bundle name in repository or a list of them
-    if isinstance(bundle_name, str):
-        command.append(bundle_name)
+    # bundles can be either a file path or a bundle name in repository or a list of them
+    if isinstance(bundles, str):
+        command.append(bundles)
     else:
-        command.extend(bundle_name)
+        for bundle in bundles:
+            if not isinstance(bundle, str):
+                bundle = f"{bundle.name}=={bundle.version}"
+            command.append(bundle)
     try:
         results = _run_pip(command, logger)
     except (RuntimeError, PermissionError) as e:
