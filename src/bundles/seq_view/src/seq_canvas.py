@@ -183,6 +183,7 @@ class SeqCanvas:
         self.label_view.hide()
         #self._vdivider.hide()
         self.main_view.show()
+        self._initial_layout = True
         self.layout_alignment()
         """TODO
         self.mainCanvas.grid(row=1, column=2, sticky='nsew')
@@ -756,6 +757,11 @@ class SeqCanvas:
 
     def line_width_from_settings(self):
         if self.wrap_okay():
+            # return a narrow line width the first time, so that the initial layout doesn't
+            # force the tool column to be wider than needed
+            if self._initial_layout:
+                self._initial_layout = False
+                return 20
             if len(self.alignment.seqs) == 1:
                 prefix = SINGLE_PREFIX
             else:

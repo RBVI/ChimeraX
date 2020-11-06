@@ -225,7 +225,10 @@ def cmd_usage_save_format(session, format):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(SaveFileNameArg)))
 
     provider_args = session.save_command.save_args(session.data_formats[format])
+    hidden_args = session.save_command.hidden_args(session.data_formats[format])
     for py_kw_name, arg in provider_args.items():
+        if py_kw_name in hidden_args:
+            continue
         kw_name = user_kw(py_kw_name)
         if isinstance(arg, type):
             # class, not instance
