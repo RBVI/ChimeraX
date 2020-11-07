@@ -30,11 +30,9 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<i>meeting-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
-[&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
-[&nbsp;<a href="#start-options"><b>proxy</b></a>&nbsp;&nbsp;<i>proxy-host</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>keyForProxy</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>copyScene</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
+[&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>proxy</b></a>&nbsp;&nbsp;<i>use-proxy</i>&nbsp;]
+<span class="nowrap">&nbsp;<a href="#start-options"><i>other-start-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> 
@@ -42,7 +40,10 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
-<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
+<span class="nowrap">&nbsp;<a href="#options"><i>other-join-options</i></a></a>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting</b> &nbsp;<b>info</b>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>send</b>
@@ -60,27 +61,45 @@ a desktop screen-sharing program may be a more reliable alternative.
 Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
 so that participants can see each other pointing at objects in the scene.
-For non-VR participants, the camera view is synchronized, but
+For non-VR participants, the camera view is synchronized, and
 the cone indicating the mouse pointer position of a non-VR user
-is only displayed to others when the user pauses the mouse over a model,
+is displayed to others when the user pauses the mouse over a model,
 as for picking.
 </p><p>
-The computer that started the meeting must be reachable over the 
-network by the other participants. Firewalls can block the connection;
-see <a href="#firewalls">getting around firewalls</a> below.
-See also: <a href="device.html#vr"><b>vr</b></a>
+Examples:
+</p>
+<blockquote>
+<b>meeting start nanobody</b><br>
+&nbsp;&nbsp; - start a meeting named <i>nanobody</i><br>
+<b>meeting start nanobody proxy true</b><br>
+&nbsp;&nbsp; - start a meeting named <i>nanobody</i> using a proxy server to get around firewalls<br>
+<b>meeting nanobody</b><br>
+&nbsp;&nbsp; - join a meeting named <i>nanobody</i><br>
+<b>meeting close</b><br>
+&nbsp;&nbsp; - leave the current meeting
+</blockquote>
+<p>
+If the computer that started the meeting is not reachable over the 
+network by the other participants due to a firewall, a proxy server
+can be used.  Details of handling <a href="#firewalls">firewalls</a>
+are given below. See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
-The meeting is initiated with <b>meeting start</b>, which reports the 
-hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
-Optionally, a character-string <i>meeting-name</i> can be given
-in the <b>meeting start</b> command and then used by other participants
-when they join. If no <i>meeting-name</i> is assigned, joiners must
-specify the <i>host</i> as the hostname or IP address of the starting instance
-(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
+A meeting is initiated with <b>meeting start</b> <i>meeting-name</i>
+where the meeting name is a text identifier that participants will
+use to join the meeting.  It is best if the meeting name does not
+contain "." or ":" characters so that it is not confused
+with a host name or IP address.
+When participants join a meeting they specify the meeting name
+and ChimeraX finds the host computer to connect to using a name server.
 A default meeting-name server is provided, but a different one can be
 <a href="#start-options">specified</a>.
+If the meeting is started without giving it a name
+participants can join using the hostname or IP address
+(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>)
+that the meeting start
+command reports in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
-Participants can specify a <b>name</b> to identify themselves
+Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
 and a pointer-cone <b>color</b>.
 </p><p>
@@ -93,9 +112,12 @@ Commands executed by one participant will automatically execute for the others
 (by <a href="#relayCommands">default</a>),
 and if a participant using VR moves the scene,
 others using VR will see the motion.
-Participants not using VR maintain their own viewing directions.
+Participants not using VR have a synchronized common viewing direction
+that is not related to the viewing direction of VR participants.
 If unshared changes have been made, a participant can still share 
 his current scene with the others by using <b>meeting send</b>.
+The <b>meeting info</b> command reports information about the currently
+active meeting.
 The host can end the meeting with <b>meeting close</b>, or
 others can use it to exit the meeting individually.
 </p><p>
@@ -111,33 +133,95 @@ and has several <a href="#limitations">limitations</a>.
 
 <blockquote>
 <a name="proxy"></a>
-<b>proxy</b> &nbsp;<i>proxy-host</i>
+<b>proxy</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-User and host name for a proxy server, for example,
-<b>chimerax@13.56.160.227</b>.
+Whether to allow participants to connect to a proxy server.
+This is needed when the machine starting the meeting is behind a firewall
+and cannot be reached directly by the partipants.
+The proxy setting is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="proxyHost"></a>
+<b>proxyHost</b> &nbsp;<i>proxy-host</i>
+<br>
+User and host name for a proxy server.
+The proxy host is remembered as a
+<a href="../preferences.html#other">preference</a>,
+the default <b>tunnel@chimeraxmeeting.net</b> is a public server
+provided by the ChimeraX development team for everyone to use.
 An ssh tunnel is made to the proxy server so that participants can connect to
 the proxy when the meeting host is not directly reachable due to a firewall
 (<a href="#useproxy">details...</a>).
-The private key for connecting with ssh is provided with the 
-<a href="#keyForProxy"><b>keyForProxy</b></a> option.
-If the connection to the proxy server fails because the proxy is not reachable,
-it takes typically 75 seconds before the ssh connection attempt times out and an
-error message is logged. This option can only be used by the meeting host.
+The private key for creating the ssh tunnel is provided with the 
+<a href="#proxyKey"><b>proxyKey</b></a> option.
+No key is needed for the default server.
 </blockquote>
 <blockquote>
-<a name="keyForProxy"></a>
-<b>keyForProxy</b> &nbsp;<i>ssh-identity-file</i>
+<a name="proxyKey"></a>
+<b>proxyKey</b> &nbsp;<i>ssh-identity-file</i>
 <br>
-The ssh identity file (<i>e.g.</i>, <b>vr-key-private.pem</b>)
+The ssh identity file (<i>e.g.</i>, <b>meeting-key-private.pem</b>)
 used to make an ssh tunnel to the proxy server given with the 
-<a href="#proxy"><b>proxy</b></a> option.
+<a href="#proxyHost"><b>proxyHost</b></a> option.
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the pathname brings up a file browser window for choosing the
 file interactively.
 This identity file is the private key used to connect to the proxy using
-the ssh <i>-i</i> option when creating the tunnel. The file must not
+the <a href="https://man.openbsd.org/ssh">ssh <i>-i</i></a>
+option when creating the tunnel. The file must not
 have read permissions by others or ssh will consider it insecure and 
 not accept it.
+The proxy key file is remembered as a
+<a href="../preferences.html#other">preference</a>.
+</blockquote>
+<blockquote>
+<a name="proxyPortRange"></a>
+<b>proxyPortRange</b> &nbsp;<i>port-min,port-max</i>
+<br>
+The range of port numbers to use on the <b>proxyHost</b>.
+A randomly chosen port in this range is used if <b>proxy</b> is enabled.
+All participants connect to that port.
+The default range <b>52194,52203</b> allows up 10 simultaneous meetings
+to be handled by the proxy server.
+The port range is remembered as a
+<a href="../preferences.html#other">preference</a>.
+</blockquote>
+<blockquote>
+<a name="proxyTimeout"></a>
+<b>proxyTimeout</b> &nbsp;<i>seconds</i>
+<br>
+The time to wait for creating the tunnel to the proxy server.
+If a connection is not made with this time the meeting will not be started.
+The timeout is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>5</b> seconds).
+</blockquote>
+<blockquote>
+<b>port</b>&nbsp;&nbsp;<i>N</i>
+<br>
+The port number used on the host computer (default <b>52194</b>)
+for receiving connections.  One port is used for receiving connections from all
+participants.  There is generally no need to change this port number.
+</blockquote>
+<blockquote>
+<b>nameServer</b> &nbsp;<i>name-host</i>
+<br>
+Specify the hostname or IP address to use as the meeting-name server
+The name server is remembered as a
+<a href="../preferences.html#other">preference</a>,
+the default <b>chimeraxmeeting.net</b> is provided by the 
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" 
+   target="_blank">UCSF RBVI</a>.
+</blockquote>
+<blockquote>
+<b>nameServerPort</b> &nbsp;<i>N</i>
+<br>
+Port number for the meeting-name server.
+The name server port is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>51472</b>).
 </blockquote>
 <blockquote>
 <b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -146,31 +230,18 @@ Whether to copy the session from the starting instance
 to each person who joins the meeting (default <b>true</b>).
 This copying is done only when a person joins the meeting. 
 </blockquote>
-<blockquote>
-<b>nameServer</b> &nbsp;<i>name-host</i>
-<br>
-Specify the hostname or IP address to use as the meeting-name server
-(default <b>chimeraxmeeting.net</b> provided by the 
-<a href="http://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>).
-</blockquote>
-<blockquote>
-<b>nameServerPort</b> &nbsp;<i>N</i>
-<br>
-Port number for the meeting-name server.
-</blockquote>
 
 <a name="options"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>General Options</h3>
+<h3>Options for Starting or Joining a Meeting</h3>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
 Name to show for a participant's pointer and image models
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
-The meeting participant name is remembered as a
+The participant name is remembered as a
 <a href="../preferences.html#other">preference</a>
 (initial default <b>Remote</b>).
 </blockquote>
@@ -209,14 +280,6 @@ Note that <a href="../index.html#toolbars">toolbar</a> icon buttons and many
 <a href="ui.html#mousemode">mouseclick/pointer operations</a> act via commands.
 </blockquote>
 <blockquote>
-<b>port</b>&nbsp;&nbsp;<i>N</i>
-<br>
-Number of the network port used to connect to the meeting host
-(default <b>52194</b>). Unless the default is used,
-all who join the meeting must specify the same number 
-as specified with <b>meeting start</b>.
-</blockquote>
-<blockquote>
 <b>updateInterval</b>&nbsp;&nbsp;<i>M</i>
 <br>
 How often to send a participant's
@@ -224,16 +287,60 @@ VR headset and hand-controller positions to the other participants
 (every <i>M</i><sup>th</sup> frame, default <b>1</b>, every frame).
 </blockquote>
 
+<a name="joinoptions"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Options for Joining a Meeting</h3>
+<blockquote>
+<b>host</b>&nbsp;&nbsp;<i>host-name</i>
+<br>
+The first argument of the meeting command specifies either a meeting name or a host name.
+Names containing a "." or ":" are interpeted as a host name.
+To avoid ambiguity that argument can be omitted and the host option can be specified
+where the value will only be interpreted as a host name
+(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
+</blockquote>
+<blockquote>
+<b>port</b>&nbsp;&nbsp;<i>N</i>
+<br>
+If a participant is joining a meeting using a host name or IP address instead
+of a meeting name, they will need to specify the port on the destination computer
+to connect to unless it is the default port <b>52194</b>.
+If joining using a meeting name, this option is not used, as the port will be
+looked up using the meeting name.  If a participant is connecting to a proxy
+server using the server name the port should be the port on the proxy server
+for the meeting.  That randomly chosen port is reported by the meeting start
+command.
+</blockquote>
+<blockquote>
+<b>id</b>&nbsp;&nbsp;<i>meeting-name</i>
+<br>
+The first argument of the meeting command specifies either a meeting name or a host name.
+Names containing a "." or ":" are interpeted as a host name.
+To avoid ambiguity that argument can be omitted and the id option can be specified
+where the value will only be interpreted as a meeting name.
+</blockquote>
+<blockquote>
+<b>timeout</b>&nbsp;&nbsp;<i>seconds</i>
+<br>
+Maximum time to wait when connecting to a meeting.  If this time is exceeded
+an error message is given and the meeting will not be joined.
+</blockquote>
+
 <a name="limitations"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Limitations and Potential Developments</h3>
+<h3>Limitations</h3>
 <p>
 <b>Firewalls block connections.</b>
 Most academic institutions have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
-See below for how to <a href="#firewalls">get around firewalls</a>.
+The <a href="#proxy">proxy</a> option allows participants to connect from
+a publicly visible proxy computer.
+Other <a href="#firewalls">firewall solutions</a> are described below.
+
 <!--
 Whereas the <b>meeting</b> command only allows running the hub
 server on the initiator's local host (and is thus susceptible to being
@@ -257,7 +364,7 @@ RBVI</a> is providing a hub server for use with the
 
 <p>
 <b>Synchronizing changes.</b>
-After the initial scene is shared not all changes made by one participant will
+After the initial scene is shared changes made by one participant will
 be propagated to other participants. Changes that are propagated include 
 moving and scaling the displayed structures and
 (by <a href="#relayCommands">default</a>) 
@@ -271,16 +378,21 @@ This may be slow for large amounts of data.
 </p>
 
 <p>
-<b>More than two participants.</b>
-The meeting command has had very limited testing with more than two
-participants. Multiple participants may cause errors or slow display updating.
+<b>Small number of participants.</b>
+The meeting command has been used for 2 to 4 participants.
+The number of participants is not limited.
+Larger numbers of participants increase the network bandwidth needed
+expecially for the computer hosting the meeting and may result in
+slow or jittery updating.  All data to synchronize the scene is
+transmitted through the computer that starts the meeting, so it is a bottleneck.
 </p>
 
 <p>
 <b>No audio chat support.</b>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
-<a href="https://zoom.us">Zoom</a> using the headset speakers and microphone works well.
+<a href="https://zoom.us">Zoom</a> using the VR headset speakers and microphone
+works well.
 </p>
 
 <p>
@@ -317,10 +429,10 @@ way to make both computers use the same orientation.
 <p>
 Most universities, colleges, institutions, companies and government labs 
 have firewalls that prevent incoming network connections.
-When joining a meeting, ChimeraX attempts to connect
-to port 52194 on the computer that started the meeting, as indicated
-by the message &ldquo;Waiting for scene data from meeting host.&rdquo;
-If the connection is blocked, usually after 60 seconds an error message 
+When joining a meeting that is not using a proxy server, ChimeraX attempts to connect
+to port 52194 on the computer that started the meeting, and shows a status
+message &ldquo;Waiting for scene data from meeting host.&rdquo;
+If the connection is blocked after 5 seconds an error message 
 will appear:
 </p>
 <pre style="color:red">
@@ -330,19 +442,124 @@ will appear:
 Two ways to resolve the problem are to:
 </p>
 <ul>
-<li>Open port 52194 in the firewall that protects the computer 
-that started the meeting to allow incoming connections.
+<li><a href="#useproxy">Use a proxy computer</a> outside the firewall;
+participants connect to the proxy machine it forwards
+connections through the firewall to the computer that started the meeting.
+This enabled with the <a href="#proxy">proxy</a> option
+of the <b>meeting start</b> command.
 <br>&ndash; OR &ndash;<br>
-<li>Set up a proxy virtual machine outside the firewall;
-everyone can access the virtual machine and use it to forward 
-connections to the computer that started the meeting.
+<li><a href="#openport">Open a port in the firewall</a> that protects the computer 
+that started the meeting to allow incoming connections.
 </ul>
 <p>
 Details on each approach are given below.
 </p>
 
-<p><b>Open a firewall port</b><br>
-By far the easiest solution is to change the firewall settings protecting
+<a name="useproxy"></a>
+<h3>Use a proxy server</h3>
+
+<p>
+Participants can connect to a publicly visible proxy computer
+which forwards connections through the firewall to the host computer.
+This is enabled with the <a href="#proxy">proxy</a> option, for example
+<b>meeting start alzheimers proxy true</b>.
+A public server chimeraxmeeting.net provided by the ChimeraX development
+team will be used and can handle up to 10 simultaneous meetings.
+</p>
+
+<p>
+Several problems may arise.  The proxy server may be at capacity,
+may be out of service, may introduce delays of seconds if participants
+are in distant parts of the world from the default server in California, USA,
+security is minimal -- anyone could simply try a port on the public proxy
+to connect and join a meeting.
+</p>
+
+<a name="setupproxy">
+<h3>Setting up one's own proxy server</h3>
+  
+<p>
+These problems can be mitigated by setting up and using one's own proxy server,
+for example, using Amazon Web Services (AWS). The AWS machine simply accepts
+connections and forwards them to the host computer behind the 
+institution firewall using an ssh tunnel.
+</p><p>
+Here is how to set up a proxy using an AWS virtual machine for ChimeraX meeting access.
+This could be done with any cloud virtual machine service since only ssh is required.
+</p>
+
+<ol>
+  <li>Create an AWS EC2 virtual machine; I used a free tier type t2.micro 
+using an Ubuntu 18.04 LTS Amazon Machine Image.
+The machine will need minimal compute and network bandwidth as it is just 
+forwarding data. The only large data being forwarded is the initial 
+ChimeraX meeting session. I chose Ubuntu 18.04 only because I have experience 
+with it. Any Linux distribution will work, since only ssh will be used.
+  <li>Set the virtual machine security group to allow any computer to connect
+on ports 52194 - 52203. By default, the virtual machine will not allow connections 
+except on ssh port 22, so this is a necessary step.
+  <li>Change sshd configuration file on the virtual machine 
+/etc/ssh/sshd_config enabling &ldquo;GatewayPorts yes&rdquo;
+and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
+This will allow other computers to connect to ssh tunnels.
+The normal use of ssh remote tunnels allows only the remote computer to use the tunnel,
+so this setting change is necessary.
+  <li>Create the tunnel using the <a href="#proxy"><b>proxy</b></a> option
+when starting the meeting, for example:
+<blockquote>
+<b>meeting start antibody309 proxy true proxyHost ubuntu@54.215.157.17 proxyKey meeting-key-private.pem</b>
+</blockquote>
+The <a href="#proxyKey"><b>proxyKey</b></a> option specifies
+the public key encryption file <b>meeting-key-private.pem</b>
+that was made when I created the AWS virtual machine. 
+It allows ssh access to the virtual machine without typing a password. 
+The &ldquo;ubuntu&rdquo; is the default administer account name on the AWS virtual machine.
+The meeting command creates the tunnel using ssh by executing a command like
+<pre>
+      ssh -N -i meeting-key-private.pem -R 52201:localhost:52194 ubuntu@54.215.157.17
+</pre>
+Connections through the tunnel appear to come from the host machine.
+  <li>When participants join the meeting using command <b>meet antibody309</b>
+it will connect to the AWS virtual machine public IP address.
+The participants do not need any authentication or account on the 
+AWS virtual machine. If there are participants within the same firewall 
+as the meeting host, they can connect directly to the host computer 
+without using the AWS virtual machine (for example, command:
+<b>meet 169.230.21.34</b>). Connections through the tunnel and from 
+within the firewall can both be made in the same meeting.
+  <li>In the above configuration the AWS administration account "ubuntu" was used.
+For better security it is worth making a separate account on the virtual machine
+to create the tunnels.  This is especially important if the private key
+will be shared to allow different people to initiate meetings using this proxy.
+The account can have no login shell to prevent using ssh to execute commands,
+only allowing tunnels to be created.  On Ubuntu an account named "tunnel"
+can be made with the following commands starting from the ubuntu admin account.
+<pre>
+  sudo adduser tunnel --disabled-password
+  sudo su - tunnel
+  ssh-keygen -t rsa -b 2048 -m PEM -C "ChimeraX meeting proxy" -f tunnel-key.pem
+  mkdir .ssh
+  chmod go-rwx .ssh
+  mv tunnel-key.pem.pub .ssh/authorized_keys
+  # Move tunnel-key.pem (private key) to machine that will start meetings.
+  exit
+  sudo usermod -s /usr/sbin/nologin tunnel
+</pre>
+To start a meeting using this safer tunnel account:
+<blockquote>
+  <b>meeting start antibody309 proxy true proxyHost tunnel@54.215.157.17 proxyKey tunnel-key.pem</b>
+</blockquote>
+The proxy options used here will be remembered by ChimeraX so subsequent meetings
+usng the proxy can be started with
+<blockquote>
+  <b>meeting start antibody442</b>
+</blockquote>
+</ol>
+
+<a name="openport"></a>
+<h3>Open a firewall port</h3>
+<p>
+A less complex solution than a proxy is to change the firewall settings protecting
 the computer that starts the meeting to allow incoming connections 
 on port 52194. Here are two examples of how that can be done:
 </p>
@@ -371,82 +588,10 @@ with the Information Technology department to open port 52194
 on the campus firewall for connections to my desktop PC.
 They opened the port just for this one computer, limiting the security threats. 
 It took about 10 days before they processed the request. Some institutions
-will not allow these exceptions due to stricter security requirements.
+will not allow these exceptions due to institution security requirements.
 </ul>
 
-<a name="useproxy"></a>
-<p><b>Forward connections from a proxy virtual machine</b><br>
-If a firewall exception cannot be made, a more difficult solution is to 
-set up a virtual machine that is publicly visible on the internet,
-for example, using Amazon Web Services (AWS). The AWS machine can
-simply accept connections and forward them to the host computer behind the 
-institution firewall using an ssh tunnel.
-</p><p>
-I have used the following procedure to set up an 
-AWS virtual machine for ChimeraX meeting access.
-This could be done with any cloud virtual machine service
-since only ssh is required.
-</p>
-
-<ol>
-  <li>Create an AWS EC2 virtual machine; I used a free type t2.micro 
-using an Ubuntu 18.04 LTS Amazon Machine Image.
-The machine will need minimal compute and network bandwidth as it is just 
-forwarding data. The only large data being forwarded is the initial 
-ChimeraX meeting session. I chose Ubuntu 18.04 only because I have experience 
-with it. Any Linux distribution will work, since only ssh will be used.
-  <li>Set the virtual machine security group to allow any computer to connect
-on port 52194. By default, the virtual machine will not allow connections 
-except on ssh port 22, so this is a necessary step.
-  <li>Change sshd configuration file on the virtual machine 
-/etc/ssh/sshd_config enabling &ldquo;GatewayPorts yes&rdquo;
-and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
-This will allow other computers to connect to ssh tunnels.
-The normal use of ssh tunnels just allows the local computer use the tunnel,
-so this setting change is necessary.
-  <li>Create the tunnel using the <a href="#proxy"><b>proxy</b></a> option
-when starting the meeting, for example:
-<blockquote>
-<b>meeting start proxy ubuntu@54.215.157.17 key vr-key-private.pem</b>
-</blockquote>
-The <a href="#keyForProxy"><b>key</b></a> option specifies
-the public key encryption file <b>vr-key-private.pem</b>
-that was made when I created the AWS virtual machine. 
-It allows ssh access to the virtual machine without typing a password. 
-The &ldquo;ubuntu&rdquo; is the user account name on the AWS virtual machine.
-The meeting command creates the tunnel using ssh by executing a command like
-<pre>
-      ssh -N -i vr-key-private.pem -R 52194:localhost:52194 ubuntu@54.215.157.17
-</pre>
-Connections through the tunnel appear to come from the host machine.
-  <li>Tell participants to join the meeting using the AWS virtual machine 
-public IP address (for example, command: <b>meet 54.215.157.17</b>).
-The participants do not need any authentication or account on the 
-AWS virtual machine. If there are participants within the same firewall 
-as the meeting host, they can probably connect directly to the host computer 
-without using the AWS virtual machine (for example, command:
-<b>meet 169.230.21.34</b>). Connections through the tunnel and from 
-within the firewall can both be made in the same meeting.
-</ol>
-
-<p><b>Future developments</b><br>
-Several future developments are intended to simplify ChimeraX meetings 
-and handling of firewalls.
-</p>
-
-<ol>
-<li><b>Remember proxy settings.</b>
-Would like an option to remember the meeting command 
-<a href="#proxy"><b>proxy</b></a> and 
-<a href="#keyForProxy"><b>keyForProxy</b></a> settings
-so they don't need to be re-entered for each meeting.
-
-<li><b>Free proxy service</b>.
-We will look into providing a free, always-available proxy service 
-that requires no setup. We would have to find funds to pay for this,
-and it would likely be just a single virtual machine
-based in California where ChimeraX is developed.
-This may have significant lag for users on other continents.
+<h3>Future developments</h3>
 
 <li><b>User interface panel</b>.
 It would be nice to have a user interface panel as an alternative
