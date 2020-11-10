@@ -1124,7 +1124,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
             else:
                 residues = atoms.unique_residues
                 if class_obj == Residue:
-                    res_attr_vals = getattr(attr_objs, attr_names)
+                    res_attr_vals = getattr(residues, attr_names)
                 else:
                     res_attr_vals = getattr(residues.structures, attr_names)
             rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)

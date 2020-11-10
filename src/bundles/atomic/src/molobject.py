@@ -621,8 +621,8 @@ class Residue(CyResidue, State):
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
     _cython_property_return_info = [
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
-        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
-        ('phi', (float, None)), ('psi', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
+        ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
 
     # used by custom-attr registration code
