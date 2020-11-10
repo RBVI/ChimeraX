@@ -59,7 +59,7 @@ def remove_clip_caps(drawings):
             del d._clip_cap_drawings[cap.clip_plane_name]
             from chimerax.core.models import Model
             if isinstance(cap, Model):
-                cap.session.models.remove([cap])
+                cap.session.models.close([cap])
             else:
                 cap.parent.remove_drawing(cap)
 
@@ -256,7 +256,7 @@ def _remove_cap(drawing, plane_name):
         return
     from chimerax.core.models import Model
     if isinstance(cap, Model):
-        cap.session.models.remove([cap])
+        cap.session.models.close([cap])
     else:
         cap.parent.remove_drawing(cap)
 
