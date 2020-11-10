@@ -70,34 +70,35 @@ Examples:
 </p>
 <blockquote>
 <b>meeting start nanobody</b><br>
-&nbsp;&nbsp; - start a meeting named <i>nanobody</i><br>
+&nbsp;&nbsp;&nbsp;&ndash; start a meeting named <i>nanobody</i><br>
 <b>meeting start nanobody proxy true</b><br>
-&nbsp;&nbsp; - start a meeting named <i>nanobody</i> using a proxy server to get around firewalls<br>
+&nbsp;&nbsp;&nbsp;&ndash; start a meeting named <i>nanobody</i> using a proxy server to get around firewalls<br>
 <b>meeting nanobody</b><br>
-&nbsp;&nbsp; - join a meeting named <i>nanobody</i><br>
+&nbsp;&nbsp;&nbsp;&ndash; join a meeting named <i>nanobody</i><br>
 <b>meeting close</b><br>
-&nbsp;&nbsp; - leave the current meeting
+&nbsp;&nbsp;&nbsp;&ndash; leave the current meeting
 </blockquote>
 <p>
 If the computer that started the meeting is not reachable over the 
 network by the other participants due to a firewall, a proxy server
-can be used.  Details of handling <a href="#firewalls">firewalls</a>
+can be used. Details of handling <a href="#firewalls">firewalls</a>
 are given below. See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
-A meeting is initiated with <b>meeting start</b> <i>meeting-name</i>
+A meeting is usually initiated with
+<b>meeting start</b> <i>meeting-name</i>,
 where the meeting name is a text identifier that participants will
-use to join the meeting.  It is best if the meeting name does not
-contain "." or ":" characters so that it is not confused
-with a host name or IP address.
-When participants join a meeting they specify the meeting name
-and ChimeraX finds the host computer to connect to using a name server.
-A default meeting-name server is provided, but a different one can be
-<a href="#start-options">specified</a>.
-If the meeting is started without giving it a name
-participants can join using the hostname or IP address
+use to join the meeting. It is best if the meeting name does not
+contain &ldquo;.&rdquo; or &ldquo;:&rdquo; characters
+so that it will not be confused
+with a host name or IP address. Participants then join the meeting by 
+specifying its name, and ChimeraX uses a <a href="#nameServer">name server</a>
+to find that meeting's host computer.
+If a meeting is instead started without a <i>meeting-name</i>,
+participants join it by specifying the host name or IP address
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>)
-that the meeting start
-command reports in the <a href="../tools/log.html"><b>Log</b></a>.
+reported in the <a href="../tools/log.html"><b>Log</b></a> by the
+<b>meeting start</b> command. Either way, the starter will need to
+communicate to the joiners some way of identifying the specific meeting.
 </p><p>
 Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
@@ -148,8 +149,8 @@ The proxy setting is remembered as a
 <br>
 User and host name for a proxy server.
 The proxy host is remembered as a
-<a href="../preferences.html#other">preference</a>,
-the default <b>tunnel@chimeraxmeeting.net</b> is a public server
+<a href="../preferences.html#other">preference</a>.
+The initial default is <b>tunnel@chimeraxmeeting.net</b>, a public server
 provided by the ChimeraX development team for everyone to use.
 An ssh tunnel is made to the proxy server so that participants can connect to
 the proxy when the meeting host is not directly reachable due to a firewall
@@ -182,11 +183,10 @@ The proxy key file is remembered as a
 <br>
 The range of port numbers to use on the <b>proxyHost</b>.
 A randomly chosen port in this range is used if <b>proxy</b> is enabled.
-All participants connect to that port.
-The default range <b>52194,52203</b> allows up 10 simultaneous meetings
-to be handled by the proxy server.
-The port range is remembered as a
+All participants connect to that port. The port range is remembered as a
 <a href="../preferences.html#other">preference</a>.
+The initial default range of <b>52194,52203</b> 
+allows up 10 simultaneous meetings to be handled by the proxy server.
 </blockquote>
 <blockquote>
 <a name="proxyTimeout"></a>
@@ -206,14 +206,15 @@ for receiving connections.  One port is used for receiving connections from all
 participants.  There is generally no need to change this port number.
 </blockquote>
 <blockquote>
+<a name="nameServer"></a>
 <b>nameServer</b> &nbsp;<i>name-host</i>
 <br>
-Specify the hostname or IP address to use as the meeting-name server
+Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
-<a href="../preferences.html#other">preference</a>,
-the default <b>chimeraxmeeting.net</b> is provided by the 
+<a href="../preferences.html#other">preference</a>
+(initial default <b>chimeraxmeeting.net</b>, provided by the 
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" 
-   target="_blank">UCSF RBVI</a>.
+target="_blank">UCSF RBVI</a>).
 </blockquote>
 <blockquote>
 <b>nameServerPort</b> &nbsp;<i>N</i>
@@ -295,37 +296,43 @@ VR headset and hand-controller positions to the other participants
 <blockquote>
 <b>host</b>&nbsp;&nbsp;<i>host-name</i>
 <br>
-The first argument of the meeting command specifies either a meeting name or a host name.
-Names containing a "." or ":" are interpeted as a host name.
-To avoid ambiguity that argument can be omitted and the host option can be specified
-where the value will only be interpreted as a host name
+The first argument of the <b>meeting</b> command normally specifies either a 
+meeting name or a host name.
+Names containing &ldquo;.&rdquo; or &ldquo;:&rdquo;
+are interpreted as a host name.
+To avoid ambiguity, that first argument can be omitted, and the <b>host</b>
+option used instead to ensure interpreting the value as a host name
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
 </blockquote>
 <blockquote>
 <b>port</b>&nbsp;&nbsp;<i>N</i>
 <br>
-If a participant is joining a meeting using a host name or IP address instead
-of a meeting name, they will need to specify the port on the destination computer
-to connect to unless it is the default port <b>52194</b>.
-If joining using a meeting name, this option is not used, as the port will be
-looked up using the meeting name.  If a participant is connecting to a proxy
-server using the server name the port should be the port on the proxy server
-for the meeting.  That randomly chosen port is reported by the meeting start
-command.
+If participants join a meeting using a host name or IP address instead of a 
+meeting name, they will need to specify the port on the destination computer,
+unless it is the default port, <b>52194</b>.
+If a meeting name is used to join a meeting, this option is not used, 
+as the port will be looked up using the meeting name. 
+If a participant is connecting to a proxy server using the server name,
+the port should be the port on the proxy server for the meeting.
+That randomly chosen port is reported by the <b>meeting start</b> command.
 </blockquote>
 <blockquote>
 <b>id</b>&nbsp;&nbsp;<i>meeting-name</i>
 <br>
-The first argument of the meeting command specifies either a meeting name or a host name.
-Names containing a "." or ":" are interpeted as a host name.
-To avoid ambiguity that argument can be omitted and the id option can be specified
-where the value will only be interpreted as a meeting name.
+The first argument of the <b>meeting</b> command normally specifies either a 
+meeting name or a host name.
+Names containing &ldquo;.&rdquo; or &ldquo;:&rdquo;
+are interpreted as a host name.
+To avoid ambiguity, that first argument can be omitted, and the <b>id</b>
+option used instead to ensure interpreting the value as a meeting name.
 </blockquote>
 <blockquote>
+<a name="timeout"></a>
 <b>timeout</b>&nbsp;&nbsp;<i>seconds</i>
 <br>
-Maximum time to wait when connecting to a meeting.  If this time is exceeded
-an error message is given and the meeting will not be joined.
+Maximum time to wait when connecting to a meeting (default <b>5</b> seconds). 
+If this time is exceeded, an error message is given and the meeting 
+will not be joined.
 </blockquote>
 
 <a name="limitations"></a>
@@ -340,26 +347,6 @@ connections, and require administrative requests to open up network ports.
 The <a href="#proxy">proxy</a> option allows participants to connect from
 a publicly visible proxy computer.
 Other <a href="#firewalls">firewall solutions</a> are described below.
-
-<!--
-Whereas the <b>meeting</b> command only allows running the hub
-server on the initiator's local host (and is thus susceptible to being
-blocked by participants' firewalls), the
-<a href="conference.html"><b>conference</b></a> command
-is being developed to allow using a publicly accessible address/port instead.
-However,
-the <a href="conference.html"><b>conference</b></a> command is not yet working.
-To allow this to scale to hundreds of instances running simultaneously,
-ChimeraX could start a cloud-based server on demand using a commercial service
-that accepts the connections and forwards changes to all participants. 
-However, this is a complex undertaking that would require 
-accounts and payment for commercial services.
-Currently, the
-<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a> is providing a hub server for use with the
-<a href="conference.html"><b>conference</b></a> command at:
-<b>cxconference.rbvi.ucsf.edu:443</b>
--->
 </p>
 
 <p>
@@ -379,7 +366,7 @@ This may be slow for large amounts of data.
 
 <p>
 <b>Small number of participants.</b>
-The meeting command has been used for 2 to 4 participants.
+The meeting command has been used for two to four participants.
 The number of participants is not limited.
 Larger numbers of participants increase the network bandwidth needed
 expecially for the computer hosting the meeting and may result in
@@ -429,11 +416,12 @@ way to make both computers use the same orientation.
 <p>
 Most universities, colleges, institutions, companies and government labs 
 have firewalls that prevent incoming network connections.
-When joining a meeting that is not using a proxy server, ChimeraX attempts to connect
+When joining a meeting that is not using a proxy server, 
+ChimeraX attempts to connect
 to port 52194 on the computer that started the meeting, and shows a status
 message &ldquo;Waiting for scene data from meeting host.&rdquo;
-If the connection is blocked after 5 seconds an error message 
-will appear:
+If the connection is blocked, after 5 seconds 
+(<a href="#timeout">default</a>) an error message will appear:
 </p>
 <pre style="color:red">
   Socket error Connection timed out
@@ -593,12 +581,13 @@ will not allow these exceptions due to institution security requirements.
 
 <h3>Future developments</h3>
 
-<li><b>User interface panel</b>.
+<p>
+<b>User interface panel</b>.
 It would be nice to have a user interface panel as an alternative
 to typed commands for starting and joining meetings.
 The panel could also show settings such as 
 proxy, face image, and participant name.  
-</ol>  
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
