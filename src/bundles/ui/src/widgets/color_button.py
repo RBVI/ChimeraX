@@ -61,8 +61,9 @@ def _check_color_chooser(dead_button_id):
 class ColorButton(QPushButton):
 
     color_changed = pyqtSignal(ndarray)
+    color_pause = pyqtSignal(ndarray)
 
-    def __init__(self, *args, max_size=None, has_alpha_channel=False, **kw):
+    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None, **kw):
         super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)
@@ -72,6 +73,8 @@ class ColorButton(QPushButton):
         self.clicked.connect(self.show_color_chooser)
         self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
+        self._pause_timer = None
+        self._pause_delay = pause_delay 	# Seconds before color_pause signal is issued.
 
     def get_color(self):
         return self._color
@@ -122,6 +125,20 @@ class ColorButton(QPushButton):
     def _color_changed_cb(self, color):
         self.set_color(color)
         self.color_changed.emit(self._color)
+        self._set_pause_timer()
+
+    def _set_pause_timer(self):
+        delay = self._pause_delay
+        if delay is None:
+            return
+        t = self._pause_timer
+        if t is not None:
+            t.stop()
+        from PyQt5.QtCore import QTimer
+        self._pause_timer = t = QTimer()
+        t.setSingleShot(True)
+        t.timeout.connect(lambda p=self.color_pause, c=self._color: p.emit(c))
+        t.start(int(1000*self._pause_delay))
 
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
