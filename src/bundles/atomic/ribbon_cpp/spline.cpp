@@ -495,6 +495,7 @@ static std::map<std::string, float> _tether_positions = {
    {"N", -1/3.},
    {"CA", 0.},
    {"C",    1/3.},
+   {"OXT",  1/3.},
    // Nucleotide
    {"P",    -2/6.},
    {"O5'",  -1/6.},
@@ -507,7 +508,6 @@ static std::map<std::string, float> _tether_positions = {
 static std::map<std::string, float> _non_tether_positions = {
     // Amino acid
     {"O",    1/3.},
-    {"OXT",  1/3.},
     {"OT1",  1/3.},
     {"OT2",  1/3.},
     // Nucleotide
