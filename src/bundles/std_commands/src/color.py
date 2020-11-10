@@ -482,35 +482,27 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
         cmap = colors.BuiltinColormaps["rainbow"]
     # Get chains and atoms in chains with "by_chain"
     # Each chain is colored separately with cmap applied by residue
+    res = objects.atoms.unique_residues
+    chain_res = [(chain, chain.existing_residues.intersect(res))
+                 for chain in res.unique_chains]
     import numpy
     from chimerax.core.colors import Color
-    structure_chain_ids = {}
-    for structure, chain_id, atoms in objects.atoms.by_chain:
-        try:
-            cids = structure_chain_ids[structure]
-        except KeyError:
-            structure_chain_ids[structure] = cids = set()
-        cids.add(chain_id)
-    for structure, cids in structure_chain_ids.items():
-        for chain in structure.chains:
-            if chain.chain_id not in cids:
-                continue
-            residues = chain.existing_residues
-            colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
-            for color, r in zip(colors, residues):
-                c = Color(color)
-                if target is None or 'a' in target:
-                    _set_atom_colors(r.atoms, c, opacity, None, undo_state)
-                if target is None or 'c' in target:
-                    rgba = c.uint8x4()
-                    if opacity is not None:
-                        rgba[3] = opacity
-                    undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
-                    r.ribbon_color = rgba
-            if 's' in target:
-                _color_surfaces_at_residues(residues, colors, opacity=opacity,
-                                            undo_state = undo_state)
-
+    for chain, residues in chain_res:
+        colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
+        for color, r in zip(colors, residues):
+            c = Color(color)
+            if target is None or 'a' in target:
+                _set_atom_colors(r.atoms, c, opacity, None, undo_state)
+            if target is None or 'c' in target:
+                rgba = c.uint8x4()
+                if opacity is not None:
+                    rgba[3] = opacity
+                undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
+                r.ribbon_color = rgba
+        if 's' in target:
+            _color_surfaces_at_residues(residues, colors, opacity=opacity,
+                                        undo_state = undo_state)
+                
 # -----------------------------------------------------------------------------
 #
 def _set_sequential_structures(session, objects, cmap, opacity, target, undo_state):
