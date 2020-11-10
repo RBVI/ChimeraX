@@ -12,7 +12,81 @@
 # === UCSF ChimeraX Copyright ===
 
 def estimate_net_charge(atoms):
-    #TODO
+    charge_info = {
+        'Cac': 2,
+        'N3+': 2,
+        'N2+': 2,
+        'N1+': 2,
+        'Ntr': 4,
+        'Ng+': _ng_charge,
+        'N2': _n2_charge,
+        'Oar+': 2,
+        'O2-': -2,
+        'O3-': -2,
+        'S3-': -2,
+        'S3+': 2,
+        'Sac': 4,
+        'Son': 4,
+        'Sxd': 2,
+        'Pac': 2,
+        'Pox': 2,
+        'P3+': 2,
+    }
+    charge_total = 0 # really totals twice the charge...
+    rings = set()
+    subs = {}
+    for a in atoms:
+        if len(a.bonds) == 0:
+            if a.element.is_alkali_metal:
+                charge_total += 2
+                continue
+            if a.element.is_metal:
+                charge_total += 4
+                continue
+            if a.element.is_halogen:
+                charge_total -= 2
+                continue
+        from chimerax.atomic.idatm import type_info
+        try:
+            subs[a] = type_info[a.idatm_type].substituents
+        except KeyError:
+            pass
+        else:
+            # missing/additional protons
+            charge_total += 2 * (a.num_bonds - subs[a])
+        a_rings = a.rings()
+        rings.update([ar for ar in a_rings if ar.aromatic])
+        if a.idatm_type == "C2" and not a_rings:
+            for nb in a.neighbors:
+                nb_rings = nb.rings()
+                if not nb_rings or not nb_rings[0].aromatic:
+                    break
+            else:
+                # all ring neighbors in aromatic rings
+                charge_total += 2
+        try:
+            info = charge_info[a.idatm_type]
+        except KeyError:
+            continue
+        if type(info) == int:
+            charge_total += info
+        else:
+            charge_total += info(a)
+    for ring in rings:
+        # since we are only handling aromatic rings, any non-ring bonds are presumably single bond
+        # (or matched aromatic bonds)
+        electrons = 0
+        for a in ring.atoms:
+            if a in subs:
+                electrons += a.element.number + subs[a] - 2
+            else:
+                electrons += a.element.number + a.num_bonds - 2
+            if a.idatm_type[-1] in "+-":
+                electrons += 1
+        if electrons % 2 == 1:
+            charge_total += 2
+    return charge_total // 2
+
 
 def _get_aname(base, known_names):
     anum = 1
@@ -66,6 +140,13 @@ def _ng_charge(atom):
             countable += 1
     if countable > 1:
         return 1
+    return 2
+
+def _n2_charge(atom):
+    # needed in order to get nitrite ions correct
+    for nb in atom.neighbors:
+        if nb.idatm_type != "O2-":
+            return 0
     return 2
 
 def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
@@ -124,4 +205,12 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
                 else:
                     extras.update(_methylate(na, nbnb, atom_names))
     total_net_charge = net_charge = estimate_net_charge(extras)
-    #TODO
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as temp_dir:
+        import os.path
+        ante_in = os.path.join(temp_dir, "ante.in.mol2")
+        from chimera.mol2 import write_mol2
+        write_mol2([s], ante_in, status=status)
+
+        #TODO: initially, try to run Chimera's antechamber using hardcoded paths
