@@ -740,16 +740,16 @@ class MeetingHub:
         mid = self._meeting_id
         if mid is None:
             return
-        meeting_id, name_server, name_server_port = mid
+        meeting_name, name_server, name_server_port = mid
         self._meeting_id = None
         from .nameserver import clear_value
         try:
-            success = clear_value(meeting_id, name_server, name_server_port)
+            success = clear_value(meeting_name.casefold(), name_server, name_server_port)
         except (ConnectionError, TimeoutError):
             success = False
         if not success:
             msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
-                   % (meeting_id, name_server, name_server_port))
+                   % (meeting_name, name_server, name_server_port))
             self._session.logger.warning(msg)
 
     @property
