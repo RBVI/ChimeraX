@@ -38,6 +38,7 @@
     <ChimeraXClassifier>Command :: meeting start :: General :: Create a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting info :: General :: Report ChimeraX meeting info</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting close :: General :: Close a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting unname :: General :: Deregister a meeting name</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting send :: General :: Copy my scene to all other meeting participants</ChimeraXClassifier>
   </Classifiers>
 

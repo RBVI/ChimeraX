@@ -127,7 +127,7 @@ def meeting_start(session, meeting_name = None,
       the machine that started the meeting cannot be reached by some participants because
       it is behind a firewall.  Instead the participants will connect to the machine
       specified by the proxy_server option.  Default false.
-    proxy_server : string
+p    proxy_server : string
       User and host name for a proxy server.  Default tunnel@chimeraxmeeting.net.
       If the proxy option is true an ssh tunnel is made to this proxy server.
       This allows participants that cannot directly connect to the meeting host due
@@ -167,7 +167,7 @@ def meeting_start(session, meeting_name = None,
         _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout)
     if proxy:
         from chimerax.core.errors import UserError
-        if proxy_key is None:
+        if not proxy_key:
             if proxy_server == 'tunnel@chimeraxmeeting.net':
                 proxy_key = _default_proxy_key_file()
             else:
@@ -410,6 +410,33 @@ def meeting_close(session):
 
 # -----------------------------------------------------------------------------
 #
+def meeting_unname(session, meeting_name = None,
+                   name_server = None, name_server_port = None):
+    '''
+    Remove a meeting name from the name server.
+    This is needed to reuse the name if the name was not automatically
+    removed when the meeting ended.  This can happen if the meeting host
+    loses the network connection before the meeting ends.
+    '''
+
+    name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
+    from .nameserver import clear_value
+    try:
+        success = clear_value(meeting_name.casefold(), name_server, name_server_port)
+    except (ConnectionError, TimeoutError) as e:
+        msg = ('meeting unname: Failed to remove meeting name "%s" from name server %s port %d:\n%s'
+               % (meeting_name, name_server, name_server_port, str(e)))
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+
+    if not success:
+        msg = ('meeting unname: Failed to remove meeting name "%s" from name server %s port %d'
+               % (meeting_name, name_server, name_server_port))
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+
+# -----------------------------------------------------------------------------
+#
 def meeting_send(session):
     '''Send my scene to all participants in the meeting.'''
     p = _meeting_participant(session)
@@ -462,6 +489,13 @@ def register_meeting_command(cmd_name, logger):
     elif cmd_name == 'meeting close':
         desc = CmdDesc(synopsis = 'Close meeting')
         register('meeting close', desc, meeting_close, logger=logger)
+    elif cmd_name == 'meeting unname':
+        desc = CmdDesc(
+            required = [('meeting_name', StringArg)],
+            keyword = [('name_server', StringArg),
+                       ('name_server_port', IntArg)],
+            synopsis = 'Remove a meeting name from name server')
+        register('meeting unname', desc, meeting_unname, logger=logger)
     elif cmd_name == 'meeting send':
         desc = CmdDesc(synopsis = 'Copy my scene to all other meeting participants')
         register('meeting send', desc, meeting_send, logger=logger)
