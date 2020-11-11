@@ -19,7 +19,7 @@ class SSHRemoteTunnel:
     will have to call its poll() method after a minute or two to know if it failed.
     '''
     def __init__(self, remote, key_path, remote_port_range, local_port, log = None,
-                 connection_timeout = 5, exit_check_interval = 1.0):
+                 connection_timeout = 5, exit_check_interval = 1.0, closed_callback = None):
         host = remote.split('@')[1] if '@' in remote else remote
         self.host = host
         # TODO: If first port tried fails, try other ports.
@@ -29,6 +29,7 @@ class SSHRemoteTunnel:
         self.remote_port = remote_port
         self.local_port = local_port
         self._log = log
+        self._closed_callback = closed_callback
 
         import sys
         if sys.platform == 'win32':
@@ -74,15 +75,15 @@ class SSHRemoteTunnel:
     # -----------------------------------------------------------------------------
     #
     def close(self):
-        p = self._popen
-        if p and p.poll() is None:
-            p.terminate()
-        self._popen = None
-
         ect = self._exit_check_timer
         if ect is not None:
             ect.stop()
             self._exit_check_timer = None
+
+        p = self._popen
+        if p and p.poll() is None:
+            p.terminate()
+        self._popen = None
 
     # -----------------------------------------------------------------------------
     #
@@ -106,6 +107,10 @@ class SSHRemoteTunnel:
             self._log.warning(msg)
 
         self._exit_check_timer.stop()
+
+        ccb = self._closed_callback
+        if ccb:
+            ccb()
 
 # -----------------------------------------------------------------------------
 #

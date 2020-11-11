@@ -175,7 +175,8 @@ p    proxy_server : string
                 raise UserError('meeting: must specify proxyKey option if proxy option used')
         from .sshtunnel import SSHRemoteTunnel
         tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
-                                 connection_timeout = proxy_timeout, log=session.logger)
+                                 connection_timeout = proxy_timeout, closed_callback = p.close,
+                                 log=session.logger)
         if tunnel is None:
             raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
         p.hub._ssh_tunnel = tunnel
@@ -234,15 +235,18 @@ def _lookup_meeting_name(meeting_name, name_server, name_server_port):
 # -----------------------------------------------------------------------------
 #
 def _start_meeting(session, port, copy_scene):
-    p = _meeting_participant(session, create = True, start_hub = True)
-    h = p.hub
-    if h is None:
+    p = _meeting_participant(session)
+    if p is not None:
         from chimerax.core.errors import UserError
         raise UserError('To start a meeting you must exit'
                         ' the meeting you are currently in using'
                         ' command "meeting close"')
+
+    p = _meeting_participant(session, create = True, start_hub = True)
+
     if copy_scene is None:
         copy_scene = True
+    h = p.hub
     h.copy_scene(copy_scene)
     h.listen(port)
     return p
