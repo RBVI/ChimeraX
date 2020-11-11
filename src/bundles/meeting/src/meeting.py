@@ -24,9 +24,10 @@ def meeting(session, meeting_name = None,
     ----------
     meeting_name : string
       Name of the meeting.  The host of the meeting creates this name and tells it
-      to the participants so they can join.  Alternatively if the value contains "." or ":"
-      characters it is treated as an IP address or host name of the machine that started
-      the meeting or the proxy server being used for the meeting.
+      to the participants so they can join.  Names are case insensitive.
+      Alternatively if the value contains "." or ":" characters it is treated
+      as an IP address or host name of the machine that started the meeting or
+      the proxy server being used for the meeting.
     name : string
       Name to identify this participant on remote machines.
     color : r,g,b,a (range 0-255)
@@ -106,10 +107,10 @@ def meeting_start(session, meeting_name = None,
     Parameters
     ----------
     meeting_name : string
-      Name of the meeting that participants use to join the meeting.  If omitted then
-      participants need to specify the host address to join the meeting.  The host address
-      will be logged after the meeting start command and is tupically the IP address of
-      the computer or its domain name.  Meeting names should not include "." or ":" characters
+      Name of the meeting that participants use to join the meeting.  If omitted then participants
+      need to specify the host address to join the meeting.  The host address will be logged after
+      the meeting start command and is typically the IP address of the computer or its domain name.
+      Meeting names are case insensitive.Meeting names should not include "." or ":" characters
       since those are used to distinguish host names from meeting names.
     name : string
       Name to identify this participant on remote machines.
