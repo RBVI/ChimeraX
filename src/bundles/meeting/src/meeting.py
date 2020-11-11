@@ -128,7 +128,7 @@ def meeting_start(session, meeting_name = None,
       the machine that started the meeting cannot be reached by some participants because
       it is behind a firewall.  Instead the participants will connect to the machine
       specified by the proxy_server option.  Default false.
-p    proxy_server : string
+    proxy_server : string
       User and host name for a proxy server.  Default tunnel@chimeraxmeeting.net.
       If the proxy option is true an ssh tunnel is made to this proxy server.
       This allows participants that cannot directly connect to the meeting host due
@@ -177,13 +177,15 @@ p    proxy_server : string
         tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
                                  connection_timeout = proxy_timeout, closed_callback = p.close,
                                  log=session.logger)
-        if tunnel is None:
-            raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
         p.hub._ssh_tunnel = tunnel
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
     if meeting_name is not None:
-        _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
+        try:
+            _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
+        except BaseException:
+            p.close()		# Close meeting if name server could not be reached.
+            raise
 
     # Log meeting info
     addresses, cport = ([tunnel.host], tunnel.remote_port) if proxy else p.hub.listening_addresses_and_port()
