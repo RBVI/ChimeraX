@@ -43,6 +43,19 @@ class="clRight" title="User Guide Index"/></a>
 <span class="nowrap">&nbsp;<a href="#options"><i>other-join-options</i></a></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting settings</b> 
+[&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
+[&nbsp;<a href="#start-options"><b>proxy</b></a>&nbsp;&nbsp;<i>use-proxy</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>proxyServer</b></a>&nbsp;&nbsp;<i>address</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>proxyKey</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>proxyPortRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>proxyTimout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>nameServer</b></a>&nbsp;&nbsp;<i>address</i>&nbsp;]
+[&nbsp;<a href="#start-options"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>info</b>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -106,7 +119,9 @@ communicate to the joiners some way of identifying the specific meeting.
 </p><p>
 Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
-and a pointer-cone <b>color</b>.
+and a pointer-cone <b>color</b>.  These three settings and proxy and name
+server settings are remembered whenever they are specified.  The remembered
+settings can be reported or changed with the <b>meeting settings</b> command.
 </p><p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
 <a href="#start-options">copy</a>
