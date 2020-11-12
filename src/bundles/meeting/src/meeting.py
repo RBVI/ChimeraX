@@ -172,11 +172,16 @@ def meeting_start(session, meeting_name = None,
             if proxy_server == 'tunnel@chimeraxmeeting.net':
                 proxy_key = _default_proxy_key_file()
             else:
+                p.close()
                 raise UserError('meeting: must specify proxyKey option if proxy option used')
         from .sshtunnel import SSHRemoteTunnel
-        tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
-                                 connection_timeout = proxy_timeout, closed_callback = p.close,
-                                 log=session.logger)
+        try:
+            tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
+                                     connection_timeout = proxy_timeout, closed_callback = p.close,
+                                     log = session.logger)
+        except BaseException:
+            p.close()		# Could not create tunnel, close meeting.
+            raise
         p.hub._ssh_tunnel = tunnel
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
