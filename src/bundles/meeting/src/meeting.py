@@ -24,9 +24,10 @@ def meeting(session, meeting_name = None,
     ----------
     meeting_name : string
       Name of the meeting.  The host of the meeting creates this name and tells it
-      to the participants so they can join.  Alternatively if the value contains "." or ":"
-      characters it is treated as an IP address or host name of the machine that started
-      the meeting or the proxy server being used for the meeting.
+      to the participants so they can join.  Names are case insensitive.
+      Alternatively if the value contains "." or ":" characters it is treated
+      as an IP address or host name of the machine that started the meeting or
+      the proxy server being used for the meeting.
     name : string
       Name to identify this participant on remote machines.
     color : r,g,b,a (range 0-255)
@@ -106,10 +107,10 @@ def meeting_start(session, meeting_name = None,
     Parameters
     ----------
     meeting_name : string
-      Name of the meeting that participants use to join the meeting.  If omitted then
-      participants need to specify the host address to join the meeting.  The host address
-      will be logged after the meeting start command and is tupically the IP address of
-      the computer or its domain name.  Meeting names should not include "." or ":" characters
+      Name of the meeting that participants use to join the meeting.  If omitted then participants
+      need to specify the host address to join the meeting.  The host address will be logged after
+      the meeting start command and is typically the IP address of the computer or its domain name.
+      Meeting names are case insensitive.Meeting names should not include "." or ":" characters
       since those are used to distinguish host names from meeting names.
     name : string
       Name to identify this participant on remote machines.
@@ -167,25 +168,60 @@ def meeting_start(session, meeting_name = None,
         _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout)
     if proxy:
         from chimerax.core.errors import UserError
-        if proxy_key is None:
+        if not proxy_key:
             if proxy_server == 'tunnel@chimeraxmeeting.net':
                 proxy_key = _default_proxy_key_file()
             else:
+                p.close()
                 raise UserError('meeting: must specify proxyKey option if proxy option used')
         from .sshtunnel import SSHRemoteTunnel
-        tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
-                                 connection_timeout = proxy_timeout, log=session.logger)
-        if tunnel is None:
-            raise UserError('meeting: failed to create ssh tunnel to proxy %s' % proxy)
+        try:
+            tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
+                                     connection_timeout = proxy_timeout, closed_callback = p.close,
+                                     log = session.logger)
+        except BaseException:
+            p.close()		# Could not create tunnel, close meeting.
+            raise
         p.hub._ssh_tunnel = tunnel
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
     if meeting_name is not None:
-        _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
+        try:
+            _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
+        except BaseException:
+            p.close()		# Close meeting if name server could not be reached.
+            raise
 
     # Log meeting info
     addresses, cport = ([tunnel.host], tunnel.remote_port) if proxy else p.hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
+
+# -----------------------------------------------------------------------------
+#
+def meeting_settings(session,
+                     name = None, color = None, face_image = None,
+                     proxy = None, proxy_server = None, proxy_key = None,
+                     proxy_port_range = None, proxy_timeout = None,
+                     name_server = None, name_server_port = None):
+    '''
+    Display or set meeting settings that are remembered between sessions.
+    With no options the current settings are reported.  Specifying options sets
+    the saved value.
+    '''
+    s = (('name',name), ('color',color), ('face_image',face_image),
+         ('proxy',proxy), ('proxy_server',proxy_server), ('proxy_key',proxy_key),
+         ('proxy_port_range',proxy_port_range), ('proxy_timeout',proxy_timeout),
+         ('name_server',name_server), ('name_server_port',name_server_port))
+    values = [(k,v) for k,v in s if v is not None]
+    settings = _meeting_settings(session)
+    if len(values) == 0:
+        msg = '\n'.join('%s: %s' % (attr.replace('_', ' '), getattr(settings,attr))
+                        for attr,v in s)
+        session.logger.info(msg)
+    else:
+        for attr, value in values:
+            setattr(settings, attr, value)
+        settings.save()
 
 # -----------------------------------------------------------------------------
 #
@@ -233,15 +269,18 @@ def _lookup_meeting_name(meeting_name, name_server, name_server_port):
 # -----------------------------------------------------------------------------
 #
 def _start_meeting(session, port, copy_scene):
-    p = _meeting_participant(session, create = True, start_hub = True)
-    h = p.hub
-    if h is None:
+    p = _meeting_participant(session)
+    if p is not None:
         from chimerax.core.errors import UserError
         raise UserError('To start a meeting you must exit'
                         ' the meeting you are currently in using'
                         ' command "meeting close"')
+
+    p = _meeting_participant(session, create = True, start_hub = True)
+
     if copy_scene is None:
         copy_scene = True
+    h = p.hub
     h.copy_scene(copy_scene)
     h.listen(port)
     return p
@@ -410,6 +449,33 @@ def meeting_close(session):
 
 # -----------------------------------------------------------------------------
 #
+def meeting_unname(session, meeting_name = None,
+                   name_server = None, name_server_port = None):
+    '''
+    Remove a meeting name from the name server.
+    This is needed to reuse the name if the name was not automatically
+    removed when the meeting ended.  This can happen if the meeting host
+    loses the network connection before the meeting ends.
+    '''
+
+    name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
+    from .nameserver import clear_value
+    try:
+        success = clear_value(meeting_name.casefold(), name_server, name_server_port)
+    except (ConnectionError, TimeoutError) as e:
+        msg = ('meeting unname: Failed to remove meeting name "%s" from name server %s port %d:\n%s'
+               % (meeting_name, name_server, name_server_port, str(e)))
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+
+    if not success:
+        msg = ('meeting unname: Failed to remove meeting name "%s" from name server %s port %d'
+               % (meeting_name, name_server, name_server_port))
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+
+# -----------------------------------------------------------------------------
+#
 def meeting_send(session):
     '''Send my scene to all participants in the meeting.'''
     p = _meeting_participant(session)
@@ -430,38 +496,56 @@ def register_meeting_command(cmd_name, logger):
         ('name', StringArg),
         ('color', Color8TupleArg),
         ('face_image', OpenFileNameArg),
+    ]
+    params_kw = [
         ('relay_commands', BoolArg),
         ('update_interval', IntArg),
         ('port', IntArg),
+    ]
+    proxy_kw = [
+        ('proxy', BoolArg),
+        ('proxy_server', StringArg),
+        ('proxy_key', OpenFileNameArg),
+        ('proxy_port_range', Int2Arg),
+        ('proxy_timeout', IntArg),
+    ]
+    name_server_kw = [
         ('name_server', StringArg),
         ('name_server_port', IntArg),
     ]
-
+    
     if cmd_name == 'meeting':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg),
                         ('id', StringArg),
                         ('host', StringArg)],
-            keyword = participant_kw,
+            keyword = participant_kw + params_kw + name_server_kw,
             synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
-            keyword = [('proxy', BoolArg),
-                       ('proxy_server', StringArg),
-                       ('proxy_key', OpenFileNameArg),
-                       ('proxy_port_range', Int2Arg),
-                       ('proxy_timeout', IntArg),
-                       ('copy_scene', BoolArg)] + participant_kw,
+            keyword = proxy_kw + [('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
             synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
+    elif cmd_name == 'meeting settings':
+        desc = CmdDesc(
+            keyword = participant_kw + proxy_kw + name_server_kw,
+            synopsis = 'Report or set meeting default settings')
+        register('meeting settings', desc, meeting_settings, logger=logger)
     elif cmd_name == 'meeting info':
         desc = CmdDesc(synopsis = 'Report meeting info')
         register('meeting info', desc, meeting_info, logger=logger)
     elif cmd_name == 'meeting close':
         desc = CmdDesc(synopsis = 'Close meeting')
         register('meeting close', desc, meeting_close, logger=logger)
+    elif cmd_name == 'meeting unname':
+        desc = CmdDesc(
+            required = [('meeting_name', StringArg)],
+            keyword = [('name_server', StringArg),
+                       ('name_server_port', IntArg)],
+            synopsis = 'Remove a meeting name from name server')
+        register('meeting unname', desc, meeting_unname, logger=logger)
     elif cmd_name == 'meeting send':
         desc = CmdDesc(synopsis = 'Copy my scene to all other meeting participants')
         register('meeting send', desc, meeting_send, logger=logger)
@@ -740,16 +824,16 @@ class MeetingHub:
         mid = self._meeting_id
         if mid is None:
             return
-        meeting_id, name_server, name_server_port = mid
+        meeting_name, name_server, name_server_port = mid
         self._meeting_id = None
         from .nameserver import clear_value
         try:
-            success = clear_value(meeting_id, name_server, name_server_port)
+            success = clear_value(meeting_name.casefold(), name_server, name_server_port)
         except (ConnectionError, TimeoutError):
             success = False
         if not success:
             msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
-                   % (meeting_id, name_server, name_server_port))
+                   % (meeting_name, name_server, name_server_port))
             self._session.logger.warning(msg)
 
     @property
