@@ -198,6 +198,33 @@ def meeting_start(session, meeting_name = None,
 
 # -----------------------------------------------------------------------------
 #
+def meeting_settings(session,
+                     name = None, color = None, face_image = None,
+                     proxy = None, proxy_server = None, proxy_key = None,
+                     proxy_port_range = None, proxy_timeout = None,
+                     name_server = None, name_server_port = None):
+    '''
+    Display or set meeting settings that are remembered between sessions.
+    With no options the current settings are reported.  Specifying options sets
+    the saved value.
+    '''
+    s = (('name',name), ('color',color), ('face_image',face_image),
+         ('proxy',proxy), ('proxy_server',proxy_server), ('proxy_key',proxy_key),
+         ('proxy_port_range',proxy_port_range), ('proxy_timeout',proxy_timeout),
+         ('name_server',name_server), ('name_server_port',name_server_port))
+    values = [(k,v) for k,v in s if v is not None]
+    settings = _meeting_settings(session)
+    if len(values) == 0:
+        msg = '\n'.join('%s: %s' % (attr.replace('_', ' '), getattr(settings,attr))
+                        for attr,v in s)
+        session.logger.info(msg)
+    else:
+        for attr, value in values:
+            setattr(settings, attr, value)
+        settings.save()
+
+# -----------------------------------------------------------------------------
+#
 def meeting_info(session):
     '''Report info about a current meeting in progress.'''
     p = _meeting_participant(session)
@@ -469,32 +496,43 @@ def register_meeting_command(cmd_name, logger):
         ('name', StringArg),
         ('color', Color8TupleArg),
         ('face_image', OpenFileNameArg),
+    ]
+    params_kw = [
         ('relay_commands', BoolArg),
         ('update_interval', IntArg),
         ('port', IntArg),
+    ]
+    proxy_kw = [
+        ('proxy', BoolArg),
+        ('proxy_server', StringArg),
+        ('proxy_key', OpenFileNameArg),
+        ('proxy_port_range', Int2Arg),
+        ('proxy_timeout', IntArg),
+    ]
+    name_server_kw = [
         ('name_server', StringArg),
         ('name_server_port', IntArg),
     ]
-
+    
     if cmd_name == 'meeting':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg),
                         ('id', StringArg),
                         ('host', StringArg)],
-            keyword = participant_kw,
+            keyword = participant_kw + params_kw + name_server_kw,
             synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
-            keyword = [('proxy', BoolArg),
-                       ('proxy_server', StringArg),
-                       ('proxy_key', OpenFileNameArg),
-                       ('proxy_port_range', Int2Arg),
-                       ('proxy_timeout', IntArg),
-                       ('copy_scene', BoolArg)] + participant_kw,
+            keyword = proxy_kw + [('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
             synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
+    elif cmd_name == 'meeting settings':
+        desc = CmdDesc(
+            keyword = participant_kw + proxy_kw + name_server_kw,
+            synopsis = 'Report or set meeting default settings')
+        register('meeting settings', desc, meeting_settings, logger=logger)
     elif cmd_name == 'meeting info':
         desc = CmdDesc(synopsis = 'Report meeting info')
         register('meeting info', desc, meeting_info, logger=logger)
