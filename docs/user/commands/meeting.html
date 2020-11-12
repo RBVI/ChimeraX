@@ -49,6 +49,9 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>meeting</b> &nbsp;<b>send</b>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>meeting</b> &nbsp;<b>unname</b>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>close</b>
 </h3>
 <p>
@@ -120,8 +123,14 @@ If unshared changes have been made, a participant can still share
 his current scene with the others by using <b>meeting send</b>.
 The <b>meeting info</b> command reports information about the currently
 active meeting.
+</p><p>
 The host can end the meeting with <b>meeting close</b>, or
 others can use it to exit the meeting individually.
+If the computer that started a meeting loses its network connection
+before the meeting is closed the meeting name will not be removed from the name server and future
+attempts to use the same meeting name will fail, saying the meeting
+name is already being used.  To remove the meeting name from the
+name server use <b>meeting unname</b> <i>name</i>.
 </p><p>
 The <b>meeting</b> command is under development 
 and has several <a href="#limitations">limitations</a>.
@@ -215,7 +224,8 @@ The name server is remembered as a
 <a href="../preferences.html#other">preference</a>
 (initial default <b>chimeraxmeeting.net</b>, provided by the 
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>).
+target="_blank">UCSF RBVI</a>).  Details for setting up a
+<a href="#privatenameserver">private name server</a> are below.
 </blockquote>
 <blockquote>
 <b>nameServerPort</b> &nbsp;<i>N</i>
@@ -348,6 +358,21 @@ connections, and require administrative requests to open up network ports.
 The <a href="#proxy">proxy</a> option allows participants to connect from
 a publicly visible proxy computer.
 Other <a href="#firewalls">firewall solutions</a> are described below.
+</p>
+
+<p>
+<b>No passwords.</b>
+There is no support for passwords to limit access to meetings.
+Any person who knows the meeting name can join the meeting.  The
+meeting name server provides no way to list meeting names, so only
+participants who are told the meeting name will be able to join.
+In this sense the meeting name serves as the password, and a less
+common name will prevent guessing or accidentally joining the wrong meeting.
+Using the public meeting proxy server chimeraxmeeting.net provided by the
+ChimeraX team has less security.  Anyone can connect to one of the ten
+ports used for hosting meetings and join without the meeting name.
+In the future, we could reject connections that do not submit the meeting
+name when joining.
 </p>
 
 <p>
@@ -580,6 +605,29 @@ It took about 10 days before they processed the request. Some institutions
 will not allow these exceptions due to institution security requirements.
 </ul>
 
+<a name="privatenameserver"></a>
+<h3>Setting up a private name server</h3>
+<p>
+By default the meeting command uses a name server <i>chimeraxmeeting.net</i> in order to
+record the computer address and port number for each active meeting name.  This conveniently
+allows participants to join a meeting with a simple command <b>meeting <i>name</i></b>.
+The name server does not log the meetings and there is no capability to list the meeting names
+or computers addresses and ports, providing privacy and security.  In order to identify a
+meeting a request would need to guess the meeting name.
+</p>
+
+<p>
+For greater security an organization may wish to use their own meeting name server.
+This can be done by running shell <b>nohup python3 namerserver.py start &</b> on a machine
+accessible to the participants. The nohup allows exiting the shell while leaving the
+name server running.  The nameserver.py file is included in the ChimeraX distribution
+under Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
+To use the namer server all participants specify the name server address
+using <a href="#nameServer">nameServer</a> option when joining the meeting.
+This option value is remembered so only needs to be used once to enable use of the
+private name server for future meetings.
+</p>
+
 <h3>Future developments</h3>
 
 <p>
@@ -588,6 +636,14 @@ It would be nice to have a user interface panel as an alternative
 to typed commands for starting and joining meetings.
 The panel could also show settings such as 
 proxy, face image, and participant name.  
+</p>
+
+<p>
+<b>Improved proxy server security</b>.
+Currently anyone can connect directly to one of the ports of a proxy
+server and join a meeting that is using that port without knowing the meeting name.
+In the future, we could reject connections that do not submit the meeting
+name when joining.
 </p>
 
 <hr>
