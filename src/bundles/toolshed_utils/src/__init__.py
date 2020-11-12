@@ -210,7 +210,11 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
             raise ValueError("incorrect bundle argument")
         if old_bundle:
             if not reinstall:
-                raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
+                if isinstance(bundle, BundleInfo):
+                    bundle_name = bundle.name
+                else:
+                    bundle_name = bundle
+                raise ToolshedInstalledError("bundle %r already installed" % bundle_name)
             install_now = _can_install(old_bundle)
             if install_now:
                 old_bundle.deregister(logger)
