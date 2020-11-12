@@ -363,34 +363,6 @@ If this time is exceeded, an error message is given and the meeting
 will not be joined.
 </blockquote>
 
-<p class="nav">
-[<a href="#top">back to top: meeting</a>]
-</p>
-<a name="privatenameserver"></a>
-<h3>Setting up a Private Name Server</h3>
-<p>
-By default, the meeting command uses the name server <b>chimeraxmeeting.net</b>
-to record the computer address and port number for each active meeting name.
-This conveniently allows participants to join a meeting with a simple command,
-<b>meeting</b> <i>meeting-name</i>.
-The name server does not log the meetings, and there is no capability 
-to list the meeting names or computers addresses and ports, providing 
-privacy and security. In order to identify a meeting, a request would 
-need to guess the meeting name.
-</p><p>
-For greater security, an organization may wish to use its own meeting-name
-server.  This can be done by running shell command
-<b>nohup python3 namerserver.py start &</b> on a machine
-accessible to the participants. The nohup allows exiting the shell 
-while leaving the name server running. 
-The nameserver.py file is included in the ChimeraX distribution under 
-Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
-To use the name server, all participants specify the name server address using 
-the <a href="#nameServer"><b>nameServer</b></a> option when joining the meeting.
-This option value is remembered, so only needs to be used once to enable 
-use of the private name server for future meetings.
-</p>
-
 <a name="limitations"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
@@ -653,6 +625,34 @@ They opened the port just for this one computer, limiting the security threats.
 It took about 10 days before they processed the request. Some institutions
 will not allow these exceptions due to institution security requirements.
 </ul>
+
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<a name="privatenameserver"></a>
+<h3>Setting up a Private Name Server</h3>
+<p>
+By default, the meeting command uses the name server <b>chimeraxmeeting.net</b>
+to record the computer address and port number for each active meeting name.
+This conveniently allows participants to join a meeting with a simple command,
+<b>meeting</b> <i>meeting-name</i>.
+The name server does not log the meetings, and there is no capability 
+to list the meeting names or computers addresses and ports, providing 
+privacy and security. In order to identify a meeting, a request would 
+need to guess the meeting name.
+</p><p>
+For greater security, an organization may wish to use its own meeting-name
+server.  This can be done by running shell command
+<b>nohup python3 namerserver.py start &</b> on a machine
+accessible to the participants. The nohup allows exiting the shell 
+while leaving the name server running. 
+The nameserver.py file is included in the ChimeraX distribution under 
+Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
+To use the name server, all participants specify the name server address using 
+the <a href="#nameServer"><b>nameServer</b></a> option when joining the meeting.
+This option value is remembered, so only needs to be used once to enable 
+use of the private name server for future meetings.
+</p>
 
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
