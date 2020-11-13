@@ -71,8 +71,8 @@ class UpdateTool(ToolInstance):
         self.choice.setCurrentIndex(self.choice.findData(dialog_type))
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
-
         self.all_items = None
+
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize

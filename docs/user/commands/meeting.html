@@ -47,13 +47,13 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#options"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#options"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#options"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
-[&nbsp;<a href="#start-options"><b>proxy</b></a>&nbsp;&nbsp;<i>use-proxy</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>proxyServer</b></a>&nbsp;&nbsp;<i>address</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>proxyKey</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>proxyPortRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>proxyTimout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>nameServer</b></a>&nbsp;&nbsp;<i>address</i>&nbsp;]
-[&nbsp;<a href="#start-options"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+[&nbsp;<a href="#proxy"><b>proxy</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#proxyServer"><b>proxyServer</b></a>&nbsp;&nbsp;<i>proxy-host</i>&nbsp;]
+[&nbsp;<a href="#proxyKey"><b>proxyKey</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
+[&nbsp;<a href="#proxyPortRange"><b>proxyPortRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
+[&nbsp;<a href="#proxyTimeout"><b>proxyTimeout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
+[&nbsp;<a href="#nameServer"><b>nameServer</b></a>&nbsp;&nbsp;<i>name-host</i>&nbsp;]
+[&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>info</b>
@@ -62,7 +62,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>meeting</b> &nbsp;<b>send</b>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>unname</b>
+<br><b>meeting</b> &nbsp;<b>unname</b> &nbsp;<i>meeting-name</i>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>close</b>
@@ -97,8 +97,8 @@ Examples:
 <p>
 If the computer that started the meeting is not reachable over the 
 network by the other participants due to a firewall, a proxy server
-can be used. Details of handling <a href="#firewalls">firewalls</a>
-are given below. See also: <a href="device.html#vr"><b>vr</b></a>
+can be used. See <a href="#firewalls">getting around firewalls</a>.
+See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
 A meeting is usually initiated with
 <b>meeting start</b> <i>meeting-name</i>,
@@ -119,8 +119,8 @@ communicate to the joiners some way of identifying the specific meeting.
 </p><p>
 Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
-and a pointer-cone <b>color</b>.  These three settings and proxy and name
-server settings are remembered whenever they are specified.  The remembered
+and a pointer-cone <b>color</b>. These three settings as well as proxy and name
+server settings are remembered whenever they are specified. The remembered
 settings can be reported or changed with the <b>meeting settings</b> command.
 </p><p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
@@ -142,10 +142,11 @@ active meeting.
 The host can end the meeting with <b>meeting close</b>, or
 others can use it to exit the meeting individually.
 If the computer that started a meeting loses its network connection
-before the meeting is closed the meeting name will not be removed from the name server and future
+before the meeting is closed, the meeting name will not be removed 
+from the name server, and future
 attempts to use the same meeting name will fail, saying the meeting
-name is already being used.  To remove the meeting name from the
-name server use <b>meeting unname</b> <i>name</i>.
+name is already being used. To remove the meeting name from the
+name server, use <b>meeting unname</b> <i>meeting-name</i>.
 </p><p>
 The <b>meeting</b> command is under development 
 and has several <a href="#limitations">limitations</a>.
@@ -169,8 +170,8 @@ The proxy setting is remembered as a
 (initial default <b>false</b>).
 </blockquote>
 <blockquote>
-<a name="proxyHost"></a>
-<b>proxyHost</b> &nbsp;<i>proxy-host</i>
+<a name="proxyServer"></a>
+<b>proxyServer</b> &nbsp;<i>proxy-host</i>
 <br>
 User and host name for a proxy server.
 The proxy host is remembered as a
@@ -190,7 +191,7 @@ No key is needed for the default server.
 <br>
 The ssh identity file (<i>e.g.</i>, <b>meeting-key-private.pem</b>)
 used to make an ssh tunnel to the proxy server given with the 
-<a href="#proxyHost"><b>proxyHost</b></a> option.
+<a href="#proxyServer"><b>proxyServer</b></a> option.
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the pathname brings up a file browser window for choosing the
 file interactively.
@@ -206,7 +207,7 @@ The proxy key file is remembered as a
 <a name="proxyPortRange"></a>
 <b>proxyPortRange</b> &nbsp;<i>port-min,port-max</i>
 <br>
-The range of port numbers to use on the <b>proxyHost</b>.
+The range of port numbers to use on the <b>proxyServer</b>.
 A randomly chosen port in this range is used if <b>proxy</b> is enabled.
 All participants connect to that port. The port range is remembered as a
 <a href="../preferences.html#other">preference</a>.
@@ -236,13 +237,14 @@ participants.  There is generally no need to change this port number.
 <br>
 Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
-<a href="../preferences.html#other">preference</a>
-(initial default <b>chimeraxmeeting.net</b>, provided by the 
+<a href="../preferences.html#other">preference</a>.
+The initial default is <b>chimeraxmeeting.net</b>, provided by the 
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>).  Details for setting up a
-<a href="#privatenameserver">private name server</a> are below.
+target="_blank">UCSF RBVI</a>, but a
+<a href="#privatenameserver">private name server</a> can be used instead.
 </blockquote>
 <blockquote>
+<a name="nameServerPort"></a>
 <b>nameServerPort</b> &nbsp;<i>N</i>
 <br>
 Port number for the meeting-name server.
@@ -372,22 +374,23 @@ Most academic institutions have firewalls that block incoming network
 connections, and require administrative requests to open up network ports.
 The <a href="#proxy">proxy</a> option allows participants to connect from
 a publicly visible proxy computer.
-Other <a href="#firewalls">firewall solutions</a> are described below.
+See <a href="#firewalls">getting around firewalls</a>.
 </p>
 
 <p>
 <b>No passwords.</b>
 There is no support for passwords to limit access to meetings.
 Any person who knows the meeting name can join the meeting.  The
-meeting name server provides no way to list meeting names, so only
+<a href="#nameServer">meeting name server</a>
+provides no way to list meeting names, so only
 participants who are told the meeting name will be able to join.
-In this sense the meeting name serves as the password, and a less
-common name will prevent guessing or accidentally joining the wrong meeting.
-Using the public meeting proxy server chimeraxmeeting.net provided by the
-ChimeraX team has less security.  Anyone can connect to one of the ten
-ports used for hosting meetings and join without the meeting name.
-In the future, we could reject connections that do not submit the meeting
-name when joining.
+In this sense the meeting name serves as the password, and using a less
+common name will prevent others guessing or accidentally joining the 
+wrong meeting. The <a href="#proxyServer">meeting proxy server</a> 
+provided by the ChimeraX team has less security.
+Anyone can connect to one of the ten ports used for hosting meetings
+and join without giving the meeting name. In the future,
+we could reject connections that do not submit the meeting name when joining.
 </p>
 
 <p>
@@ -485,7 +488,8 @@ Details on each approach are given below.
 </p>
 
 <a name="useproxy"></a>
-<h3>Use a proxy server</h3>
+<h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
+Use a proxy server</h4>
 
 <p>
 Participants can connect to a publicly visible proxy computer
@@ -497,15 +501,15 @@ team will be used and can handle up to 10 simultaneous meetings.
 </p>
 
 <p>
-Several problems may arise.  The proxy server may be at capacity,
+Several problems may arise. The proxy server may be at capacity,
 may be out of service, may introduce delays of seconds if participants
 are in distant parts of the world from the default server in California, USA,
-security is minimal -- anyone could simply try a port on the public proxy
+security is minimal &ndash; anyone could simply try a port on the public proxy
 to connect and join a meeting.
 </p>
 
 <a name="setupproxy">
-<h3>Setting up one's own proxy server</h3>
+<h4>Setting up one's own proxy server</h4>
   
 <p>
 These problems can be mitigated by setting up and using one's own proxy server,
@@ -536,7 +540,7 @@ so this setting change is necessary.
   <li>Create the tunnel using the <a href="#proxy"><b>proxy</b></a> option
 when starting the meeting, for example:
 <blockquote>
-<b>meeting start antibody309 proxy true proxyHost ubuntu@54.215.157.17 proxyKey meeting-key-private.pem</b>
+<b>meeting start antibody309 proxy true proxyServer ubuntu@54.215.157.17 proxyKey meeting-key-private.pem</b>
 </blockquote>
 The <a href="#proxyKey"><b>proxyKey</b></a> option specifies
 the public key encryption file <b>meeting-key-private.pem</b>
@@ -576,7 +580,7 @@ can be made with the following commands starting from the ubuntu admin account.
 </pre>
 To start a meeting using this safer tunnel account:
 <blockquote>
-  <b>meeting start antibody309 proxy true proxyHost tunnel@54.215.157.17 proxyKey tunnel-key.pem</b>
+  <b>meeting start antibody309 proxy true proxyServer tunnel@54.215.157.17 proxyKey tunnel-key.pem</b>
 </blockquote>
 The proxy options used here will be remembered by ChimeraX so subsequent meetings
 usng the proxy can be started with
@@ -586,7 +590,9 @@ usng the proxy can be started with
 </ol>
 
 <a name="openport"></a>
-<h3>Open a firewall port</h3>
+<a name="useproxy"></a>
+<h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
+Open a firewall port</h4>
 <p>
 A less complex solution than a proxy is to change the firewall settings protecting
 the computer that starts the meeting to allow incoming connections 
@@ -620,30 +626,38 @@ It took about 10 days before they processed the request. Some institutions
 will not allow these exceptions due to institution security requirements.
 </ul>
 
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
 <a name="privatenameserver"></a>
-<h3>Setting up a private name server</h3>
+<h3>Setting up a Private Name Server</h3>
 <p>
-By default the meeting command uses a name server <i>chimeraxmeeting.net</i> in order to
-record the computer address and port number for each active meeting name.  This conveniently
-allows participants to join a meeting with a simple command <b>meeting <i>name</i></b>.
-The name server does not log the meetings and there is no capability to list the meeting names
-or computers addresses and ports, providing privacy and security.  In order to identify a
-meeting a request would need to guess the meeting name.
+By default, the meeting command uses the name server <b>chimeraxmeeting.net</b>
+to record the computer address and port number for each active meeting name.
+This conveniently allows participants to join a meeting with a simple command,
+<b>meeting</b> <i>meeting-name</i>.
+The name server does not log the meetings, and there is no capability 
+to list the meeting names or computers addresses and ports, providing 
+privacy and security. In order to identify a meeting, a request would 
+need to guess the meeting name.
+</p><p>
+For greater security, an organization may wish to use its own meeting-name
+server.  This can be done by running shell command
+<b>nohup python3 namerserver.py start &</b> on a machine
+accessible to the participants. The nohup allows exiting the shell 
+while leaving the name server running. 
+The nameserver.py file is included in the ChimeraX distribution under 
+Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
+To use the name server, all participants specify the name server address using 
+the <a href="#nameServer"><b>nameServer</b></a> option when joining the meeting.
+This option value is remembered, so only needs to be used once to enable 
+use of the private name server for future meetings.
 </p>
 
-<p>
-For greater security an organization may wish to use their own meeting name server.
-This can be done by running shell <b>nohup python3 namerserver.py start &</b> on a machine
-accessible to the participants. The nohup allows exiting the shell while leaving the
-name server running.  The nameserver.py file is included in the ChimeraX distribution
-under Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
-To use the namer server all participants specify the name server address
-using <a href="#nameServer">nameServer</a> option when joining the meeting.
-This option value is remembered so only needs to be used once to enable use of the
-private name server for future meetings.
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
 </p>
-
-<h3>Future developments</h3>
+<h3>Future Developments</h3>
 
 <p>
 <b>User interface panel</b>.

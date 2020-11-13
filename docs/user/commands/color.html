@@ -299,20 +299,20 @@ to atomic models at the specified <i>level</i>:
 <li><b>residues</b> (default)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
-&ndash; a different color for each residue 
-in a biopolymer chain (always applies to entire chains); other residues
-such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
+&ndash; a different color for each residue in a biopolymer chain;
+other residues such as 
+<a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
 <li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
 <li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
-(macromolecular entity) in an atomic model, based on sequence; 
+(macromolecular entity) in an atomic model, based on sequence;
 non-biopolymer residues are not affected
+(see also <a href="#simple"><b>color bypolymer</b></a>)
 <li><b>structures</b> &ndash; a different color for each atomic model
 </ul>
-Sequential coloring applies to all atoms within the affected residues,
-chains, or models even if fewer atoms are specified, but can be restricted 
-to certain representations with the <a href="#target"><b>target</b></a> option.
+Sequential coloring can be restricted to certain representations 
+with the <a href="#target"><b>target</b></a> option.
 The <a href="#palette-options"><b>palette</b></a> option specifies
 what colors to use (default
 <table border cellpadding="4" cellspacing="0"
@@ -324,6 +324,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 </tr></table>),
 and <a href="#transparency"><b>transparency</b></a> can be set independently.
+If the scope of coloring is limited by giving an
+<a href="atomspec.html"><i>atom-spec</i></a> in the command,
+the full palette will be mapped to the specification only.
 </p>
 <h4>Examples (<a href="#sequential">Sequential</a>)</h4>
 Rainbow-color residues blue &rarr; red along each biopolymer chain:
@@ -333,6 +336,11 @@ Rainbow-color residues blue &rarr; red along each biopolymer chain:
 <b>rainbow res</b>
 <br>&ndash; or &ndash;<br>
 <b>rainbow</b>
+</blockquote>
+Rainbow-color each biopolymer chain from blue at residue 1 to red at residue 50,
+leaving the colors of other parts unchanged.
+<blockquote>
+<b>rainbow :1-50</b>
 </blockquote>
 Color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
@@ -1061,5 +1069,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+November 2020</address>
 </body></html>
