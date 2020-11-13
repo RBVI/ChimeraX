@@ -11,9 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
-from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex, pyqtSignal, QSortFilterProxyModel
-from PyQt5.QtGui import QFontDatabase, QBrush, QColor
+from PySide2.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
+from PySide2.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
+# from PySide2.QtCore import QVariant
+# TODO: PySide2 has no QVariant
+from PySide2.QtGui import QFontDatabase, QBrush, QColor
 
 class QCxTableModel(QAbstractTableModel):
     def __init__(self, item_table, **kw):
@@ -146,7 +148,7 @@ class ItemTable(QTableView):
         items to the connected function.
     """
 
-    selection_changed = pyqtSignal(list, list)
+    selection_changed = Signal(list, list)
 
     DEFAULT_SETTINGS_ATTR = "item_table_info"
 
@@ -193,10 +195,10 @@ class ItemTable(QTableView):
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
-            from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
+            from PySide2.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
-                from PyQt5.QtCore import Qt
+                from PySide2.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
                 self._col_checkbox_layout = QGridLayout()
@@ -205,7 +207,7 @@ class ItemTable(QTableView):
                 main_layout.addLayout(self._col_checkbox_layout)
                 self._col_checkboxes = []
                 if column_control_info[-1]:
-                    from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+                    from PySide2.QtWidgets import QDialogButtonBox as qbbox
                     buttons_widget = QWidget()
                     main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()

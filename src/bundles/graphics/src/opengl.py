@@ -144,7 +144,7 @@ class OpenGLContext:
             window = self.window
 
         # Create context
-        from PyQt5.QtGui import QOpenGLContext
+        from PySide2.QtGui import QOpenGLContext
         qc = QOpenGLContext()
         qc.setScreen(self._screen)
 
@@ -182,7 +182,7 @@ class OpenGLContext:
         return qc
 
     def _context_format(self, mode):
-        from PyQt5.QtGui import QSurfaceFormat
+        from PySide2.QtGui import QSurfaceFormat
         fmt = QSurfaceFormat()
         fmt.setVersion(*self.required_opengl_version)
         cbits = self._color_bits
@@ -289,15 +289,15 @@ class OpenGLContext:
             self.done_current()
 
 def _qobject_deleted(o):
-    import sip
-    return sip.isdeleted(o)
+    import shiboken2
+    return not shiboken2.isValid(o)
 
 def remember_current_opengl_context():
     '''
     Return an object that notes the current opengl context and its window
     so it can later be restored by restore_current_opengl_context().
     '''
-    from PyQt5.QtGui import QOpenGLContext
+    from PySide2.QtGui import QOpenGLContext
     opengl_context = QOpenGLContext.currentContext()
     opengl_surface = opengl_context.surface() if opengl_context else None
     return (opengl_context, opengl_surface)
@@ -308,7 +308,7 @@ def restore_current_opengl_context(remembered_context):
     the current context.
     '''
     opengl_context, opengl_surface = remembered_context
-    from PyQt5.QtGui import QOpenGLContext
+    from PySide2.QtGui import QOpenGLContext
     if opengl_context and QOpenGLContext.currentContext() != opengl_context:
         opengl_context.makeCurrent(opengl_surface)
 

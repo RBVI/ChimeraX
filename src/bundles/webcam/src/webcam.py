@@ -95,7 +95,7 @@ class WebCam (Model):
             self._camera = None
         
     def _start_video(self):
-        from PyQt5.QtMultimedia import QCameraInfo, QCamera, QVideoFrame
+        from PySide2.QtMultimedia import QCameraInfo, QCamera, QVideoFrame
         cam_list = QCameraInfo.availableCameras()
         if len(cam_list) == 0:
             from chimerax.core.errors import UserError
@@ -119,7 +119,7 @@ class WebCam (Model):
     def _camera_state_changed(self, state):
 #        print ('current camera state', state)
 
-        from PyQt5.QtMultimedia import QCamera
+        from PySide2.QtMultimedia import QCamera
         if state == QCamera.ActiveState and self._capture is None:
             self._start_capture()
 
@@ -164,8 +164,8 @@ class WebCam (Model):
         self.framerate = settings.maximumFrameRate()
 
         # Start acquiring images.
-        from PyQt5.QtMultimedia import QVideoSurfaceFormat
-        from PyQt5.QtCore import QSize
+        from PySide2.QtMultimedia import QVideoSurfaceFormat
+        from PySide2.QtCore import QSize
         fmt = QVideoSurfaceFormat(QSize(w,h), settings.pixelFormat())
         capture.start(fmt)
 
@@ -374,7 +374,7 @@ class WebCam (Model):
         if im is None:
             return None
 
-        from PyQt5.QtGui import QCursor
+        from PySide2.QtGui import QCursor
         p = gw.mapFromGlobal(QCursor.pos())
         x,y = p.x(), p.y()
         ih, iw = im.shape[:2]
@@ -403,7 +403,7 @@ class ColorPick(Pick):
 
 # -----------------------------------------------------------------------------
 #
-from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
+from PySide2.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
     supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
@@ -442,7 +442,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
 
     # Map video frame into memory.
-    from PyQt5.QtMultimedia import QAbstractVideoBuffer
+    from PySide2.QtMultimedia import QAbstractVideoBuffer
     f.map(QAbstractVideoBuffer.ReadOnly)
 
     # Check video frame size
@@ -554,7 +554,7 @@ _qt_pixel_format_names = {}
 def _qt_pixel_format_name(qt_pixel_format):
     global _qt_pixel_format_names
     if len(_qt_pixel_format_names) == 0:
-        from PyQt5.QtMultimedia import QVideoFrame    
+        from PySide2.QtMultimedia import QVideoFrame    
         for name in dir(QVideoFrame):
             if name.startswith('Format_'):
                 value = getattr(QVideoFrame, name)

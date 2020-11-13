@@ -128,7 +128,7 @@ class UI:
             return False
         session.main_view.initialize_rendering(c)
         # Create an offscreen QApplication so labels will work
-        from PyQt5.QtWidgets import QApplication
+        from PySide2.QtWidgets import QApplication
         from chimerax import app_dirs as ad
         self._app = QApplication([ad.appname, '-platform', 'offscreen'])
         return True

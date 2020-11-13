@@ -56,7 +56,7 @@ def initialize_qt_plugins_location():
             dn = os.path.dirname
             plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
         if os.path.exists(plugins):
-            from PyQt5.QtCore import QCoreApplication
+            from PySide2.QtCore import QCoreApplication
             qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]
             qlib_paths.append(plugins)
             QCoreApplication.setLibraryPaths(qlib_paths)
@@ -72,20 +72,20 @@ def initialize_qt_high_dpi_display_support():
     # Fix text and button sizes on high DPI displays in Windows 10
     win = (sys.platform == 'win32')
     if win:
-        from PyQt5.QtCore import QCoreApplication, Qt
+        from PySide2.QtCore import QCoreApplication, Qt
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 def initialize_desktop_opengl():
     # Need full OpenGL support
-    from PyQt5.QtCore import QCoreApplication, Qt
+    from PySide2.QtCore import QCoreApplication, Qt
     QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
-    from PyQt5.QtCore import QCoreApplication, Qt
+    from PySide2.QtCore import QCoreApplication, Qt
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
-    
-from PyQt5.QtWidgets import QApplication
+
+from PySide2.QtWidgets import QApplication
 class UI(QApplication):
     """Main ChimeraX user interface
 
@@ -113,13 +113,13 @@ class UI(QApplication):
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
-        import PyQt5.QtWebEngineWidgets
+        import PySide2.QtWebEngineWidgets
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
 
         # Improve toolbar icon quality on retina displays
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.redirect_qt_messages()
@@ -147,7 +147,7 @@ class UI(QApplication):
         
         # redirect Qt log messages to our logger
         from chimerax.core.logger import Log
-        from PyQt5.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
+        from PySide2.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
         qt_to_cx_log_level_map = {
             QtDebugMsg: Log.LEVEL_INFO,
             QtInfoMsg: Log.LEVEL_INFO,
@@ -155,7 +155,7 @@ class UI(QApplication):
             QtCriticalMsg: Log.LEVEL_ERROR,
             QtFatalMsg: Log.LEVEL_BUG,
         }
-        from PyQt5.QtCore import qInstallMessageHandler
+        from PySide2.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
             log_level = qt_to_cx_log_level_map[int(msg_type)]
             if msg_string.strip().endswith(" null"):
@@ -168,8 +168,8 @@ class UI(QApplication):
         # splash screen
         import os.path
         splash_pic_path = os.path.join(os.path.dirname(__file__), "splash.jpg")
-        from PyQt5.QtWidgets import QSplashScreen
-        from PyQt5.QtGui import QPixmap
+        from PySide2.QtWidgets import QSplashScreen
+        from PySide2.QtGui import QPixmap
         self.splash = QSplashScreen(QPixmap(splash_pic_path))
         font = self.splash.font()
         font.setPointSize(40)
@@ -227,7 +227,7 @@ class UI(QApplication):
         self.triggers.activate_trigger('ready', None)
 
     def event(self, event):
-        from PyQt5.QtCore import QEvent
+        from PySide2.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
             from chimerax.core.toolshed import get_toolshed
             if get_toolshed() is None:
@@ -276,7 +276,7 @@ class UI(QApplication):
            up/down arrow keystrokes are not forwarded and instead
            promote/demote the graphics window selection
         """
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         k = event.key()
         if self.key_intercepted(k):
             return
@@ -314,7 +314,7 @@ class UI(QApplication):
 
     def shift_key_down(self):
         modifiers = self.keyboardModifiers()
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         return modifiers & Qt.ShiftModifier
 
     def remove_tool(self, tool_instance):
@@ -324,7 +324,7 @@ class UI(QApplication):
         self.main_window.set_tool_shown(tool_instance, shown)
 
     def splash_info(self, msg, step_num=None, num_steps=None):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         self.splash.showMessage(msg, Qt.AlignLeft|Qt.AlignBottom, Qt.red)
         self.processEvents()
 
@@ -346,7 +346,7 @@ class UI(QApplication):
         if threading.main_thread() == threading.current_thread():
             func(*args, **kw)
             return
-        from PyQt5.QtCore import QEvent
+        from PySide2.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
             EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
             def __init__(self, func, args, kw):
@@ -355,7 +355,7 @@ class UI(QApplication):
         self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
 
     def timer(self, millisec, callback, *args, **kw):
-        from PyQt5.QtCore import QTimer
+        from PySide2.QtCore import QTimer
         t = QTimer()
         def cb(callback=callback, args=args, kw=kw):
             callback(*args, **kw)
@@ -370,7 +370,7 @@ class UI(QApplication):
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
         
-from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
+from PySide2.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
 
@@ -397,7 +397,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # going into full screen / maximized causes events to happen, so delay until we're more
         # fully initialized
 
-        from PyQt5.QtCore import QSize
+        from PySide2.QtCore import QSize
         class GraphicsArea(QStackedWidget):
             def sizeHint(self):
                 return QSize(800, 800)
@@ -469,7 +469,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         import os.path
         icon_path = os.path.join(app_data_dir, "%s-icon512.png" % ad.appname)
         if os.path.exists(icon_path):
-            from PyQt5.QtGui import QIcon
+            from PySide2.QtGui import QIcon
             self.setWindowIcon(QIcon(icon_path))
 
         from chimerax.core.triggerset import TriggerSet
@@ -535,7 +535,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def add_tool_bar(self, tool, *tb_args, fill_context_menu_cb=None, **tb_kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
         retval = QMainWindow.addToolBar(self, *tb_args, **tb_kw)
-        from PyQt5.QtWidgets import QToolBar
+        from PySide2.QtWidgets import QToolBar
         for arg in tb_args:
             if isinstance(arg, QToolBar):
                 tb = arg
@@ -561,9 +561,9 @@ class MainWindow(QMainWindow, PlainTextLog):
                     placement, geom_info, tab_info = info
             if placement is None:
                 self.session.logger.info("Cannot restore toolbar as floating")
-                #from PyQt5.QtCore import Qt
+                #from PySide2.QtCore import Qt
                 #QMainWindow.addToolBar(self, Qt.NoToolBarArea, tb)
-                #from PyQt5.QtCore import QRect
+                #from PySide2.QtCore import QRect
                 #geometry = QRect(*geom_info)
                 #tb.setGeometry(geometry)
             else:
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.resize(ww, wh)
 
     def window_maximized(self):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
     
     def closeEvent(self, event):
@@ -721,7 +721,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         ses = self.session
-        from PyQt5.QtCore import QEventLoop
+        from PySide2.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             self._stack.setCurrentWidget(self.rapid_access)
@@ -741,6 +741,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.rapid_access_shown = len(self.session.models) == 0
 
     def resizeEvent(self, event):
+        return
         QMainWindow.resizeEvent(self, event)
         size = event.size()
         wh = (size.width(), size.height())
@@ -803,7 +804,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.showNormal()
         
     def _about(self, arg):
-        from PyQt5.QtWebEngineWidgets import QWebEngineView
+        from PySide2.QtWebEngineWidgets import QWebEngineView
         import os.path
         from chimerax.core import buildinfo
         from chimerax import app_dirs as ad
@@ -838,7 +839,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         ghb.setCheckable(True)
         rab.setCheckable(True)
         rab.setChecked(True)
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         ghb_action = QAction(ghb)
         rab_action = QAction(rab)
         ghb_action.setCheckable(True)
@@ -867,7 +868,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # so that bundles can register settings options and the window will start large
         # enough to accomodate the registered options
         if self._settings_ui_widget is None:
-            from PyQt5.QtWidgets import QDockWidget, QWidget
+            from PySide2.QtWidgets import QDockWidget, QWidget
             dw = QDockWidget("ChimeraX Settings", self)
             dw.closeEvent = lambda e, dw=dw: dw.hide()
             from .core_settings_ui import CoreSettingsPanel
@@ -877,7 +878,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 csp.options_widget.add_option(cat, opt)
             self._accumulated_settings_options = []
             dw.setWidget(container)
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             self.addDockWidget(Qt.RightDockWidgetArea, dw)
             dw.setFloating(True)
             dw.hide()
@@ -902,21 +903,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, session):
-        from PyQt5.QtWidgets import QAction
-        from PyQt5.QtGui import QKeySequence
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QAction
+        from PySide2.QtGui import QKeySequence
+        from PySide2.QtCore import Qt
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
-        close_action.triggered.connect(lambda arg, s=self, sess=session: s.file_close_cb(sess))
+        close_action.triggered.connect(lambda s=self, sess=session: s.file_close_cb(sess))
         file_menu.addAction(close_action)
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.setToolTip("Quit ChimeraX")
-        quit_action.triggered.connect(lambda arg, s=self, sess=session: s.file_quit_cb(sess))
+        quit_action.triggered.connect(lambda s=self, sess=session: s.file_quit_cb(sess))
         file_menu.addAction(quit_action)
         file_menu.setToolTipsVisible(True)
 
@@ -925,12 +926,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.undo_action = QAction("&Undo", self)
         self.undo_action.setEnabled(False)
         self.undo_action.setShortcut(QKeySequence.Undo)
-        self.undo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_undo_cb(sess))
+        self.undo_action.triggered.connect(lambda s=self, sess=session: s.edit_undo_cb(sess))
         edit_menu.addAction(self.undo_action)
         self.redo_action = QAction("&Redo", self)
         self.redo_action.setEnabled(False)
         self.redo_action.setShortcut(QKeySequence.Redo)
-        self.redo_action.triggered.connect(lambda arg, s=self, sess=session: s.edit_redo_cb(sess))
+        self.redo_action.triggered.connect(lambda s=self, sess=session: s.edit_redo_cb(sess))
         edit_menu.addAction(self.redo_action)
 
         select_menu = mb.addMenu("&Select")
@@ -977,7 +978,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
             cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
-            def cb(arg, ses=session, cmd=cmd):
+            def cb(ses=session, cmd=cmd):
                 from chimerax.core.commands import run
                 run(ses, cmd)
             help_action.triggered.connect(cb)
@@ -995,10 +996,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         preset_info = session.presets.presets_by_category
         self._presets_menu_needs_update = False
        
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         help_action = QAction("Add A Preset...", self)
         from chimerax.core.commands import run
-        help_action.triggered.connect(lambda arg, run=run, ses=session: run(ses,
+        help_action.triggered.connect(lambda run=run, ses=session: run(ses,
             "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
         if not preset_info:
             self.presets_menu.addAction(help_action)
@@ -1018,7 +1019,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._add_preset_entries(session, self.presets_menu, preset_names)
 
     def _inline_categorized_preset_menu(self, session, preset_info):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         categories = self._order_preset_categories(preset_info.keys())
         for cat in categories:
             # need to force the category text to be shown, so can't use
@@ -1040,7 +1041,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         return cats
 
     def _add_preset_entries(self, session, menu, preset_names, category=None):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         from chimerax.core.commands import run, StringArg
         # the menu names may be instances of CustomSortString, so sort them
         # before applying menu_capitalize(); also 'preset_names' may be a keys view
@@ -1053,12 +1054,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             cat_string = StringArg.unparse(category.lower()) + " "
         for name in menu_names:
             action = QAction(name, menu)
-            action.triggered.connect(lambda checked, ses=session, name=name, cat=cat_string:
+            action.triggered.connect(lambda ses=session, name=name, cat=cat_string:
                 run(ses, "preset %s%s" % (cat, StringArg.unparse(name.lower()))))
             menu.addAction(action)
 
     def _populate_actions_menu(self, actions_menu):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         from chimerax.core.commands import run, sel_or_all
         #
         # Atoms/Bonds...
@@ -1206,7 +1207,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Color...
         #
         color_menu = actions_menu.addMenu("Color")
-        from PyQt5.QtGui import QColor, QPixmap, QIcon
+        from PySide2.QtGui import QColor, QPixmap, QIcon
         for spaced_name in [ "red", "orange red", "orange", "yellow", "lime", "forest green", "cyan",
                 "light sea green", "blue", "cornflower blue", "medium blue", "purple", "hot pink",
                 "magenta", "white", "light gray", "gray", "dark gray", "dim gray", "black"]:
@@ -1296,7 +1297,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def color_by_editor(self, *args):
         if not self._color_dialog:
-            from PyQt5.QtWidgets import QColorDialog
+            from PySide2.QtWidgets import QColorDialog
             self._color_dialog = cd = QColorDialog(self)
             cd.setOption(cd.NoButtons, True)
             cd.setOption(cd.ShowAlphaChannel, True)
@@ -1346,7 +1347,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         run(self.session, cmd % selector)
 
     def _get_label_text_arg(self):
-        from PyQt5.QtWidgets import QInputDialog
+        from PySide2.QtWidgets import QInputDialog
         from chimerax.core.commands import StringArg
         user_text, okay = QInputDialog.getText(self, "Custom Label Text", "Label:")
         if okay:
@@ -1355,7 +1356,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
         sel_seq_action.triggered.connect(self.show_select_seq_dialog)
@@ -1379,7 +1380,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             mode_action = QAction(mode.title() + self._select_mode_reminders[mode], self)
             self.select_mode_menu.addAction(mode_action)
             mode_action.triggered.connect(
-                lambda arg, s=self, m=mode: s._set_select_mode(m))
+                lambda s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
 
         selectors_menu = select_menu.addMenu("User-Defined Selectors")
@@ -1430,13 +1431,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.select_menu_mode = mode_text
         self.select_mode_menu.setTitle("Menu Mode: %s" % mode_text.title())
         mb = self.menuBar()
-        from PyQt5.QtWidgets import QMenu
-        from PyQt5.QtCore import Qt
-        select_menu = mb.findChild(QMenu, "Select", Qt.FindDirectChildrenOnly)
+        from PySide2.QtWidgets import QMenu
+        from PySide2.QtCore import Qt
+        select_menu = _find_child_menu(mb, "Select")
         select_menu.setTitle("Select" + self._select_mode_reminders[mode_text])
 
     def update_favorites_menu(self, session):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         from chimerax.core.commands import run, StringArg
         # Due to Settings possibly being displayed in another menu (but the actions
         # still being in this menu), be tricky about clearing out menu
@@ -1447,7 +1448,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 self.favorites_menu.removeAction(action)
         for fave in session.ui.settings.favorites:
             fave_action = QAction(fave, self)
-            fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
+            fave_action.triggered.connect(lambda ses=session, run=run, fave=fave:
                 run(ses, "ui tool show %s" % (StringArg.unparse(fave))))
             if prev_actions:
                 self.favorites_menu.insertAction(separator, fave_action)
@@ -1457,12 +1458,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.favorites_menu.addSeparator()
             settings = QAction("Settings...", self)
             settings.setToolTip("Show/set ChimeraX settings")
-            settings.triggered.connect(lambda arg, self=self: self.settings_ui_widget.show())
+            settings.triggered.connect(lambda *args, self=self: self.settings_ui_widget.show())
             self.favorites_menu.addAction(settings)
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
-        from PyQt5.QtWidgets import QMenu, QAction
+        from PySide2.QtWidgets import QMenu, QAction
         tools_menu = QMenu("&Tools", self.menuBar())
         tools_menu.setToolTipsVisible(True)
         categories = {}
@@ -1491,19 +1492,19 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.setCheckable(True)
                     tool_action.setChecked(tool_name in active_tool_names)
                     tool_action.triggered.connect(
-                        lambda arg, ses=session, run=run, tool_name=tool_name:
+                        lambda ses=session, run=run, tool_name=tool_name:                      
                         run(ses, "ui tool %s %s" % (("show" if arg else "hide"),
                         StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
                     tool_action.triggered.connect(
-                        lambda arg, ses=session, run=run, tool_name=tool_name:
+                        lambda ses=session, run=run, tool_name=tool_name:
                         run(ses, "ui tool show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
         more_tools.triggered.connect(
-            lambda arg, ses=session, run=run: run(ses, "toolshed show"))
+            lambda ses=session, run=run: run(ses, "toolshed show"))
         tools_menu.addAction(more_tools)
         # running tools will go below this...
         self._tools_menu_separator = tools_menu.addSection("Running Tools")
@@ -1526,7 +1527,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             else:
                 max_text_len = max(max_text_len, len(action.text()))
         ellipsis_threshold = max_text_len + 2 # account for rollover arrow
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         running_actions = []
         for tool_instance, tool_windows in self.tool_instance_to_windows.items():
             for tw in tool_windows:
@@ -1542,7 +1543,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tool_action.setToolTip("%s %s tool" % (("Hide" if tw.shown else "Show"), tw.title))
                 tool_action.setCheckable(True)
                 tool_action.setChecked(tw.shown)
-                tool_action.triggered.connect(lambda arg, tw=tw: setattr(tw, 'shown', not tw.shown))
+                tool_action.triggered.connect(lambda tw=tw: setattr(tw, 'shown', not tw.shown))
                 running_actions.append(tool_action)
         running_actions.sort(key=lambda act: act.text())
         for action in running_actions:
@@ -1569,9 +1570,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         or False indicating that the entry should be placed at the top of the menu.
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         action = QAction(entry_name, self)
-        action.triggered.connect(lambda arg, cb = callback: cb())
+        action.triggered.connect(callback)
         if tool_tip is not None:
             action.setToolTip(tool_tip)
         if shortcut is not None:
@@ -1625,7 +1626,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         '''
         if selector_text is None:
             selector_text = remove_keyboard_navigation(label)
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         action = QAction(label, self)
         action.triggered.connect(lambda *, st=selector_text: self.select_by_mode(st))
         if insertion_point is None:
@@ -1640,7 +1641,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.deleteLater()
 
     def _get_menu_action(self, menu, insertion_point):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         if isinstance(insertion_point, QAction):
             return insertion_point
         sep_count = 0
@@ -1655,13 +1656,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         raise ValueError("Requested menu insertion point (%s) not found" % str(insertion_point))
 
     def _get_target_menu(self, parent_menu, menu_names, *, insert_positions=None):
-        from PyQt5.QtWidgets import QMenu
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QMenu
+        from PySide2.QtCore import Qt
         if insert_positions is None:
             insert_positions = [None]*len(menu_names)
         for menu_name, insert_pos in zip(menu_names, insert_positions):
             obj_name = remove_keyboard_navigation(menu_name)
-            menu = parent_menu.findChild(QMenu, obj_name, Qt.FindDirectChildrenOnly)
+            menu = _find_child_menu(parent_menu, obj_name)
             add = (menu is None)
             if add:
                 if parent_menu == self.menuBar() and insert_pos is None:
@@ -1746,6 +1747,13 @@ class MainWindow(QMainWindow, PlainTextLog):
                     if self.hide_tools and not window.floating:
                         self._hide_tools_shown_states[window] = False
                     window._mw_set_shown(False)
+
+def _find_child_menu(w, name):
+    # PySide2 5.15 does not support the optons argument to QObject.findChild().
+    #menu = w.findChild(QMenu, name, Qt.FindDirectChildrenOnly)
+    from PySide2.QtWidgets import QMenu
+    cm = [c for c in w.children() if isinstance(c, QMenu) and c.objectName() == name]
+    return cm[0] if cm else None
 
 def _open_dropped_file(session, path):
     if not path:
@@ -1832,7 +1840,7 @@ class ToolWindow(StatusLogger):
     def hides_title_bar(self):
         return self.__toolkit.hide_title_bar
 
-    from PyQt5.QtCore import Qt
+    from PySide2.QtCore import Qt
     window_placement_to_text = {
         Qt.RightDockWidgetArea: "right",
         Qt.LeftDockWidgetArea: "left",
@@ -1864,7 +1872,7 @@ class ToolWindow(StatusLogger):
         settings =  ui.settings
         tool_name = self.tool_instance.tool_name
         if tool_name in settings.undockable:
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
@@ -1892,7 +1900,7 @@ class ToolWindow(StatusLogger):
                 else:
                     placement = self.window_placement_to_text[placement]
             if geom_info is not None:
-                from PyQt5.QtCore import QRect
+                from PySide2.QtCore import QRect
                 geometry = QRect(*geom_info)
         ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
@@ -1930,14 +1938,14 @@ class ToolWindow(StatusLogger):
             resize = lambda dw=dw: dw.resize(0,0)
         else:
             dock_area = self.session.ui.main_window.dockWidgetArea(dw)
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             if dock_area == Qt.LeftDockWidgetArea or dock_area == Qt.RightDockWidgetArea:
                 orientation = Qt.Vertical
             else:
                 orientation = Qt.Horizontal
             resize = lambda mw=self.session.ui.main_window, dw=dw, orientation=orientation: \
                 mw.resizeDocks([dw], [1], orientation)
-        from PyQt5.QtCore import QTimer
+        from PySide2.QtCore import QTimer
         # 0 is empirically "too fast", as is 10 and 12, using 25 msec
         QTimer.singleShot(25, resize)
 
@@ -1989,7 +1997,7 @@ class ToolWindow(StatusLogger):
         #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
-        from PyQt5.QtWidgets import QLineEdit, QComboBox
+        from PySide2.QtWidgets import QLineEdit, QComboBox
         if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
             self.tool_instance.session.ui.forward_keystroke(event)
 
@@ -2064,11 +2072,11 @@ class _Qt:
         if not mw:
             raise RuntimeError("No main window or main window dead")
 
-        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        from PySide2.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
         if close_destroys:
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             dw.setAttribute(Qt.WA_DeleteOnClose)
         dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
@@ -2095,7 +2103,7 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
@@ -2119,12 +2127,12 @@ class _Qt:
 
     @property
     def dockable(self):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         return self.dock_widget.allowedAreas() != Qt.NoDockWidgetArea
 
     @dockable.setter
     def dockable(self, dockable):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         areas = Qt.AllDockWidgetAreas if dockable else Qt.NoDockWidgetArea
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
@@ -2132,14 +2140,14 @@ class _Qt:
 
     def float_changed(self, floating):
         if self.hide_title_bar:
-            from PyQt5.QtWidgets import QWidget
+            from PySide2.QtWidgets import QWidget
             self.dock_widget.setTitleBarWidget(None if floating else QWidget())
         self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
         session = self.tool_window.tool_instance.session
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         pref_area = Qt.RightDockWidgetArea if session.ui.settings.default_tool_window_side == "right" \
             else Qt.LeftDockWidgetArea
         qt_sides = [pref_area, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
@@ -2173,7 +2181,7 @@ class _Qt:
 
         if fixed_size:
             # Always set vertical size to what sizeHint() asks for.
-            from PyQt5.QtWidgets import QSizePolicy
+            from PySide2.QtWidgets import QSizePolicy
             self.dock_widget.widget().setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
     def show_context_menu(self, event):
@@ -2244,7 +2252,7 @@ def redirect_stdio_to_logger(logger):
     sys.stderr = LogStderr(logger)
 
 def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):
-    from PyQt5.QtWidgets import QMenu, QAction
+    from PySide2.QtWidgets import QMenu, QAction
     menu = QMenu()
 
     if fill_cb:
@@ -2253,7 +2261,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         menu.addSeparator()
     ti = tool_instance
     hide_tool_action = QAction("Hide Tool")
-    hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
+    hide_tool_action.triggered.connect(lambda ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     help_url = getattr(tool_window, "help", None) or ti.help
     session = ti.session
@@ -2261,7 +2269,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
-        help_action.triggered.connect(lambda arg, ses=session, run=run, help_url=help_url:
+        help_action.triggered.connect(lambda ses=session, run=run, help_url=help_url:
             run(ses, "help %s" % help_url))
         menu.addAction(help_action)
     else:
@@ -2274,7 +2282,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         auto_action.triggered.connect(
-            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+            lambda ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(auto_action)
@@ -2284,7 +2292,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         fav_action.setChecked(favorite)
         from chimerax.core.commands import run, StringArg
         fav_action.triggered.connect(
-            lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+            lambda ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
@@ -2298,7 +2306,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     dock_action.setChecked(not undockable)
     from chimerax.core.commands import run, StringArg
     dock_action.triggered.connect(
-        lambda arg, ses=session, run=run, tool_name=ti.tool_name:
+        lambda ses=session, run=run, tool_name=ti.tool_name:
         run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
         StringArg.unparse(ti.tool_name))))
     menu.addAction(dock_action)
@@ -2306,14 +2314,14 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         position_action = QAction("Save Tool Position")
         position_action.setStatusTip("Use current docked side,"
             " or undocked size/position as default")
-        position_action.triggered.connect(lambda arg, ui=session.ui, widget=memorable, ti=ti:
+        position_action.triggered.connect(lambda ui=session.ui, widget=memorable, ti=ti:
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
-    menu.exec(event.globalPos())
+    menu.exec_(event.globalPos())
 
 def _remember_tool_pos(ui, tool_instance, widget):
     mw = ui.main_window
-    from PyQt5.QtWidgets import QToolBar
+    from PySide2.QtWidgets import QToolBar
     # need to copy _before_ modifying, so that default isn't also changed
     from copy import deepcopy
     remembered = deepcopy(ui.settings.tool_positions)
@@ -2358,26 +2366,26 @@ def remove_keyboard_navigation(menu_label):
         return menu_label.replace('&', '')
     return menu_label.replace('&&', '&')
 
-from PyQt5.QtWidgets import QDialog
+from PySide2.QtWidgets import QDialog
 class DefineSelectorDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.session = session
         self.setWindowTitle("Define Selector")
         self.setSizeGripEnabled(True)
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
+        from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
         layout = QVBoxLayout()
         def_layout = QHBoxLayout()
         def_layout.setSpacing(4)
         def_layout.addWidget(QLabel("Name"))
-        from PyQt5.QtWidgets import QPushButton, QMenu
+        from PySide2.QtWidgets import QPushButton, QMenu
         self.cur_sel_text = "current selection"
         self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
         menu = QMenu(self)
         menu.triggered.connect(self._menu_cb)
         self.push_button.setMenu(menu)
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         for text in [self.cur_sel_text, self.atom_spec_text]:
             menu.addAction(text)
         def_layout.addWidget(self.push_button)
@@ -2434,7 +2442,7 @@ class SelSeqDialog(QDialog):
         self.session = session
         self.setWindowTitle("Select Sequence")
         self.setSizeGripEnabled(True)
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
+        from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
         layout = QVBoxLayout()
         edit_layout = QHBoxLayout()
         edit_layout.addWidget(QLabel("Sequence:"))
@@ -2469,9 +2477,9 @@ class SelZoneDialog(QDialog):
         self.session = session
         self.setWindowTitle("Select Zone")
         self.setSizeGripEnabled(True)
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
+        from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
             QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         layout = QVBoxLayout()
         target_area = QWidget()
         target_layout = QHBoxLayout()
@@ -2547,10 +2555,10 @@ class LabelHeightDialog(QDialog):
         super().__init__(*args, **kw)
         self.session = session
         self.setWindowTitle("Set Label Height")
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
+        from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
             QCheckBox, QPushButton, QMenu, QWidget
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QDoubleValidator
+        from PySide2.QtCore import Qt
+        from PySide2.QtGui import QDoubleValidator
         layout = QVBoxLayout()
         height_area = QWidget()
         layout.addWidget(height_area)
@@ -2664,25 +2672,25 @@ class InitWindowSizeOption(Option):
         self.push_button.setText(self.multiple_value)
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+        from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
         self.widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(2)
         self.widget.setLayout(layout)
 
-        from PyQt5.QtWidgets import QPushButton, QMenu
+        from PySide2.QtWidgets import QPushButton, QMenu
         size_scheme, size_data = self.default
         self.push_button = QPushButton(size_scheme)
         menu = QMenu(self.widget)
         self.push_button.setMenu(menu)
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         menu = self.push_button.menu()
         for label in ("last used", "proportional", "fixed", "maximized"):
             action = QAction(label, self.push_button)
-            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
+            action.triggered.connect(lambda s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         layout.addWidget(self.push_button, 0, Qt.AlignLeft)
 
         self.fixed_widgets = []
@@ -2693,7 +2701,7 @@ class InitWindowSizeOption(Option):
             w_pr_val, h_pr_val = size_data
         elif size_scheme == "fixed":
             w_px_val, h_px_val = size_data
-        from PyQt5.QtWidgets import QSpinBox, QWidget, QLabel
+        from PySide2.QtWidgets import QSpinBox, QWidget, QLabel
         self.nonmenu_widgets = QWidget()
         layout.addWidget(self.nonmenu_widgets)
         nonmenu_layout = QVBoxLayout()
@@ -2797,7 +2805,7 @@ class InitWindowSizeOption(Option):
         else:
             window_width, window_height = wh
 
-        from PyQt5.QtWidgets import QDesktopWidget
+        from PySide2.QtWidgets import QDesktopWidget
         dw = QDesktopWidget()
         screen_geom = self.session.ui.primaryScreen().availableGeometry()
         screen_width, screen_height = screen_geom.width(), screen_geom.height()

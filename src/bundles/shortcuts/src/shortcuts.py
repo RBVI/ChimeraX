@@ -352,7 +352,7 @@ class Keyboard_Shortcuts:
       
     def key_pressed(self, event):
         k = event.key()
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         if k == Qt.Key_Escape:
             self.disable_shortcuts()
             return

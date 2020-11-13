@@ -574,7 +574,7 @@ class ArrowModel(Model):
         self.xpos = left / w
         self.ypos = bottom / h
 
-        from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen
+        from PySide2.QtGui import QImage, QPainter, QColor, QBrush, QPen
 
         iw = int(right-left)+2*self.PIXEL_MARGIN
         ih = int(top-bottom)+2*self.PIXEL_MARGIN
@@ -584,7 +584,7 @@ class ArrowModel(Model):
         with QPainter(image) as p:
             p.setRenderHint(QPainter.Antialiasing)
             bcolor = QColor(*self.arrow_color)
-            from PyQt5.QtCore import Qt, QPointF
+            from PySide2.QtCore import Qt, QPointF
             pbr = QBrush(bcolor, Qt.SolidPattern)
             p.setBrush(pbr)
             ppen = QPen(Qt.NoPen)

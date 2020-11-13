@@ -608,7 +608,7 @@ class MeetingParticipant:
     def connect(self, host, port, timeout = None):
         if self._hub:
             raise RuntimeError('Cannot join a meeting when currently hosting a meeting.')
-        from PyQt5.QtNetwork import QTcpSocket
+        from PySide2.QtNetwork import QTcpSocket
         socket = QTcpSocket()
         msg_stream = MessageStream(socket, self._message_received, self._disconnected,
                                    self._session.logger, connection_timeout = timeout)
@@ -848,7 +848,7 @@ class MeetingHub:
     def listen(self, port):
         if self._server:
             return
-        from PyQt5.QtNetwork import QTcpServer, QHostAddress
+        from PySide2.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
         a = QHostAddress.Any
         if not s.listen(a, port):
@@ -872,7 +872,7 @@ class MeetingHub:
         s = self._server
         port = s.serverPort()
         addresses = [a.toString() for a in self._available_server_ipv4_addresses()]
-        from PyQt5.QtNetwork import QHostInfo
+        from PySide2.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
             addresses.insert(0, host)
@@ -884,7 +884,7 @@ class MeetingHub:
                 if not isinstance(c, MessageStreamLocal)]
     
     def _available_server_ipv4_addresses(self):
-        from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
+        from PySide2.QtNetwork import QNetworkInterface, QAbstractSocket
         a = []
         for ni in QNetworkInterface.allInterfaces():
             flags = ni.flags()
@@ -1040,7 +1040,7 @@ class MessageStream:
         return (s.peerAddress().toString(), s.peerPort())
     
     def send_message_bytes(self, msg_bytes):
-        from PyQt5.QtCore import QByteArray
+        from PySide2.QtCore import QByteArray
         qbytes = QByteArray(msg_bytes)
         self._socket.write(qbytes)
 
@@ -1236,7 +1236,7 @@ class MessageStream:
             self._socket_disconnected(report = False)  # QTcpSocket is not firing the disconnected signal
 
 def _set_timer(timeout, callback):
-    from PyQt5.QtCore import QTimer
+    from PySide2.QtCore import QTimer
     delay_msec = int(1000*timeout)
     return QTimer.singleShot(delay_msec, callback)
     
@@ -1741,7 +1741,7 @@ class VRHeadModel(Model):
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
-        from PyQt5.QtGui import QImage
+        from PySide2.QtGui import QImage
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
@@ -1759,7 +1759,7 @@ class VRHeadModel(Model):
 
     def update_image(self, base64_image_bytes):
         image_bytes = _decode_face_image(base64_image_bytes)
-        from PyQt5.QtGui import QImage
+        from PySide2.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
         aspect = qi.width() / qi.height()

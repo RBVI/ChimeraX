@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-ColorButton is a derived class from PyQt5.QtWidgets.QPushButton
+ColorButton is a derived class from PySide2.QtWidgets.QPushButton
 that simplifies showing and editing colors
 
 ColorButton may be instantiated just like QPushButton, but handles
@@ -31,9 +31,9 @@ these extra keyword arguments:
                  requested.
 """
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QPushButton
+from PySide2.QtCore import Signal
+from PySide2.QtGui import QColor
+from PySide2.QtWidgets import QPushButton
 from numpy import array, uint8, ndarray
 
 # some hackery to attempt to make it one color-chooser dialog for the
@@ -60,14 +60,14 @@ def _check_color_chooser(dead_button_id):
 
 class ColorButton(QPushButton):
 
-    color_changed = pyqtSignal(ndarray)
-    color_pause = pyqtSignal(ndarray)
+    color_changed = Signal(ndarray)
+    color_pause = Signal(ndarray)
 
     def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None, **kw):
         super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
@@ -93,7 +93,7 @@ class ColorButton(QPushButton):
         _color_setter_id = id(self)
         _color_callback = None
         if _color_dialog is None:
-            from PyQt5.QtWidgets import QColorDialog
+            from PySide2.QtWidgets import QColorDialog
             _color_dialog = cd = QColorDialog(self.window())
             cd.setOption(cd.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
@@ -134,7 +134,7 @@ class ColorButton(QPushButton):
         t = self._pause_timer
         if t is not None:
             t.stop()
-        from PyQt5.QtCore import QTimer
+        from PySide2.QtCore import QTimer
         self._pause_timer = t = QTimer()
         t.setSingleShot(True)
         t.timeout.connect(lambda p=self.color_pause, c=self._color: p.emit(c))
