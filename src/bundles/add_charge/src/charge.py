@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class ChargeError(RuntimeError):
+    pass
+
 def estimate_net_charge(atoms):
     charge_info = {
         'Cac': 2,
@@ -204,13 +207,92 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
                     nearby.add(nbnb)
                 else:
                     extras.update(_methylate(na, nbnb, atom_names))
-    total_net_charge = net_charge = estimate_net_charge(extras)
+    total_net_charge = net_charge + estimate_net_charge(extras)
 
     import tempfile
     with tempfile.TemporaryDirectory() as temp_dir:
-        import os.path
+        import os, os.path
         ante_in = os.path.join(temp_dir, "ante.in.mol2")
         from chimera.mol2 import write_mol2
         write_mol2([s], ante_in, status=status)
 
         #TODO: initially, try to run Chimera's antechamber using hardcoded paths
+        ante_out = os.path.join(temp_dir, "ante.out.mol2")
+        command = ["/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18/bin/antechamber"]
+        if method.lower().startswith("am1"):
+            mth = "bcc"
+            command.extend(["-ek", "qm_theory='AM1'"])
+        elif method.lower().startswith("gas"):
+            mth = "gas"
+        else:
+            raise ValueError("Unknown charge method: %s" % method)
+
+        command,extend([
+            "-i", ante_in,
+            "-fi", "mol2",
+            "-o", ante_out,
+            "-fo", "mol2",
+            "-c", mth,
+            "-nc", str(total_net_charge),
+            "-j", "5",
+            "-s", "2",
+            "-dr", "n"])
+        if status:
+            status("Running ANTECHAMBER for residue %s" % r.name)
+        from subprocess import Popen, STDOUT, PIPE
+        # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
+        session.logger.info("Running ANETCHAMBER command: %s" % " ".join(command))
+        os.environ['AMBERHOME'] = "/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18"
+        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1).stdout
+        while True:
+            line = ante_messages.readline()
+            if not line:
+                break
+            session.logger.status("(%s) %s" % (r.name, line), log=True)
+        ante_failure_msg = "Failure running ANTECHAMBER for residue%s\nCheck reply log for details" % r.name
+        if not os.path.exists(ante_out):
+            raise ChargeError(ante_failure_msg)
+        if status:
+            status("Reading ANTECHAMBER output for residue %s" % r.name)
+        try:
+            mols, status = session.open_command.open_data(ante_out)
+        except Exception as e:
+            raise IOError("Problem reading ANTECHAMBER output file: %s" % str(e))
+        if not mols:
+            raise RuntimeError("No molecules in ANTECHAMBER output for residue %s" % r.name)
+        mol = mols[0]
+        if mol.num_atoms != s.num_atoms:
+            raise RuntimeError("Wrong number of atoms (%d, should be %d) in ANTECHAMBER output for residue"
+                " %s" % (mol.num_atoms, s.num_atoms, r.anme))
+        charged_atoms = mol.atoms
+        if status:
+            status("Assigning charges for residue %s" % r.name)
+        # put charges in template
+        template_atoms = list(s.atoms)
+        # can't rely on order...
+        template_atoms.sort(key=lambda a: a.serial_number)
+        non_zero = False
+        added_charge_sum = 0.0
+        _total_charge = 0.0
+        for ta, ca in zip(template_atoms, charged_atoms):
+            _total_charge += ca.charge
+            if ta in extras:
+                added_charge_sum += ca.charge
+                continue
+            if ca.charge:
+                non_zero = True
+        # it is okay for O2 and similar moieties to be all zero charge...
+        if not non_zero and len(set([a.element for a in charged_atoms])) > 1:
+            raise ChargeError(ante_failure_msg)
+
+        # adjust charges to compensate for added atoms...
+        adjustment = (added_charge_sum - (total_net_charge - net_charge)) / (
+            len(template_atoms) - len(extras))
+        for ta, ca in zip(template_atoms, charged_atoms):
+            if ta in extras:
+                continue
+            ta.charge = ca.charge + adjustment
+            if gaff_type:
+                ta.gaff_type = ca.mol2_type
+        # map template charges onto first residue
+        #TODO
