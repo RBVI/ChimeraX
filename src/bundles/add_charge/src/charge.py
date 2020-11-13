@@ -166,9 +166,8 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
     nr = s.new_residue(r.name, ' ', 1)
     atom_map = {}
     atom_names = set()
-    r_atoms = list(ratoms)
     # use same ordering of atoms as they had in input, to improve consistency of antechamber charges
-    r_atoms.sort(key=lambda a: a.coord_index)
+    r_atoms = sorted(r.atoms, key=lambda a: a.coord_index)
     from chimerax.atomic.struct_edit import add_atom
     for a in r_atoms:
         atom_map[a] = add_atom(a.name, a.element, nr, a.coord)
@@ -209,12 +208,20 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
                     extras.update(_methylate(na, nbnb, atom_names))
     total_net_charge = net_charge + estimate_net_charge(extras)
 
+    from contextlib import contextmanager
+    @contextmanager
+    def managed_structure(s):
+        try:
+            yield s
+        finally:
+            s.delete()
+
     import tempfile
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir, managed_structure(s) as s:
         import os, os.path
         ante_in = os.path.join(temp_dir, "ante.in.mol2")
-        from chimera.mol2 import write_mol2
-        write_mol2([s], ante_in, status=status)
+        from chimerax.mol2 import write_mol2
+        write_mol2(session, ante_in, models=[s], status=status)
 
         #TODO: initially, try to run Chimera's antechamber using hardcoded paths
         ante_out = os.path.join(temp_dir, "ante.out.mol2")
@@ -227,7 +234,7 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         else:
             raise ValueError("Unknown charge method: %s" % method)
 
-        command,extend([
+        command.extend([
             "-i", ante_in,
             "-fi", "mol2",
             "-o", ante_out,
@@ -241,7 +248,7 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
             status("Running ANTECHAMBER for residue %s" % r.name)
         from subprocess import Popen, STDOUT, PIPE
         # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
-        session.logger.info("Running ANETCHAMBER command: %s" % " ".join(command))
+        session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
         os.environ['AMBERHOME'] = "/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18"
         ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1).stdout
         while True:
@@ -255,7 +262,7 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         if status:
             status("Reading ANTECHAMBER output for residue %s" % r.name)
         try:
-            mols, status = session.open_command.open_data(ante_out)
+            mols, status_message = session.open_command.open_data(ante_out)
         except Exception as e:
             raise IOError("Problem reading ANTECHAMBER output file: %s" % str(e))
         if not mols:
@@ -295,4 +302,27 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
             if gaff_type:
                 ta.gaff_type = ca.mol2_type
         # map template charges onto first residue
-        #TODO
+        assigned = set()
+        for fa, ta in atom_map.items():
+            if ta in extras:
+                continue
+            fa.charge = ta.charge
+            if gaff_type:
+                fa.gaff_type = ta.gaff_type
+            assigned.add(fa)
+        # map charges onto remaining residues
+        r_atoms = sorted(r.atoms)
+        for rr in residues[1:]:
+            rr_atoms = sorted(rr.atoms)
+            for fa, ra in zip(r_atoms, rr_atoms):
+                ra.charge = fa.charge
+                if gaff_type:
+                    ra.gaff_type = fa.gaff_type
+                assigned.add(ra)
+        session.change_tracker.add_modified(assigned, "charge changed")
+        if gaff_type:
+            session.change_tracker.add_modified(assigned, "gaff_type changed")
+        if status:
+            status("Charges for residue %s determined" % r.name)
+        session.logger.info("Charges for residue %s determined" % r.name)
+
