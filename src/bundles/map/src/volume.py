@@ -1020,9 +1020,9 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None, new_spacing = None):
+  def region_grid(self, r, value_type = None, new_spacing = None, clamp = True):
 
-    shape = self.matrix_size(region = r, clamp = False)
+    shape = self.matrix_size(region = r, clamp = clamp)
     if new_spacing is not None:
       d = self.data
       shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
