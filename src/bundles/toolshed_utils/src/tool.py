@@ -116,7 +116,7 @@ class UpdateTool(ToolInstance):
         show_url(self.session, self.help, new_tab=True)
 
     def cancel(self):
-        self.session.ui.main_window.close_request(self.tool_window)
+        self.delete()
 
     def update_install_button(self, *args):
         from PyQt5.QtCore import Qt
@@ -235,4 +235,4 @@ class UpdateTool(ToolInstance):
             updating.append(bi)
         from . import _install_bundle
         _install_bundle(toolshed, updating, logger, reinstall=True, session=self.session)
-        self.delete()
+        self.cancel()
