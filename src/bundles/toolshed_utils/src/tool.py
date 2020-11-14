@@ -31,6 +31,7 @@ class UpdateTool(ToolInstance):
 
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
+    SESSION_SAVE = False
     help = "help:user/tools/updates.html"
 
     NAME_COLUMN = 0
@@ -234,4 +235,4 @@ class UpdateTool(ToolInstance):
             updating.append(bi)
         from . import _install_bundle
         _install_bundle(toolshed, updating, logger, reinstall=True, session=self.session)
-        self.cancel()
+        self.delete()
