@@ -31,6 +31,7 @@ class UpdateTool(ToolInstance):
 
     SESSION_ENDURING = True
     # if SESSION_ENDURING is True, tool instance not deleted at session closure
+    SESSION_SAVE = False
     help = "help:user/tools/updates.html"
 
     NAME_COLUMN = 0
@@ -115,7 +116,7 @@ class UpdateTool(ToolInstance):
         show_url(self.session, self.help, new_tab=True)
 
     def cancel(self):
-        self.session.ui.main_window.close_request(self.tool_window)
+        self.delete()
 
     def update_install_button(self, *args):
         from PyQt5.QtCore import Qt

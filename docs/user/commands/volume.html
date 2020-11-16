@@ -507,6 +507,7 @@ regardless of which are specified:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
   Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
 See also:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>,
@@ -689,6 +690,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   <br>
   Specify center of symmetry in grid coordinates, given as a single 
   value or three values separated by commas only.
+  Grid indices start at zero.
   Fractional and negative values can be used.  If a single value is given, 
   it is used as the grid coordinate along all three axes.
   This option overrides <a href="#center"><b>center</b></a>.
@@ -1479,6 +1481,7 @@ Note resampling causes some loss in resolution
    <i>j1&ndash;j2</i> along the Y axis, and
    <i>k1&ndash;k2</i> along the Z axis.
    Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
   </ul>
 The <i>value-type</i> defaults to the current type
 of the <b>onGrid</b> map (if any), otherwise the first in <i>volume-spec</i>,
@@ -2016,7 +2019,8 @@ See also: <a href="#onesmask"><b>volume onesmask</b></a>
 Erase values inside the positive octant
 (all grid points with X,Y,Z coordinates greater than the center).
 The center can be specified in physical units (such as &Aring;) with
-<b>center</b> or in grid units with <b>iCenter</b>.
+<b>center</b> or in grid units with <b>iCenter</b>,
+where grid indices start at zero.
 The default is the center of the volume data box.
 The coordinates should be separated by commas but not spaces, and the
 values can be fractional.
@@ -2443,6 +2447,7 @@ the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.
   Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
 </blockquote>
 <blockquote>
   <b>inPlace</b> true&nbsp;|&nbsp;<b>false</b>
@@ -2575,5 +2580,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+November 2020</address>
 </body></html>
