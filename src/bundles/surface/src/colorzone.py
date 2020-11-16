@@ -167,6 +167,9 @@ def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
         surface._unsharp_geometry = (varray, narray, tarray, va, na, ta)
         surface.set_geometry(va, na, ta)
         surface.vertex_colors = ca
+        from . import unique_vertex_map
+        vmap = unique_vertex_map(va)
+        surface.joined_triangles = vmap[ta]
         
     return va, na, ta, ca
 
