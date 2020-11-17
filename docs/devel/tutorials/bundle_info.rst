@@ -606,6 +606,8 @@ data formats, and selectors.
     - Command registration is done via the
       ``bundle_api.register_command`` method.
     - Bundles may provide more than one command.
+    - Before deciding on your command name and syntax, you should peruse the
+      :doc:`command style guide <../command_style>`.
 
 
 *Data Format Metadata*

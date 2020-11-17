@@ -271,8 +271,8 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
             allowable_attrs = session.attr_registration.attributes_returning(class_obj, allowable_types,
                 none_okay=True)
         else:
-            from chimerax.list_info.cmd import _type_attrs
-            allowable_attrs = _type_attrs(class_obj)
+            from chimerax.core.utils import type_attrs
+            allowable_attrs = type_attrs(class_obj)
         if attr_name not in allowable_attrs:
             raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
     else:
@@ -282,8 +282,8 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
                 allowable_attrs = session.attr_registration.attributes_returning(
                     class_obj, allowable_types, none_okay=True)
             else:
-                from chimerax.list_info.cmd import _type_attrs
-                allowable_attrs = _type_attrs(class_obj)
+                from chimerax.core.utils import type_attrs
+                allowable_attrs = type_attrs(class_obj)
             if attr_name in allowable_attrs:
                 break
         else:

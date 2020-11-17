@@ -1239,7 +1239,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         #
         label_menu = actions_menu.addMenu("Label")
         label_atoms_menu = label_menu.addMenu("Atoms")
-        for menu_entry, attr_name in [("Name", None), ("Element", "element"), ("IDATM Type", "idatm_type")]:
+        main_atom_label_info = [("Name", None), ("Element", "element"), ("IDATM Type", "idatm_type")]
+        for menu_entry, attr_name in main_atom_label_info:
             action = QAction(menu_entry, self)
             label_atoms_menu.addAction(action)
             text = " attr %s" % attr_name if attr_name else ""
@@ -1250,15 +1251,37 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             fetch_text=self._get_label_text_arg: run(ses, "label %s atoms text %s"
             % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        label_atoms_other_menu = label_atoms_menu.addMenu("Other")
+        def fill_other_menu(menu, main_attrs, class_obj, sel_name, *, run=run, sel_or_all=sel_or_all):
+            menu.clear()
+            other_info = [(attr_name.replace('_', ' ').title(), attr_name)
+                for attr_name in [attr for attr in self.session.attr_registration.attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
+            other_info.sort()
+            for menu_entry, attr_name in other_info:
+                if attr_name.startswith("num_") and attr_name != "num_alt_locs":
+                    # most "num" attributes uninteresting for labeling purposes
+                    continue
+                action = QAction(menu_entry, self)
+                menu.addAction(action)
+                text = " attr %s" % attr_name
+                action.triggered.connect(lambda *args, run=run, ses=self.session, attr_name=attr_name,
+                    cmd="label %%s %s attr %s" % (sel_name, attr_name):
+                    run(ses, cmd % sel_or_all(ses, [sel_name], allow_empty_spec=False)))
+        from chimerax.atomic import Atom, Residue
+        label_atoms_other_menu.aboutToShow.connect(lambda menu=label_atoms_other_menu, main_attrs=
+            set([attr_name if attr_name else "name" for label, attr_name in main_atom_label_info]),
+            class_obj=Atom, fill=fill_other_menu: fill(menu, main_attrs, class_obj, "atoms"))
         action = QAction("Off", self)
         label_atoms_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session:
             run(ses, "~label %s atoms" % sel_or_all(ses, ['atoms'], allow_empty_spec=False)))
+
         label_residues_menu = label_menu.addMenu("Residues")
-        for menu_entry, cmd_arg in [("Name", "name"), ("Specifier", "label_specifier"),
+        main_residue_label_info = [("Name", "name"), ("Specifier", "label_specifier"),
                 ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
                 ("1-Letter Code", "label_one_letter_code"), ("1-Letter Code Combo",
-                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]:
+                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]
+        for menu_entry, cmd_arg in main_residue_label_info:
             action = QAction(menu_entry, self)
             label_residues_menu.addAction(action)
             if cmd_arg:
@@ -1275,6 +1298,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             fetch_text=self._get_label_text_arg: run(ses, "label %s text %s"
             % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        label_residues_other_menu = label_residues_menu.addMenu("Other")
+        label_residues_other_menu.aboutToShow.connect(lambda menu=label_residues_other_menu, main_attrs=
+            set([attr_name for label, attr_name in main_residue_label_info if attr_name.isalnum()]),
+            class_obj=Residue, fill=fill_other_menu: fill(menu, main_attrs, class_obj, "residues"))
         action = QAction("Off", self)
         label_residues_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session:

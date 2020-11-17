@@ -125,7 +125,9 @@ All other contents of the bundle should be in ``src``.
 
     **cmd.py** contains code called by ``bundle_api``
     from **__init__.py** for executing the ``sample``
-    command.
+    command.  Before deciding on the name and syntax
+    of your own command, you should look at the
+    :doc:`command style guide <command_style>`.
 
     **io.py** contains code called by ``bundle_api``
     from **__init__.py** for opening XYZ files.

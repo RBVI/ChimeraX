@@ -80,7 +80,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
 
     # remember in file history if appropriate
     try:
-        session.open_command.open_info(data_format)
+        session.open_command.opener_info(data_format)
     except Exception:
         pass
     else:
