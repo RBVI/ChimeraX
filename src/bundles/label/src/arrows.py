@@ -581,7 +581,9 @@ class ArrowModel(Model):
         image = QImage(iw, ih, QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
-        with QPainter(image) as p:
+        #with QPainter(image) as p:
+        try:
+            p = QPainter(image)
             p.setRenderHint(QPainter.Antialiasing)
             bcolor = QColor(*self.arrow_color)
             from PySide2.QtCore import Qt, QPointF
@@ -595,7 +597,7 @@ class ArrowModel(Model):
                 return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
             """
             if len(shaft_geom) == 4:
-                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
+                p.drawPolygon([QPointF(*image_xy(xy)) for xy in shaft_geom])
             else:
                 #TODO: draw arc
                 pass
@@ -640,11 +642,13 @@ class ArrowModel(Model):
             else:
                 raise ValueError("Don't know how to draw arrowhead style '%s'" % self.arrow.head_style)
             if poly_points:
-                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in poly_points])
+                p.drawPolygon([QPointF(*image_xy(xy)) for xy in poly_points])
 
             # Convert to numpy rgba array.
             from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(image)
+        finally:
+            p.end()
 
         return rgba
 
