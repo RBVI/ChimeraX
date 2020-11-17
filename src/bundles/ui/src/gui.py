@@ -1749,7 +1749,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     window._mw_set_shown(False)
 
 def _find_child_menu(w, name):
-    # PySide2 5.15 does not support the optons argument to QObject.findChild().
+    # PySide2 5.15 does not support the options argument to QObject.findChild().
     #menu = w.findChild(QMenu, name, Qt.FindDirectChildrenOnly)
     from PySide2.QtWidgets import QMenu
     cm = [c for c in w.children() if isinstance(c, QMenu) and c.objectName() == name]

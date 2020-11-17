@@ -13,8 +13,8 @@
 
 from PySide2.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
 from PySide2.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
+# PySide2 has no QVariant; None can be used in place of an invalid QVariant
 # from PySide2.QtCore import QVariant
-# TODO: PySide2 has no QVariant
 from PySide2.QtGui import QFontDatabase, QBrush, QColor
 
 class QCxTableModel(QAbstractTableModel):
@@ -52,7 +52,7 @@ class QCxTableModel(QAbstractTableModel):
                 font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
             elif col.font is None:
                 if self._item_table._table_model is None:
-                    return QVariant()
+                    return None
                 font = self._item_table.font()
             else:
                 font = col.font
@@ -62,11 +62,11 @@ class QCxTableModel(QAbstractTableModel):
             return font
         if role == Qt.TextAlignmentRole:
             return self._convert_justification(col.justification)
-        return QVariant()
+        return None
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
-            return QVariant()
+            return None
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
@@ -91,7 +91,7 @@ class QCxTableModel(QAbstractTableModel):
         elif role == Qt.ToolTipRole and col.balloon:
             return col.balloon
 
-        return QVariant()
+        return None
 
     def rowCount(self, parent=None):
         return len(self._item_table._data)
