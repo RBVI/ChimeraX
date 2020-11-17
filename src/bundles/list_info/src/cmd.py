@@ -305,21 +305,13 @@ info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                                        ("attribute", StringArg),],
                               synopsis="Report selection information")
 
-
-def _type_attrs(t):
-    from types import GetSetDescriptorType
-    attrs = [name for name in dir(t)
-        if name[0] != '_' and type(getattr(t, name)) in [property, GetSetDescriptorType]]
-    attrs.extend(t._attr_registration.reg_attr_info.keys())
-    attrs.sort()
-    return attrs
-
 def info_atomattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of atom attribute names.
     '''
+    from chimerax.core.utils import type_attrs
     from chimerax.atomic import Atom
-    attrs = _type_attrs(Atom)
+    attrs = type_attrs(Atom)
     for a in attrs:
         report_attr(session.logger, "atom", a)
     if return_json:
@@ -332,8 +324,9 @@ def info_bondattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of bond attribute names.
     '''
+    from chimerax.core.utils import type_attrs
     from chimerax.atomic import Bond
-    attrs = _type_attrs(Bond)
+    attrs = type_attrs(Bond)
     for a in attrs:
         report_attr(session.logger, "bond", a)
     if return_json:
@@ -346,8 +339,9 @@ def info_resattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of residue attribute names.
     '''
+    from chimerax.core.utils import type_attrs
     from chimerax.atomic import Residue
-    attrs = _type_attrs(Residue)
+    attrs = type_attrs(Residue)
     for a in attrs:
         report_attr(session.logger, "res", a)
     if return_json:
