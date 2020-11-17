@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation = 5,
-           flip_horizontal = True, size = None, framerate = 25, color_popup = False):
+           flip_horizontal = True, name = None, size = None, framerate = 25, color_popup = False):
 
     wc_list = session.models.list(type = WebCam)
     if enable:
@@ -22,10 +22,10 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
             wc = WebCam('webcam', session,
                         foreground_color = foreground_color, saturation = saturation,
                         flip_horizontal = flip_horizontal, color_popup = color_popup,
-                        size = size, framerate = framerate)
+                        camera_name = name, size = size, framerate = framerate)
             session.models.add([wc])
             w,h = wc.size
-            msg = ('Web camera "%s", width %d, height %d, framerate %.4g'
+            msg = ('Using web camera "%s", width %d, height %d, framerate %.4g'
                    % (wc.camera_name, w, h, wc.framerate))
             session.logger.info(msg)
         else:
@@ -44,12 +44,13 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
 #
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import BoolArg, Color8Arg, IntArg, FloatArg, Int2Arg
+    from chimerax.core.commands import BoolArg, Color8Arg, IntArg, FloatArg, Int2Arg, StringArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('foreground_color', Color8Arg),
                               ('saturation', IntArg),
                               ('flip_horizontal', BoolArg),
                               ('color_popup', BoolArg),
+                              ('name', StringArg),
                               ('size', Int2Arg),
                               ('framerate', FloatArg)],
                    synopsis = 'Turn on webcam rendering')
@@ -64,11 +65,12 @@ class WebCam (Model):
     casts_shadows = False
     SESSION_SAVE = False
     def __init__(self, name, session, foreground_color = (0,255,0,255), saturation = 10,
-                 color_popup = False, flip_horizontal = True, size = None, framerate = 25):
+                 color_popup = False, flip_horizontal = True,
+                 camera_name = None, size = None, framerate = 25):
         Model.__init__(self, name, session)
 
         self._camera = None		# QCamera
-        self.camera_name = ''
+        self.camera_name = camera_name
         self._capture = None		# VideoCapture instance
         self.size = None		# Width, height in pixels
         self._requested_size = size
@@ -95,18 +97,8 @@ class WebCam (Model):
             self._camera = None
         
     def _start_video(self):
-        from PyQt5.QtMultimedia import QCameraInfo, QCamera, QVideoFrame
-        cam_list = QCameraInfo.availableCameras()
-        if len(cam_list) == 0:
-            from chimerax.core.errors import UserError
-            raise UserError('Did not find any cameras')
-        if len(cam_list) > 1:
-            self.session.logger.info('Found multiple cameras: %s'
-                                     % ', '.join(c.description() for c in cam_list))
-        cam_info = cam_list[0]
-        self.camera_name = cam_info.description()
-#        self.session.logger.info('Using camera "%s"' % cam_info.description())
-
+        cam_info = self._find_camera()
+        from PyQt5.QtMultimedia import QCamera
         cam = QCamera(cam_info)
         self._camera = cam
 #        print('camera availability (0 = available):', cam.availability())
@@ -115,6 +107,31 @@ class WebCam (Model):
         cam.start()
 
 #        self._start_capture()
+
+    def _find_camera(self):
+        from PyQt5.QtMultimedia import QCameraInfo
+        cam_list = QCameraInfo.availableCameras()
+        if len(cam_list) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('Did not find any cameras')
+        if len(cam_list) > 1:
+            self.session.logger.info('Found multiple cameras: %s'
+                                     % ', '.join(c.description() for c in cam_list))
+        cam_name = self.camera_name
+        if cam_name is None:
+            cam_info = cam_list[0]
+            self.camera_name = cam_info.description()
+        else:
+            cam_info = None
+            for cinfo in cam_list:
+                if cinfo.description() == cam_name:
+                    cam_info = cinfo
+                    break
+            if cam_info is None:
+                from chimerax.core.errors import UserError
+                raise UserError('Did not find camera named "%s"' % cam_name)
+        #self.session.logger.info('Using camera "%s"' % cam_info.description())
+        return cam_info
 
     def _camera_state_changed(self, state):
 #        print ('current camera state', state)

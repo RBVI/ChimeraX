@@ -38,6 +38,9 @@ The final step builds a Python wheel that ChimeraX uses
 to install the bundle.  So if the bundle passes testing,
 it is immediately available for sharing with other users.
 
+Before deciding on the name and syntax of your own command,
+you should peruse the :doc:`command style guide <../command_style>`.
+
 
 Source Code Organization
 ========================

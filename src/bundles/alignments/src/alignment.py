@@ -704,6 +704,7 @@ class Alignment(State):
             attr_name = header.residue_attr_name
             Residue.register_attr(self.session, attr_name, "sequence alignment",
                 attr_type=header.value_type, can_return_none=header.value_none_okay)
+            assigned = set()
             for match_map in match_maps:
                 aseq = match_map.align_seq
                 for i, val in enumerate(header):
@@ -715,6 +716,9 @@ class Alignment(State):
                     except KeyError:
                         continue
                     setattr(r, attr_name, val)
+                    assigned.add(r)
+            if assigned:
+                self.session.change_tracker.add_modified(assigned, attr_name + " changed")
 
     def __str__(self):
         return self.ident

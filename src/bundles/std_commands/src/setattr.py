@@ -133,8 +133,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
             session.change_tracker.add_modified(items, attr_name + " changed")
     else:
         class_ = list(items)[0].__class__
-        from chimerax.list_info.cmd import _type_attrs
-        if attr_name not in _type_attrs(class_):
+        from chimerax.core.utils import type_attrs
+        if attr_name not in type_attrs(class_):
             if create:
                 register_attr(session, class_, attr_name, type(value))
             else:
