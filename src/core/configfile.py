@@ -286,7 +286,11 @@ class ConfigFile:
         )
         if os.path.exists(self._filename):
             self._on_disk = True
-            self._config.read(self._filename, encoding='utf-8')
+            try:
+                self._config.read(self._filename, encoding='utf-8')
+            except configparser.Error as e:
+                session.logger.error('Could not read settings file for %s ("%s"); using default %s settings'
+                    % (tool_name, str(e), tool_name))
             # check that all values on disk are valid
             for name in self.PROPERTY_INFO:
                 getattr(self, name)

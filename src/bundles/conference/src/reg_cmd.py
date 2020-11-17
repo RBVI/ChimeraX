@@ -16,25 +16,7 @@
 #
 def register_command(ci, logger):
     from chimerax.core.commands import CmdDesc, register
-    if ci.name == "meeting":
-        from chimerax.core.commands import (StringArg, IntArg, Color8TupleArg,
-                                            OpenFileNameArg, BoolArg)
-        desc = CmdDesc(optional = [('host', StringArg)],
-                       keyword = [('port', IntArg),
-                                  ('name', StringArg),
-                                  ('color', Color8TupleArg),
-                                  ('face_image', OpenFileNameArg),
-                                  ('copy_scene', BoolArg),
-                                  ('relay_commands', BoolArg),
-                                  ('update_interval', IntArg)])
-        from .meeting import meeting as func
-    elif ci.name == "meeting close":
-        desc = CmdDesc()
-        from .meeting import meeting_close as func
-    elif ci.name == "meeting send":
-        desc = CmdDesc()
-        from .meeting import meeting_send as func
-    elif ci.name == "conference":
+    if ci.name == "conference":
         from chimerax.core.commands import (StringArg, IntArg, ColorArg,
                                             OpenFileNameArg, BoolArg, EnumOf)
         desc = CmdDesc(required=[("action", EnumOf(["start", "join", "host"]))],

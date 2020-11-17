@@ -76,6 +76,7 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
@@ -440,11 +441,11 @@ of ``mac``.
       ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
       name matches this manager (whether the bundle with the provider
-      is installed or not).  A second method:
-      ``end_providers()``
-      is optional.  ``end_providers`` is called after all calls
-      to ``add_provider`` have been made and is useful for finishing
-      manager initialization.
+      is installed or not).  To distinguish between installed and uninstalled
+      providers check ``bundle_info.installed``.
+      A second method: ``end_providers()`` is optional.
+      ``end_providers`` is called after all calls to ``add_provider`` have been made
+      and is useful for finishing manager initialization.
 
 - **Package**
 
@@ -605,6 +606,8 @@ data formats, and selectors.
     - Command registration is done via the
       ``bundle_api.register_command`` method.
     - Bundles may provide more than one command.
+    - Before deciding on your command name and syntax, you should peruse the
+      :doc:`command style guide <../command_style>`.
 
 
 *Data Format Metadata*

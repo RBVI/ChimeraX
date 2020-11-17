@@ -76,7 +76,9 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color specification</a>,
-<a href="palettes.html">palettes</a>
+<a href="palettes.html">palettes</a>,
+<a href="colornames.html#transparency-limitations">limitations
+of transparency</a>
 </p><p>
 Additional subcommands manage the set of named colors:
 </p>
@@ -236,7 +238,9 @@ Existing transparency is not changed unless this option is used or the
 <i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
 alpha (opacity). An alpha value overrides this option if both are given.
 Note that the <a href="transparency.html"><b>transparency</b></a> command
-can be used to set transparency apart from color.
+can be used to set transparency apart from color. There are
+<a href="colornames.html#transparency-limitations">limitations
+in rendering transparency</a>.
 </p>
 <h4>Examples (<a href="#simple">Simple</a>)</h4>
 Color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>):
@@ -295,20 +299,20 @@ to atomic models at the specified <i>level</i>:
 <li><b>residues</b> (default)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
-&ndash; a different color for each residue 
-in a biopolymer chain (always applies to entire chains); other residues
-such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
+&ndash; a different color for each residue in a biopolymer chain;
+other residues such as 
+<a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
 <li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
 <li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
-(macromolecular entity) in an atomic model, based on sequence; 
+(macromolecular entity) in an atomic model, based on sequence;
 non-biopolymer residues are not affected
+(see also <a href="#simple"><b>color bypolymer</b></a>)
 <li><b>structures</b> &ndash; a different color for each atomic model
 </ul>
-Sequential coloring applies to all atoms within the affected residues,
-chains, or models even if fewer atoms are specified, but can be restricted 
-to certain representations with the <a href="#target"><b>target</b></a> option.
+Sequential coloring can be restricted to certain representations 
+with the <a href="#target"><b>target</b></a> option.
 The <a href="#palette-options"><b>palette</b></a> option specifies
 what colors to use (default
 <table border cellpadding="4" cellspacing="0"
@@ -320,6 +324,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 </tr></table>),
 and <a href="#transparency"><b>transparency</b></a> can be set independently.
+If the scope of coloring is limited by giving an
+<a href="atomspec.html"><i>atom-spec</i></a> in the command,
+the full palette will be mapped to the specification only.
 </p>
 <h4>Examples (<a href="#sequential">Sequential</a>)</h4>
 Rainbow-color residues blue &rarr; red along each biopolymer chain:
@@ -329,6 +336,11 @@ Rainbow-color residues blue &rarr; red along each biopolymer chain:
 <b>rainbow res</b>
 <br>&ndash; or &ndash;<br>
 <b>rainbow</b>
+</blockquote>
+Rainbow-color each biopolymer chain from blue at residue 1 to red at residue 50,
+leaving the colors of other parts unchanged.
+<blockquote>
+<b>rainbow :1-50</b>
 </blockquote>
 Color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
@@ -425,7 +437,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>byattribute</b>
-&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<i>attribute-name</i>
+&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
@@ -443,7 +455,8 @@ automatically read from mmCIF/PDB, are given below.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 </p><p>
-An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
+An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the
+<a href="../attributes.html#attrnames">attribute name</a>
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
@@ -1056,5 +1069,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+November 2020</address>
 </body></html>

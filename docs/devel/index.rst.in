@@ -30,8 +30,8 @@ Tutorials and Examples
 .. toctree::
    :maxdepth: 1
 
-   Command and Python recipes <https://rbvi.github.io/chimerax-recipes/>
    tutorials/introduction.rst
+   Command and Python recipes <https://rbvi.github.io/chimerax-recipes/>
 
 Developer Guide
 ===============

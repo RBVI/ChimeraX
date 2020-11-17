@@ -32,6 +32,8 @@ class StartStructureManager(ProviderManager):
         # if 'new_model_only' is True then the provider can only construct new models and can't
         #     add atoms to existing models.  In that case, no model spec will be expected in the
         #     command and the 'structure' part of run_provider's command_info will be None.
+        if not bundle_info.installed:
+            return
         if isinstance(indirect, str):
             indirect = eval(indirect.capitalize())
         if isinstance(new_model_only, str):

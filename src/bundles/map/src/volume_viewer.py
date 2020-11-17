@@ -1724,8 +1724,10 @@ class Histogram_Pane:
 
     # Color button
     from chimerax.ui.widgets import ColorButton
-    self._color_button = cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True)
+    cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True, pause_delay = 1.0)
+    self._color_button = cl
     cl.color_changed.connect(self._color_chosen)
+    cl.color_pause.connect(self._log_color_command)
     layout.addWidget(cl)    
 
     self.data_id = did = QLabel(df)
@@ -2599,7 +2601,22 @@ class Histogram_Pane:
           return
       rgba = tuple(r/255 for r in color)	# Convert 0-255 to 0-1 color values
       m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      self.set_threshold_parameters_from_gui(show = True)
+      self.set_threshold_parameters_from_gui(show = True, log = False)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_color_command(self):
+      v = self.volume
+      if v is None:
+          return
+      markers, m = self.selected_histogram_marker()
+      if m is None:
+          return
+      style = 'surface' if markers is self.surface_thresholds else 'image'
+      if style == 'surface':
+          self._log_surface_change(v, levels_changed = False, colors_changed = True)
+      elif style == 'image':
+          self._log_image_change(v, levels_changed = False, colors_changed = True)
 
   # ---------------------------------------------------------------------------
   #
@@ -2759,7 +2776,7 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def set_threshold_parameters_from_gui(self, show = False):
+  def set_threshold_parameters_from_gui(self, show = False, log = True):
 
     v = self.volume
     if v is None:
@@ -2790,7 +2807,8 @@ class Histogram_Pane:
         v.remove_surfaces(dsurfs)
         surf_levels_changed = surf_colors_changed = True
 
-    self._log_surface_change(v, surf_levels_changed, surf_colors_changed)
+    if log:
+        self._log_surface_change(v, surf_levels_changed, surf_colors_changed)
     
     image_levels_changed = image_colors_changed = False
     markers = self.image_thresholds.markers
@@ -2805,7 +2823,8 @@ class Histogram_Pane:
         v.image_colors = icolors
         image_colors_changed = True
 
-    self._log_image_change(v, image_levels_changed, image_colors_changed)
+    if log:
+        self._log_image_change(v, image_levels_changed, image_colors_changed)
         
     if show and v.shown():
         v.show()

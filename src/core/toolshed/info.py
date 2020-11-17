@@ -30,8 +30,6 @@ class BundleInfo:
         List of tools registered for this bundle.
     installed : boolean
         True if this bundle is installed locally; False otherwise.
-    file_formats : list of :py:class:`DataInfo`
-        List of data formats that this bundle knows about.
     session_versions : range
         Given as the minimum and maximum session versions
         that this bundle can read.

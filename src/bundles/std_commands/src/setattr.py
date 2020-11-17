@@ -132,15 +132,18 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
         if items.object_class in session.change_tracker.tracked_classes:
             session.change_tracker.add_modified(items, attr_name + " changed")
     else:
-        class_ = items[0].__class__
-        if not session.attr_registration.has_attribute(class_, attr_name):
+        class_ = list(items)[0].__class__
+        from chimerax.core.utils import type_attrs
+        if attr_name not in type_attrs(class_):
             if create:
                 register_attr(session, class_, attr_name, type(value))
             else:
                 raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
         for item in items:
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
-        if isinstance(item, tuple(session.change_tracker.tracked_classes)):
+        # only need to add to change tracker if attribute isn't builtin
+        if isinstance(item, tuple(session.change_tracker.tracked_classes)) \
+        and session.attr_registration.has_attribute(class_, attr_name):
             session.change_tracker.add_modified(items, attr_name + " changed")
 
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):

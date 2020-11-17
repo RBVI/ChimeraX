@@ -74,6 +74,8 @@
     <ChimeraXClassifier>Command :: surface hidePatches :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface close :: Surfaces :: close surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface style :: Surfaces :: set surface mesh, solid, or dot display style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface squaremesh :: Surfaces :: mask mesh lines that are not parallel x, y or z</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface showall :: Surfaces :: turn of maskig of triangles and edges</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>

@@ -113,7 +113,8 @@ def set_use_native_open_file_dialog(use):
     _use_native_open_file_dialog = use
 
 def make_qt_name_filters(session, *, no_filter="All files (*)"):
-    openable_formats = [fmt for fmt in session.open_command.open_data_formats if fmt.suffixes]
+    openable_formats = [fmt for fmt in session.open_command.open_data_formats if fmt.suffixes
+        and session.open_command.provider_info(fmt).bundle_info.installed]
     openable_formats.sort(key=lambda fmt: fmt.synopsis.casefold())
     file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
         for fmt in openable_formats]

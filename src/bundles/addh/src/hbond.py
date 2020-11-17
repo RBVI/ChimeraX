@@ -81,7 +81,7 @@ def add_hydrogens(session, atom_list, *args):
         if atom.num_explicit_bonds >= substs:
             if atom.element.number == 7 and num_bonds == 3 and geom == planar:
                 for ring in atom.rings():
-                    if ring.aromatic:
+                    if aromatic(ring):
                         if ring in aro_N_rings:
                             aro_N_rings[ring].append(atom)
                         else:
@@ -121,7 +121,8 @@ def add_hydrogens(session, atom_list, *args):
                 aro_N_ring = None
                 if atom.element.number == 7:
                     for ring in atom.rings():
-                        if ring.aromatic:
+                        # ring.aromatic can result in computing IDATM types, so check aromaticity "by hand"
+                        if aromatic(ring):
                             aro_N_ring = ring
                             break
                 if aro_N_ring:
@@ -1444,3 +1445,10 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
                     print("pruned hbond (tet check)", [str(a) for a in rel])
                 processed.add(rel)
                 pruned_by.setdefault(hbond, []).append(rel)
+
+def aromatic(ring):
+    # need this since ring.aromatic can cause IDATM type computation, which in turn can wipe out ring lists
+    for ring_atom in ring.atoms:
+        if idatm_type[ring_atom] == 'Car':
+            return True
+    return False

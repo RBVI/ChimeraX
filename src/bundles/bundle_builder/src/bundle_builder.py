@@ -79,6 +79,12 @@ class BundleBuilder:
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
+        if self._is_pure_python():
+            setup_args.extend(["--python-tag", self.tag.interpreter])
+        else:
+            setup_args.extend(["--plat-name", self.tag.platform])
+            if self.limited_api:
+                setup_args.extend(["--py-limited-api", self.tag.interpreter])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
             raise RuntimeError("Building wheel failed")
@@ -173,6 +179,7 @@ class BundleBuilder:
         self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
+        # TODO: more syntax checking
         from packaging.version import Version, InvalidVersion
         self.name = bi.get("name", '')
         if '_' in self.name:
@@ -192,6 +199,12 @@ class BundleBuilder:
         self.supercedes = bi.get("supercedes", '')
         self.custom_init = bi.get("customInit", '')
         self.pure_python = bi.get("purePython", '')
+        self.limited_api = bi.get("limitedAPI", '')
+        if self.limited_api:
+            try:
+                self.limited_api = Version(self.limited_api)
+            except InvalidVersion as err:
+                raise ValueError("Invalid limitedAPI: %s line %d" % (err, bi.sourceline))
         self.installed_data_dir = bi.get("installedDataDir", '')
         self.installed_include_dir = bi.get("installedIncludeDir", '')
         self.installed_library_dir = bi.get("installedLibraryDir", '')
@@ -355,7 +368,8 @@ class BundleBuilder:
                 minor = 1
             uses_numpy = cm.get("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor,
-                         self.installed_library_dir)
+                         self.installed_library_dir,
+                         self.limited_api)
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
@@ -365,7 +379,8 @@ class BundleBuilder:
             c = _CLibrary(lib.get("name", ''),
                           lib.get("usesNumpy") == "true",
                           lib.get("static") == "true",
-                          self.installed_library_dir)
+                          self.installed_library_dir,
+                          self.limited_api)
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
@@ -373,7 +388,8 @@ class BundleBuilder:
         self.c_executables = []
         for lib in self._get_elements(bi, "CExecutable"):
             c = _CExecutable(lib.get("name", ''),
-                             self.installed_executable_dir)
+                             self.installed_executable_dir,
+                             self.limited_api)
             self._add_c_options(c, lib)
             self.c_executables.append(c)
 
@@ -406,6 +422,10 @@ class BundleBuilder:
             c.add_macro_define(*edef)
         for e in self._get_elements(ce, "Undefine"):
             c.add_macro_undef(self._get_element_text(e))
+        if self.limited_api:
+            v = self.limited_api
+            hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
+            c.add_macro_define("Py_LIMITED_API", hex_version)
 
     def _get_packages(self, bi):
         self.packages = []
@@ -538,10 +558,15 @@ class BundleBuilder:
                 self.datafiles[self.package] = binary_files
             else:
                 data_files.extend(binary_files)
-        import sys
-        vi = sys.version_info
+        if self.limited_api:
+            rel = self.limited_api.release
+            if rel < (3, 2):
+                rel = (3, 2)
+        else:
+            import sys
+            rel = sys.version_info[:2]
         self.setup_arguments = {"name": self.name,
-                                "python_requires": f">={vi.major}.{vi.minor}"}
+                                "python_requires": f">={rel[0]}.{rel[1]}"}
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
         add_argument("long_description", self.description)
@@ -611,10 +636,10 @@ class BundleBuilder:
     def _make_paths(self):
         import os
         from .wheel_tag import tag
-        self.tag = tag(self._is_pure_python())
+        self.tag = tag(self._is_pure_python(), limited=self.limited_api)
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace('-', '_')
-        wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
+        wheel = f"{bundle_wheel_name}-{self.version}-{self.tag}.whl"
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
@@ -682,7 +707,7 @@ class BundleBuilder:
 
 class _CompiledCode:
 
-    def __init__(self, name, uses_numpy, install_dir):
+    def __init__(self, name, uses_numpy, install_dir, limited_api):
         self.name = name
         self.uses_numpy = uses_numpy
         self.requires = []
@@ -697,6 +722,7 @@ class _CompiledCode:
         self.macros = []
         self.install_dir = install_dir
         self.target_lang = None
+        self.limited_api = limited_api
 
     def add_require(self, req):
         self.requires.append(req)
@@ -870,8 +896,8 @@ class _CompiledCode:
 
 class _CModule(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, major, minor, libdir):
-        super().__init__(name, uses_numpy, libdir)
+    def __init__(self, name, uses_numpy, major, minor, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.major = major
         self.minor = minor
 
@@ -900,13 +926,14 @@ class _CModule(_CompiledCode):
                          library_dirs=lib_dirs,
                          libraries=libraries,
                          extra_link_args=extra_link_args,
-                         sources=self.source_files)
+                         sources=self.source_files,
+                         py_limited_api=not not self.limited_api)
 
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static, libdir):
-        super().__init__(name, uses_numpy, libdir)
+    def __init__(self, name, uses_numpy, static, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
@@ -997,13 +1024,13 @@ class _CLibrary(_CompiledCode):
 
 class _CExecutable(_CompiledCode):
 
-    def __init__(self, name, execdir):
+    def __init__(self, name, execdir, limited_api):
         import sys
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
                 name = name[:-4]
-        super().__init__(name, False, execdir)
+        super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
         import sys
