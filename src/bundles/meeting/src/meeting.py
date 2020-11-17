@@ -167,13 +167,19 @@ def meeting_start(session, meeting_name = None,
     proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout = \
         _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout)
     if proxy:
-        from chimerax.core.errors import UserError
         if not proxy_key:
             if proxy_server == 'tunnel@chimeraxmeeting.net':
                 proxy_key = _default_proxy_key_file()
             else:
                 p.close()
+                from chimerax.core.errors import UserError
                 raise UserError('meeting: must specify proxyKey option if proxy option used')
+        else:
+            from os.path import isfile
+            if not isfile(proxy_key):
+                p.close()
+                from chimerax.core.errors import UserError
+                raise UserError('meeting: proxy key file "%s" not found' % proxy_key)
         from .sshtunnel import SSHRemoteTunnel
         try:
             tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
