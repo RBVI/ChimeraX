@@ -27,6 +27,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Meeting :: General :: Multi-person sessions</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting :: General :: Join a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting start :: General :: Create a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting info :: General :: Report ChimeraX meeting info</ChimeraXClassifier>
