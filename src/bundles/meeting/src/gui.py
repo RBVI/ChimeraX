@@ -101,6 +101,7 @@ class MeetingTool(ToolInstance):
     layout.addWidget(ppl)
 
     self._photo_button = pb = QPushButton(f)
+    pb.setStyleSheet("* { padding: 0; margin: 0; border: 0; }")
     from os.path import isfile
     photo_path = settings.face_image
     if photo_path is None or not isfile(photo_path):
@@ -109,7 +110,7 @@ class MeetingTool(ToolInstance):
       self._face_image = photo_path
     icon = QIcon(photo_path)
     pb.setIcon(icon)
-    pb.setIconSize(QSize(16,16))
+    pb.setIconSize(QSize(20,20))
     pb.clicked.connect(self._choose_photo)
     layout.addWidget(pb)
 
