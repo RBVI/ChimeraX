@@ -250,12 +250,13 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
         session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
         os.environ['AMBERHOME'] = "/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18"
-        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1).stdout
+        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1, encoding="utf8").stdout
         while True:
             line = ante_messages.readline()
             if not line:
                 break
-            session.logger.status("(%s) %s" % (r.name, line), log=True)
+            session.logger.status("(%s) %s" % (r.name, line.rstrip()))
+            session.logger.info("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue%s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
             raise ChargeError(ante_failure_msg)
