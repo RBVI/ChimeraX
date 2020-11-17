@@ -583,6 +583,7 @@ class MeetingParticipant:
         self._copy_scene = False
         self._received_scene = start_hub
 
+        self._non_synced_commands = ['meeting', 'vr', 'quit']
         self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
         self._last_command_frame = 0
@@ -711,8 +712,12 @@ class MeetingParticipant:
     def _ran_command(self, trigger_name, command, motion = False):
         if self._running_received_command:
             return
-        if command.lstrip().startswith('meeting'):
-            return
+
+        cmd = command.lstrip()
+        for exclude_command in self._non_synced_commands:
+            if cmd.startswith(exclude_command):
+                return
+            
         msg = {
             'command': command,   # Send command to other participants
             'motion': motion,	  # Others will not log motion commands
