@@ -517,7 +517,7 @@ def _meeting_settings(session):
         from chimerax.core.settings import Settings
         class _MeetingSettings(Settings):
             EXPLICIT_SAVE = {
-                'name': 'Remote',	# Name seen by other participants
+                'name': '',	# Name seen by other participants
                 'color': (0,255,0,255),	# Hand color seen by others
                 'face_image': None,	# Path to image file
                 'access': 'chimeraxmeeting.net',
@@ -1502,7 +1502,7 @@ class MousePointerModel(Model):
     def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
-                self.name = '%s pointer' % msg['name']
+                self.name = '%s pointer' % (msg['name'] if msg['name'] else 'Remote')
         if 'color' in msg:
             self.color = msg['color']
         if 'mouse' in msg:
@@ -1796,7 +1796,7 @@ class VRPointerModel(Model):
     def update_pointer(self, msg):
         if 'name' in msg:
             if 'id' in msg:  # If id not in msg leave name as "my pointer".
-                self.name = '%s VR' % msg['name']
+                self.name = '%s VR' % (msg['name'] if msg['name'] else 'Remote')
         if 'color' in msg:
             for h in self._hands:
                 h.set_cone_color(msg['color'])
