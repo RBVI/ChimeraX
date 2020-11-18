@@ -843,19 +843,23 @@ class Sequence(State):
         mgr = get_manager()
         return mgr.data_sources
 
-    def features(self, *, data_source="all"):
+    def features(self, *, data_source="all", fetch=True):
         from .seq_support import get_manager
         mgr = get_manager()
         if data_source == "all":
-            for ds in mgr.data_sources:
-                if ds not in self._features:
-                    try:
-                        self._features[ds] = mgr.get_features(self.characters, ds)
-                    except mgr.DataSourceFailure:
-                        pass
+            if fetch:
+                for ds in mgr.data_sources:
+                    if ds not in self._features:
+                        try:
+                            self._features[ds] = mgr.get_features(self.characters, ds)
+                        except mgr.DataSourceFailure:
+                            pass
             return self._features
         if data_source not in self._features:
-            self._features[data_source] = mgr.get_features(self.characters, data_source)
+            if fetch:
+                self._features[data_source] = mgr.get_features(self.characters, data_source)
+            else:
+                return {}
         return self._features[data_source]
 
     @property

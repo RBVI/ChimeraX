@@ -52,9 +52,9 @@ class SequenceViewer(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(alignment)
+        self._finalize_init(alignment, from_session=False)
 
-    def _finalize_init(self, alignment):
+    def _finalize_init(self, alignment, *, from_session=True):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -186,9 +186,15 @@ class SequenceViewer(ToolInstance):
                 self.region_browser._seq_renamed_cb)
             if seq.match_maps:
                self._update_errors_gaps(seq)
-        if self.alignment.intrinsic:
+        if self.alignment.intrinsic and not from_session:
             self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
+        self._feature_browsers = {}
+        if not from_session:
+            if len(self.alignment.seqs) == 1:
+                seq = self.alignment.seqs[0]
+                if seq.features(fetch=False):
+                    self.show_feature_browser(seq)
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
@@ -585,7 +591,7 @@ class SequenceViewer(ToolInstance):
         """color_structures=None means use user's preference setting"""
         self.region_browser.load_scf_file(path, color_structures)
 
-    def new_region(self, **kw):
+    def new_region(self, name=None, **kw):
         if 'blocks' in kw:
             # interpret numeric values as indices into sequences
             blocks = kw['blocks']
@@ -610,7 +616,7 @@ class SequenceViewer(ToolInstance):
                 blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
             kw['blocks'] = blocks
             del kw['columns']
-        return self.region_browser.new_region(**kw)
+        return self.region_browser.new_region(name, **kw)
 
     def show_associations(self):
         if not hasattr(self, "associations_tool"):
@@ -619,6 +625,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
+
+    def show_feature_browser(self, seq, *, state=None):
+        if seq not in self._feature_browsers:
+            from .feature_browser import FeatureBrowser
+            self._feature_browsers[seq] = FeatureBrowser(self, seq, state,
+                self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
+            self._feature_browsers[seq].tool_window.manage(None)
+        self._feature_browsers[seq].tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):
@@ -647,6 +661,10 @@ class SequenceViewer(ToolInstance):
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        if 'feature browsers' in data:
+            from .feature_browser import FeatureBrowser
+            for seq, fb_data in data['feature browsers'].items():
+                inst.show_feature_browser(seq, state=fb_data)
         return inst
 
     SESSION_SAVE = True
@@ -655,6 +673,7 @@ class SequenceViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
+            'feature browsers': {seq: fb.save_state() for seq, fb in self._feature_browsers.items()},
             'region browser': self.region_browser.save_state(),
             'seq canvas': self.seq_canvas.save_state()
         }
