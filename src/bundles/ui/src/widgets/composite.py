@@ -129,6 +129,12 @@ class StringEntry:
     def _set_value(self, value):
         self._line_edit.setText(value)
     value = property(_get_value, _set_value)
+    def _get_pixel_width(self):
+        return self._line_edit.maximumWidth()
+    def _set_pixel_width(self, width):
+        self._line_edit.setMaximumWidth(width)
+        self._line_edit.setMinimumWidth(width)
+    pixel_width = property(_get_pixel_width, _set_pixel_width)
     @property
     def widget(self):
         return self._line_edit
@@ -147,6 +153,11 @@ class NumberEntry:
         v = self.format % value if value is not None else ''
         self._line_edit.setText(v)
     value = property(_get_value, _set_value)
+    def _get_pixel_width(self):
+        return self._line_edit.maximumWidth()
+    def _set_pixel_width(self, width):
+        self._line_edit.setMaximumWidth(width)
+    pixel_width = property(_get_pixel_width, _set_pixel_width)
     @property
     def widget(self):
         return self._line_edit
@@ -180,23 +191,28 @@ class CollapsiblePanel(QWidget):
         QWidget.__init__(self, parent=parent)
 
         from PyQt5.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
-        self.content_area = c = QFrame()
-        self.toggle_button = b = QToolButton()
-        self.main_layout = layout = QGridLayout()
+        self.content_area = c = QFrame(self)
+        self.main_layout = layout = QGridLayout(self)
 
-        from PyQt5.QtCore import Qt
-        b.setStyleSheet("QToolButton { border: none; font: 14px; }")
+        if title is None:
+            b = None
+        else:
+            b = QToolButton(self)
+            from PyQt5.QtCore import Qt
+            b.setStyleSheet("QToolButton { border: none; font: 14px; }")
         # TODO: Could not figure out a way to reduce left padding on disclosure arrow on Mac Qt 5.9
 #        b.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
 #        b.setStyleSheet("QToolButton { margin: 0; padding-left: 0px; border: none; font: 14px; }")
 #        b.setMaximumSize(20,10)
 #        b.setContentsMargins(0,0,0,0)
-        b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        b.setArrowType(Qt.RightArrow)
-        b.setText(str(title))
-        b.setCheckable(True)
-        b.setChecked(False)
-
+            b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+            b.setArrowType(Qt.RightArrow)
+            b.setText(str(title))
+            b.setCheckable(True)
+            b.setChecked(False)
+            b.clicked.connect(self.toggle_panel_display)
+        self.toggle_button = b
+        
 #        c.setStyleSheet("QFrame { background-color: white; border: none; }")
         c.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # start out collapsed
@@ -207,18 +223,19 @@ class CollapsiblePanel(QWidget):
         layout.setVerticalSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         row = 0
-        layout.addWidget(b, row, 0, 1, 1, Qt.AlignLeft)
-        row += 1
+        if b:
+            layout.addWidget(b, row, 0, 1, 1, Qt.AlignLeft)
+            row += 1
         layout.addWidget(c, row, 0, 1, 3)
-        self.setLayout(layout)
 
-
-        b.clicked.connect(self.toggle_panel_display)
-
-    def toggle_panel_display(self, checked):
-        from PyQt5.QtCore import Qt
-        arrow_type = Qt.DownArrow if checked else Qt.RightArrow
-        self.toggle_button.setArrowType(arrow_type)
+    def toggle_panel_display(self, checked = None):
+        if checked is None:
+            checked = (self.content_area.maximumHeight() == 0)
+        tb = self.toggle_button
+        if tb:
+            from PyQt5.QtCore import Qt
+            arrow_type = Qt.DownArrow if checked else Qt.RightArrow
+            tb.setArrowType(arrow_type)
         c = self.content_area
         h = c.sizeHint().height() if checked else 0
         c.setMaximumHeight(h)

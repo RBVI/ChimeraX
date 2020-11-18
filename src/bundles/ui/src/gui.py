@@ -1258,6 +1258,9 @@ class MainWindow(QMainWindow, PlainTextLog):
                 for attr_name in [attr for attr in self.session.attr_registration.attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
             other_info.sort()
             for menu_entry, attr_name in other_info:
+                if attr_name.startswith("num_") and attr_name != "num_alt_locs":
+                    # most "num" attributes uninteresting for labeling purposes
+                    continue
                 action = QAction(menu_entry, self)
                 menu.addAction(action)
                 text = " attr %s" % attr_name

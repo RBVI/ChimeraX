@@ -92,9 +92,7 @@ def meeting(session, meeting_name = None,
 #
 def meeting_start(session, meeting_name = None,
                   name = None, color = None, face_image = None,
-                  port = 52194,
-                  proxy = None, proxy_server = None, proxy_key = None,
-                  proxy_port_range = None, proxy_timeout = None,
+                  access = None,
                   copy_scene = None,
                   relay_commands = None, update_interval = None,
                   name_server = None, name_server_port = None):
@@ -118,35 +116,14 @@ def meeting_start(session, meeting_name = None,
       Color of this participant's mouse pointer cone.
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction of this partipant.
-    port : int
-      Port number participants use to connect directly to the host machine.  Can be omitted
-      in which case default port 52194 is used.  If the proxy option is used this port number
-      is the port on the local machine while the proxy machine port is chosen from available
-      ports specified with proxy_port_range.
-    proxy : bool
-      Whether to have participants connect through a proxy server.  This is needed if
-      the machine that started the meeting cannot be reached by some participants because
-      it is behind a firewall.  Instead the participants will connect to the machine
-      specified by the proxy_server option.  Default false.
-    proxy_server : string
-      User and host name for a proxy server.  Default tunnel@chimeraxmeeting.net.
-      If the proxy option is true an ssh tunnel is made to this proxy server.
-      This allows participants that cannot directly connect to the meeting host due
-      to a firewall to instead connectcan connect to the proxy host machine.
-      Usually a proxy_key ssh authentication file needs to be specfied to make
-      the tunnel.
-    proxy_key : string
-      File path to the ssh identity file (e.g. 'proxy-key-private.pem') used to make an
-      ssh tunnel to a proxy server that is specified with the proxy command.
-      This identity file is the private key used to connect to the proxy using
-      the ssh <i>-i</i> option when creating the tunnel.  The file must not
-      have access permissions by others or ssh will consider it insecure and not accept it.
-    proxy_port_range : int, int
-      The range of ports on the proxy server to use.  An available port from this range
-      will be chosen and reported by the command.  A range of ports allows multiple
-      simultaneous meetings to be hosted by one proxy server.
-    proxy_timeout : int
-      Time to wait for a setting up the proxy tunnel before giving up.  Default 5 seconds.
+    access : string
+      Name describing what computer participants will connect to to join the meeting.
+      Can be "direct" meaning that participants will connect directly to the computer
+      that started the meeting.  If that computer cannot be reached due to a firewall
+      can be "chimeraxmeeting.net" which will use a server that forwards connections
+      through the firewall.  Additional options for connecting can be defined with
+      the "meeting access" command, for example, to use an alternate forwarding server,
+      or to using forwarding through a NAT router.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting
       to other participants when they join the meeting.
@@ -154,7 +131,9 @@ def meeting_start(session, meeting_name = None,
       See the meeting command documentation for these options.
     '''
 
-    p = _start_meeting(session, port, copy_scene = copy_scene)
+    local_port = _access_point(session, 'direct')['port']
+    
+    p = _start_meeting(session, local_port, copy_scene = copy_scene)
 
     _set_appearance(session, p, name, color, face_image)
 
@@ -164,53 +143,75 @@ def meeting_start(session, meeting_name = None,
     if update_interval is not None:
         p.vr_tracker.update_interval = update_interval
 
-    proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout = \
-        _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout)
-    if proxy:
-        from chimerax.core.errors import UserError
-        if not proxy_key:
-            if proxy_server == 'tunnel@chimeraxmeeting.net':
-                proxy_key = _default_proxy_key_file()
-            else:
-                p.close()
-                raise UserError('meeting: must specify proxyKey option if proxy option used')
-        from .sshtunnel import SSHRemoteTunnel
-        try:
-            tunnel = SSHRemoteTunnel(proxy_server, proxy_key, proxy_port_range, port,
-                                     connection_timeout = proxy_timeout, closed_callback = p.close,
-                                     log = session.logger)
-        except BaseException:
-            p.close()		# Could not create tunnel, close meeting.
-            raise
-        p.hub._ssh_tunnel = tunnel
+    access = _access_defaults(session, access)
+    tunnel = _create_ssh_tunnel(session, access, p, local_port)
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
     if meeting_name is not None:
         try:
-            _set_meeting_name(p.hub, meeting_name, name_server, name_server_port)
+            RegisterMeetingName(meeting_name, name_server, name_server_port, p.hub, access)
         except BaseException:
             p.close()		# Close meeting if name server could not be reached.
             raise
 
     # Log meeting info
-    addresses, cport = ([tunnel.host], tunnel.remote_port) if proxy else p.hub.listening_addresses_and_port()
+    addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else p.hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
+
+# -----------------------------------------------------------------------------
+#
+def _create_ssh_tunnel(session, access, participant, local_port):
+    if access is None:
+        return None
+
+    ap = _access_point(session, access)
+    acct = ap.get('account')
+    if acct is None:
+        return None
+
+    addr = ap.get('address')
+    key = ap.get('key')		# SSH authentication file private key.
+    if key:
+        from os.path import isfile
+        if not isfile(key):
+            participant.close()
+            from chimerax.core.errors import UserError
+            raise UserError('meeting: SSH key file "%s" for %s@%s not found'
+                            % (key, acct, addr))
+    elif addr == 'chimeraxmeeting.net' and acct == 'tunnel':
+        key = _default_proxy_key_file()
+    else:
+        participant.close()
+        from chimerax.core.errors import UserError
+        raise UserError('meeting: No ssh key given for using server %s@%s' % (acct, addr))
+
+    port_range = ap.get('port_range', (52194, 52203))
+    timeout = ap.get('timeout', 5)
+    from .sshtunnel import SSHRemoteTunnel
+    try:
+        tunnel = SSHRemoteTunnel(acct, addr, key, port_range, local_port,
+                                 connection_timeout = timeout,
+                                 closed_callback = participant.close,
+                                 log = session.logger)
+    except BaseException:
+        participant.close()		# Could not create tunnel, close meeting.
+        raise
+
+    participant.hub._ssh_tunnel = tunnel
+
+    return tunnel
 
 # -----------------------------------------------------------------------------
 #
 def meeting_settings(session,
                      name = None, color = None, face_image = None,
-                     proxy = None, proxy_server = None, proxy_key = None,
-                     proxy_port_range = None, proxy_timeout = None,
-                     name_server = None, name_server_port = None):
+                     access = None, name_server = None, name_server_port = None):
     '''
     Display or set meeting settings that are remembered between sessions.
     With no options the current settings are reported.  Specifying options sets
     the saved value.
     '''
-    s = (('name',name), ('color',color), ('face_image',face_image),
-         ('proxy',proxy), ('proxy_server',proxy_server), ('proxy_key',proxy_key),
-         ('proxy_port_range',proxy_port_range), ('proxy_timeout',proxy_timeout),
+    s = (('name',name), ('color',color), ('face_image',face_image), ('access', access),
          ('name_server',name_server), ('name_server_port',name_server_port))
     values = [(k,v) for k,v in s if v is not None]
     settings = _meeting_settings(session)
@@ -225,6 +226,77 @@ def meeting_settings(session,
 
 # -----------------------------------------------------------------------------
 #
+def meeting_access(session, name = None, address = None, port = None,
+                   account = None, key = None, port_range = None, timeout = None,
+                   delete = None):
+    '''
+    Display or define computer addresses where participants connect to meetings.
+
+    Parameters
+    ----------
+    address : string
+      Computer host name or IP address.
+    port : int
+      Port number participants use to connect to address.
+      If an account is specified for creating an ssh tunnel then a
+      port is chosen from port_range instead.
+    account : string
+      Ssh user name for creating a tunnel between the local machine and the
+      machine specified by address.  Connections to the address will be forwarded
+      to the local machine.
+    key : string
+      File path to the ssh identity file (e.g. 'proxy-key-private.pem') used to make an
+      ssh tunnel to account / address. This identity file is the private key used to
+      connect with the ssh <i>-i</i> option when creating the tunnel.  The file must not
+      have access permissions by others or ssh will consider it insecure and not accept it.
+    port_range : int, int
+      The remote range of ports to use for making an ssh tunnel.  An available port
+      from this range will be chosen when the tunnel is created.  Each port hosts one meeting
+      forwarding connections from address.
+    timeout : int
+      Time to wait for a setting up a tunnel before giving up.
+    delete : bool
+      Delete the access point name.
+    '''
+    settings = _meeting_settings(session)
+    if delete:
+        ap = settings.access_points
+        if name and name in ap:
+            del ap[name]
+            settings.access_points = dict(ap)
+            settings.save()
+        return
+    
+    s = (('address',address), ('port',port),
+         ('account',account), ('key',key),
+         ('port_range',port_range), ('timeout',timeout))
+    values = {k:v for k,v in s if v is not None}
+    if len(values) == 0:
+        lines = ['<pre>']
+        for n,vals in settings.access_points.items():
+            if n == name or name is None:
+                lines.append('<b>%s</b>' % n)
+                for attr,v in vals.items():
+                    if v is not None:
+                        lines.append('\t%s = %s' % (attr, v))
+        lines.append('</pre>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+    elif name is None:
+        from chimerax.core.errors import UserError
+        raise UserError('meeting access: Must specify an access method name.')
+    else:
+        # Need to copy dictionary so settings realizes it has changed.
+        ap = dict(settings.access_points)
+        if name in ap:
+            ap[name].update(values)
+        else:
+            ap[name] = values
+        settings.access_points = ap
+        settings.save()
+
+# -----------------------------------------------------------------------------
+#
 def meeting_info(session):
     '''Report info about a current meeting in progress.'''
     p = _meeting_participant(session)
@@ -235,18 +307,70 @@ def meeting_info(session):
 
 # -----------------------------------------------------------------------------
 #
-def _set_meeting_name(hub, meeting_name, name_server, name_server_port):
-    from chimerax.core.errors import UserError
-    try:
-        success = hub.set_meeting_name(meeting_name, name_server, name_server_port)
-    except ConnectionError as e:
-        raise UserError('meeting: Could not register meeting name "%s"' % meeting_name +
-                        ', unable to connect to name server %s port %d' % (name_server, name_server_port))
-    except TimeoutError as e:
-        raise UserError('meeting: Could not register meeting name "%s"' % meeting_name +
-                        ', timed out connecting to name server %s port %d' % (name_server, name_server_port))
-    if not success:
-        raise UserError('meeting: Meeting name "%s" already in use' % meeting_name)
+class RegisterMeetingName:
+    '''Remember meeting name and clear it when meeting is closed.'''
+
+    def __init__(self, meeting_name, name_server, name_server_port, hub, access):
+
+        self._meeting_name = meeting_name
+        self._name_server = name_server
+        self._name_server_port = name_server_port
+        self._session = hub._session
+
+        from chimerax.core.errors import UserError
+        host, port = self._meeting_address(hub, access)
+        if host is None:
+            raise UserError('meeting: Could not determine host address.')
+        
+        from .nameserver import set_address
+        try:
+            success = set_address(meeting_name.casefold(), host, port,
+                                  name_server, name_server_port, replace = False)
+        except ConnectionError as e:
+            raise UserError('meeting: Could not register meeting name "%s"'
+                            % meeting_name +
+                            ', unable to connect to name server %s port %d'
+                            % (name_server, name_server_port))
+        except TimeoutError as e:
+            raise UserError('meeting: Could not register meeting name "%s"'
+                            % meeting_name +
+                            ', timed out connecting to name server %s port %d'
+                            % (name_server, name_server_port))
+        if not success:
+            raise UserError('meeting: Meeting name "%s" already in use' % meeting_name)
+
+        hub._registered_meeting_name = self
+        
+    def _meeting_address(self, hub, access):
+        proxy = hub._ssh_tunnel
+        if proxy:
+            host, port = proxy.host, proxy.remote_port
+        else:
+            ap = _access_point(self._session, access)
+            if 'address' in ap:
+                host = ap.get('address')
+                port = ap.get('port', 52194)
+            else:
+                addresses, port = hub.listening_addresses_and_port()
+                host = addresses[0] if addresses else None
+        return host, port
+    
+    def close(self):
+        '''Remove meeting id from name server.'''
+        if self._meeting_name is None:
+            return
+        from .nameserver import clear_value
+        try:
+            success = clear_value(self._meeting_name.casefold(),
+                                  self._name_server, self._name_server_port)
+        except (ConnectionError, TimeoutError):
+            success = False
+        if success:
+            self._meeting_name = None
+        else:
+            msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
+                   % (self._meeting_name, self._name_server, self._name_server_port))
+            self._session.logger.warning(msg)
 
 # -----------------------------------------------------------------------------
 #
@@ -396,25 +520,35 @@ def _meeting_settings(session):
                 'name': 'Remote',	# Name seen by other participants
                 'color': (0,255,0,255),	# Hand color seen by others
                 'face_image': None,	# Path to image file
-                'proxy': False,         # Whether to use proxy server
-                'proxy_server': 'tunnel@chimeraxmeeting.net',
-                'proxy_key': None,	# Ssh authentication key file
-                'proxy_port_range': (52194,52203),
-                'proxy_timeout': 5,	# Proxy connect timeout in seconds
+                'access': 'chimeraxmeeting.net',
+                'access_points': {'chimeraxmeeting.net': {'address':'chimeraxmeeting.net',
+                                                          'account':'tunnel',
+                                                          'port_range':(52194,52203),
+                                                          'timeout':5},
+                                  'direct': {'port':52194}},
                 'name_server': 'chimeraxmeeting.net',
                 'name_server_port': 51472,
             }
         settings = _MeetingSettings(session, "meeting")
         session._meeting_settings = settings
     return settings
-    
+
 # -----------------------------------------------------------------------------
 #
-def _proxy_defaults(session, proxy, proxy_server, proxy_key, proxy_port_range, proxy_timeout):
-    return _get_defaults(session,
-                         (('proxy', proxy), ('proxy_server', proxy_server),
-                          ('proxy_key', proxy_key), ('proxy_port_range', proxy_port_range),
-                          ('proxy_timeout', proxy_timeout)))
+def _access_point(session, name):
+    settings = _meeting_settings(session)
+    return settings.access_points.get(name)
+
+# -----------------------------------------------------------------------------
+#
+def _access_defaults(session, access):
+    settings = _meeting_settings(session)
+    if access is None:
+        access = settings.access
+    elif access != settings.access:
+        settings.access = access
+        settings.save()
+    return access
     
 # -----------------------------------------------------------------------------
 #
@@ -490,7 +624,8 @@ def register_meeting_command(cmd_name, logger):
     Currently unused.  Registered instead in reg_cmd.py.
     '''
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg, Int2Arg
+    from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg, Int2Arg, DynamicEnum, NoArg
+    AccessArg = DynamicEnum(lambda s=logger.session: tuple(_meeting_settings(s).access_points.keys()))
 
     participant_kw = [
         ('name', StringArg),
@@ -502,18 +637,11 @@ def register_meeting_command(cmd_name, logger):
         ('update_interval', IntArg),
         ('port', IntArg),
     ]
-    proxy_kw = [
-        ('proxy', BoolArg),
-        ('proxy_server', StringArg),
-        ('proxy_key', OpenFileNameArg),
-        ('proxy_port_range', Int2Arg),
-        ('proxy_timeout', IntArg),
-    ]
     name_server_kw = [
         ('name_server', StringArg),
         ('name_server_port', IntArg),
     ]
-    
+
     if cmd_name == 'meeting':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg),
@@ -525,14 +653,27 @@ def register_meeting_command(cmd_name, logger):
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
-            keyword = proxy_kw + [('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
+            keyword = [('access', AccessArg),
+                       ('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
             synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
     elif cmd_name == 'meeting settings':
         desc = CmdDesc(
-            keyword = participant_kw + proxy_kw + name_server_kw,
+            keyword = participant_kw + [('access', AccessArg)] + name_server_kw,
             synopsis = 'Report or set meeting default settings')
         register('meeting settings', desc, meeting_settings, logger=logger)
+    elif cmd_name == 'meeting access':
+        desc = CmdDesc(
+            optional = [('name', StringArg)],
+            keyword = [('address', StringArg),
+                       ('port', IntArg),
+                       ('account', StringArg),
+                       ('key', OpenFileNameArg),
+                       ('port_range', Int2Arg),
+                       ('timeout', IntArg),
+                       ('delete', NoArg)],
+            synopsis = 'Report or define meeting access points')
+        register('meeting access', desc, meeting_access, logger=logger)
     elif cmd_name == 'meeting info':
         desc = CmdDesc(synopsis = 'Report meeting info')
         register('meeting info', desc, meeting_info, logger=logger)
@@ -577,6 +718,7 @@ class MeetingParticipant:
         self._copy_scene = False
         self._received_scene = start_hub
 
+        self._non_synced_commands = ['meeting', 'vr', 'quit']
         self._command_handlers = []	# Trigger handlers to capture executed commands
         self._running_received_command = False
         self._last_command_frame = 0
@@ -705,8 +847,12 @@ class MeetingParticipant:
     def _ran_command(self, trigger_name, command, motion = False):
         if self._running_received_command:
             return
-        if command.lstrip().startswith('meeting'):
-            return
+
+        cmd = command.lstrip()
+        for exclude_command in self._non_synced_commands:
+            if cmd.startswith(exclude_command):
+                return
+            
         msg = {
             'command': command,   # Send command to other participants
             'motion': motion,	  # Others will not log motion commands
@@ -797,7 +943,7 @@ class MeetingHub:
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
         self._ssh_tunnel = None		# SSHRemoteTunnel instance for ssh tunnel to proxy.
-        self._meeting_id = None		# Name server meeting id (id, name_server, name_server_port)
+        self._registered_meeting_name = None	# RegisteredMeetingName
 
     def close(self):
         for msg_stream in tuple(self._connections):
@@ -816,25 +962,9 @@ class MeetingHub:
             self._ssh_tunnel = None
 
         # Remove meeting id from name server
-        if self._meeting_id is not None:
-            self._release_meeting_id()
-
-    def _release_meeting_id(self):
-        '''Remove meeting id from name server.'''
-        mid = self._meeting_id
-        if mid is None:
-            return
-        meeting_name, name_server, name_server_port = mid
-        self._meeting_id = None
-        from .nameserver import clear_value
-        try:
-            success = clear_value(meeting_name.casefold(), name_server, name_server_port)
-        except (ConnectionError, TimeoutError):
-            success = False
-        if not success:
-            msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
-                   % (meeting_name, name_server, name_server_port))
-            self._session.logger.warning(msg)
+        rmn = self._registered_meeting_name
+        if rmn is not None:
+            rmn.close()
 
     @property
     def listening(self):
@@ -897,23 +1027,6 @@ class MeetingHub:
                         and not ha.toString().startswith('169.254')): # Exclude link-local addresses
                         a.append(ha)
         return a
-
-    def set_meeting_name(self, meeting_name, name_server, name_server_port):
-        proxy = self._ssh_tunnel
-        if proxy:
-            host, port = proxy.host, proxy.remote_port
-        else:
-            addresses, port = self.listening_addresses_and_port()
-            if not addresses:
-                return False
-            host = addresses[0]
-        from .nameserver import set_address
-        success = set_address(meeting_name.casefold(), host, port,
-                              name_server, name_server_port, replace = False)
-        if success:
-            # Remember meeting name and clear it when meeting is closed
-            self._meeting_id = (meeting_name, name_server, name_server_port)
-        return success
     
     def copy_scene(self, copy):
         self._copy_scene = copy

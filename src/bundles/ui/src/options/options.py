@@ -872,8 +872,8 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         if bound in ('positive', 'negative'):
             return 0.0
         return bound
-    default_minimum = -(2^31)
-    default_maximum = 2^31 - 1
+    default_minimum = -(2**31)
+    default_maximum = 2**31 - 1
     minimum = compute_bound(min, default_minimum)
     maximum = compute_bound(max, default_maximum)
     if step is None:
@@ -905,8 +905,8 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 def _make_int_spinbox(min, max, **kw):
     from PyQt5.QtWidgets import QSpinBox
     spin_box = QSpinBox(**kw)
-    default_minimum = -(2^31)
-    default_maximum = 2^31 - 1
+    default_minimum = -(2**31)
+    default_maximum = 2**31 - 1
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
     return spin_box
