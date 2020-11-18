@@ -80,13 +80,13 @@ Its main purpose is to allow multi-person
 <a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX.
 It can also be used without VR, but in that case, 
 a desktop screen-sharing program may be a more reliable alternative.
-Each participant is represented by an image and 
-hand-controller pointers (or if not using VR, the mouse pointer)
+Each participant is represented by a head-position image and 
+hand-controller pointer cones
 so that participants can see each other pointing at objects in the scene.
 For non-VR participants, the camera view is synchronized, and
 the cone indicating the mouse pointer position of a non-VR user
 is displayed to others when the user pauses the mouse over a model,
-as for picking.
+as for picking. 
 </p><p>
 Examples:
 </p>
@@ -99,12 +99,16 @@ Examples:
 &nbsp;&nbsp;&nbsp;&ndash; leave the current meeting
 </blockquote>
 <p>
+As an alternative to the command,
+the <a href="../tools/meeting.html"><b>Meeting</b></a> tool is a
+graphical interface to starting and joining meetings, and changing
+some of the commonly used settings.
 See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
 A meeting is initiated with
 <b>meeting start</b> <i>meeting-name</i>,
 where the meeting name is a text identifier that participants will
-use to join the meeting.  Meeting names are not case sensitive.
+use to join the meeting. Meeting names are not case-sensitive.
 Participants join the meeting by specifying its name.
 If a meeting is started without a <i>meeting-name</i>,
 participants join it by specifying the host name or IP address
@@ -114,7 +118,8 @@ reported in the <a href="../tools/log.html"><b>Log</b></a> by the
 </p><p>
 Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
-and a pointer-cone <b>color</b>. These three settings as well as access method and name
+and a pointer-cone <b>color</b>. 
+These three settings as well as the access method and name
 server settings are remembered whenever they are specified. The remembered
 settings can be reported or changed with the <b>meeting settings</b> command.
 </p><p>
