@@ -888,8 +888,8 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         def value(self):
             val = super().value()
             if val == 0.0 and self.non_zero:
-                step = singleStep()
-                if minimum() == 0.0:
+                step = self.singleStep()
+                if self.minimum() == 0.0:
                     val = step
                 else:
                     val = -step
