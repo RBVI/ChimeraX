@@ -98,7 +98,7 @@ GNU FreeFont is bundled as a convenience for users of ChimeraX.
 It is a separate product,
 and thus, its license does not affect ChimeraX's license.
 GNU FreeFont can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a>
+See the <a href="https://www.gnu.org/licenses/gpl-faq.en.html" target="_blank">GPL FAQ</a>
 and the <a href="http://www.gnu.org/software/freefont/FAQ.html" target="_blank">GNU FreeFont FAQ</a> for more details.
 It can be found in the <code>bin/share/fonts/freefont</code> directory.
 
@@ -123,6 +123,12 @@ Linux only.
 <dd> The <b>flatten</b> function in <b>basictypes/latebind.py</b> is the basis for our <b>chimerax.core.utils.flattened</b> function.  The Python packages are not included.
 <br>
 License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
+ 
+<p>
+<dt><a href="https://ambermd.org" target="_blank">AmberTools</a>
+	<dd> Certain executables from the AmberTools package are included with ChimeraX in order to compute partial charges.  These executables are unmodified relative to their AmberTools versions, and are communicated with via their normal inputs and outputs.
+<br>
+License: Most of AmberTools is covered under the <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a>.
 
 </dl>
 
