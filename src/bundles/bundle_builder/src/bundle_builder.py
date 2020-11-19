@@ -676,9 +676,14 @@ class BundleBuilder:
         self._used_elements.update(tagged_elements)
         elements = []
         for se in tagged_elements:
-            platform = se.get("platform")
-            if not platform or platform in self._platform_names:
+            platforms = se.get("platform")
+            if not platforms:
                 elements.append(se)
+            else:
+                for platform in platforms.split(','):
+                    if platform in self._platform_names:
+                        elements.append(se)
+                        break
         return elements
 
     def _get_element_text(self, e):
