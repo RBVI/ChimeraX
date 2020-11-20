@@ -110,6 +110,6 @@ buildinfo.py: buildinfo.py.in mkbuildinfo
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
 	# fix package name to be consistent with how it is imported
-	sed --in-place 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp
+	sed -i -e 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp
 
 _appdirs.install: appdirs_cpp.install
