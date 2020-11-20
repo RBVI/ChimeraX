@@ -1087,6 +1087,7 @@ cum_postloop_t += clock() - start_t;
 #endif
     if (actual_structure)
         return input;
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
