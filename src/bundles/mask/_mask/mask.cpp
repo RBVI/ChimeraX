@@ -195,10 +195,7 @@ extern "C" PyObject *py_surface_z_depth(PyObject *, PyObject *args,
   bool set = surface_z_depth(varray, tarray, depth, tnum,
 			     beyondp, beyond_tnump, toffset);
 
-  PyObject *py_set = (set ? Py_True : Py_False);
-  Py_INCREF(py_set);
-
-  return py_set;
+  return python_bool(set);
 }
 
 // -----------------------------------------------------------------------------
