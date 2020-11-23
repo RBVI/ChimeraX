@@ -96,7 +96,6 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
             parsers = [type_]
     for parser in parsers:
         if parser is None:
-            print("Using raw attr_value:", attr_value)
             value = attr_value
             break
         try:
