@@ -26,6 +26,12 @@ def check_for_changes(session):
         ct.clear()
         if 'selected changed' in global_changes['Atom'].reasons:
             _update_sel_info(session)
+        elif global_changes['Atom'].created.num_selected > 0:
+            _update_sel_info(session)
+        elif global_changes['Structure'].created.atoms.num_selected > 0:
+            # For efficiency, atoms in new structures don't show up
+            # in changes['Atom'].created, so need this
+            _update_sel_info(session)
         from . import get_triggers
         global_triggers = get_triggers()
         global_triggers.activate_trigger("changes", Changes(global_changes))
