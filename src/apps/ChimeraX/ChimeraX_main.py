@@ -475,7 +475,7 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-        
+
     # initialize qt
     if opts.gui:
         from chimerax.ui import initialize_qt
@@ -503,10 +503,10 @@ def init(argv, event_loop=True):
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
-        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+            (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
         try:
             os.chdir(os.path.expanduser('~/Desktop'))
-        except:
+        except Exception:
             pass
 
     # splash screen
@@ -541,12 +541,15 @@ def init(argv, event_loop=True):
             # Remove in case old file lying around.
             # Windows does not allow renaming to an existing file.
             os.remove(tmp_file)
-        except:
+        except Exception:
             pass
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                sess.ui.splash_info("Restart action:\n%s" % line)
+                if line.startswith("install"):
+                    sess.ui.splash_info("Installing bundles")
+                elif line.startswith("uninstall"):
+                    sess.ui.splash_info("Uninstalling bundles")
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
@@ -662,7 +665,7 @@ def init(argv, event_loop=True):
                 run(sess, 'runscript %s' % script)
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
             except SystemExit as e:
@@ -752,7 +755,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -763,7 +766,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -779,7 +782,7 @@ def init(argv, event_loop=True):
             sess.ui.event_loop()
         except SystemExit as e:
             return e.code
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
             return os.EX_SOFTWARE
@@ -874,7 +877,9 @@ def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess, os
+    import sys
+    import subprocess
+    import os
     global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]

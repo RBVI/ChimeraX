@@ -161,7 +161,12 @@ class _MapBundle(BundleAPI):
                     from .mapargs import MapRegionArg, Int1or3Arg
                     from chimerax.core.commands import BoolArg, ModelsArg, EnumOf, \
                         RepeatOf, IntArg, ListOf
-                    args = { 'models': ModelsArg }
+                    args = {
+                        'mask_zone': BoolArg,
+                        'models': ModelsArg,
+                        'region': MapRegionArg,
+                        'step': Int1or3Arg,
+                    }
                     if _name == "Chimera map":
                         args.update({
                             'append': BoolArg,
@@ -174,10 +179,7 @@ class _MapBundle(BundleAPI):
                                 'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
                             'compress_shuffle': BoolArg,
                             'compress_level': IntArg,
-                            'mask_zone': BoolArg,
-                            'region': MapRegionArg,
                             'subsamples': RepeatOf(Int1or3Arg),
-                            'step': Int1or3Arg,
                         })
                     return args
 
