@@ -168,11 +168,15 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
 
 def handle_res_params(atoms, res_name, new_res):
     a = atoms[0]
+    if res_name == "auto":
+        res_name = unknown_res_name(a.residue)
     if res_name:
         if not new_res and a.residue.name == res_name:
             return
-    else:
+    elif new_res:
         res_name = unknown_res_name(a.residue)
+    else:
+        return
     if new_res:
         chain_id = a.residue.chain_id
         pos = 1

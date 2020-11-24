@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class MeetingTool(ToolInstance):
 
-#  help = 'help:user/tools/meeting.html'
+  help = 'help:user/tools/meeting.html'
   SESSION_ENDURING = True	# Don't remove tool when meeting is joined
   
   def __init__(self, session, tool_name):
@@ -284,7 +284,7 @@ class MeetingTool(ToolInstance):
   #
   def _show_help(self):
     from chimerax.core.commands import run
-    run(self.session, 'help meeting')
+    run(self.session, 'help %s' % self.help)
 
   # ---------------------------------------------------------------------------
   #
