@@ -11,9 +11,9 @@ SOURCE = $(tmpdir)/AmberTools$(VERSION)
 AMBERHOME = $(SOURCE)/amber$(VERSION)_src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
-AMBERBIN_DST = $(bindir)/amber$(VERSION)/bin
+AMBERBIN_DST = $(app_bindir)/amber$(VERSION)/bin
 AMBERDAT_SRC = $(AMBERHOME)/dat
-AMBERDAT_DST = $(bindir)/amber$(VERSION)/dat
+AMBERDAT_DST = $(app_bindir)/amber$(VERSION)/dat
 
 PATCHES	= $(wildcard AmberTools-*.patch)
 
@@ -57,7 +57,7 @@ ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-			cp $$j $(libdir); \
+			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
 			install_name_tool -id @executable_path/$$filename $(libdir)/$$filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \

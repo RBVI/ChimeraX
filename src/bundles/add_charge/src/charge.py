@@ -223,12 +223,12 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         from chimerax.mol2 import write_mol2
         write_mol2(session, ante_in, models=[s], status=status)
 
-        #TODO: initially, try to run Chimera's antechamber using hardcoded paths
         ante_out = os.path.join(temp_dir, "ante.out.mol2")
-        command = ["/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18/bin/antechamber"]
+        from chimerax.amber_info import amber_bin, amber_home
+        command = [amber_bin + "/antechamber"]
         if method.lower().startswith("am1"):
             mth = "bcc"
-            command.extend(["-ek", "qm_theory='AM1'"])
+            command.extend(["-ek", "qm_theory='AM1',"])
         elif method.lower().startswith("gas"):
             mth = "gas"
         else:
@@ -249,8 +249,9 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         from subprocess import Popen, STDOUT, PIPE
         # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
         session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
-        os.environ['AMBERHOME'] = "/Applications/Chimera 1.15-daily-10-8-20.app/Contents/Resources/bin/amber18"
-        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1, encoding="utf8").stdout
+        os.environ['AMBERHOME'] = amber_home
+        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1,
+            encoding="utf8").stdout
         while True:
             line = ante_messages.readline()
             if not line:
