@@ -1822,7 +1822,7 @@ class Histogram_Pane:
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
-      menu.exec(event.globalPos())
+      menu.exec_(event.globalPos())
 
   # ---------------------------------------------------------------------------
   #
@@ -1833,7 +1833,8 @@ class Histogram_Pane:
       if checked is not None:
           a.setCheckable(True)
           a.setChecked(checked)
-      def cb(checked, callback=callback, args=args):
+      def cb(a=a, callback=callback, args=args):
+          checked = a.isChecked()
           if checked is None:
               callback(*args)
           else:
