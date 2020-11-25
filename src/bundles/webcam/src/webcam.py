@@ -100,18 +100,15 @@ class WebCam (Model):
         self._camera = cam
 #        print('camera availability (0 = available):', cam.availability())
         cam.setCaptureMode(QCamera.CaptureVideo)
-#        cam.stateChanged.connect(self._camera_state_changed)
         cam.statusChanged.connect(self._camera_status_changed)
         import sys
         if sys.platform == 'linux':
-            # Ubuntu 18.04 with gstreamer requires view finder
+            # Ubuntu 18.04 with gstreamer and Qt 5.15.1 needs view finder
             # to be set before starting camera.  Ticket #3976
             capture = VideoCapture(self._new_frame)
             self._capture = capture
             cam.setViewfinder(capture)
         cam.start()
-
-#        self._start_capture()
 
     def _find_camera(self):
         from PyQt5.QtMultimedia import QCameraInfo
@@ -144,24 +141,6 @@ class WebCam (Model):
         from PyQt5.QtMultimedia import QCamera
         if status == QCamera.ActiveStatus and not self._capture_started:
             self._start_capture()
-
-    def _camera_state_changed(self, state):
-        print ('current camera state', state)
-
-        from PyQt5.QtMultimedia import QCamera
-#        if state == QCamera.ActiveState and self._capture is None:
-#        if state == QCamera.ActiveState and not self._capture_started:
-#            self._start_capture()
-
-#        cam = self._camera
-#        print ('capture mode (2=video)', int(cam.captureMode()))
-#        res = cam.supportedViewfinderResolutions()
-#        print ('supported resolutions', [(s.width(), s.height()) for s in res])
-#        frates = cam.supportedViewfinderFrameRateRanges()
-#        print ('supported framerate ranges', [(fr.minimumFrameRate, fr.maximumFrameRate) for fr in frates])
-#        pformats = cam.supportedViewfinderPixelFormats()
-#        print ('supported pixel formats', pformats)
-#        self._start_capture()
 
     def _start_capture(self):
         
