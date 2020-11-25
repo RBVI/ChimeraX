@@ -31,7 +31,7 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
       Input file in 'defattr' format
     log : bool
       Whether to log assignment info
-    restriction : Structures Collection or None
+    restriction : list/Collection of Structures or None
       If not None, structures to restrict the assignments to
       (in addition to any restrictions in the defattr file)
     file_name : string
@@ -41,6 +41,10 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
     if restriction is None:
         from chimerax.atomic import all_structures
         restriction = all_structures(session)
+    else:
+        from chimerax.atomic import Collection, Structures
+        if not isinstance(restriction, Collection):
+            restriction = Structures(restriction)
 
     control_defaults = {
         'match mode': "any",
@@ -244,17 +248,17 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
                     else:
                         delattr(match, attr_name)
 
-            can_return_none = None in seen_types
-            seen_types.discard(None)
-            if len(seen_types) == 1:
-                seen_type = seen_types.pop()
-                attr_type = None if seen_type == "color" else seen_type
-            elif seen_types == set([int, float]):
-                attr_type = float
-            else:
-                attr_type = None
-            recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
-                can_return_none=can_return_none)
+        can_return_none = None in seen_types
+        seen_types.discard(None)
+        if len(seen_types) == 1:
+            seen_type = seen_types.pop()
+            attr_type = None if seen_type == "color" else seen_type
+        elif seen_types == set([int, float]):
+            attr_type = float
+        else:
+            attr_type = None
+        recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
+            can_return_none=can_return_none)
 
         session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
             num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
