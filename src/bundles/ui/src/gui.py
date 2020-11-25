@@ -1543,7 +1543,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tool_action.setToolTip("%s %s tool" % (("Hide" if tw.shown else "Show"), tw.title))
                 tool_action.setCheckable(True)
                 tool_action.setChecked(tw.shown)
-                tool_action.triggered.connect(lambda tw=tw: setattr(tw, 'shown', not tw.shown))
+                tool_action.triggered.connect(lambda *args, tw=tw: setattr(tw, 'shown', not tw.shown))
                 running_actions.append(tool_action)
         running_actions.sort(key=lambda act: act.text())
         for action in running_actions:
@@ -2261,7 +2261,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         menu.addSeparator()
     ti = tool_instance
     hide_tool_action = QAction("Hide Tool")
-    hide_tool_action.triggered.connect(lambda ti=ti: ti.display(False))
+    hide_tool_action.triggered.connect(lambda *args, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
     help_url = getattr(tool_window, "help", None) or ti.help
     session = ti.session
