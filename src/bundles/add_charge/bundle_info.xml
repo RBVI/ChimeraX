@@ -11,6 +11,10 @@
   <Synopsis>Add partial charges to atoms</Synopsis>
   <Description>Add partial charges to atoms</Description>
 
+  <DataFiles>
+    <DataFile>amber_name.defattr</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Editing"/>

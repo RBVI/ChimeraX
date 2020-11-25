@@ -14,82 +14,112 @@
 class ChargeError(RuntimeError):
     pass
 
+def add_standard_charges(session, models=None, *, status=None, phosphorylation=None, charge_model=None,
+        nogui=False):
+    """add AMBER charges to well-known residues
+
+       'models' restricts the addition to the specified models
+
+       'status' is where status messages go (e.g. session.logger.status)
+
+       'phosphorylation' controls whether chain-terminal nucleic acids
+       will have their phosphorylation state changed to correspond to
+       AMBER charge files (3' phosphorylated, 5' not).  A value of None
+       means that the user will be queried if possible [treated as True
+       if not possible].
+
+       The return value is a 2-tuple of dictionaries:  the first of which
+       details the residues that did not receive charges [key: residue
+       type, value: list of residues], and the second lists remaining
+       uncharged atoms [key: (residue type, atom name), value: list of
+       atoms]
+
+       Hydrogens need to be present.
+    """
+    import os.path
+    attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
+    if status:
+        status("Defining AMBER residue types")
+    from chimerax.std_commands.defattr import defattr
+    defattr(session, attr_file, restriction=models)
+    #TODO
+
 ion_types = {
-	"Br": "Br-",
-	"Ca": "C0",
-	"Cl": "Cl-",
-	"Cs": "Cs+",
-	"Cu": "CU",
-	"F":  "F-",
-	"Fe": "FE",
-	"I":  "I-",
-	"K":  "K+",
-	"Li": "Li+",
-	"Mg": "MG",
-	"Na": "Na+",
-	"Rb": "Rb+",
-	"Zn": "Zn"
+    "Br": "Br-",
+    "Ca": "C0",
+    "Cl": "Cl-",
+    "Cs": "Cs+",
+    "Cu": "CU",
+    "F":  "F-",
+    "Fe": "FE",
+    "I":  "I-",
+    "K":  "K+",
+    "Li": "Li+",
+    "Mg": "MG",
+    "Na": "Na+",
+    "Rb": "Rb+",
+    "Zn": "Zn"
 }
 
 def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc", *,
-            gaff_type=True, status=None):
-        """Add Antechamber charges to non-standard residue
-        
-           'residues' is a list of residues of the same type.  The first
-           residue in the list will be used as an exemplar for the whole
-           type for purposes of charge determination, but charges will be
-           added to all residues in the list.
+        gaff_type=True, status=None):
+    """Add Antechamber charges to non-standard residue
 
-           'net_charge' is the net charge of the residue type.
+       'residues' is a list of residues of the same type.  The first
+       residue in the list will be used as an exemplar for the whole
+       type for purposes of charge determination, but charges will be
+       added to all residues in the list.
 
-           'method' is either 'am1-bcc' or 'gasteiger'
+       'net_charge' is the net charge of the residue type.
 
-           'gaff_type' is a boolean that determines whether GAFF
-           atom types are assigned to atoms in non-standard residues
+       'method' is either 'am1-bcc' or 'gasteiger'
 
-           'status' is where status messages go (e.g. replyobj.status)
+       'gaff_type' is a boolean that determines whether GAFF
+       atom types are assigned to atoms in non-standard residues
 
-           Hydrogens need to be present.
-        """
-        r0 = residues[0]
-        session.logger.info("Assigning partial charges to residue %s (net charge %+d) with %s method"
-            % (r0.name, net_charge, method))
-        # special case for single-atom residues...
-        if r0.num_atoms == 1:
-            for r in residues:
-                a = r.atoms[0]
-                a.charge = net_charge
-                session.change_tracker.add_modified(a, "charge changed")
-                if gaff_type:
-                    if a.element.name in ion_types:
-                        a.gaff_type = ion_types[a.element.name]
-                    else:
-                        session.logger.info("Could not determine GAFF type for atom %s" % a)
-            return
+       'status' is where status messages go (e.g. session.logger.status)
 
-        # detect tautomers by checking bonds
-        varieties = {}
+       Hydrogens need to be present.
+    """
+    r0 = residues[0]
+    session.logger.info("Assigning partial charges to residue %s (net charge %+d) with %s method"
+        % (r0.name, net_charge, method))
+    # special case for single-atom residues...
+    if r0.num_atoms == 1:
         for r in residues:
-            atom_map = {}
-            ordered_atoms = list(r.atoms)
-            ordered_atoms.sort(key=lambda a: (a.name, a.coord_index))
-            for i, a in enumerate(ordered_atoms):
-                atom_map[a] = i
-            bonds =[]
-            for a in r.atoms:
-                i1 = atom_map[a]
-                for nb in a.neighbors:
-                    i2 = atom_map.get(nb, None)
-                    if i2 is None or i1 < i2:
-                        bonds.append((i1, i2))
-                    else:
-                        bonds.append((i2, i1))
-            bonds.sort()
-            varieties.setdefault(tuple(bonds), []).append(r)
-        if len(varieties) > 1:
-            session.logger.info("%d tautomers of %s; charging separately" % (len(varieties), r0.name))
-        for tautomer_residues in varieties.values():
-            _nonstd_charge(session, tautomer_residues, net_charge, method, gaff_type, status)
+            a = r.atoms[0]
+            a.charge = net_charge
+            session.change_tracker.add_modified(a, "charge changed")
+            if gaff_type:
+                if a.element.name in ion_types:
+                    a.gaff_type = ion_types[a.element.name]
+                else:
+                    session.logger.info("Could not determine GAFF type for atom %s" % a)
+        return
+
+    # detect tautomers by checking bonds
+    varieties = {}
+    for r in residues:
+        atom_map = {}
+        ordered_atoms = list(r.atoms)
+        ordered_atoms.sort(key=lambda a: (a.name, a.coord_index))
+        for i, a in enumerate(r.atoms):
+            atom_map[a] = i
+        bonds =[]
+        for a in r.atoms:
+            i1 = atom_map[a]
+            for nb in a.neighbors:
+                i2 = atom_map.get(nb, None)
+                if i2 is None or i1 < i2:
+                    bonds.append((i1, i2))
+                else:
+                    bonds.append((i2, i1))
+        bonds.sort()
+        varieties.setdefault(tuple(bonds), []).append(r)
+    if len(varieties) > 1:
+        session.logger.info("%d tautomers of %s; charging separately" % (len(varieties), r0.name))
+    for tautomer_residues in varieties.values():
+        _nonstd_charge(session, tautomer_residues, net_charge, method, gaff_type, status)
 
 def estimate_net_charge(atoms):
     charge_info = {
@@ -335,7 +365,7 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
                 break
             session.logger.status("(%s) %s" % (r.name, line.rstrip()))
             session.logger.info("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True)
-        ante_failure_msg = "Failure running ANTECHAMBER for residue%s\nCheck reply log for details" % r.name
+        ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
             raise ChargeError(ante_failure_msg)
         if status:
