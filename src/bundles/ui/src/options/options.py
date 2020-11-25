@@ -346,7 +346,16 @@ class EnumBase(Option):
         self.make_callback()
 
 class EnumOption(EnumBase):
-    """Supported API. Option for enumerated values"""
+    """Supported API. Option for enumerated values.
+       The given values will be displayed in the interface and returned by the 'value' attribute.
+       If you want to display different text in the interface than the literal value, use the
+       SymbolicEnumOption.  You can specify values either by subclassing and overriding the 'values'
+       class attribute, or by supplying the 'values' keyword to the constructor.
+    """
+    def __init__(self, *args, values=None, **kw):
+        if values is not None:
+            self.values = values
+        super().__init__(*args, **kw)
 
 OptionalEnumOption = make_optional(EnumOption)
 
@@ -739,7 +748,7 @@ class StringIntOption(Option):
 
 class StringsOption(Option):
     """Supported API. Option for list of plain text strings
-       There is no builtin way for the user to indicate that they are done wditing the text,
+       There is no builtin way for the user to indicate that they are done editing the text,
        so no callback will occur.  If such an indication is needed, another widget would have to
        provide it."""
 
@@ -771,9 +780,19 @@ class HostPortOption(StringIntOption):
 
 
 class SymbolicEnumOption(EnumOption):
-    """Supported API. Option for enumerated values with symbolic names"""
+    """Supported API. Option for enumerated values with symbolic names
+       The given values will be returned by the 'value' attribute and the corresponding symbolic names
+       will be displayed in the user interface.  If your values and symbolic names are the same, just
+       use EnumOption.  You can specify values and symbolic names either by subclassing and overriding
+       the 'values' and 'labels' class attributes, or by supplying the 'values' and 'labels' keywords
+       to the constructor.
+    """
     values = ()
     labels = ()
+    def __init__(self, *args, labels=None, **kw):
+        if labels is not None:
+            self.labels = labels
+        super().__init__(*args, **kw)
 
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
