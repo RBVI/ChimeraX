@@ -16,7 +16,7 @@
 from .graph import Graph
 class ContactPlot(Graph):
 
-    help = 'help:user/commands/contacts.html#diagram'
+    help = 'help:user/commands/interfaces.html#diagram'
     
     def __init__(self, session, groups, contacts, interface_residue_area_cutoff = 5):
 
