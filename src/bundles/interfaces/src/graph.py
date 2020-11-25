@@ -413,7 +413,7 @@ class Graph(Plot):
         from PySide2.QtWidgets import QAction
         a = QAction(text, widget)
         #a.setStatusTip("Info about this menu entry")
-        a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
+        a.triggered.connect(lambda cb=callback, args=args: cb(*args))
         menu.addAction(a)
 
 # ------------------------------------------------------------------------------
