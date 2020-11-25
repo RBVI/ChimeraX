@@ -768,7 +768,7 @@ def subtract_maps(session):
         return
 
     map1, map2 = maps
-    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string, map2.id_string))
+    run(session, 'vop subtract #%s #%s minrms True' % (map1.id_string, map2.id_string))
 
 def smooth_map(session):
     maps = shortcut_maps(session, undisplayed = False)
