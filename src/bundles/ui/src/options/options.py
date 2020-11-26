@@ -220,7 +220,7 @@ def make_optional(cls):
             s._super_class.enabled.fset(s, s._check_box.isChecked())
             s.widget, s._orig_widget = s._orig_widget, s.widget
             s.make_callback()
-        cb.clicked.connect(lambda s=self: enable_and_call(s))
+        cb.clicked.connect(lambda *args, s=self: enable_and_call(s))
         layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         if isinstance(self._orig_widget, QLayout):
             layout.addLayout(self._orig_widget, stretch=1)
