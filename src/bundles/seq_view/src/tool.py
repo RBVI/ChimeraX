@@ -510,7 +510,7 @@ class SequenceViewer(ToolInstance):
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
             action = QAction(fmt.synopsis, save_as_menu)
-            action.triggered.connect(lambda fmt=fmt:
+            action.triggered.connect(lambda *args, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
                 % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
@@ -540,8 +540,8 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 action.setEnabled(False)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if checked else "hide")))
+            action.triggered.connect(lambda action=action, hdr=hdr, align_arg=align_arg, self=self: run(
+                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
         headers_menu.addSeparator()
         hdr_save_menu = headers_menu.addMenu("Save")
@@ -550,7 +550,7 @@ class SequenceViewer(ToolInstance):
                 continue
             action = QAction(hdr.name, hdr_save_menu)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 
