@@ -2556,7 +2556,7 @@ class LabelHeightDialog(QDialog):
         self.session = session
         self.setWindowTitle("Set Label Height")
         from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
-            QCheckBox, QPushButton, QMenu, QWidget
+            QCheckBox, QPushButton, QMenu, QWidget, QAction
         from PySide2.QtCore import Qt
         from PySide2.QtGui import QDoubleValidator
         layout = QVBoxLayout()
@@ -2575,8 +2575,8 @@ class LabelHeightDialog(QDialog):
         self.unit_button = QPushButton("\N{ANGSTROM SIGN}")
         menu = QMenu()
         menu.triggered.connect(lambda action: self.unit_button.setText(action.text()))
-        menu.addAction("\N{ANGSTROM SIGN}")
-        menu.addAction("pixels")
+        menu.addAction(QAction("\N{ANGSTROM SIGN}"))
+        menu.addAction(QAction("pixels"))
         self.unit_button.setMenu(menu)
         height_layout.addWidget(self.unit_button)
 
