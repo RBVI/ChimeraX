@@ -1909,13 +1909,15 @@ class ChangeTracker:
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
                 f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
-        elif isinstance(modded, Iterable):
-            for item in modded:
-                f(self._c_pointer, self._inst_to_int(item), modded._c_pointer,
-                    reason.encode('utf-8'))
         else:
-            f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
-                reason.encode('utf-8'))
+            try:
+                iterable_test = iter(modded)
+            except TypeError:
+                f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+            else:
+                for item in modded:
+                    f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+
     @property
     def changed(self):
         f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)
