@@ -276,6 +276,8 @@ class UI(QApplication):
            up/down arrow keystrokes are not forwarded and instead
            promote/demote the graphics window selection
         """
+        import sys
+        print("forwarding", file=sys.__stderr__)
         from PyQt5.QtCore import Qt
         k = event.key()
         if self.key_intercepted(k):
