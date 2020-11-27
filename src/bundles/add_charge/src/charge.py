@@ -15,24 +15,21 @@ class ChargeError(RuntimeError):
     pass
 
 def add_standard_charges(session, models=None, *, status=None, phosphorylation=None, charge_model=None,
-        nogui=False):
+        query_user=True):
     """add AMBER charges to well-known residues
 
        'models' restricts the addition to the specified models
 
        'status' is where status messages go (e.g. session.logger.status)
 
-       'phosphorylation' controls whether chain-terminal nucleic acids
-       will have their phosphorylation state changed to correspond to
-       AMBER charge files (3' phosphorylated, 5' not).  A value of None
-       means that the user will be queried if possible [treated as True
-       if not possible].
+       'phosphorylation' controls whether chain-terminal nucleic acids will have their phosphorylation
+       state changed to correspond to AMBER charge files (3' phosphorylated, 5' not).  A value of None
+       means that the user will be queried if possible [treated as True if not possible], though if
+       'query_user' is False, the user will not be queried.
 
-       The return value is a 2-tuple of dictionaries:  the first of which
-       details the residues that did not receive charges [key: residue
-       type, value: list of residues], and the second lists remaining
-       uncharged atoms [key: (residue type, atom name), value: list of
-       atoms]
+       The return value is a 2-tuple of dictionaries:  the first of which details the residues that did
+       not receive charges [key: residue type, value: list of residues], and the second lists remaining
+       uncharged atoms [key: (residue type, atom name), value: list of atoms]
 
        Hydrogens need to be present.
     """
@@ -42,6 +39,48 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
         status("Defining AMBER residue types")
     from chimerax.std_commands.defattr import defattr
     defattr(session, attr_file, restriction=models)
+
+    if models is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
+    else:
+        structures = models
+
+    #TODO logic needs to be adjusted to put 5' phosphates in non-standard list (particularly if phosphorylation == False)
+    if phosphorylation != False:
+        if status:
+            status("Checking phosphorylation of chain-terminal nucleic acids")
+        deletes = []
+        for s in structures:
+            for r in s.residues:
+                amber_name = getattr(r, 'amber_name', "UNK")
+                if len(amber_name) != 2 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU' \
+                or not r.find_atom('P'):
+                    continue
+                p = r.find_atom('P')
+                for nb in p.neighbors:
+                    if nb.residue != r:
+                        break
+                else:
+                    # trailing phosphate
+                    deletes.append(r)
+        if deletes:
+            if phosphorylation is None:
+                if query_user and not session.in_script:
+                    from chimerax.ui import ask
+                    phosphorylation = ask(session, "Delete 5' terminal phosphates from nucleic acid chains?",
+                            info="The AMBER charge set lacks parameters for terminal phosphates, and if"
+                            " retained, such residues will be treated as non-standard",
+                            title="Delete 5' phosphates?") == "yes"
+                else:
+                    phosphorylation = True
+            if phophorylation:
+                _phosphorylate(session, status, deletes)
+    if status:
+        status("Adding standard charges")
+    uncharged_res_types = {}
+    uncharged_atoms = {}
+    uncharged_residues = set()
     #TODO
 
 ion_types = {
@@ -434,4 +473,32 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
         if status:
             status("Charges for residue %s determined" % r.name)
         session.logger.info("Charges for residue %s determined" % r.name)
+
+def _phosphorylate(session, status, deletes):
+    session.logger.info("Deleting 5' phosphates from: %s" % ", ".join([str(r) for r in deletes]))
+    from chimerax.atomic.struct_edit import add_atom
+    for r in deletes:
+        r.amber_name += "5"
+        p = r.find_atom("P")
+        o = None
+        for nb in p.neighbors:
+            for nnb in nb.neighbors:
+                if nnb == p:
+                    continue
+                if nnb.element.number > 1:
+                    o = nb
+                    continue
+                r.structure.delete_atom(nnb)
+            if nb != o:
+                r.structure.delete_atom(nb)
+        if o is None:
+            from chimerax.core.errors import UserError
+            raise UserError("Atom P in residue %s is not connected to remainder of residue via an oxygen"
+                % r)
+        v = p.coord - o.coord
+        sn = getattr(p, "serial_number", None)
+        r.structure.delete_atom(p)
+        from chimerax.geometry import normalize_vector
+        v = normalize_vector(v) * 0.96
+        add_atom("HO5'", 'H', r, o.coord + v, serial_number=sn, bonded_to=o)
 
