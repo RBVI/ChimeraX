@@ -1731,11 +1731,15 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
             set_res_name_and_chain_id(r, res->name, &res->chain_id);
             auto seq_num = r->number();
             auto i_code = r->insertion_code();
+            // since H36 also works with the non-ATOM fields that require large residue numbers,
+            // don't use the hack below anymore
+#if 0
             if (seq_num > 9999) {
                 // usurp the insertion code...
                 i_code = '0' + (seq_num % 10);
                 seq_num = seq_num / 10;
             }
+#endif
             res->seq_num = seq_num;
             res->i_code = i_code;
             if (pqr) {
