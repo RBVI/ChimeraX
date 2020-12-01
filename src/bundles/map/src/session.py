@@ -306,9 +306,14 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if not dt.path or include_maps:
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
-    from gzip import compress
-    s['array_compression'] = 'gzip'
-    s['array'] = compress(dt.matrix().tobytes())
+    compress_maps = False  # No advantage.  Ticket #4002
+    if compress_maps:
+      from gzip import compress
+      s['array_compression'] = 'gzip'
+      s['array'] = compress(dt.matrix().tobytes())
+    else:
+      s['array_compression'] = 'none'
+      s['array'] = dt.matrix().tobytes()
     save_position = True
   else:
     save_position = False
@@ -348,14 +353,19 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
 def grid_data_from_state(s, gdcache, session, file_paths):
 
   if 'array' in s:
-    from numpy import frombuffer, dtype
-    from gzip import decompress
-    if s.get('array_compression') == 'gzip':
-      a = frombuffer(decompress(s['array']), dtype = dtype(s['value_type']))
+    compression = s.get('array_compression')
+    if compression == 'none':
+      bytes = s['array']
     else:
-      # Older sessions used gzip and base64 encoding.
-      from base64 import b64decode
-      a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+      from gzip import decompress
+      if compression == 'gzip':
+        bytes = decompress(s['array'])
+      else:
+        # Older sessions without array_compression attribute used gzip and base64 encoding.
+        from base64 import b64decode
+        bytes = decompress(b64decode(s['array']))
+    from numpy import frombuffer, dtype
+    a = frombuffer(bytes, dtype = dtype(s['value_type']))
     if not a.flags.writeable:
       a = a.copy()
     array = a.reshape(s['size'][::-1])
