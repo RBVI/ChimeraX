@@ -307,8 +307,8 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
     from gzip import compress
-    from base64 import b64encode
-    s['array'] = b64encode(compress(dt.matrix().tobytes()))
+    s['array_compression'] = 'gzip'
+    s['array'] = compress(dt.matrix().tobytes())
     save_position = True
   else:
     save_position = False
@@ -350,8 +350,12 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'array' in s:
     from numpy import frombuffer, dtype
     from gzip import decompress
-    from base64 import b64decode
-    a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    if s.get('array_compression') == 'gzip':
+      a = frombuffer(decompress(s['array']), dtype = dtype(s['value_type']))
+    else:
+      # Older sessions used gzip and base64 encoding.
+      from base64 import b64decode
+      a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
     if not a.flags.writeable:
       a = a.copy()
     array = a.reshape(s['size'][::-1])
