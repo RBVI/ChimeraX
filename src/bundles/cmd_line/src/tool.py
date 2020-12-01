@@ -383,7 +383,7 @@ class _HistoryDialog:
         for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
-            but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
+            but.clicked.connect(lambda *args, txt=but_name: self.button_clicked(txt))
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
         self.window.manage(placement=None, initially_hidden=True)
