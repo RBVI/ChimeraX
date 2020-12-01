@@ -33,6 +33,7 @@ def initialize_qt():
     initialize_qt_high_dpi_display_support()
     initialize_desktop_opengl()
     initialize_shared_opengl_contexts()
+#    initialize_pyqt5_compatibility()
 
 def initialize_qt_plugins_location():
     # remove the build tree plugin path, and add install tree plugin path
@@ -85,6 +86,41 @@ def initialize_shared_opengl_contexts():
     from PySide2.QtCore import QCoreApplication, Qt
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
 
+def initialize_pyqt5_compatibility():
+    '''
+    Attempt to allow PyQt5 code to run using PySide2.  This can work for
+    simple uses of Qt but for more complex tools there is often some small
+    differences between PyQt5 and PySide2 that cause errors.
+    I think this compatibility code should not be used but I am leaving
+    it in if we decide to temporarily use it during transition to PySide2.
+    '''
+    
+    # Matplotlib is looks for whether PyQt5.QtCore or PySide2.QtCore
+    # is present to choose backend. So have it decide before setting up
+    # PyQt5 otherwise matplotlib will be broken looking for PyQt5 sip.
+    from PySide2 import QtCore
+    import matplotlib.backends.qt_compat
+
+    # Add PyQt5 module which is PySide2
+    import PySide2, sys
+    sys.modules['PyQt5'] = PySide2
+
+    # Submodules also need to be added otherwise app does not initialize
+    # apparently because PySide2.QtWidgets and PyQt5.QtWidgets become two
+    # different instantiations of the PySide2.QtWidgets module.
+    from PySide2 import QtCore, QtWidgets, Qt, QtGui
+    sys.modules['PyQt5.QtCore'] = QtCore
+    sys.modules['PyQt5.QtWidgets'] = QtWidgets
+    sys.modules['PyQt5.Qt'] = Qt
+
+    # SEQCROW imports things from wrong location, but works in PyQt5
+    Qt.QIcon = QtGui.QIcon
+    Qt.QStyle = QtWidgets.QStyle
+    Qt.QClipboard = QtGui.QClipBoard
+
+    # Added PyQt5 pyqtSignal which has same API as PySide2 Signal class.
+    QtCore.pyqtSignal = QtCore.Signal
+    
 from PySide2.QtWidgets import QApplication
 class UI(QApplication):
     """Main ChimeraX user interface
