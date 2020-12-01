@@ -143,12 +143,13 @@ def _import_package(toolshed, package_name, logger, install=None, session=None):
     return _install_module(best_bi, logger, install, session)
 
 
-def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
-    """Install the bundle by retrieving it from the remote shed.
+def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
+    """Install the bundle(s) either by retrieving them from the remote toolshed
+    or by from a local wheel.
 
     Parameters
     ----------
-    bundle : string or :py:class:`BundleInfo` instance or sequence of them
+    bundles : string or :py:class:`BundleInfo` instance or sequence of them
         If string, path to wheel installer.
         If instance, should be from the available bundle list.
     per_user : boolean
@@ -162,13 +163,13 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
     Raises
     ------
     ToolshedInstalledError
-        Raised if the bundle is already installed.
+        Raised if a bundle is already installed.
 
     Notes
     -----
     A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
     """
-    _debug("install_bundle", bundle)
+    _debug("install_bundle", bundles)
     # Make sure that our install location is on chimerax module.__path__
     # so that newly installed modules may be found
     import importlib
@@ -180,10 +181,8 @@ def _install_bundle(toolshed, bundle, logger, *, per_user=True, reinstall=False,
     m = importlib.import_module(_ChimeraXNamespace)
     if cx_dir not in m.__path__:
         m.__path__.append(cx_dir)
-    if isinstance(bundle, (str, BundleInfo)):
-        bundles = [bundle]
-    else:
-        bundles = bundle
+    if isinstance(bundles, (str, BundleInfo)):
+        bundles = [bundles]
     bundle_names = []
     # TODO: redo this to collect bundles to install and then revise _can_install to
     # check all bundles together.
