@@ -467,11 +467,11 @@ def _pip_install(toolshed, bundles, logger, per_user=True, reinstall=False, no_d
     # strategy, etc) plus the given arguments.  Return standard
     # output as string.  If there was an error, raise RuntimeError
     # with stderr as parameter.
-    command = ["install", "--use-feature=2020-resolver",
-               "--extra-index-url", toolshed.remote_url + "/pypi/",
-               "--upgrade-strategy", "only-if-needed",
-               # "--only-binary", ":all:"   # msgpack-python is not binary
-               ]
+    command = [
+        "install", "--extra-index-url", toolshed.remote_url + "/pypi/",
+        "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
+        # "--only-binary", ":all:"   # msgpack-python is not binary
+    ]
     if per_user:
         command.append("--user")
     if no_deps:

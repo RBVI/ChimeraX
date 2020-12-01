@@ -890,9 +890,11 @@ def restart_action(line, inst_dir, msgs):
             _restart_toolshed_url = toolshed.default_toolshed_url()
         bundles = parts[1]
         pip_args = parts[2:]
-        command = ["install", "--use-feature=2020-resolver", "--upgrade",
-                   "--extra-index-url", _restart_toolshed_url + "/pypi/",
-                   "--upgrade-strategy", "only-if-needed"]
+        command = [
+            "install", "--extra-index-url", _restart_toolshed_url + "/pypi/",
+            "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
+            "--upgrade",
+        ]
     elif action == "uninstall":
         bundles = parts[1]
         pip_args = parts[2:]
