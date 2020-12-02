@@ -201,14 +201,17 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
             name = basename.split('-')[0]
             old_bundle = toolshed.find_bundle(name, logger, installed=True)
             bundle_name = bundle
+            from wheel_filename import parse_wheel_filename
+            bundle_version = parse_wheel_filename(bundle).version
         elif isinstance(bundle, BundleInfo):
             # If "bundle" is not a string, it must be a Bundle instance.
             old_bundle = toolshed.find_bundle(bundle.name, logger, installed=True)
             bundle_name = bundle
+            bundle_version = bundle.version
         else:
             raise ValueError("incorrect bundle argument")
         if old_bundle:
-            if not reinstall:
+            if not reinstall and bundle_version == old_bundle.version:
                 if isinstance(bundle, BundleInfo):
                     bundle_name = bundle.name
                 else:
