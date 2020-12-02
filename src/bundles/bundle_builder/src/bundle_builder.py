@@ -109,7 +109,7 @@ class BundleBuilder:
         from chimerax.core import toolshed
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(self.name, session.logger)
-        if bundle is not None:
+        if bundle is not None and bundle.version == self.version:
             cmd += " reinstall true"
         run(session, cmd)
 

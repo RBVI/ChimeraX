@@ -30,7 +30,7 @@ endif
 PYLINT = $(PYTHON_EXE) -I -m flake8
 
 BUNDLE_NAME = ChimeraX-BundleBuilder
-BUNDLE_VERSION = 1.0
+BUNDLE_VERSION = 1.1
 PKG_NAME = chimerax.bundle_builder
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
