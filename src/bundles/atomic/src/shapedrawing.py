@@ -218,7 +218,7 @@ class AtomicShapeDrawing(Drawing, State):
             colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
             colors[:] = color
         else:
-            colors = color.asarray(color, dtype=numpy.uint8)
+            colors = asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         if self.vertices is None:
             if atoms is not None:
@@ -268,7 +268,7 @@ class AtomicShapeDrawing(Drawing, State):
                 colors = empty((vertices.shape[0], 4), dtype=uint8)
                 colors[:] = color
             else:
-                colors = color.asarray(color, dtype=uint8)
+                colors = numpy.asarray(color, dtype=uint8)
                 assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
             all_colors[i] = colors
             has_atoms = has_atoms or (atoms is not None)
