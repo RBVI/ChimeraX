@@ -160,7 +160,8 @@ def register_command(logger):
 def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_only,
                   resolution, grid_spacing, session):
     name = '%s %s' % (','.join(s.name for s in structures), sym_name)
-    if copies and not new_model:
+    if copies:
+        # Copies true always behaves as if new_model is true.
         from chimerax.core.models import Model
         g = Model(name, session)
         for i, tf in enumerate(transforms):
