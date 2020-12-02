@@ -808,7 +808,7 @@ class EnumOf(Annotation):
             i, ident = matches[0]
             return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
-            ms = ', '.join(self.values[i] for i, ident in matches)
+            ms = ', '.join(self.ids[i] for i, ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
@@ -1241,6 +1241,8 @@ class TopModelsArg(AtomSpecArg):
 total_calls = 0
 total_parse = 0
 total_evaluate = 0
+
+
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
@@ -3778,6 +3780,7 @@ if __name__ == '__main__':
         raise SystemExit(1)
     raise SystemExit(0)
 
+
 def log_command(session, command_name, command_text, *, url=None):
     if session is None:
         # for testing purposes
@@ -3795,4 +3798,3 @@ def log_command(session, command_name, command_text, *, url=None):
         text = escape(command_text)
         msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (text, text)
         session.logger.info(msg, is_html=True, add_newline=False)
-
