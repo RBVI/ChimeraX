@@ -913,19 +913,41 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 else:
                     val = -step
             return val
+
+        def eventFilter(self, source, event):
+            # prevent scroll wheel from changing value (usually accidentally)
+            if event.type() == event.Wheel and source is self:
+                event.ignore()
+                return True
+            return super().eventFilter(source, event)
+
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
     spin_box.setDecimals(decimal_places)
     spin_box.setMinimum(minimum)
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
+    from PyQt5.QtCore import Qt
+    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.installEventFilter(spin_box)
     return spin_box
 
 def _make_int_spinbox(min, max, **kw):
     from PyQt5.QtWidgets import QSpinBox
-    spin_box = QSpinBox(**kw)
+    class NoScrollSpinBox(QSpinBox):
+        def eventFilter(self, source, event):
+            # prevent scroll wheel from changing value (usually accidentally)
+            if event.type() == event.Wheel and source is self:
+                event.ignore()
+                return True
+            return super().eventFilter(source, event)
+
+    spin_box = NoScrollSpinBox(**kw)
     default_minimum = -(2**31)
     default_maximum = 2**31 - 1
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
+    from PyQt5.QtCore import Qt
+    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.installEventFilter(spin_box)
     return spin_box
