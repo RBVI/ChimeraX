@@ -138,19 +138,20 @@ Close the original structure:
 border:solid black 1px; padding:5px">
 Note:
 In this case, the assembly has fewer chains than the original structure.
-In cases where the assembly has <i>more</i> chains than the original,
-clicking a link in the <b>Assemblies</b> table adds copies as graphical clones.
-However, to analyze atomic interactions between the copies
+For assemblies with more than 12 copies of the original structure,
+clicking a link in the <b>Assemblies</b> table adds copies as graphical clones
+for efficient visualization.
+However, if the plan is to analyze atomic interactions between the copies
 or to display them differently from one another,
 the assembly should be generated instead as full atomic copies with the
-<a href="../commands/sym.html#assembly"><b>sym</b></a> command, for example:
+<a href="../commands/sym.html#assembly"><b>sym</b></a> command and
+<b>copies true</b>, for example:
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>sym #1 assembly 1 copies true</b>
-<p>
-Alternatively, assemblies can be fetched directly from the PDB with the
-<a href="../commands/open.html#fetch"><b>open</b></a> command, for example:
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>open 2hyy from rcsb_bio maxAssemblies 1</b>
-<br>&nbsp;&nbsp&nbsp;&nbsp;&ndash; or &ndash;
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>open 2hyy from pdbe_bio maxAssemblies 1</b>
+<br>
+Alternatively, entire assemblies can be fetched directly from the PDB with the
+<a href="../commands/open.html#fetch"><b>open</b></a> command, 
+as shown in the section on 
+<a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>.
 </blockquote>
 </blockquote>
 
@@ -845,5 +846,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2020</address>
+December 2020</address>
 </body></html>
