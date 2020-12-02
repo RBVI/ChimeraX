@@ -406,7 +406,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'time' in s:
     for data in dlist:
       data.time = s['time']
-      
+
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
     from chimerax.map_data import SubsampledGrid
@@ -417,12 +417,14 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
-      dpath = absolute_path(dstate.path, file_paths, base_path = session.session_file_path)
+      dpath = absolute_path(dstate['path'], file_paths, base_path = session.session_file_path)
       if dpath != path:
-        # TODO: This looks wrong.  Don't we just recurse calling grid_data_from_state()?
-        ssdlist = dstate.create_object(gdcache)
-        for i,ssdata in enumerate(ssdlist):
-          dlist[i].add_subsamples(ssdata, cell_size)
+        ssdata = grid_data_from_state(dstate, gdcache, session, file_paths)
+        if len(ssdata) == 1:
+          for data in dlist:
+            data.add_subsamples(ssdata[0], cell_size)
+        elif len(ssdata) > 1:
+          raise ValueError('session restore of volume subsamples returned more than one subsample data set: %s' % dstate)
 
   return dlist
 

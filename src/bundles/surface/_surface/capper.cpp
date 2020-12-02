@@ -71,9 +71,5 @@ extern "C" PyObject *compute_cap(PyObject *, PyObject *args, PyObject *keywds)
   py_cap_vertex_positions = c_array_to_python(vxyz, cap_vertex_xyz.size()/3, 3);
   py_cap_triangle_vertex_indices = c_array_to_python(ti, cap_tv_indices.size()/3, 3);
 
-  PyObject *geom = PyTuple_New(2);
-  PyTuple_SetItem(geom, 0, py_cap_vertex_positions);
-  PyTuple_SetItem(geom, 1, py_cap_triangle_vertex_indices);
-
-  return geom;
+  return python_tuple(py_cap_vertex_positions, py_cap_triangle_vertex_indices);
 }

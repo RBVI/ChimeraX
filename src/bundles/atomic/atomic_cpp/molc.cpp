@@ -2210,8 +2210,7 @@ extern "C" EXPORT void pseudobond_group_structure(void *pbgroups, size_t n, pyob
         for (size_t i = 0; i < n; ++i) {
             auto sptr = pbgs[i]->structure();
             if (sptr == nullptr) {
-                Py_INCREF(Py_None);
-                resp[i] = Py_None;
+                resp[i] = python_none();
             } else
                 resp[i] = sptr->py_instance(true);
         }
