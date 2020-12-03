@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel
 class SaveModelOptionWidget(QFrame):
     def __init__(self, session, name, model_type):
         super().__init__()

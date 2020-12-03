@@ -11,7 +11,7 @@
 
 
 def button_row(parent, title, name_and_callback_list, hspacing = 3):
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
+    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
     f = QFrame(parent)
 #    f.setStyleSheet('QFrame { background-color: pink; padding-top: 0px; padding-bottom: 0px;}')
     parent.layout().addWidget(f)
@@ -24,7 +24,7 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
     layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
-    from PyQt5.QtCore import Qt
+    from PySide2.QtCore import Qt
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
@@ -42,7 +42,7 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
     return f
 
 def _row_frame(parent, spacing = 5):
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout
+    from PySide2.QtWidgets import QFrame, QHBoxLayout
     f = QFrame(parent)
     parent.layout().addWidget(f)
 
@@ -56,7 +56,7 @@ class EntriesRow:
         f, layout = _row_frame(parent, spacing)
         self.frame = f
         
-        from PyQt5.QtWidgets import QLabel, QPushButton
+        from PySide2.QtWidgets import QLabel, QPushButton
         values = []
         for a in args:
             if isinstance(a, str):
@@ -91,10 +91,10 @@ class EntriesRow:
 # TODO: QPushButton has extra vertical space (about 5 pixels top and bottom) on macOS 10.14 (Mojave)
 #       with Qt 5.12.4.  Couldn't find any thing to fix this, although below are some attempts
 #                b.setMaximumSize(100,25)
-#                from PyQt5.QtWidgets import QToolButton
+#                from PySide2.QtWidgets import QToolButton
 #                b = QToolButton(f)
 #                b.setText(a[0])
-#                from PyQt5.QtCore import Qt
+#                from PySide2.QtCore import Qt
 #                b.setContentsMargins(0,0,0,0)
 #                b.setAttribute(Qt.WA_LayoutUsesWidgetRect)
 #                b.setStyleSheet('padding-left: 15px; padding-right: 15px; padding-top: 4px;  padding-bottom: 4px;')
@@ -120,7 +120,7 @@ def _uncheck_others(check_box, other_check_boxes):
 
 class StringEntry:
     def __init__(self, parent, value = '', pixel_width = 100):
-        from PyQt5.QtWidgets import QLineEdit
+        from PySide2.QtWidgets import QLineEdit
         self._line_edit = le = QLineEdit(value, parent)
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
@@ -143,7 +143,7 @@ class NumberEntry:
     format = '%d'
     string_to_value = int
     def __init__(self, parent, value, pixel_width = 50):
-        from PyQt5.QtWidgets import QLineEdit
+        from PySide2.QtWidgets import QLineEdit
         self._line_edit = le = QLineEdit(self.format % value, parent)
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
@@ -171,7 +171,7 @@ class FloatEntry(NumberEntry):
 
 class BooleanEntry:
     def __init__(self, parent, value):
-        from PyQt5.QtWidgets import QCheckBox
+        from PySide2.QtWidgets import QCheckBox
         self._check_box = cb = QCheckBox(parent)
         cb.setChecked(value)
         self.changed = cb.stateChanged
@@ -185,12 +185,12 @@ class BooleanEntry:
     def widget(self):
         return self._check_box
 
-from PyQt5.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
     def __init__(self, parent=None, title=''):
         QWidget.__init__(self, parent=parent)
 
-        from PyQt5.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
+        from PySide2.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
         self.content_area = c = QFrame(self)
         self.main_layout = layout = QGridLayout(self)
 
@@ -198,7 +198,7 @@ class CollapsiblePanel(QWidget):
             b = None
         else:
             b = QToolButton(self)
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             b.setStyleSheet("QToolButton { border: none; font: 14px; }")
         # TODO: Could not figure out a way to reduce left padding on disclosure arrow on Mac Qt 5.9
 #        b.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
@@ -233,7 +233,7 @@ class CollapsiblePanel(QWidget):
             checked = (self.content_area.maximumHeight() == 0)
         tb = self.toggle_button
         if tb:
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             arrow_type = Qt.DownArrow if checked else Qt.RightArrow
             tb.setArrowType(arrow_type)
         c = self.content_area
@@ -254,13 +254,13 @@ def _resize_dock_widget(child_widget):
         main_win = p.window()
         # For undocked dock widgets this will not be a QMainWindow,
         # no need to resize all dock widgets.
-        from PyQt5.QtWidgets import QMainWindow
+        from PySide2.QtWidgets import QMainWindow
         if isinstance(main_win, QMainWindow):
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             main_win.resizeDocks([p], [p.widget().sizeHint().height()], Qt.Vertical)
 
 def _dock_widget_parent(widget):
-    from PyQt5.QtWidgets import QDockWidget
+    from PySide2.QtWidgets import QDockWidget
     if isinstance(widget, QDockWidget):
         return widget
     p = widget.parent()

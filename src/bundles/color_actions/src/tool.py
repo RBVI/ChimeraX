@@ -25,10 +25,10 @@ class ColorActions(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
+        from PySide2.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
             QLabel, QCheckBox, QFrame, QGroupBox, QGridLayout, QScrollArea
-        from PyQt5.QtGui import QColor, QPixmap, QIcon
-        from PyQt5.QtCore import Qt, QTimer
+        from PySide2.QtGui import QColor, QPixmap, QIcon
+        from PySide2.QtCore import Qt, QTimer
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -187,7 +187,7 @@ class ColorActions(ToolInstance):
         self.all_colors_area.setWidget(all_colors_widget)
         main_layout.addWidget(self.all_colors_area)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from PySide2.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
         if self.help:

@@ -33,7 +33,7 @@ class CommandLine(ToolInstance):
         parent = self.tool_window.ui_area
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.history_dialog = _HistoryDialog(self, self.settings.typed_only)
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel
+        from PySide2.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
         class CmdText(QComboBox):
@@ -41,7 +41,7 @@ class CommandLine(ToolInstance):
                 self.tool = tool
                 QComboBox.__init__(self, parent)
                 self._processing_key = False
-                from PyQt5.QtCore import Qt
+                from PySide2.QtCore import Qt
                 # defer context menu to parent
                 self.setContextMenuPolicy(Qt.NoContextMenu)
                 self.setAcceptDrops(True)
@@ -72,8 +72,8 @@ class CommandLine(ToolInstance):
 
             def keyPressEvent(self, event, forwarded=False):
                 self._processing_key = True
-                from PyQt5.QtCore import Qt
-                from PyQt5.QtGui import QKeySequence
+                from PySide2.QtCore import Qt
+                from PySide2.QtGui import QKeySequence
 
                 if session.ui.key_intercepted(event.key()):
                     return
@@ -190,7 +190,7 @@ class CommandLine(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
@@ -286,7 +286,7 @@ class CommandLine(ToolInstance):
         self.set_focus()
 
     def set_focus(self):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         self.text.lineEdit().setFocus(Qt.OtherFocusReason)
 
     @classmethod
@@ -343,7 +343,7 @@ class _HistoryDialog:
         self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
-        from PyQt5.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
+        from PySide2.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
         self.listbox = QListWidget(parent)
         self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
@@ -355,10 +355,10 @@ class _HistoryDialog:
         num_cmd_layout = QHBoxLayout(num_cmd_frame)
         num_cmd_layout.setContentsMargins(0,0,0,0)
         remem_label = QLabel("Remember")
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         remem_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         num_cmd_layout.addWidget(remem_label, 1)
-        from PyQt5.QtWidgets import QSpinBox, QSizePolicy
+        from PySide2.QtWidgets import QSpinBox, QSizePolicy
         class ShorterQSpinBox(QSpinBox):
             max_val = 1000000
             def textFromValue(self, val):
@@ -383,7 +383,7 @@ class _HistoryDialog:
         for but_name in [self.record_label, self.execute_label, "Delete", "Copy", "Help"]:
             but = QPushButton(but_name, button_frame)
             but.setAutoDefault(False)
-            but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
+            but.clicked.connect(lambda *args, txt=but_name: self.button_clicked(txt))
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
         self.window.manage(placement=None, initially_hidden=True)
@@ -413,9 +413,9 @@ class _HistoryDialog:
                 fmt = session.data_formats["ChimeraX commands"]
                 self._record_dialog = dlg = SaveDialog(session, self.window.ui_area,
                     "Save Commands", data_formats=[fmt])
-                from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
-                from PyQt5.QtWidgets import QCheckBox
-                from PyQt5.QtCore import Qt
+                from PySide2.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
+                from PySide2.QtWidgets import QCheckBox
+                from PySide2.QtCore import Qt
                 options_frame = dlg.custom_area
                 options_layout = QVBoxLayout(options_frame)
                 options_frame.setLayout(options_layout)
@@ -523,7 +523,7 @@ class _HistoryDialog:
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         filter_action = QAction("Typed commands only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.controller.settings.typed_only)

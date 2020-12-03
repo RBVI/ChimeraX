@@ -14,10 +14,10 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.commands import run
-from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
-from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from PyQt5.QtWidgets import QButtonGroup, QAbstractButton
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
+from PySide2.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+from PySide2.QtWidgets import QButtonGroup, QAbstractButton
+from PySide2.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
 
