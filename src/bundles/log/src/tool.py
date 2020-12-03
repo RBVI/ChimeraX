@@ -148,7 +148,7 @@ class Log(ToolInstance, HtmlLog):
                     self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
-                from PyQt5.QtWidgets import QAction
+                from PySide2.QtWidgets import QAction
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -159,7 +159,7 @@ class Log(ToolInstance, HtmlLog):
         parent = self.tool_window.ui_area
         from chimerax.ui.widgets import ChimeraXHtmlView
 
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        from PySide2.QtWebEngineWidgets import QWebEnginePage
         class MyPage(QWebEnginePage):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
@@ -187,7 +187,7 @@ class Log(ToolInstance, HtmlLog):
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
                 # defer context menu to parent
-                #from PyQt5.QtCore import Qt
+                #from PySide2.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
             def link_intercept(self, request_info, *args, **kw):
@@ -195,7 +195,9 @@ class Log(ToolInstance, HtmlLog):
                 qurl = request_info.requestUrl()
                 scheme = qurl.scheme()
                 if scheme == 'cxcmd':
-                    cmd = qurl.url(qurl.None_)[6:].lstrip()  # skip cxcmd:
+                    from PySide2.QtCore import QUrl
+                    no_formatting = QUrl.FormattingOptions(QUrl.None_)
+                    cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
                 from chimerax.ui.widgets.htmlview import chimerax_intercept
@@ -214,14 +216,14 @@ class Log(ToolInstance, HtmlLog):
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
-        from PyQt5.QtCore import QTimer
+        from PySide2.QtCore import QTimer
         self.regulating_timer = QTimer()
         self.regulating_timer.timeout.connect(self._actually_show)
 
-        from PyQt5.QtWidgets import QGridLayout, QErrorMessage
+        from PySide2.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 return QSize(600, 300)
         self.error_dialog = BiggerErrorDialog(parent)
         self._add_report_bug_button()
@@ -253,7 +255,7 @@ class Log(ToolInstance, HtmlLog):
         '''
         ed = self.error_dialog
         el = ed.layout()
-        from PyQt5.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
+        from PySide2.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
         if isinstance(el, QGridLayout):
             i = 0
             while True:

@@ -91,7 +91,7 @@ class CoreSettingsPanel:
     }
 
     def __init__(self, session, ui_area):
-        from PyQt5.QtWidgets import QBoxLayout
+        from PySide2.QtWidgets import QBoxLayout
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel

@@ -116,7 +116,7 @@ class UpdateLoop:
     def start_redraw_timer(self):
         if self._timer is not None or not self.session.ui.is_gui:
             return
-        from PyQt5.QtCore import QTimer, Qt
+        from PySide2.QtCore import QTimer, Qt
         self._timer = t = QTimer()
         t.timerType = Qt.PreciseTimer
         t.timeout.connect(self._redraw_timer_callback)

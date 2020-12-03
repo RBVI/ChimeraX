@@ -40,7 +40,7 @@ class VolumeViewer(ToolInstance):
 
         self.make_panels(parent)
 
-        from PyQt5.QtWidgets import QVBoxLayout
+        from PySide2.QtWidgets import QVBoxLayout
         self.panel_layout = pl = QVBoxLayout(parent)
         pl.setContentsMargins(0,0,0,0)
         pl.setSpacing(0)
@@ -754,7 +754,7 @@ class PopupPanel:
 
   def __init__(self, parent, resize_dialog = True, scrollable = False):
 
-    from PyQt5.QtWidgets import QFrame, QScrollArea
+    from PySide2.QtWidgets import QFrame, QScrollArea
 
     self.frame = QScrollArea(parent) if scrollable else QFrame(parent)
 
@@ -1399,7 +1399,7 @@ class Thresholds_Panel(PopupPanel):
     import sys
     if sys.platform == 'darwin':
         # Make scrollbar always shown on Mac
-        from PyQt5.QtWidgets import QStyleFactory
+        from PySide2.QtWidgets import QStyleFactory
         style = QStyleFactory.create("Windows")
         self.frame.verticalScrollBar().setStyle(style)
     
@@ -1416,7 +1416,7 @@ class Thresholds_Panel(PopupPanel):
     frame.setWidgetResizable(True)
     self._allow_panel_height_increase = False
     
-    from PyQt5.QtWidgets import QVBoxLayout, QFrame, QSizePolicy
+    from PySide2.QtWidgets import QVBoxLayout, QFrame, QSizePolicy
 
     # Histograms frame
     self.histograms_frame = hf = QFrame(frame)
@@ -1497,7 +1497,7 @@ class Thresholds_Panel(PopupPanel):
       if hf.width() != vp.width():
           hf.resize(vp.width(), hf.height())
       
-      from PyQt5.QtWidgets import QScrollArea
+      from PySide2.QtWidgets import QScrollArea
       QScrollArea.resizeEvent(self.frame, e)
       
   # ---------------------------------------------------------------------------
@@ -1526,7 +1526,7 @@ class Thresholds_Panel(PopupPanel):
     f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
-    from PyQt5.QtCore import QTimer
+    from PySide2.QtCore import QTimer
     QTimer.singleShot(200, lambda f=f: f.setMinimumHeight(50))
 
   # ---------------------------------------------------------------------------
@@ -1683,8 +1683,8 @@ class Histogram_Pane:
     self._log_moved_marker = False
     self.update_timer = None
 
-    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
-    from PyQt5.QtCore import Qt, QSize
+    from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
+    from PySide2.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
     f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -1813,7 +1813,7 @@ class Histogram_Pane:
       if v is None:
           return
       
-      from PyQt5.QtWidgets import QMenu, QAction
+      from PySide2.QtWidgets import QMenu, QAction
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
@@ -1822,18 +1822,19 @@ class Histogram_Pane:
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
-      menu.exec(event.globalPos())
+      menu.exec_(event.globalPos())
 
   # ---------------------------------------------------------------------------
   #
   def add_menu_entry(self, menu, text, callback, *args, checked = None):
       '''Add menu item to context menu'''
-      from PyQt5.QtWidgets import QAction
+      from PySide2.QtWidgets import QAction
       a = QAction(text, self.frame)
       if checked is not None:
           a.setCheckable(True)
           a.setChecked(checked)
-      def cb(checked, callback=callback, args=args):
+      def cb(a=a, callback=callback, args=args):
+          checked = a.isChecked()
           if checked is None:
               callback(*args)
           else:
@@ -1943,8 +1944,8 @@ class Histogram_Pane:
       psf = self._planes_slider_frame
       if psf is not None:
           return psf
-      from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSpinBox, QSlider
-      from PyQt5.QtCore import Qt
+      from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel, QSpinBox, QSlider
+      from PySide2.QtCore import Qt
       self._planes_slider_frame = f = QFrame(self.frame)
       layout = QHBoxLayout(f)
       layout.setContentsMargins(0,0,0,0)
@@ -1963,8 +1964,8 @@ class Histogram_Pane:
       layout.addWidget(ps)
       
       # Close button to right of plane slider
-      from PyQt5.QtWidgets import QPushButton
-      from PyQt5.QtCore import Qt, QSize
+      from PySide2.QtWidgets import QPushButton
+      from PySide2.QtCore import Qt, QSize
       cb = QPushButton(f)
       cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
       cb.setMaximumSize(20,20)
@@ -2125,8 +2126,8 @@ class Histogram_Pane:
     #
     # set highlight thickness = 0 so line in column 0 is visible.
     #
-    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QSizePolicy
-    from PyQt5.QtCore import Qt
+    from PySide2.QtWidgets import QGraphicsView, QGraphicsScene, QSizePolicy
+    from PySide2.QtCore import Qt
 
     class Canvas(QGraphicsView):
         def __init__(self, parent):
@@ -2717,7 +2718,7 @@ class Histogram_Pane:
       def update_cb(s=self, rm=read_matrix, m=message_cb, rz=resize):
         s.update_timer = None
         s.update_histogram(rm, m, rz, delay = 0)
-      from PyQt5.QtCore import QTimer, Qt
+      from PySide2.QtCore import QTimer, Qt
       self.update_timer = timer = QTimer(self.frame)
       timer.setSingleShot(True)
       timer.timeout.connect(update_cb)

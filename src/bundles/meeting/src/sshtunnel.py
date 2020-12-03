@@ -193,7 +193,7 @@ class SSHRemoteTunnel:
 # -----------------------------------------------------------------------------
 #
 def _periodic_callback(interval, callback, *args, **kw):
-    from PyQt5.QtCore import QTimer
+    from PySide2.QtCore import QTimer
     t = QTimer()
     def cb(callback=callback, args=args, kw=kw):
         callback(*args, **kw)

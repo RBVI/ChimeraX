@@ -20,9 +20,9 @@ The Categorized classes organize the presented options into categories, which th
 switch between.
 """
 
-from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
+from PySide2.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
     QPushButton, QCheckBox, QScrollArea, QGroupBox
-from PyQt5.QtCore import Qt
+from PySide2.QtCore import Qt
 
 class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
@@ -114,7 +114,7 @@ class OptionsPanel(QWidget):
         return all_options
 
     def sizeHint(self):
-        from PyQt5.QtCore import QSize
+        from PySide2.QtCore import QSize
         form_size = self._form.minimumSize()
         return QSize(min(form_size.width(), 800), min(form_size.height(), 800))
 
@@ -215,7 +215,7 @@ class SettingsPanelBase(QWidget):
                 self.current_check.setChecked(True)
                 from .. import shrink_font
                 shrink_font(self.current_check)
-                from PyQt5.QtCore import Qt
+                from PySide2.QtCore import Qt
                 bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
             save_button = QPushButton("Save")
             save_button.clicked.connect(self._save)

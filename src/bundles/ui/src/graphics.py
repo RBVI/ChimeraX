@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtGui import QWindow, QSurface
+from PySide2.QtGui import QWindow, QSurface
 
 class GraphicsWindow(QWindow):
     """
@@ -23,7 +23,7 @@ class GraphicsWindow(QWindow):
         self.view = ui.session.main_view
 
         QWindow.__init__(self)
-        from PyQt5.QtWidgets import QWidget
+        from PySide2.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
@@ -50,7 +50,7 @@ class GraphicsWindow(QWindow):
         # so we detect the drag and drop events here and pass them to the main window.
         if self.handle_drag_and_drop(event):
             return True
-        from PyQt5.QtCore import QEvent
+        from PySide2.QtCore import QEvent
         if event.type() == QEvent.Show:
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
@@ -104,7 +104,7 @@ class GraphicsWindow(QWindow):
                 self.session.logger.warning(msg)
                                             
     def handle_drag_and_drop(self, event):
-        from PyQt5.QtCore import QEvent
+        from PySide2.QtCore import QEvent
         t = event.type()
         ui = self.session.ui
         if hasattr(ui, 'main_window'):
@@ -158,11 +158,11 @@ class GraphicsWindow(QWindow):
     def exposeEvent(self, event):
         self.view.redraw_needed = True
             
-from PyQt5.QtWidgets import QLabel
+from PySide2.QtWidgets import QLabel
 class Popup(QLabel):
 
     def __init__(self, graphics_window):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         QLabel.__init__(self)
         import sys
         if sys.platform == 'darwin':
@@ -180,6 +180,6 @@ class Popup(QLabel):
 
     def show_text(self, text, position):
         self.setText(text)
-        from PyQt5.QtCore import QPoint
+        from PySide2.QtCore import QPoint
         self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
         self.show()

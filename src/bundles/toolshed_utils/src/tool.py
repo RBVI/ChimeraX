@@ -48,8 +48,8 @@ class UpdateTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QPushButton, QLabel, QComboBox
         layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -76,7 +76,7 @@ class UpdateTool(ToolInstance):
 
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 width = self.header().length()
                 return QSize(width, 200)
         self.updates = SizedTreeWidget()
@@ -119,7 +119,7 @@ class UpdateTool(ToolInstance):
         self.delete()
 
     def update_install_button(self, *args):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         all_items = self.all_items
         for i in range(all_items.childCount()):
             item = all_items.child(i)
@@ -129,7 +129,7 @@ class UpdateTool(ToolInstance):
         self.install_button.setEnabled(False)
 
     def fill_context_menu(self, menu, x, y):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
@@ -138,8 +138,8 @@ class UpdateTool(ToolInstance):
         self.session.ui.main_window.show_settings('Toolshed')
 
     def _fill_updates(self):
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QTreeWidgetItem, QComboBox
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QTreeWidgetItem, QComboBox
         from packaging.version import Version
         session = self.session
         toolshed = session.toolshed
@@ -219,7 +219,7 @@ class UpdateTool(ToolInstance):
         self._fill_updates()
 
     def install(self):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         toolshed = self.session.toolshed
         logger = self.session.logger
         all_items = self.all_items
