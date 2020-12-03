@@ -927,7 +927,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
     spin_box.setMinimum(minimum)
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
-    from PyQt5.QtCore import Qt
+    from PySide2.QtCore import Qt
     spin_box.setFocusPolicy(Qt.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
@@ -947,7 +947,7 @@ def _make_int_spinbox(min, max, **kw):
     default_maximum = 2**31 - 1
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
-    from PyQt5.QtCore import Qt
+    from PySide2.QtCore import Qt
     spin_box.setFocusPolicy(Qt.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
