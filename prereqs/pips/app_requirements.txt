@@ -43,6 +43,7 @@ tables==3.6.1
 tifffile==2020.9.3
 tinyarray==1.2.3
 webcolors==1.11.1
+wheel-filename==1.2
 #
 # Documentation
 #
