@@ -41,8 +41,10 @@ def initialize_qt_plugins_location():
     mac = (sys.platform == 'darwin')
     if mac:
         # The "plugins" directory can be in one of two places on Mac:
-        # - if we built Qt and PyQt from source: Contents/lib/plugins
-        # - if we used a wheel built using standard Qt: C/l/python3.5/site-packages/PyQt5/Qt/plugins
+        # - if we built Qt and PySide2 from source:
+        #      Contents/lib/plugins
+        # - if we used a wheel built using standard Qt:
+        #      Contents/lib/python3.5/site-packages/PySide2/Qt/plugins
         # If the former, we need to set some environment variables so
         # that Qt can find itself.  If the latter, it "just works",
         # though if there is a comma in the app name, the magic gets
@@ -55,7 +57,7 @@ def initialize_qt_plugins_location():
             # supply an explicit path in this case
             # To find site-packages look above __file__...
             dn = os.path.dirname
-            plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PyQt5/Qt/plugins")
+            plugins = os.path.join(dn(dn(dn(dn(__file__)))), "PySide2/Qt/plugins")
         if os.path.exists(plugins):
             from PySide2.QtCore import QCoreApplication
             qlib_paths = [p for p in QCoreApplication.libraryPaths() if not str(p).endswith('plugins')]

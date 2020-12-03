@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Unless you need to add custom widgets to the dialog, you should use PyQt5.QtWidgets.QFileDialog
+# Unless you need to add custom widgets to the dialog, you should use PySide2.QtWidgets.QFileDialog
 # for opening files, since that will have native look and feel.  The OpenDialog below is for
 # those situations where you do need to add widgets.
 try:

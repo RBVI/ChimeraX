@@ -751,8 +751,8 @@ def _qt_info(session):
         return ""
     import PySide2, PySide2.QtCore
     return (
-                f"PyQt version: {PySide2.__version__}\n"
-                f"Compiled Qt version: {PySide2.QtCore.__version__}\n"
+                f"PySide2 version: {PySide2.__version__}\n"
+                f"Qt version: {PySide2.QtCore.__version__}\n"
     )
 
 

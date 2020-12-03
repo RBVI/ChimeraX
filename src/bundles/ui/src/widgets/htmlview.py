@@ -201,7 +201,7 @@ class HtmlView(QWebEngineView):
         return self._profile
 
     def sizeHint(self):  # noqa
-        """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
+        """Supported API.  Returns size hint as a :py:class:PySide2.QtCore.QSize instance."""
         if self._size_hint:
             from PySide2.QtCore import QSize
             return QSize(*self._size_hint)
@@ -276,7 +276,7 @@ class HtmlView(QWebEngineView):
         ----------
         script :    a string containing URL to new content.
         args :      additional arguments supported by
-                    :py:meth:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
+                    :py:meth:`PySide2.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
         """
         self.page().runJavaScript(script, *args)
 

@@ -72,7 +72,7 @@ class OpenGLError(RuntimeError):
 class OpenGLContext:
     '''
     OpenGL context used by View for drawing.
-    This implementation uses PyQt5 QOpenGLContext.
+    This implementation uses PySide2 QOpenGLContext.
     '''
     
     required_opengl_version = (3, 3)

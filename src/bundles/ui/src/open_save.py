@@ -90,7 +90,7 @@ class OpenDialogWithMessage(QFileDialog):
         path = paths[0]
         return path
 
-# Unless you need to add custom widgets to the dialog, you should use PyQt5.QtWidgets.QFileDialog
+# Unless you need to add custom widgets to the dialog, you should use PySide2.QtWidgets.QFileDialog
 # for opening files, since that will have native look and feel.  The OpenDialog below is for
 # those situations where you do need to add widgets.
 class OpenDialog(QFileDialog):
