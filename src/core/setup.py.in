@@ -51,7 +51,7 @@ setup(
         # We use PyOpenGL 3.1.1 for Windows but 3.1.0 (our build) for
         # Linux and Mac.  Maybe we start using >=?
         # "PyOpenGL == 3.1.0",
-        # "PyQt5_commercial == 5.7",  # TODO: how are we going to handle this?
+        # "PySide2 == 5.15.1",		# in prereqs/pips
         # "scipy == 0.18",  # TODO: breaks on Windows
         # "setuptools == 34.4.1",	# in prereqs/setuptools
         # "sortedcontainers == 1.5.7",	# in prereqs/pips

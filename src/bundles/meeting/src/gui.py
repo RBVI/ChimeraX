@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class MeetingTool(ToolInstance):
 
-#  help = 'help:user/tools/meeting.html'
+  help = 'help:user/tools/meeting.html'
   SESSION_ENDURING = True	# Don't remove tool when meeting is joined
   
   def __init__(self, session, tool_name):
@@ -139,50 +139,43 @@ class MeetingTool(ToolInstance):
     p = CollapsiblePanel(parent, title = None)
     f = p.content_area
 
-    from PyQt5.QtWidgets import QVBoxLayout
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QFrame
     layout = QVBoxLayout(f)
-    layout.setContentsMargins(30,0,0,0)
+    layout.setContentsMargins(30,0,30,10)
     layout.setSpacing(0)
 
-    from chimerax.ui.widgets import EntriesRow, radio_buttons
-    
-    se = EntriesRow(f, False, ' Use server', '', 'key file', '', ('Browse', self._choose_key_file))
-    self._proxy, self._proxy_server, self._proxy_key = ep, ps, pk = se.values
-    ep.value = settings.proxy
-    ps.pixel_width = 190
-    ps.value = settings.proxy_server
-    pk.pixel_width = 60
-    key = settings.proxy_key
-    if key:
-      pk.value = key
-    self._proxy_server.value = 'tunnel@chimeraxmeeting.net'
+    mf = QFrame(f)
+    mlayout = QHBoxLayout(mf)
+    mlayout.setContentsMargins(0,0,0,0)
+    mlayout.setSpacing(8)
+    al = QLabel('Access', mf)
+    mlayout.addWidget(al)
+    self._access_button = ab = QPushButton(mf)
+    ab.setText(settings.access)
+    am = QMenu(mf)
+    for name in settings.access_points.keys():
+        am.addAction(name, lambda n=name: self._set_access_menu(n))
+    ab.setMenu(am)
+    mlayout.addWidget(ab)
+    mlayout.addStretch(1)
+    layout.addWidget(mf)
 
-    sp = EntriesRow(f, '          port range', 52194, '-', 52203, 'timeout (sec)', 5)
-    self._proxy_port_min, self._proxy_port_max, self._proxy_timeout = pmin, pmax, pt = sp.values
-    pmin.pixel_width = pmax.pixel_width = 45
-    pmin.value, pmax.value = settings.proxy_port_range
-    pt.pixel_width = 30
-    pt.value = settings.proxy_timeout
+    msg = 'The access option specifies when creating a meeting how participants will connect.  Direct means participants connect directly to the computer that started the meeting.  If that computer is behind a firewall and cannot be reached by participants then a public computer chimeraxmeeting.net can forward connections to the computer that started the meeting.'
+    self._access_label = el = QLabel(msg, f)
+    # Size hint does not update when window made narrower and word wrape enabled
+    # causing wrong panel height.
+    el.setWordWrap(True)
+    layout.addWidget(el)
 
-    layout.addSpacing(8)
-    ns = EntriesRow(f, 'Name service', '', 'port', 52147)
-    self._name_server, self._name_server_port = sn, sp = ns.values
-    sn.pixel_width = 140
-    sn.value = settings.name_server
-    sp.pixel_width = 45
-    sp.value = settings.name_server_port
+    layout.addStretch(1)
     
     return p
 
   # ---------------------------------------------------------------------------
   #
-  def _choose_key_file(self):
-    parent = self.tool_window.ui_area
-    from PyQt5.QtWidgets import QFileDialog
-    path, ftype  = QFileDialog.getOpenFileName(parent, caption = 'SSH Private Key')
-    if path:
-      self._proxy_key.value = path
-    
+  def _set_access_menu(self, name):
+    self._access_button.setText(name)
+
   # ---------------------------------------------------------------------------
   #
   def _create_buttons(self, parent):
@@ -196,7 +189,7 @@ class MeetingTool(ToolInstance):
     for name, callback in (('Create', self._start_meeting),
                            ('Join', self._join_meeting),
                            ('Leave', self._leave_meeting),
-                           ('Options...', self._toggle_options),
+                           ('Access...', self._toggle_options),
                            ('Help', self._show_help)):
       b = QPushButton(name, f)
       b.clicked.connect(callback)
@@ -230,8 +223,7 @@ class MeetingTool(ToolInstance):
     from .meeting import _meeting_settings
     settings = _meeting_settings(self.session)
     opts = (self._partipant_options(settings) +
-            (self._proxy_options(settings) if start else []) +
-            self._name_server_options(settings))
+            (self._access_options(settings) if start else []))
     if opts:
       cmd += ' ' + ' '.join(opts)
 
@@ -260,44 +252,13 @@ class MeetingTool(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
-  def _proxy_options(self, settings):
+  def _access_options(self, settings):
+
     opts = []
-    from chimerax.core.commands import quote_if_necessary
-
-    proxy = self._proxy.value
-    if proxy != settings.proxy:
-      opts.append('proxy %s' % proxy)
-
-    if proxy:
-      proxy_server = self._proxy_server.value
-      if proxy_server != settings.proxy_server:
-        opts.append('proxyServer %s' % proxy_server)
-      proxy_key = self._proxy_key.value
-      if proxy_key != settings.proxy_key:
-        opts.append('proxyKey %s' % quote_if_necessary(proxy_key))
-      proxy_port_range = (self._proxy_port_min.value, self._proxy_port_max.value)
-      if proxy_port_range != settings.proxy_port_range:
-        opts.append('proxyPortRange %d,%d' % proxy_port_range)
-      proxy_timeout = self._proxy_timeout.value
-      if proxy_timeout != settings.proxy_timeout:
-        opts.append('proxyTimeout %s' % proxy_timeout)
-
-    return opts
-
-  # ---------------------------------------------------------------------------
-  #
-  def _name_server_options(self, settings):
-    opts = []
-    from chimerax.core.commands import quote_if_necessary
-
-    name_server = self._name_server.value
-    if name_server != settings.name_server:
-      opts.append('nameServer %s' % name_server)
-
-    name_server_port = self._name_server_port.value
-    if name_server_port != settings.name_server_port:
-      opts.append('nameServerPort %d' % name_server_port)
-
+    access = self._access_button.text()
+    if access != settings.access:
+      from chimerax.core.commands import quote_if_necessary
+      opts.append('access %s' % quote_if_necessary(access))
     return opts
     
   # ---------------------------------------------------------------------------
@@ -323,7 +284,7 @@ class MeetingTool(ToolInstance):
   #
   def _show_help(self):
     from chimerax.core.commands import run
-    run(self.session, 'help meeting')
+    run(self.session, 'help %s' % self.help)
 
   # ---------------------------------------------------------------------------
   #

@@ -87,7 +87,8 @@ class BundleBuilder:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
-            raise RuntimeError("Building wheel failed")
+            wheel = os.path.basename(self.wheel_path)
+            raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
             print("Distribution is in %s" % self.wheel_path)
 
@@ -108,7 +109,7 @@ class BundleBuilder:
         from chimerax.core import toolshed
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(self.name, session.logger)
-        if bundle is not None:
+        if bundle is not None and bundle.version == self.version:
             cmd += " reinstall true"
         run(session, cmd)
 
@@ -676,9 +677,14 @@ class BundleBuilder:
         self._used_elements.update(tagged_elements)
         elements = []
         for se in tagged_elements:
-            platform = se.get("platform")
-            if not platform or platform in self._platform_names:
+            platforms = se.get("platform")
+            if not platforms:
                 elements.append(se)
+            else:
+                for platform in platforms.split(','):
+                    if platform in self._platform_names:
+                        elements.append(se)
+                        break
         return elements
 
     def _get_element_text(self, e):

@@ -1077,9 +1077,5 @@ extern "C" PyObject *refine_mesh(PyObject *, PyObject *args)
   PyObject *rvarray = c_array_to_python(rv, rvsize, 3);
   PyObject *rtarray = c_array_to_python(rt, rtsize, 3);
 
-  PyObject *geom = PyTuple_New(2);
-  PyTuple_SetItem(geom, 0, rvarray);
-  PyTuple_SetItem(geom, 1, rtarray);
-
-  return geom;
+  return python_tuple(rvarray, rtarray);
 }

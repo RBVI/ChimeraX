@@ -14,8 +14,8 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from copy import deepcopy
-from PyQt5.QtWidgets import QFrame, QTreeWidget, QTreeWidgetItem
-from PyQt5.QtCore import Qt, pyqtSignal
+from PySide2.QtWidgets import QFrame, QTreeWidget, QTreeWidgetItem
+from PySide2.QtCore import Qt, Signal
 
 defaults = {
     "home_tab": [
@@ -95,7 +95,7 @@ class ToolbarTool(ToolInstance):
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
-        from PyQt5.QtWidgets import QVBoxLayout
+        from PySide2.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
         margins = layout.contentsMargins()
         margins.setTop(0)
@@ -112,7 +112,7 @@ class ToolbarTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         button_labels = QAction("Show button labels", menu)
         button_labels.setCheckable(True)
         button_labels.setChecked(_settings.show_button_labels)
@@ -145,7 +145,7 @@ class ToolbarTool(ToolInstance):
 
     def build_home_tab(self):
         # (re)Build Home tab from settings
-        from PyQt5.QtGui import QIcon
+        from PySide2.QtGui import QIcon
         self.ttb.clear_tab("Home")
         last_section = None
         for (section, compact, display_name, icon_path, description, link, bundle_info, name, kw) in _home_layout(self.session, _settings.home_tab):
@@ -158,7 +158,7 @@ class ToolbarTool(ToolInstance):
             else:
                 icon = QIcon(icon_path)
 
-            def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
+            def callback(session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                 bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
             self.ttb.add_button(
                     "Home", section, display_name, callback,
@@ -166,7 +166,7 @@ class ToolbarTool(ToolInstance):
 
     def _build_tabs(self):
         # add buttons from toolbar manager
-        from PyQt5.QtGui import QIcon
+        from PySide2.QtGui import QIcon
         from .manager import fake_mouse_mode_bundle_info
         self.right_mouse_buttons = {}
         self.current_right_mouse_button = None
@@ -198,7 +198,7 @@ class ToolbarTool(ToolInstance):
             else:
                 icon = QIcon(icon_path)
 
-            def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
+            def callback(session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                 bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
             self.ttb.add_button(
                     tab, section, display_name, callback,
@@ -350,11 +350,11 @@ SECTION_FLAGS = (
 
 class _HomeTab(QTreeWidget):
 
-    childDraggedAndDropped = pyqtSignal(name="childDraggedAndDropped")
+    childDraggedAndDropped = Signal(name="childDraggedAndDropped")
 
     def __init__(self, parent, *args, sources=[], **kw):
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QAbstractItemView
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QAbstractItemView
         super().__init__(*args, **kw)
         self.sources = sources
         self.setColumnCount(1)
@@ -366,8 +366,8 @@ class _HomeTab(QTreeWidget):
 
     def dragEnterEvent(self, event):
         # alter drop targets based on what is being dragged
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QTreeWidgetItemIterator
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QTreeWidgetItemIterator
         source = event.source()
         if source != self and source not in self.sources:
             event.ignore()
@@ -468,13 +468,13 @@ class ToolbarSettingsTool:
         self._build_ui()
 
     def _build_ui(self):
-        from PyQt5.QtWidgets import (
+        from PySide2.QtWidgets import (
             QLabel, QPushButton,
             QTreeWidget, QAbstractItemView,
             QGridLayout, QHBoxLayout,
         )
-        from PyQt5.QtGui import QIcon
-        from PyQt5.QtCore import Qt
+        from PySide2.QtGui import QIcon
+        from PySide2.QtCore import Qt
         from .manager import fake_mouse_mode_bundle_info
         parent = self.tool_window.ui_area
         # main widgets
@@ -578,8 +578,8 @@ class ToolbarSettingsTool:
 
     def build_home_tab(self):
         # the following is very similar to code for toolbar layout
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QIcon
+        from PySide2.QtCore import Qt
+        from PySide2.QtGui import QIcon
         if self.home.topLevelItemCount() != 0:
             self.home.itemChanged.disconnect()
             self.home.clear()
@@ -633,7 +633,7 @@ class ToolbarSettingsTool:
                         item.setText(0, new_name)
                         break
         # propagate user changes to home tab
-        from PyQt5.QtWidgets import QTreeWidgetItemIterator
+        from PySide2.QtWidgets import QTreeWidgetItemIterator
         home_tab = []
         cur_section = []
         it = QTreeWidgetItemIterator(self.home)

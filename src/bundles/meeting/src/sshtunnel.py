@@ -18,15 +18,17 @@ class SSHRemoteTunnel:
     Randomly chosen ports in the port range are tried until an available one
     is found.  If all are unavailable an exception is raised.
     '''
-    def __init__(self, remote, key_path, remote_port_range, local_port, log = None,
+    def __init__(self, account, address, key_path, remote_port_range, local_port, log = None,
                  connection_timeout = 5, exit_check_interval = 1.0, closed_callback = None):
-        host = remote.split('@')[1] if '@' in remote else remote
-        self.host = host
+        self.host = address
         self.local_port = local_port
         self._log = log
         self._closed_callback = closed_callback
 
-        p, remote_port = self._create_tunnel(remote, remote_port_range, local_port, key_path, connection_timeout)
+        remote = '%s@%s' % (account, address)
+        p, remote_port = self._create_tunnel(account, address, key_path,
+                                             remote_port_range, local_port,
+                                             connection_timeout)
         self._popen = p
         self.remote_port = remote_port
 
@@ -43,7 +45,8 @@ class SSHRemoteTunnel:
 
     # -----------------------------------------------------------------------------
     #
-    def _create_tunnel(self, remote, remote_port_range, local_port, key_path, connection_timeout):
+    def _create_tunnel(self, account, address, key_path,
+                       remote_port_range, local_port, connection_timeout):
         '''
         Run ssh trying remote ports until an available one is found.
         '''
@@ -58,7 +61,8 @@ class SSHRemoteTunnel:
         for remote_port in ports:
             self._log.status('Checking if port %d available on proxy server %s'
                              % (remote_port, self.host))
-            p = self._run_ssh(remote, remote_port, local_port, key_path, connection_timeout)
+            p = self._run_ssh(account, address, key_path,
+                              remote_port, local_port, connection_timeout)
             if p is None:
                 raise UserError('meeting: failed creating tunnel to proxy')
             exit_message = self._tunnel_created(p, connection_timeout)
@@ -67,21 +71,24 @@ class SSHRemoteTunnel:
                 return p, remote_port
             if 'timed out' in exit_message:
                 self._log.warning(exit_message)
-                raise UserError('meeting: Connection to proxy server %s timed out' % remote)
+                raise UserError('meeting: Connection to proxy server %s@%s timed out'
+                                % (account, address))
             elif 'Connection closed' in exit_message:
                 self._log.warning(exit_message)
-                raise UserError('meeting: Connection to proxy server %s closed' % remote +
+                raise UserError('meeting: Connection to proxy server %s@%s closed'
+                                % (account, address) +
                                 ', possibly an authentication problem.')
             elif 'failed for listen port' in exit_message:
                 continue
 
         self._log.warning(exit_message)
-        raise UserError('meeting: No remote ports (%d - %d) available for ssh tunnel to proxy %s'
-                        % (remote_port_range[0], remote_port_range[1], remote))
+        raise UserError('meeting: No remote ports (%d - %d) available for ssh tunnel to proxy %s@%s'
+                        % (remote_port_range[0], remote_port_range[1], account, address))
 
     # -----------------------------------------------------------------------------
     #
-    def _run_ssh(self, remote, remote_port, local_port, key_path, connection_timeout):
+    def _run_ssh(self, account, address, key_path,
+                 remote_port, local_port, connection_timeout):
         '''Returns subprocess.Popen object.  Does not wait for ssh to connect.'''
 
         import sys
@@ -104,7 +111,7 @@ class SSHRemoteTunnel:
             '-o', 'ConnectTimeout=%d' % connection_timeout, # Fail faster than 75 second TCP timeout if can't connect
             '-o', 'StrictHostKeyChecking=no',		# Don't ask about host authenticity on first connection
             '-R', '%d:localhost:%d' % (remote_port,local_port),	# Remote port forwarding
-            remote,	# Remote machine
+            '%s@%s' % (account, address),	# Remote machine
         ]
 
         from subprocess import Popen, PIPE
@@ -186,7 +193,7 @@ class SSHRemoteTunnel:
 # -----------------------------------------------------------------------------
 #
 def _periodic_callback(interval, callback, *args, **kw):
-    from PyQt5.QtCore import QTimer
+    from PySide2.QtCore import QTimer
     t = QTimer()
     def cb(callback=callback, args=args, kw=kw):
         callback(*args, **kw)
