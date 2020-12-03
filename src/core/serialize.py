@@ -40,13 +40,6 @@ Version 3 of the protocol supports instances of the following types:
 
 from . import _serialize
 
-# Fix _serialize module created by cython that puts a wrong entry
-# in sys.modules that breaks all PySide2 error handling.
-# ChimeraX bug #1635, comment 16.
-import sys
-sys.modules['chimerax.core._serialize'] = sys.modules['core._serialize']
-del sys.modules['core._serialize']
-
 # from ._serial_python import msgpack_serialize_stream, msgpack_deserialize_stream
 from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream, PRIMITIVE_TYPES
 import pickle  # to recognize old session files
