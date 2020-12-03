@@ -145,7 +145,13 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
     if not paths:
         return
 
-    def _qt_safe(session=session, paths=paths, data_format=filter2fmt[file_filter]):
+    # Linux doesn't return a valid file_filter if none is chosen
+    if not file_filter:
+        data_format = None
+    else:
+        data_format = filter2fmt[file_filter]
+
+    def _qt_safe(session=session, paths=paths, data_format=data_format):
         from chimerax.core.commands import run, FileNameArg, StringArg
         run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]) + (""
             if data_format is None else " format " + StringArg.unparse(data_format.nicknames[0])))
