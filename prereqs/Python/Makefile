@@ -5,7 +5,7 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 20.3
+PIP_VERSION = 20.3.1
 WHEEL_VERSION = 0.36.0
 SETUPTOOLS_VERSION = 50.3.2
 
@@ -115,57 +115,57 @@ else ifdef USE_MAC_FRAMEWORKS
 		done; \
 		$(RSYNC) * $(bindir); \
 		cd ..; rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/include; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(includedir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/lib; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(libdir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/Library; \
 	if [ ! -L $$dir ]; \
 	then \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(build_prefix)/Library", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(build_prefix)/Library", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/share; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(datadir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
 	# replace python executable with version that doesn't invoke Python.app
-	cp $(SOURCE)/python.exe $(PYTHON_EXE)
-	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
+	cp $(SOURCE)/python.exe $(PYTHON_BIN)
+	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_BIN)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(PYTHON_EXE)
+		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		$(PYTHON_BIN)
 
 	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
 		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
 
 	chmod 644 $(PYTHON_FRAMEWORK)/Python
 	install_name_tool -id \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_FRAMEWORK)/Python
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 
 	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
 	install_name_tool -add_rpath \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
+		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
+		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
@@ -179,8 +179,8 @@ ifeq ($(OS),Linux)
 	done
 	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
-	if objdump -p $(PYTHON_EXE) | grep RUNPATH > /dev/null; then \
-	       $(bindir)/chrpath -C $(PYTHON_EXE); \
+	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
+	       $(bindir)/chrpath -C $(PYTHON_BIN); \
 	fi
 endif
 ifeq ($(OS),Darwin)
@@ -209,7 +209,7 @@ endif
 	test -f $(DYNLOAD_DIR)/pyexpat.*$(PYMOD_EXT)
 
 app-install:
-	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
+	$(RSYNC) $(PYTHON_BIN) $(app_bindir)
 ifeq ($(OS),Windows)
 	# need include and libs so pip install will work
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
