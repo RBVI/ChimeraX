@@ -9,6 +9,13 @@ LANG	= en_US.UTF-8
 
 PATCHES = pyopengl_macos11.patch suds_jurko.patch webcolors.patch
 
+# Notarized macOS application will not launch first time if it contains
+# libraries with references to non-system libraries outside the application.
+# Remove these inessential libraries from PySide2 that link to external libraries.
+# See ChimeraX ticket #4013 for details.
+PYSIDE2_MACOS_REMOVE = PySide2/Qt/plugins/sqldrivers/libqsqlodbc.dylib \
+			PySide2/Qt/plugins/sqldrivers/libqsqlpsql.dylib
+
 all:
 
 install:
@@ -28,6 +35,7 @@ app-install:
 	-for p in $(PATCHES); do \
 		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
+	-cd $(APP_PYSITEDIR) ; rm -f $(PYSIDE2_MACOS_REMOVE)
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
