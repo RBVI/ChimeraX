@@ -33,7 +33,7 @@ from prefs import RB_LAST_USE
 class Region:
     def __init__(self, region_browser, name=None, init_blocks=[], shown=True,
             border_rgba=None, interior_rgba=None, name_prefix="",
-            cover_gaps=False, source=None):
+            cover_gaps=False, source=None, read_only=False):
         self._name = name
         self.name_prefix = name_prefix
         self.region_browser = region_browser
@@ -43,6 +43,7 @@ class Region:
         self._interior_rgba = interior_rgba
         self.cover_gaps = cover_gaps
         self.source = source
+        self.read_only = read_only
         self.highlighted = False
 
         self._items = []
@@ -306,6 +307,7 @@ class Region:
         self._active = state['_active']
         self.sequence = state['sequence']
         self.associated_with = state['associated_with']
+        self.read_only = state.get('read_only', self._name == "ChimeraX selection")
         self.add_blocks(state['blocks'], make_cb=False)
         return state
 
@@ -372,6 +374,7 @@ class Region:
         state['sequence'] = self.sequence
         state['associated_with'] = self.associated_with
         state['blocks'] = self.blocks
+        state['read_only'] = self.read_only
         return state
 
     def set_cover_gaps(self, cover):
@@ -509,8 +512,8 @@ class RegionBrowser:
             for r in region:
                 self.delete_region(r, rebuild_table=(r == region[-1]))
             return
-        if region == self.get_region("ChimeraX selection"):
-            self.seq_canvas.sv.status("Cannot delete ChimeraX selection region", color="red")
+        if region.read_only:
+            self.seq_canvas.sv.status("Cannot delete %s region" % region.name, color="red")
         else:
             assoc = region.associated_with
             if assoc:
@@ -946,9 +949,9 @@ class RegionBrowser:
     """
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
-            name_prefix="", select=False, assoc_with=None, shown=True,
-            cover_gaps=True, after="ChimeraX selection", rebuild_table=True,
-            session_restore=False, sequence=None, source=None):
+            name_prefix="", select=False, assoc_with=None,
+            after="ChimeraX selection", rebuild_table=True,
+            session_restore=False, sequence=None, **kw):
         if not name and not name_prefix:
             # possibly first user-dragged region
             for reg in self.regions:
@@ -959,8 +962,8 @@ class RegionBrowser:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
         interior = get_rgba(fill)
         border = get_rgba(outline)
-        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
-                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, source=source)
+        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
+                border_rgba=border, interior_rgba=interior, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1
         elif isinstance(after, str):
@@ -1046,10 +1049,9 @@ class RegionBrowser:
             for r in region:
                 self.renameRegion(r)
             return
-        if region == self.get_region("ChimeraX selection"):
+        if region.read_only:
             self.seq_canvas.sv.status(
-                "Cannot rename ChimeraX selection region",
-                color="red")
+                "Cannot rename %s region" % region.name, color="red")
             return
         if name == "ChimeraX selection":
             self.seq_canvas.sv.status("Cannot rename region as '%s'"
@@ -1132,7 +1134,7 @@ class RegionBrowser:
 
     def show_chimerax_selection(self):
         sv = self.seq_canvas.sv
-        sel_region = self.get_region("ChimeraX selection", create=True,
+        sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
@@ -1724,7 +1726,7 @@ class RegionBrowser:
 
     def _sel_change_cb(self, _, changes):
         settings = self.seq_canvas.sv.settings
-        sel_region = self.get_region("ChimeraX selection", create=True,
+        sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
             fill=settings.sel_region_interior, outline=settings.sel_region_border)
         if self._sel_change_from_self:
             sel_region.clear()
