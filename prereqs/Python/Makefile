@@ -115,40 +115,40 @@ else ifdef USE_MAC_FRAMEWORKS
 		done; \
 		$(RSYNC) * $(bindir); \
 		cd ..; rm -rf $$dir ; \
-		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/include; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(includedir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/lib; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(libdir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/Library; \
 	if [ ! -L $$dir ]; \
 	then \
-		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(build_prefix)/Library", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(build_prefix)/Library", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 	dir=$(PYTHON_FRAMEWORK)/share; \
 	if [ ! -L $$dir ]; \
 	then \
 		cp -r $$dir/* $(datadir); \
 		rm -rf $$dir ; \
-		ln -s $(shell python -I -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
 	# replace python executable with version that doesn't invoke Python.app
 	cp $(SOURCE)/python.exe $(PYTHON_BIN)
 	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_BIN)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_BIN)
 
 	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
@@ -156,16 +156,16 @@ else ifdef USE_MAC_FRAMEWORKS
 
 	chmod 644 $(PYTHON_FRAMEWORK)/Python
 	install_name_tool -id \
-		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_FRAMEWORK)/Python
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 
 	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
 	install_name_tool -add_rpath \
-		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
+		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -I -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
+		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
