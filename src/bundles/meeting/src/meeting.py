@@ -1324,8 +1324,8 @@ class MessageStream:
         socket = self._socket
         if socket is None:
             return
-        import sip
-        if sip.isdeleted(socket):
+        import shiboken2
+        if not shiboken2.isValid(socket):
             return	# Happens when exiting ChimeraX
         if report:
             host, port = (socket.peerAddress().toString(), socket.peerPort())
