@@ -105,6 +105,7 @@ def parse_arguments(argv):
     opts.gui = True
     opts.color = None
     opts.module = None  # Python's -m option
+    opts.run_path = None  # Need to act like "python path args"
     opts.line_profile = False
     opts.list_io_formats = False
     opts.load_tools = True
@@ -195,9 +196,21 @@ def parse_arguments(argv):
         opts.silent = True
         opts.event_loop = False
         opts.get_available_bundles = False
+        opts.module = sys.argv[1]
         opts.cmd = sys.argv[3]
         opts.load_tools = False
         return opts, sys.argv[3:]
+    import pip
+    if len(sys.argv) > 1 and sys.argv[1].startswith(pip.__path__[0]):
+        # treat like recursive invokation of pip
+        opts.gui = False
+        opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
+        opts.run_path = sys.argv[1]
+        opts.load_tools = False
+        opts.safe_mode = True
+        return opts, sys.argv[1:]
     try:
         shortopts = ""
         longopts = []
@@ -564,7 +577,7 @@ def init(argv, event_loop=True):
                   check_available=opts.get_available_bundles,
                   remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
-    if opts.module != 'pip':
+    if opts.module != 'pip' and opts.run_path is None:
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
             sess.ui.splash_info("Initializing bundles",
@@ -697,7 +710,7 @@ def init(argv, event_loop=True):
             else:
                 sess.logger.warning(msg)
 
-    if opts.module:
+    if opts.module or opts.run_path:
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
@@ -708,8 +721,11 @@ def init(argv, event_loop=True):
                 'session': sess
             }
             try:
-                runpy.run_module(opts.module, init_globals=global_dict,
-                                 run_name='__main__', alter_sys=True)
+                if opts.module:
+                    runpy.run_module(opts.module, init_globals=global_dict,
+                                     run_name='__main__', alter_sys=True)
+                else:
+                    runpy.run_path(opts.run_path)
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
