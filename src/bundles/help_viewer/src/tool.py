@@ -51,7 +51,7 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        from PySide2.QtWebEngineWidgets import QWebEnginePage
         background = win_type == QWebEnginePage.WebBrowserBackgroundTab
         return self.help_tool.create_tab(background=background)
 
@@ -61,8 +61,8 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def contextMenuEvent(self, event):
         # inpsired by qwebengine simplebrowser example
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWebEngineWidgets import QWebEnginePage
+        from PySide2.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
         self._context_menu = menu = page.createStandardContextMenu()
@@ -99,9 +99,9 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
-        from PyQt5.QtGui import QIcon
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
+        from PySide2.QtGui import QIcon
+        from PySide2.QtCore import Qt
         shortcuts = (
             (Qt.CTRL + Qt.Key_0, self.page_reset_zoom),
             (Qt.CTRL + Qt.Key_T, lambda: self.create_tab(empty=True)),
@@ -159,10 +159,11 @@ class HelpUI(ToolInstance):
             a.setToolTip(tooltip)
             a.triggered.connect(callback)
             if shortcut:
+                from PySide2.QtGui import QKeySequence
                 if isinstance(shortcut, list):
-                    a.setShortcuts(shortcut)
+                    a.setShortcuts([QKeySequence(s) for s in shortcut])
                 else:
-                    a.setShortcut(shortcut)
+                    a.setShortcut(QKeySequence(shortcut))
             a.setEnabled(enabled)
             tb.addAction(a)
 
@@ -206,7 +207,7 @@ class HelpUI(ToolInstance):
         if empty:
             from chimerax import app_dirs
             self.tool_window.title = app_dirs.appname
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             self.url.setFocus(Qt.ShortcutFocusReason)
         if not background:
             self.tabs.setCurrentWidget(w)
@@ -226,8 +227,8 @@ class HelpUI(ToolInstance):
         return w
 
     def authorize(self, requestUrl, auth):
-        from PyQt5.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
+        from PySide2.QtCore import Qt
         class PasswordDialog(QDialog):
 
             def __init__(self, requestUrl, auth, parent=None):
@@ -264,7 +265,7 @@ class HelpUI(ToolInstance):
                 layout.addWidget(self.ok_button, 3, 3)
 
             def reject(self):
-                from PyQt5.QtNetwork import QAuthenticator
+                from PySide2.QtNetwork import QAuthenticator
                 import sip
                 sip.assign(auth, QAuthenticator())
                 return super().reject()
@@ -300,9 +301,9 @@ class HelpUI(ToolInstance):
                     qurl.setPath(new_path)
                     request_info.redirect(qurl)
                     return
-        import sip
+        import shiboken2
         tabs = self.tabs
-        if not sip.isdeleted(tabs):
+        if shiboken2.isValid(tabs):
             chimerax_intercept(request_info, *args, session=self.session,
                                view=tabs.currentWidget())
 
@@ -343,7 +344,7 @@ class HelpUI(ToolInstance):
             self.session.logger.info("Downloading bundle %s" % url_file)
             item.finished.connect(self.download_finished)
         else:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             path, filt = QFileDialog.getSaveFileName(directory=item.path())
             if not path:
                 return
@@ -399,7 +400,7 @@ class HelpUI(ToolInstance):
             w = self.create_tab()
         else:
             w = self.tabs.currentWidget()
-        from PyQt5.QtCore import QUrl
+        from PySide2.QtCore import QUrl
         if html:
             w.setHtml(html, QUrl(url))
         else:
@@ -482,7 +483,7 @@ class HelpUI(ToolInstance):
         self.tabs.setTabText(i, title)
 
     def link_hovered(self, url):
-        from PyQt5.QtCore import QUrl
+        from PySide2.QtCore import QUrl
         try:
             self.status(_qurl2text(QUrl(url)))
         except Exception:

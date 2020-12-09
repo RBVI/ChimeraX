@@ -16,21 +16,22 @@ CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
+PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python$(PYTHON_VERSION)
+PYTHON_BIN = $(CHIMERAX_APP)/Contents/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
+PYTHON_BIN = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
-PYLINT = $(PYTHON_EXE) -I -m flake8
+PYTHON_EXE = $(PYTHON_BIN) -I
+PYLINT = $(PYTHON_EXE) -m flake8
 
 BUNDLE_NAME = ChimeraX-BundleBuilder
-BUNDLE_VERSION = 1.0
+BUNDLE_VERSION = 1.1
 PKG_NAME = chimerax.bundle_builder
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))

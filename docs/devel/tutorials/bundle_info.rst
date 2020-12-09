@@ -76,7 +76,13 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
-    - **limitedAPI**: set to Python stable ABI version; omit otherwise
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise.
+      Typicaly used by binary bundles to declare that they can work with older versions of Python
+      via Python's `Stable Application Binary Interface <https://docs.python.org/3/c-api/stable.html>`_
+      but can also be used by pure-Python bundles that are using very new language features
+      to declare that they *can't* work with older Python versions.
+      In either case, the value is the oldest version that the bundle works with,
+      and is of the form "3.x" (e.g. 3.7).
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle

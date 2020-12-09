@@ -808,7 +808,7 @@ class EnumOf(Annotation):
             i, ident = matches[0]
             return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
-            ms = ', '.join(self.values[i] for i, ident in matches)
+            ms = ', '.join(self.ids[i] for i, ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
@@ -1097,7 +1097,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
     if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
-        from PyQt5.QtWidgets import QFileDialog
+        from PySide2.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
         if name_filter is not None:
@@ -1125,7 +1125,7 @@ class OpenFileNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
@@ -1144,7 +1144,7 @@ class OpenFileNamesArg(Annotation):
     def parse(cls, text, session):
         # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
         else:
             accept_mode = dialog_mode = None
@@ -1165,7 +1165,7 @@ class SaveFileNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
@@ -1179,7 +1179,7 @@ class OpenFolderNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
@@ -1193,7 +1193,7 @@ class SaveFolderNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
@@ -1241,6 +1241,8 @@ class TopModelsArg(AtomSpecArg):
 total_calls = 0
 total_parse = 0
 total_evaluate = 0
+
+
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
@@ -3778,6 +3780,7 @@ if __name__ == '__main__':
         raise SystemExit(1)
     raise SystemExit(0)
 
+
 def log_command(session, command_name, command_text, *, url=None):
     if session is None:
         # for testing purposes
@@ -3795,4 +3798,3 @@ def log_command(session, command_name, command_text, *, url=None):
         text = escape(command_text)
         msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (text, text)
         session.logger.info(msg, is_html=True, add_newline=False)
-

@@ -1917,6 +1917,7 @@ class ChangeTracker:
             else:
                 for item in modded:
                     f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+
     @property
     def changed(self):
         f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)

@@ -33,8 +33,8 @@ class PrepRotamersDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         tw.title = "Choose Rotamer Parameters"
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
+        from PySide2.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         layout.setContentsMargins(0,0,0,0)
@@ -74,7 +74,7 @@ class PrepRotamersDialog(ToolInstance):
         if cw:
             layout.addWidget(cw, alignment=Qt.AlignCenter)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from PySide2.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_rotamers)
         bbox.button(qbbox.Apply).clicked.connect(self.launch_rotamers)
@@ -133,7 +133,7 @@ class PrepRotamersDialog(ToolInstance):
             self.citation_widgets[self.rot_lib_option.value] = self._make_citation_widget()
         new_cite = self.citation_widgets[self.rot_lib_option.value]
         if new_cite:
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             self.layout.insertWidget(self.layout.indexOf(self.bbox), new_cite, alignment=Qt.AlignCenter)
             new_cite.show()
         self.citation_widgets['showing'] = new_cite
@@ -205,9 +205,9 @@ class RotamerDialog(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
+        from PySide2.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
             QPushButton, QRadioButton, QButtonGroup, QGridLayout
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         lib_display_name = self.session.rotamers.library(rot_lib).display_name
@@ -215,7 +215,7 @@ class RotamerDialog(ToolInstance):
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 return QSize(350, 450)
         self.table = RotamerTable(
             column_control_info=(column_disp_widget, _settings, {}, True, None, None, False),
@@ -276,7 +276,7 @@ class RotamerDialog(ToolInstance):
         self.ignore_solvent_button.setChecked(True)
         add_col_layout.addWidget(self.ignore_solvent_button, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from PySide2.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self._apply_rotamer)
         bbox.rejected.connect(self.tool_window.destroy)
@@ -430,7 +430,7 @@ class RotamerDialog(ToolInstance):
                 return
         if sd_type not in self.subdialogs:
             self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
-            from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
+            from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
             layout = QVBoxLayout()
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
@@ -451,7 +451,7 @@ class RotamerDialog(ToolInstance):
                 layout.addWidget(sd.clashes_gui)
             else: # Density
                 from chimerax.ui.widgets import ModelListWidget
-                from PyQt5.QtWidgets import QFormLayout
+                from PySide2.QtWidgets import QFormLayout
                 density_layout = QFormLayout()
                 layout.addLayout(density_layout)
                 sd.vol_list = ModelListWidget(self.session, selection_mode='single', class_filter=Volume)

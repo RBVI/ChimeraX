@@ -252,9 +252,8 @@ extern "C" PyObject *connected_pieces(PyObject *, PyObject *args, PyObject *keyw
   PyObject *plist = PyTuple_New(pc);
   for (int c = 0 ; c < pc ; ++c)
     {
-      PyObject *vt = PyTuple_New(2);
-      PyTuple_SetItem(vt, 0, python_array(*sp.pieces[c].first));
-      PyTuple_SetItem(vt, 1, python_array(*sp.pieces[c].second));
+      PyObject *vt = python_tuple(python_array(*sp.pieces[c].first),
+				  python_array(*sp.pieces[c].second));
       PyTuple_SetItem(plist, c, vt);
     }
   return plist;

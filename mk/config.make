@@ -116,8 +116,8 @@ ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
 APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
-PYTHON_EXE = $(bindir)/python.exe
-APP_PYTHON_EXE = $(app_bindir)/python.exe
+PYTHON_BIN = $(bindir)/python.exe
+APP_PYTHON_BIN = $(app_bindir)/python.exe
 APP_EXE = $(app_bindir)/$(APP_NAME)-console.exe
 CYTHON_EXE = $(bindir)/Scripts/cython.exe
 else ifdef USE_MAC_FRAMEWORKS
@@ -126,19 +126,21 @@ PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 APP_PYTHON_FRAMEWORK = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
-PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
-APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
+PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)
+APP_PYTHON_BIN = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
 CYTHON_EXE = $(bindir)/cython
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
-PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
-APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
+PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)
+APP_PYTHON_BIN = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
 CYTHON_EXE = $(bindir)/cython
 endif
+PYTHON_EXE = $(PYTHON_BIN) -I
+APP_PYTHON_EXE = $(APP_PYTHON_BIN) -I
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 APP_PIP = $(APP_EXE) -m pip
@@ -148,7 +150,7 @@ ifeq ($(OS),Darwin)
 export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
 endif
 
-PYLINT = $(PYTHON_EXE) -I -m flake8
+PYLINT = $(PYTHON_EXE) -m flake8
 
 # common makefile targets
 .PHONY: all install app-install clean
