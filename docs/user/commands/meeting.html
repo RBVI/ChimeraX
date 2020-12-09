@@ -73,6 +73,16 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>meeting</b> &nbsp;<b>close</b>
 </h3>
+
+<table style="background-color:lightyellow; border:1px solid black;"><tr><td style="padding:8px">
+<b>Compatibility</b>: The message protocol used by the meeting command changed in a non-backward
+compatible way in ChimeraX versions released after December 8, 2020.  All
+participants of a meeting must use a ChimeraX version newer than that date,
+or all must use a version older than that date.  The incompatible change
+enabled reducing the network bandwidth (4-10x reduction) and
+increasing security that prevents joining a meeting without knowing its name.
+</table>
+
 <p>
 The <b>meeting</b> command shares a scene between
 two or more ChimeraX instances running on different computers.
@@ -406,11 +416,10 @@ provides no way to list meeting names, so only
 participants who are told the meeting name will be able to join.
 In this sense the meeting name serves as the password, and using a less
 common name will prevent others guessing or accidentally joining the 
-wrong meeting. The <a href="#access">chimeraxmeeting.net server</a> 
-provided by the ChimeraX team has less security.
-Anyone can connect to one of the ten ports used for hosting meetings
-and join without giving the meeting name. In the future,
-we could reject connections that do not submit the meeting name when joining.
+wrong meeting. To join a meeting the participant's Chimera transmits
+the meeting name to the host.  The connection will be rejected if the name
+is incorrect preventing uninvited users from connecting and preventing
+port scans from generating spurious connections.
 </p>
 
 <p>
@@ -436,6 +445,9 @@ Larger numbers of participants increase the network bandwidth needed
 expecially for the computer hosting the meeting and may result in
 slow or jittery updating.  All data to synchronize the scene is
 transmitted through the computer that starts the meeting, so it is a bottleneck.
+Each VR participant sends about 40 Kbits/second to update hand and head
+position.  Desktop participants do not send continuous messages, only sending
+when they move the models or execute commands.
 </p>
 
 <p>
@@ -525,9 +537,7 @@ team and can handle up to 10 simultaneous meetings.
 <p>
 Several problems may arise. The proxy server may be at capacity,
 may be out of service, may introduce delays of seconds if participants
-are in distant parts of the world from the default server in California, USA,
-security is minimal &ndash; anyone could simply try a port on the public proxy
-to connect and join a meeting uninvited.
+are in distant parts of the world from the default server in California, USA.
 </p>
 
 <a name="setupproxy">
@@ -546,8 +556,10 @@ This could be done with any cloud virtual machine service since only ssh is requ
 <ol>
   <li>Create an AWS EC2 virtual machine; I used a free tier type t2.micro 
 using an Ubuntu 18.04 LTS Amazon Machine Image.
-The machine will need minimal compute and network bandwidth as it is just 
-forwarding data. The only large data being forwarded is the initial 
+The machine will need minimal compute as it is just forwarding data.
+The network bandwidth needed depends on the number of participants, which
+each VR participant sending about 40 Kbits/second of hand and head position
+information.  The only large data being forwarded is the initial 
 ChimeraX meeting session. I chose Ubuntu 18.04 only because I have experience 
 with it. Any Linux distribution will work, since only ssh will be used.
   <li>Set the virtual machine security group to allow any computer to connect
@@ -700,11 +712,18 @@ use of the private name server for future meetings.
 <h3>Future Developments</h3>
 
 <p>
-<b>Improved proxy server security</b>.
-Currently anyone can connect directly to one of the ports of a proxy
-server and join a meeting that is using that port without knowing the meeting name.
-In the future, we could reject connections that do not submit the meeting
-name when joining.
+<b>Large meetings</b>.
+We have not tried meetings with more than 4 participants.  In principle meetings
+can have any number of participants but this needs testing, and likely some improvements
+to make larger meetings feasible.  Probably would need the ability for the host to prevent
+participants from moving or changing the models.
+</p>
+
+<p>
+<b>Reuse large data files</b>.
+It would be useful if large data files could be transfered just one time and then used
+for multiple meetings.  Currently all data is transfered at the start of each meeting
+which can be time consuming.
 </p>
 
 <hr>
