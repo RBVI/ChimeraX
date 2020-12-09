@@ -1152,7 +1152,7 @@ class MeetingHub:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
                 if msg_stream.write_backlogged() and _optional_message(msg):
-                    msg_stream._dropped_messages += 1
+#                    msg_stream._dropped_messages += 1
                     continue
                 msg_stream.send_message_bytes(msg_bytes)
 
