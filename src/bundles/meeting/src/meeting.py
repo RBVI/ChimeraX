@@ -1994,10 +1994,10 @@ def _encode_vr_room_position(p):
     return bytes
 
 def _decode_vr_room_position(bytes):
-    from numpy import frombuffer, int16
+    from numpy import frombuffer, int16, float64
     v = frombuffer(bytes, int16)
     origin = 0.0005 * v[3:6]
-    ax,ay,az = v[0:3]
+    ax,ay,az = v[0:3].astype(float64)
     from math import sqrt
     a = sqrt(ax*ax+ay*ay+az*az)
     angle = a * (180/32000)  # degrees
