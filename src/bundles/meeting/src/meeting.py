@@ -1807,15 +1807,15 @@ class VRPointerModel(Model):
                 h.set_cone_color(msg['color'])
         if 'vr coords' in msg:
             self.room_to_scene = _matrix_place(msg['vr coords'])
-        if self._VR_HEAD_POSITION in msg:
+        if VRTracking._VR_HEAD_POSITION in msg:
             h = self._head
-            h.room_position = rp = _matrix_place(msg[self._VR_HEAD_POSITION],
-                                                 encoding = 'vr room')
+            hm = msg[VRTracking._VR_HEAD_POSITION]
+            h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
             h.position = self.room_to_scene * rp
         if 'vr head image' in msg:
             self._head.update_image(msg['vr head image'])
-        if self._VR_HAND_POSITIONS in msg:
-            hpos = msg[self._VR_HAND_POSITIONS]
+        if VRTracking._VR_HAND_POSITIONS in msg:
+            hpos = msg[VRTracking._VR_HAND_POSITIONS]
             rts = self.room_to_scene
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
