@@ -296,6 +296,32 @@ class Logger(StatusLogger):
                 else:
                     self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
+
+            # similarly, only redirect Python logging module if we're the first session
+            import logging
+            class CXLogHandler(logging.Handler):
+                def __init__(self, logger, level=logging.INFO):
+                    super().__init__(level=level)
+                    self._logger = logger
+
+                def emit(self, record):
+                    rtext = self.format(record)
+                    if record.levelno == logging.INFO:
+                        self._logger.info(rtext)
+                    elif record.levelno == logging.WARNING:
+                        self._logger.warning(rtext)
+                    elif record.levelno == logging.ERROR:
+                        self._logger.error(rtext)
+                    elif record.levelno == logging.CRITICAL:
+                        self._logger.bug(rtext)
+
+            root = logging.getLogger()
+            # Remove other handlers
+            for handler in getattr(root, 'handlers', [])[:]:
+                root.removeHandler(handler)
+            root.addHandler(CXLogHandler(self))
+            root.setLevel(logging.INFO)
+
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())

@@ -17,9 +17,9 @@ ChimeraX-specific schemes.  It is built on top of :py:class:`HtmlView`,
 which provides scheme support.
 """
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
-from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-from PyQt5.QtWebEngineCore import QWebEngineUrlSchemeHandler
+from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
+from PySide2.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+from PySide2.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 
 def set_user_agent(profile):
@@ -84,12 +84,7 @@ def create_profile(parent, schemes=None, interceptor=None, download=None):
             return interceptor(request_info, *args)
 
     profile._intercept = _RequestInterceptor(callback=_intercept)
-    from PyQt5.QtCore import QT_VERSION
-    if QT_VERSION < 0x050d00:
-        profile.setRequestInterceptor(profile._intercept)
-    else:
-        # Qt 5.13 and later
-        profile.setUrlRequestInterceptor(profile._intercept)
+    profile.setUrlRequestInterceptor(profile._intercept)
     if schemes:
         profile._schemes = [s.encode("utf-8") for s in schemes]
         profile._scheme_handler = _SchemeHandler()
@@ -107,7 +102,7 @@ def delete_profile(profile):
         profile.removeAllUrlSchemeHandlers()
         del profile._scheme_handler
         del profile._schemes
-    from PyQt5.QtCore import QT_VERSION
+    from PySide2.QtCore import QT_VERSION
     if QT_VERSION < 0x050d00:
         profile.setRequestInterceptor(None)
     else:
@@ -116,7 +111,7 @@ def delete_profile(profile):
 
 class HtmlView(QWebEngineView):
     """
-    HtmlView is a derived class from PyQt5.QtWebEngineWidgets.QWebEngineView
+    HtmlView is a derived class from PySide2.QtWebEngineWidgets.QWebEngineView
     that simplifies using custom schemes and intercepting navigation requests.
 
     HtmlView may be instantiated just like QWebEngineView, with additional
@@ -177,9 +172,9 @@ class HtmlView(QWebEngineView):
         # gets it to work
         import sys
         if sys.platform == "darwin":
-            from PyQt5.QtGui import QKeySequence
-            from PyQt5.QtWidgets import QShortcut
-            from PyQt5.QtCore import Qt
+            from PySide2.QtGui import QKeySequence
+            from PySide2.QtWidgets import QShortcut
+            from PySide2.QtCore import Qt
             self.copy_sc = QShortcut(QKeySequence.Copy, self)
             self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
             if self._tool_window:
@@ -206,9 +201,9 @@ class HtmlView(QWebEngineView):
         return self._profile
 
     def sizeHint(self):  # noqa
-        """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
+        """Supported API.  Returns size hint as a :py:class:PySide2.QtCore.QSize instance."""
         if self._size_hint:
-            from PyQt5.QtCore import QSize
+            from PySide2.QtCore import QSize
             return QSize(*self._size_hint)
         else:
             return super().sizeHint()
@@ -228,7 +223,7 @@ class HtmlView(QWebEngineView):
         html :   a string containing new HTML content.
         url :    a string containing URL corresponding to content.
         """
-        from PyQt5.QtCore import QUrl
+        from PySide2.QtCore import QUrl
         # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         self.setEnabled(False)
         # HACK ALERT: to get around a QWebEngineView bug where HTML
@@ -270,7 +265,7 @@ class HtmlView(QWebEngineView):
         url :    a string containing URL to new content.
         """
         if isinstance(url, str):
-            from PyQt5.QtCore import QUrl
+            from PySide2.QtCore import QUrl
             url = QUrl(url)
         super().setUrl(url)
 
@@ -281,7 +276,7 @@ class HtmlView(QWebEngineView):
         ----------
         script :    a string containing URL to new content.
         args :      additional arguments supported by
-                    :py:meth:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
+                    :py:meth:`PySide2.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
         """
         self.page().runJavaScript(script, *args)
 
@@ -444,7 +439,9 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
             finally:
                 if prev_dir:
                     os.chdir(prev_dir)
-        session.ui.thread_safe(defer, session, qurl.url(qurl.None_), from_dir)
+        from PySide2.QtCore import QUrl
+        no_formatting = QUrl.FormattingOptions(QUrl.None_)
+        session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 
 

@@ -75,7 +75,7 @@ def meeting(session, meeting_name = None,
         from chimerax.core.errors import UserError
         raise UserError('Must specify meeting name, or host or id options')
     
-    p = _join_meeting(session, host, port, timeout = timeout)
+    p = _join_meeting(session, host, port, timeout = timeout, meeting_name = meeting_name)
 
     mname = '"%s"' % id if id else ''
     session.logger.info('Joining meeting%s at %s port %d' % (mname, host, port))
@@ -157,7 +157,22 @@ def meeting_start(session, meeting_name = None,
     # Log meeting info
     addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else p.hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
+    _report_protocol(session.logger)
 
+# -----------------------------------------------------------------------------
+#
+def _report_protocol(log):
+    msg = '''
+<p style="color:blue">
+The ChimeraX meeting command message protocol was changed December 8, 2020
+in order to reduce the network bandwidth (4 - 10 times reduction), and to
+block participants that do not provide the meeting name for better security.
+All participants must use ChimeraX newer than December 8, 2020, or all must
+use an older version because the old protocol is not compatible with the new one.
+</p>
+'''
+    log.info(msg, is_html = True)
+    
 # -----------------------------------------------------------------------------
 #
 def _create_ssh_tunnel(session, access, participant, local_port):
@@ -340,7 +355,11 @@ class RegisterMeetingName:
             raise UserError('meeting: Meeting name "%s" already in use' % meeting_name)
 
         hub._registered_meeting_name = self
-        
+
+    @property
+    def name(self):
+        return self._meeting_name
+    
     def _meeting_address(self, hub, access):
         proxy = hub._ssh_tunnel
         if proxy:
@@ -423,8 +442,8 @@ def _default_proxy_key_file():
 
 # -----------------------------------------------------------------------------
 #
-def _join_meeting(session, host, port, timeout = None):
-    p = _meeting_participant(session, create = True)
+def _join_meeting(session, host, port, timeout = None, meeting_name = None):
+    p = _meeting_participant(session, create = True, meeting_name = meeting_name)
     if p.connected:
         from chimerax.core.errors import UserError
         raise UserError('To join another meeting you must exit'
@@ -693,19 +712,21 @@ def register_meeting_command(cmd_name, logger):
 
 # -----------------------------------------------------------------------------
 #
-def _meeting_participant(session, create = False, start_hub = False):
+def _meeting_participant(session, create = False, start_hub = False, meeting_name = None):
     p = getattr(session, '_meeting_participant', None)
     if p and p.closed:
         session._meeting_participant = p = None
     if p is None and create:
-        p = MeetingParticipant(session, start_hub = start_hub)
+        p = MeetingParticipant(session, start_hub = start_hub, meeting_name = meeting_name)
         session._meeting_participant = p
     return p
 
 # -----------------------------------------------------------------------------
 #
 class MeetingParticipant:
-    def __init__(self, session, start_hub = False):
+    def __init__(self, session, start_hub = False, meeting_name = None):
+        self._version = 1		# Message protocol version
+        self._meeting_name = meeting_name  # Used for authentication
         self._session = session
         self._name = 'Remote'
         self._color = (0,255,0,255)
@@ -750,15 +771,20 @@ class MeetingParticipant:
     def connect(self, host, port, timeout = None):
         if self._hub:
             raise RuntimeError('Cannot join a meeting when currently hosting a meeting.')
-        from PyQt5.QtNetwork import QTcpSocket
+        from PySide2.QtNetwork import QTcpSocket
         socket = QTcpSocket()
         msg_stream = MessageStream(socket, self._message_received, self._disconnected,
                                    self._session.logger, connection_timeout = timeout)
         self._message_stream = msg_stream
         socket.connectToHost(host, port)
-        self._session.logger.status('Waiting for scene data from meeting host')
+
+        mname = '' if self._meeting_name is None else self._meeting_name
+        msg = {'join': mname, 'version': self._version}
+        self._send_message(msg)
 
         self._initiate_tracking()
+
+        self._session.logger.status('Waiting for scene data from meeting host')
 
     @property
     def hub(self):
@@ -800,33 +826,30 @@ class MeetingParticipant:
     def send_scene(self):
         if self._session.models.empty():
             return
-        msg = {'scene': self._encode_session()}
-        self._send_message(msg)
+        session_bytes = self._encode_session()
+        # Send size of session to allow progress status messages.
+        self._send_message({'session size': len(session_bytes)})
+        self._send_message({'session': session_bytes})
             
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
         self._session.save(stream, version=3, include_maps=True)
-        from base64 import b64encode
-        sbytes = b64encode(stream.getbuffer())
+        from lz4.frame import compress
+        sbytes = compress(stream.getbuffer())
         return sbytes
 
-    def _restore_session(self, base64_sbytes):
+    def _restore_session(self, session_bytes):
+        size = len(session_bytes)/2**20
         ses = self._session
-        ses.logger.status('Opening scene (%.1f Mbytes)' % (len(base64_sbytes)/2**20,))
-        from time import time
-        t1 = time()
-        from base64 import b64decode
-        sbytes = b64decode(base64_sbytes)
+        from lz4.frame import decompress
+        sbytes = decompress(session_bytes)
         from io import BytesIO
         stream = BytesIO(sbytes)
         restore_camera = (ses.main_view.camera.name != 'vr')
         ses.restore(stream, resize_window = False, restore_camera = restore_camera,
                     clear_log = False)
         self._received_scene = True
-        t2 = time()
-        ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
-                          % (len(sbytes)/2**20, (t2-t1)))
 
     def send_and_receive_commands(self, enable=True): 
         h = self._command_handlers
@@ -894,8 +917,10 @@ class MeetingParticipant:
             self._trackers = [mt, vrt]
 
     def _message_received(self, msg, msg_stream):
-        if 'scene' in msg:
-            self._restore_session(msg['scene'])
+        if 'session' in msg:
+            self._restore_session(msg['session'])
+        if 'session size' in msg:
+            msg_stream.status_message_size = msg['session size']
         if 'command' in msg:
             self._run_command(msg)
         for t in self._trackers:
@@ -923,7 +948,7 @@ class MeetingParticipant:
 #
 def _optional_message(msg):
     if len(msg) == 2 or (len(msg) == 3 and 'id' in msg):
-        if 'vr head' in msg and 'vr hands' in msg:
+        if VRTracking._VR_HEAD_POSITION in msg and VRTracking._VR_HAND_POSITIONS in msg:
             return True	# Reporting only head and hand positions.
         if 'command' in msg and msg.get('motion'):
             return True # Motion command
@@ -939,16 +964,22 @@ class MeetingHub:
         self._server = None		# QTcpServer listens for connections
         msg_stream = MessageStreamLocal(host_participant._message_received)
         self._connections = [msg_stream] # List of MessageStream for each participant
+        self._pending_connections = set()  # MessageStreams that have not yet sent join message.
         self._next_participant_id = 1
         self._host = host_participant	# MeetingParticipant that provides session for new participants.
         self._copy_scene = True		# Whether new participants get copy of scene
         self._ssh_tunnel = None		# SSHRemoteTunnel instance for ssh tunnel to proxy.
-        self._registered_meeting_name = None	# RegisteredMeetingName
+        self._registered_meeting_name = None	# RegisterMeetingName
+        self._debug = True		# Write error messages for refused connections.
 
     def close(self):
         for msg_stream in tuple(self._connections):
             msg_stream.close()
         self._connections = []
+
+        for msg_stream in tuple(self._pending_connections):
+            msg_stream.close()
+        self._pending_connections.clear()
         
         self._server.close()
         self._server = None
@@ -978,7 +1009,7 @@ class MeetingHub:
     def listen(self, port):
         if self._server:
             return
-        from PyQt5.QtNetwork import QTcpServer, QHostAddress
+        from PySide2.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
         a = QHostAddress.Any
         if not s.listen(a, port):
@@ -1002,7 +1033,7 @@ class MeetingHub:
         s = self._server
         port = s.serverPort()
         addresses = [a.toString() for a in self._available_server_ipv4_addresses()]
-        from PyQt5.QtNetwork import QHostInfo
+        from PySide2.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
             addresses.insert(0, host)
@@ -1014,7 +1045,7 @@ class MeetingHub:
                 if not isinstance(c, MessageStreamLocal)]
     
     def _available_server_ipv4_addresses(self):
-        from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
+        from PySide2.QtNetwork import QNetworkInterface, QAbstractSocket
         a = []
         for ni in QNetworkInterface.allInterfaces():
             flags = ni.flags()
@@ -1037,15 +1068,43 @@ class MeetingHub:
             socket = s.nextPendingConnection()
             msg_stream = MessageStream(socket, self._message_received,
                                        self._disconnected, self._session.logger)
-            self._add_connection(msg_stream)
-            host, port = (socket.peerAddress().toString(), socket.peerPort())
-            self._session.logger.info('Connection accepted from %s port %d' % (host, port))
+            self._pending_connections.add(msg_stream)
+
+    def _handle_join_message(self, msg, msg_stream):
+        if msg_stream not in self._pending_connections:
+            return False
+        
+        self._pending_connections.remove(msg_stream)
+        
+        if 'join' in msg:
+            rmn = self._registered_meeting_name
+            if rmn is None or msg['join'] == rmn.name:
+                self._add_connection(msg_stream)
+            else:
+                # Did not provide the right meeting name, so disconnect.
+                if self._debug:
+                    err_msg = ('Connection from %s port %d refused' % msg_stream.host_and_port() +
+                               ' because meeting name mismatch "%s" != "%s"' % (msg['join'], rmn.name))
+                    self._session.logger.info(err_msg)
+                msg_stream.close()
+        else:
+            # First message did not include "join" key.
+            if self._debug:
+                err_msg = ('Connection from %s port %d refused' % msg_stream.host_and_port() +
+                           ' because first message does not have join key: %s' % list(msg.keys()))
+                self._session.logger.info(err_msg)
+            msg_stream.close()
+
+        return True
 
     def _add_connection(self, msg_stream):
         msg_stream.participant_id = self._next_participant_id
         self._next_participant_id += 1
-            
+
         self._connections.append(msg_stream)
+        
+        self._session.logger.info('Connection accepted from %s port %d'
+                                  % msg_stream.host_and_port())
 
         # Send new participant the initial scene
         if self._copy_scene:
@@ -1057,8 +1116,11 @@ class MeetingHub:
     def _copy_scene_to_participant(self, message_stream):
         if self._session.models.empty():
             return
-        msg = {'scene': self._host._encode_session()}
-        self._send_message(msg, message_streams=[message_stream])
+        session_bytes = self._host._encode_session()
+        self._send_message({'session size': len(session_bytes)},
+                           message_streams=[message_stream])
+        self._send_message({'session': session_bytes},
+                           message_streams=[message_stream])
 
     def _send_room_coords(self, message_stream):
         rts = self._host.vr_tracker.last_room_to_scene
@@ -1068,6 +1130,9 @@ class MeetingHub:
             self._send_message(msg, message_streams=[message_stream])
 
     def _message_received(self, msg, msg_stream):
+        if self._handle_join_message(msg, msg_stream):
+            return
+        
         if 'id' not in msg:
             msg['id'] = msg_stream.participant_id
         self._send_message(msg)
@@ -1087,11 +1152,15 @@ class MeetingHub:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
                 if msg_stream.write_backlogged() and _optional_message(msg):
-                    msg_stream._dropped_messages += 1
+#                    msg_stream._dropped_messages += 1
                     continue
                 msg_stream.send_message_bytes(msg_bytes)
 
     def _disconnected(self, msg_stream):
+        if msg_stream in self._pending_connections:
+            self._pending_connections.remove(msg_stream)
+            return
+        
         self._connections.remove(msg_stream)
 
         # Sendmessage to other participants that this participant has left
@@ -1108,26 +1177,20 @@ class MessageStream:
         self._disconnected_cb = disconnected_cb
         
         self._log = log
-        self._bytes_list = []	# blocks of bytes read so far.
-        self._byte_count = 0
-        self._msg_length = None
+
+        from msgpack import Unpacker
+        self._unpacker = Unpacker()
 
         # If write buffer grows beyond this limit
         # optional messages will not be sent.
         self._max_write_backlog_bytes = 50000
-        
-        self._status_report_interval = 0.5	# seconds
-        self._status_start_time = None
-        self._last_status_time = None
-        self._last_status_bytes = None
 
-        # Report network bandwidth used by received messages.
-        self._bandwidth_report_interval = 0	# seconds, 0 = no reporting
-        self._bandwidth_bytes_read = 0
-        self._bandwidth_last_time = None
-        self._bandwidth_message_count = 0
-        self._dropped_messages = 0
-#        self._bandwidth_last_message = b'none'
+        # Progress status messages
+        self._status_report_interval = 0.5	# seconds
+        self._message_start_time = None
+        self._last_status_time = None
+        self._message_bytes_read = 0
+        self.status_message_size = 0
         
         socket.error.connect(self._socket_error)
         socket.disconnected.connect(self._socket_disconnected)
@@ -1146,14 +1209,13 @@ class MessageStream:
         s = self._socket
         s.deleteLater()
         self._socket = None
-#        self._keep_alive = s
 
     def host_and_port(self):
         s = self._socket
         return (s.peerAddress().toString(), s.peerPort())
     
     def send_message_bytes(self, msg_bytes):
-        from PyQt5.QtCore import QByteArray
+        from PySide2.QtCore import QByteArray
         qbytes = QByteArray(msg_bytes)
         self._socket.write(qbytes)
 
@@ -1163,17 +1225,13 @@ class MessageStream:
     @staticmethod
     def message_as_bytes(message):
         '''
-        message is a dictionary which is sent as a string
-        prepended by 4 bytes giving the length of the dictionary string.
-        We include the length in order to know where a dictionary ends
-        when transmitted over a socket.
+        The message can be any of the types handles by msgpack.
+        It is typically a dictionary with strings as keys and bytes,
+        integers, floats, and strings as values.
         '''
-        msg_bytes = repr(message).encode('utf-8')
-        if b'\0' in msg_bytes:
-            raise ValueError('Null byte in message:\n%s' % msg_bytes)
-        from numpy import array, uint32
-        msg_len = array([len(msg_bytes)], uint32).tobytes()
-        return msg_len + msg_bytes
+        from msgpack import packb
+        bytes = packb(message)
+        return bytes
 
     def _data_available(self):
         while True:
@@ -1185,130 +1243,82 @@ class MessageStream:
         
     def _read_message(self):
         socket = self._socket
-#        bavail = socket.bytesAvailable()
-#        rbytes = socket.read(bavail)
+        if socket is None:
+            return None		# Socket was closed
         rbytes = socket.readAll()
-        self._bytes_list.append(rbytes)
-        self._byte_count += len(rbytes)
-        if self._have_full_message():
+        unpacker = self._unpacker
+        unpacker.feed(rbytes)
+        self._report_message_progress(len(rbytes))
+#        self._report_read_bandwidth(len(rbytes))
+        for msg in unpacker:
             self._report_message_received()
-            msg = self._assemble_message()
-        else:
-            self._report_message_progress()
-            msg = None
-        self._report_read_bandwidth(len(rbytes))
-        self._check_for_null_bytes(rbytes)  # Debug code. Ticket #3784
-        return msg
-        
-    def _check_for_null_bytes(self, rbytes):
-        '''Debug code. Ticket #3784. Getting null bytes in messages.'''
-        if self._msg_length is None or len(self._bytes_list) == 0:
-            return
-        last_block = self._bytes_list[-1]
-        null_count = last_block.count(b'\0')
-        if null_count > 0:
-            msg = ('Error: Got %d null bytes in last block of size %d, last socket read of %d bytes:/n%s'
-                   % (null_count, len(last_block), len(rbytes), rbytes))
-            self._log.info(msg)
-
-    def _have_full_message(self):
-        msg_len = self._message_length
-        return msg_len is not None and self._byte_count >= msg_len
-
-    @property
-    def _message_length(self):
-        msg_len = self._msg_length
-        if msg_len is not None:
-            return msg_len
-        if self._byte_count < 4:
-            return None
-        bytes = self._take_bytes(4)
-        from numpy import frombuffer, uint32
-        msg_len = frombuffer(bytes, uint32)[0]
-        self._msg_length = msg_len
-        return msg_len
-
-    def _assemble_message(self):
-        bytes = self._take_bytes(self._message_length)
-        self._msg_length = None
-        msg = _decode_message_bytes(bytes)
-        self._bandwidth_message_count += 1
-#        self._bandwidth_last_message = bytes
-        return msg
-
-    def _take_bytes(self, nbytes):
-        if nbytes > self._byte_count:
-            raise ValueError('Tried to take %d bytes when only %d available'
-                             % (nbytes, self._byte_count))
-        all_bytes = b''.join(self._bytes_list)
-        if nbytes == self._byte_count:
-            self._bytes_list = []
-            self._byte_count = 0
-        else:
-            self._bytes_list = [all_bytes[nbytes:]]
-            self._byte_count = len(all_bytes) - nbytes
-        return all_bytes[:nbytes]
+#            self._bandwidth_message_count += 1
+            return msg
+        return None
 
     def _report_message_received(self):
-        '''Report receiving message from a peer.'''
-        lt = self._last_status_time
-        self._last_status_time = None
-        if lt is None or lt <= self._status_start_time:
-            # No progress was reported because message took
-            # less than _status_report_interval to receive.
-            # So don't report message received.
-            return
-        from time import time
-        t = time()
-        msg = ('Received %.1f Mbytes in %.1f seconds'
-               % (self._message_length / 2**20, t - self._status_start_time))
-        self._log.status(msg)
+        '''Report size and time for large received messages.'''
+        st = self._message_start_time
+        if st is not None:
+            from time import time
+            mt = time() - st
+            if mt >= self._status_report_interval:
+                msg = ('Received %.1f Mbytes in %.1f seconds'
+                       % (self._message_bytes_read / 2**20, mt))
+                self._log.status(msg)
+        self._message_start_time = None
+        self._message_bytes_read = 0
+        self.status_message_size = 0
 
-    def _report_message_progress(self):
+    def _report_message_progress(self, bytes_read):
         '''Report progress receiving message.'''
-        msg_len = self._msg_length
-        if msg_len is None or msg_len == 0:
+        if bytes_read == 0:
             return
-        bytes_received = self._byte_count
+        self._message_bytes_read += bytes_read
+        st = self._message_start_time
         from time import time
         t = time()
-        lt = self._last_status_time
-        if lt is None:
-            self._status_start_time = t
+        if st is None:
+            self._message_start_time = t
             self._last_status_time = t
-            self._last_status_bytes = bytes_received
-        elif t - lt > self._status_report_interval:
-            percent = 100 * bytes_received/msg_len
-            rate = ((bytes_received - self._last_status_bytes) / 2**20) / (t - lt)
-            msg = ('Receiving data %.0f%% of %.1f Mbytes, (%.1f Mbytes/sec)'
-                   % (percent, msg_len / 2**20, rate))
-            self._log.status(msg)
-            self._last_status_time = t
-            self._last_status_bytes = bytes_received
+        else:
+            et = t - self._last_status_time
+            if et >= self._status_report_interval:
+                mbytes = self._message_bytes_read / 2**20
+                msize = self.status_message_size / 2**20
+                if msize:
+                    percent = min(100, (100*mbytes/msize))
+                    msg = 'Receiving data %.0f%% of %.1f Mbytes' % (percent, msize)
+                else:
+                    msg = 'Receiving data %.1f Mbytes' % mbytes
+                self._log.status(msg)
+                self._last_status_time = t
 
     def _report_read_bandwidth(self, nbytes):
-        dt = self._bandwidth_report_interval
-        if dt <= 0:
-            return
+        'Report network bandwidth used by received messages.'
+
+        if not hasattr(self, '_bandwidth_report_interval'):
+            self._bandwidth_report_interval = 1	# seconds, 0 = no reporting
+            self._bandwidth_bytes_read = 0
+            self._bandwidth_last_time = None
+            self._bandwidth_message_count = 0
+
         self._bandwidth_bytes_read += nbytes
         from time import time
         t = time()
         lt = self._bandwidth_last_time
         if lt is None:
             self._bandwidth_last_time = t
-        elif t-lt > dt:
-            rmbits = 8e-6 * self._bandwidth_bytes_read
+        elif t-lt > self._bandwidth_report_interval:
+            rmbits = 8e-3 * self._bandwidth_bytes_read  # Kbits
             mc = self._bandwidth_message_count
             self._bandwidth_bytes_read = 0
             self._bandwidth_last_time = t
             self._bandwidth_message_count = 0
             rsec = t-lt
-            msg = ('Read %.2f Mbit/sec (%.2f Mbits in %.1f sec), %.1f messages/sec'
+            msg = ('Read %.0f Kbit/sec (%.0f Kbits in %.1f sec), %.1f messages/sec'
                    % (rmbits/rsec, rmbits, rsec, mc/rsec))
-            self._log.status(msg, log = True)
-            self._log.info('Dropped %d messages' % self._dropped_messages)
-            self._dropped_messages = 0
-#            self._log.info('last message %s' % self._bandwidth_last_message)
+            self._log.status(msg)
             
     def _socket_error(self, error_type):
         socket = self._socket
@@ -1324,8 +1334,8 @@ class MessageStream:
         socket = self._socket
         if socket is None:
             return
-        import sip
-        if sip.isdeleted(socket):
+        import shiboken2
+        if not shiboken2.isValid(socket):
             return	# Happens when exiting ChimeraX
         if report:
             host, port = (socket.peerAddress().toString(), socket.peerPort())
@@ -1349,25 +1359,17 @@ class MessageStream:
             self._socket_disconnected(report = False)  # QTcpSocket is not firing the disconnected signal
 
 def _set_timer(timeout, callback):
-    from PyQt5.QtCore import QTimer
+    from PySide2.QtCore import QTimer
     delay_msec = int(1000*timeout)
     return QTimer.singleShot(delay_msec, callback)
-    
-def _decode_message_bytes(bytes):
-    msg_string = bytes.decode('utf-8')
-    import ast
-    try:
-        msg_data = ast.literal_eval(msg_string)
-    except ValueError as e:
-        raise ValueError('ChimeraX meeting message could not be parsed, length %d, content "%s"' % (len(bytes), bytes)) from e
-    return msg_data
 
 class MessageStreamLocal:
     def __init__(self, send_message_cb):
         self._send_message_cb = send_message_cb
         self.participant_id = 0
     def send_message_bytes(self, msg_bytes):
-        msg = _decode_message_bytes(msg_bytes[4:])
+        from msgpack import unpackb
+        msg = unpackb(msg_bytes)
         self._send_message_cb(msg, self)
     def write_backlogged(self):
         return False
@@ -1512,6 +1514,8 @@ class MousePointerModel(Model):
             self.position = p
 
 class VRTracking(PointerModels):
+    _VR_HEAD_POSITION = 'vH'	# Message key, short to reduce bandwidth.
+    _VR_HAND_POSITIONS = 'vh'	# Message key, short to reduce bandwidth.
     def __init__(self, session, participant, sync_coords = True, update_interval = 1):
         PointerModels.__init__(self, session)
         self._participant = participant		# MeetingParticipant instance
@@ -1555,7 +1559,7 @@ class VRTracking(PointerModels):
                 c.room_to_scene = rts
                 self._reposition_vr_head_and_hands(c)
 
-        if 'vr head' in msg:
+        if self._VR_HEAD_POSITION in msg:
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
@@ -1598,8 +1602,8 @@ class VRTracking(PointerModels):
 
         # Report VR hand and head motions.
         msg = {
-            'vr head': self._head_position(c),	 # In room coordinates
-            'vr hands': self._hand_positions(c), # In room coordinates
+            self._VR_HEAD_POSITION: self._head_position(c),	 # In room coordinates
+            self._VR_HAND_POSITIONS: self._hand_positions(c),	 # In room coordinates
         }
 
         nu = self._name_update()
@@ -1633,7 +1637,8 @@ class VRTracking(PointerModels):
 
     def _head_position(self, vr_camera):
         from chimerax.geometry import scale
-        return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
+        return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale),
+                             encoding = 'vr room')
 
     def _name_update(self):
         name = self._participant._name
@@ -1666,7 +1671,7 @@ class VRTracking(PointerModels):
     
     def _hand_positions(self, vr_camera):
         # Hand controller room position includes scaling from room to scene coordinates
-        return [_place_matrix(h.room_position)
+        return [_place_matrix(h.room_position, encoding = 'vr room')
                 for h in vr_camera._hand_controllers if h.on]
 
     def _hand_buttons_update(self, vr_camera):
@@ -1802,17 +1807,18 @@ class VRPointerModel(Model):
                 h.set_cone_color(msg['color'])
         if 'vr coords' in msg:
             self.room_to_scene = _matrix_place(msg['vr coords'])
-        if 'vr head' in msg:
+        if VRTracking._VR_HEAD_POSITION in msg:
             h = self._head
-            h.room_position = rp = _matrix_place(msg['vr head'])
+            hm = msg[VRTracking._VR_HEAD_POSITION]
+            h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
             h.position = self.room_to_scene * rp
         if 'vr head image' in msg:
             self._head.update_image(msg['vr head image'])
-        if 'vr hands' in msg:
-            hpos = msg['vr hands']
+        if VRTracking._VR_HAND_POSITIONS in msg:
+            hpos = msg[VRTracking._VR_HAND_POSITIONS]
             rts = self.room_to_scene
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
-                h.room_position = rp = _matrix_place(hm)
+                h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
                 h.position = rts * rp
         if 'vr hand buttons' in msg:
             hbut = msg['vr hand buttons']
@@ -1854,7 +1860,7 @@ class VRHeadModel(Model):
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
-        from PyQt5.QtGui import QImage
+        from PySide2.QtGui import QImage
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
@@ -1870,11 +1876,11 @@ class VRHeadModel(Model):
         self.texture = Texture(rgba)
         self.texture_coordinates = tc
 
-    def update_image(self, base64_image_bytes):
-        image_bytes = _decode_face_image(base64_image_bytes)
-        from PyQt5.QtGui import QImage
+    def update_image(self, image_bytes):
+        im_bytes = _decode_face_image(image_bytes)
+        from PySide2.QtGui import QImage
         qi = QImage()
-        qi.loadFromData(image_bytes)
+        qi.loadFromData(im_bytes)
         aspect = qi.width() / qi.height()
         va = self.vertices
         caspect = va[:,0].max() / va[:,1].max()
@@ -1951,43 +1957,79 @@ def _vr_camera(session):
     from chimerax.vive.vr import SteamVRCamera
     return c if isinstance(c, SteamVRCamera) else None
 
-def _place_matrix(p):
-    '''Encode Place as tuple for sending over socket.'''
-    return tuple(tuple(row) for row in p.matrix)
+def _place_matrix(p, encoding = 'float32 matrix'):
+    '''Encode Place as bytes for sending over socket.'''
+    if encoding == 'float32 matrix':
+        from numpy import float32
+        bytes = p.matrix.astype(float32).tobytes()
+    elif encoding == 'vr room':
+        bytes = _encode_vr_room_position(p)
+    return bytes
 
-def _matrix_place(m):
-    from chimerax.geometry import Place
-    return Place(matrix = m)
+def _matrix_place(bytes, encoding = 'float32 matrix'):
+    if encoding == 'float32 matrix':
+        from numpy import frombuffer, float32, float64
+        m = frombuffer(bytes, float32).astype(float64).reshape((3,4))
+        from chimerax.geometry import Place
+        p = Place(matrix = m)
+    elif encoding == 'vr room':
+        # Encode as 16-bit shift and rotation vector.
+        p = _decode_vr_room_position(bytes)
+    return p
+
+def _encode_vr_room_position(p):
+    '''
+    Encode room position with minimal bytes (12 instead of 48)
+    to lower bandwidth when position is transmitted at high frequency.
+    Encode shift and rotation vector as 16-bit integers.
+    Shift resolution is 0.5 mm with range  +/- 16 meters.
+    Rotation resolution is 0.005 degree (= 180 / 32000).
+    '''
+    from numpy import empty, int16, clip
+    v = empty((6,), int16)
+    clip(2000*p.origin(), -32768, 32767, out = v[3:6])
+    axis, angle = p.rotation_axis_and_angle()
+    v[0:3] = (32000 * angle/180) * axis
+    bytes = v.tobytes()
+    return bytes
+
+def _decode_vr_room_position(bytes):
+    from numpy import frombuffer, int16, float64
+    v = frombuffer(bytes, int16)
+    origin = 0.0005 * v[3:6]
+    ax,ay,az = v[0:3].astype(float64)
+    from math import sqrt
+    a = sqrt(ax*ax+ay*ay+az*az)
+    angle = a * (180/32000)  # degrees
+    axis = (ax/a,ay/a,az/a) if a > 0 else (0,0,1)
+    from chimerax.geometry import rotation, translation
+    p = translation(origin) * rotation(axis, angle)
+    return p
 
 def _encode_face_image(path):
-    from base64 import b64encode
-    hf = open(path, 'rb')
-    he = b64encode(hf.read())
-    hf.close()
-    return he
+    f = open(path, 'rb')
+    bytes = f.read()
+    f.close()
+    return bytes
 
 def _decode_face_image(bytes):
-    from base64 import b64decode
-    image_bytes = b64decode(bytes)
-    return image_bytes
+    return bytes
 
 def _encode_numpy_array(array):
-    from base64 import b64encode
-    from zlib import compress
-    data = b64encode(compress(array.tobytes(), level = 1))
+    from lz4.frame import compress
+    bytes = compress(array.tobytes())
     data = {
         'shape': tuple(array.shape),
         'dtype': array.dtype.str,
-        'data': data
+        'data': bytes
     }
     return data
 
 def _decode_numpy_array(array_data):
     shape = array_data['shape']
     dtype = array_data['dtype']
-    from base64 import b64decode
-    from zlib import decompress
-    data = decompress(b64decode(array_data['data']))
+    from lz4.frame import decompress
+    bytes = decompress(array_data['data'])
     import numpy
-    a = numpy.frombuffer(data, dtype).reshape(shape)
+    a = numpy.frombuffer(bytes, dtype).reshape(shape)
     return a

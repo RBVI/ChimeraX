@@ -318,9 +318,10 @@ def save_grid_data(grids, path, session, format = None, options = {}):
       os.remove(path)
     shutil.move(tpath, path)
 
-  # Update path in grid data object.
+  # Set path of grid data object if it has no path.
   for g in glist:
-    g.set_path(path, ff.name)
+    if not g.path:
+      g.set_path(path, ff.name)
 
   from os.path import basename
   p.message('Wrote file %s' % basename(path))

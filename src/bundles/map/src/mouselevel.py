@@ -139,6 +139,8 @@ def log_volume_level_command(v, final = True):
         levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
     elif v.surface_shown:
         levels = ' '.join('level %.4g' % s.level for s in v.surfaces)
+    else:
+        return
     command = 'volume #%s %s' % (v.id_string, levels)
     if final:
         from chimerax.core.commands import log_equivalent_command

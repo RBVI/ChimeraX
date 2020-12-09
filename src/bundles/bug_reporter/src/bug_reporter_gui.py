@@ -40,9 +40,9 @@ class BugReporter(ToolInstance):
         parent = tw.ui_area
         parent.setMinimumWidth(600)
 
-        from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QTextEdit
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QCheckBox
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QTextEdit
+        from PySide2.QtWidgets import QWidget, QHBoxLayout, QCheckBox
+        from PySide2.QtCore import Qt
         
         layout = QGridLayout(parent)
         layout.setContentsMargins(3,3,3,3)
@@ -88,13 +88,13 @@ class BugReporter(ToolInstance):
                 self._lines = initial_line_height
                 QTextEdit.__init__(self, text)
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 fm = self.fontMetrics()
                 h = self._lines * fm.lineSpacing() + fm.ascent()
                 size = QSize(-1, h)
                 return size
             def minimumSizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 return QSize(1,1)
 
         dl = QLabel('Description:')
@@ -310,7 +310,7 @@ class BugReporter(ToolInstance):
         self.delete()
 
     def file_browse(self):
-        from PyQt5.QtWidgets import QFileDialog
+        from PySide2.QtWidgets import QFileDialog
         path,type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
@@ -749,11 +749,10 @@ def _darwin_info():
 def _qt_info(session):
     if not session.ui.is_gui:
         return ""
-    from PyQt5 import QtCore as Qt
+    import PySide2, PySide2.QtCore
     return (
-        f"PyQt version: {Qt.PYQT_VERSION_STR}\n"
-        f"Compiled Qt version: {Qt.QT_VERSION_STR}\n"
-        f"Runtime Qt version: {Qt.qVersion()}\n"
+                f"PySide2 version: {PySide2.__version__}\n"
+                f"Qt version: {PySide2.QtCore.__version__}\n"
     )
 
 

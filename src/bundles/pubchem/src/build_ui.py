@@ -11,10 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
-from PyQt5.QtWidgets import QCheckBox, QSizePolicy
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
+from PySide2.QtWidgets import QCheckBox, QSizePolicy
+from PySide2.QtGui import QDoubleValidator, QIntValidator
+from PySide2.QtCore import Qt
 from chimerax.core.errors import UserError
 from chimerax.build_structure import StartStructureProvider
 

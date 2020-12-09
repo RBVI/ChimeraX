@@ -352,7 +352,7 @@ class Keyboard_Shortcuts:
       
     def key_pressed(self, event):
         k = event.key()
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         if k == Qt.Key_Escape:
             self.disable_shortcuts()
             return
@@ -768,7 +768,7 @@ def subtract_maps(session):
         return
 
     map1, map2 = maps
-    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string, map2.id_string))
+    run(session, 'vop subtract #%s #%s minrms True' % (map1.id_string, map2.id_string))
 
 def smooth_map(session):
     maps = shortcut_maps(session, undisplayed = False)

@@ -438,7 +438,9 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else 'top')
+        # Until floating windows behavior is better...
+        #self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else None)
+        self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -502,7 +504,7 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from PyQt5.QtWidgets import QAction
+        from PySide2.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
@@ -510,17 +512,17 @@ class SequenceViewer(ToolInstance):
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
             action = QAction(fmt.synopsis, save_as_menu)
-            action.triggered.connect(lambda arg, fmt=fmt:
+            action.triggered.connect(lambda *args, fmt=fmt:
                 run(self.session, "save browse format %s alignment %s"
                 % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
             save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
+        scf_action.triggered.connect(lambda: self.load_scf_file(None))
         file_menu.addAction(scf_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
-        assoc_action.triggered.connect(lambda arg: self.show_associations())
+        assoc_action.triggered.connect(self.show_associations)
         from chimerax.atomic import AtomicStructure
         for m in self.session.models:
             if isinstance(m, AtomicStructure):
@@ -540,8 +542,8 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 action.setEnabled(False)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if checked else "hide")))
+            action.triggered.connect(lambda action=action, hdr=hdr, align_arg=align_arg, self=self: run(
+                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
         headers_menu.addSeparator()
         hdr_save_menu = headers_menu.addMenu("Save")
@@ -550,7 +552,7 @@ class SequenceViewer(ToolInstance):
                 continue
             action = QAction(hdr.name, hdr_save_menu)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda checked, hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 
@@ -559,26 +561,26 @@ class SequenceViewer(ToolInstance):
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
-        comp_model_action.triggered.connect(lambda arg: run(self.session,
+        comp_model_action.triggered.connect(lambda: run(self.session,
             "ui tool show 'Modeller Comparative'"))
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         tools_menu.addAction(comp_model_action)
         if len(self.alignment.seqs) == 1:
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda arg: run(self.session,
+            blast_action.triggered.connect(lambda: run(self.session,
                 "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
             tools_menu.addAction(blast_action)
         else:
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda arg: run(self.session,
+                blast_action.triggered.connect(lambda: run(self.session,
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
 
         settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
+        settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
 
     def load_scf_file(self, path, color_structures=None):

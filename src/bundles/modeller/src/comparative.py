@@ -232,10 +232,15 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             while first_assoc_pos not in match_map:
                 first_assoc_pos += 1
             first_assoc_res = match_map[first_assoc_pos]
+            assoc_length = 0
+            for string in strings:
+                length = len(string.replace('-', ''))
+                if length > assoc_length:
+                    assoc_length = length
             pir_template = Sequence(name=chain_save_name(chain))
             pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
                 structure_save_name(chain.structure), first_assoc_res.number, first_assoc_res.insertion_code,
-                chain.chain_id, len(strings[0]), chain.chain_id)
+                chain.chain_id, assoc_length, chain.chain_id)
             structures_to_save.add(chain.structure)
         pir_template.characters = '/'.join(strings)
         pir_seqs.append(pir_template)

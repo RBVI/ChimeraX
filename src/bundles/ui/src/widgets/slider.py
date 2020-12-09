@@ -42,9 +42,9 @@ class Slider(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
-        from PyQt5.QtGui import QPixmap, QIcon
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
+        from PySide2.QtGui import QPixmap, QIcon
+        from PySide2.QtCore import Qt
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(4)
