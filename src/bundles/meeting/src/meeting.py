@@ -1990,7 +1990,7 @@ def _encode_vr_room_position(p):
     clip(2000*p.origin(), -32768, 32767, out = v[3:6])
     axis, angle = p.rotation_axis_and_angle()
     v[0:3] = (32000 * angle/180) * axis
-    bytes = a.tobytes()
+    bytes = v.tobytes()
     return bytes
 
 def _decode_vr_room_position(bytes):
@@ -2008,7 +2008,7 @@ def _decode_vr_room_position(bytes):
 
 def _encode_face_image(path):
     f = open(path, 'rb')
-    bytes = hf.read()
+    bytes = f.read()
     f.close()
     return bytes
 
