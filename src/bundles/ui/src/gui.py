@@ -2062,6 +2062,11 @@ class ToolWindow(StatusLogger):
         #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
+        #
+        # In order to avoid shifting focus to the command line when keys like CapsLock and
+        # AltGr are pressed (e.g. in the Python Shell), would like to not forward such keys
+        # but there doesn't seem to be a simple reliable test for "mode changing" keys, so
+        # am leaving disabling of this forwarding explicitly in the Shell tool.
         from PySide2.QtWidgets import QLineEdit, QComboBox
         if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
             self.tool_instance.session.ui.forward_keystroke(event)
