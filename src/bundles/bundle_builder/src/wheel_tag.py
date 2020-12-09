@@ -43,8 +43,8 @@ def tag(pure, limited=None):
             version = ''.join(str(v) for v in limited.release[:2])
             tag = tags.Tag(f"py{version}", "none", "any")
         else:
-            # limit to current Python version, e.g., py38 instead of py3
-            tag = tags.Tag(f"py{vi.major}{vi.minor}", "none", "any")
+            # savvy developers can handle default of all versions of Python 3
+            tag = tags.Tag(f"py{vi.major}", "none", "any")
     else:
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
