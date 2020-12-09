@@ -1826,6 +1826,9 @@ def _open_dropped_file(session, path):
     from chimerax.core.commands import run, FileNameArg
     run(session, 'open %s' % FileNameArg.unparse(path))
 
+from PySide2.QtCore import Qt
+keyboard_state_keys = set([Qt.Key_CapsLock, Qt.Key_NumLock, Qt.Key_ScrollLock, Qt.Key_AltGr])
+
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
     """Supported API. An area that a tool can populate with widgets.
@@ -2063,12 +2066,12 @@ class ToolWindow(StatusLogger):
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
         #
-        # In order to avoid shifting focus to the command line when keys like CapsLock and
-        # AltGr are pressed (e.g. in the Python Shell), would like to not forward such keys
-        # but there doesn't seem to be a simple reliable test for "mode changing" keys, so
-        # am leaving disabling of this forwarding explicitly in the Shell tool.
+        # Since forwarding keystrokes can shift the keyboard focus, don't forward keys that
+        # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
+        # for the Python Shell retaining focus.
         from PySide2.QtWidgets import QLineEdit, QComboBox
-        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
+        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)) \
+        and event.key() not in keyboard_state_keys:
             self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
