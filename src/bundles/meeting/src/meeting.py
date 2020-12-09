@@ -1152,7 +1152,7 @@ class MeetingHub:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
                 if msg_stream.write_backlogged() and _optional_message(msg):
-                    msg_stream._dropped_messages += 1
+#                    msg_stream._dropped_messages += 1
                     continue
                 msg_stream.send_message_bytes(msg_bytes)
 
@@ -1807,15 +1807,15 @@ class VRPointerModel(Model):
                 h.set_cone_color(msg['color'])
         if 'vr coords' in msg:
             self.room_to_scene = _matrix_place(msg['vr coords'])
-        if self._VR_HEAD_POSITION in msg:
+        if VRTracking._VR_HEAD_POSITION in msg:
             h = self._head
-            h.room_position = rp = _matrix_place(msg[self._VR_HEAD_POSITION],
-                                                 encoding = 'vr room')
+            hm = msg[VRTracking._VR_HEAD_POSITION]
+            h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
             h.position = self.room_to_scene * rp
         if 'vr head image' in msg:
             self._head.update_image(msg['vr head image'])
-        if self._VR_HAND_POSITIONS in msg:
-            hpos = msg[self._VR_HAND_POSITIONS]
+        if VRTracking._VR_HAND_POSITIONS in msg:
+            hpos = msg[VRTracking._VR_HAND_POSITIONS]
             rts = self.room_to_scene
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.room_position = rp = _matrix_place(hm, encoding = 'vr room')
@@ -1990,14 +1990,14 @@ def _encode_vr_room_position(p):
     clip(2000*p.origin(), -32768, 32767, out = v[3:6])
     axis, angle = p.rotation_axis_and_angle()
     v[0:3] = (32000 * angle/180) * axis
-    bytes = a.tobytes()
+    bytes = v.tobytes()
     return bytes
 
 def _decode_vr_room_position(bytes):
-    from numpy import frombuffer, int16
+    from numpy import frombuffer, int16, float64
     v = frombuffer(bytes, int16)
     origin = 0.0005 * v[3:6]
-    ax,ay,az = v[0:3]
+    ax,ay,az = v[0:3].astype(float64)
     from math import sqrt
     a = sqrt(ax*ax+ay*ay+az*az)
     angle = a * (180/32000)  # degrees
@@ -2008,7 +2008,7 @@ def _decode_vr_room_position(bytes):
 
 def _encode_face_image(path):
     f = open(path, 'rb')
-    bytes = hf.read()
+    bytes = f.read()
     f.close()
     return bytes
 
