@@ -31,8 +31,9 @@ pkginfo==1.5.0.1
 psutil==5.7.2
 pycollada==0.7.1
 pydicom==2.0.0
-PyOpenGL==3.1.5
-PyOpenGL-accelerate==3.1.5
+# PyOpenGL handled in app_pyopengl_requirements.txt
+#PyOpenGL==3.1.5
+#PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
 PySide2==5.15.2
 qtconsole==4.7.7
