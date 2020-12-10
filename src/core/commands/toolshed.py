@@ -59,7 +59,10 @@ def _reSt_to_html(source):
 
 def _display_bundles(bi_list, toolshed, logger, use_html=False, full=True):
     def bundle_key(bi):
-        return bi.name
+        prefix = "ChimeraX-"
+        if bi.name.startswith(prefix):
+            return bi.name[len(prefix):].casefold()
+        return bi.name.casefold()
     info = ""
     if use_html:
         from html import escape
@@ -252,7 +255,7 @@ def toolshed_install(session, bundle_names, user_only=True,
 
     Parameters
     ----------
-    bundle_name : string
+    bundle_names : sequence of bundle name or wheel filename
     user_only : bool
       Install for this user only, or install for all users.
     no_deps : bool
@@ -313,7 +316,7 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
 
     Parameters
     ----------
-    bundle_names : sequence of strings
+    bundle_names : sequence of bundle names
     force_remove : boolean
     '''
     ts = session.toolshed
