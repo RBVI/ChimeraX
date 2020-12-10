@@ -164,10 +164,10 @@ def meeting_start(session, meeting_name = None,
 def _report_protocol(log):
     msg = '''
 <p style="color:blue">
-The ChimeraX meeting command message protocol was changed December 8, 2020
+The ChimeraX meeting command message protocol was changed December 9, 2020
 in order to reduce the network bandwidth (4 - 10 times reduction), and to
 block participants that do not provide the meeting name for better security.
-All participants must use ChimeraX newer than December 8, 2020, or all must
+All participants must use ChimeraX newer than December 9, 2020, or all must
 use an older version because the old protocol is not compatible with the new one.
 </p>
 '''
@@ -1091,9 +1091,9 @@ class MeetingHub:
             # First message did not include "join" key.
             if self._debug:
                 err_msg = ('Connection from %s port %d refused' % msg_stream.host_and_port() +
-                           ' because first message does not have join key: %s' % list(msg.keys()))
+                           ' because first message does not have join key: %s' % str(list(msg.keys())))
                 self._session.logger.info(err_msg)
-            msg_stream.close()
+                msg_stream.close()
 
         return True
 
@@ -1132,10 +1132,10 @@ class MeetingHub:
     def _message_received(self, msg, msg_stream):
         if self._handle_join_message(msg, msg_stream):
             return
-        
+
         if 'id' not in msg:
             msg['id'] = msg_stream.participant_id
-        self._send_message(msg)
+            self._send_message(msg)
 
     def _send_message(self, msg, message_streams = None):
         '''Message will not be sent to participant with same id as message.'''
@@ -1144,15 +1144,15 @@ class MeetingHub:
 
         if message_streams is None:
             message_streams = self._connections
-        exclude_id = msg['id']
-        message_streams = [ms for ms in message_streams
+            exclude_id = msg['id']
+            message_streams = [ms for ms in message_streams
                            if ms.participant_id != exclude_id]
 
         if message_streams:
             msg_bytes = MessageStream.message_as_bytes(msg)
             for msg_stream in message_streams:
                 if msg_stream.write_backlogged() and _optional_message(msg):
-#                    msg_stream._dropped_messages += 1
+                    #                    msg_stream._dropped_messages += 1
                     continue
                 msg_stream.send_message_bytes(msg_bytes)
 
@@ -1205,7 +1205,7 @@ class MessageStream:
 
     def close(self):
         # Calling close crashes if it is in disconnect callback.
-#        self._socket.close()
+        #        self._socket.close()
         s = self._socket
         s.deleteLater()
         self._socket = None
@@ -1240,7 +1240,7 @@ class MessageStream:
                 break	# Don't have full message yet.
             else:
                 self._message_received_cb(msg, self)
-        
+                
     def _read_message(self):
         socket = self._socket
         if socket is None:
@@ -1249,11 +1249,24 @@ class MessageStream:
         unpacker = self._unpacker
         unpacker.feed(rbytes)
         self._report_message_progress(len(rbytes))
-#        self._report_read_bandwidth(len(rbytes))
-        for msg in unpacker:
-            self._report_message_received()
-#            self._bandwidth_message_count += 1
-            return msg
+        #        self._report_read_bandwidth(len(rbytes))
+
+        # Get a message if enough data is available.
+        try:
+            for msg in unpacker:
+                if not isinstance(msg, dict):
+                    raise ValueError('Message was not a dictionary, got %s' % str(type(msg)))
+                self._report_message_received()
+                #                self._bandwidth_message_count += 1
+                return msg
+        except Exception as e:
+            msg = ('Meeting received a message with wrong format from %s port %d.\n'
+                   % self.host_and_port() +
+                   'Possibly they are running a ChimeraX older than Dec 9, 2020 ' +
+                   ' which used a different message protocol.\n%s' % str(e))
+            self._log.warning(msg)
+            socket.close()
+    
         return None
 
     def _report_message_received(self):
