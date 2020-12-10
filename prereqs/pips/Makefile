@@ -33,6 +33,7 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
+	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	-for p in $(PATCHES); do \
 		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
