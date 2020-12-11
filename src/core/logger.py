@@ -286,6 +286,7 @@ class Logger(StatusLogger):
             Log.LEVEL_WARNING: self.warning,
             Log.LEVEL_INFO: self.info
         }
+        self._python_logging = False
         # only put in an excepthook if we're the first session:
         import sys
         if sys.excepthook == sys.__excepthook__:
@@ -296,31 +297,6 @@ class Logger(StatusLogger):
                 else:
                     self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
-
-            # similarly, only redirect Python logging module if we're the first session
-            import logging
-            class CXLogHandler(logging.Handler):
-                def __init__(self, logger, level=logging.INFO):
-                    super().__init__(level=level)
-                    self._logger = logger
-
-                def emit(self, record):
-                    rtext = self.format(record)
-                    if record.levelno == logging.INFO:
-                        self._logger.info(rtext)
-                    elif record.levelno == logging.WARNING:
-                        self._logger.warning(rtext)
-                    elif record.levelno == logging.ERROR:
-                        self._logger.error(rtext)
-                    elif record.levelno == logging.CRITICAL:
-                        self._logger.bug(rtext)
-
-            root = logging.getLogger()
-            # Remove other handlers
-            for handler in getattr(root, 'handlers', [])[:]:
-                root.removeHandler(handler)
-            root.addHandler(CXLogHandler(self))
-            root.setLevel(logging.INFO)
 
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
@@ -412,6 +388,48 @@ class Logger(StatusLogger):
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
                   last_resort=sys.__stdout__)
+
+    @property
+    def python_logging(self):
+        return self._python_logging
+
+    @python_logging.setter
+    def python_logging(self, val):
+        if val == self._python_logging:
+            return
+        self._python_logging = val
+        import logging
+        root = logging.getLogger()
+        if val:
+            class CXLogHandler(logging.Handler):
+                def __init__(self, logger, level=logging.INFO):
+                    super().__init__(level=level)
+                    self._logger = logger
+
+                def emit(self, record):
+                    rtext = self.format(record)
+                    if record.levelno == logging.INFO:
+                        self._logger.info(rtext)
+                    elif record.levelno == logging.WARNING:
+                        self._logger.warning(rtext)
+                    elif record.levelno == logging.ERROR:
+                        self._logger.error(rtext)
+                    elif record.levelno == logging.CRITICAL:
+                        self._logger.bug(rtext)
+
+            # Remove other handlers
+            self._previous_python_logging_handlers = getattr(root, 'handlers', [])[:]
+            for handler in self._previous_python_logging_handlers:
+                root.removeHandler(handler)
+            self._python_logging_handler = CXLogHandler(self)
+            root.addHandler(self._python_logging_handler)
+            self._previous_python_logging_level = root.getEffectiveLevel()
+            root.setLevel(logging.INFO)
+        else:
+            root.removeHandler(self._python_logging_handler)
+            for prev_handler in self._previous_python_logging_handlers:
+                root.addHandler(prev_handler)
+            root.setLevel(self._previous_python_logging_level)
 
     def remove_log(self, log):
         """Supported API. Remove a logger"""
