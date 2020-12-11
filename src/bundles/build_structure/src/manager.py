@@ -18,6 +18,7 @@ class StartStructureManager(ProviderManager):
     def __init__(self, session):
         self.session = session
         self.providers = {}
+        self._provider_bundles = {}
         self._ui_names = {}
         self._indirect = {}
         self._new_model_only = {}
@@ -38,7 +39,7 @@ class StartStructureManager(ProviderManager):
             indirect = eval(indirect.capitalize())
         if isinstance(new_model_only, str):
             new_model_only = eval(new_model_only.capitalize())
-        self.providers[name] = bundle_info.run_provider(self.session, name, self)
+        self._provider_bundles[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._indirect[name] = indirect
         self._new_model_only[name] = new_model_only
@@ -47,7 +48,7 @@ class StartStructureManager(ProviderManager):
     def get_command_substring(self, name, param_widget):
         # given the settings in the parameter widget, get the corresponding command args
         # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
-        return self.providers[name].command_string(param_widget)
+        return self._get_provider(name).command_string(param_widget)
 
     def end_providers(self):
         from .tool import BuildStructureTool
@@ -56,10 +57,10 @@ class StartStructureManager(ProviderManager):
         self._new_providers = []
 
     def execute_command(self, name, structure, args):
-        return self.providers[name].execute_command(structure, args)
+        return self._get_provider(name).execute_command(structure, args)
 
     def fill_parameters_widget(self, name, widget):
-        self.providers[name].fill_parameters_widget(widget)
+        self._get_provider(name).fill_parameters_widget(widget)
 
     def is_indirect(self, name):
         return self._indirect[name]
@@ -69,10 +70,15 @@ class StartStructureManager(ProviderManager):
 
     @property
     def provider_names(self):
-        return list(self.providers.keys())
+        return list(self._provider_bundles.keys())
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
+
+    def _get_provider(self, name):
+        if name not in self.providers:
+            self.providers[name] = self._provider_bundles[name].run_provider(self.session, name, self)
+        return self.providers[name]
 
 _manager = None
 def get_manager(session):
