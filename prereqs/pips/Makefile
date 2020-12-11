@@ -33,6 +33,9 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
+# Temporarily add clearing cache of PyOpenGL that was built without numpy.  ChimeraX bug #3760.
+# Remove cache clear after this runs in nightly builds one time.
+	$(APP_PIP) cache remove PyOpenGL*
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	-for p in $(PATCHES); do \
 		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
