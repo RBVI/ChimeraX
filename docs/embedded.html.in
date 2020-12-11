@@ -37,12 +37,6 @@ ChimeraX is distributed as Python packages,
 either written in the Python language
 or as a binary package written in C or C++.
 
-<dt><a href="https://www.riverbankcomputing.com/software/pyqt/" target="_blank"> PyQt </a> version 5
-<dd>&ldquo;PyQt is a set of Python v2 and v3 bindings for <a href="https://www.qt.io" target="_blank">The Qt Company's</a> Qt application framework and runs on all platforms supported by Qt including Windows, OS X, Linux, iOS and Android.&rdquo;
-&ldquo;PyQt is dual licensed on all supported platforms under the GNU GPL v3 and the Riverbank Commercial License.&rdquo;
-<br>
-License: ChimeraX is develped with a commercial license for PyQt.
-See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq" target="_blank"> License FAQ </a> for more details.
 <p>
 <dt>Rotamer libraries (amino acid sidechain conformations and associated information) from the following sources:
 <dd>
