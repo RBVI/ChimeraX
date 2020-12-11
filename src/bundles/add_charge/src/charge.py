@@ -14,8 +14,7 @@
 class ChargeError(RuntimeError):
     pass
 
-def add_standard_charges(session, models=None, *, status=None, phosphorylation=None, charge_model=None,
-        query_user=True):
+def add_standard_charges(session, models=None, *, status=None, phosphorylation=None, query_user=True):
     """add AMBER charges to well-known residues
 
        'models' restricts the addition to the specified models
@@ -81,6 +80,45 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     uncharged_res_types = {}
     uncharged_atoms = {}
     uncharged_residues = set()
+    #TODO: create data.py
+    from .data import heavy_charge_type_data, hyd_charge_type_data, charge_model
+    from chimerax.atomic import Atom
+    Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
+    session.logger.info("Charge model: %s" % charge_model)
+    for s in structures:
+        for r in s.residues:
+            if not hasattr(r, "amber_name"):
+                uncharged_residues.add(r)
+                uncharged_res_types.setdefault(r.name, []).append(r)
+        modified_atoms = []
+        # since hydrogen names are so unreliable, look them up based on the atom they are bonded to
+        # rather than their own name
+        hydrogen_data = []
+        for a in s.atoms:
+            if a.residue.name in uncharged_res_types:
+                continue
+            modified_atoms.add(a)
+            if a.element.number == 1:
+                if a.num_bonds != 1:
+                    raise ChargeError("Hydrogen %s not bonded to exactly one other atom" % a)
+                hydrogen_data.append((a, a.neighbors[0]))
+                continue
+            try:
+                a.charge, a.gaff_type = heavy_charge_type_data[a.residue.amber_name, a.name.lower()]
+            except KeyError:
+                raise ChargeError("Nonstandard name for heavy atom %s" % a)
+        for h, heavy in hydrogen_data:
+            if h.residue != heavy.residue:
+                raise ChargeError("Hydrogen %s bonded to atom in diffent residue (%s)" % (h, heavy))
+            if heavy.element.number < 2:
+                raise ChargeError("Hydrogen %s bonded to non-heavy atom %s" % (h, heavy))
+            try:
+                h.charge, h.gaff_type = hyd_charge_type_data[h.residue.amber_name, heavy.name.lower()]
+            except KeyError:
+                raise ChargeError("Hydrogen %s bonded to atom that should not have hydrogens (%s)"
+                    % (h, heavy))
+        session.change_tracker.add_modified(modified_atoms, "charge changed")
+        session.change_tracker.add_modified(modified_atoms, "gaff_type changed")
     #TODO
 
 ion_types = {
@@ -135,6 +173,14 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
                 else:
                     session.logger.info("Could not determine GAFF type for atom %s" % a)
         return
+
+    electrons = net_charge
+    for a in r0.atoms:
+        electrons += a.element.number
+    if electrons % 2 == 1:
+        # cannot compute charges for radical species
+        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute"
+            " charges for radical species" % (r0.name, electrons - net_charge, net_charge))
 
     # detect tautomers by checking bonds
     varieties = {}
