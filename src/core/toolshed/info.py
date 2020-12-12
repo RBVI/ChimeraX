@@ -40,6 +40,8 @@ class BundleInfo:
         Whether bundle has custom initialization code
     name : readonly str
         The internal name of the bundle.
+    short_name : readonly str
+        A short name for the bundle.  Typically the same as 'name' with 'ChimeraX-' omitted.
     synopsis : readonly str
         Short description of this bundle.
     version : readonly str
@@ -137,6 +139,13 @@ class BundleInfo:
     @property
     def name(self):
         """Supported API. Return bundle name."""
+        return self._name
+    @property
+    def short_name(self):
+        """Supported API. Return bundle name."""
+        boilerplate = "ChimeraX-"
+        if self._name.startswith(boilerplate):
+            return self._name[len(boilerplate):]
         return self._name
 
     @property

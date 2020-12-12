@@ -33,8 +33,6 @@ class StartStructureManager(ProviderManager):
         # if 'new_model_only' is True then the provider can only construct new models and can't
         #     add atoms to existing models.  In that case, no model spec will be expected in the
         #     command and the 'structure' part of run_provider's command_info will be None.
-        if not bundle_info.installed:
-            return
         if isinstance(indirect, str):
             indirect = eval(indirect.capitalize())
         if isinstance(new_model_only, str):
@@ -60,7 +58,27 @@ class StartStructureManager(ProviderManager):
         return self._get_provider(name).execute_command(structure, args)
 
     def fill_parameters_widget(self, name, widget):
-        self._get_provider(name).fill_parameters_widget(widget)
+        if self._provider_bundles[name].installed:
+            self._get_provider(name).fill_parameters_widget(widget)
+        else:
+            from PySide2.QtWidgets import QLabel, QVBoxLayout
+            from PySide2.QtCore import Qt
+            layout = QVBoxLayout()
+            widget.setLayout(layout)
+            info = QLabel('This feature is not installed.  To enable it,'
+                ' <a href="internal toolshed">install the %s bundle</a>'
+                " from the Toolshed.  Then restart ChimeraX." % self._provider_bundles[name].short_name)
+            from chimerax.core.commands import run
+            #info.linkActivated.connect(lambda *args: run(self.session, "toolshed show"))
+            toolshed_name = ''.join([c.lower() for c in self._provider_bundles[name].name if c.isalnum()])
+            info.linkActivated.connect(lambda *args, ts_name=toolshed_name:
+                run(self.session, "open https://cxtoolshed.rbvi.ucsf.edu/apps/" + ts_name))
+            info.setWordWrap(True)
+            # specify alignment within the label itself (instead of the layout) so that the label
+            # is given the full width of the layout to work with, otherwise you get unneeded line
+            # wrapping
+            info.setAlignment(Qt.AlignCenter)
+            layout.addWidget(info)
 
     def is_indirect(self, name):
         return self._indirect[name]
