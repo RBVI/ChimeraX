@@ -33,6 +33,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
        Hydrogens need to be present.
     """
     import os.path
+    #TODO: C-terminal definitions need to cover OT2 as well as OXT
     attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
     if status:
         status("Defining AMBER residue types")
@@ -81,10 +82,12 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     uncharged_atoms = {}
     uncharged_residues = set()
     #TODO: create data.py
-    from .data import heavy_charge_type_data, hyd_charge_type_data, charge_model
+    from .data import heavy_charge_type_data, hyd_charge_type_data
     from chimerax.atomic import Atom
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
-    session.logger.info("Charge model: %s" % charge_model)
+    from chimerax.amber_info import amber_version
+    session.logger.info("Using Amber %s recommended default charges and atom types for standard residues"
+        % amber_version)
     for s in structures:
         for r in s.residues:
             if not hasattr(r, "amber_name"):
@@ -104,7 +107,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                 hydrogen_data.append((a, a.neighbors[0]))
                 continue
             try:
-                a.charge, a.gaff_type = heavy_charge_type_data[a.residue.amber_name, a.name.lower()]
+                a.charge, a.gaff_type = heavy_charge_type_data[(a.residue.amber_name, a.name.lower())]
             except KeyError:
                 raise ChargeError("Nonstandard name for heavy atom %s" % a)
         for h, heavy in hydrogen_data:
@@ -113,7 +116,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
             if heavy.element.number < 2:
                 raise ChargeError("Hydrogen %s bonded to non-heavy atom %s" % (h, heavy))
             try:
-                h.charge, h.gaff_type = hyd_charge_type_data[h.residue.amber_name, heavy.name.lower()]
+                h.charge, h.gaff_type = hyd_charge_type_data[(h.residue.amber_name, heavy.name.lower())]
             except KeyError:
                 raise ChargeError("Hydrogen %s bonded to atom that should not have hydrogens (%s)"
                     % (h, heavy))
