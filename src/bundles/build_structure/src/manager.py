@@ -69,10 +69,8 @@ class StartStructureManager(ProviderManager):
                 ' <a href="internal toolshed">install the %s bundle</a>'
                 " from the Toolshed.  Then restart ChimeraX." % self._provider_bundles[name].short_name)
             from chimerax.core.commands import run
-            #info.linkActivated.connect(lambda *args: run(self.session, "toolshed show"))
-            toolshed_name = ''.join([c.lower() for c in self._provider_bundles[name].name if c.isalnum()])
-            info.linkActivated.connect(lambda *args, ts_name=toolshed_name:
-                run(self.session, "open https://cxtoolshed.rbvi.ucsf.edu/apps/" + ts_name))
+            info.linkActivated.connect(lambda *args, bundle_name=self._provider_bundles[name].name:
+                run(self.session, "toolshed show %s" % bundle_name))
             info.setWordWrap(True)
             # specify alignment within the label itself (instead of the layout) so that the label
             # is given the full width of the layout to work with, otherwise you get unneeded line
