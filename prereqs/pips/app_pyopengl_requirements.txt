@@ -1,0 +1,9 @@
+#
+# Have to separate out PyOpenGL PyPi install to insure it is done after numpy PyPi install
+# so that installing PyOpenGL-accelerate compiles the numpy_formathandler module.
+# If numpy is not yet installed then it does not build that module and ChimeraX startup
+# warns "Unable to load numpy_formathandler accelerator from OpenGL_accelerate".
+# ChimeraX bug #3760.
+#
+PyOpenGL==3.1.5
+PyOpenGL-accelerate==3.1.5

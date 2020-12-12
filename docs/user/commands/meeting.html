@@ -52,10 +52,10 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting access</b>
-[&nbsp;<i>access-name</i>&nbsp;]
+<br><a href="#access-options"><b>meeting access</b></a>
+[&nbsp;<i>access-method</i>&nbsp;]
 [&nbsp;<a href="#address"><b>address</b></a>&nbsp;&nbsp;<i>host</i>&nbsp;]
-[&nbsp;<a href="#address"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+[&nbsp;<a href="#accessPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
 [&nbsp;<a href="#account"><b>account</b></a>&nbsp;&nbsp;<i>username</i>&nbsp;]
 [&nbsp;<a href="#key"><b>key</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
 [&nbsp;<a href="#portRange"><b>portRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
@@ -173,15 +173,16 @@ and has several <a href="#limitations">limitations</a>.
 <b>access</b> &nbsp;<i>access-method</i>
 <br>
 The access method determines how participants connect to a meeting and is used
-to get around firewalls that block access.  The default method
+to get around firewalls that block access. The initial default method
 <b>chimeraxmeeting.net</b> has participants connect to a public server
-which then forwards connections to the computer that started the meeting.
+that forwards connections to the computer that started the meeting.
 The method <b>direct</b> has partipants directly connect to the
 computer that started the meeting but will fail if that computer
-cannot be reached.  Additional methods can
-be defined using the <b>meeting access</b> command.
-The access setting is remembered as a
-<a href="../preferences.html#other">preference</a>.
+cannot be reached. Additional methods can be defined using the 
+<a href="#access-options"><b>meeting access</b></a> command.
+Using this option with <b>meeting start</b> or <b>meeting settings</b>
+sets the method as the user default in the
+<a href="../preferences.html#other">preferences</a>.
 </blockquote>
 <blockquote>
 <a name="nameServer"></a>
@@ -191,7 +192,7 @@ Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
 <a href="../preferences.html#other">preference</a>.
 The initial default is <b>chimeraxmeeting.net</b>, provided by the 
-<a href="http://www.cgl.ucsf.edu/Overview/index.html" 
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
 target="_blank">UCSF RBVI</a>, but a
 <a href="#privatenameserver">private name server</a> can be used instead.
 </blockquote>
@@ -319,37 +320,49 @@ will not be joined.
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Meeting Access Options</h3>
-
 <p>
-The meeting access command names a computer that participants will connect
-to when joining a meeting providing a way to get around firewalls that block connections.
-The access method <b>direct</b> has
-participants connect directly to the computer that started the meeting.  
-Often that computer is behind a firewall and participants instead connect to a
-public computer that forwards connections to the computer that started the meeting.
-The <b>chimeraxmeeting.net</b> access method is an available forwarding computer.
-An access method defines a short name associated with a computer address, port number
-or port range, authentication key, and timeout.  The access method names and settings are
-rememebered as <a href="../preferences.html#other">preferences</a>.
+The access method determines how participants connect to a meeting and is used
+to get around firewalls that block access. The method is specified with the
+<a href="#access"><b>access</b></a> option in the 
+<b>meeting start</b> command. The initial default method
+<b>chimeraxmeeting.net</b> has participants connect to a public server
+that forwards connections to the computer that started the meeting.
+The method <b>direct</b> has partipants directly connect to the
+computer that started the meeting, but will fail if that computer
+cannot be reached. 
+</p><p>
+Additional methods can be defined with the
+<b>meeting access</b> command (using the options below)
+by a short name associated with a computer address, 
+a port number or port range, an authentication key, and a timeout value.
+Access methods and their settings are remembered as
+<a href="../preferences.html#other">preferences</a>.
+Given without arguments, <b>meeting access</b> 
+reports the existing access methods and their settings 
+in the <a href="../tools/log.html"><b>Log</b></a>.
+Specifying a method with the <a href="#access"><b>access</b></a> option
+makes it the current user default.
 </p>
 
 <blockquote>
 <a name="address"></a>
 <b>address</b> &nbsp;<i>host-address</i>
 <br>
-Host name or IP address of a publicly visible proxy computer that forwards connections
-made by partipants to the computer that started the meeting.
+Host name or IP address of a publicly visible proxy computer to forward 
+connections made by partipants to the computer that started the meeting.
 </blockquote>
 <blockquote>
 <a name="accessPort"></a>
 <b>port</b>&nbsp;&nbsp;<i>N</i>
 <br>
-The port number on the proxy computer that participants connect to (default <b>52194</b>).
-One port is used for receiving connections from all participants. If a tunnel is created
-because the <b>account</b> option has been specified then this port is not used and instead
-an available port in <b>portRange</b> is used.  A scenario where a tunnel is not
-needed is when port forwarding from a network-address-translation
-router to a computer on the local network served by the router.
+The port number on the proxy computer that participants connect to 
+(initial default <b>52194</b>).
+One port is used for receiving connections from all participants.
+If a tunnel is created because the <b>account</b> option has been specified,
+then this port is not used and instead an available port in <b>portRange</b>
+is used. A tunnel is not needed for port forwarding from a 
+network-address-translation router to a computer on the local network
+served by the router.
 </blockquote>
 <blockquote>
 <a name="account"></a>
@@ -381,7 +394,7 @@ not accept it.
 The range of port numbers to use on the proxy computer.
 A randomly chosen port in this range is chosen to create a tunnel.
 All participants connect to that port.
-The default range of <b>52194,52203</b> 
+The initial default range of <b>52194,52203</b> 
 allows up 10 simultaneous meetings to be handled by the proxy.
 </blockquote>
 <blockquote>
@@ -390,7 +403,7 @@ allows up 10 simultaneous meetings to be handled by the proxy.
 <br>
 The time to wait for creating the tunnel to the proxy.
 If a connection is not made within this time the meeting will not be started.
-Default is <b>5</b> seconds.
+The initial default is <b>5</b> seconds.
 </blockquote>
 
 <a name="limitations"></a>
@@ -402,7 +415,7 @@ Default is <b>5</b> seconds.
 <b>Firewalls block connections.</b>
 Most organizations have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
-The <a href="#access">access</a> option allows participants to connect
+The <a href="#access"><b>access</b></a> option allows participants to connect
 to a publicly visible proxy computer.
 See <a href="#firewalls">getting around firewalls</a>.
 </p>
@@ -509,7 +522,7 @@ Two ways to resolve the problem are to:
 <li><a href="#useproxy">Use a proxy computer</a> outside the firewall;
 participants connect to the proxy machine and it forwards
 connections through the firewall to the computer that started the meeting.
-This is enabled with the <a href="#access">access</a> option
+This is enabled with the <a href="#access"><b>access</b></a> option
 of the <b>meeting start</b> command, specifying a proxy server
 such as chimeraxmeeting.net (the default).
 <br>&ndash; OR &ndash;<br>
@@ -528,7 +541,8 @@ Use a proxy server</h4>
 By default the meeting start command uses a publicly visible proxy computer
 chimeraxmeeting.net
 which forwards connections through the firewall to the host computer.
-This is controled by the <a href="#access">access</a> option, for example
+This is controlled by the 
+<a href="#access"><b>access</b></a> option, for example
 <b>meeting start alzheimers access chimeraxmeeting.net</b>.
 The chimeraxmeeting.net server is provided by the ChimeraX development
 team and can handle up to 10 simultaneous meetings.
@@ -571,7 +585,8 @@ and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
 This will allow other computers to connect to ssh tunnels.
 The normal use of ssh remote tunnels allows only the remote computer to use the tunnel,
 so this setting change is necessary.
-  <li>Create an access method that uses the proxy using the <b>meeting access</b> command
+  <li>Create an access method that uses the proxy using the 
+<a href="#access-options"><b>meeting access</b></a> command
 <blockquote>
   <b>meeting access</b> myproxy <b>address</b> 54.215.157.17 <b>account</b> ubuntu <b>key</b> meeting-key-private.pem
 </blockquote>
@@ -728,5 +743,5 @@ which can be time consuming.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2020</address>
+December 2020</address>
 </body></html>
