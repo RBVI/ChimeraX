@@ -1743,15 +1743,16 @@ class Histogram_Pane:
     layout.addWidget(sl)
     import sys
     if sys.platform == 'darwin':
-        gap = -12
-        menu_button_style = 'padding-left: 15px; padding-right: 20px;'
+        # Setting padding cam make layout more compact on macOS 10.15 but makes clicking
+        # on menu button down arrow do nothing.  So use default style on Mac.
+        menu_button_style = None
     else:
-        gap = -8
+        # Reduce button width and height on Windows and Linux
         menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
-    layout.addSpacing(gap)
+    layout.addSpacing(-8)	# Put step menu closer to step label.
     self.data_step = dsm = QPushButton(df)
-    dsm.setStyleSheet(menu_button_style)
-    dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    if menu_button_style:
+        dsm.setStyleSheet(menu_button_style)
     sm = QMenu(df)
     for step in (1,2,4,8,16):
         sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
@@ -1773,8 +1774,8 @@ class Histogram_Pane:
 
     # Display style menu
     self.style = stm = QPushButton(df)
-    stm.setStyleSheet(menu_button_style)
-    stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    if menu_button_style:
+        stm.setStyleSheet(menu_button_style)
     sm = QMenu(df)
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab'):
         sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
