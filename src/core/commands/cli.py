@@ -1092,7 +1092,8 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
-def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, check_existence,
+        *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _BROWSE_STRING:
         if not session.ui.is_gui:
@@ -1115,12 +1116,18 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
+    if check_existence:
+        import os.path
+        for path in paths:
+            if not os.path.exists(os.path.expanduser(path)):
+                raise AnnotationError("File '%s' does not exist" % path)
     return (paths if return_list else paths[0]), " ".join([quote_path_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read; a name of 'browse' will bring up a file browser"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
@@ -1129,7 +1136,8 @@ class OpenFileNameArg(FileNameArg):
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class OpenFileNamesArg(Annotation):
@@ -1139,6 +1147,7 @@ class OpenFileNamesArg(Annotation):
     # or None (which means all ChimeraX-openable types)
     name_filter = None
     allow_repeat = "expand"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
@@ -1149,7 +1158,7 @@ class OpenFileNamesArg(Annotation):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-                             return_list=True)
+            cls.check_existence, return_list=True)
 
     @staticmethod
     def unparse(value, session=None):
@@ -1161,6 +1170,7 @@ class OpenFileNamesArg(Annotation):
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
     name = "name of a file to save/write; a name of 'browse' will bring up a file browser"
+    check_existence = False
 
     @classmethod
     def parse(cls, text, session):
@@ -1169,12 +1179,14 @@ class SaveFileNameArg(FileNameArg):
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
     name = "name of a folder to open/read; a name of 'browse' will bring up a file browser"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
@@ -1183,12 +1195,14 @@ class OpenFolderNameArg(FileNameArg):
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
     name = "name of a folder to save/write; a name of 'browse' will bring up a file browser"
+    check_existence = False
 
     @classmethod
     def parse(cls, text, session):
@@ -1197,7 +1211,8 @@ class SaveFolderNameArg(FileNameArg):
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 # Atom Specifiers are used in lots of places

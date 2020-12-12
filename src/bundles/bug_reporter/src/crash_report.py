@@ -48,6 +48,18 @@ def register_signal_handler(session):
     except IOError:
         # If we can't write the file just do witnout.
         return
+
+    # Remove the file at exit if no crash.
+    def remove_crash_file(file=traceback_file, path=traceback_path):
+        import os
+        try:
+            file.close()
+            os.remove(path)
+        except Exception:
+            pass
+    # Python atexit routines are not called on a fatal signal.
+    import atexit
+    atexit.register(remove_crash_file)
     
     import faulthandler
     faulthandler.enable(traceback_file)
