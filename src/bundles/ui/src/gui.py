@@ -1557,8 +1557,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.setCheckable(True)
                     tool_action.setChecked(tool_name in active_tool_names)
                     tool_action.triggered.connect(
-                        lambda ses=session, run=run, tool_name=tool_name:                      
-                        run(ses, "ui tool %s %s" % (("show" if arg else "hide"),
+                        lambda checked, *, ses=session, run=run, tool_name=tool_name:
+                        run(ses, "ui tool %s %s" % (("show" if checked else "hide"),
                         StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
@@ -2355,8 +2355,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         auto_action.triggered.connect(
-            lambda ses=session, run=run, tool_name=ti.tool_name:
-            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+            lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui autostart %s %s" % (("true" if checked else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(auto_action)
         favorite = ti.tool_name in session.ui.settings.favorites
@@ -2379,8 +2379,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     dock_action.setChecked(not undockable)
     from chimerax.core.commands import run, StringArg
     dock_action.triggered.connect(
-        lambda ses=session, run=run, tool_name=ti.tool_name:
-        run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
+        lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui dockable %s %s" % (("true" if checked else "false"),
         StringArg.unparse(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:
