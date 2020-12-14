@@ -70,7 +70,7 @@ class MainSaveDialog:
                 pass
             else:
                 dialog.selectNameFilter(file_filter)
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel
+        from PySide2.QtWidgets import QHBoxLayout, QLabel
         self._current_option = self._no_options_label = QLabel(
             "No user-settable options")
         self._options_layout = QHBoxLayout()
@@ -85,7 +85,7 @@ class MainSaveDialog:
         if self._current_option:
             self._current_option.hide()
         self._current_option = session.save_command.save_args_widget(fmt) or self._no_options_label
-        from PyQt5.QtWidgets import QLabel
+        from PySide2.QtWidgets import QLabel
         self._options_layout.addWidget(self._current_option)
         self._current_option.show()
 

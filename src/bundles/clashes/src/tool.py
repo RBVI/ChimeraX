@@ -23,7 +23,7 @@ class AtomProximityTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox
+        from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -31,7 +31,7 @@ class AtomProximityTool(ToolInstance):
         self.gui = gui_class(self.session, has_apply_button=True)
         layout.addWidget(self.gui)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from PySide2.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_command)
         bbox.button(qbbox.Apply).clicked.connect(self.run_command)

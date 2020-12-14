@@ -91,7 +91,7 @@ Device-specific options are described below.
 <p>
 The command <b>device snav</b> enables manipulation 
 with a SpaceNavigator<sup>&reg;</sup> 3D mouse from
-<a href="http://www.3dconnexion.com/" target="_blank">3Dconnexion</a>.
+<a href="https://www.3dconnexion.com/" target="_blank">3Dconnexion</a>.
 The <b>fly</b> option indicates whether the force applied to the device 
 should be interpreted as acting on the camera (<b>true</b>), where
 pushing forward zooms in because it moves the camera viewpoint toward the scene,
@@ -114,7 +114,8 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 [&nbsp;<b>colorPopup</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>flipHorizontal</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>framerate</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
-[&nbsp;<b>size</b>&nbsp;&nbsp;<i>xpixels,ypixels</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>xpixels,ypixels</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>camera-name</i></a>&nbsp;]
 <blockquote>
 The <b>webcam</b> command (same as <b>device webcam</b>)
 shows webcam video as a flat background behind the ChimeraX scene,
@@ -143,6 +144,19 @@ that rate is not possible, the closest framerate supported by the camera.
 If <b>size</b> is specified, the closest size supported by the camera
 is provided, and matching the framerate is given second priority.
 </p><p>
+The <b>name</b> option allows using a specific webcam when more than one
+is available. The <b>webcam</b> command reports 
+in the <a href="../tools/log.html"><b>Log</b></a> the names
+of the available webcams and which one it is using.
+If it is not using the desired one, <a href="close.html">close</a> the 
+existing webcam model and reissue the <b>webcam</b> command with the
+<b>name</b> option, enclosing the full <i>camera-name</i> in quotation marks,
+for example:
+</p>
+<blockquote>
+<b>webcam name "FaceTime HD Camera (Built-in)"</b>
+</blockquote>
+<p>
 When the command is issued, any unspecified options are set to their defaults.
 An exception is that
 to change the framerate and size after a previous <b>webcam</b> command,
@@ -184,7 +198,7 @@ will be shown in front of the ChimeraX scene.
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
 enables a virtual reality mode for systems supported by
-<a href="http://store.steampowered.com/about/"
+<a href="https://store.steampowered.com/about/"
 target="_blank">SteamVR</a>, including HTC Vive, Oculus Rift,
 and Samsung Odyssey. SteamVR must be installed separately by the user
 and started before the mode is enabled.
@@ -194,7 +208,6 @@ see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: 
 <a href="#vr-button"><b>vr button</b></a>,
 <a href="#vr-roomCamera"><b>vr roomCamera</b></a>,
-<!-- <a href="conference.html"><b>conference</b></a>, -->
 <a href="meeting.html"><b>meeting</b></a>,
 <a href="buttonpanel.html"><b>buttonpanel</b></a>,
 <a href="camera.html"><b>camera</b></a>,
@@ -698,5 +711,5 @@ See also:
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+November 2020</address>
 </body></html>

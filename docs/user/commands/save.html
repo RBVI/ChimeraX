@@ -70,7 +70,8 @@ is given immediately after <i>filename</i>, for example:
 <b>save mutated.pdb #3</b>
 </blockquote>
 <p>
-There may be additional options, depending on the file type:
+There may be additional required arguments or options, 
+depending on the file type:
 </p>
 <ul class="none">
 <li><a href="#image"><b>Image</b></a>
@@ -78,9 +79,10 @@ There may be additional options, depending on the file type:
 <img class="icon" border=1 src="../tools/shortcut-icons/camera.png"></a>
 <li><a href="#session"><b>Session</b></a>
 <li><a href="#map"><b>Map</b></a>
-<li>Atomic Coordinates: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
+<li><b>Atomic Coordinates</b>: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
 &nbsp;<a href="#mmcif"><b>mmCIF</b></a>&nbsp;
 &nbsp;<a href="#mol2"><b>Mol2</b></a>&nbsp;
+<li><a href="#attributes"><b>Attribute Values</b></a>
 <li><a href="#sequence"><b>Sequence Data</b></a>
 <li><a href="#gltf"><b>GLTF</b></a>
 <li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
@@ -158,7 +160,7 @@ courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 <td align="center"><b>mtz</b></td>
 <td align="center">.mtz</td>
 <td align="center" class="text">
-<a href="http://www.ccp4.ac.uk/html/mtzformat.html"
+<a href="http://www.sb.fsu.edu/~xray/Manuals/CCP4/mtzformat.html"
 target="_blank">MTZ</a> crystallographic reflection file
 (reciprocal space map)
 <br><br>*requires installing the
@@ -203,6 +205,13 @@ see <a href="#mol2">Mol2 options</a></td>
 <td align="center">list of atom pairs to connect with 
 <a href="../pseudobonds.html">pseudobonds</a><br>
 (see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+</tr><tr id="attrformat">
+<td align="center"><a href="../formats/defattr.html">attribute 
+assignment file</a></td>
+<td align="center"><b>defattr</b></td>
+<td align="center">.defattr</td>
+<td align="center"><a href="../attributes.html">attribute</a> values
+in the format read by <a href="open.html#defattr"><b>open</b></a></td>
 </tr><tr id="seqformats">
 <td align="center" rowspan="3">&nbsp;<br>&nbsp;<a href="#sequence">sequence</a></td>
 <td align="center"><b>aln</b></td>
@@ -231,20 +240,20 @@ target="_blank">GL Transmission Format</a>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj</td>
 <td align="center" class="text">
-<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
+<a href="https://www.fileformat.info/format/wavefrontobj/egff.htm"
 target="_blank">Wavefront OBJ</a>
 <br>(geometric and texture vertices, vertex normals, faces; no colors)
 </td>
 </tr><tr>
 <td align="center"><b>x3d</b></td>
 <td align="center">.x3d</td>
-<td align="center"><a href="http://www.web3d.org/x3d/"
+<td align="center"><a href="https://www.web3d.org/x3d/"
 target="_blank">X3D</a></td>
 </tr><tr>
 <td align="center"><b>vtk</b></td>
 <td align="center">.vtk</td>
 <td align="center">
-<a href="http://vtk.org/" target="_blank">Visualization ToolKit</a>
+<a href="https://vtk.org/" target="_blank">Visualization ToolKit</a>
 PolyData 
 <br>(molecular structures and surfaces as points, lines, and mesh;
 <a href="../formats/vtk.html">details...</a>)</td>
@@ -346,6 +355,7 @@ interpreted correctly by Adobe Photoshop.)
 <b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>compress</b>&nbsp;&nbsp;gzip&nbsp;|&nbsp;<b>lz4</b>&nbsp;|&nbsp;none&nbsp;]
 </blockquote>
 <p>
 A <b><i>ChimeraX session file</i></b> encodes most aspects of a
@@ -402,6 +412,14 @@ directory as the session file, or in a subdirectory of that directory.
 If the map file is in neither the same directory as the session file nor
 a subdirectory of that directory, its location will be stored 
 as an absolute path.
+</p><p>
+The <b>compress</b> option defaults to <b>lz4</b>, which gives a file
+approximately 4x smaller (depending on the data being saved)
+than the uncompressed version obtained with <b>none</b>;
+using <b>gzip</b> gives a file approximately 7x smaller than uncompressed,
+but takes about twice as long as the other choices.
+Compressed and uncompressed session files have the same .cxs filename suffix,
+but compression is recognized automatically when the file is read.
 </p>
 
 <a name="map"></a>
@@ -430,6 +448,8 @@ Older MRC-reading programs or programs expecting CCP4 format will read such
 files successfully but may not align the data correctly with other data sets.
 Only the <a href="#chimap">Chimera map</a> format 
 can accommodate multiple data sets in a single file.
+See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>
+</p><p>
 Multiple data sets can be written to multiple files by including a
 %d integer format specification in <i>filename</i>:
 </p>
@@ -557,7 +577,7 @@ because one Z-plane is written at a time.
 </blockquote>
 <p>
 Atomic coordinates can be saved in 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
+<a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
 target="_blank">PDB format</a>. 
 The <i>filename</i> can include [NAME] and/or [ID]
 to indicate substitution with model name and/or model number, respectively,
@@ -596,7 +616,8 @@ are opened.
 Whether to include only the <a href="../selection.html">selected</a> atoms
 when saving a PDB file, or only the selected
 <a href="../pseudobonds.html">pseudobonds</a> when saving a 
-<a href="../pseudobonds.html#pbfiles">pseudobond file</a>.
+<a href="../pseudobonds.html#pbfiles">pseudobond file</a>
+(in addition to any restriction by <b>models</b>).
 </blockquote>
 <blockquote>
 <b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -616,9 +637,9 @@ Saving all frames produces a multi-model PDB file.
 <blockquote>
 <b>pqr</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Whether to generate 
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html#PQR"
+<a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/pdbintro.html#PQR"
 target="_blank">PQR format</a> instead of
-<a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
+<a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html"
 target="_blank">standard PDB</a>.
 In PQR format, atomic partial charge (Q) and radius (R) fields 
 follow the X,Y,Z atomic coordinates.
@@ -637,7 +658,7 @@ left of the atom numbering field in standard PDB format
 with &gt; 99,999 atoms (up to 87,440,031)
 and/or &gt; 9999 residues in a chain (up to 2,436,111)
 by incorporating alphabetical characters
-(<a href="http://cci.lbl.gov/hybrid_36/" target="_blank">details...</a>)
+(<a href="https://cci.lbl.gov/hybrid_36/" target="_blank">details...</a>)
 </ul>
 </blockquote>
 
@@ -657,7 +678,7 @@ by incorporating alphabetical characters
 </blockquote>
 <p>
 Atomic coordinates and associated information can be saved in 
-<a href="http://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
+<a href="https://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
 A subset of the mmCIF data types are written
 (<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
 target="_blank">details...</a>). 
@@ -744,6 +765,67 @@ Whether to write GAFF atom types instead of Sybyl atom types.
 GAFF types are not yet computed, so this should be kept <b>false</b>.
 </blockquote>
 
+<a name="attributes"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save Attribute Values</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+&nbsp;<b>attrName</b>&nbsp;&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
+[&nbsp;<b>format</b>&nbsp;&nbsp;defattr&nbsp;]
+[&nbsp;<b>matchMode</b>&nbsp;&nbsp;any&nbsp;|&nbsp;non-zero&nbsp;|&nbsp;<b>1-to-1</b>&nbsp;]
+[&nbsp;<b>modelIds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The <a href="../attributes.html">attributes</a> of atoms, residues,
+and atomic models (or equivalently, <a href="../markers.html">markers</a>
+and their models) can be saved in the simple, human-readable
+<a href="../formats/defattr.html">attribute assignment format</a>
+that can be read with the <a href="open.html#defattr"><b>open</b></a> command.
+The <b>attrName</b> keyword and 
+<a href="../attributes.html#attrnames">attribute name</a> are required.
+An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
+can be used to indicate the attribute level as atom, residue, or (atomic) model,
+but this is only needed when the name exists at multiple levels.
+</p><p>
+Options:
+</p>
+<blockquote>
+<b>matchMode</b>&nbsp;&nbsp;any&nbsp;|&nbsp;non-zero&nbsp;|&nbsp;<b>1-to-1</b>
+<br>
+What to write as the <b>match mode</b> in the file; this only matters if 
+the file will be used to assign values with 
+<a href="open.html#defattr"><b>open</b></a>.
+</blockquote>
+<blockquote>
+<b>modelIds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether the <a href="atomspec.html#hierarchy">atom specification strings</a>
+in the file should 
+include model numbers, where <b>true</b> means yes, <b>false</b> means no,
+and omitting the option (default) means to include model numbers
+only when multiple atomic models are open.
+</blockquote>
+<blockquote>
+<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write only attributes of the specified models, otherwise all atomic models.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
+</blockquote>
+<blockquote>
+<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to limit the scope of what is written to
+the current <a href="../selection.html">selection</a>
+(in addition to any restriction by <b>models</b>).
+</blockquote>
+
 <a name="sequence"></a>
 <p class="nav">
 [<a href="#top">back to top: save</a>]
@@ -823,5 +905,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+November 2020</address>
 </body></html>

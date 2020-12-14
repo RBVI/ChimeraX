@@ -30,10 +30,49 @@ def log_equivalent_command(session, command_text):
     except UserError as err:
         session.logger.info(str(err))
 
+def enable_motion_commands(session, enable, frame_skip = 0):
+    '''
+    Enabling motion commands causes the "motion command" trigger
+    to fire to track continuous changes in the scene, typically due
+    to mouse drags.  This is used by the meeting command for mirroring
+    these actions in multi-person sessions.
+    '''
+    if not hasattr(session, '_motion_commands_enabled'):
+        session.triggers.add_trigger('motion command')
+    session._motion_commands_enabled = enable
+    session._motion_command_skip = frame_skip
+
+def motion_commands_enabled(session):
+    '''
+    Whether mouse drag modes should issue equivalent commands using
+    the motion_command(session, command) call.
+    '''
+    if not getattr(session, '_motion_commands_enabled', False):
+        return False
+    frame_skip = session._motion_command_skip
+    if frame_skip == 0:
+        return True
+    return session.main_view.frame_number % (frame_skip+1) == 0
+
+def motion_command(session, command_text):
+    '''
+    Post a motion command used for synchronization in multi-person sessions.
+    The command is not executed in the current ChimeraX.
+    '''
+    if motion_commands_enabled(session):
+        session.triggers.activate_trigger('motion command', command_text)
+        
 def residues_specifier(objects):
     res = objects.atoms.unique_residues
-    spec = ''.join('#%s/%s:%s' % (s.id_string, cid, ','.join('%d' % rnum for rnum in cres.numbers))
-                   for s, cid, cres in res.by_chain)
+    specs = []
+    for s, cid, cres in res.by_chain:
+        rnums = ','.join('%d' % rnum for rnum in cres.numbers)
+        if ' ' in cid:
+            cspec = "(#%s::chain_id='%s'&:%s)" % (s.id_string, cid, rnums)
+        else:
+            cspec = '#%s/%s:%s' % (s.id_string, cid, rnums)
+        specs.append(cspec)
+    spec = ''.join(specs)
     return spec
 
 def camel_case(text):

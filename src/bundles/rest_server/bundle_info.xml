@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-RestServer" version="1.0"
+<BundleInfo name="ChimeraX-RestServer" version="1.1"
 	    package="chimerax.rest_server" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 

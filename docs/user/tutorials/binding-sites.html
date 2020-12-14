@@ -23,7 +23,7 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html"
+<h3><a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html"
 target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 
 <ul>
@@ -77,9 +77,9 @@ tutorial are indented and appear after &ldquo;<i>Command</i>:&rdquo;
 Other links are simply informative and can be clicked or not, as you prefer.
 </p><p>
 ChimeraX can fetch a structure directly from the
-<a href="http://www.rcsb.org" target="_blank">Protein Data Bank</a> (PDB)
+<a href="https://www.rcsb.org" target="_blank">Protein Data Bank</a> (PDB)
 given its 4-character ID. Open
-<a href="http://www.rcsb.org/structure/2HYY" target="_blank">2hyy</a>,
+<a href="https://www.rcsb.org/structure/2HYY" target="_blank">2hyy</a>,
 a structure of the human Abl kinase domain in complex with the anticancer drug 
 <a href="https://en.wikipedia.org/wiki/Imatinib"
 target="_blank">imatinib</a>:
@@ -138,19 +138,20 @@ Close the original structure:
 border:solid black 1px; padding:5px">
 Note:
 In this case, the assembly has fewer chains than the original structure.
-In cases where the assembly has <i>more</i> chains than the original,
-clicking a link in the <b>Assemblies</b> table adds copies as graphical clones.
-However, to analyze atomic interactions between the copies
+For assemblies with more than 12 copies of the original structure,
+clicking a link in the <b>Assemblies</b> table adds copies as graphical clones
+for efficient visualization.
+However, if the plan is to analyze atomic interactions between the copies
 or to display them differently from one another,
 the assembly should be generated instead as full atomic copies with the
-<a href="../commands/sym.html#assembly"><b>sym</b></a> command, for example:
+<a href="../commands/sym.html#assembly"><b>sym</b></a> command and
+<b>copies true</b>, for example:
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>sym #1 assembly 1 copies true</b>
-<p>
-Alternatively, assemblies can be fetched directly from the PDB with the
-<a href="../commands/open.html#fetch"><b>open</b></a> command, for example:
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>open 2hyy from rcsb_bio maxAssemblies 1</b>
-<br>&nbsp;&nbsp&nbsp;&nbsp;&ndash; or &ndash;
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>open 2hyy from pdbe_bio maxAssemblies 1</b>
+<br>
+Alternatively, entire assemblies can be fetched directly from the PDB with the
+<a href="../commands/open.html#fetch"><b>open</b></a> command, 
+as shown in the section on 
+<a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>.
 </blockquote>
 </blockquote>
 
@@ -503,7 +504,7 @@ Surface Coloring by Lipophilicity</h3>
 Coloring a protein surface by lipophilicity (hydrophobicity) may help 
 to identify interaction sites for nonpolar molecules or the lipid membrane.
 </p><p>
-Open <a href="http://www.rcsb.org/structure/1FPP" target="_blank">1fpp</a>,
+Open <a href="https://www.rcsb.org/structure/1FPP" target="_blank">1fpp</a>,
 a structure of the protein farnesyltransferase in complex with 
 farnesyl diphosphate (residue name FPP):
 <blockquote>
@@ -588,9 +589,9 @@ may be visible where a protein sits in the membrane. Optionally, try using
 the icon <img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
 or the command <a href="../commands/mlp.html"><b>mlp</b></a> 
 on a transmembrane protein (many examples:
-<a href="http://www.rcsb.org/structure/1PHO" target="_blank">1pho</a>,
-<a href="http://www.rcsb.org/structure/4XT3" target="_blank">4xt3</a>,
-<a href="http://www.rcsb.org/structure/1EYS" target="_blank">1eys</a>,
+<a href="https://www.rcsb.org/structure/1PHO" target="_blank">1pho</a>,
+<a href="https://www.rcsb.org/structure/4XT3" target="_blank">4xt3</a>,
+<a href="https://www.rcsb.org/structure/1EYS" target="_blank">1eys</a>,
 <i>etc.</i>)
 </p>
 <table class="clRight">
@@ -718,7 +719,7 @@ This tutorial uses the simple method, as it does not require
 a separate calculation.
 </p><p>
 Open an assembly of
-<a href="http://www.rcsb.org/structure/3Q5S" target="_blank">3q5s</a>,
+<a href="https://www.rcsb.org/structure/3Q5S" target="_blank">3q5s</a>,
 the bacterial gene regulator BmrR:
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 3q5s from rcsb_bio maxAssemblies 1">open 3q5s from rcsb_bio maxAssemblies 1</a></b>
@@ -845,5 +846,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2020</address>
+December 2020</address>
 </body></html>

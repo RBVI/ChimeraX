@@ -22,7 +22,11 @@ class _SDF_API(BundleAPI):
         from chimerax.open_command import OpenerInfo
         class SdfOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
-                return read_sdf(session, data, file_name)
+                return read_sdf(session, data, file_name, **kw)
+            @property
+            def open_args(self):
+                from chimerax.core.commands import BoolArg
+                return { 'auto_style': BoolArg }
         return SdfOpenerInfo()
 
 bundle_api = _SDF_API()

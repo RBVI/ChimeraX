@@ -111,6 +111,5 @@ extern "C" PyObject *py_sphere_surface_distance(PyObject *, PyObject *args,
   sphere_surface_distance(centers, radii, maxrange, matrix);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

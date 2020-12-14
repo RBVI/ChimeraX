@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Map" version="1.0.1"
+<BundleInfo name="ChimeraX-Map" version="1.0.2"
 	    package="chimerax.map"
 	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -78,7 +78,7 @@
     <Provider name="IMOD map" want_path="true" batch="true" />
     <Provider name="MacMolPlt grid" want_path="true" batch="true" />
     <Provider name="MRC density map" want_path="true" batch="true" />
-    <Provider name="NetCDF generic array" want_path="true" batch="true" />
+    <Provider name="NetCDF generic array map" want_path="true" batch="true" />
     <Provider name="Priism microscope image" want_path="true" batch="true" />
     <Provider name="PROFEC free energy grid" want_path="true" batch="true" />
     <Provider name="Purdue image format" want_path="true" batch="true" />

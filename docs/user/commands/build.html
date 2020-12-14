@@ -34,8 +34,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>connectBack</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>colorByElement</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 [&nbsp;<b>newRes</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>build start</b>
@@ -90,7 +90,7 @@ For starting a new molecule with <b>build start</b>, the choices are
 With the <a href="open.html"><b>open</b></a> command, however, a wide variety
 of atomic structures for subsequent <a href="#modify">modification</a> can be 
 <a href="open.html#fetch">fetched from online sources</a> or modeled from a
-<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string.
 </p><p>
 The <i>model</i> can be given as the
@@ -152,8 +152,8 @@ and literature citations):
 [&nbsp;<b>connectBack</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>colorByElement</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 [&nbsp;<b>newRes</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 <blockquote>
 The <b>build modify</b> command
 changes the <a href="../atomtypes.html">type</a>
@@ -196,18 +196,37 @@ color the modified atom and any newly added hydrogens
 <li><b>name</b> &ndash; new name for the modified atom;
 if not given, the atom name is kept the same if the element stays
 the same, or changed to an element-based name if the element is changed
-<li><b>resName</b> 
-&ndash; new name for the residue containing the modified atom 
-(default <b>UNK</b> for amino acid in bonded chain,
-<b>N</b> for nucleic acid in bonded chain, <b>UNL</b> otherwise)
-<li><b>newRes</b> (default <b>false</b>) &ndash;
-whether to put only the new atom(s) in a new residue 
-of the name given with <b>resName</b>
-instead of changing the name of the existing residue
-</ul>
+<li><b>newRes</b> &ndash; whether to put the
+modified atom and any attached hydrogens into a new residue.
+<br>If <b>newRes</b> is <b>false</b> (default):
+  <ul>
+  <li>the <b>resName</b> option can be used to rename the residue 
+  containing the modified atom
+  <li>if <b>resName</b> is omitted, the residue containing the modified atom 
+  will retain its original name
+  <li>if <b>resName</b> is given as <b>auto</b>, the residue will be renamed
+  according to the following rules:
+    <ul>
+    <li><b>UNK</b> for an amino acid in a bonded chain
+    <li><b>N</b> for a nucleic acid in a bonded chain
+    <li><b>UNL</b> otherwise
+    </ul>
+  </ul>
+If <b>newRes</b> is <b>true</b>:
+  <ul>
+  <li>a name for the new residue can be supplied with the <b>resName</b> option
+  <li>if <b>resName</b> is omitted or given as <b>auto</b>, 
+  the new residue's name will be based on the atom's original residue type
+  according to the following rules:
+    <ul>
+    <li><b>UNK</b> for an amino acid in a bonded chain
+    <li><b>N</b> for a nucleic acid in a bonded chain
+    <li><b>UNL</b> otherwise
+    </ul>
+  </ul>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2020</address>
+November 2020</address>
 </body></html>

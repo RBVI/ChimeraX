@@ -50,8 +50,7 @@ extern "C" PyObject *scale_and_shift_vertices(PyObject *, PyObject *args)
 
   scale_and_shift_vertices(varray, origin, step);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -79,8 +78,7 @@ extern "C" PyObject *scale_vertices(PyObject *, PyObject *args)
 
   scale_vertices(varray, step);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -108,8 +106,7 @@ extern "C" PyObject *shift_vertices(PyObject *, PyObject *args)
 
   shift_vertices(varray, origin);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -179,8 +176,7 @@ extern "C" PyObject *affine_transform_vertices(PyObject *, PyObject *args)
     return NULL;
 
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -298,6 +294,5 @@ extern "C" PyObject *affine_transform_normals(PyObject *, PyObject *args)
     return NULL;
 
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

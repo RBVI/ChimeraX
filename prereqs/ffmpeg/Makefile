@@ -4,10 +4,14 @@ include $(TOP)/mk/config.make
 
 FFMPEG_VERSION = 3.2.4
 
-# Windows zip file is needed on all platforms because it has all of the
-# sublicences in it that are needed for the documentation.
+FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS).exe
+
+# The following variables are from compiling from source code.
+# We no longer do that unless we want to update the source libraries.
 
 ifeq ($(OS),Windows)
+# Windows zip file is needed on all platforms because it has all of the
+# sublicences in it that are needed for the documentation.
 FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION)-win64-static.zip
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)-win64-static
 FFMPEG_EXE = $(FFMPEG_SOURCE)/bin/ffmpeg.exe
@@ -59,15 +63,24 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 			--extra-libs="-ldl"
 endif
 
-all: $(FFMPEG_EXE)
+
+install: $(FFMPEG_PREBUILT)
+	$(RSYNC) $(FFMPEG_PREBUILT) $(bindir)/ffmpeg$(PROG_EXT)
+
+app-install: $(FFMPEG_PREBUILT)
+	$(RSYNC) $(FFMPEG_PREBUILT) $(app_bindir)/ffmpeg$(PROG_EXT)
+
+$(FFMPEG_PREBUILT):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_PREBUILT)
+	chmod a+x $(FFMPEG_PREBUILT)
+
+upload_new_version:
+	$(RSYNC) $(FFMPEG_PREBUILT) $(PREREQS_UPLOAD)/ffmpeg
 
 ifeq ($(OS),Windows)
 
-install: $(FFMPEG_EXE)
-	$(RSYNC) $(FFMPEG_EXE) $(bindir)/ffmpeg$(PROG_EXT)
-
-app-install: $(FFMPEG_EXE)
-	$(RSYNC) $(FFMPEG_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
+from-binary-distribution: $(FFMPEG_EXE)
+	$(RSYNC) $(FFMPEG_EXE) $(FFMPEG_PREBUILT)
 
 $(FFMPEG_EXE): $(FFMPEG_DISTRIB)
 	unzip $(FFMPEG_DISTRIB) -d $(tmpdir)
@@ -77,19 +90,20 @@ $(FFMPEG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)
 
 clean:
+	rm -rf $(FFMPEG_PREBUILT) $(FFMPEG_DISTRIB)
 
 else
 
-install: $(FFMPEG_EXE)
+compile: $(FFMPEG_EXE)
 	$(MAKE) -C $(FFMPEG_SOURCE) install
-
-app-install:
-	$(RSYNC) $(bindir)/ffmpeg$(PROG_EXT) $(app_bindir)
-	$(RSYNC) --exclude examples $(datadir)/ffmpeg $(app_datadir)/ffmpeg
+	$(RSYNC) $(bindir)/ffmpeg$(PROG_EXT) $(FFMPEG_PREBUILT)
 
 clean:
-	rm -rf $(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE) \
-		$(LIBOGG_SOURCE) $(LIBTHEORA_SOURCE) $(LIBVPX_SOURCE)
+	rm -rf $(FFMPEG_PREBUILT) \
+		$(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE) \
+		$(LIBOGG_SOURCE) $(LIBTHEORA_SOURCE) $(LIBVPX_SOURCE) \
+		$(FFMPEG_DISTRIB) $(YASM_DISTRIB) $(LIBX264_DISTRIB) \
+		$(LIBOGG_DISTRIB) $(LIBTHEORA_DISTRIB) $(LIBVPX_DISTRIB)
 
 $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
@@ -167,7 +181,7 @@ $(LIBVPX_SOURCE): $(LIBVPX_DISTRIB)
 $(LIBVPX_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBVPX_DISTRIB)
 
-upload_new_version:
+upload_new_sources:
 	$(RSYNC) $(FFMPEG_DISTRIB) $(YASM_DISTRIB) $(LIBX264_DISTRIB) $(LIBOGG_DISTRIB) $(LIBTHEORA_DISTRIB) $(LIBVPX_DISTRIB) $(PREREQS_UPLOAD)/ffmpeg
 
 endif

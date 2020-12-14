@@ -296,6 +296,7 @@ class Logger(StatusLogger):
                 else:
                     self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
+
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())

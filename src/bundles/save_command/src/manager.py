@@ -46,9 +46,12 @@ class SaveManager(ProviderManager):
                 " format '%s'; skipping" % (bundle_name, format_name))
             return
         if data_format in self._savers:
-            logger.warning("Replacing file-saver for '%s' from %s bundle with that from"
-                " %s bundle" % (data_format.name, _readable_bundle_name(
-                self._savers[data_format].bundle_info), bundle_name))
+            if not bundle_info.installed:
+                return
+            prev_bundle = self._savers[data_format].bundle_info
+            if prev_bundle.installed:
+                logger.warning("Replacing file-saver for '%s' from %s bundle with that from %s bundle"
+                    % (data_format.name, _readable_bundle_name(prev_bundle), bundle_name))
         self._savers[data_format] = ProviderInfo(bundle_info, format_name,
             bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"))
 

@@ -80,7 +80,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
 
     # remember in file history if appropriate
     try:
-        session.open_command.open_info(data_format)
+        session.open_command.opener_info(data_format)
     except Exception:
         pass
     else:
@@ -125,6 +125,8 @@ def cmd_save_formats(session):
     all_formats = session.save_command.save_data_formats
     by_category = {}
     for fmt in all_formats:
+        if not session.save_command.save_info(fmt).bundle_info.installed:
+            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()
@@ -223,7 +225,10 @@ def cmd_usage_save_format(session, format):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(SaveFileNameArg)))
 
     provider_args = session.save_command.save_args(session.data_formats[format])
+    hidden_args = session.save_command.hidden_args(session.data_formats[format])
     for py_kw_name, arg in provider_args.items():
+        if py_kw_name in hidden_args:
+            continue
         kw_name = user_kw(py_kw_name)
         if isinstance(arg, type):
             # class, not instance

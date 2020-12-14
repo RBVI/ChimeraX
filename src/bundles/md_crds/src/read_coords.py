@@ -35,6 +35,15 @@ def read_coords(session, file_name, model, format_name, replace=True):
         num_frames = _set_model_dcd_coordinates(model, dcd, replace)
         session.logger.status("Finished reading DCD coordinates")
         return num_frames
+    elif format_name == "amber":
+        from netCDF4 import Dataset
+        ds = Dataset(file_name, "r")
+        try:
+            # netCDF4 has a builtin __array__ that doesn't allow a second argumeht...
+            coords = array(array(ds.variables['coordinates']), dtype=float64)
+        except KeyError:
+            raise UserError("File is not an Amber netCDF coordinates file (no coordinates found)")
+        num_atoms = len(coords[0])
     else:
         raise ValueError("Unknown MD coordinate format: %s" % format_name)
     if model.num_atoms != num_atoms:

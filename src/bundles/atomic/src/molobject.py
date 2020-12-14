@@ -121,6 +121,7 @@ class Bond(State):
 
     @property
     def atomspec(self):
+        a1, a2 = self.atoms
         return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = convert.atom_pair, read_only = True,
@@ -620,8 +621,8 @@ class Residue(CyResidue, State):
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
     _cython_property_return_info = [
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
-        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
-        ('phi', (float, None)), ('psi', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
+        ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
 
     # used by custom-attr registration code
@@ -1882,6 +1883,8 @@ class ChangeTracker:
             set_c_pointer(self, ct_pointer)
         f = c_function('set_changetracker_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self.tracked_classes = frozenset([Atom, Bond, Pseudobond, Residue, Chain, StructureData,
+            PseudobondGroupData, CoordSet])
 
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1901,13 +1904,20 @@ class ChangeTracker:
         f = c_function('change_tracker_add_modified',
             args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
         from .molarray import Collection
+        from collections.abc import Iterable
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+                f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
         else:
-            f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
-                reason.encode('utf-8'))
+            try:
+                iterable_test = iter(modded)
+            except TypeError:
+                f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+            else:
+                for item in modded:
+                    f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+
     @property
     def changed(self):
         f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)

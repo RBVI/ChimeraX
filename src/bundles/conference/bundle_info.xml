@@ -1,0 +1,44 @@
+<BundleInfo name="ChimeraX-Meeting" version="1.0"
+	    package="chimerax.meeting"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Shared interactive VR sessions.</Synopsis>
+  <Description>Show virtual reality hand controllers or mouse from ChimeraX running on a remote machine.</Description>
+
+  <DataFiles>
+    <DataFile>face.png</DataFile>
+    <DataFile>server.pem</DataFile>
+    <DataFile>gui.html</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Providers>
+    <Provider name="conference" manager="url_schemes"/>
+  </Providers>
+
+  <Dependencies>
+    <Dependency name="netifaces" version="~=0.10.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: conference :: General :: Show synchronized mouse or VR hand controllers between two ChimeraX instances (shared hub)</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: conference set :: General :: Set options for current conference</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: conference close :: General :: Close connection to conference</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: conference send :: General :: Copy my scene to all other conference participants</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Conference Call :: Utilities :: Show the same data set in multiple ChimeraX instances</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

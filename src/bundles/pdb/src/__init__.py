@@ -11,8 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ensure atomic_libs C++ shared libs are linkable by us
-import chimerax.atomic_lib
+# ensure C++ shared libs we need are linkable by us
+import chimerax.atomic_lib  # noqa
+import chimerax.pdb_lib  # noqa
 
 from ._pdbio import standard_polymeric_res_names  # this also gets shared lib loaded
 from .pdb import open_pdb, save_pdb

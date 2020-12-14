@@ -741,11 +741,11 @@ class Models(StateManager):
     def _update_child_ids(self, model):
         id = model.id
         mt = self._models
-        for child in model.all_models():
-            if child is not model:
-                del mt[child.id]
-                child.id = id + child.id[len(id):]
-                mt[child.id] = child
+        for child in model.child_models():
+            del mt[child.id]
+            child.id = id + child.id[-1:]
+            mt[child.id] = child
+            self._update_child_ids(child)
             
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''

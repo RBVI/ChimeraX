@@ -808,7 +808,7 @@ class EnumOf(Annotation):
             i, ident = matches[0]
             return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
-            ms = ', '.join(self.values[i] for i, ident in matches)
+            ms = ', '.join(self.ids[i] for i, ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
@@ -1092,12 +1092,13 @@ class FileNameArg(Annotation):
 _BROWSE_STRING = "browse"
 
 
-def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, check_existence,
+        *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
-        from PyQt5.QtWidgets import QFileDialog
+        from PySide2.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
         if name_filter is not None:
@@ -1115,21 +1116,28 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
+    if check_existence:
+        import os.path
+        for path in paths:
+            if not os.path.exists(os.path.expanduser(path)):
+                raise AnnotationError("File '%s' does not exist" % path)
     return (paths if return_list else paths[0]), " ".join([quote_path_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
     name = "name of a file to open/read; a name of 'browse' will bring up a file browser"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class OpenFileNamesArg(Annotation):
@@ -1139,17 +1147,18 @@ class OpenFileNamesArg(Annotation):
     # or None (which means all ChimeraX-openable types)
     name_filter = None
     allow_repeat = "expand"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
         # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-                             return_list=True)
+            cls.check_existence, return_list=True)
 
     @staticmethod
     def unparse(value, session=None):
@@ -1161,43 +1170,49 @@ class OpenFileNamesArg(Annotation):
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
     name = "name of a file to save/write; a name of 'browse' will bring up a file browser"
+    check_existence = False
 
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
     name = "name of a folder to open/read; a name of 'browse' will bring up a file browser"
+    check_existence = True
 
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
     name = "name of a folder to save/write; a name of 'browse' will bring up a file browser"
+    check_existence = False
 
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PyQt5.QtWidgets import QFileDialog
+            from PySide2.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
-        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
+        return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
+            cls.check_existence)
 
 
 # Atom Specifiers are used in lots of places
@@ -1241,6 +1256,8 @@ class TopModelsArg(AtomSpecArg):
 total_calls = 0
 total_parse = 0
 total_evaluate = 0
+
+
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
@@ -2001,7 +2018,7 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis', 'self_logging'
+        '_hidden', '_can_return_json', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
@@ -2027,6 +2044,7 @@ class CmdDesc:
         self.synopsis = synopsis
         self.self_logging = self_logging
         self._function = None
+        self._can_return_json = False
 
     @property
     def function(self):
@@ -2047,7 +2065,9 @@ class CmdDesc:
             var_positional = inspect.Parameter.VAR_POSITIONAL
             var_keyword = inspect.Parameter.VAR_KEYWORD
             signature = inspect.signature(function)
-            params = list(signature.parameters.values())
+            sig_params = signature.parameters
+            self._can_return_json = 'return_json' in sig_params
+            params = list(sig_params.values())
             if len(params) < 1 or params[0].name != "session":
                 raise ValueError('Missing initial "session" argument')
             for p in params[1:]:
@@ -2058,6 +2078,10 @@ class CmdDesc:
                 raise ValueError("Wrong function or '%s' argument must be "
                                  "required or have a default value" % p.name)
         self._function = function
+
+    @property
+    def can_return_json(self):
+        return self._can_return_json
 
     def copy(self):
         """Return a copy suitable for use with another function."""
@@ -2466,7 +2490,11 @@ class Command:
                 return
             if _debugging:
                 orig_text = text
-            word, chars, text = next_token(text)
+            try:
+                word, chars, text = next_token(text)
+            except AnnotationError as err:
+                self._error = str(err)
+                return
             if _debugging:
                 print('cmd next_token(%r) -> %r %r %r' % (
                     orig_text, word, chars, text))
@@ -2617,7 +2645,10 @@ class Command:
         # check if next token matches a keyword
         if not text:
             return True
-        _, tmp, _ = next_token(text)
+        try:
+            _, tmp, _ = next_token(text)
+        except AnnotationError:
+            return False
         if not tmp:
             return True
         if tmp[0].isalpha():
@@ -2643,7 +2674,11 @@ class Command:
         while 1:
             if _debugging:
                 orig_text = text
-            word, chars, text = next_token(text)
+            try:
+                word, chars, text = next_token(text)
+            except AnnotationError as err:
+                self._error = str(err)
+                return
             if _debugging:
                 print('key next_token(%r) -> %r %r %r' % (
                     orig_text, word, chars, text))
@@ -2732,7 +2767,7 @@ class Command:
             if not text:
                 break
 
-    def run(self, text, *, log=True, log_only=False, _used_aliases=None):
+    def run(self, text, *, log=True, log_only=False, return_json=False, _used_aliases=None):
         """Parse and execute commands in the text
 
         :param text: The text to be parsed.
@@ -2812,6 +2847,8 @@ class Command:
             with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
+                        if ci.can_return_json:
+                            kw_args['return_json'] = return_json
                         result = ci.function(session, **kw_args)
                         results.append(result)
                 else:
@@ -3758,6 +3795,7 @@ if __name__ == '__main__':
         raise SystemExit(1)
     raise SystemExit(0)
 
+
 def log_command(session, command_name, command_text, *, url=None):
     if session is None:
         # for testing purposes
@@ -3775,4 +3813,3 @@ def log_command(session, command_name, command_text, *, url=None):
         text = escape(command_text)
         msg += '</div><div class="cxcmd_as_cmd"><a href="cxcmd:%s">%s</a></div></div>' % (text, text)
         session.logger.info(msg, is_html=True, add_newline=False)
-

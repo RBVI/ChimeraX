@@ -31,6 +31,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>edgeRadius</b>&nbsp;&nbsp;<i>stick-radius</i>&nbsp;]
 [&nbsp;<b>orientation</b>&nbsp;&nbsp;<i>type</i>&nbsp;]
 [&nbsp;<b>sphereFactor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>alpha</b>&nbsp;&nbsp;<i>alphatype</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>mesh</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -56,13 +57,22 @@ For more details, see the
 <a href="http://viperdb.scripps.edu/icos_server.php?icspage=paradigm"
 target="_blank">VIPERdb description</a> and the following reference:
 <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/9223631" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/9223631" target="_blank">
 Quasi-equivalent viruses: a paradigm for protein assemblies.</a>
 Johnson JE, Speir JA.
 <i>J Mol Biol.</i> 1997 Jun 27;269(5):665-75.
 </blockquote>
 The arguments <i>h</i> and <i>k</i> are required;
 each can be a positive integer or zero, but not both zero at the same time.
+</p><p>
+The basic T number equation describes lattices built from repeats 
+of the same asymmetric unit. However, expanded versions of the lattices 
+are possible for capsids with vertices occupied by different proteins 
+or different domains. For a given T number,
+the number of hexagons and pentagons remains the same, 
+but the total surface area increases by a factor &alpha;
+due to additional polygons (triangles and squares). Such expanded lattices
+can be constructed with the <a href="#alpha"><b>alpha</b></a> option.
 </p><p>
 The cage is centered at (0,0,0).
 It is created as a <a href="../markers.html">marker model</a> 
@@ -119,6 +129,41 @@ The interpolation only involves vertex positions and will not generate
 curved mesh lines.
 </blockquote>
 <blockquote>
+<a name="alpha"></a>
+<b>alpha</b>&nbsp;&nbsp;<i>alphatype</i>
+<br>
+Capsids in which the vertices are occupied by different proteins or domains
+(rather than identical asymmetric units)
+may form expanded versions of the lattices, as described in:
+  <blockquote>
+<a href="https://www.nature.com/articles/s41467-019-12367-3" target="_blank">
+Structural puzzles in virology solved with an overarching icosahedral 
+design principle.</a>
+Twarock R, Luque A.
+<i>Nat Commun.</i> 2019 Sep 27;10(1):4414.
+  </blockquote>
+<p>
+The <b>alpha</b> option allows creating such expanded lattices,
+with choices for <i>alphatype</i>
+(see <a href="https://www.nature.com/articles/s41467-019-12367-3#Fig2"
+target="_blank">Fig. 2</a> in the paper):
+<ul>
+<li><b>hexagonal</b> (default)
+<li>hexagonal-dual
+<li>rhomb
+<li>rhomb-dual
+<li>trihex
+<li>trihex-dual
+<li>snub
+<li>snub-dual
+</ul>
+</p>
+Thanks to the <a href="https://www.luquelab.com" target="_blank">Luque Lab</a>
+at San Diego State University for developing the code for this option, with
+funding from the <a href="https://www.nsf.gov/" target="_blank">NSF</a>.
+</p>
+</blockquote>
+<blockquote>
   <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Specify a color for the cage model (default <b>white</b>).
@@ -143,5 +188,5 @@ the new one rather than opening an additional model.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2020</address>
+November 2020</address>
 </body></html>

@@ -168,6 +168,12 @@ class Color8Arg(ColorArg):
         c, text, rest = ColorArg.parse(text, session)
         return c.uint8x4(), text, rest
 
+class Color8TupleArg(ColorArg):
+    @staticmethod
+    def parse(text, session):
+        c, text, rest = ColorArg.parse(text, session)
+        return tuple(c.uint8x4()), text, rest
+
 
 ColormapRangeArg = Or(TupleOf(FloatArg, 2), EnumOf(['full']))
 

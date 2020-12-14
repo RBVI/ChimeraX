@@ -58,39 +58,32 @@ on Mac, Windows and Linux are build with scripts in the ChimeraX git repository 
 Windows Build
 -------------
 
-Microsoft Visual Studio Community 2015, 2017 or 2019 is used to compile C++ on Windows.
+Microsoft Visual Studio Community 2017 or 2019 is used to compile C++ on Windows.
 This compiler was chosen to match the compiler used by the standard Python 3 distribution.
 
 Cygwin is use to provide a unix-like environment (bash shell, make, ...) to build ChimeraX on Windows.
 
 Steps for compiling ChimeraX on Windows 10:
 
-#. Install Microsoft Visual Studio 2017 Community Edition works::
+#. Install Microsoft Visual Studio 2017 or 2019 Community Edition::
 
     Select Programming Languages / Visual C++ (not done by default).
     Select "Windows and Web Development / Universal Windows App Development Tools".
     Make sure that Windows SDK 10.0.18362 is installed (matching vsvars.sh).
     Then start Visual Studio and login, then quit.
     
-#. Install ​Cygwin. We used the 64-bit version. In addition to the default packages, you'll need::
+#. Install ​Cygwin, 64-bit version. In addition to the default packages, you'll need::
 
     binutils - xdr in md_crds needs ld.exe
     git - to be able to check in changes
-    icoutils - to look at icon files, might not be needed
     Imagemagick - to create icon files
     make - to run the build process
     openssh - to get network access to plato
     patch - to patch source distribution
     rsync - to install files and fetch them
-    vim - to edit files, might prefer emacs, your choice
     unzip - used to build ffmpeg
   
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
-
-#. Install Python::
-
-    This is to avoid building Python on Windows.
-    Requires exact Python version (e.g. 3.7.8) specified in chimerax/prereqs/Python/Makefile.
 
 #. Setup ssh access to plato.cgl.ucsf.edu to get commercial PyQt wheel::
 
