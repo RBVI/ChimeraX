@@ -17,9 +17,13 @@ from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 # need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
-# used to open multiple files
-class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
+# used to open multiple files, and turn off checking for existence so that things like pdb:1gcn are okay
+class OpenInputArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
+    check_existence = False
+
+class OpenInputArg(OpenFileNamesArg):
+    check_existence = False
 
 import os.path
 def likely_pdb_id(text, format_name):
@@ -94,7 +98,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
                 raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
                     " same name" % keyword)
             keywords[keyword] = annotation
-        desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
+        desc = CmdDesc(required=[('names', OpenInputArg)], keyword=keywords.items(),
             synopsis="read and display data")
         register("open", desc, provider_open, registry=registry)
     except BaseException as e:
@@ -630,7 +634,7 @@ def format_names(session):
 _main_open_CmdDesc = None
 def register_command(command_name, logger):
     global _main_open_CmdDesc
-    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenInputArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files", self_logging=True)
     register('open', _main_open_CmdDesc, cmd_open, logger=logger)
 
