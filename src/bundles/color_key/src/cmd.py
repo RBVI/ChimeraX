@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-def key_cmd(session, colors_and_labels=None, *, pos=None, size=None):
+def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None):
     if colors_and_labels is not None and len(colors_and_labels) < 2:
         raise UserError("Must specify at least two colors for key")
     from .model import get_model
@@ -25,6 +25,12 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None):
         key.position = pos
     if size is not None:
         key.size = size
+    if font_size is not None:
+        key.font_size = font_size
+    if bold is not None:
+        key.bold = bold
+    if italic is not None:
+        key.italic = italic
     if pos is not None or size is not None:
         if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
         or (key.position[1] + key.size[1]) > 1:
@@ -69,9 +75,17 @@ class ColorLabelPairArg(Annotation):
         return text
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg
+    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
+        PositiveIntArg, StringArg
     cmd_desc = CmdDesc(
         optional=[('colors_and_labels', ColorLabelPairArg)],
-        keyword=[('pos', Float2Arg), ('size', TupleOf(PositiveFloatArg,2))],
+        keyword=[
+            ('bold', BoolArg),
+            ('font', StringArg),
+            ('font_size', PositiveIntArg),
+            ('italic', BoolArg),
+            ('pos', Float2Arg),
+            ('size', TupleOf(PositiveFloatArg,2)),
+        ],
         synopsis = 'Create/change a color key')
     register('key', cmd_desc, key_cmd, logger=logger)

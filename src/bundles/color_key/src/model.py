@@ -50,6 +50,10 @@ class ColorKeyModel(Model):
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._num_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
+        self._bold = False
+        self._italic = False
+        self._font_size = 24
+        self._font = 'Arial'
 
         session.main_view.add_overlay(self)
 
@@ -65,6 +69,54 @@ class ColorKeyModel(Model):
             return
         self._update_graphics(renderer)
         super().draw(renderer, draw_pass)
+
+    @property
+    def bold(self):
+        return self._bold
+
+    @bold.setter
+    def bold(self, bold):
+        if bold == self._bold:
+            return
+        self._bold = bold
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def font(self):
+        return self._font
+
+    @font.setter
+    def font(self, font):
+        if font == self._font:
+            return
+        self._font = font
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def font_size(self):
+        return self._font_size
+
+    @font_size.setter
+    def font_size(self, font_size):
+        if font_size == self._font_size:
+            return
+        self._font_size = font_size
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def italic(self):
+        return self._italic
+
+    @italic.setter
+    def italic(self, italic):
+        if italic == self._italic:
+            return
+        self._italic = italic
+        self.needs_update = True
+        self.redraw_needed()
 
     @property
     def position(self):
@@ -146,15 +198,17 @@ class ColorKeyModel(Model):
         ulx, uly = self._position
         key_w, key_h = self._size
         win_w, win_h = self._window_size
-        x_pixels = int(win_w * key_w + 0.5)
-        y_pixels = int(win_h * key_h + 0.5)
-        if x_pixels > y_pixels:
+        rect_pixels = [int(win_w * key_w + 0.5), int(win_h * key_h + 0.5)]
+        pixels = rect_pixels[:]
+        start_offset = [0, 0]
+        end_offset = [0, 0]
+        if pixels[0] > pixels[1]:
             layout = "horizontal"
-            long_size = x_pixels
+            long_index = 0
         else:
             layout = "vertical"
-            long_size = y_pixels
-        rect_positions = self._rect_positions(long_size)
+            long_index = 1
+        rect_positions = self._rect_positions(pixels[long_index])
 
         if self._color_treatment == self.CT_BLENDED:
             label_positions = rect_positions
@@ -162,26 +216,61 @@ class ColorKeyModel(Model):
             label_positions = [(rect_positions[i] + rect_positions[i+1])/2
                 for i in range(len(rect_positions)-1)]
 
-        from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient
-        from PyQt5.QtCore import Qt, QRect, QPoint
-        image = QImage(max(x_pixels, 1), max(y_pixels, 1), QImage.Format_ARGB32)
-        image.fill(QColor(0,0,0,0))    # Set background transparent
-
         rgbas, labels = zip(*self._rgbas_and_labels)
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
 
-        with QPainter(image) as p:
+        from PySide2.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, \
+            QFont
+        from PySide2.QtCore import Qt, QRect, QPoint
+
+        font = QFont(self.font, self.font_size, (QFont.Bold if self.bold else QFont.Normal), self.italic)
+        fm = QFontMetrics(font)
+        # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
+        # horizontally across the full width
+        if labels[0]:
+            # may need extra room to left or top for first label
+            bounds = fm.boundingRect(labels[0])
+            xywh = bounds.getRect()
+            label_size = xywh[long_index+2] + (xywh[1] if layout == "vertical" else 0)
+            extra = max(label_size / 2 - label_positions[0][long_index], 0)
+            start_offset[long_index] += extra
+            pixels[long_index] += extra
+
+        # need room below or to right to layout labels
+        extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
+        end_offset[1-long_index] += extra
+        pixels[1-long_index] += extra
+
+        if labels[-1]:
+            # may need extra room to right or bottom for last label
+            bounds = fm.boundingRect(labels[0])
+            xywh = bounds.getRect()
+            # since vertical labels are centered on the half height ignoring the descender,
+            # need to use the full height here (which includes the descender) *plus*
+            # the descender again, in order to account for the full descender after halving
+            label_size = xywh[long_index+2] - (xywh[1] if layout == "vertical" else 0)
+            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1][long_index]), 0)
+            end_offset[long_index] += extra
+            pixels[long_index] += extra
+
+        image = QImage(max(pixels[0], 1), max(pixels[0], 1), QImage.Format_ARGB32)
+        image.fill(QColor(0,0,0,0))    # Set background transparent
+
+        try:
+            p = QPainter(image)
             p.setRenderHint(QPainter.Antialiasing)
             p.setPen(QPen(Qt.NoPen))
 
             if self._color_treatment == self.CT_BLENDED:
                 gradient = QLinearGradient()
                 gradient.setCoordinateMode(QLinearGradient.ObjectMode)
+                rect_start = [start_offset[i] / pixels[i] for in in (0,1)]
+                rect_end = [(pixels[i] - end_offset[i]) / x_pixels[i] for i in (0,1)]
                 if layout == "vertical":
-                    start, stop = (0.0, 1.0), (0.0, 0.0)
+                    start, stop = (rect_start[0], rect_end[1]), (rect_start[0], rect_start[1])
                 else:
-                    start, stop = (0.0, 0.0), (1.0, 0.0)
+                    start, stop = (rect_start[0], rect_start[1]), (rect_end[0], rect_start[1])
                 gradient.setStart(*start)
                 gradient.setFinalStop(*stop)
                 for rgba, rect_pos in zip(rgbas, rect_positions):
@@ -197,11 +286,16 @@ class ColorKeyModel(Model):
                     p.setBrush(brush)
                     if layout == "vertical":
                         x1, y1 = 0, rect_positions[i]
-                        x2, y2 = x_pixels, rect_positions[i+1]
+                        x2, y2 = rect_pixels[0], rect_positions[i+1]
                     else:
                         x1, y1 = rect_positions[i], 0
-                        x2, y2 = rect_positions[i+1], y_pixels
-                    p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
+                        x2, y2 = rect_positions[i+1], rect_pixels[1]
+                    p.drawRect(QRect(QPoint(x1 + start_offset[0], y1 + start_offset[1]),
+                        QPoint(x2 + start_offset[0], y2 + start_offset[1])))
+            p.setFont(font)
+            #TODO: draw labels
+        finally:
+            p.end()
 
         # Convert to numpy rgba array
         from chimerax.graphics import qimage_to_numpy
