@@ -42,8 +42,8 @@
     <Provider name="HDF map" nicknames="hdf" category="Volume data" />
     <Provider name="Image stack" nicknames="images" category="Volume data"
 		suffixes=".tif,.tiff,.png,.pgm" />
-    <!-- Omit suffixes for ImageJ otherwise it becomes the default save instead of graphics image save. -->
-    <Provider name="ImageJ TIFF map" nicknames="imagejtiff" category="Volume data" suffixes="" />
+    <Provider name="ImageJ TIFF map" nicknames="imagejtiff" category="Volume data"
+		suffixes=".tif,.tiff" />
     <Provider name="IMAGIC density map" nicknames="imagic" category="Volume data"
 		suffixes=".hed,.img" />
     <Provider name="Imaris map" nicknames="ims" category="Volume data" suffixes=".ims" />
