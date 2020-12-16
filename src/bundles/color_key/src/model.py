@@ -226,6 +226,9 @@ class ColorKeyModel(Model):
 
         font = QFont(self.font, self.font_size, (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
+        #TODO: All the commented-out code below needs to be redone to account for left/decimal-point/right
+        # justification
+        """
         # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
         # horizontally across the full width
         if labels[0]:
@@ -253,6 +256,7 @@ class ColorKeyModel(Model):
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1][long_index]), 0)
             end_offset[long_index] += extra
             pixels[long_index] += extra
+        """
 
         image = QImage(max(pixels[0], 1), max(pixels[0], 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
