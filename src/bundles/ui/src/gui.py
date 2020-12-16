@@ -1557,8 +1557,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.setCheckable(True)
                     tool_action.setChecked(tool_name in active_tool_names)
                     tool_action.triggered.connect(
-                        lambda ses=session, run=run, tool_name=tool_name:                      
-                        run(ses, "ui tool %s %s" % (("show" if arg else "hide"),
+                        lambda checked, *, ses=session, run=run, tool_name=tool_name:
+                        run(ses, "ui tool %s %s" % (("show" if checked else "hide"),
                         StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
@@ -1826,6 +1826,9 @@ def _open_dropped_file(session, path):
     from chimerax.core.commands import run, FileNameArg
     run(session, 'open %s' % FileNameArg.unparse(path))
 
+from PySide2.QtCore import Qt
+keyboard_state_keys = set([Qt.Key_CapsLock, Qt.Key_NumLock, Qt.Key_ScrollLock, Qt.Key_AltGr])
+
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
     """Supported API. An area that a tool can populate with widgets.
@@ -2062,8 +2065,13 @@ class ToolWindow(StatusLogger):
         #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
+        #
+        # Since forwarding keystrokes can shift the keyboard focus, don't forward keys that
+        # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
+        # for the Python Shell retaining focus.
         from PySide2.QtWidgets import QLineEdit, QComboBox
-        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)):
+        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)) \
+        and event.key() not in keyboard_state_keys:
             self.tool_instance.session.ui.forward_keystroke(event)
 
     def _mw_set_dockable(self, dockable):
@@ -2347,8 +2355,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
         auto_action.triggered.connect(
-            lambda ses=session, run=run, tool_name=ti.tool_name:
-            run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
+            lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui autostart %s %s" % (("true" if checked else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(auto_action)
         favorite = ti.tool_name in session.ui.settings.favorites
@@ -2357,8 +2365,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         fav_action.setChecked(favorite)
         from chimerax.core.commands import run, StringArg
         fav_action.triggered.connect(
-            lambda ses=session, run=run, tool_name=ti.tool_name:
-            run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
+            lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
+            run(ses, "ui favorite %s %s" % (("true" if checked else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
     if memorable and tool_window.hides_title_bar and not tool_window.floating:
@@ -2371,8 +2379,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     dock_action.setChecked(not undockable)
     from chimerax.core.commands import run, StringArg
     dock_action.triggered.connect(
-        lambda ses=session, run=run, tool_name=ti.tool_name:
-        run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
+        lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
+        run(ses, "ui dockable %s %s" % (("true" if checked else "false"),
         StringArg.unparse(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:

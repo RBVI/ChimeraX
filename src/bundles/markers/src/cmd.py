@@ -207,25 +207,40 @@ def _surface_name(surface):
         name = surface.name
     return name
 
-def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), markers = None):
+def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), markers = None,
+                     stats = False):
     if len(surfaces) == 0:
         from chimerax.core.errors import UserError
         raise UserError('marker connected: no surfaces specified')
 
     mset = _create_marker_set(session, markers, name = 'centers ' + _surface_name(surfaces[0]))
     markers = []
+    lines = []
     for surface in surfaces:
-        centers = surface_blob_centers(surface)
+        blobstats = surface_blob_measurements(surface)
+        centers = [bs['center'] for bs in blobstats]
         scene_centers = surface.scene_position * centers
         surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
         _set_markers_frame_number(mset, surf_markers, surface)
         markers.extend(surf_markers)
+        if stats:
+            lines.append('Surface %s #%s has %d visible blobs'
+                         % (surface.name, surface.id_string, len(blobstats)))
+            lines.append('# id, center xyz, surface area, enclosed volume, holes')
+            for i,bs in enumerate(blobstats):
+                lines.append('%5d' % (i+1) +
+                             ' %8.5g %8.5g %8.5g' % tuple(bs['center']) +
+                             ' %10.4g %10.4g %3d' % (bs['area'], bs['volume'], bs['holes']))
 
     if mset.id is None:
         session.models.add([mset])
 
     session.logger.status('Found %d connected surface pieces' % len(markers), log = True)
-    
+
+    if lines:
+        msg = '<pre>' + '\n'.join(lines) + '</pre>'
+        session.logger.info(msg, is_html=True)
+        
     return markers
 
 def _set_markers_frame_number(mset, markers, surface):
@@ -243,10 +258,12 @@ def _set_markers_frame_number(mset, markers, surface):
             m.frame = frame
         mset.save_marker_attribute_in_sessions('frame', int)
 
-def surface_blob_centers(surface):
+def surface_blob_measurements(surface):
     '''
-    Return an array of center positions for each connected set of
-    displayed triangles in the surface.  Centers are in surface coordinates.
+    Return a list of measurements for each blob. Each list element is
+    a dictionary for one blob including center, area, volume, and hole count.
+    A blob is a connected set of displayed triangles in the surface.
+    Centers are in surface coordinates.
     A center is computed as average vertex position weighted by vertex area
     where vertex area is 1/3 the area of the adjoining displayed triangles.
     '''
@@ -256,13 +273,18 @@ def surface_blob_centers(surface):
     blob_list = connected_pieces(triangles)
     vertices = surface.vertices
     varea = vertex_areas(vertices, triangles)
-    from numpy import empty, float32
-    centers = empty((len(blob_list), 3), float32)
+    from chimerax.surface import enclosed_volume
+    blob_stats = []
     for i, (vi,ti) in enumerate(blob_list):
         blob_varea = varea[vi]
         blob_area = blob_varea.sum()
-        centers[i] = blob_varea.dot(vertices[vi])/blob_area
-    return centers
+        center = blob_varea.dot(vertices[vi])/blob_area
+        blob_volume, blob_holes = enclosed_volume(vertices, triangles[ti])
+        blob_stats.append({'center': center,
+                           'area': blob_area,
+                           'volume': blob_volume,
+                           'holes': blob_holes})
+    return blob_stats
 
 from chimerax.atomic import AtomsArg
 class MarkersArg(AtomsArg):
@@ -358,7 +380,8 @@ def register_marker_command(logger):
         required = [('surfaces', SurfacesArg)],
         keyword = [('radius', FloatArg),
                    ('color', Color8Arg),
-                   ('markers', MarkerSetOrIdArg)],
+                   ('markers', MarkerSetOrIdArg),
+                   ('stats', BoolArg)],
         synopsis = 'Place markers at center of each connected surface blob'
     )
     register('marker connected', desc, marker_connected, logger=logger)

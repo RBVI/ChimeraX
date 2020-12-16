@@ -32,8 +32,6 @@ class ShellUI(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-        # undo forwarding of "unused" keystrokes (e.g. caps lock) to command line, which causes focus change
-        parent.keyPressEvent = lambda *args: None
         # UI content code
         from ipykernel.ipkernel import IPythonKernel
         save_ns = IPythonKernel.user_ns

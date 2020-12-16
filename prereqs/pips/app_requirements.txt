@@ -22,6 +22,8 @@ matplotlib==3.3.2
 msgpack==1.0.0
 netCDF4==1.5.4
 networkx==2.5
+# Do not update numpy to 1.19.4, broken on Windows when using fmod, Windows fix expected late Jan 2021.
+# https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html
 numpy==1.19.2
 openvr==1.14.1501
 Pillow==7.2.0
@@ -29,10 +31,11 @@ pkginfo==1.5.0.1
 psutil==5.7.2
 pycollada==0.7.1
 pydicom==2.0.0
-PyOpenGL==3.1.5
-PyOpenGL-accelerate==3.1.5
+# PyOpenGL handled in app_pyopengl_requirements.txt
+#PyOpenGL==3.1.5
+#PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
-PySide2==5.15.1
+PySide2==5.15.2
 qtconsole==4.7.7
 requests==2.24.0
 scipy==1.5.2

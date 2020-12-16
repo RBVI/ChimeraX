@@ -45,6 +45,8 @@ class MainSaveDialog:
         if self._current_option != self._no_options_label:
             cmd += ' ' + session.save_command.save_args_string_from_widget(fmt,
                 self._current_option)
+        if not session.save_command.save_info(fmt).is_default:
+            cmd += ' format ' + fmt.nicknames[0]
         run(session, cmd)
         if self._settings:
             self._settings.format_name = fmt.name

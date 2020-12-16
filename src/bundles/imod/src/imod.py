@@ -13,7 +13,7 @@ def read_imod_model(session, path, meshes = True, contours = True):
         msg += ', pixel size %.4g' % pixel_size
     if meshes and len(surfaces) > 0:
         msg += ', %d surfaces' % len(surfaces)
-    if contours and len(contours) > 0:
+    if contours and len(msets) > 0:
         msg += ', %d contours' % len(msets)
 
     return surfaces + msets, msg
@@ -299,5 +299,5 @@ def create_contour(c, transform, radius, rgba, link, open_contours, mset):
     if not open_contours:
         open_contours = (c['flags'] & (1 << 3))
     if link and len(mlist) >= 3 and not open_contours:
-        l = create_link(mlist[-1], mlist[0], rgba, radius)
+        l = create_link(mlist[-1], mlist[0], rgba8, radius)
         links.append(l)

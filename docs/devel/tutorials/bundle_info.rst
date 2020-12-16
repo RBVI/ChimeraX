@@ -76,7 +76,13 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
-    - **limitedAPI**: set to Python stable ABI version; omit otherwise
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise.
+      Typicaly used by binary bundles to declare that they can work with older versions of Python
+      via Python's `Stable Application Binary Interface <https://docs.python.org/3/c-api/stable.html>`_
+      but can also be used by pure-Python bundles that are using very new language features
+      to declare that they *can't* work with older Python versions.
+      In either case, the value is the oldest version that the bundle works with,
+      and is of the form "3.x" (e.g. 3.7).
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
@@ -791,6 +797,12 @@ The other possible `Provider`_ attributes are:
         the provider does with the text), then specify *check_path* as "false" (which implies
         *want_path*\="true", you don't have to explicitly specify that).
 
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the open command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -859,6 +871,16 @@ The other possible `Provider`_ attributes are:
         *compression_okay* as "false" will prevent the ``save`` command from allowing this
         format to be automatically compressed (which happens when the output file name also has
         a compression suffix, *e.g.* "my_structure.pdb.gz").
+
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the save command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
+        `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
+        The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
+        produces the more commonly desired image file.  To get an ImageJ stack, the user would have
+        to add ``format imagej`` to the save command.
 
 For example::
 

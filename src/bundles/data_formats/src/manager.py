@@ -170,11 +170,14 @@ class FormatsManager(ProviderManager):
         except KeyError:
             return None
 
+        fallback_fmt = None
         for fmt in formats:
             try:
-                info_func(fmt)
+                provider_info = info_func(fmt)
             except error_type:
                 pass
             else:
-                return fmt
-        return None
+                if provider_info.is_default:
+                    return fmt
+                fallback_fmt = fmt
+        return fallback_fmt
