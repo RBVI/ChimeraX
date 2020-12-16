@@ -95,6 +95,7 @@
   <Providers manager="save command">
     <Provider name="BRIX density map" />
     <Provider name="Chimera map" />
+    <Provider name="ImageJ TIFF map" />
     <Provider name="IMAGIC density map" />
     <Provider name="MRC density map" />
   </Providers>
