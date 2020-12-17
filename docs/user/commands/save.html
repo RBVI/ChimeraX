@@ -133,7 +133,7 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr id="mapformats">
-<td align="center" rowspan="5" valign="top">&nbsp;<br>&nbsp;<a href="#map">map</a></td>
+<td align="center" rowspan="6" valign="top">&nbsp;<br>&nbsp;<a href="#map">map</a></td>
 <td align="center"><b>brix</b></td>
 <td align="center">.brix</td>
 <td align="center">BRIX density map</td>
@@ -142,6 +142,12 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.cmp<br>.cmap</td>
 <td align="center"><a href="#chimap">Chimera map</a>
 <br>(may contain multiple models)</td>
+</tr><tr>
+<td align="center"><b>imagejtiff</b></td>
+<td align="center">.tif</td>
+<td align="center">similar to TIFF image format, but includes an
+ImageDescription pixel-size tag used by ImageJ
+<br>(currently handles single-channel data only)</td>
 </tr><tr>
 <td align="center"><b>imagic</b></td>
 <td align="center">.hed<br>.img</td>
@@ -436,9 +442,11 @@ but compression is recognized automatically when the file is read.
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
 [&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<a href="#chimap-options"><i>chimera-map-options</i></a>
+<!--
 [&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>compress</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>chunkShapes</b>&nbsp;&nbsp;<i>order</i>&nbsp;]
+-->
 </blockquote>
 <p>
 Various <a href="#mapformats">formats</a> are available for saving maps
@@ -446,9 +454,15 @@ Various <a href="#mapformats">formats</a> are available for saving maps
 MRC files written by ChimeraX are in the MRC 2000 format.
 Older MRC-reading programs or programs expecting CCP4 format will read such 
 files successfully but may not align the data correctly with other data sets.
-Only the <a href="#chimap">Chimera map</a> format 
-can accommodate multiple data sets in a single file.
 See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>
+</p><p>
+Only the <a name="chimap">Chimera map</a> (<b>cmap</b>) format 
+can accommodate multiple data sets in a single file, 
+and will include symmetry if previously assigned,
+such as with <a href="volume.html#symmetry"><b>volume symmetry</b></a> or 
+<a href="measure.html#symmetry"><b>measure symmetry</b></a>.
+<a href="#chimap-options">Several options</a> (compression, <i>etc.</i>)
+apply only to Chimera map format.
 </p><p>
 Multiple data sets can be written to multiple files by including a
 %d integer format specification in <i>filename</i>:
@@ -466,7 +480,16 @@ will be used in the new names
 regardless of the volume model numbers. If the format specification is
 incorrect, <i>filename</i> will be interpreted as the name of a single file. 
 </p><p>
-Further options:
+For the <a href="#mapformats"><b>imagejtiff</b> format</a>, the
+default is to save the stack as a single file, but Z-planes can be saved
+to multiple individual files by including &ldquo;{z}&rdquo; in the filename,
+for example: 
+<blockquote>
+<b>save mymap_{z}.tif format imagejtiff</b>
+</blockquote>
+...to produce files named mymap_000.tif, mymap_001.tif, <i>etc.</i>
+</p><p>
+Further options (all map formats):
 <blockquote>
 <b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
@@ -514,29 +537,24 @@ whether to write out data for a region enclosing the zone,
 with values outside the zone set to zero.
 See also: <a href="volume.html#zone"><b>volume zone</b></a>
 </blockquote>
-</p><p>
-If <a name="chimap"><b><i>Chimera map</i></b></a> format is
-<a href="#map">saved</a>:
-</p>
- <ul>
- <li>multiple data sets can be saved to a single file
- (multiple volume models can be specified)
- <li>the <b>append</b> option (default <b>false</b>) indicates whether to
- append the data to an existing file instead of overwriting the file
- <li>the file will include symmetry if previously assigned 
- (such as with <a href="volume.html#symmetry"><b>volume symmetry</b></a> or 
- <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
- <li>the file can be compressed with <b>compress true</b> (default <b>false</b>)
- <li>the data layout can be controlled with <b>chunkShapes</b>
- </ul>
-<p>
-Compression is most useful for volume masks (values 0/1),
-as other data sets tend to be noisy and compress very little, if at all.
-Layout affects the efficiency of later reading the data,
+<a name="chimap-options"></a>
+Further options are specific to <a href="#chimap">Chimera map</a> format:
+<blockquote>
+<b>append</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+For <a href="#chimap">Chimera map</a> (<b>cmap</b>) format only,
+whether to append the data to an existing file instead of overwriting the file.
+</blockquote>
+<blockquote>
+<b>chunkShapes</b> &nbsp;<i>order</i> 
+<br>
+For <a href="#chimap">Chimera map</a> (<b>cmap</b>) format only,
+how to lay out the data within the file. 
+The layout affects the efficiency of later reading the data,
 primarily a concern for very large data sets (hundreds of Mb).
-The <b>chunkShapes</b> <i>order</i> can be one or more of the following,
+The <i>order</i> can be one or more of the following,
 separated by commas but not spaces:
-<ul class="circle">
+<ul>
 <li><b>zyx</b> (default)
 <li>zxy
 <li>yxz
@@ -556,7 +574,46 @@ written to the same file.  When the file is read, the most efficient
 copy available will be used.
 Saving a file with an <i>order</i> ending in &ldquo;z&rdquo; can be very slow
 because one Z-plane is written at a time.
-</p>
+</blockquote>
+<blockquote>
+<a name="compress"></a>
+<b>compress</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+For <a href="#chimap">Chimera map</a> (<b>cmap</b>) format only, whether to 
+compress the data (default <b>false</b>). If <b>compress</b> is <b>true</b>,
+the <b>compress_method</b>, <b>compress_level</b>, and <b>compress_shuffle</b>
+options apply. Compression is most useful for volume masks (values 0/1),
+as other data sets tend to be noisy and less compressible.
+</blockquote>
+<blockquote>
+<b>compress_method</b> &nbsp;<i>method</i>
+<br>
+The <i>method</i> of <a href="#compress">compression</a> can be:
+  <ul>
+  <li><b>zlib</b>
+  <li><b>lzo</b>
+  <li><b>bzip2</b>
+  <li><b>blosc</b>
+  <li><b>blosc:blosclz</b>
+  <li><b>blosc:lz4</b> (default; fast)
+  <li><b>blosc:lz4hc</b>
+  <li><b>blosc:snappy</b>
+  <li><b>blosc:zlib</b>
+  <li><b>blosc:zstd</b>
+  </ul>
+</blockquote>
+<blockquote>
+<b>compress_level</b> &nbsp;<i>level</i>
+<br>
+The <i>level</i> of <a href="#compress">compression</a>
+can be an integer in the range 1-9 (default <b>5</b>).
+</blockquote>
+<blockquote>
+<b>compress_shuffle</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to shuffle the data prior to <a href="#compress">compression</a>
+(default <b>true</b>), which sometimes produces a smaller file.
+</blockquote>
 
 <a name="pdb"></a>
 <p class="nav">
@@ -905,5 +962,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2020</address>
+December 2020</address>
 </body></html>
