@@ -1,4 +1,4 @@
-<!-- Edit bundle_info.xml.in, not bundle_info.xml -->
+<!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
 <BundleInfo name="ChimeraX-Atomic" version="1.10"
             package="chimerax.atomic"
             purePython="false"
@@ -54,7 +54,7 @@
     <Library>arrays</Library>
   </CModule>
 
-  <!-- Edit bundle_info.xml.in, not bundle_info.xml -->
+  <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=1.0"/>
