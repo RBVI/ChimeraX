@@ -241,3 +241,9 @@ def set_maximum_pil_image_size(pixels):
   '''
   from PIL import Image
   Image.MAX_IMAGE_PIXELS = pixels
+
+
+# -----------------------------------------------------------------------------
+#
+from .imagej_write import write_imagej_tiff as save
+

@@ -64,6 +64,7 @@ file_formats = [
   MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
   MapFileFormat('HDF map', 'hdf', ['hdf'], []),
   MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
+  MapFileFormat('ImageJ TIFF map', 'imagestack', ['imagejtiff'], ['tif', 'tiff'], writable = True),
   MapFileFormat('IMAGIC density map', 'imagic', ['imagic'], ['hed', 'img'], writable = True),
   MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),

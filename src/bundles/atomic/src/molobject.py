@@ -771,6 +771,8 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        self._features = {}
+        self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
@@ -836,6 +838,31 @@ class Sequence(State):
     append = extend
 
     @property
+    def feature_data_sources(self):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        return mgr.data_sources
+
+    def features(self, *, data_source="all", fetch=True):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        if data_source == "all":
+            if fetch:
+                for ds in mgr.data_sources:
+                    if ds not in self._features:
+                        try:
+                            self._features[ds] = mgr.get_features(self.characters, ds)
+                        except mgr.DataSourceFailure:
+                            pass
+            return self._features
+        if data_source not in self._features:
+            if fetch:
+                self._features[data_source] = mgr.get_features(self.characters, data_source)
+            else:
+                return {}
+        return self._features[data_source]
+
+    @property
     def full_name(self):
         return self.name
 
@@ -878,6 +905,9 @@ class Sequence(State):
             ret = ctypes.py_object)
         return f(self._c_pointer, pattern.encode('utf-8'), case_sensitive)
 
+    def set_features(self, data_source, features):
+        self._features[data_source] = features
+
     def __setitem__(self, key, val):
         chars = self.characters
         if isinstance(key, slice):
@@ -887,7 +917,7 @@ class Sequence(State):
         else:
             self.characters = chars[:key] + val + chars[key+1:]
 
-    # no __str__, since it's confusing whether it should be self.name or self.characters
+    # no __str__, since it's unclear whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
         self.name = data['name']
@@ -895,6 +925,8 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        self._features = data.get('features', {})
+        self.accession_id = data.get('accession_id', {})
         set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
@@ -916,7 +948,8 @@ class Sequence(State):
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
-            'custom attrs': get_custom_attrs(Sequence, self)}
+            'custom attrs': get_custom_attrs(Sequence, self), 'features': self._features,
+            'accession_id': self.accession_id }
         return data
 
     def ungapped(self):

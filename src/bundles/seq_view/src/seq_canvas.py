@@ -1138,7 +1138,7 @@ class SeqCanvas:
         self.sv.status(msg)
     """
 
-    def save_state(self):
+    def state(self):
         '''Used to save header state, now done by alignment'''
         return {}
 

@@ -35,7 +35,7 @@ pydicom==2.0.0
 #PyOpenGL==3.1.5
 #PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
-PySide2==5.15.1
+PySide2==5.15.2
 qtconsole==4.7.7
 requests==2.24.0
 scipy==1.5.2
