@@ -360,7 +360,7 @@ class Region:
     
     rmsd = property(get_rmsd)
 
-    def save_state(self):
+    def state(self):
         state = {}
         state['_name'] = self._name
         state['name_prefix'] = self.name_prefix
@@ -1089,11 +1089,11 @@ class RegionBrowser:
         self._prev_drag = None if pd is None else self.regions[pd]
         return state
 
-    def save_state(self):
+    def state(self):
         state = {}
         region_state = state['regions'] = []
         for region in self.regions:
-            region_state.append(region.save_state())
+            region_state.append(region.state())
         state['_highlighted_region'] = None if self._highlighted_region is None \
             else self.regions.index(self._highlighted_region)
         state['associated_regions'] = { k: [ self.regions.index(r) for r in v ]

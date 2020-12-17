@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import ProviderManager
+from chimerax.core.state import State
 import re
 
 class SeqFeatureManager(ProviderManager):
@@ -31,17 +32,36 @@ class SeqFeatureManager(ProviderManager):
         if data_source not in self._data_source_info:
             raise ValueError("Unknown sequence-feature data source: %s" % data_source)
 
-class GenericSeqFeature:
+class GenericSeqFeature(State):
     EVIDENCE_MARKER = 'evidence='
-    def __init__(self, info, positions):
-        self.details = []
-        self.evidence_codes = set()
-        for line in info:
-            if line.startswith(self.EVIDENCE_MARKER):
-                self.details.append(self._process_evidence(line))
-            else:
-                self.details.append(line)
-        self.positions = positions
+    def __init__(self, *args):
+        if args:
+            info, positions = args
+            self.details = []
+            self.evidence_codes = set()
+            for line in info:
+                if line.startswith(self.EVIDENCE_MARKER):
+                    self.details.append(self._process_evidence(line))
+                else:
+                    self.details.append(line)
+            self.positions = positions
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        feat = cls()
+        feat.set_state_from_snapshot(data)
+        return feat
+
+    def set_state_from_snapshot(self, state):
+        for attr_name, val in state.items():
+            setattr(self, attr_name, val)
+
+    def take_snapshot(self, session, flags):
+        return {
+            'details': self.details,
+            'evidence_codes': self.evidence_codes,
+            'positions': self.positions
+        }
 
     def _process_evidence(self, line):
         try:
@@ -57,22 +77,35 @@ class GenericSeqFeature:
 class SeqVariantFeature(GenericSeqFeature):
     dbsnp_matcher = re.compile(r"\bdbSNP:rs(\d+)", re.ASCII)
 
-    def __init__(self, info, positions):
-        processed_info = []
-        self.dbsnp_ref_id = None
-        for line in info:
-            match = re.search(self.dbsnp_matcher, line)
-            if match:
-                processed = line[:match.start()]
-                number = int(match.group(1))
-                self.dbsnp_ref_id = number
-                processed += '<a href="https://www.ncbi.nlm.nih.gov/snp/?term=rs%d">%s</a>' % (number,
-                    match.group(0))
-                processed += line[match.end():]
-                processed_info.append(processed)
-            else:
-                processed_info.append(line)
-        super().__init__(processed_info, positions)
+    def __init__(self, *args):
+        if args:
+            info, positions = args
+            processed_info = []
+            self.dbsnp_ref_id = None
+            for line in info:
+                match = re.search(self.dbsnp_matcher, line)
+                if match:
+                    processed = line[:match.start()]
+                    number = int(match.group(1))
+                    self.dbsnp_ref_id = number
+                    processed += '<a href="https://www.ncbi.nlm.nih.gov/snp/?term=rs%d">%s</a>' % (number,
+                        match.group(0))
+                    processed += line[match.end():]
+                    processed_info.append(processed)
+                else:
+                    processed_info.append(line)
+            super().__init__(processed_info, positions)
+
+    def set_state_from_snapshot(self, state):
+        super().set_state_from_snapshot(state.pop('base'))
+        for attr_name, val in state.items():
+            setattr(self, attr_name, val)
+
+    def take_snapshot(self, session, flags):
+        return {
+            'base': super().take_snapshot(session, flags),
+            'dbsnp_ref_id': self.dbsnp_ref_id
+        }
 
 def feature_type_to_class(ftype):
     return { 'sequence variant': SeqVariantFeature }.get(ftype, GenericSeqFeature)

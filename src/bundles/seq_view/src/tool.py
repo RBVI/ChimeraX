@@ -468,6 +468,10 @@ class SequenceViewer(ToolInstance):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_browser._pre_remove_lines(note_data)
+            for seq in note_data:
+                if seq in self._feature_browsers:
+                    self._feature_browsers[seq].tool_window.destroy()
+                    del self._feature_browsers[seq]
         elif note_name == alignment.NOTE_DESTROYED:
             self.delete()
         elif note_name == alignment.NOTE_COMMAND:
@@ -563,7 +567,23 @@ class SequenceViewer(ToolInstance):
             hdr_save_menu.addAction(action)
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info")
+        # put them in an "Annotations" menu (rather than "Info"); for now with only
+        # sequence features available, use "Features"
+        feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
+        if feature_seqs:
+            if len(self.alignment.seqs) == 1:
+                action = QAction("Show Sequence Features", menu)
+                action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
+                    show(seq))
+                menu.addAction(action)
+            else:
+                features_menu = menu.addMenu("Show Sequence Features")
+                from .seq_canvas import _seq_name as seq_name
+                for seq in feature_seqs:
+                    action = QAction(seq_name(seq), features_menu)
+                    action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
+                        show(seq))
+                    features_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
@@ -663,6 +683,7 @@ class SequenceViewer(ToolInstance):
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        # feature browsers depend on regions (and therefore the region browser) being restored first
         if 'feature browsers' in data:
             from .feature_browser import FeatureBrowser
             for seq, fb_data in data['feature browsers'].items():
@@ -675,9 +696,9 @@ class SequenceViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'feature browsers': {seq: fb.save_state() for seq, fb in self._feature_browsers.items()},
-            'region browser': self.region_browser.save_state(),
-            'seq canvas': self.seq_canvas.save_state()
+            'feature browsers': {seq: fb.state() for seq, fb in self._feature_browsers.items()},
+            'region browser': self.region_browser.state(),
+            'seq canvas': self.seq_canvas.state()
         }
         return data
 

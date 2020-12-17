@@ -43,11 +43,10 @@ from chimerax.core.toolshed import BundleAPI
 class _AtomicBundleAPI(BundleAPI):
 
     KNOWN_CLASSES = {
-        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Atom", "AtomicStructure", "AtomicShapeDrawing", "AtomicStructures", "Atoms", "Bond", "Bonds",
         "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
         "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
         "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
-        "AtomicShapeDrawing",
     }
 
     @staticmethod
@@ -63,6 +62,9 @@ class _AtomicBundleAPI(BundleAPI):
         elif class_name == "XSectionManager":
             from . import ribbon
             return ribbon.XSectionManager
+        elif class_name in ["GenericSeqFeature", "SeqVariantFeature"]:
+            from . import seq_support
+            return getattr(seq_support, class_name)
 
     @staticmethod
     def initialize(session, bundle_info):
