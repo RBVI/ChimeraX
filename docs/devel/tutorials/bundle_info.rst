@@ -797,6 +797,12 @@ The other possible `Provider`_ attributes are:
         the provider does with the text), then specify *check_path* as "false" (which implies
         *want_path*\="true", you don't have to explicitly specify that).
 
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the open command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -865,6 +871,16 @@ The other possible `Provider`_ attributes are:
         *compression_okay* as "false" will prevent the ``save`` command from allowing this
         format to be automatically compressed (which happens when the output file name also has
         a compression suffix, *e.g.* "my_structure.pdb.gz").
+
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the save command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
+        `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
+        The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
+        produces the more commonly desired image file.  To get an ImageJ stack, the user would have
+        to add ``format imagej`` to the save command.
 
 For example::
 

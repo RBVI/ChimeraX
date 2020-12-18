@@ -19,6 +19,8 @@ class _AtomicLibAPI(BundleAPI):
 bundle_api = _AtomicLibAPI()
 
 # make our shared libs linkable by other bundles
+from chimerax import arrays
+arrays.load_libarrays()
 import sys
 if sys.platform.startswith('win'):
     from os import path, add_dll_directory

@@ -15,10 +15,11 @@ class NoSaverError(ValueError):
     pass
 
 class ProviderInfo:
-    def __init__(self, bundle_info, format_name, compression_okay):
+    def __init__(self, bundle_info, format_name, compression_okay, is_default):
         self.bundle_info = bundle_info
         self.format_name = format_name
         self.compression_okay = compression_okay
+        self.is_default = is_default
 
 from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
@@ -32,7 +33,7 @@ class SaveManager(ProviderManager):
         self.triggers.add_trigger("save command changed")
         super().__init__(name)
 
-    def add_provider(self, bundle_info, format_name, compression_okay=True, **kw):
+    def add_provider(self, bundle_info, format_name, compression_okay=True, is_default=True, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -53,7 +54,8 @@ class SaveManager(ProviderManager):
                 logger.warning("Replacing file-saver for '%s' from %s bundle with that from %s bundle"
                     % (data_format.name, _readable_bundle_name(prev_bundle), bundle_name))
         self._savers[data_format] = ProviderInfo(bundle_info, format_name,
-            bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"))
+            bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"),
+            bool_cvt(is_default, format_name, bundle_name, "is_default"))
 
     def end_providers(self):
         self.triggers.activate_trigger("save command changed", self)
