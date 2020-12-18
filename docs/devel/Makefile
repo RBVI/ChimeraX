@@ -16,12 +16,14 @@ include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
+# Hack so that atomic will import
+SPHINX_EXE    = LD_LIBRARY_PATH=$(APP_PYSITEDIR)/chimerax/arrays/lib $(APP_PYTHON_EXE)
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(SPHINX_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   = $(SPHINX_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(bindir)/sphinx-build
+SPHINXBUILD   = $(SPHINX_EXE) $(bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
