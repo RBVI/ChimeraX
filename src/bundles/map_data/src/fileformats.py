@@ -70,7 +70,7 @@ file_formats = [
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
   MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
   MapFileFormat('MRC density map', 'mrc', ['mrc'], ['mrc'], writable = True),
-  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdf'], ['nc']),
+  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdfmap'], ['nc']),
   MapFileFormat('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt']),
   MapFileFormat('PROFEC free energy grid', 'profec', ['profec'], ['profec']),
   MapFileFormat('Purdue image format', 'pif', ['pif'], ['pif']),
