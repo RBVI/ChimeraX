@@ -300,5 +300,11 @@ $(DISTRIBUTION):
 upload_new_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/python
 
+make_win_distribution:
+	# only needed for Windows
+	version="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/Version)" && \
+	exe_path="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/InstallPath/ExecutablePath)" && \
+	tar -jcf python-$$version-win-amd64.tar.bz2 --exclude __pycache__ --xform "s/^./python-$$version-win-amd64/" -C "$$exe_path"/.. .
+
 clean:
 	rm -rf $(SOURCE)
