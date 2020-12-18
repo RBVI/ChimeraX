@@ -28,8 +28,8 @@ Classes
  * :class:`.VolumeSurface` - calculates and renders contour surfaces, child model of Volume.
  * :class:`.VolumeImage` - volumetric image rendering, child model of Volume.
  * :class:`.RenderingOptions` - settings for surface and image renderings.
- * :class:`~.data.GridData` - 3d image data, does not render it.
- * :class:`~.data.ArrayGridData` - 3d image data created from a numpy array.
+ * :class:`~chimerax.map_data.GridData` - 3d image data, does not render it.
+ * :class:`~chimerax.map_data.ArrayGridData` - 3d image data created from a numpy array.
 
 Read, Write, Create
 -------------------
