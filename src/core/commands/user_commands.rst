@@ -297,6 +297,7 @@ Function defined in *chimerax.open_command.manager* and called via `session.open
 
 .. autoclass:: chimerax.open_command.manager.OpenManager
 	:members: open_data
+	:noindex:
 
 perframe
 ========
@@ -333,6 +334,7 @@ Function defined in *chimerax.save_command.manager* and called via `session.save
 
 .. autoclass:: chimerax.save_command.manager.SaveManager
 	:members: save_data
+	:noindex:
 
 .. autofunction:: chimerax.save_command.cmd.provider_save
 
