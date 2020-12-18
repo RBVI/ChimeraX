@@ -63,7 +63,7 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
         'chunk_size': 2**22,       # 4 Mbytes
         'append': False,
         'compress': False,
-        'compress_method': 'zlib',  # 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'
+        'compress_method': 'blosc:lz4',  # 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'
         'compress_level': 5,	# 1-9
         'compress_shuffle': True,
         }
