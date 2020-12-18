@@ -50,9 +50,8 @@
     <Provider name="IMOD map" nicknames="imodmap" category="Volume data" suffixes=".rec" />
     <Provider name="MacMolPlt grid" nicknames="macmolplt" category="Volume data" suffixes=".mmp" />
     <Provider name="MRC density map" nicknames="mrc" category="Volume data" suffixes=".mrc" />
-	<!-- Amber trajectories use .nc suffix... -->
     <Provider name="NetCDF generic array map" nicknames="netcdfmap" category="Volume data"
-		suffixes = ".nc" is_default="false" />
+		suffixes = ".nc" />
     <Provider name="Priism microscope image" nicknames="priism" category="Volume data"
 		suffixes=".xyzw,.xyzt" />
     <Provider name="PROFEC free energy grid" nicknames="profec" category="Volume data"

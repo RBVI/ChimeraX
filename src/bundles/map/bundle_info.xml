@@ -78,7 +78,8 @@
     <Provider name="IMOD map" want_path="true" batch="true" />
     <Provider name="MacMolPlt grid" want_path="true" batch="true" />
     <Provider name="MRC density map" want_path="true" batch="true" />
-    <Provider name="NetCDF generic array map" want_path="true" batch="true" />
+	<!-- Amber trajectories use .nc suffix... -->
+    <Provider name="NetCDF generic array map" want_path="true" batch="true" is_default="false" />
     <Provider name="Priism microscope image" want_path="true" batch="true" />
     <Provider name="PROFEC free energy grid" want_path="true" batch="true" />
     <Provider name="Purdue image format" want_path="true" batch="true" />
