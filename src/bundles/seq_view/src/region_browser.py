@@ -1719,9 +1719,11 @@ class RegionBrowser:
         # highlight on chimerax structures
         self._sel_change_from_self = True
         session = self.tool_window.session
-        from chimerax.atomic import concise_residue_spec
-        from chimerax.core.commands import run
-        run(session, "sel " + concise_residue_spec(session, self.region_residues(region)))
+        sel_residues = self.region_residues(region)
+        if sel_residues:
+            from chimerax.atomic import concise_residue_spec
+            from chimerax.core.commands import run
+            run(session, "sel " + concise_residue_spec(session, self.region_residues(region)))
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
