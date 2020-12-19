@@ -15,6 +15,6 @@
 pdb: Read and write PDB files
 =============================
 
-.. automodule:: chimerax.atomic.pdb.pdb
+.. automodule:: chimerax.pdb.pdb
     :members:
     :show-inheritance:
