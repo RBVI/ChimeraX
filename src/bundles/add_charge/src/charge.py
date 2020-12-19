@@ -26,9 +26,8 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
        means that the user will be queried if possible [treated as True if not possible], though if
        'query_user' is False, the user will not be queried.
 
-       The return value is a 2-tuple of dictionaries:  the first of which details the residues that did
-       not receive charges [key: residue type, value: list of residues], and the second lists remaining
-       uncharged atoms [key: (residue type, atom name), value: list of atoms]
+       The return value is a dictionary  which details the residues that did not receive charges
+       [key: residue type, value: list of residues].
 
        Hydrogens need to be present.
     """
@@ -79,9 +78,8 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     if status:
         status("Adding standard charges")
     uncharged_res_types = {}
-    uncharged_atoms = {}
     uncharged_residues = set()
-    #TODO: create data.py
+    #TODO: create data.py (mostly done; needs ATP etc.)
     from .data import heavy_charge_type_data, hyd_charge_type_data
     from chimerax.atomic import Atom
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
@@ -122,7 +120,121 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                     % (h, heavy))
         session.change_tracker.add_modified(modified_atoms, "charge changed")
         session.change_tracker.add_modified(modified_atoms, "gaff_type changed")
-    #TODO
+
+    # merge connected non-standard residues into a "mega" residue.
+    # also any standard residues directly connected
+    for urt, urs in uncharded_res_types.items():
+        for ur in urs[:]:
+            if urt not in uncharged_res_types:
+                break
+            if ur not in uncharged_res_types[urt]:
+                # connected to residue of same type and previously removed
+                continue
+            connected = [ur]
+            queue[ur]
+            while queue:
+                cur_res = queue.pop(0)
+                neighbors = set()
+                std_connects = {}
+                for a in cur_res.atoms:
+                    for na, nb in zip(a.neighbors, a.bonds):
+                        na_res = na.residue
+                        if na_res == cur_res or na_res in connected:
+                            continue
+                        # don't add standard residue if connected through chain bond
+                        if na_res not in uncharged_residues:
+                            if nb.polymeric_start_atom and na.name not in std_connects.get(na_res, set()):
+                                std_connects.setdefault(na_res, set()).add(na.name)
+                                continue
+                        neighbors.add(na_res)
+                neighbors = list(neighbors)
+                neighbors.sort(key=lambda r: r.name)
+                connected.extend(neighbors)
+                queue.extend([nb for nb in neighbors if nb in unchargedResidues])
+            # avoid using atom names with the trailing "-number" distiguisher if possible...
+            if len(connected) > 1:
+                fr = FakeRes(connected)
+            else:
+                fr = connected[0]
+            uncharged_res_types.setdefault(fr.name, []).append(fr)
+            for cr in connected:
+                if cr in uncharged_residues:
+                    uncharged_res_types[cr.name].remove(cr)
+                    if not uncharged_res_types[cr.name]:
+                        del uncharged_res_types[cr.name]
+                    continue
+    # split isolated atoms (e.g. metals) into separate "residues"
+    for res_type, residues in uncharged_res_types.items():
+        bond_residues = residues
+        br_type = res_type
+        while True:
+            if len(bond_residues[0].atoms) == 1:
+                break
+            isolated_names = []
+            for a in bond_residues[0].atoms:
+                if a.bonds or a.name in isolated_names:
+                    continue
+                isolated_names.append(a.name)
+                has_iso = [r for r in bond_residues if r.find_atom(a.name)]
+                if len(has_iso) == len(bond_residues):
+                    rem = []
+                else:
+                    rem = [r for r in bond_residues if r not in has_iso]
+                iso = []
+                non_iso = rem
+                iso_type = "%s[%s]" % (res_type, a.name)
+                br_type = "%s[non-%s]" % (br_type, a.name)
+                for r in has_iso:
+                    iso_res = FakeRes(iso_type, [fa for fa in r.atoms if fa.name == a.name])
+                    iso.append(iso_res)
+                    non_iso_atoms = [fa for fa in r.atoms if fa.name != a.name]
+                    if not non_iso_atoms:
+                        br_type = None
+                        continue
+                    non_iso_res = FakeRes(br_type, non_iso_atoms)
+                    non_iso.append(non_iso_res)
+                uncharged_res_types[iso_type] = iso
+                bond_residues = non_iso
+            else:
+                # no isolated atoms
+                break
+        if br_type != res_type:
+            del uncharged_res_types[res_type]
+            if br_type != None:
+                uncharged_res_types[br_type] = bond_residues
+
+    # despite same residue type, residues may still differ -- particularly terminal vs. non-terminal...
+    for res_type, residues in uncharged_res_types.items():
+        if len(residues) < 2:
+            continue
+        varieties = {}
+        for r in residues:
+            key = tuple(sorted([a.name for a in r.atoms]))
+            varieties.setdefault(key, []).append(r)
+        if len(varieties) == 1:
+            continue
+        # in order to give the varieties distinguishing names, find atoms in common
+        keys = varieties.keys()
+        common = set(keys[0])
+        for k in keys[1:]:
+            common = common.intersection(set(k))
+        uncommon = set()
+        for k in keys:
+            uncommon = uncommon.union(set(k) - common)
+        del uncharged_res_types[res_type]
+        for k, residues in varieties.items():
+            names = set(k)
+            more = names - common
+            less = uncommon - names
+            new_key = res_type
+            if more:
+                new_key += " (w/%s)" % ",",join(list(more))
+            if less:
+                new_key += " (wo/%s" % ",".join(list(less))
+            uncharged_res_types[new_key] = residues
+    if status:
+        status("Standard charges added")
+    return uncharged_res_types
 
 ion_types = {
     "Br": "Br-",
@@ -550,4 +662,56 @@ def _phosphorylate(session, status, deletes):
         from chimerax.geometry import normalize_vector
         v = normalize_vector(v) * 0.96
         add_atom("HO5'", 'H', r, o.coord + v, serial_number=sn, bonded_to=o)
+
+class FakeAtom:
+    def __init__(self, atom, res, name_mod=None):
+        if isinstance(atom, FakeAtom):
+            self.fa_atom = atom.fa_atom
+        else:
+            self.fa_atom = atom
+        self.fa_res = res
+        self.fa_name_mod = name_mod
+
+    def __eq__(self, other):
+        if isinstance(other, FakeAtom):
+            return other is self
+        return self.fa_atom == other
+
+    def __getattr__(self, attr_name):
+        if attr_name == "name" and self.fa_name_mod:
+            return "%s-%s" % (self.fa_atom.name, self.fa_name_mod)
+        if attr_name == "residue":
+            return self.fa_res
+        if attr_name == "neighbors":
+            real_neighbors = self.fa_atom.neighbors
+            lookup = {}
+            for fa in self.fa_res.atoms:
+                lookup[fa.fa_atom] = fa
+            return [lookup.get(x, x) for x in real_neighbors]
+        return getattr(self.fa_atom, attr_name)
+
+    def __setattr__(self, name, val):
+        if name.startswith("fa_"):
+            self.__dict__[name] = val
+        else:
+            setattr(self.fa_atom, name, val)
+
+class FakeRes:
+    def __init__(self, name, atoms=None):
+        if atoms is None:
+            # mega residue
+            residues = name
+            name = "+".join(r.name for r in residues])
+            atoms = [FakeAtom(a, self, a.residue.name) for r in residues for a in r.atoms]
+        else:
+            atoms = [FakeAtom(a, self) for a in atoms]
+        self.name = name
+        self.atoms = atoms
+        self.structure = atoms[0].structure
+
+    def find_atom(self, atom_name):
+        for a in self.atoms:
+            if a.name == atom_name:
+                return a
+        return None
 
