@@ -826,6 +826,7 @@ _TetherPositions = {
     "N":  -1/3.,
     "CA":  0.,
     "C":   1/3.,
+    "OXT":  1/3.,
     # Nucleotide
     "P":   -2/6.,
     "O5'": -1/6.,
@@ -837,7 +838,6 @@ _TetherPositions = {
 _NonTetherPositions = {
     # Amino acid
     "O":    1/3.,
-    "OXT":  1/3.,
     "OT1":  1/3.,
     "OT2":  1/3.,
     # Nucleotide

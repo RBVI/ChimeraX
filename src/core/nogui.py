@@ -128,15 +128,18 @@ class UI:
             return False
         session.main_view.initialize_rendering(c)
         # Create an offscreen QApplication so labels will work
-        from PyQt5.QtWidgets import QApplication
+        from PySide2.QtWidgets import QApplication
         from chimerax import app_dirs as ad
         self._app = QApplication([ad.appname, '-platform', 'offscreen'])
         return True
 
-    def splash_info(self, message, splash_step, num_splash_steps):
+    def splash_info(self, message, splash_step=None, num_splash_steps=None):
         import sys
-        print("%.2f%% done: %s" % (splash_step / num_splash_steps * 100,
-                                   message), file=sys.stderr)
+        if splash_step is None:
+            print(message, file=sys.stderr)
+        else:
+            print("%.2f%% done: %s" % (splash_step / num_splash_steps * 100,
+                                       message), file=sys.stderr)
 
     def build(self):
         pass  # nothing to build

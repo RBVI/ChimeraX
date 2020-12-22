@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure atomic_libs C++ shared libs are linkable by us
+import chimerax.atomic_lib
+
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
@@ -40,11 +43,10 @@ from chimerax.core.toolshed import BundleAPI
 class _AtomicBundleAPI(BundleAPI):
 
     KNOWN_CLASSES = {
-        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Atom", "AtomicStructure", "AtomicShapeDrawing", "AtomicStructures", "Atoms", "Bond", "Bonds",
         "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
         "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
         "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
-        "AtomicShapeDrawing",
     }
 
     @staticmethod
@@ -60,13 +62,17 @@ class _AtomicBundleAPI(BundleAPI):
         elif class_name == "XSectionManager":
             from . import ribbon
             return ribbon.XSectionManager
+        elif class_name in ["GenericSeqFeature", "SeqVariantFeature"]:
+            from . import seq_support
+            return getattr(seq_support, class_name)
 
     @staticmethod
     def initialize(session, bundle_info):
         from . import settings
         settings.settings = settings._AtomicSettings(session, "atomic")
 
-        Residue.set_templates_dir(bundle_info.data_dir())
+        from chimerax.core.toolshed import get_toolshed
+        Residue.set_templates_dir(get_toolshed().find_bundle("AtomicLibrary", session.logger).data_dir())
 
         session.change_tracker = ChangeTracker()
         session.pb_manager = PseudobondManager(session)

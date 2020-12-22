@@ -483,13 +483,11 @@ class Atoms(Collection):
     @property
     def by_chain(self):
         '''Return list of triples of structure, chain id, and Atoms for each chain.'''
-        chains = []
-        for m, atoms in self.by_structure:
-            r = atoms.residues
-            cids = r.chain_ids
-            for cid in unique_ordered(cids):
-                chains.append((m, cid, atoms.filter(cids == cid)))
-        return chains
+        f = c_function('atom_by_chain', args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.py_object)
+        sca = f(self._c_pointers, len(self))
+        abc = tuple((s, cid, Atoms(aptr)) for s, cid, aptr in sca)
+        return abc
     @property
     def by_structure(self):
         "Return list of 2-tuples of (structure, Atoms for that structure)."

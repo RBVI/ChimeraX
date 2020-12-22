@@ -73,7 +73,7 @@ class SelectMouseMode(MouseMode):
                     entries.append(entry)
         entries.sort(key = lambda e: e.label(ses))
         dangerous_entries.sort(key = lambda e: e.label(ses))
-        from PyQt5.QtWidgets import QMenu, QAction
+        from PySide2.QtWidgets import QMenu, QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
@@ -85,13 +85,13 @@ class SelectMouseMode(MouseMode):
                     menu.addSeparator()
                     continue
                 action = QAction(entry.label(ses))
-                action.triggered.connect(lambda arg, cb=entry.callback, sess=ses: cb(sess))
+                action.triggered.connect(lambda cb=entry.callback, sess=ses: cb(sess))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
             menu.addAction("No applicable actions")
         # this will prevent atom-spec balloons from showing up
-        menu.exec(event._event.globalPos())
+        menu.exec_(event._event.globalPos())
 
     @staticmethod
     def register_menu_entry(menu_entry):
@@ -213,6 +213,10 @@ def select_pick(session, pick, mode = 'replace'):
             if mode == 'add' and spec:
                 from chimerax.core.commands import run
                 run(session, 'select %s' % spec)
+            elif mode == 'toggle' and spec and hasattr(pick, 'selected'):
+                from chimerax.core.commands import run
+                operation = 'subtract' if pick.selected() else 'add'
+                run(session, 'select %s %s' % (operation, spec))
             else:
                 pick.select(mode)
     sel.clear_promotion_history()
@@ -281,7 +285,7 @@ class MoveMouseMode(MouseMode):
             shift = self._translation(event)
             self._translate(shift)
         self._moved = True
-
+        self._log_motion()
 
     def mouse_up(self, event):
         if self.click_to_select:
@@ -291,6 +295,7 @@ class MoveMouseMode(MouseMode):
         MouseMode.mouse_up(self, event)
 
         self._undo_save()
+        self._log_command()
 
         if self.move_atoms:
             self._atoms = None
@@ -462,6 +467,33 @@ class MoveMouseMode(MouseMode):
         self._starting_atom_scene_coords = None
         self._starting_model_positions = None
 
+    def _log_command(self):
+        if not self._moved:
+            return
+        cmd = self._move_command()
+        if not cmd:
+            return
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, cmd)
+
+    def _move_command(self):
+        models = self.models()
+        if models:
+            from chimerax.std_commands.view import model_positions_string
+            cmd = 'view matrix models %s' % model_positions_string(models)
+        else:
+            cmd = None
+        return cmd
+
+    def _log_motion(self):
+        from chimerax.core.commands import motion_commands_enabled, motion_command
+        if not motion_commands_enabled(self.session):
+            return
+        cmd = self._move_command()
+        if not cmd:
+            return
+        motion_command(self.session, cmd)
+
     def vr_press(self, event):
         # Virtual reality hand controller button press.
         if self.move_atoms:
@@ -476,10 +508,12 @@ class MoveMouseMode(MouseMode):
         else:
             self.view.move(event.motion, self.models())
         self._moved = True
+        self._log_motion()
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._undo_save()
+        self._log_command()
 
 class RotateMouseMode(MoveMouseMode):
     '''
@@ -574,7 +608,7 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
     Mouse mode to translate picked models.
     '''
     name = 'move picked models'
-    icon_file = 'icons/move_h2o.png'  # TODO: Make icon witbhout selection outline
+    icon_file = 'icons/move_picked_model.png'
 
     def __init__(self, session):
         TranslateMouseMode.__init__(self, session)
@@ -685,12 +719,12 @@ class ObjectIdMouseMode(MouseMode):
             # and even if the this app is minimized, it gets events for where it used to be on the screen.
             return
         # ensure that no other top-level window is above the graphics
-        from PyQt5.QtGui import QCursor
+        from PySide2.QtGui import QCursor
         if ui.topLevelAt(QCursor.pos()) != ui.main_window:
             return
         # ensure there's no popup menu above the graphics
         apw = ui.activePopupWidget()
-        from PyQt5.QtCore import QPoint
+        from PySide2.QtCore import QPoint
         if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position

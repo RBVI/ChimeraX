@@ -15,12 +15,13 @@ class NoOpenerError(ValueError):
     pass
 
 class OpenerProviderInfo:
-    def __init__(self, bundle_info, name, want_path, check_path, batch):
+    def __init__(self, bundle_info, name, want_path, check_path, batch, is_default):
         self.bundle_info = bundle_info
         self.name = name
         self.want_path = want_path
         self.check_path = check_path
         self.batch = batch
+        self.is_default = is_default
 
 class FetcherProviderInfo:
     def __init__(self, bundle_info, is_default, example_ids, synopsis):
@@ -64,12 +65,14 @@ class OpenManager(ProviderManager):
                 logger.warning("Open-command provider in bundle %s specified unknown"
                     " data format '%s';" " skipping" % (bundle_name, name))
                 return
-            if data_format in self._openers:
+            if data_format in self._openers and self._openers[data_format].bundle_info.installed:
+                if not bundle_info.installed:
+                    return
                 logger.warning("Replacing opener for '%s' from %s bundle with that from"
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
             self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
-                check_path, batch)
+                check_path, batch, is_default)
         elif type == "fetch":
             if not name:
                 raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
@@ -186,19 +189,24 @@ class OpenManager(ProviderManager):
         try:
             provider_info = self._openers[data_format]
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'"
-                % data_format.name)
-        return provider_info.bundle_info.run_provider(self.session, provider_info.name,
-            self).open_args
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+        opener_info = self.opener_info(data_format)
+        if opener_info is None:
+            raise NoOpenerError("Opener for format '%s' is not installed" % data_format.name)
+        return opener_info.open_args
 
-    def open_info(self, data_format):
+    def opener_info(self, data_format):
+        provider_info = self.provider_info(data_format)
+        if not provider_info.bundle_info.installed:
+            return None
+        return provider_info.bundle_info.run_provider(self.session, provider_info.name, self)
+
+    def provider_info(self, data_format):
         try:
             provider_info = self._openers[data_format]
-            return (provider_info.bundle_info.run_provider(self.session,
-                provider_info.name, self), provider_info)
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'"
-                % data_format.name)
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+        return provider_info
 
 def bool_cvt(val, name, bundle_name, var_name):
     if not isinstance(val, bool):

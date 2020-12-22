@@ -32,11 +32,11 @@ class ModelPanel(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
+        from PySide2.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QFrame, QPushButton, QSizePolicy
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from PySide2.QtCore import QSize
                 # side buttons will keep the vertical size reasonable
                 if getattr(self, '_first_size_hint_call', True):
                     self._first_size_hint_call = False
@@ -75,7 +75,7 @@ class ModelPanel(ToolInstance):
         for model_func in [close, hide, show, view]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
-            button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
+            button.clicked.connect(lambda self=self, mf=model_func, ses=session:
                 mf([self.models[row] for row in [self._items.index(i)
                     for i in self.tree.selectedItems()]] or self.models, ses))
         self.simply_changed_models = set()
@@ -192,9 +192,9 @@ class ModelPanel(ToolInstance):
             self._items = []
         all_selected_models = self.session.selection.models(all_selected=True)
         part_selected_models = self.session.selection.models()
-        from PyQt5.QtWidgets import QTreeWidgetItem, QPushButton
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QColor
+        from PySide2.QtWidgets import QTreeWidgetItem, QPushButton
+        from PySide2.QtCore import Qt
+        from PySide2.QtGui import QColor
         item_stack = [self.tree.invisibleRootItem()]
         for model in self.models:
             model_id, model_id_string, bg_color, display, name, selected, part_selected = \
@@ -305,7 +305,7 @@ class ModelPanel(ToolInstance):
         return update
 
     def _tree_change_cb(self, item, column):
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         model = self.models[self._items.index(item)]
         if column == self.SHOWN_COLUMN:
             self.self_initiated = True
@@ -325,6 +325,11 @@ class ModelPanelSettings(Settings):
 
 from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
+    # ask for confirmation if multiple top-level models being closed without explicitly selecting them
+    if len([m for m in models if '.' not in m.id_string]) > 1 and not _mp.tree.selectedItems():
+        from chimerax.ui.ask import ask
+        if ask(session, "Really close all models?", title="Confirm close models") == "no":
+            return
     _mp.self_initiated = True
     from chimerax.core.models import Model
     # The 'close' command explicitly avoids closing grouping models where not

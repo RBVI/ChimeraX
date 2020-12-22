@@ -11,7 +11,7 @@
 
 
 def button_row(parent, title, name_and_callback_list, hspacing = 3):
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
+    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
     f = QFrame(parent)
 #    f.setStyleSheet('QFrame { background-color: pink; padding-top: 0px; padding-bottom: 0px;}')
     parent.layout().addWidget(f)
@@ -24,7 +24,7 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
     layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
-    from PyQt5.QtCore import Qt
+    from PySide2.QtCore import Qt
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
@@ -42,7 +42,7 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
     return f
 
 def _row_frame(parent, spacing = 5):
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout
+    from PySide2.QtWidgets import QFrame, QHBoxLayout
     f = QFrame(parent)
     parent.layout().addWidget(f)
 
@@ -56,7 +56,7 @@ class EntriesRow:
         f, layout = _row_frame(parent, spacing)
         self.frame = f
         
-        from PyQt5.QtWidgets import QLabel, QPushButton
+        from PySide2.QtWidgets import QLabel, QPushButton
         values = []
         for a in args:
             if isinstance(a, str):
@@ -91,10 +91,10 @@ class EntriesRow:
 # TODO: QPushButton has extra vertical space (about 5 pixels top and bottom) on macOS 10.14 (Mojave)
 #       with Qt 5.12.4.  Couldn't find any thing to fix this, although below are some attempts
 #                b.setMaximumSize(100,25)
-#                from PyQt5.QtWidgets import QToolButton
+#                from PySide2.QtWidgets import QToolButton
 #                b = QToolButton(f)
 #                b.setText(a[0])
-#                from PyQt5.QtCore import Qt
+#                from PySide2.QtCore import Qt
 #                b.setContentsMargins(0,0,0,0)
 #                b.setAttribute(Qt.WA_LayoutUsesWidgetRect)
 #                b.setStyleSheet('padding-left: 15px; padding-right: 15px; padding-top: 4px;  padding-bottom: 4px;')
@@ -120,7 +120,7 @@ def _uncheck_others(check_box, other_check_boxes):
 
 class StringEntry:
     def __init__(self, parent, value = '', pixel_width = 100):
-        from PyQt5.QtWidgets import QLineEdit
+        from PySide2.QtWidgets import QLineEdit
         self._line_edit = le = QLineEdit(value, parent)
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
@@ -129,6 +129,12 @@ class StringEntry:
     def _set_value(self, value):
         self._line_edit.setText(value)
     value = property(_get_value, _set_value)
+    def _get_pixel_width(self):
+        return self._line_edit.maximumWidth()
+    def _set_pixel_width(self, width):
+        self._line_edit.setMaximumWidth(width)
+        self._line_edit.setMinimumWidth(width)
+    pixel_width = property(_get_pixel_width, _set_pixel_width)
     @property
     def widget(self):
         return self._line_edit
@@ -137,7 +143,7 @@ class NumberEntry:
     format = '%d'
     string_to_value = int
     def __init__(self, parent, value, pixel_width = 50):
-        from PyQt5.QtWidgets import QLineEdit
+        from PySide2.QtWidgets import QLineEdit
         self._line_edit = le = QLineEdit(self.format % value, parent)
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
@@ -147,6 +153,11 @@ class NumberEntry:
         v = self.format % value if value is not None else ''
         self._line_edit.setText(v)
     value = property(_get_value, _set_value)
+    def _get_pixel_width(self):
+        return self._line_edit.maximumWidth()
+    def _set_pixel_width(self, width):
+        self._line_edit.setMaximumWidth(width)
+    pixel_width = property(_get_pixel_width, _set_pixel_width)
     @property
     def widget(self):
         return self._line_edit
@@ -160,7 +171,7 @@ class FloatEntry(NumberEntry):
 
 class BooleanEntry:
     def __init__(self, parent, value):
-        from PyQt5.QtWidgets import QCheckBox
+        from PySide2.QtWidgets import QCheckBox
         self._check_box = cb = QCheckBox(parent)
         cb.setChecked(value)
         self.changed = cb.stateChanged
@@ -174,29 +185,34 @@ class BooleanEntry:
     def widget(self):
         return self._check_box
 
-from PyQt5.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
     def __init__(self, parent=None, title=''):
         QWidget.__init__(self, parent=parent)
 
-        from PyQt5.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
-        self.content_area = c = QFrame()
-        self.toggle_button = b = QToolButton()
-        self.main_layout = layout = QGridLayout()
+        from PySide2.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
+        self.content_area = c = QFrame(self)
+        self.main_layout = layout = QGridLayout(self)
 
-        from PyQt5.QtCore import Qt
-        b.setStyleSheet("QToolButton { border: none; font: 14px; }")
+        if title is None:
+            b = None
+        else:
+            b = QToolButton(self)
+            from PySide2.QtCore import Qt
+            b.setStyleSheet("QToolButton { border: none; font: 14px; }")
         # TODO: Could not figure out a way to reduce left padding on disclosure arrow on Mac Qt 5.9
 #        b.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
 #        b.setStyleSheet("QToolButton { margin: 0; padding-left: 0px; border: none; font: 14px; }")
 #        b.setMaximumSize(20,10)
 #        b.setContentsMargins(0,0,0,0)
-        b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        b.setArrowType(Qt.RightArrow)
-        b.setText(str(title))
-        b.setCheckable(True)
-        b.setChecked(False)
-
+            b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+            b.setArrowType(Qt.RightArrow)
+            b.setText(str(title))
+            b.setCheckable(True)
+            b.setChecked(False)
+            b.clicked.connect(self.toggle_panel_display)
+        self.toggle_button = b
+        
 #        c.setStyleSheet("QFrame { background-color: white; border: none; }")
         c.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # start out collapsed
@@ -207,18 +223,19 @@ class CollapsiblePanel(QWidget):
         layout.setVerticalSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         row = 0
-        layout.addWidget(b, row, 0, 1, 1, Qt.AlignLeft)
-        row += 1
+        if b:
+            layout.addWidget(b, row, 0, 1, 1, Qt.AlignLeft)
+            row += 1
         layout.addWidget(c, row, 0, 1, 3)
-        self.setLayout(layout)
 
-
-        b.clicked.connect(self.toggle_panel_display)
-
-    def toggle_panel_display(self, checked):
-        from PyQt5.QtCore import Qt
-        arrow_type = Qt.DownArrow if checked else Qt.RightArrow
-        self.toggle_button.setArrowType(arrow_type)
+    def toggle_panel_display(self, checked = None):
+        if checked is None:
+            checked = (self.content_area.maximumHeight() == 0)
+        tb = self.toggle_button
+        if tb:
+            from PySide2.QtCore import Qt
+            arrow_type = Qt.DownArrow if checked else Qt.RightArrow
+            tb.setArrowType(arrow_type)
         c = self.content_area
         h = c.sizeHint().height() if checked else 0
         c.setMaximumHeight(h)
@@ -237,13 +254,13 @@ def _resize_dock_widget(child_widget):
         main_win = p.window()
         # For undocked dock widgets this will not be a QMainWindow,
         # no need to resize all dock widgets.
-        from PyQt5.QtWidgets import QMainWindow
+        from PySide2.QtWidgets import QMainWindow
         if isinstance(main_win, QMainWindow):
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             main_win.resizeDocks([p], [p.widget().sizeHint().height()], Qt.Vertical)
 
 def _dock_widget_parent(widget):
-    from PyQt5.QtWidgets import QDockWidget
+    from PySide2.QtWidgets import QDockWidget
     if isinstance(widget, QDockWidget):
         return widget
     p = widget.parent()

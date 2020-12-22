@@ -17,9 +17,13 @@ from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
 # need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
-# used to open multiple files
-class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
+# used to open multiple files, and turn off checking for existence so that things like pdb:1gcn are okay
+class OpenInputArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
+    check_existence = False
+
+class OpenInputArg(OpenFileNamesArg):
+    check_existence = False
 
 import os.path
 def likely_pdb_id(text, format_name):
@@ -36,7 +40,11 @@ def exists_locally(text, format):
         return True
     return False
 
-def cmd_open(session, file_names, rest_of_line, *, log=True):
+def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
+    """If return_json is True, the returned JSON object has one name/value pair:
+        (name) model specs
+        (value) a list of atom specifiers, one for each model opened by the command
+    """
     tokens = []
     remainder = rest_of_line
     while remainder:
@@ -90,14 +98,24 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
                 raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
                     " same name" % keyword)
             keywords[keyword] = annotation
-        desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
+        desc = CmdDesc(required=[('names', OpenInputArg)], keyword=keywords.items(),
             synopsis="read and display data")
         register("open", desc, provider_open, registry=registry)
     except BaseException as e:
         # want to log command even for keyboard interrupts
         log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
         raise
-    return Command(session, registry=registry).run(provider_cmd_text, log=log)
+    # Unlike run(), Command.run returns a list of results
+    models = Command(session, registry=registry).run(provider_cmd_text, log=log)[0]
+    if return_json:
+        from chimerax.core.commands import JSONResult
+        from json import JSONEncoder
+        # chimera.core.commands.run() is going to return the first element of a one-element list,
+        # so 'models' is a list of a single list, so that the return value of run() is always
+        # a list of models.  Consequently, we have to use models[0] in the line below
+        open_data = { 'model specs': [m.string(style="command") for m in models[0]] }
+        return JSONResult(JSONEncoder().encode(open_data), models[0])
+    return models
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
@@ -132,7 +150,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     opened_models.append(name_and_group_models(models, name, [ident]))
                     ungrouped_models.extend(models)
         else:
-            opener_info, provider_info = mgr.open_info(data_format)
+            opener_info = mgr.opener_info(data_format)
+            if opener_info is None:
+                raise NotImplementedError("Don't know how to open uninstalled format %s" % data_format.name)
+            provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
@@ -160,7 +181,12 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         ungrouped_models.extend(models)
     else:
         for fi in file_infos:
-            opener_info, provider_info = mgr.open_info(fi.data_format)
+
+            opener_info = mgr.opener_info(fi.data_format)
+            if opener_info is None:
+                raise NotImplementedError("Don't know how to fetch uninstalled format %s"
+                    % fi.data_format.name)
+            provider_info = mgr.provider_info(fi.data_format)
             if provider_info.want_path:
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
@@ -203,8 +229,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     status ='\n'.join(statuses) if statuses else ""
     if _return_status:
         return ungrouped_models, status
-    elif status:
-        session.logger.status(status, log=True)
+    else:
+        session.logger.status(status, log=status)
     return ungrouped_models
 
 def _fetch_info(mgr, database_name, default_format_name):
@@ -531,6 +557,8 @@ def cmd_open_formats(session):
     all_formats = session.open_command.open_data_formats
     by_category = {}
     for fmt in all_formats:
+        if not session.open_command.provider_info(fmt).bundle_info.installed:
+            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()
@@ -606,7 +634,7 @@ def format_names(session):
 _main_open_CmdDesc = None
 def register_command(command_name, logger):
     global _main_open_CmdDesc
-    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+    _main_open_CmdDesc = CmdDesc(required=[('file_names', OpenInputArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files", self_logging=True)
     register('open', _main_open_CmdDesc, cmd_open, logger=logger)
 

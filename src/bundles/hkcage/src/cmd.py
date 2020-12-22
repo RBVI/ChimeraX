@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 def hkcage(session, h, k, radius = 100.0, orientation = '222', color = (255,255,255,255),
-           sphere_factor = 0.0, edge_radius = None, mesh = False, replace = True):
+           sphere_factor = 0.0, edge_radius = None, mesh = False, replace = True, alpha = 'hexagonal'):
 
     if h == 0 and k == 0:
         from chimerax.core.errors import UserError
@@ -22,7 +22,28 @@ def hkcage(session, h, k, radius = 100.0, orientation = '222', color = (255,255,
 
     from .cage import show_hk_lattice
     show_hk_lattice(session, h, k, radius, orientation, color, sphere_factor,
-                    edge_radius, mesh, replace)
+                    edge_radius, mesh, replace, alpha)
+
+    _show_citation_message(alpha, session.logger)
+
+# -----------------------------------------------------------------------------
+#
+_citation_shown = False
+def _show_citation_message(alpha, log):
+    global _citation_shown
+    if _citation_shown or alpha == 'hexagonal':
+        return
+
+    log.info(
+        'hkcage %s pattern was developed by Colin Brown and Antoni Luque supported by '
+        'National Science Foundation Award #1951678. Please cite:<br>'
+        '<div style="background-color:lightyellow;">'
+        'Structural puzzles in virology solved with an overarching icosahedral design principle<br>'
+        'Reidun Twarock, Antoni Luque<br>'
+        'Nat Commun. 2019; 10: 4414. Published online 2019 Sep 27.<br>'
+        '<a href="https://doi.org/10.1038/s41467-019-12367-3">https://doi.org/10.1038/s41467-019-12367-3</a><br>'
+        '</div>' % alpha, is_html=True)
+    _citation_shown = True
 
 # -----------------------------------------------------------------------------
 #
@@ -31,6 +52,8 @@ def register_hkcage_command(logger):
                                        FloatArg, EnumOf, Color8Arg, BoolArg
 
     from chimerax.geometry.icosahedron import coordinate_system_names
+    alpha_values = ['hexagonal', 'hexagonal-dual', 'trihex', 'trihex-dual',
+                    'snub', 'snub-dual', 'rhomb', 'rhomb-dual']
     desc = CmdDesc(
         required = [('h', NonNegativeIntArg),
                     ('k', NonNegativeIntArg)],
@@ -40,7 +63,8 @@ def register_hkcage_command(logger):
                    ('sphere_factor', FloatArg),
                    ('edge_radius', FloatArg),
                    ('mesh', BoolArg),
-                   ('replace', BoolArg)],
-        synopsis = 'Create icosahedron mesh of hexagons and pentagons'
+                   ('replace', BoolArg),
+                   ('alpha', EnumOf(alpha_values))],
+        synopsis = 'Create icosahedron mesh of hexagons, pentagons, squares and triangles'
     )
     register('hkcage', desc, hkcage, logger=logger)

@@ -20,6 +20,8 @@ ChimeraX to provide support for new graphical tools, commands,
 file formats, web databases and selection specifiers.
 This document describes the details of how to create a bundle
 and publish it in the ChimeraX toolshed.
+There is also a step-by-step example of writing a bundle
+available :ref:`here <Seven Steps>`.
 
 Bundle Format
 -------------
@@ -123,7 +125,9 @@ All other contents of the bundle should be in ``src``.
 
     **cmd.py** contains code called by ``bundle_api``
     from **__init__.py** for executing the ``sample``
-    command.
+    command.  Before deciding on the name and syntax
+    of your own command, you should look at the
+    :doc:`command style guide <command_style>`.
 
     **io.py** contains code called by ``bundle_api``
     from **__init__.py** for opening XYZ files.

@@ -206,9 +206,12 @@ var vdxtable = function() {
             table.bootgrid("deselect", deselect_ids);
         table.on("selected.rs.jquery.bootgrid", update_shown)
              .on("deselected.rs.jquery.bootgrid", update_shown);
-        var top_row = $("tr.active").first();
-        if (!is_element_in_view(top_row, false))
-            scroll_to_visible(top_row);
+        var active_rows = $("tr.active");
+        if (active_rows.length > 0) {
+            var top_row = active_rows.first();
+            if (!is_element_in_view(top_row, false))
+                scroll_to_visible(top_row);
+        }
     }
 
     function update_ratings(new_ratings) {

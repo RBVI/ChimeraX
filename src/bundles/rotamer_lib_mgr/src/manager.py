@@ -58,7 +58,7 @@ class RotamerLibManager(ProviderManager):
         return lib_names
 
     def library_name_menu(self, *, initial_lib=None, installed_only=False, callback=None):
-        from PyQt5.QtWidgets import QPushButton, QMenu
+        from PySide2.QtWidgets import QPushButton, QMenu
         menu_button = QPushButton()
         if initial_lib is None:
             lib_name = self.settings.gui_lib_name

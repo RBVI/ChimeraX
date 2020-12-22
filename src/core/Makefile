@@ -44,7 +44,7 @@ BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VER
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
 all: $(PYOBJS)
@@ -109,5 +109,7 @@ buildinfo.py: buildinfo.py.in mkbuildinfo
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
+	# fix package name to be consistent with how it is imported
+	sed -i -e 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp
 
 _appdirs.install: appdirs_cpp.install

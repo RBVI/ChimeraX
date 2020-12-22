@@ -18,6 +18,7 @@ class StartStructureManager(ProviderManager):
     def __init__(self, session):
         self.session = session
         self.providers = {}
+        self._provider_bundles = {}
         self._ui_names = {}
         self._indirect = {}
         self._new_model_only = {}
@@ -36,7 +37,7 @@ class StartStructureManager(ProviderManager):
             indirect = eval(indirect.capitalize())
         if isinstance(new_model_only, str):
             new_model_only = eval(new_model_only.capitalize())
-        self.providers[name] = bundle_info.run_provider(self.session, name, self)
+        self._provider_bundles[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._indirect[name] = indirect
         self._new_model_only[name] = new_model_only
@@ -45,7 +46,7 @@ class StartStructureManager(ProviderManager):
     def get_command_substring(self, name, param_widget):
         # given the settings in the parameter widget, get the corresponding command args
         # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
-        return self.providers[name].command_string(param_widget)
+        return self._get_provider(name).command_string(param_widget)
 
     def end_providers(self):
         from .tool import BuildStructureTool
@@ -54,10 +55,28 @@ class StartStructureManager(ProviderManager):
         self._new_providers = []
 
     def execute_command(self, name, structure, args):
-        return self.providers[name].execute_command(structure, args)
+        return self._get_provider(name).execute_command(structure, args)
 
     def fill_parameters_widget(self, name, widget):
-        self.providers[name].fill_parameters_widget(widget)
+        if self._provider_bundles[name].installed:
+            self._get_provider(name).fill_parameters_widget(widget)
+        else:
+            from PySide2.QtWidgets import QLabel, QVBoxLayout
+            from PySide2.QtCore import Qt
+            layout = QVBoxLayout()
+            widget.setLayout(layout)
+            info = QLabel('This feature is not installed.  To enable it,'
+                ' <a href="internal toolshed">install the %s bundle</a>'
+                " from the Toolshed.  Then restart ChimeraX." % self._provider_bundles[name].short_name)
+            from chimerax.core.commands import run
+            info.linkActivated.connect(lambda *args, bundle_name=self._provider_bundles[name].name:
+                run(self.session, "toolshed show %s" % bundle_name))
+            info.setWordWrap(True)
+            # specify alignment within the label itself (instead of the layout) so that the label
+            # is given the full width of the layout to work with, otherwise you get unneeded line
+            # wrapping
+            info.setAlignment(Qt.AlignCenter)
+            layout.addWidget(info)
 
     def is_indirect(self, name):
         return self._indirect[name]
@@ -67,10 +86,15 @@ class StartStructureManager(ProviderManager):
 
     @property
     def provider_names(self):
-        return list(self.providers.keys())
+        return list(self._provider_bundles.keys())
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
+
+    def _get_provider(self, name):
+        if name not in self.providers:
+            self.providers[name] = self._provider_bundles[name].run_provider(self.session, name, self)
+        return self.providers[name]
 
 _manager = None
 def get_manager(session):

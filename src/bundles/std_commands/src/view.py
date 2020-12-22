@@ -451,9 +451,12 @@ def report_positions(session):
     lines = ['camera position: %s' % _position_string(c.position)]
     mlist = session.models.list()
     if mlist:
-        mpos = ','.join('#%s,%s' % (m.id_string, _position_string(m.position)) for m in mlist)
-        lines.append('model positions: %s\n' % mpos)
+        lines.append('model positions: %s\n' % model_positions_string(mlist))
     session.logger.info('\n'.join(lines))
+
+def model_positions_string(models):
+    mpos = ','.join('#%s,%s' % (m.id_string, _position_string(m.position)) for m in models)
+    return mpos
 
 def _position_string(p):
     return ','.join('%.5g' % x for x in tuple(p.matrix.flat))

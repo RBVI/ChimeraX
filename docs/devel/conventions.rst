@@ -15,10 +15,18 @@
 Obtaining Code
 ==============
 
+Most of ChimeraX is written in Python and that code is included in the ChimeraX distribution::
+
+	Windows: ChimeraX/bin/Lib/site-packages/chimerax
+	macOS: ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax
+	Linux: chimerax/lib/python3.7/site-packages/chimerax
+
+Small modifications to the code can be tested by simply editing the Python code and restarting ChimeraX.
+
 Git Repository
 --------------
 
-ChimeraX uses `git <http://git-scm.com/>`_ for source code management.
+Currently the `ChimeraX GitHub repository <https://github.com/RBVI/ChimeraX/>`_ is private. Send email to chimerax-users@cgl.ucsf.edu to request access.  We plan to make it public.
 
 Here are a minimal set of commands to get started using git:
 
@@ -31,10 +39,14 @@ Here are a minimal set of commands to get started using git:
             git config --global user.name "Your Name"
             git config --global user.email you@example.com
 
-    #. Make local copy of repository (currently we only use the develop branch)::
+    #. Make local copy of repository::
 
-        git clone --depth 1 --single-branch --branch develop plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax.git
+        git clone https://github.com/RBVI/ChimeraX.git
 
+    #. Use the develop branch (the master branch is only used for releases)::
+
+	git switch develop
+	 
     #. To update repository to latest version::
 
         git pull

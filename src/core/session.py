@@ -592,7 +592,7 @@ class Session:
             self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, path=None, resize_window=None, restore_camera=True,
-                metadata_only=False):
+                clear_log = True, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -641,6 +641,7 @@ class Session:
         if resize_window is not None:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
+        self.restore_options['clear log'] = clear_log
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -793,8 +794,14 @@ def standard_metadata(previous_metadata={}):
     return metadata
 
 
-def save(session, path, version=3, uncompressed=True, include_maps=False):
-    """command line version of saving a session"""
+def save(session, path, version=3, compress='lz4', include_maps=False):
+    """
+    Command line version of saving a session.
+
+    Option compress can be lz4 (default), gzip, or None.
+    Tests saving 3j3z show lz4 is as fast as uncompressed and 4x smaller file size,
+    and gzip is 2.5 times slower with 7x smaller file size.
+    """
     my_open = None
     if hasattr(path, 'write'):
         # called via export, it's really a stream
@@ -805,19 +812,25 @@ def save(session, path, version=3, uncompressed=True, include_maps=False):
         if not path.endswith(SESSION_SUFFIX):
             path += SESSION_SUFFIX
 
-        if uncompressed:
+        if compress is None or compress == 'none':
             from .safesave import SaveBinaryFile
-            my_open = SaveBinaryFile
-        else:
-            # Save compressed files
+            open_func = SaveBinaryFile
+        elif compress == 'gzip':
             from .safesave import SaveFile
-
-            def my_open(path):
+            def gzip_open(path):
                 import gzip
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
+            open_func = gzip_open
+        elif compress == 'lz4':
+            from .safesave import SaveFile
+            def lz4_open(path):
+                import lz4.frame
+                f = SaveFile(path, open=lambda path: lz4.frame.open(path, 'wb'))
+                return f
+            open_func = lz4_open
         try:
-            output = my_open(path)
+            output = open_func(path)
         except IOError as e:
             raise UserError(e)
 
@@ -825,12 +838,12 @@ def save(session, path, version=3, uncompressed=True, include_maps=False):
     try:
         session.save(output, version=version, include_maps=include_maps)
     except Exception:
-        if my_open is not None:
+        if open_func is not None:
             output.close("exceptional")
         session.logger.report_exception()
         raise
     finally:
-        if my_open is not None:
+        if open_func is not None:
             output.close()
 
     # Associate thumbnail image with session file for display by operating system file browser.
@@ -858,6 +871,9 @@ def sdump(session, session_file, output=None):
     if is_gzip_file(session_file):
         import gzip
         stream = gzip.open(session_file, 'rb')
+    elif is_lz4_file(session_file):
+        import lz4.frame
+        stream = lz4.frame.open(session_file, 'rb')
     else:
         stream = _builtin_open(session_file, 'rb')
     if output is not None:
@@ -916,6 +932,9 @@ def open(session, path, resize_window=None):
     if is_gzip_file(fname):
         import gzip
         stream = gzip.open(fname, 'rb')
+    elif is_lz4_file(fname):
+        import lz4.frame
+        stream = lz4.frame.open(fname, 'rb')
     else:
         stream = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
@@ -930,9 +949,16 @@ def open(session, path, resize_window=None):
 
 def is_gzip_file(filename):
     f = _builtin_open(filename, 'rb')
-    magic = f.read(2) + b'00'
+    magic = f.read(2)
     f.close()
-    return (magic[0] == 0x1f and magic[1] == 0x8b)
+    return magic == b'\x1f\x8b'
+
+
+def is_lz4_file(filename):
+    f = _builtin_open(filename, 'rb')
+    magic = f.read(4)
+    f.close()
+    return magic == b'\x04\x22\x4D\x18'
 
 
 def save_x3d(session, path, transparent_background=False):

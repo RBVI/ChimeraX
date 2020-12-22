@@ -34,9 +34,9 @@ class FormatsManager(ProviderManager):
         self.triggers.add_trigger("data formats changed")
         super().__init__(name)
 
-    def add_format(self, name, category, *, suffixes=None, nicknames=None,
-            bundle_info=None, mime_types=None, reference_url=None, insecure=None,
-            encoding=None, synopsis=None, allow_directory=False, raise_trigger=True):
+    def add_format(self, bundle_info, name, category, *, suffixes=None, nicknames=None,
+            mime_types=None, reference_url=None, insecure=None, encoding=None,
+            synopsis=None, allow_directory=False, raise_trigger=True):
 
         def convert_arg(arg, default=None):
             if arg and isinstance(arg, str):
@@ -49,11 +49,12 @@ class FormatsManager(ProviderManager):
 
         logger = self.session.logger
         if name in self._formats:
-            registrant = lambda bi: "unknown registrant" \
-                if bi is None else "%s bundle" % bi.name
-            logger.info("Replacing data format '%s' as defined by %s with definition"
-                " from %s" % (name, registrant(self._formats[name][0]),
-                registrant(bundle_info)))
+            if not bundle_info.installed:
+                return
+            prev_bundle = self._formats[name][0]
+            if prev_bundle.installed:
+                logger.info("Replacing data format '%s' as defined by %s with definition"
+                    " from %s" % (name, prev_bundle.name, bundle_info.name))
         from .format import DataFormat
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)
@@ -74,8 +75,8 @@ class FormatsManager(ProviderManager):
             logger.warning("Data format provider '%s' didn't specify a category."
                 "  Using catch-all category '%s'" % (name, self.CAT_GENERAL))
             category = self.CAT_GENERAL
-        self.add_format(name, category, suffixes=suffixes, nicknames=nicknames,
-            bundle_info=bundle_info, mime_types=mime_types, reference_url=reference_url,
+        self.add_format(bundle_info, name, category, suffixes=suffixes, nicknames=nicknames,
+            mime_types=mime_types, reference_url=reference_url,
             insecure=insecure, encoding=encoding, synopsis=synopsis,
             allow_directory=allow_directory, raise_trigger=False)
 
@@ -85,7 +86,7 @@ class FormatsManager(ProviderManager):
             Returns None if there is no such format.
         """
         from chimerax.open_command import NoOpenerError
-        return self._format_from_suffix(self.session.open_command.open_info,
+        return self._format_from_suffix(self.session.open_command.provider_info,
             NoOpenerError, suffix)
 
     def open_format_from_file_name(self, file_name):
@@ -169,11 +170,14 @@ class FormatsManager(ProviderManager):
         except KeyError:
             return None
 
+        fallback_fmt = None
         for fmt in formats:
             try:
-                info_func(fmt)
+                provider_info = info_func(fmt)
             except error_type:
                 pass
             else:
-                return fmt
-        return None
+                if provider_info.is_default:
+                    return fmt
+                fallback_fmt = fmt
+        return fallback_fmt
