@@ -447,7 +447,7 @@ def concise_residue_spec(session, residues):
         sort_residues = list(struct_residues)
         sort_residues.sort(key=lambda res: (res.chain_id, res.number, res.insertion_code))
         res_index_map = {}
-        for i, r in enumerate(sort_residues):
+        for i, r in enumerate(struct.residues):
             res_index_map[r] = i
         prev_index = prev_res = None
         res_spec = _ResSpec(struct.string(style="command") if need_model_spec else "")
