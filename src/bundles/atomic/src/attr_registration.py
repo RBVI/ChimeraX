@@ -127,8 +127,13 @@ from . import Atom, AtomicStructure, Bond, CoordSet, Pseudobond, \
     PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq
 
 # custom Chain attrs should be registered in the StructureSeq base class
-registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond,
+#registerable_classes = [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond,
+#    PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq ]
+registerable_classes = [ AtomicStructure, Bond, CoordSet, Pseudobond,
     PseudobondGroup, PseudobondManager, Residue, Sequence, Structure, StructureSeq ]
+from chimerax.core.attributes import register_class
+from .molobject import all_python_instances
+register_class(Atom, all_python_instances, getattr(Atom, '_cython_property_return_info', []))
 
 class RegAttrManager(StateManager):
 

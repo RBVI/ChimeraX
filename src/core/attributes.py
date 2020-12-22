@@ -154,8 +154,8 @@ def register_class(reg_class, instances_func, builtin_attr_info={}):
     reg_class.register_attr = register_attr
     reg_class.has_custom_attrs = has_custom_attrs
     reg_class.custom_attrs = custom_attrs
-    if mgr:
-        mgr.class_info[reg_class] = (instances_func, builtin_attr_info)
+    if _mgr:
+        _mgr.class_info[reg_class] = (instances_func, builtin_attr_info)
     else:
         _pending_classes[reg_class] = (instances_func, builtin_attr_info)
 
@@ -167,7 +167,7 @@ class RegAttrManager(StateManager):
         _pending_classes.clear()
         global _mgr
         _mgr = self
-        self.init_state_manager(session)
+        self.init_state_manager(session, "attribute registration")
 
     def attributes_returning(self, class_obj, return_types, *, none_okay=False):
         """Return list of attribute names for class 'class_obj' whose return types
@@ -243,7 +243,7 @@ class RegAttrManager(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         global _mgr
-        _mgr = RegAttrManager()
+        _mgr = RegAttrManager(session)
         for class_info, registration in data['registrations'].items():
             bundle_name, class_name = class_info
             bundle = session.toolshed.find_bundle(bundle_name)
