@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from PySide2.QtWidgets import QVBoxLayout, QListWidget, QLabel, QGridLayout, QListWidgetItem, QWidget
+from PySide2.QtWidgets import QSizePolicy
 
 class FeatureBrowser:
 
@@ -67,13 +68,17 @@ class FeatureBrowser:
         tool_window.ui_area.setLayout(layout)
 
         layout.addWidget(QLabel("Features"), 0, 1, alignment=Qt.AlignHCenter|Qt.AlignBottom)
-        self.feature_chooser = feature_chooser = FeatureList(region_map=self.feature_region)
+        self.feature_chooser = feature_chooser = FeatureList(feature_browser=self)
         if state is not None:
             feature_chooser.set_state(state['feature_chooser'])
         feature_chooser.itemSelectionChanged.connect(self._feature_selection_changed)
+        self.residue_display = res_display = QLabel()
+        res_display.setAlignment(Qt.AlignCenter)
+        res_display.setWordWrap(True)
         layout.addWidget(feature_chooser, 1, 1)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(1, 1)
+        layout.addWidget(res_display, 2, 1)
 
     def state(self):
         return {
@@ -104,15 +109,45 @@ class FeatureBrowser:
             return
         features = self.feature_map[sel_category]
         sel_rows = set([mi.row() for mi in self.feature_chooser.selectedIndexes()])
+        shown_regions = []
         for i, feature in enumerate(features):
-            self.feature_region[feature].shown = i in sel_rows
+            shown = i in sel_rows
+            region = self.feature_region[feature]
+            region.shown = shown
+            if shown:
+                shown_regions.append(region)
+        self._update_residue_display(shown_regions)
+
+    def _update_residue_display(self, shown_regions):
+        if shown_regions:
+            residues=[]
+            for region in shown_regions:
+                residues.extend(self.sv.region_browser.region_residues(region))
+            from chimerax.atomic import concise_residue_spec
+            spec = concise_residue_spec(self.sv.session, residues)
+            parts = []
+            line_limit = 40
+            while len(spec) > line_limit:
+                try:
+                    break_point = spec[:line_limit].rindex(',')
+                except ValueError:
+                    break
+                parts.append(spec[:break_point+1])
+                spec = spec[break_point+1:]
+            parts.append(spec)
+            text = '\n'.join(parts)
+        else:
+            text = ""
+        self.residue_display.setText(text)
 
 class FeatureList(QListWidget):
-    def __init__(self, *args, region_map={}, **kw):
+    def __init__(self, *args, feature_browser=None, **kw):
         super().__init__(*args, **kw)
         self.setStyleSheet('*::item:selected { background: rgb(210,210,210); }')
         self.setSelectionMode(self.ExtendedSelection)
-        self._region_map = region_map
+        self.setWordWrap(True)
+        self._region_map = feature_browser.feature_region
+        self._fb = feature_browser
         self._features = []
 
     def set_features(self, features, *, selected_rows=None):
@@ -121,28 +156,29 @@ class FeatureList(QListWidget):
                 self._region_map[feature].shown = False
         self.clear()
         self._features = features
+        shown_regions = []
         for row, feature in enumerate(features):
+            region = self._region_map[feature]
             if selected_rows is None:
-                self._region_map[feature].shown = True
+                region.shown = True
+                shown_regions.append(region)
             item = QListWidgetItem()
-            widget = QWidget()
-            layout = QVBoxLayout()
-            # multiline QLabel seemingly doesn't handle URLs after the first line, so do this
-            for i, detail in enumerate(feature.details):
-                text = QLabel(detail)
-                if i > 0:
-                    text.setIndent(30)
-                text.setOpenExternalLinks(True)
-                layout.addWidget(text)
-            layout.setSizeConstraint(layout.SetFixedSize)
-            layout.setContentsMargins(0,0,0,0)
-            layout.setSpacing(0)
-            widget.setLayout(layout)
+            label = QLabel()
+            label.setWordWrap(True)
+            label.setOpenExternalLinks(True)
+            if len(feature.details) > 1:
+                text = "<dl><dt>" + feature.details[0] + "</dt><dd>" + "<br>".join(
+                    feature.details[1:]) + "</dt></dl>"
+            else:
+                text = feature.details[0]
+            label.setText(text)
             self.addItem(item)
-            item.setSizeHint(widget.sizeHint())
-            self.setItemWidget(item, widget)
+            self.setItemWidget(item, label)
+            item.setSizeHint(label.sizeHint())
             if selected_rows is not None and row in selected_rows:
                 item.setSelected(True)
+                shown_regions.append(region)
+        self._fb._update_residue_display(shown_regions)
 
     def set_state(self, state):
         self.set_features(state['features'], selected_rows=set(state['selected rows']))
