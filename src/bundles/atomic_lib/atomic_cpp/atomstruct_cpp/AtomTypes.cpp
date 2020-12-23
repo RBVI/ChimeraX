@@ -665,8 +665,8 @@ clock_t start_t = clock();
         const Element &element = a->element();
 
         // undifferentiated types
-        if (element >= Element::He && element <= Element::Be
-          || element >= Element::Ne && element <= Element::Si
+        if ((element >= Element::He && element <= Element::Be)
+	    || (element >= Element::Ne && element <= Element::Si)
           || element >= Element::Cl) {
             a->set_computed_idatm_type(element.name());
             continue;
@@ -845,8 +845,8 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if (sqlen <= p3c1c1 && bondee_type == "C1"
-            || sqlen <= p3n1c1 && bondee->element() == Element::N) {
+            if ((sqlen <= p3c1c1 && bondee_type == "C1")
+		|| (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
                 a->set_computed_idatm_type("C1");
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
@@ -866,7 +866,7 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if ((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N) ||
+            if (((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N)) ||
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");

@@ -17,7 +17,7 @@
 #include <OpenGL/OpenGL.h>			// Use CGLSetParameter
 #endif
 
-#include <arrays/pythonarray.h>		// use parse_uint8_n_array()
+#include <arrays/pythonarray.h>		// use python_bool()
 
 // ----------------------------------------------------------------------------
 //

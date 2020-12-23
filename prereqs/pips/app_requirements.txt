@@ -10,7 +10,7 @@ filelock==3.0.12
 grako==3.16.5
 html2text==2020.1.16
 ihm==0.17
-imagecodecs-lite==2020.1.31
+imagecodecs==2020.5.30
 ipykernel==5.3.4
 ipython==7.18.1
 jupyter-client==6.1.7

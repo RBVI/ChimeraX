@@ -127,7 +127,7 @@ def read_binary_stl_geometry(path):
         raise UserError('STL file is truncated.  Header says it contains %d triangles, but only %d were in file.'
                         % (tc, len(geom) // 50))
 
-    from ._stl import stl_unpack
+    from .stl_cpp import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
     return va, na, ta
 
@@ -290,7 +290,7 @@ def write_stl(session, filename, models):
                 geom.append((va, ta, pos))
     from chimerax.surface import combine_geometry_vtp
     va, ta = combine_geometry_vtp(geom)
-    from ._stl import stl_pack
+    from .stl_cpp import stl_pack
     stl_geom = stl_pack(va, ta)
     
     # Write 80 character comment.

@@ -18,7 +18,7 @@
 
 #include <logger/logger.h>
 #include <pysupport/convert.h>
-#include <arrays/pythonarray.h>
+#include <arrays/pythonarray.h>   // Uses python_int_array(), python_float_array()
 
 #include "Python.h"
 
