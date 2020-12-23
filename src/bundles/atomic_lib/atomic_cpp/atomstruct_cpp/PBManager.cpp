@@ -22,7 +22,7 @@
 #include <pysupport/convert.h>
 
 #include <Python.h>
-#include <arrays/pythonarray.h>
+#include <arrays/pythonarray.h>   // Uses python_int_array(), python_float_array()
 
 #include <pyinstance/PythonInstance.instantiate.h>
 template class pyinstance::PythonInstance<atomstruct::BaseManager>;
