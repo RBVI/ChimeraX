@@ -1723,7 +1723,7 @@ class RegionBrowser:
         if sel_residues:
             from chimerax.atomic import concise_residue_spec
             from chimerax.core.commands import run
-            run(session, "sel " + concise_residue_spec(session, self.region_residues(region)))
+            run(session, "sel " + concise_residue_spec(session, sel_residues))
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
