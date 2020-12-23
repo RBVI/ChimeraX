@@ -25,8 +25,6 @@ from numpy import array
 
 def read_sdf(session, stream, file_name, *, auto_style=True):
 
-    path = stream.name if hasattr(stream, 'name') else None
-
     structures = []
     Bond.register_attr(session, "order", "SDF format", attr_type=float)
     Atom.register_attr(session, "charge", "SDF format", attr_type=float)

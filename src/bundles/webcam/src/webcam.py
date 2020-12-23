@@ -150,6 +150,7 @@ class WebCam (Model):
             capture = VideoCapture(self._new_frame)
             self._capture = capture
             cam.setViewfinder(capture)
+            print ('set view finder')
         # self._report_supported_pixel_formats()
         # Have to set camera pixel format after setting camera view finder
         # otherwise it does not seem to know the available pixel formats
@@ -261,7 +262,7 @@ class WebCam (Model):
         '''
         fg = self.foreground_color
         sat = int(2.55*self.saturation)  # Convert 0-100 scale to 0-255
-        from ._webcam import set_color_alpha
+        from .webcam_cpp import set_color_alpha
         set_color_alpha(rgba_image, fg, sat, 0)
         return
 
@@ -488,7 +489,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     # Convert video frame data to rgba
     data = f.bits()		# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
-    from ._webcam import bgra_to_rgba, yuyv_to_rgba
+    from .webcam_cpp import bgra_to_rgba, yuyv_to_rgba
     if pixel_format == f.Format_ARGB32:
         a = bgra_to_rgba(pointer, rgba_image)
 #        a = _bgra_to_rgba(data, rgba_image)
