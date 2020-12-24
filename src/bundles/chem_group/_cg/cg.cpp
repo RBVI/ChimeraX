@@ -13,7 +13,7 @@
 
 #include <Python.h>
 #include <algorithm>  // std::find, std::min
-#include <arrays/pythonarray.h>
+#include <arrays/pythonarray.h>	// use python_voidp_array
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <cstring>

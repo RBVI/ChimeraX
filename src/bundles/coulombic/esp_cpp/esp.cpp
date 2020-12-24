@@ -19,10 +19,7 @@
 #include <thread>
 #include <vector>
 
-#include <arrays/pythonarray.h>		// use array_from_python()
-#include <arrays/rcarray.h>		// Numeric_Array
-
-using Reference_Counted_Array::Numeric_Array;
+#include <arrays/pythonarray.h>		// use parse_float_n3_array, ...
 
 static void
 initiate_compute_esp(float* target_points, float* values, int64_t num_points, float* atom_coords,

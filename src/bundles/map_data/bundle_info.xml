@@ -50,7 +50,7 @@
     <Provider name="IMOD map" nicknames="imodmap" category="Volume data" suffixes=".rec" />
     <Provider name="MacMolPlt grid" nicknames="macmolplt" category="Volume data" suffixes=".mmp" />
     <Provider name="MRC density map" nicknames="mrc" category="Volume data" suffixes=".mrc" />
-    <Provider name="NetCDF generic array map" nicknames="netcdfmap" category="Volume data"
+    <Provider name="NetCDF map" nicknames="netcdfmap" category="Volume data"
 		suffixes = ".nc" />
     <Provider name="Priism microscope image" nicknames="priism" category="Volume data"
 		suffixes=".xyzw,.xyzt" />
