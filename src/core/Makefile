@@ -55,7 +55,8 @@ install: dir all
 		$(MAKE) app-install ;\
 	fi
 
-# newer versions of pip won't install over the same version number, so...
+# newer versions of pip won't install over the same version number (which depends on the last commit
+# number), so to install something that hasn't been committed...
 reinstall: dir all
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
