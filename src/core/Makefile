@@ -67,7 +67,7 @@ app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 
 app-reinstall: wheel
-	$(APP_BOOTSTRAP_PIP) install -U --force-reinstall --nodeps $(WHEEL)
+	$(APP_BOOTSTRAP_PIP) install -U --force-reinstall --no-deps $(WHEEL)
 
 .PHONY: wheel
 wheel: setup.py
