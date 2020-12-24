@@ -42,6 +42,7 @@ for lib in sys.argv[1:]:
     f = open(lib, "r")
     seen = set()
     state = "preamble"
+    waiting = None
     for line in f:
         if line.startswith("!entry."):
             entry_type = line.split()[0]
@@ -56,20 +57,35 @@ for lib in sys.argv[1:]:
             continue
         if state != "processing":
             continue
+        if len(resid) > 4:
+            continue
         fields = line.split()
         atom_name, atom_type = [eval(quoted) for quoted in fields[:2]]
-        charge = fields[-1]
+        charge = float(fields[-1])
         atom_name = atom_name.replace('*', "'").lower()
         resids = [resid]
+        final_resids = [resid]
         if resid == "TP3":
-            resids.extend(["HOH", "WAT"])
-        for resid in resids:
+            final_resids.extend(["HOH", "WAT"])
+        for final_resid in final_resids:
             if atom_name[0] == 'h':
-                hyd_data[(resid, heavy)] = (charge, atom_type)
+                if heavy is None:
+                    if waiting is not None:
+                        raise AssertionError("Hydrogen not followed by heavy atom")
+                    waiting = (final_resids, charge, atom_type)
+                else:
+                    for name in [heavy] + heavy_synonyms.get(heavy, []):
+                        hyd_data[(final_resid, name)] = (charge, atom_type)
             else:
                 for name in [atom_name] + heavy_synonyms.get(atom_name, []):
-                    heavy_data[(resid, name)] = (charge, atom_type)
+                    heavy_data[(final_resid, name)] = (charge, atom_type)
                 heavy = atom_name
+                if waiting:
+                    wait_finals, wait_charge, wait_type = waiting
+                    for wf in wait_finals:
+                        for wname in [heavy] + heavy_synonyms.get(heavy, []):
+                            hyd_data[(wf, wname)] = (wait_charge, wait_type)
+                    waiting = None
 from pprint import pformat
-print("heavy_charge_data =", pformat(heavy_data, indent=2))
-print("hyd_charge_data =", pformat(hyd_data, indent=2))
+print("heavy_charge_type_data =", pformat(heavy_data, indent=2))
+print("hyd_charge_type_data =", pformat(hyd_data, indent=2))

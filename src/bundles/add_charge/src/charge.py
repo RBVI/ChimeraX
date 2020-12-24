@@ -37,7 +37,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     if status:
         status("Defining AMBER residue types")
     from chimerax.std_commands.defattr import defattr
-    defattr(session, attr_file, restriction=models)
+    defattr(session, attr_file, restriction=models, summary=False)
 
     if models is None:
         from chimerax.atomic import all_atomic_structures
@@ -82,6 +82,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     #TODO: create data.py (mostly done; needs ATP etc.)
     from .data import heavy_charge_type_data, hyd_charge_type_data
     from chimerax.atomic import Atom
+    Atom.register_attr(session, "charge", "add charge", attr_type=float)
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
     from chimerax.amber_info import amber_version
     session.logger.info("Using Amber %s recommended default charges and atom types for standard residues"
@@ -98,7 +99,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
         for a in s.atoms:
             if a.residue.name in uncharged_res_types:
                 continue
-            modified_atoms.add(a)
+            modified_atoms.append(a)
             if a.element.number == 1:
                 if a.num_bonds != 1:
                     raise ChargeError("Hydrogen %s not bonded to exactly one other atom" % a)
@@ -123,7 +124,8 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
 
     # merge connected non-standard residues into a "mega" residue.
     # also any standard residues directly connected
-    for urt, urs in uncharded_res_types.items():
+    # N.B. Can't iterate over .items() directly since we are changing the dictionary on the fly
+    for urt, urs in list(uncharged_res_types.items()):
         for ur in urs[:]:
             if urt not in uncharged_res_types:
                 break
@@ -131,7 +133,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                 # connected to residue of same type and previously removed
                 continue
             connected = [ur]
-            queue[ur]
+            queue = [ur]
             while queue:
                 cur_res = queue.pop(0)
                 neighbors = set()
@@ -150,7 +152,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                 neighbors = list(neighbors)
                 neighbors.sort(key=lambda r: r.name)
                 connected.extend(neighbors)
-                queue.extend([nb for nb in neighbors if nb in unchargedResidues])
+                queue.extend([nb for nb in neighbors if nb in uncharged_residues])
             # avoid using atom names with the trailing "-number" distiguisher if possible...
             if len(connected) > 1:
                 fr = FakeRes(connected)
@@ -204,7 +206,8 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                 uncharged_res_types[br_type] = bond_residues
 
     # despite same residue type, residues may still differ -- particularly terminal vs. non-terminal...
-    for res_type, residues in uncharged_res_types.items():
+    # can't modify a dictionary while you're iterating over it, so...
+    for res_type, residues in list(uncharged_res_types.items()):
         if len(residues) < 2:
             continue
         varieties = {}
@@ -214,7 +217,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
         if len(varieties) == 1:
             continue
         # in order to give the varieties distinguishing names, find atoms in common
-        keys = varieties.keys()
+        keys = list(varieties.keys())
         common = set(keys[0])
         for k in keys[1:]:
             common = common.intersection(set(k))
@@ -228,7 +231,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
             less = uncommon - names
             new_key = res_type
             if more:
-                new_key += " (w/%s)" % ",",join(list(more))
+                new_key += " (w/%s)" % ",".join(list(more))
             if less:
                 new_key += " (wo/%s" % ",".join(list(less))
             uncharged_res_types[new_key] = residues
@@ -701,7 +704,7 @@ class FakeRes:
         if atoms is None:
             # mega residue
             residues = name
-            name = "+".join(r.name for r in residues])
+            name = "+".join([r.name for r in residues])
             atoms = [FakeAtom(a, self, a.residue.name) for r in residues for a in r.atoms]
         else:
             atoms = [FakeAtom(a, self) for a in atoms]

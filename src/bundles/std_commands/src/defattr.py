@@ -22,7 +22,7 @@ def cmd_defattr(session, structures, file_name, *, log=False):
     except SyntaxError as e:
         raise UserError(str(e))
 
-def defattr(session, data, *, log=False, restriction=None, file_name=None):
+def defattr(session, data, *, log=False, restriction=None, file_name=None, summary=True):
     """define attributes on objects
 
     Parameters
@@ -260,8 +260,9 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
         recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
             can_return_none=can_return_none)
 
-        session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
-            num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
+        if summary:
+            session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
+                num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure

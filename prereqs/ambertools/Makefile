@@ -59,7 +59,7 @@ ifeq ($(OS),Darwin)
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
-			install_name_tool -id @executable_path/$$filename $(libdir)/$$filename; \
+			install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
 		done; \
 	done
