@@ -55,8 +55,19 @@ install: dir all
 		$(MAKE) app-install ;\
 	fi
 
+# newer versions of pip won't install over the same version number, so...
+reinstall: dir all
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+	if [ -d "$(app_prefix)" ]; then \
+		$(MAKE) app-reinstall ;\
+	fi
+	
+
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
+
+app-reinstall: wheel
+	$(APP_BOOTSTRAP_PIP) install -U --force-reinstall --nodeps $(WHEEL)
 
 .PHONY: wheel
 wheel: setup.py
