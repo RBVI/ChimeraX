@@ -215,7 +215,7 @@ class Region:
         from PySide2.QtCore import Qt
         if rgba:
             from PySide2.QtGui import QColor
-            brush.setColor(QColor(*rgba))
+            brush.setColor(QColor(*[int(x*255.0 + 0.5) for x in rgba]))
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
@@ -272,7 +272,12 @@ class Region:
             else:
                 pen.setStyle(Qt.SolidLine)
         else:
-            pen.setStyle(Qt.NoPen)
+            # no outline will not be filled so...
+            if self.interior_rgba is None:
+                pen.setStyle(Qt.NoPen)
+            else:
+                pen.setColor(rgba_to_qcolor(self.interior_rgba))
+                pen.setStyle(Qt.SolidLine)
         return kw
 
     def redraw(self):

@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from PySide2.QtWidgets import QVBoxLayout, QListWidget, QLabel, QGridLayout, QListWidgetItem, QWidget
-from PySide2.QtWidgets import QSizePolicy
+from PySide2.QtWidgets import QSizePolicy, QGroupBox, QStackedWidget, QHBoxLayout, QCheckBox
+from PySide2.QtCore import Qt
 
 class FeatureBrowser:
 
@@ -23,7 +24,6 @@ class FeatureBrowser:
         self.seq = seq
         self.tool_window = tool_window
 
-        from PySide2.QtCore import Qt
         layout = QGridLayout()
         layout.addWidget(QLabel("Feature Types"), 0, 0, alignment=Qt.AlignHCenter|Qt.AlignBottom)
         self.category_chooser = category_chooser = QListWidget()
@@ -37,6 +37,7 @@ class FeatureBrowser:
         if sv.settings.new_region_interior:
             used_colors.append(Color(sv.settings.new_region_interior).rgba[:3])
         """
+        self._selected_regions = []
         if state is None:
             self.feature_map = seq.features(fetch=False).get(self.data_source, {})
             ftypes = list(self.feature_map.keys())
@@ -80,6 +81,47 @@ class FeatureBrowser:
         layout.setRowStretch(1, 1)
         layout.addWidget(res_display, 2, 1)
 
+        colors_group = QGroupBox("Region colors")
+        colors_group.setAlignment(Qt.AlignHCenter)
+        group_layout = QVBoxLayout()
+        group_layout.setContentsMargins(0,0,0,0)
+        self.wells_widget = QWidget()
+        wells_layout = QHBoxLayout()
+        wells_layout.setContentsMargins(0,0,0,0)
+        wells_layout.setSpacing(0)
+        self.wells_widgets = {}
+        class TwoThreeStateCheckBox(QCheckBox):
+            def nextCheckState(self):
+                # it seems that just returning the next check state is insuffient, you also have
+                # to explicitly set it (_and_ return it)
+                if self.checkState() == Qt.Checked:
+                    self.setCheckState(Qt.Unchecked)
+                    return Qt.Unchecked
+                self.setCheckState(Qt.Checked)
+                return Qt.Checked
+        from chimerax.ui.widgets import MultiColorButton
+        for label_text, attr_name in [("Region colors: border", "border_rgba"), ("interior", "interior_rgba")]:
+            label = QLabel(label_text)
+            wells_layout.addWidget(label, alignment=Qt.AlignLeft)
+            check_box = TwoThreeStateCheckBox()
+            check_box.setTristate(True)
+            check_box.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+            check_box.clicked.connect(lambda *args, part=attr_name: self._show_region_color(part))
+            wells_layout.addWidget(check_box, alignment=Qt.AlignRight | Qt.AlignVCenter)
+            well = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+            well.color_changed.connect(lambda c, part=attr_name: self._change_region_color(part))
+            wells_layout.addWidget(well)
+            if not self.wells_widgets:
+                wells_layout.addSpacing(7)
+            self.wells_widgets[attr_name] = (check_box, well)
+        self.wells_widget.setLayout(wells_layout)
+        layout.addWidget(self.wells_widget, 2, 0, alignment=Qt.AlignCenter)
+        self._update_colors_area()
+
+    @property
+    def selected_regions(self):
+        return self._selected_regions
+
     def state(self):
         return {
             'shown': self.tool_window.shown,
@@ -100,6 +142,17 @@ class FeatureBrowser:
             self.feature_chooser.set_features(self.feature_map[self._selection])
         else:
             self.feature_chooser.set_features([])
+        self._update_colors_area()
+
+    def _change_region_color(self, attr_name):
+        check_box, well = self.wells_widgets[attr_name]
+        check_state = check_box.checkState()
+        if check_state == Qt.Unchecked:
+            return
+        well_color = [x/255.0 for x in well.color]
+        for region in self.selected_regions:
+            if getattr(region, attr_name) is not None:
+                setattr(region, attr_name, well_color)
 
     def _feature_selection_changed(self):
         sel_category_items = self.category_chooser.selectedItems()
@@ -117,6 +170,47 @@ class FeatureBrowser:
             if shown:
                 shown_regions.append(region)
         self._update_residue_display(shown_regions)
+        self._update_colors_area()
+
+    def _show_region_color(self, attr_name):
+        check_box, well = self.wells_widgets[attr_name]
+        check_state = check_box.checkState()
+        if check_state == Qt.Checked:
+            well.setEnabled(True)
+            color = [x/255.0 for x in well.color]
+        else:
+            well.setEnabled(False)
+            color = None
+        for region in self.selected_regions:
+            setattr(region, attr_name, color)
+
+    def _update_colors_area(self):
+        regions = self.selected_regions
+        if regions:
+            for attr_name in ["border_rgba", "interior_rgba"]:
+                check_box, well = self.wells_widgets[attr_name]
+                reg_colors = [getattr(reg, attr_name) for reg in regions]
+                box_vals = set([(tuple(clr) if isinstance(clr, list) else clr) for clr in reg_colors])
+                if None in box_vals:
+                    box_vals.remove(None)
+                    if not box_vals:
+                        check_box.setCheckState(Qt.Unchecked)
+                        well.color = "white"
+                    else:
+                        check_box.setCheckState(Qt.PartiallyChecked)
+                        if len(box_vals) == 1:
+                            well.color = box_vals.pop()
+                        else:
+                            well.color = None
+                else:
+                    check_box.setCheckState(Qt.Checked)
+                    if len(box_vals) == 1:
+                        well.color = box_vals.pop()
+                    else:
+                        well.color = None
+            self.wells_widget.show()
+        else:
+            self.wells_widget.hide()
 
     def _update_residue_display(self, shown_regions):
         if shown_regions:
@@ -139,6 +233,7 @@ class FeatureBrowser:
         else:
             text = ""
         self.residue_display.setText(text)
+        self._selected_regions = shown_regions
 
 class FeatureList(QListWidget):
     def __init__(self, *args, feature_browser=None, **kw):
