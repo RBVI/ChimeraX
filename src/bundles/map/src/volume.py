@@ -3970,7 +3970,8 @@ class VolumeUpdateManager:
     # Only update displayed volumes.  Keep list or efficiency with time series.
     self._displayed_volumes_to_update = set()
     t = session.triggers
-    t.add_handler('graphics update', self._update_drawings)
+    if t.has_trigger('graphics update'):
+      t.add_handler('graphics update', self._update_drawings)
     t.add_handler('model display changed', self._display_change)
     
   def add(self, v):
