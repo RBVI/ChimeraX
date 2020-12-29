@@ -3416,7 +3416,7 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
   if open_model:
     session.models.add([v])
 
-  if show_dialog:
+  if show_dialog and hasattr(session, 'ui') and session.ui.is_gui:
     show_volume_dialog(session)
 
   return v
