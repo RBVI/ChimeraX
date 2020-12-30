@@ -2422,7 +2422,8 @@ def _remember_tool_pos(ui, tool_instance, widget):
         geom = widget.geometry()
         geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
-        side = get_side(widget)
+        # unlike PyQt, PySide needs cast to int
+        side = int(get_side(widget))
         geom_info = None
     version = 3
     mem_location[tool_instance.tool_name] = {

@@ -47,14 +47,16 @@ To <a href="../findseq.html">find and select</a>
 a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
-See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
 Sequences for biopolymer structures in ChimeraX can be shown:
 </p>
 <ul>
-<li>using the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
+<li>with the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
 and choosing which chain sequence(s) to show
-<li>using the
+<li>with the
 <a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
 <li>by clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
@@ -74,8 +76,23 @@ from <a href="https://www.uniprot.org/" target="_blank">UniProt</a>.
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
-</p><p>
+</p>
+
+<blockquote><b>
+<a href="#context">Context Menu</a>
+<br><a href="#headers">Headers</a>
+<br><a href="#regions">Regions</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
+<br><a href="#association">Sequence-Structure Association</a>
+<br><a href="#settings">Settings</a>
+</b></blockquote>
+
 <a name="context"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Sequence Viewer Context Menu</h3>
+<p>
 Each <b>Sequence Viewer</b> window has a 
 <a href="../window.html#context-menu">context menu</a> 
 with choices including:
@@ -118,6 +135,10 @@ with any sequence in the alignment, for use as a template in modeling)
 run <a href="blastprotein.html"><b>Blast Protein</b></a>
 with default parameters on the specified sequence
   </ul>
+<li><b>Sequence Features...</b> for sequences
+<a href="../commands/open.html#fetch">fetched</a> from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+show the <a href="#uniprot">features dialog</a>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 </ul>
@@ -128,9 +149,10 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 </p>
 <h3>Headers</h3>
 <p>
-Headers are the rows of information above the sequences: consensus sequence,
-conservation histogram, and/or RMSD (root-mean-square displacement)
-histogram for multiple <a href="#association">associated</a> structures.
+Sequence <b><i>headers</i></b> are rows of information above the sequences,
+such as a <b>Consensus</b> sequence, <b>Conservation</b> histogram, 
+or histogram of the <b>RMSD</b> (root-mean-square displacement)
+among multiple <a href="#association">associated</a> structures.
 Which headers are shown initially and how they are calculated 
 can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
@@ -145,15 +167,18 @@ The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
 is the name of the header, for example,
 <a href="../attributes.html#residue">seq_conservation</a> or
 <a href="../attributes.html#residue">seq_rmsd</a>.
-These are of interest for
-<a href="../commands/color.html#byattribute">coloring by attribute</a>.
+The structures can be
+<a href="../commands/color.html#byattribute">colored by attribute</a>,
+as in the tutorial:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>.
 </p>
 
 <a name="regions"></a>
 <p class="nav">
 [<a href="#top">back to top: Sequence Viewer</a>]
 </p>
-<h3>Colored Boxes (Regions)</h3>
+<h3>Regions (Colored Boxes)</h3>
 <p>
 Sequence <b><i>regions</i></b> are colored boxes or outlines
 that enclose one or more residue symbols.
@@ -171,8 +196,8 @@ Manually created regions are shown in
 <a name="active"></a>
 The <b><i>active region</i></b> is the region most recently clicked or created
 by dragging, and is indicated with a dashed outline.
-<b>Shift</b>-dragging with the left mouse button <i>adds to</i> the active region,
-whereas <b>Ctrl</b>-dragging <i>creates</i> a new region
+<b>Shift</b>-dragging with the left mouse button <i>adds to</i> 
+the active region, whereas <b>Ctrl</b>-dragging <i>creates</i> a new region
 and makes it the active region. (On Mac, command key replaces Ctrl.)
 Backspace/delete deletes the active region. Clicking the active region
 deactivates it, and clicking a different region deactivates the
@@ -182,6 +207,38 @@ A region with no interior color is only responsive to clicks on its borders.
 Where regions <a href="#overlap">overlap</a>,
 only the highest is responsive to clicks.
 -->
+</p>
+
+<table class="clRight">
+<tr><td><img class="outline" src="uniprot-features.png"
+alt="cah1_human sequence features" width="380px"></td></tr>
+</table>
+<a name="uniprot"></a>
+<p><a href="#regions" class="nounder"><b>&larr;</b></a>
+<b>UniProt Sequence Features</b>
+</p><p>
+Sequences <a href="../commands/open.html#fetch">fetched</a> from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a> may include
+several annotations. These &ldquo;sequence features&rdquo; are automatically
+assigned as <a href="#regions">regions</a> in the sequence window.
+The features are hidden by default, but a dialog for browsing and 
+displaying them appears when the sequence is first opened. This dialog
+can be reshown at any time by choosing <b>Sequence Features...</b>
+from the <a href="#context">context menu</a>.
+</p><p>
+Choosing a feature type on the left side of the dialog shows the regions
+for all features of that type; if there are multiple features of that type
+listed on the right, clicking any one shows the region specific to
+the individual feature. If a structure is 
+<a href="#association">associated</a> with the sequence, 
+the corresponding structure residues are reported in the bottom right 
+of the dialog.
+</p><p>
+For example, the figure shows all <b>metal ion-binding site</b>
+regions in UniProt sequence <a href="https://www.uniprot.org/uniprot/P00915"
+target="_blank">cah1_human</a>, corresponding to residues
+64,67,94,96,119, and 200 in chain A of the associated structure, PDB
+<a href="http://www.rcsb.org/structure/1BZM" target="_blank">1bzm</a>.
 </p>
 
 <a name="association"></a>
@@ -228,8 +285,8 @@ Associations can be controlled manually (forced or removed):
 <ul>
 <li>with the
 <a href="../commands/sequence.html"><b>sequence</b></a> command
-<li>by choosing <b>Associations...</b> from the <b>Sequence Viewer</b>
-<a href="../window.html#context-menu">context menu</a>.
+<li>by choosing <b>Associations...</b> from the 
+<a href="#context">context menu</a>.
 The resulting dialog lists structure chains and allows changing 
 the association of each to none, best-matching, or a specific sequence.
 </ul>
@@ -272,8 +329,8 @@ are shown as the <a href="#regions">region</a> named
 </p>
 <h3>Sequence Viewer Settings (Preferences)</h3>
 <p>
-Choosing <b>Settings...</b> from the <b>Sequence Viewer</b>
-<a href="../window.html#context-menu">context menu</a>
+Choosing <b>Settings...</b> from the 
+<a href="#context"><b>Sequence Viewer</b> context menu</a>
 shows its settings in a separate window, with sections:
 </p>
 <ul>
@@ -462,7 +519,7 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
     </ul>
   </ul>
 <p>
-When more than one chain per model is <a href="#associations">associated</a>
+When more than one chain per model is <a href="#association">associated</a>
 with the same alignment, the RMSD
 calculation uses only the chain that gives the lowest overall RMSD.
 </p>
@@ -559,5 +616,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+December 2020</address>
 </body></html>
