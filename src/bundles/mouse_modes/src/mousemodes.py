@@ -744,14 +744,15 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
-_function_keys = ["alt", "control", "command", "shift"]
-_modifier_bits = [(mod_key_info(fkey)[0], fkey) for fkey in _function_keys]
-
-
 def key_modifiers(event):
     return decode_modifier_bits(event.modifiers())
 
+_modifier_bits = None
 def decode_modifier_bits(mod):
+    global _modifier_bits
+    if _modifier_bits is None:
+        _function_keys = ["alt", "control", "command", "shift"]
+        _modifier_bits = [(mod_key_info(fkey)[0], fkey) for fkey in _function_keys]
     modifiers = [mod_name for bit, mod_name in _modifier_bits if bit & mod]
     return modifiers
 

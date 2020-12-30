@@ -434,11 +434,12 @@ class Session:
     """
 
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+        self._snapshot_methods = {}     # For saving classes with no State base class.
+        self._state_containers = {}     # stuff to save in sessions.
+
         self.app_name = app_name
         self.debug = debug
         self.silent = silent
-        self._snapshot_methods = {}     # For saving classes with no State base class.
-        self._state_containers = {}     # stuff to save in sessions.
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
         self.session_file_path = None  # Last saved or opened session file.
@@ -532,9 +533,6 @@ class Session:
         for instance for primitive types.
         """
         cls = obj.__class__ if instance else obj
-        from .serialize import PRIMITIVE_TYPES
-        if cls in PRIMITIVE_TYPES:
-            return None
         if issubclass(cls, base_type):
             return cls
 

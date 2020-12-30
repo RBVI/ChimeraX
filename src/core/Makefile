@@ -13,8 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
-SUBDIRS	+= appdirs_cpp _appdirs \
-	   chutil_cpp commands \
+SUBDIRS	+= chutil_cpp commands \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed
 
@@ -62,7 +61,6 @@ reinstall: dir all
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-reinstall ;\
 	fi
-	
 
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
@@ -123,5 +121,3 @@ _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
 	# fix package name to be consistent with how it is imported
 	sed -i -e 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp
-
-_appdirs.install: appdirs_cpp.install

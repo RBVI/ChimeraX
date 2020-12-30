@@ -461,13 +461,6 @@ def init(argv, event_loop=True):
         chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
-    # inform the C++ layer of the appdirs paths
-    from chimerax.core import _appdirs
-    _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
-                        ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir,
-                        chimerax.app_data_dir, adu.user_cache_dir)
-
     from chimerax.core import session
     try:
         sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)

@@ -85,7 +85,6 @@
     <Library>atomstruct_tmpl</Library>
     <Library>ioutil</Library>
     <Library>chutil</Library>
-    <Library>appdirs</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
   </CLibrary>

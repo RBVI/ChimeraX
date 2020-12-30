@@ -15,7 +15,7 @@
 # Create and show a volume madel from a GridData object as defined by the
 # data module.
 #
-from .volume import volume_from_grid_data
+from .volume import open_map, volume_from_grid_data
 
 # -----------------------------------------------------------------------------
 # A grid data object combined with graphical display state is a Volume object.

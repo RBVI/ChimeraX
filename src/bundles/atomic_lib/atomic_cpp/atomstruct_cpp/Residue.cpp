@@ -350,7 +350,14 @@ void
 Residue::set_templates_dir(const std::string& templates_dir)
 {
     using tmpl::TemplateCache;
-    TemplateCache::set_bundle_dir(templates_dir);
+    TemplateCache::set_templates_dir(templates_dir);
+}
+
+void
+Residue::set_user_templates_dir(const std::string& templates_dir)
+{
+    using tmpl::TemplateCache;
+    TemplateCache::set_user_templates_dir(templates_dir);
 }
 
 std::string

@@ -115,8 +115,11 @@ class Place:
             return Places([self]) * p
 
         from numpy import ndarray
+        if isinstance(p, (ndarray, tuple, list)):
+            return m34.apply_matrix(self._matrix, p)
+
         from tinyarray import ndarray_int, ndarray_float
-        if isinstance(p, (ndarray_float, ndarray, tuple, list, ndarray_int)):
+        if isinstance(p, (ndarray_float, ndarray_int)):
             return m34.apply_matrix(self._matrix, p)
 
         raise TypeError('Cannot multiply Place times "%s"' % str(p))

@@ -1632,6 +1632,10 @@ cdef class CyResidue:
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
 
     @staticmethod
+    def set_user_templates_dir(tmpl_dir):
+        cydecl.Residue.set_user_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
     def get_standard_aa_name(res_name):
         '''If 'res_name' is a standard amino acid or modified amino acid 3-letter name, return
         the 3-letter name of the corresponding standard amino acid.  Otherwise return None.
