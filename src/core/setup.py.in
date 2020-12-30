@@ -69,8 +69,6 @@ setup(
     },
     data_files=[
         (rel_inst_shlib_dir, [
-            os.path.join(shlib_dir, "libappdirs.SHLIB_EXT"),
-            # WINDEBUG os.path.join(shlib_dir, "libappdirs.pdb"),
         ]),
         (os.path.join(os.path.basename(data_dir), "idatm", "templates"),
          glob(os.path.join(data_dir, "idatm", "templates", "*"))),

@@ -28,8 +28,6 @@
     <Library>element</Library>
     <Library>pyinstance</Library>
     <Library>arrays</Library>
-    <Library>logger</Library>
-    <Library>appdirs</Library>
   </CLibrary>
 
   <CModule name="cymol" usesNumpy="true">

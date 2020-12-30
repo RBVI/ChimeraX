@@ -20,7 +20,6 @@
     <Library>pyinstance</Library>
     <Library>arrays</Library>
     <Library>logger</Library>
-    <Library>appdirs</Library>
   </CModule>
 
   <Dependencies>

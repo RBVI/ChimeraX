@@ -31,7 +31,6 @@
     <Library>readcif</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
-    <Library>appdirs</Library>
   </CModule>
 
   <Dependencies>

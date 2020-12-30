@@ -24,7 +24,6 @@
     <Library>pdb</Library>
     <Library>pdbconnect</Library>
     <Library>arrays</Library>
-    <Library>appdirs</Library>
   </CModule>
 
   <Dependencies>

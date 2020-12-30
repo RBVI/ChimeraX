@@ -103,6 +103,8 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_py_class(object)
         @staticmethod
         void set_templates_dir(string)
+        @staticmethod
+        void set_user_templates_dir(string)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:
