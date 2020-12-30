@@ -32,7 +32,6 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
        Hydrogens need to be present.
     """
     import os.path
-    #TODO: C-terminal definitions need to cover OT2 as well as OXT
     attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
     if status:
         status("Defining AMBER residue types")
@@ -45,36 +44,38 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
     else:
         structures = models
 
-    #TODO logic needs to be adjusted to put 5' phosphates in non-standard list (particularly if phosphorylation == False)
-    if phosphorylation != False:
-        if status:
-            status("Checking phosphorylation of chain-terminal nucleic acids")
-        deletes = []
-        for s in structures:
-            for r in s.residues:
-                amber_name = getattr(r, 'amber_name', "UNK")
-                if len(amber_name) != 2 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU' \
-                or not r.find_atom('P'):
-                    continue
-                p = r.find_atom('P')
-                for nb in p.neighbors:
-                    if nb.residue != r:
-                        break
-                else:
-                    # trailing phosphate
-                    deletes.append(r)
-        if deletes:
-            if phosphorylation is None:
-                if query_user and not session.in_script:
-                    from chimerax.ui import ask
-                    phosphorylation = ask(session, "Delete 5' terminal phosphates from nucleic acid chains?",
-                            info="The AMBER charge set lacks parameters for terminal phosphates, and if"
-                            " retained, such residues will be treated as non-standard",
-                            title="Delete 5' phosphates?") == "yes"
-                else:
-                    phosphorylation = True
-            if phophorylation:
-                _phosphorylate(session, status, deletes)
+    if status:
+        status("Checking phosphorylation of chain-terminal nucleic acids")
+    deletes = []
+    for s in structures:
+        for r in s.residues:
+            amber_name = getattr(r, 'amber_name', "UNK")
+            if len(amber_name) != 2 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU' \
+            or not r.find_atom('P'):
+                continue
+            p = r.find_atom('P')
+            for nb in p.neighbors:
+                if nb.residue != r:
+                    break
+            else:
+                # trailing phosphate
+                deletes.append(r)
+    if deletes:
+        if phosphorylation is None:
+            if query_user and not session.in_script:
+                from chimerax.ui.ask import ask
+                phosphorylation = ask(session, "Delete 5' terminal phosphates from nucleic acid chains?",
+                        info="The AMBER charge set lacks parameters for terminal phosphates, and if"
+                        " retained, such residues will be treated as non-standard",
+                        title="Delete 5' phosphates?") == "yes"
+            else:
+                phosphorylation = True
+        if phosphorylation:
+            _phosphorylate(session, status, deletes)
+        else:
+            session.logger.info("Treating 5' terminal nucleic acids with phosphates as non-standard")
+            for r in deletes:
+                delattr(r, 'amber_name')
     if status:
         status("Adding standard charges")
     uncharged_res_types = {}
