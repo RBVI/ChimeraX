@@ -552,7 +552,7 @@ class Structure(Model, StructureData):
         ribbons_drawing = self._ribbons_drawing
         if ribbons_drawing is None:
             from .ribbon import RibbonsDrawing
-            ribbons_drawing = rd = RibbonsDrawing('ribbons', str(self))
+            ribbons_drawing = rd = RibbonsDrawing('ribbons', self.string(style='simple'))
             self._ribbons_drawing = rd
             self.add_drawing(rd)
 
