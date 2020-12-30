@@ -48,15 +48,15 @@ a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
-target="_blank">Coloring by Sequence Conservation tutorial</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
 Sequences for biopolymer structures in ChimeraX can be shown:
 </p>
 <ul>
-<li>using the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
+<li>with the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
 and choosing which chain sequence(s) to show
-<li>using the
+<li>with the
 <a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
 <li>by clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
@@ -76,8 +76,23 @@ from <a href="https://www.uniprot.org/" target="_blank">UniProt</a>.
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
-</p><p>
+</p>
+
+<blockquote><b>
+<a href="#context">Context Menu</a>
+<br><a href="#headers">Headers</a>
+<br><a href="#regions">Regions</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
+<br><a href="#association">Sequence-Structure Association</a>
+<br><a href="#settings">Settings</a>
+</b></blockquote>
+
 <a name="context"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Sequence Viewer Context Menu</h3>
+<p>
 Each <b>Sequence Viewer</b> window has a 
 <a href="../window.html#context-menu">context menu</a> 
 with choices including:
@@ -134,10 +149,10 @@ preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
 </p>
 <h3>Headers</h3>
 <p>
-Sequence <b><i>headers</i></b> 
-are the rows of information above the sequences: consensus sequence,
-conservation histogram, and/or RMSD (root-mean-square displacement)
-histogram for multiple <a href="#association">associated</a> structures.
+Sequence <b><i>headers</i></b> are rows of information above the sequences,
+such as a <b>Consensus</b> sequence, <b>Conservation</b> histogram, 
+or histogram of the <b>RMSD</b> (root-mean-square displacement)
+among multiple <a href="#association">associated</a> structures.
 Which headers are shown initially and how they are calculated 
 can be controlled in the
 <a href="#settings-headers"><b>Headers</b> settings</a>.
@@ -152,15 +167,18 @@ The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
 is the name of the header, for example,
 <a href="../attributes.html#residue">seq_conservation</a> or
 <a href="../attributes.html#residue">seq_rmsd</a>.
-These are of interest for
-<a href="../commands/color.html#byattribute">coloring by attribute</a>.
+The structures can be
+<a href="../commands/color.html#byattribute">colored by attribute</a>,
+as in the tutorial:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>.
 </p>
 
 <a name="regions"></a>
 <p class="nav">
 [<a href="#top">back to top: Sequence Viewer</a>]
 </p>
-<h3>Colored Boxes (Regions)</h3>
+<h3>Regions (Colored Boxes)</h3>
 <p>
 Sequence <b><i>regions</i></b> are colored boxes or outlines
 that enclose one or more residue symbols.
@@ -196,9 +214,9 @@ only the highest is responsive to clicks.
 alt="cah1_human sequence features" width="380px"></td></tr>
 </table>
 <a name="uniprot"></a>
-<h4><a href="#regions" class="nounder"><b>&larr;</b></a>
-UniProt Sequence Features</h4>
-<p>
+<p><a href="#regions" class="nounder"><b>&larr;</b></a>
+<b>UniProt Sequence Features</b>
+</p><p>
 Sequences <a href="../commands/open.html#fetch">fetched</a> from
 <a href="https://www.uniprot.org" target="_blank">UniProt</a> may include
 several annotations. These &ldquo;sequence features&rdquo; are automatically
@@ -268,7 +286,7 @@ Associations can be controlled manually (forced or removed):
 <li>with the
 <a href="../commands/sequence.html"><b>sequence</b></a> command
 <li>by choosing <b>Associations...</b> from the 
-<a href="#context"><b>Sequence Viewer</b> context menu</a>.
+<a href="#context">context menu</a>.
 The resulting dialog lists structure chains and allows changing 
 the association of each to none, best-matching, or a specific sequence.
 </ul>
