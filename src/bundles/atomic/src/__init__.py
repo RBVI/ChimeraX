@@ -73,6 +73,7 @@ class _AtomicBundleAPI(BundleAPI):
 
         from chimerax.core.toolshed import get_toolshed
         Residue.set_templates_dir(get_toolshed().find_bundle("AtomicLibrary", session.logger).data_dir())
+        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
 
         session.change_tracker = ChangeTracker()
         session.pb_manager = PseudobondManager(session)

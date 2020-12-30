@@ -22,7 +22,6 @@ CSS3 colors are supported with the addition of the gray() specification
 from the CSS4 color draft, https://www.w3.org/TR/css-color-4/, and CSS4
 color names.
 """
-from sortedcontainers import SortedDict
 from .state import State, StateManager
 
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
@@ -32,17 +31,17 @@ USER_COLORS_STATE_VERSION = 1
 COLORMAP_STATE_VERSION = 1
 USER_COLORMAPS_STATE_VERSION = 1
 
-BuiltinColormaps = SortedDict()
+BuiltinColormaps = {}
 
 
-class UserColors(SortedDict, StateManager):
+class UserColors(dict, StateManager):
     """Support for per-session colors.
 
     Accessed through the session object as ``session.user_colors``.
     """
 
     def __init__(self):
-        SortedDict.__init__(self)
+        dict.__init__(self)
         self.update(BuiltinColors)
 
     def take_snapshot(self, session, flags):
@@ -217,7 +216,7 @@ class Color(State):
 # -----------------------------------------------------------------------------
 
 
-class UserColormaps(SortedDict, StateManager):
+class UserColormaps(dict, StateManager):
     """Support for per-session colormaps.
 
     Accessed through the session object as ``session.user_colormaps``.
@@ -491,7 +490,7 @@ def contrast_with(rgb):
 
 
 # CSS4 colors + multiword color names
-BuiltinColors = SortedDict({
+BuiltinColors = {
     'aliceblue': (240, 248, 255, 255),
     'alice blue': (240, 248, 255, 255),
     'antiquewhite': (250, 235, 215, 255),
@@ -739,7 +738,7 @@ BuiltinColors = SortedDict({
     'yellow': (255, 255, 0, 255),
     'yellowgreen': (154, 205, 50, 255),
     'yellow green': (154, 205, 50, 255),
-})
+}
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 _color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
