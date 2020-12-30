@@ -68,6 +68,14 @@ class Atom(CyAtom, State):
         ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
     ]
 
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyAtom because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
@@ -624,6 +632,14 @@ class Residue(CyResidue, State):
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
+
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyResidue because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
 
     # used by custom-attr registration code
     @property
