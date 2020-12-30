@@ -67,13 +67,6 @@ cdef class CyAtom:
         self.cpp_atom = <cydecl.Atom *>ptr_val
         self._deleted = False
 
-
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -908,12 +901,6 @@ cdef class CyResidue:
         self.cpp_res = <cydecl.Residue *>ptr_val
         self._deleted = False
 
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Residue already deleted")
@@ -1643,6 +1630,10 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
+    def set_user_templates_dir(tmpl_dir):
+        cydecl.Residue.set_user_templates_dir(tmpl_dir.encode())
 
     @staticmethod
     def get_standard_aa_name(res_name):

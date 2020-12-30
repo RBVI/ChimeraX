@@ -21,9 +21,9 @@ PYMOD_NAME = pdbio
 DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS)
 ifdef WIN32
-LIBS += libatomstruct.lib libelement.lib libpyinstance.lib liblogger.lib libpdb.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS += libatomstruct.lib libelement.lib libpyinstance.lib liblogger.lib libpdb.lib libarrays.lib liblogger.lib $(PYTHON_LIB)
 else
-LIBS += -latomstruct -lelement -lpyinstance -llogger -lpdb -larrays -llogger -lappdirs $(PYTHON_LIB)
+LIBS += -latomstruct -lelement -lpyinstance -llogger -lpdb -larrays -llogger $(PYTHON_LIB)
 endif
 
 $(PYMOD): $(OBJS) $(libdir)/libpdb.$(LIB_EXT)
