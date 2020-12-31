@@ -490,11 +490,9 @@ def init(argv, event_loop=True):
     # initialize the user interface
     # sets up logging, splash screen if gui
     if opts.gui:
+        sess.logger.clear()  # Remove nogui logging to stdout
         from chimerax.ui import gui
         sess.ui = gui.UI(sess)
-    else:
-        from chimerax.core import nogui
-        sess.ui = nogui.UI(sess)
 
     # Set ui options
     if opts.offscreen:

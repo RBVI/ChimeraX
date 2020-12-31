@@ -446,6 +446,8 @@ class Session:
 
         from . import logger
         self.logger = logger.Logger(self)
+        from . import nogui
+        self.ui = nogui.UI(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
 
@@ -465,6 +467,7 @@ class Session:
         from chimerax.graphics.view import View
         self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
                               trigger_set=self.triggers)
+
         self.user_aliases = UserAliases()
 
         from . import colors
