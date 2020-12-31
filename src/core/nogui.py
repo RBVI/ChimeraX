@@ -112,7 +112,8 @@ class UI:
             except ImportError:
                 pass
 
-    def initialize_offscreen_rendering(self, session):
+    def initialize_offscreen_rendering(self):
+        session = self._session()
         from chimerax import graphics
         try:
             c = graphics.OffScreenRenderingContext()
