@@ -71,7 +71,6 @@ class NoGuiLog(PlainTextLog):
 class UI:
 
     def __init__(self, session):
-        global _color_output
         self.is_gui = False
         self.has_graphics = False
         session.logger.add_log(NoGuiLog())
@@ -79,6 +78,10 @@ class UI:
         import weakref
         self._session = weakref.ref(session)
         self._queue = None
+
+    def initialize_color_output(self, color_output):
+        global _color_output
+        _color_output = color_output
         import sys
         if _color_output or (_color_output is None and sys.stdout.isatty()):
             try:
@@ -109,11 +112,6 @@ class UI:
             except ImportError:
                 pass
 
-        from chimerax import core
-        requested_offscreen = hasattr(core, 'offscreen_rendering')
-        if requested_offscreen:
-            self.has_graphics = self.initialize_offscreen_rendering(session)
-
     def initialize_offscreen_rendering(self, session):
         from chimerax import graphics
         try:
@@ -125,13 +123,14 @@ class UI:
             if not session.silent:
                 session.logger.info('Offscreen rendering is not available.')
                 session.logger.info(str(e))
-            return False
+            self.has_graphics = False
+            return
         session.main_view.initialize_rendering(c)
         # Create an offscreen QApplication so labels will work
         from PySide2.QtWidgets import QApplication
         from chimerax import app_dirs as ad
         self._app = QApplication([ad.appname, '-platform', 'offscreen'])
-        return True
+        self.has_graphics = True
 
     def splash_info(self, message, splash_step=None, num_splash_steps=None):
         import sys
