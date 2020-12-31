@@ -477,7 +477,8 @@ def init(argv, event_loop=True):
     from chimerax.core import core_settings
     core_settings.init(sess)
 
-    session.common_startup(sess)
+    from chimerax.core.session import register_misc_commands
+    register_misc_commands(sess)
 
     if opts.uninstall:
         return uninstall(sess)
