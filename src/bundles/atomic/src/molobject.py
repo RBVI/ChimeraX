@@ -100,7 +100,7 @@ class Bond(State):
     '''
     Bond connecting two atoms.
 
-    To create a Bond use the :class:`.AtomicStructure` new_bond() method.
+    To create a Bond use chimerax.atomic.struct_edit.add_bond()
     '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
@@ -1604,7 +1604,10 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.
+        In most cases one should use chimerax.atomic.struct_edit.add_bond() instead, which
+        does a lot of maintenance of data structures that new_bond() alone does not.
+        '''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
