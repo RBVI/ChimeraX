@@ -134,6 +134,7 @@ class _StatusBarOpenGL:
 
         if self._opengl_context is None:
             if not self._create_opengl_context():
+                self.session.logger.info(msg)
                 return	# OpenGL version is not sufficient
 
         r = self._renderer
