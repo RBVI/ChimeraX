@@ -21,6 +21,7 @@ class ItemsInspection(ProviderManager):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("inspection items changed")
+        super().__init__("items inspection")
 
     @property
     def item_types(self):

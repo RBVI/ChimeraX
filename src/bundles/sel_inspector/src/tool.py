@@ -22,8 +22,8 @@ class SelInspector(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QMenu, QHBoxLayout
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QMenu, QHBoxLayout
+        from PySide2.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(3,3,0,0)
         layout.setSpacing(0)
