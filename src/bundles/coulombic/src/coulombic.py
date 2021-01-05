@@ -51,13 +51,15 @@ def assign_charges(session, uncharged_residues, his_scheme):
 
     if missing_heavies:
         from chimerax.core.commands import commas
-        if len(missing_heavies) <= 7:
-            atoms_text = commas([str(r) + ' ' + an for r, an in missing_heavies], conjunction="and")
+        if len(missing_heavies) <= 10:
+            msg_text = "heavy (non-hydrogen) atoms are missing"
+            missing_text = '<br>'.join([str(r) + ' ' + an for r, an in missing_heavies])
         else:
-            atoms_text = commas([str(r) + ' ' + an for r, an in missing_heavies[:5]]
-                + ["%d other atoms" % (len(missing_heavies)-5)], conjunction="and")
-        session.logger.warning("The following heavy (non-hydrogen) atoms are missing, which may result"
-            " in inaccurate electrostatics: %s" % atoms_text)
+            msg_text = "residues are missing heavy (non-hydrogen) atoms"
+            incomplete_residues = sorted(list(set([r for r, an in missing_heavies])))
+            missing_text = '<br>'.join([str(r) for r in incomplete_residues])
+        session.logger.warning("The following %s, which may result in inaccurate electrostatics:<br>%s"
+            % (msg_text, missing_text), is_html=True)
 
     for struct, struct_residues in by_structure.items():
         if copy_needed[struct]:
@@ -136,6 +138,8 @@ def check_residues(residues):
             name_to_atom[aname] = a
         existing_names = set(name_to_atom.keys())
         needed_names = set(res_data.keys())
+        if "OXT" in needed_names and "OXT" not in existing_names and not chain.from_seqres:
+            needed_names.remove("OXT")
         missing_atoms.extend([(r, n) for n in needed_names - existing_names])
         extra_atoms.extend([name_to_atom[n] for n in (existing_names - needed_names)])
 

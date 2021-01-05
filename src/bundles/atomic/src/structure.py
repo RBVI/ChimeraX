@@ -1508,8 +1508,29 @@ def chain_res_range(chain):
     existing = chain.existing_residues
     if len(existing) == 1:
         return existing[0].string(style="command")
+    def range_string(first, last, first_res_only=False):
+        if first == last:
+            return first.string(residue_only=first_res_only, style="command")
+        return "%s-%s" % (first.string(residue_only=first_res_only, style="command"),
+            last.string(residue_only=True, style="command")[1:])
     first, last = existing[0], existing[-1]
-    return "%s-%s" % (first.string(style="command"), last.string(residue_only=True, style="command")[1:])
+    if first.number < last.number:
+        return range_string(first, last)
+    # circular permutation, do something more elaborate
+    ranges = []
+    cur_num = None
+    for r in existing:
+        if cur_num is None:
+            start_res = end_res = r
+        elif r.number < cur_num:
+            ranges.append((start_res, end_res))
+            start_res = end_res = r
+        else:
+            end_res = r
+        cur_num = r.number
+    ranges.append((start_res, end_res))
+    return range_string(*ranges[0], first_res_only=False) + ',' + ','.join(
+        [range_string(first, last, first_res_only=True)[1:] for first, last in ranges[1:]])
 
 
 # -----------------------------------------------------------------------------
