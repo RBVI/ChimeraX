@@ -524,7 +524,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             continue
                 ref_atoms.append(ref_atom)
                 match_atoms.append(match_atom)
-                if cutoff_distance is not None:
+                if show_alignment and cutoff_distance is not None:
                     for viewer in  alignment.viewers:
                         region_info[ref_atom] = (viewer, i)
 
