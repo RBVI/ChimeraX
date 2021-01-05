@@ -475,6 +475,8 @@ class Drawing:
                 d.clear_highlight()
 
     def _drawing_get_position(self):
+        if self.was_deleted:
+            raise RuntimeError('Tried to get the position of deleted drawing "%s"' % self.name)
         return self._positions[0]
 
     def _drawing_set_position(self, pos):
@@ -2114,11 +2116,11 @@ def _draw_texture(texture, renderer):
     draw_overlays([d], renderer)
     
 def qimage_to_numpy(qi):
-    from PyQt5.QtGui import QImage
+    from PySide2.QtGui import QImage
     if qi.format() != QImage.Format_ARGB32:
         qi = qi.convertToFormat(QImage.Format_ARGB32)
     shape = (qi.height(), qi.width(), 4)
-    buf = qi.bits().asstring(qi.byteCount())
+    buf = qi.bits().tobytes()
     from numpy import uint8, frombuffer
     bgra = frombuffer(buf, uint8).reshape(shape)
     # Swap red and blue and flip vertically.
@@ -2138,7 +2140,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
+    from PySide2.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()
 
@@ -2189,7 +2191,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
         prev_b = p.brush()
         prev_p = p.pen()
         bc = QColor(*bg)
-        from PyQt5.QtCore import Qt
+        from PySide2.QtCore import Qt
         pbr = QBrush(bc, Qt.SolidPattern)
         p.setBrush(pbr)
         ppen = QPen(Qt.NoPen)

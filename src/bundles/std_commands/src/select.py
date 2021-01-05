@@ -56,6 +56,8 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
     session.undo.register(undo_state)
     report_selection(session)
 
+    return objects
+
 def _filter_pseudobonds_by_length(objects, minimum_length, maximum_length):
     if (minimum_length is None and maximum_length is None) or objects.num_pseudobonds == 0:
         return objects

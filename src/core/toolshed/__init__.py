@@ -358,7 +358,7 @@ class Toolshed:
         except Exception:
             logger.report_exception("Error preloading available bundles")
         if check_available and (self._available_bundle_info is None or
-                                self._available_bundle_info.toolshed_url != remote_url):
+                                self._available_bundle_info.toolshed_url != self.remote_url):
             check_remote = True
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
         if check_available and not check_remote:
@@ -376,8 +376,7 @@ class Toolshed:
                     need_check = True
                 else:
                     interval = settings.toolshed_update_interval
-                    last_check = datetime.strptime(settings.toolshed_last_check,
-                                                   "%Y-%m-%dT%H:%M:%S.%f")
+                    last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
                     delta = now - last_check
                     max_delta = timedelta(days=1)
                     if interval == "week":

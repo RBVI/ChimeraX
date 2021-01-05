@@ -23,12 +23,14 @@ class SchemesManager(ProviderManager):
         super().__init__(name)
 
     def add_provider(self, bundle_info, name, **kw):
+        if not bundle_info.installed:
+            return
         self.schemes.add(name)
 
         def is_true(value):
             return value and value.casefold() in ('true', '1', 'on')
 
-        from PyQt5.QtWebEngineCore import QWebEngineUrlScheme
+        from PySide2.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
         port = kw.get('defaultPort', None)
         if port is not None:

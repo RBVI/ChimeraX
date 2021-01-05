@@ -93,13 +93,22 @@ def surface(session, atoms = None, enclose = None, include = None,
     new_surfs = []
     if enclose is None:
         atoms = check_atoms(atoms, session) # Warn if no atoms specifed
+        num_structure_atoms = sum([s.num_atoms for s in atoms.unique_structures], 0)
+        full_structures = (len(atoms) == num_structure_atoms)
         atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
             if all_small:
                 enclose_atoms = show_atoms
             else:
-                matoms = m.atoms
-                chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
+                # This code is handling the case that the specified atoms don't contain
+                # all of the chain atoms, otherwise we could just use show_atoms.
+                if full_structures:
+                    chain_atoms = show_atoms
+                else:
+                    # May have only some of the chain atoms, get all of them.
+                    # This is very slow for 863 chains, pdb 5y6p, bug #3908.
+                    matoms = m.atoms
+                    chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             s = all_surfs.get(enclose_atoms.hash())
             if s is None:
@@ -157,12 +166,14 @@ def surface(session, atoms = None, enclose = None, include = None,
     #       to write an error message to the log, not in the main thread.
 
     if not resolution is None and resolution > 0 and level is None:
-        msg = '\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
-                        for s in surfs if hasattr(s, 'gaussian_level'))
-        if msg:
-            log = session.logger
-            log.info(msg)
-            
+        gsurfs = [s for s in surfs if hasattr(s, 'gaussian_level')]
+        if gsurfs:
+            levels = [s.gaussian_level for s in gsurfs]
+            min_lev, max_lev = ('%.3f' % min(levels)), ('%.3f' % max(levels))
+            level_range = '%s - %s' % (min_lev, max_lev) if max_lev != min_lev else max_lev
+            msg = '%d Gaussian surfaces, threshold level %s' % (len(gsurfs), level_range)
+            session.logger.info(msg)
+
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
         session.models.add([s], parent = parent)
@@ -322,6 +333,45 @@ def surface_style(session, surfaces, style):
 
 # -------------------------------------------------------------------------------------
 #
+def surface_square_mesh(session, surfaces = None):
+    '''
+    Show only mesh lines parallel x, y or z axes
+
+    Parameters
+    ----------
+    surfaces : List of Surface
+    '''
+    if surfaces is None:
+        from chimerax.core.models import Surface
+        surfaces = session.models.list(type = Surface)
+    from .squaremesh import hide_diagonals
+    for s in surfaces:
+        hide_diagonals(s)
+
+    return surfaces
+
+# -------------------------------------------------------------------------------------
+#
+def surface_show_all(session, surfaces = None):
+    '''
+    Set surface to no masking.
+
+    Parameters
+    ----------
+    surfaces : List of Surface
+    '''
+    if surfaces is None:
+        from chimerax.core.models import Surface
+        surfaces = session.models.list(type = Surface)
+    for s in surfaces:
+        s.auto_remask_triangles = None
+        s.triangle_mask = None
+        s.edge_mask = None
+
+    return surfaces
+
+# -------------------------------------------------------------------------------------
+#
 def surface_cap(session, enable = None, offset = None, subdivision = None, mesh = None):
     '''
     Control whether clipping shows surface caps covering the hole produced by the clip plane.
@@ -424,6 +474,16 @@ def register_command(logger):
                     ('style', EnumOf(('mesh', 'dot', 'solid')))],
         synopsis = 'Change surface style to mesh, dot or solid')
     register('surface style', style_desc, surface_style, logger=logger)
+
+    square_desc = CmdDesc(
+        optional = [('surfaces', SurfacesArg)],
+        synopsis = 'Show only mesh lines parallel x, y or z axes')
+    register('surface squaremesh', square_desc, surface_square_mesh, logger=logger)
+
+    showall_desc = CmdDesc(
+        optional = [('surfaces', SurfacesArg)],
+        synopsis = 'Turn off masking of triangles or edges')
+    register('surface showall', showall_desc, surface_show_all, logger=logger)
 
     cap_desc = CmdDesc(
         optional = [('enable', BoolArg),],

@@ -327,7 +327,7 @@ class VRModeArg(Annotation):
         from chimerax.core.commands import EnumOf
         mode_arg = EnumOf(hand_mode_names(session) + ('default',))
         mode_name, used, rest = mode_arg.parse(text, session)
-        if mode_name is 'default':
+        if mode_name == 'default':
             hm = 'default'
         else:
             c = vr_camera(session)
@@ -338,7 +338,8 @@ class VRModeArg(Annotation):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session, multishadow_allowed = False, simplify_graphics = True, label_reorient = 45):
+def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
+             label_reorient = 45, zone_label_color = (255,255,0,255), zone_label_background = (0,0,0,255)):
 
     v = session.main_view
     if not multishadow_allowed and v.lighting.multishadow > 0:
@@ -357,6 +358,11 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     from chimerax.label.label3d import label_orient
     label_orient(session, label_reorient)
 
+    # Make zone mouse mode labels easier to read
+    from chimerax.zone.zone import zone_setting
+    zone_setting(session, label_color = zone_label_color,
+                 label_background_color = zone_label_background, save = False)
+    
     c = vr_camera(session)
     if c is session.main_view.camera:
         return
@@ -1430,8 +1436,7 @@ class UserInterface:
     def close(self):
         ui = self._ui_model
         if ui:
-            if not ui.deleted:
-                self._session.models.close([ui])
+            self._session.models.close([ui])
             self._ui_model = None
 
         for h in (self._tool_show_handler, self._tool_hide_handler):
@@ -1453,9 +1458,6 @@ class UserInterface:
     def shown(self):
         ui = self._ui_model
         if ui is None:
-            return False
-        if ui.deleted:
-            self._ui_model = None
             return False
         return ui.display
     
@@ -1502,9 +1504,6 @@ class UserInterface:
         # Position panels on top of each other
         self._stack_panels(panels)
 
-        # Add panels for non-tools like recent files panel.
-        self._check_for_new_panels()
-        
         # Monitor when windows are shown and hidden.
         triggers = self._session.ui.triggers
         self._tool_show_handler = triggers.add_handler('tool window show',
@@ -1565,7 +1564,7 @@ class UserInterface:
             
     def _check_for_new_panels(self):
         # Add new panels for newly appeared top level widgets.
-        from PyQt5.QtWidgets import QDockWidget, QMainWindow, QMenu
+        from PySide2.QtWidgets import QDockWidget, QMainWindow, QMenu
         tw = [w for w in self._session.ui.topLevelWidgets()
               if w.isVisible() and not isinstance(w, (QDockWidget, QMainWindow))]
         wset = set(p._widget for p in self._panels)
@@ -1781,7 +1780,7 @@ class UserInterface:
         window_xy, panel = self._click_position(room_point)
         if panel:
             widget, wpos = panel.clicked_widget(window_xy)
-            from PyQt5.QtWidgets import QAbstractButton, QTabBar
+            from PySide2.QtWidgets import QAbstractButton, QTabBar
             if isinstance(widget, (QAbstractButton, QTabBar)):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
@@ -1850,17 +1849,14 @@ class UserInterface:
     
     def _create_ui_model(self, parent):
         ses = self._session
-        from chimerax.core.models import Model
-        m = Model('User interface', ses)
-        m.color = (255,255,255,255)
-        m.use_lighting = False
-        # m.skip_bounds = True  # User interface clipped if far from models.
-        m.casts_shadows = False
-        m.pickable = False
-        m.SESSION_SAVE = False
-        ses.models.add([m], parent = parent)
-        return m
+        uim = UIModel(ses, self._ui_model_closed)
+        ses.models.add([uim], parent = parent)
+        return uim
 
+    def _ui_model_closed(self):
+        self._ui_model = None
+        self.close()
+        
     def display_ui(self, hand_room_position, camera_position):
         rp = hand_room_position
         # Orient horizontally and facing camera.
@@ -1878,6 +1874,21 @@ class UserInterface:
         for p in self._panels:
             p.scale_panel(scale_factor, center)
 
+from chimerax.core.models import Model
+class UIModel(Model):
+    def __init__(self, session, close_cb = None):
+        self._close_cb = close_cb
+        Model.__init__(self, 'User interface', session)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        self.pickable = False
+        self.SESSION_SAVE = False
+    def delete(self):
+        if self._close_cb is not None:
+            self._close_cb()
+        Model.delete(self)
+        
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
     def __init__(self, tool_or_widget, drawing_parent, ui,
@@ -2162,7 +2173,7 @@ class Panel:
         return icon_rgba
 
     def is_menu(self):
-        from PyQt5.QtWidgets import QMenu
+        from PySide2.QtWidgets import QMenu
         return isinstance(self.widget, QMenu)
     
     def _is_toplevel_widget(self):
@@ -2192,7 +2203,7 @@ class Panel:
         pw = self.widget
         if pw is None:
             return None
-        from PyQt5.QtCore import QPoint
+        from PySide2.QtCore import QPoint
         wxy0 = widget.mapTo(pw, QPoint(0,0))
         th = self._titlebar_height
         wx0,wy0 = wxy0.x(), wxy0.y() + th
@@ -2240,10 +2251,10 @@ class Panel:
         pw = self.widget
         if pw is not None:
             x,y = window_xy
-            from PyQt5.QtCore import QPoint
+            from PySide2.QtCore import QPoint
             wp = QPoint(int(x), int(y))
             p = pw.mapToGlobal(wp)
-            from PyQt5.QtGui import QCursor
+            from PySide2.QtGui import QCursor
             QCursor.setPos(p)
 
     def _post_mouse_event(self, type, window_xy):
@@ -2251,7 +2262,7 @@ class Panel:
         w, pos = self.clicked_widget(window_xy)
         if w is None or pos is None:
             return w
-        from PyQt5.QtCore import Qt, QEvent
+        from PySide2.QtCore import Qt, QEvent
         if type == 'press':
             from time import time
             t = time()
@@ -2268,7 +2279,7 @@ class Panel:
             et = QEvent.MouseMove
             button =  Qt.NoButton
             buttons = Qt.LeftButton
-        from PyQt5.QtGui import QMouseEvent
+        from PySide2.QtGui import QMouseEvent
         me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
         self._ui._session.ui.postEvent(w, me)
         return w
@@ -2279,7 +2290,7 @@ class Panel:
         pw = self.widget
         if pw is None:
             return None, None
-        from PyQt5.QtCore import QPoint, QPointF
+        from PySide2.QtCore import QPoint, QPointF
         x,y = window_xy
         pwp = QPoint(int(x), int(y))
         w = pw.childAt(pwp)	# Works even if widget is covered.
@@ -2329,7 +2340,7 @@ class Panel:
         if th > 0:
             return window_xy[1] < 0
         w, pos = self.clicked_widget(window_xy)
-        from PyQt5.QtWidgets import QMenuBar, QDockWidget
+        from PySide2.QtWidgets import QMenuBar, QDockWidget
         if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
             return True
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -2337,7 +2348,7 @@ class Panel:
                            
     def clicked_mouse_mode(self, window_xy):
         w, pos = self.clicked_widget(window_xy)
-        from PyQt5.QtWidgets import QToolButton
+        from PySide2.QtWidgets import QToolButton
         if isinstance(w, QToolButton):
             if hasattr(w, 'vr_mode'):
                 if isinstance(w.vr_mode, str):
@@ -2362,7 +2373,7 @@ class Panel:
         if w is None:
             return
         
-        from PyQt5.QtCore import QPoint
+        from PySide2.QtCore import QPoint
         pos = w.mapToGlobal(QPoint(0,0))
         ppos = p._widget.mapFromGlobal(pos)
         y = ppos.y() + p._titlebar_height
@@ -2392,9 +2403,8 @@ class PanelDrawing(Drawing):
         self.color = (255,255,255,255)
         self.use_lighting = False
         self.casts_shadows = False
-        self.skip_bounds = True	# Panels should not effect view all command.
-        # Avoid panels fading out far from models.
-        self.allow_depth_cue = False
+        self.skip_bounds = True		# Panels should not effect view all command.
+        self.allow_depth_cue = False	# Avoid panels fading out far from models.
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
@@ -2422,7 +2432,7 @@ def _ancestor_widgets(w):
 
 def _tool_y_position(tool_window):
     w = tool_window.ui_area
-    from PyQt5.QtCore import QPoint
+    from PySide2.QtCore import QPoint
     return w.mapToGlobal(QPoint(0,0)).y()
 
 def _tool_windows(name, session):
@@ -2583,6 +2593,7 @@ class HandController:
     
     def close(self):
         self._device_index = None
+        self._active_drag_modes.clear()
         self._close_hand_model()
 
     def _close_hand_model(self):
@@ -3028,7 +3039,7 @@ class ButtonGeometry:
 
     def set_icon_image(self, tex_rgba, icon_path, image_size):
         if icon_path:
-            from PyQt5.QtGui import QImage
+            from PySide2.QtGui import QImage
             qi = QImage(icon_path)
             s = image_size
             if qi.width() != s or qi.height() != s:
@@ -3265,6 +3276,7 @@ class MoveUIMode(HandMode):
         oc = e.camera.other_controller(hc)
         if oc and self._ui_zoom(oc):
             scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
+            scale = max(min(scale, 10.0), 0.1)	# Limit scaling
             ui.scale_ui(scale)
             self._last_hand_position.clear()	# Avoid jump when one button released
         else:
@@ -3385,7 +3397,6 @@ def _pinch_scale(prev_pos, pos, other_pos):
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
     if dp > 0:
         s = d / dp
-        s = max(min(s, 10.0), 0.1)	# Limit scaling
     else:
         s = 1.0
     center = 0.5*(pos+other_pos)
@@ -3415,8 +3426,7 @@ class ZoomMode(HandMode):
         if center is None:
             return
         y_motion = (e.pose.origin() - e.previous_pose.origin())[1]  # meters
-        s = 2 ** (y_motion/self.size_doubling_distance)
-        scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
+        scale_factor = 2 ** (y_motion/self.size_doubling_distance)
         _pinch_zoom(e.camera, scale_factor, center)
     def released(self, hand_event):
         self._zoom_center = None
@@ -3442,7 +3452,16 @@ def _choose_zoom_center(camera, center = None):
         return camera.room_position.origin()
     return center
 
-def _pinch_zoom(camera, scale_factor, center):
+def _pinch_zoom(camera, scale_factor, center, max_scale_factor = 10, max_scale = 1e12):
+    if max_scale_factor is not None:
+        if scale_factor > max_scale_factor:
+            scale_factor = max_scale_factor
+        elif scale_factor < 1/max_scale_factor:
+            scale_factor = 1/max_scale_factor
+    if max_scale is not None:
+        s = camera.scene_scale * scale_factor
+        if s > max_scale or s < 1/max_scale:
+            return
     from chimerax.geometry import distance, translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)

@@ -68,6 +68,14 @@ class Atom(CyAtom, State):
         ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
     ]
 
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyAtom because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
@@ -92,7 +100,7 @@ class Bond(State):
     '''
     Bond connecting two atoms.
 
-    To create a Bond use the :class:`.AtomicStructure` new_bond() method.
+    To create a Bond use chimerax.atomic.struct_edit.add_bond()
     '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
@@ -121,6 +129,7 @@ class Bond(State):
 
     @property
     def atomspec(self):
+        a1, a2 = self.atoms
         return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = convert.atom_pair, read_only = True,
@@ -620,9 +629,17 @@ class Residue(CyResidue, State):
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
     _cython_property_return_info = [
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
-        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
-        ('phi', (float, None)), ('psi', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
+        ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
+
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyResidue because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
 
     # used by custom-attr registration code
     @property
@@ -770,6 +787,8 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        self._features = {}
+        self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
@@ -835,6 +854,31 @@ class Sequence(State):
     append = extend
 
     @property
+    def feature_data_sources(self):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        return mgr.data_sources
+
+    def features(self, *, data_source="all", fetch=True):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        if data_source == "all":
+            if fetch:
+                for ds in mgr.data_sources:
+                    if ds not in self._features:
+                        try:
+                            self._features[ds] = mgr.get_features(self.characters, ds)
+                        except mgr.DataSourceFailure:
+                            pass
+            return self._features
+        if data_source not in self._features:
+            if fetch:
+                self._features[data_source] = mgr.get_features(self.characters, data_source)
+            else:
+                return {}
+        return self._features[data_source]
+
+    @property
     def full_name(self):
         return self.name
 
@@ -877,6 +921,9 @@ class Sequence(State):
             ret = ctypes.py_object)
         return f(self._c_pointer, pattern.encode('utf-8'), case_sensitive)
 
+    def set_features(self, data_source, features):
+        self._features[data_source] = features
+
     def __setitem__(self, key, val):
         chars = self.characters
         if isinstance(key, slice):
@@ -886,7 +933,7 @@ class Sequence(State):
         else:
             self.characters = chars[:key] + val + chars[key+1:]
 
-    # no __str__, since it's confusing whether it should be self.name or self.characters
+    # no __str__, since it's unclear whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
         self.name = data['name']
@@ -894,6 +941,8 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
+        self._features = data.get('features', {})
+        self.accession_id = data.get('accession_id', {})
         set_custom_attrs(self, data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
@@ -915,7 +964,8 @@ class Sequence(State):
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
-            'custom attrs': get_custom_attrs(Sequence, self)}
+            'custom attrs': get_custom_attrs(Sequence, self), 'features': self._features,
+            'accession_id': self.accession_id }
         return data
 
     def ungapped(self):
@@ -1554,7 +1604,10 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.
+        In most cases one should use chimerax.atomic.struct_edit.add_bond() instead, which
+        does a lot of maintenance of data structures that new_bond() alone does not.
+        '''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
@@ -1882,6 +1935,8 @@ class ChangeTracker:
             set_c_pointer(self, ct_pointer)
         f = c_function('set_changetracker_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self.tracked_classes = frozenset([Atom, Bond, Pseudobond, Residue, Chain, StructureData,
+            PseudobondGroupData, CoordSet])
 
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1901,13 +1956,20 @@ class ChangeTracker:
         f = c_function('change_tracker_add_modified',
             args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
         from .molarray import Collection
+        from collections.abc import Iterable
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+                f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
         else:
-            f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
-                reason.encode('utf-8'))
+            try:
+                iterable_test = iter(modded)
+            except TypeError:
+                f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+            else:
+                for item in modded:
+                    f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+
     @property
     def changed(self):
         f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)

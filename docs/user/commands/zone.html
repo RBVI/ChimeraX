@@ -33,8 +33,16 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>label</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>ribbons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
+<a name="clear"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>zone clear</b>
+</h3>
+<a name="setting"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>zone setting</b>
+[&nbsp;<b>labelColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>labelBackgroundColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;none&nbsp;]
+[&nbsp;<b>save</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>zone</b> command shows atomic detail and residue labels near a 
@@ -46,11 +54,11 @@ and volume displays:
 </p>
 <ul>
 <li><b>residueDistance</b> (initial default <b>5</b> &Aring;)
-- for all-atom display of nearby residues
+&ndash; for all-atom display of nearby residues
 <li><b>labelDistance</b> (initial default <b>4</b> &Aring;)
-- for labels on nearby residues
+&ndash; for labels on nearby residues
 <li><b>surfaceDistance</b> (initial default <b>8</b> &Aring;)
-- for <a href="../tools/volumeviewer.html">volume data</a> displays
+&ndash; for <a href="../tools/volumeviewer.html">volume data</a> displays
 (surface, mesh, or solid);
 does not affect <a href="surface.html">molecular surfaces</a>
 </ul>
@@ -71,6 +79,31 @@ of the same atomic model as a narrow ribbon
 The <b>zone clear</b> command clears the labels and returns to what
 was shown before zoning.
 </p><p>
+The <b>zone setting</b> command allows changing:
+</p>
+<ul>
+<li><b>labelColor</b> 
+&ndash; label text color; if specified as <b>default</b> or <b>auto</b>,
+the label color will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the label background, or if there is no 
+label background, depending on the color of the 
+<a href="set.html#bgColor">window background</a>
+<li><b>labelBackgroundColor</b>
+&ndash; color of the rectangular backgrounds shown behind the labels
+(initial default <b>none</b>, meaning no backgrounds)
+</ul>
+<p>
+By default (<b>save true</b>), these changes are saved as
+<a href="../preferences.html#other">preferences</a> for zone labels only
+(not other labels).
+Enabling <a href="../vr.html">virtual reality</a> automatically
+changes the zone-label color to <b>yellow</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>
+and zone-label background color to <b>black</b> without saving 
+these values as <a href="../preferences.html#other">preferences</a>.
+</p><p>
 For <a href="surface.html">molecular surfaces</a>,
 see <a href="surface.html#zone"><b>surface zone</b></a>.
 See also: 
@@ -84,5 +117,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+October 2020</address>
 </body></html> 

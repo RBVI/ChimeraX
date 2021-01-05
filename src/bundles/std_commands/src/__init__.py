@@ -69,4 +69,53 @@ class StdCommandsAPI(BundleAPI):
         from .selectors import register_selectors
         register_selectors(logger)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class DefattrInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from .defattr import defattr
+                    if 'models' in kw:
+                        kw['restriction'] = kw.pop('models')
+                    defattr(session, data, file_name=file_name, **kw)
+                    return [], ""
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    from chimerax.atomic import StructuresArg
+                    return {
+                        'log': BoolArg,
+                        'models': StructuresArg
+                    }
+        else:
+            from chimerax.save_command import SaverInfo
+            class DefattrInfo(SaverInfo):
+                def save(self, session, path, **kw):
+                    from .defattr import write_defattr
+                    write_defattr(session, path, **kw)
+
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import StringArg, BoolArg, EnumOf
+                    from chimerax.atomic import StructuresArg
+                    from .defattr import match_modes
+                    return {
+                        'attr_name': StringArg,
+                        'model_ids': BoolArg,
+                        'match_mode': EnumOf(match_modes),
+                        'selected_only': BoolArg,
+                        'models': StructuresArg,
+                    }
+
+                def save_args_widget(self, session):
+                    from .defattr_gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
+        return DefattrInfo()
+
 bundle_api = StdCommandsAPI()

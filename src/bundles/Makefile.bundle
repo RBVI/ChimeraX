@@ -7,14 +7,15 @@
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
 
-TOP = ../../..
+TOP ?= ../../..
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
-DEVEL_ARGS =
-CLEAN = build dist *.egg-info src/__pycache__ src/*/__pycache__
-CLEAN_ALWAYS =
+BUILD_ARGS ?=
+INSTALL_ARGS ?=
+CLEAN ?= build dist *.egg-info src/__pycache__ src/*/__pycache__
+CLEAN_ALWAYS ?=
 
 ifdef DEBUG
 DEBUG_ARG += debug true
@@ -42,20 +43,20 @@ PYSRCS = $(wildcard src/*.py)
 .SECONDEXPANSION:
 
 wheel:	bundle_info.xml $$(PYSRCS)
-	$(RUN) "devel build . exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
+	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
 install app-install:	bundle_info.xml $$(PYSRCS)
-	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
+	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 sync:
-ifneq (,$(wildcard dist/*-py3-none-any.whl))
+ifneq (,$(wildcard dist/*-py*-none-any.whl))
 	rsync -av dist/*.whl $(SYNC_DIR)/python-only
 else
 	rsync -av dist/*.whl $(SYNC_DIR)/binary
 endif
 
 ifdef BUILD_AND_INSTALL
-DEVEL_ARGS = noDeps true
+INSTALL_ARGS = noDeps true
 build: install
 else
 build: wheel

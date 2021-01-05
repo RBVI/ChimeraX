@@ -44,6 +44,7 @@ Either of the following methods of communication can be used:
 <b>remotecontrol rest start</b>
 [&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -84,10 +85,38 @@ curl http://127.0.0.1:60958/run?command=open+1a0s
 wget http://127.0.0.1:60958/run?command=open+1grl
 </blockquote>
 <p>
-Any logging that would normally result from command execution will still occur,
+If <b>json</b> is <b>false</b> (default), 
+any logging that would normally result from command execution will still occur,
 but will be shown in the web browser or (for curl or wget) in the shell
 instead of in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>.
-The command <b>remotecontrol rest stop</b> 
+If <b>json</b> is <b>true</b>, command execution will return a string in 
+<a href="https://www.json.org/" target="_blank">JSON</a> 
+(JavaScript Object Notation) format representing a JSON &ldquo;object&rdquo;
+with the following name/value pairs:
+</p>
+<table border cellpadding="4" cellspacing="0">
+	<tr>
+		<th>Name</th>
+		<th>Value</th>
+	</tr>
+	<tr>
+		<td>python&nbsp;values</td>
+		<td class="text">A list of the Python values returned by the commands executed. Typically, the list would contain only one value, but if the &ldquo;command&rdquo; sent was actually a series of commands separated by semicolons, the list would contain the corresponding number of values.</td>
+	</tr>
+	</tr>
+		<td>json&nbsp;values</td>
+		<td class="text">A list of the JSON values returned by the commands executed. The exact contents of a command's JSON value should be provided in the doc string for the function that carries out the corresponding command. The value will be <code>null</code> for commands that have not yet implemented JSON return values.</td>
+	</tr>
+	</tr>
+		<td>log&nbsp;messages</td>
+		<td>A JSON object with the names corresponding to <code>chimerax.core.logger.Log.LEVEL_DESCRIPTS</code> and whose values are lists of messages logged at that level during command execution.</td>
+	</tr>
+	</tr>
+		<td>error</td>
+		<td>If the commands execute without raising an error, this will be <code>null</code>.  Otherwise, it will be a JSON object with two names, <code>type</code> and <code>message</code>, with values that are the Python class name for the error (<i>e.g.</i> <code>ValueError</code>) and the error message text, respectively.  In this case the &ldquo;python values&rdquo; and &ldquo;json values&rdquo; lists will be empty.</td>
+	</tr>
+</table>
+<p>The command <b>remotecontrol rest stop</b> 
 discontinues accepting commands by REST, optionally sending a notification
 to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
 </p>
@@ -140,5 +169,5 @@ discontinues accepting commands by XML-RPC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+October 2020</address>
 </body></html>

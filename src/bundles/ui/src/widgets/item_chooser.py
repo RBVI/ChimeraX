@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QListWidget, QPushButton, QMenu
-from PyQt5.QtCore import Qt, pyqtSignal
+from PySide2.QtWidgets import QListWidget, QPushButton, QMenu
+from PySide2.QtCore import Qt, Signal
 
 class ItemsGenerator:
     def __init__(self, list_func=lambda: [], key_func=lambda x: x, filter_func=lambda x: True,
@@ -83,7 +83,7 @@ class ItemsUpdater:
 
 class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
 
-    value_changed = pyqtSignal()
+    value_changed = Signal()
 
     autoselect_default = "all"
     from chimerax.mouse_modes import mod_key_info
@@ -236,7 +236,7 @@ class MenuButton(QPushButton):
 
 class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
 
-    value_changed = pyqtSignal()
+    value_changed = Signal()
 
     def __init__(self, autoselect_single_item=True, balloon_help=None, no_value_button_text="No item chosen",
             no_value_menu_text=None, special_items=[], **kw):

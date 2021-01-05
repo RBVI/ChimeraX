@@ -30,7 +30,7 @@ Introduction
 ChimeraX's mmCIF reader is fast.
 It is fast because:
 
-  * it uses a C++ library to parse a mmCIF file
+  * it uses the `readcif` C++ library to parse a mmCIF file
 
   * it takes advantage of the wwPDB's PDBx/mmCIF styling
 
@@ -47,12 +47,14 @@ belongs to the user.
 The following discusses what is needed to be fast,
 and what data is understood, by ChimeraX.
 
+.. _readcif: https://github.com/RBVI/readcif
+
 -----------------
 mmCIF Terminology
 -----------------
 
-.. _mmCIF: http://mmcif.wwpdb.org/
-.. _CIF: //www.iucr.org/resources/cif
+.. _mmCIF: https://mmcif.wwpdb.org/
+.. _CIF: https://www.iucr.org/resources/cif
 
 `mmCIF`_,
 MacroMolecular Crystallographic Interchange Format, is a file format
@@ -156,7 +158,7 @@ it is assumed only when a mmCIF file uses the
 `mmcif_pdbx dictionary`_ version 4 or later.
 However, it is preferrable to explicity enable fast stylized parsing by setting the values
 of specific annotation flags in the CIF file.
-ChimeraX has added metadata in **chimerax_audit_syntax** category
+ChimeraX has added metadata in **audit_syntax** category
 with explicit annotations as detailed below.
 (In the future ChimeraX's use of a heuristic may be discontinued after explicit annotations becomes widespread.)
 
@@ -167,7 +169,7 @@ The important aspects of styling are:
 .. _mmcif_pdbx.dic: http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx.dic/Index/
 
     Case-sensitive words and tags (conformance should be explicitly annotated with
-    ``chimerax_audit_syntax.case_sensitive_flag Y``\ ):
+    ``audit_syntax.case_sensitive_flag Y``\ ):
 
       * CIF reserved words *must* be in lowercase
 
@@ -177,7 +179,7 @@ The important aspects of styling are:
       * CIF reserved words and tags *must* only appear immediately after an ASCII newline
 
     Fixed width column tables (conformance should be explicitly annotated with
-    ``chimerax_audit_syntax.fixed_width`` followed by a space separated list of categories):
+    ``audit_syntax.fixed_width`` followed by a space separated list of categories):
 
       * All columns *must* be left-aligned
 
@@ -244,7 +246,7 @@ that is, the solvent *must* be uniquely numbered to indicate that the residues a
 With the above considerations, the connectivity protocol becomes,
 for each CIF data block:
 
-  #. Read **audit_conform** and/or **chimerax_audit_syntax** for metadata needed to speed up parsing
+  #. Read **audit_conform** and/or **audit_syntax** for metadata needed to speed up parsing
 
   #. Read **chem_comp** and **chem_comp_bond** for embedded residue templates
 
@@ -284,7 +286,7 @@ so having the data in the desired order can speed up processing a file considera
 
 The best presentation order of the mmCIF data for ChimeraX is as follows:
 
-  1. **chimerax_audit_syntax** table near beginning of the file and:
+  1. **audit_syntax** table near beginning of the file and:
 
     a) explicitly give PDBx/mmCIF styling information (*e.g.*,
        that the **atom_site** table uses fixed width columns)
@@ -349,7 +351,7 @@ Recognized Data Categories and Keywords
    | audit_conform              |                                        |
    |                            | dict_name, dict_version                |
    +----------------------------+----------------------------------------+
-   | chimerax_audit_syntax      |                                        |
+   | audit_syntax               |                                        |
    |                            | case_sensitive_flag, fixed_width       |
    +----------------------------+----------------------------------------+
    | chem_comp                  |                                        |
@@ -458,7 +460,7 @@ audit_conform
   Can specify the CIF dicitionary and version the data conforms to.
   Used to guess about the styling.
 
-chimerax_audit_syntax
+audit_syntax
   Added by ChimeraX to hold the explicit metadata about styling with
   **case_sensitive_flag** and **fixed_width** keywords.
   With luck, this will turn into an official **audit_syntax** category.

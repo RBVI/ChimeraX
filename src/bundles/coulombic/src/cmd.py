@@ -23,6 +23,8 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps["red-white-blue"]
+    else:
+        cmap = palette
     if not cmap.values_specified:
         rmin, rmax = (-10.0, 10.0) if range is None else range
         cmap = cmap.linear_range(rmin, rmax)
@@ -126,6 +128,8 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
             else:
                 target_points = target_surface.vertices + offset * target_surface.normals
             import numpy, os
+            # Make sure _esp can runtime link shared library libarrays.
+            from chimerax import arrays ; arrays.load_libarrays()
             from ._esp import potential_at_points
             cpu_count = os.cpu_count()
             vertex_values = potential_at_points(

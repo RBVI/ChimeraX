@@ -36,20 +36,21 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>angle</b> command reports or modifies the angle 
-defined by three specified atoms. 
-A <a href="define.html">centroid</a> or <a href="../markers.html">marker</a>
-can be specified as an atom. 
-The command can also report the angle between two plane objects 
-previously created with <a href="define.html"><b>define</b></a>.
-Values are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+defined by three atoms, where a
+<a href="define.html#centroid">centroid</a> or 
+<a href="../markers.html">marker</a> is equivalent to an atom.
+It can also report (but not modify) the angle between two previously defined
+<a href="define.html#plane">planes</a>.
+If no <i>angle</i> value is given, the current measurement is reported
+in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
-The angle can only be changed when three atoms are specified,
-and the first and third, if connected, are connected only
+The angle can only be changed to the specified <i>angle</i> value (degrees)
+when the first and third atoms, if connected, are connected only
 by bond (or <a href="../markers.html">linker</a>) paths 
 that go through the middle atom.
 Missing-structure <a href="../pseudobonds.html">pseudobonds</a>
 are considered part of a connected bond path.
-The <b>move</b> option specifies whether to move the
+The <b>move</b> option indicates whether to move the
 <b>large</b> or <b>small</b>
 side of the bond (default <b>small</b>, the side with fewer atoms).
 If the first and third atoms are both connected to the middle atom, 

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def run(session, text, *, log=True, downgrade_errors=False):
+def run(session, text, *, log=True, downgrade_errors=False, return_json=False, return_list=False):
     """execute a textual command
 
     Parameters
@@ -22,20 +22,64 @@ def run(session, text, *, log=True, downgrade_errors=False):
         Print the command text to the reply log.
     downgrade_errors : bool
         True if errors in the command should be logged as informational.
+    return_json : bool
+        If True, underlying commands that themselves support a 'return_json' keyword should return a
+        JSONResult object.
+    return_list : bool
+        True if a list should be returned even if only one command is executed
     """
 
     from chimerax.core.commands import Command
     from chimerax.core.errors import UserError
     command = Command(session)
     try:
-        results = command.run(text, log=log)
+        results = command.run(text, log=log, return_json=return_json)
     except UserError as err:
         if downgrade_errors:
             session.logger.info(str(err))
         else:
             raise
         results = []
+    if return_list:
+        return results
     return results[0] if len(results) == 1 else results
+
+class JSONResult:
+    """Class that should be returned by commands that support returning JSON (i.e. the command's
+       function has a 'return_json' keyword, and has been called with that keyword set to True).
+       Simply construct this class with the JSON string and the normal Python return value as the
+       two constructor arguments (the latter could be None).
+    """
+    def __init__(self, json_value, python_value):
+        self.json_value = json_value
+        self.python_value = python_value
+
+import json
+class ArrayJSONEncoder(json.JSONEncoder):
+    """A version of json.JSONEncoder that can also encode numpy and tinyarray arrays"""
+
+    def __init__(self, *args, **kw):
+        self._user_default = kw.get('default', None)
+        kw['default'] = self._encode_array
+        super().__init__(*args, **kw)
+
+    def _encode_array(self, val):
+        # Does this look like an array?
+        if hasattr(val, "__len__") and hasattr(val, "shape"):
+            return [self._translate(v) for v in val]
+        if self._user_default is None:
+            raise TypeError("Can't JSON-encode '%s'" % repr(val))
+        return self._user_default(val)
+
+    def _translate(self, val):
+        if hasattr(val, "__len__"):
+            return [self._translate(v) for v in val]
+        import numpy
+        if isinstance(val, numpy.number):
+            if isinstance(val, numpy.integer):
+                return int(val)
+            return float(val)
+        return val
 
 def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=True):
     """For commands where the spec will be automatically narrowed down to specific types of models

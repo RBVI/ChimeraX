@@ -76,6 +76,13 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise.
+      Typicaly used by binary bundles to declare that they can work with older versions of Python
+      via Python's `Stable Application Binary Interface <https://docs.python.org/3/c-api/stable.html>`_
+      but can also be used by pure-Python bundles that are using very new language features
+      to declare that they *can't* work with older Python versions.
+      In either case, the value is the oldest version that the bundle works with,
+      and is of the form "3.x" (e.g. 3.7).
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
@@ -121,12 +128,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **ChimeraXClassifier**
 
@@ -159,12 +170,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **CModule**
 
@@ -183,12 +198,22 @@ of ``mac``.
 
   - Child elements:
     
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
+
+- **CompileArgument**
+
+  - Element text
+
+    - Additional argument to provide to the compiler when compiling.
 
 - **DataDir**
 
@@ -209,6 +234,14 @@ of ``mac``.
       source.  For example, because current package source is expected
       to be in folder **src**, a data file **datafile** in the
       same folder is referenced as ``datafile``, not ``src/datafile``.
+
+- **Define**
+
+  - Element text
+
+    - Symbolic name to be defined during compilation.  Can just be
+      the symbolic name itself, or the symbolic name plus *=value*, as
+      needed.
 
 - **DataFiles**
 
@@ -379,6 +412,12 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **LinkArgument**
+
+  - Element text
+
+    - Additional argument to provide to the linker when linking.
+
 - **Managers**
 
   - List of managers that bundle provides
@@ -408,11 +447,11 @@ of ``mac``.
       ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
       name matches this manager (whether the bundle with the provider
-      is installed or not).  A second method:
-      ``end_providers()``
-      is optional.  ``end_providers`` is called after all calls
-      to ``add_provider`` have been made and is useful for finishing
-      manager initialization.
+      is installed or not).  To distinguish between installed and uninstalled
+      providers check ``bundle_info.installed``.
+      A second method: ``end_providers()`` is optional.
+      ``end_providers`` is called after all calls to ``add_provider`` have been made
+      and is useful for finishing manager initialization.
 
 - **Package**
 
@@ -479,6 +518,12 @@ of ``mac``.
   - Element text:
 
     - One line description of bundle (*e.g.*, as tool tip text)
+
+- **Undefine**
+
+  - Element text
+
+    - Symbolic name to be explictly undefined during compilation.
 
 - **URL**
 
@@ -567,6 +612,8 @@ data formats, and selectors.
     - Command registration is done via the
       ``bundle_api.register_command`` method.
     - Bundles may provide more than one command.
+    - Before deciding on your command name and syntax, you should peruse the
+      :doc:`command style guide <../command_style>`.
 
 
 *Data Format Metadata*
@@ -750,6 +797,12 @@ The other possible `Provider`_ attributes are:
         the provider does with the text), then specify *check_path* as "false" (which implies
         *want_path*\="true", you don't have to explicitly specify that).
 
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the open command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -818,6 +871,16 @@ The other possible `Provider`_ attributes are:
         *compression_okay* as "false" will prevent the ``save`` command from allowing this
         format to be automatically compressed (which happens when the output file name also has
         a compression suffix, *e.g.* "my_structure.pdb.gz").
+
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the save command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
+        `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
+        The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
+        produces the more commonly desired image file.  To get an ImageJ stack, the user would have
+        to add ``format imagej`` to the save command.
 
 For example::
 

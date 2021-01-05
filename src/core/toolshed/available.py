@@ -41,8 +41,11 @@ class AvailableBundleCache(list):
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
         _debug("AvailableBundleCache.load: url", url)
-        from urllib.request import urlopen
-        with urlopen(url) as f:
+        from urllib.request import urlopen, Request
+        from ..fetch import html_user_agent
+        headers = {"User-Agent": html_user_agent(app_dirs)}
+        request = Request(url, headers=headers)
+        with urlopen(request) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])
@@ -128,10 +131,8 @@ def _build_bundle(d):
     #    tool: dictionary of information for tools
     #    command: dictionary of information for commands
     #    selector: dictionary of information for selectors
-    #    dataformat: dictionary of information for data formats
-    #    fetch: dictionary of information for fetching from databases
-    #    open: dictionary of information for opening files
-    #    save: dictionary of information for saving files
+    #    manager: dictionary of information for managers
+    #    provider: dictionary of information for providers
     # Information was harvested by toolshed from submitted bundle using
     # both general wheel information and ChimeraX classifier fields.
 
@@ -223,97 +224,31 @@ def _build_bundle(d):
             bi.selectors.append(si)
 
     #
-    # Process format information
+    # Process manager information
     #
-    format_map = {}
     try:
-        fmt_d = d["dataformat"]
+        manager_d = d["manager"]
     except KeyError:
-        # No data formats defined
+        # No managers defined
         pass
     else:
         from .info import FormatInfo
-        for fmt_name, fd in fmt_d.items():
-            # _debug("processing data format: %s" % fmt_name)
-            nicknames = fd.get("nicknames", [])
-            category = fd.get("category", "")
-            suffixes = fd.get("suffixes", [])
-            mime_types = fd.get("mime_types", [])
-            url = fd.get("url", "")
-            icon = fd.get("icon", "")
-            dangerous = fd.get("dangerous", True)
-            synopsis = fd.get("synopsis", "")
-            encoding = fd.get("encoding", "")
-            fi = FormatInfo(name=fmt_name, nicknames=nicknames,
-                            category=category, suffixes=suffixes,
-                            mime_types=mime_types, url=url, icon=icon,
-                            dangerous=dangerous, synopsis=synopsis,
-                            encoding=encoding)
-            format_map[fmt_name] = fi
-            bi.formats.append(fi)
+        for manager_name, md in manager_d.items():
+            # _debug("processing manager: %s" % manager_name)
+            bi.managers[manager_name] = md
 
     #
-    # Process fetch information
+    # Process provider information
     #
     try:
-        fetch_d = d["fetch"]
+        provider_d = d["provider"]
     except KeyError:
-        # No fetch from database methods defined
+        # No providers defined
         pass
     else:
-        for db_name, fd in fetch_d.items():
-            # _debug("processing fetch: %s" % db_name)
-            format_name = fd.get("format", "")
-            prefixes = fd.get("prefixes", [])
-            example = fd.get("example", "")
-            is_default = fd.get("is_default", "") == "true"
-            fi = (db_name, format_name, prefixes, example, is_default)
-            bi.fetches.append(fi)
-
-    #
-    # Process open information
-    #
-    try:
-        open_d = d["open"]
-    except KeyError:
-        # No open from database methods defined
-        pass
-    else:
-        from .installed import _extract_extra_keywords
-        for fmt_name, fd in open_d.items():
-            # _debug("processing open: %s" % fmt_name)
-            try:
-                fi = format_map[fmt_name]
-            except KeyError:
-                continue
-            is_default = fd.get("is_default", "") == "true"
-            keywords = fd.get("keywords", None)
-            if keywords:
-                keywords = _extract_extra_keywords(keywords)
-            fi.has_open = True
-            fi.open_kwds = keywords
-
-    #
-    # Process save information
-    #
-    try:
-        save_d = d["save"]
-    except KeyError:
-        # No save from database methods defined
-        pass
-    else:
-        for fmt_name, fd in save_d.items():
-            # _debug("processing save: %s" % fmt_name)
-            try:
-                fi = format_map[fmt_name]
-            except KeyError:
-                continue
-            is_default = fd.get("is_default", "") == "true"
-            keywords = fd.get("keywords", None)
-            if keywords:
-                keywords = _extract_extra_keywords(keywords)
-            fi.has_save = True
-            fi.save_kwds = keywords
+        for provider_name, pd in provider_d.items():
+            # _debug("processing provider: %s" % provider_name)
+            bi.providers[provider_name] = pd
 
     #
     # Finished.  Return BundleInfo instance.

@@ -98,8 +98,8 @@ PyObject *closest_triangle_intercept(PyObject *, PyObject *args, PyObject *keywd
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_tmin = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_tmin = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_tmin);
 
@@ -246,8 +246,8 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_snum = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_snum = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_snum);
 
@@ -452,8 +452,8 @@ PyObject *closest_cylinder_intercept(PyObject *, PyObject *args, PyObject *keywd
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_cnum = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_cnum = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_cnum);
 

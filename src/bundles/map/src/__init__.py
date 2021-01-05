@@ -15,7 +15,7 @@
 # Create and show a volume madel from a GridData object as defined by the
 # data module.
 #
-from .volume import volume_from_grid_data
+from .volume import open_map, volume_from_grid_data
 
 # -----------------------------------------------------------------------------
 # A grid data object combined with graphical display state is a Volume object.
@@ -28,6 +28,9 @@ from .volume import VolumeSurface, VolumeImage
 # -----------------------------------------------------------------------------
 # Map contouring and distance maps.
 #
+# Make sure _map can runtime link shared library libarrays.
+from chimerax import arrays ; arrays.load_libarrays()
+
 from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors
 from ._map import extend_crystal_map
@@ -161,7 +164,12 @@ class _MapBundle(BundleAPI):
                     from .mapargs import MapRegionArg, Int1or3Arg
                     from chimerax.core.commands import BoolArg, ModelsArg, EnumOf, \
                         RepeatOf, IntArg, ListOf
-                    args = { 'models': ModelsArg }
+                    args = {
+                        'mask_zone': BoolArg,
+                        'models': ModelsArg,
+                        'region': MapRegionArg,
+                        'step': Int1or3Arg,
+                    }
                     if _name == "Chimera map":
                         args.update({
                             'append': BoolArg,
@@ -174,10 +182,7 @@ class _MapBundle(BundleAPI):
                                 'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
                             'compress_shuffle': BoolArg,
                             'compress_level': IntArg,
-                            'mask_zone': BoolArg,
-                            'region': MapRegionArg,
                             'subsamples': RepeatOf(Int1or3Arg),
-                            'step': Int1or3Arg,
                         })
                     return args
 

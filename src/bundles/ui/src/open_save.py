@@ -18,12 +18,13 @@ open_save: open/save dialogs
 TODO
 """
 
-from PyQt5.QtWidgets import QFileDialog, QSizePolicy
-from PyQt5.QtCore import Qt
+from PySide2.QtWidgets import QFileDialog, QSizePolicy
+from PySide2.QtCore import Qt
 class SaveDialog(QFileDialog):
     def __init__(self, session, parent = None, *args, data_formats=None, **kw):
         if data_formats is None:
-            data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
+            data_formats = [fmt for fmt in session.save_command.save_data_formats
+                if fmt.suffixes and session.save_command.save_info(fmt).bundle_info.installed]
         data_formats.sort(key=lambda fmt: fmt.name.casefold())
         # make some things public
         self.data_formats = data_formats
@@ -50,7 +51,7 @@ class SaveDialog(QFileDialog):
         if self._custom_area is None:
             layout = self.layout()
             row = layout.rowCount()
-            from PyQt5.QtWidgets import QFrame
+            from PySide2.QtWidgets import QFrame
             self._custom_area = QFrame(self)
             self._custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
             self._custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -76,7 +77,7 @@ class OpenDialogWithMessage(QFileDialog):
         if message:
             layout = self.layout()
             row = layout.rowCount()
-            from PyQt5.QtWidgets import QLabel
+            from PySide2.QtWidgets import QLabel
             label = QLabel(message, self)
             layout.addWidget(label, row, 0, 1, -1, Qt.AlignLeft)
 
@@ -89,7 +90,7 @@ class OpenDialogWithMessage(QFileDialog):
         path = paths[0]
         return path
 
-# Unless you need to add custom widgets to the dialog, you should use PyQt5.QtWidgets.QFileDialog
+# Unless you need to add custom widgets to the dialog, you should use PySide2.QtWidgets.QFileDialog
 # for opening files, since that will have native look and feel.  The OpenDialog below is for
 # those situations where you do need to add widgets.
 class OpenDialog(QFileDialog):
@@ -103,7 +104,7 @@ class OpenDialog(QFileDialog):
         self.setFileMode(QFileDialog.AnyFile)
         self.setOption(QFileDialog.DontUseNativeDialog)
 
-        from PyQt5.QtWidgets import QWidget
+        from PySide2.QtWidgets import QWidget
         self.custom_area = QWidget()
         layout = self.layout()
         row = layout.rowCount()

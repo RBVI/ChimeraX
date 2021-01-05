@@ -479,7 +479,6 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string, s2.name,
                 s2.structure.id_string, score), log=True)
             skip = set()
-            viewer = None
             if show_alignment:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
@@ -525,8 +524,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             continue
                 ref_atoms.append(ref_atom)
                 match_atoms.append(match_atom)
-                if viewer and cutoff_distance is not None:
-                    region_info[ref_atom] = (viewer, i)
+                if cutoff_distance is not None:
+                    for viewer in  alignment.viewers:
+                        region_info[ref_atom] = (viewer, i)
 
             if verbose:
                 seq_pairings.append((s1, s2))

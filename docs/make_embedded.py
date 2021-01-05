@@ -3,7 +3,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -19,17 +19,17 @@ import shutil
 
 ffmpeg_doc = """
 <p>
-<dt><a href="http://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
+<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
-License: <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
+License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
 Embedded licenses: <a href="licenses/ffmpeg/index.html" target="_blank">FFmpeg embedded licences</a>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,
 and thus, its license does not affect ChimeraX's license.
 FFmpeg can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a> for more details.
+See the <a href="https://www.gnu.org/licenses/gpl-faq.html" target="_blank">GPL FAQ</a> for more details.
 It can be found in the <code>bin</code> directory.
 """
 
@@ -53,7 +53,7 @@ P. Eastman, J. Swails, J. D. Chodera, R. T. McGibbon, Y. Zhao, K. A. Beauchamp, 
 
 def get_packages_info():
     """Get information about installed python packages"""
-    # based on http://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
+    # based on https://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
     # updated for Python3 and modified for use in ChimeraX
 
     KEY_MAP = {

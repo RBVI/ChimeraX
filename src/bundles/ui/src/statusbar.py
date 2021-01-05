@@ -33,7 +33,7 @@ class _StatusBarOpenGL:
         self._drawing2 = None	# Secondary status
         self.background_color = (0.85,0.85,0.85,1.0)
         self.text_color = (0,0,0,255)
-        self.font = 'Lucida Sans'	# Wider and clearer than Helvetica or Arial
+        self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
@@ -43,6 +43,7 @@ class _StatusBarOpenGL:
     def destroy(self):
         self.widget.destroy()
         self.widget = None
+        self._window = None
 
         for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
             v = getattr(self, attr)
@@ -56,7 +57,7 @@ class _StatusBarOpenGL:
             w.setVisible(show)
             
     def _make_widget(self):
-        from PyQt5.QtWidgets import QStatusBar, QSizePolicy
+        from PySide2.QtWidgets import QStatusBar, QSizePolicy
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         w = StatusOpenGLWindow(parent = sb,
@@ -68,8 +69,9 @@ class _StatusBarOpenGL:
 
     def _resize_event(self, event):
         r = self._renderer
-        if r:
-            s = self._window.size()
+        win = self._window
+        if r and win:
+            s = win.size()
             w,h = s.width(), s.height()
             r.set_default_framebuffer_size(w, h)
 
@@ -86,6 +88,11 @@ class _StatusBarOpenGL:
         
         # Create opengl context
         w = self._window
+        if w is None or _qwindow_deleted(w):
+            return False  # Window has been closed
+        if not w.isExposed():
+            return False  # Window has not yet created.
+        
         from chimerax.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         
@@ -116,7 +123,7 @@ class _StatusBarOpenGL:
             self._last_message = msg
             self._last_color = color
             
-        if not self._window.isExposed():
+        if self._window is None or not self._window.isExposed():
             return # TODO: Need to show the status message when window is mapped.
 
         # Need to preserve OpenGL context across processing events, otherwise
@@ -127,6 +134,7 @@ class _StatusBarOpenGL:
 
         if self._opengl_context is None:
             if not self._create_opengl_context():
+                self.session.logger.info(msg)
                 return	# OpenGL version is not sufficient
 
         r = self._renderer
@@ -181,7 +189,11 @@ class _StatusBarOpenGL:
         from chimerax.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
 
-from PyQt5.QtGui import QWindow
+def _qwindow_deleted(w):
+    import shiboken2
+    return not shiboken2.isValid(w)
+
+from PySide2.QtGui import QWindow
 class StatusOpenGLWindow(QWindow):
     def __init__(self, parent, expose_cb = None, resize_cb = None, key_press_cb = None):
         QWindow.__init__(self)
@@ -191,9 +203,9 @@ class StatusOpenGLWindow(QWindow):
             self.resizeEvent = resize_cb
         if key_press_cb:
             self.keyPressEvent = key_press_cb
-        from PyQt5.QtWidgets import QWidget
+        from PySide2.QtWidgets import QWidget
         self._widget = QWidget.createWindowContainer(self, parent)
-        from PyQt5.QtGui import QSurface
+        from PySide2.QtGui import QSurface
         self.setSurfaceType(QSurface.OpenGLSurface)
         parent.addWidget(self._widget, stretch = 1)
 
@@ -223,7 +235,7 @@ class _StatusBarQt:
         self.widget = None
         
     def _make_widget(self):
-        from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QLabel
+        from PySide2.QtWidgets import QStatusBar, QSizePolicy, QLabel
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         sb._primary_status_label = QLabel()
@@ -271,7 +283,7 @@ class _StatusBarQt:
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
         self._in_status_event_processing = True
-        from PyQt5.QtCore import QEventLoop
+        from PySide2.QtCore import QEventLoop
         s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         self._in_status_event_processing = False
         ul.unblock_redraw()
@@ -299,7 +311,7 @@ class _StatusBarQt:
                 self._processing_deferred_events = False
 
         self._flush_timer_queued = True
-        from PyQt5.QtCore import QTimer
+        from PySide2.QtCore import QTimer
         QTimer.singleShot(0, flush_pending_user_events)
 
 #_StatusBar = _StatusBarQt

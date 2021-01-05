@@ -69,7 +69,8 @@ class SaveFile:
             raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), save_dir)
         self.name = filename
         self._critical = critical
-        self._tmp_filename = filename + ".tmp"
+        # prevent conflicts between ChimeraX's running/starting at the same time
+        self._tmp_filename = filename + "." + str(os.getpid()) + ".tmp"
         self._f = open(self._tmp_filename)
         assert(self._f.writable())
 
@@ -97,7 +98,7 @@ class SaveFile:
                 os.replace(self._tmp_filename, self.name)
             except PermissionError as e:
                 import sys, time
-                if sys.platform.startswith("win") and e.winerror == 32:
+                if sys.platform.startswith("win") and e.winerror in [5, 32]:
                     # Windows can have the file open from another process
                     # for some reason (virus scan?), so wait a little and
                     # try again

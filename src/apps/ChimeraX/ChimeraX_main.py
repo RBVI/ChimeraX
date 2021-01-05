@@ -105,6 +105,7 @@ def parse_arguments(argv):
     opts.gui = True
     opts.color = None
     opts.module = None  # Python's -m option
+    opts.run_path = None  # Need to act like "python path args"
     opts.line_profile = False
     opts.list_io_formats = False
     opts.load_tools = True
@@ -195,9 +196,21 @@ def parse_arguments(argv):
         opts.silent = True
         opts.event_loop = False
         opts.get_available_bundles = False
+        opts.module = sys.argv[1]
         opts.cmd = sys.argv[3]
         opts.load_tools = False
         return opts, sys.argv[3:]
+    import pip
+    if len(sys.argv) > 1 and sys.argv[1].startswith(pip.__path__[0]):
+        # treat like recursive invokation of pip
+        opts.gui = False
+        opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
+        opts.run_path = sys.argv[1]
+        opts.load_tools = False
+        opts.safe_mode = True
+        return opts, sys.argv[1:]
     try:
         shortopts = ""
         longopts = []
@@ -448,13 +461,6 @@ def init(argv, event_loop=True):
         chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
-    # inform the C++ layer of the appdirs paths
-    from chimerax.core import _appdirs
-    _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
-                        ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir,
-                        chimerax.app_data_dir, adu.user_cache_dir)
-
     from chimerax.core import session
     try:
         sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
@@ -471,42 +477,38 @@ def init(argv, event_loop=True):
     from chimerax.core import core_settings
     core_settings.init(sess)
 
-    session.common_startup(sess)
+    from chimerax.core.session import register_misc_commands
+    register_misc_commands(sess)
 
     if opts.uninstall:
         return uninstall(sess)
-        
+
     # initialize qt
     if opts.gui:
         from chimerax.ui import initialize_qt
         initialize_qt()
 
     # initialize the user interface
-    if opts.gui:
-        from chimerax.ui import gui
-        ui_class = gui.UI
-    else:
-        from chimerax.core import nogui
-        ui_class = nogui.UI
-        if opts.color is not None:
-            nogui._color_output = opts.color
-            if opts.color:
-                def t():
-                    return True
-                sys.stdout.isatty = t
-                sys.stderr.isatty = t
     # sets up logging, splash screen if gui
-    # calls "sess.save_in_session(self)"
-    sess.ui = ui_class(sess)
+    if opts.gui:
+        sess.logger.clear()  # Remove nogui logging to stdout
+        from chimerax.ui import gui
+        sess.ui = gui.UI(sess)
+
+    # Set ui options
+    if opts.offscreen:
+        sess.ui.initialize_offscreen_rendering()
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
+    if not opts.gui:
+        sess.ui.initialize_color_output(opts.color)	# Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
-        (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+            (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
         try:
             os.chdir(os.path.expanduser('~/Desktop'))
-        except:
+        except Exception:
             pass
 
     # splash screen
@@ -541,12 +543,15 @@ def init(argv, event_loop=True):
             # Remove in case old file lying around.
             # Windows does not allow renaming to an existing file.
             os.remove(tmp_file)
-        except:
+        except Exception:
             pass
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                sess.ui.splash_info("Restart action:\n%s" % line)
+                if line.startswith("install"):
+                    sess.ui.splash_info("Installing bundles")
+                elif line.startswith("uninstall"):
+                    sess.ui.splash_info("Uninstalling bundles")
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
@@ -561,7 +566,7 @@ def init(argv, event_loop=True):
                   check_available=opts.get_available_bundles,
                   remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
-    if opts.module != 'pip':
+    if opts.module != 'pip' and opts.run_path is None:
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
             sess.ui.splash_info("Initializing bundles",
@@ -656,8 +661,17 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
+        from chimerax.core import errors
         for script in opts.scripts:
-            run(sess, 'runscript %s' % script)
+            try:
+                run(sess, 'runscript %s' % script)
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+            except Exception:
+                import traceback
+                traceback.print_exc()
+            except SystemExit as e:
+                return e.code
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
@@ -672,7 +686,7 @@ def init(argv, event_loop=True):
         from chimerax.core.logger import log_version
         log_version(sess.logger)  # report version in log
 
-    if opts.gui or hasattr(core, 'offscreen_rendering'):
+    if opts.gui or opts.offscreen:
         sess.update_loop.start_redraw_timer()
         sess.logger.info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                          is_html=True)
@@ -685,7 +699,7 @@ def init(argv, event_loop=True):
             else:
                 sess.logger.warning(msg)
 
-    if opts.module:
+    if opts.module or opts.run_path:
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
@@ -696,8 +710,11 @@ def init(argv, event_loop=True):
                 'session': sess
             }
             try:
-                runpy.run_module(opts.module, init_globals=global_dict,
-                                 run_name='__main__', alter_sys=True)
+                if opts.module:
+                    runpy.run_module(opts.module, init_globals=global_dict,
+                                     run_name='__main__', alter_sys=True)
+                else:
+                    runpy.run_path(opts.run_path)
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
@@ -743,7 +760,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -754,7 +771,7 @@ def init(argv, event_loop=True):
             except (IOError, errors.NotABug) as e:
                 sess.logger.error(str(e))
                 return os.EX_SOFTWARE
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
@@ -770,7 +787,7 @@ def init(argv, event_loop=True):
             sess.ui.event_loop()
         except SystemExit as e:
             return e.code
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
             return os.EX_SOFTWARE
@@ -865,7 +882,9 @@ def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess, os
+    import sys
+    import subprocess
+    import os
     global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]
@@ -876,9 +895,11 @@ def restart_action(line, inst_dir, msgs):
             _restart_toolshed_url = toolshed.default_toolshed_url()
         bundles = parts[1]
         pip_args = parts[2:]
-        command = ["install", "--use-feature=2020-resolver", "--upgrade",
-                   "--extra-index-url", _restart_toolshed_url + "/pypi/",
-                   "--upgrade-strategy", "only-if-needed"]
+        command = [
+            "install", "--extra-index-url", _restart_toolshed_url + "/pypi/",
+            "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
+            "--upgrade",
+        ]
     elif action == "uninstall":
         bundles = parts[1]
         pip_args = parts[2:]

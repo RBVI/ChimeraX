@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from PyQt5.QtCore import Qt, pyqtSignal
+from PySide2.QtCore import Qt, Signal
 
 class MatchMakerTool(ToolInstance):
 
@@ -26,8 +26,8 @@ class MatchMakerTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
-        from PyQt5.QtWidgets import QCheckBox
+        from PySide2.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
+        from PySide2.QtWidgets import QCheckBox
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
         overall_layout.setSpacing(0)
@@ -163,7 +163,7 @@ class MatchMakerTool(ToolInstance):
         bring_layout.addWidget(self.bring_model_list)
         self._match_value_change()
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from PySide2.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_matchmaker)
         bbox.button(qbbox.Apply).clicked.connect(self.run_matchmaker)
@@ -398,9 +398,9 @@ class SSScoringMatrixOption(Option):
         pass
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
-        from PyQt5.QtGui import QDoubleValidator
-        from PyQt5.QtCore import Qt
+        from PySide2.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
+        from PySide2.QtGui import QDoubleValidator
+        from PySide2.QtCore import Qt
         self.widget = QFrame()
         self._cells = {}
         cell_order = ['H', 'S', 'O']
@@ -436,15 +436,15 @@ class SSScoringMatrixOption(Option):
                         grid.addWidget(text, ri, ci, alignment=Qt.AlignCenter)
         self.widget.setLayout(grid)
 
-from PyQt5.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget
 class ChainListsWidget(QWidget):
 
-    value_changed = pyqtSignal()
+    value_changed = Signal()
 
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.__session = session
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
+        from PySide2.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
         self.__work_layout = QVBoxLayout()
         self.__work_layout.setSpacing(0)
         self.__work_layout.setContentsMargins(0,0,0,0)
@@ -472,13 +472,15 @@ class ChainListsWidget(QWidget):
             for widgets in self.__chain_list_mapping.values():
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
-                    widget.deleteLater()
+                    # don't explicitly delete with .deleteLater() or somesuch, since the widget
+                    # itself may respond to this trigger if it's a model closure.  Let Python
+                    # reference counting "naturally" delete it
             self.__show_widget(self.__empty_label)
             self.value_changed.emit()
             return
         # rearranging widgets in an existing layout is nigh impossible so...
         self.__show_widget(self.__scroll_area)
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel
+        from PySide2.QtWidgets import QVBoxLayout, QLabel
         next_layout = QVBoxLayout()
         next_layout.setSpacing(0)
         next_layout.setContentsMargins(0,0,0,0)
@@ -494,7 +496,7 @@ class ChainListsWidget(QWidget):
                 chain_list = ChainMenuButton(self.__session,
                     filter_func=lambda c, ref=chain: c.structure != ref.structure)
                 chain_list.value_changed.connect(self.value_changed.emit)
-            from PyQt5.QtCore import Qt
+            from PySide2.QtCore import Qt
             if next_mapping:
                 next_layout.addSpacing(10)
             next_layout.addWidget(label, alignment=Qt.AlignBottom)

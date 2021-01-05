@@ -27,7 +27,7 @@ class CoordinatesPanel(ToolInstance):
     self.tool_window = tw
     parent = tw.ui_area
 
-    from PyQt5.QtWidgets import QVBoxLayout, QLabel
+    from PySide2.QtWidgets import QVBoxLayout, QLabel
     layout = QVBoxLayout(parent)
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(0)
@@ -63,7 +63,7 @@ class CoordinatesPanel(ToolInstance):
   #
   def _create_map_menu(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -92,7 +92,7 @@ class CoordinatesPanel(ToolInstance):
   #
   def _create_parameters_gui(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QVBoxLayout
+    from PySide2.QtWidgets import QFrame, QVBoxLayout
         
     f = QFrame(parent)
     layout = QVBoxLayout(f)

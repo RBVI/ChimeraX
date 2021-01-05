@@ -81,7 +81,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool selected()
         bool  thin_rings()
         void set_alt_loc(char) except +
-        void set_chain_id(const char*)
+        void set_chain_id(const char*) except +
         void set_insertion_code(char)
         void set_is_helix(bool)
         void set_is_strand(bool)
@@ -103,6 +103,8 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_py_class(object)
         @staticmethod
         void set_templates_dir(string)
+        @staticmethod
+        void set_user_templates_dir(string)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:
@@ -169,7 +171,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool selected()
         int serial_number()
         void set_alt_loc(char) except +
-        void set_alt_loc(char, bool, bool)
+        void set_alt_loc(char, bool, bool) except +
         void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)

@@ -288,6 +288,8 @@ def transpose(m):
 #
 def orthonormal_frame(zaxis, ydir=None, xdir=None):
     z = normalize_vector(zaxis)
+    if (z == (0,0,0)).all():
+        z[2] = 1	# Use zaxis = (0,0,1) if zero vector given.
     if ydir is None and xdir is None:
         if z[2] != 0 or z[0] != 0:
             x = normalize_vector((z[2], 0, -z[0]))
@@ -491,9 +493,12 @@ def rotation_transform(axis, angle, center=(0, 0, 0)):
            ax * sa + k * ay * az,
            1 + k * (az * az - 1), 0))
     cx, cy, cz = center
-    c_tf = ((1, 0, 0, cx), (0, 1, 0, cy), (0, 0, 1, cz))
-    inv_c_tf = ((1, 0, 0, -cx), (0, 1, 0, -cy), (0, 0, 1, -cz))
-    rtf = multiply_matrices(c_tf, tf, inv_c_tf)
+    if cx == 0 and cy == 0 and cz == 0:
+        rtf = tf
+    else:
+        c_tf = ((1, 0, 0, cx), (0, 1, 0, cy), (0, 0, 1, cz))
+        inv_c_tf = ((1, 0, 0, -cx), (0, 1, 0, -cy), (0, 0, 1, -cz))
+        rtf = multiply_matrices(c_tf, tf, inv_c_tf)
     return rtf
 
 
