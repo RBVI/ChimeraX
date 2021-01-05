@@ -445,8 +445,7 @@ class FloatOption(NumericOption):
         return val
 
     def set_value(self, value):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText("")
+        self._float_widget.set_text("")
         self._float_widget.blockSignals(True)
         self._float_widget.setValue(value)
         self._float_widget.blockSignals(False)
@@ -454,11 +453,10 @@ class FloatOption(NumericOption):
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText(self.multiple_value)
-        self._float_widget.blockSignals(True)
-        self._float_widget.setValue(self._float_widget.minimum())
-        self._float_widget.blockSignals(False)
+        self.show_text(self.multiple_value)
+
+    def show_text(self, text):
+        self._float_widget.set_text(text)
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
             decimal_places=3, step=None, as_slider=False, **kw):
@@ -494,17 +492,14 @@ class FloatEnumOption(EnumBase):
 
     def set_value(self, value):
         float, text = value
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText("")
+        self._float_widget.set_text("")
         self._float_widget.setValue(float)
         self._enum.setText(text)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText(self.multiple_value)
-        self._float_widget.setValue(self._float_widget.minimum())
+        self._float_widget.set_text(self.mulitple_value)
         self._enum.setText(self.multiple_value)
 
     def _make_widget(self, min=None, max=None, float_label=None, enum_label=None,
@@ -929,9 +924,8 @@ class FloatSlider(QWidget):
     def set_right_text(self, text):
         self._right_text.setText(text)
 
-    def setSpecialValueText(self, text):
-        if text:
-            self._value_text.setText(text)
+    def set_text(self, text):
+        self._value_text.setText(text)
 
     def setValue(self, float_val):
         fract = (float_val - self._minimum) / (self._maximum - self._minimum)
@@ -990,6 +984,12 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
+
+        def set_text(self, text):
+            self.blockSignals(True)
+            self.setValue(self.minimum())
+            self.blockSignals(False)
+            self.setSpecialValueText(text)
 
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
