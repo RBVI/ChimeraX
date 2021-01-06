@@ -303,14 +303,14 @@ def _can_install(bi):
     """Check if bundle can be installed (i.e., not in use)."""
     # A bundle can be installed if its own package is not in use
     # and does not pull in any dependent bundle that is in use.
-    if bi.imported():
-        return False
+    if not bi.imported():
+        return True
     # TODO: Figuring out the latter is hard, so we ignore it for now.
     # TODO: possible stragegy: look through bundle dependencies and
     # see that all dependencies on an installed bundle are satisfied
     # TODO: need dependencies to be provided when querying toolshed for
     # available bundles
-    return True
+    return False
 
 
 def _can_uninstall(bi):
