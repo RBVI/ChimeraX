@@ -477,7 +477,8 @@ def init(argv, event_loop=True):
     from chimerax.core import core_settings
     core_settings.init(sess)
 
-    session.common_startup(sess)
+    from chimerax.core.session import register_misc_commands
+    register_misc_commands(sess)
 
     if opts.uninstall:
         return uninstall(sess)
@@ -488,24 +489,19 @@ def init(argv, event_loop=True):
         initialize_qt()
 
     # initialize the user interface
-    if opts.gui:
-        from chimerax.ui import gui
-        ui_class = gui.UI
-    else:
-        from chimerax.core import nogui
-        ui_class = nogui.UI
-        if opts.color is not None:
-            nogui._color_output = opts.color
-            if opts.color:
-                def t():
-                    return True
-                sys.stdout.isatty = t
-                sys.stderr.isatty = t
     # sets up logging, splash screen if gui
-    # calls "sess.save_in_session(self)"
-    sess.ui = ui_class(sess)
+    if opts.gui:
+        sess.logger.clear()  # Remove nogui logging to stdout
+        from chimerax.ui import gui
+        sess.ui = gui.UI(sess)
+
+    # Set ui options
+    if opts.offscreen:
+        sess.ui.initialize_offscreen_rendering()
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
+    if not opts.gui:
+        sess.ui.initialize_color_output(opts.color)	# Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
@@ -690,7 +686,7 @@ def init(argv, event_loop=True):
         from chimerax.core.logger import log_version
         log_version(sess.logger)  # report version in log
 
-    if opts.gui or hasattr(core, 'offscreen_rendering'):
+    if opts.gui or opts.offscreen:
         sess.update_loop.start_redraw_timer()
         sess.logger.info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                          is_html=True)

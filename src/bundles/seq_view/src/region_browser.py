@@ -954,7 +954,7 @@ class RegionBrowser:
     """
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
-            name_prefix="", select=False, assoc_with=None,
+            name_prefix="", select=False, assoc_with=None, cover_gaps=True,
             after="ChimeraX selection", rebuild_table=True,
             session_restore=False, sequence=None, **kw):
         if not name and not name_prefix:
@@ -968,7 +968,7 @@ class RegionBrowser:
         interior = get_rgba(fill)
         border = get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
-                border_rgba=border, interior_rgba=interior, **kw)
+                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1
         elif isinstance(after, str):

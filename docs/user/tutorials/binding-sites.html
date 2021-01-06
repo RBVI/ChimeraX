@@ -54,11 +54,13 @@ target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 <p>
 This tutorial explores some ways to examine the complementarity
 between proteins and their ligands, including drug molecules.
-See also:
-<a href="https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html#/"
-target="_blank">Structure Analysis and Comparison tutorial</a>,
+Related tutorials:
+<a href="/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>,
 <a href="/chimerax/data/delta-opioid-jan2020/binding.html"
-target="_blank">Delta-Opioid Receptor tutorial</a>
+target="_blank">Delta-Opioid Receptor</a>,
+<a href="https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html#/"
+target="_blank">Structure Analysis and Comparison</a>
 </p>
 
 <a name="opening"></a>
@@ -113,7 +115,8 @@ or clicking certain icons.
 The &nbsp;<img class="iconbar" src="../tools/ui-icons/select.png"
 title="hand icon" alt="hand icon"> checkbox
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>
-shows when a model is selected. A minus sign means partially selected.
+shows when a model is selected, with three possible states: 
+checked, unchecked, and partially checked (shown with a dash on Mac).
 </blockquote>
 <p>
 In the <b>Non-standard residues</b> table,
@@ -489,10 +492,11 @@ border:solid rgb(168,191,191) 1px;padding:1px 3px">
 <span class="nowrap"><font style="border:solid black 1px;padding:1px 3px">
 <b>missing&nbsp;from structure</b></font></span>.
 </p><p>
-When done with this structure, close it and clear the <b>Log</b>:
+When done with this structure, close the session (both structure and sequence)
+and clear the <b>Log</b>:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:close">close</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:close session">close session</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:log clear">log clear</a></b>
 </blockquote>
@@ -584,16 +588,22 @@ When finished viewing this pocket, close the structure:
 </blockquote>
 <p>
 Coloring by lipophilicity is also used to identify or
-highlight membrane-embedded regions. A &ldquo;belt&rdquo; of hydrophobicity
-may be visible where a protein sits in the membrane. Optionally, try using
-the icon <img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
+highlight membrane-embedded regions.
+Optionally, try using the icon 
+<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
 or the command <a href="../commands/mlp.html"><b>mlp</b></a> 
 on a transmembrane protein (many examples:
 <a href="https://www.rcsb.org/structure/1PHO" target="_blank">1pho</a>,
 <a href="https://www.rcsb.org/structure/4XT3" target="_blank">4xt3</a>,
 <a href="https://www.rcsb.org/structure/1EYS" target="_blank">1eys</a>,
-<i>etc.</i>)
+<i>etc.</i>). A &ldquo;belt&rdquo; of hydrophobicity may be visible 
+where a protein sits in the membrane. For example:
 </p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:open 4xt3">open 4xt3</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
+</blockquote>
 <table class="clRight">
 <tr><th>4xt3: MLP vs. Kyte-Doolittle coloring</th></tr>
 <tr><td>
@@ -629,7 +639,7 @@ because all types of amino acids contain both polar and nonpolar atoms.
 In other words, even the most hydrophobic residues include some 
 hydrophilic atoms, and <i>vice versa</i>.
 </p><p>
-When done with this structure, close all structures:
+If any structures are open, close them:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:close">close</a></b>
@@ -655,9 +665,10 @@ For example, the protein in structure
 <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
 interior pocket. The following commands open
-the structure as model #1, generate MLP map model #2,
-and use the map to color the surface cap #1.1.1 created by 
-<a href="../commands/clip.html">clipping</a> the surface model #1.1.
+the structure as model #1, generate MLP map model #2, hide the map isosurfaces,
+turn on <a href="../commands/clip.html">clipping</a> to slice the structure, 
+and use the map values to color the planar surface cap #1.1.1 created 
+by clipping surface model #1.1.
 The cap coloring parameters are the same as used for the rest of the surface,
 except 30% transparent:
 </p>
@@ -673,7 +684,23 @@ except 30% transparent:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:wait 1">wait 1</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30">color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30</a></b>
-<br>
+</blockquote>
+<p>
+The <b><a href="../commands/wait.html">wait</a></b> command
+is only needed in the context of a
+<a href="../commands/usageconventions.html#cxc-files">command file</a>,
+to force drawing the graphics to create the surface cap
+before it is colored by the map values;
+it can be omitted if the commands are entered one by one,
+as by clicking the links above.
+</p><p>
+Next, turn off clipping of the atomic model so that only the surface is clipped
+(<a href="../commands/clip.html#model">per-model clipping</a>),
+hide ribbons and atoms other than oleic acid, and color 
+the carbon atoms in oleic acid green:
+</p><p>
+</p>
+<blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:clip model #!1 off">clip model #!1 off</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide ~:ola targ ar">hide ~:ola targ ar</a></b>
@@ -681,25 +708,18 @@ except 30% transparent:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color :ola & C green">color :ola & C green</a></b>
 </blockquote>
 <p>
-The <b><a href="../commands/wait.html">wait</a></b> command
-is needed only in the context of a
-<a href="../commands/usageconventions.html#cxc-files">command file</a>,
-to force drawing the graphics to create the surface cap
-before it is colored by the map values.
-The wait can be omitted if the commands are entered one by one.
-The subsequent commands color the cap,
-turn off clipping of the atomic model so that only the surface is clipped
-(<a href="../commands/clip.html#model">per-model clipping</a>),
-hide ribbons and atoms other than oleic acid, and color 
-the carbon atoms in oleic acid green.
-</p><p>
 The image was made after translating and rotating the clipping plane
 interactively <a href="ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
+</p><p>
+When finished with this structure and map, close the session:
 </p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:close session">close session</a></b>
+</blockquote>
 
 <a name="esp"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -719,27 +739,31 @@ This tutorial uses the simple method, as it does not require
 a separate calculation.
 </p><p>
 Open an assembly of
-<a href="https://www.rcsb.org/structure/3Q5S" target="_blank">3q5s</a>,
+<a href="https://www.rcsb.org/structure/3D6Y" target="_blank">3d6y</a>,
 the bacterial gene regulator BmrR:
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:open 3q5s from rcsb_bio maxAssemblies 1">open 3q5s from rcsb_bio maxAssemblies 1</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:open 3d6y from rcsb_bio maxAssemblies 1">open 3d6y from rcsb_bio maxAssemblies 1</a></b>
 </blockquote>
 <table class="clRight">
 <tr><td>
-<img class="outline" src="bind5.png" alt="3q5s assembly" width="300px">
+<img class="outline" src="bind5.png" alt="3d6y assembly" width="300px">
 </td></tr>
 </table>
 <p>
 BmrR regulates multidrug resistance. In this structure, it is bound to DNA 
-and the small molecule acetylcholine. The <b>Non-standard residues</b> table 
-in the <b>Log</b> lists acetylcholine and glycerol; click the residue names
-<b>ACH</b> and <b>GOL</b> to see where they are in the structure.
-Hide glycerol and water: 
+and the positively charged alkaloid
+<a href="https://en.wikipedia.org/wiki/Berberine"
+target="_blank">berberine</a>. The <b>Non-standard residues</b> table 
+in the <b>Log</b> lists berberine and glycerol; click the residue names
+<b>BER</b> and <b>GOL</b> to see where they are in the structure.
+Hide glycerol, water, and protein atoms: 
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide :gol">hide :gol</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide solvent">hide solvent</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:hide protein">hide protein</a></b>
 </blockquote>
 <p>
 To avoid any confusion from a hidden selection, clear it by Ctrl-clicking
@@ -766,7 +790,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>.
 There are positive patches for binding the negatively charged DNA, 
 and a deep pocket of negative potential for binding 
-the positively charged small molecule acetylcholine.
+the positively charged small molecule berberine.
 </p><p>
 The <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>
@@ -774,8 +798,7 @@ includes an <img class="iconbar" src="../tools/shortcut-icons/esp.png">
 icon for Coulombic coloring,
 but it will also apply to the DNA unless protein (only) is 
 <a href="../selection.html">selected</a> before the icon is clicked.
-</p>
-<p>
+</p><p>
 The remaining commands in this section are just examples of display settings
 that might be useful for figures. 
 </p><p>
@@ -810,13 +833,13 @@ The nucleotide change to stubs can also be done by clicking
 in the <a href="../tools/nucdisplay.html"><b>Nucleotides</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 </p><p>
-Make the acetylcholine stand out 
+Make the berberine stand out 
 with fatter sticks and bright green carbons:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:size :ach stickrad .7">size :ach stickrad .7</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:size :ber stickrad .7">size :ber stickrad .7</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:color C & :ach limegreen">color C & :ach limegreen</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:color C & :ber limegreen">color C & :ber limegreen</a></b>
 </blockquote>
 <p>
 Use icons in the <a href="../tools/graphics.html"><b>Graphics</b></a> tab
@@ -846,5 +869,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2020</address>
+January 2021</address>
 </body></html>

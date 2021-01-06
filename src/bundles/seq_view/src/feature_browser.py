@@ -73,16 +73,10 @@ class FeatureBrowser:
         if state is not None:
             feature_chooser.set_state(state['feature_chooser'])
         feature_chooser.itemSelectionChanged.connect(self._feature_selection_changed)
-        self.residue_display = res_display = QLabel()
-        res_display.setAlignment(Qt.AlignCenter)
-        res_display.setWordWrap(True)
         layout.addWidget(feature_chooser, 1, 1)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(1, 1)
-        layout.addWidget(res_display, 2, 1)
 
-        colors_group = QGroupBox("Region colors")
-        colors_group.setAlignment(Qt.AlignHCenter)
         group_layout = QVBoxLayout()
         group_layout.setContentsMargins(0,0,0,0)
         self.wells_widget = QWidget()
@@ -100,7 +94,8 @@ class FeatureBrowser:
                 self.setCheckState(Qt.Checked)
                 return Qt.Checked
         from chimerax.ui.widgets import MultiColorButton
-        for label_text, attr_name in [("Region colors: border", "border_rgba"), ("interior", "interior_rgba")]:
+        for label_text, attr_name in [("Region colors: border", "border_rgba"),
+                ("interior", "interior_rgba")]:
             label = QLabel(label_text)
             wells_layout.addWidget(label, alignment=Qt.AlignLeft)
             check_box = TwoThreeStateCheckBox()
@@ -117,6 +112,27 @@ class FeatureBrowser:
         self.wells_widget.setLayout(wells_layout)
         layout.addWidget(self.wells_widget, 2, 0, alignment=Qt.AlignCenter)
         self._update_colors_area()
+
+        region_layout = QVBoxLayout()
+        region_layout.setContentsMargins(0,0,0,0)
+        region_layout.setSpacing(0)
+        layout.addLayout(region_layout, 2, 1, alignment=Qt.AlignCenter)
+        self.residue_display = res_display = QLabel()
+        res_display.setAlignment(Qt.AlignCenter)
+        res_display.setWordWrap(True)
+        region_layout.addWidget(res_display)
+        res_display.hide()
+        sel_widget = QWidget()
+        sel_layout = QHBoxLayout()
+        sel_layout.setContentsMargins(0,0,0,0)
+        sel_widget.setLayout(sel_layout)
+        self.sel_check_box = QCheckBox()
+        self.sel_check_box.setChecked(True)
+        self.sel_check_box.clicked.connect(self._sel_check_box_changed)
+        sel_layout.addWidget(self.sel_check_box, alignment=Qt.AlignRight)
+        sel_layout.addWidget(QLabel("Automatically select on associated chains (if any)"),
+            alignment=Qt.AlignLeft)
+        region_layout.addWidget(sel_widget, alignment=Qt.AlignCenter)
 
     @property
     def selected_regions(self):
@@ -172,6 +188,28 @@ class FeatureBrowser:
         self._update_residue_display(shown_regions)
         self._update_colors_area()
 
+    def _sel_check_box_changed(self, *args):
+        if self.sel_check_box.isChecked():
+            self._sel_on_structures(self._sel_spec())
+
+    def _sel_on_structures(self, spec):
+        from chimerax.core.commands import run
+        if spec:
+            run(self.sv.session, "sel " + spec)
+        else:
+            run(self.sv.session, "~sel")
+        # have to wait 1 otherwise selection will show _after_ we clear it...
+        run(self.sv.session, "wait 1", log=False)
+        sel_region = self.sv.region_browser.get_region("ChimeraX selection")
+        sel_region.clear()
+
+    def _sel_spec(self):
+        residues=[]
+        for region in self.selected_regions:
+            residues.extend(self.sv.region_browser.region_residues(region))
+        from chimerax.atomic import concise_residue_spec
+        return concise_residue_spec(self.sv.session, residues)
+
     def _show_region_color(self, attr_name):
         check_box, well = self.wells_widgets[attr_name]
         check_state = check_box.checkState()
@@ -213,12 +251,9 @@ class FeatureBrowser:
             self.wells_widget.hide()
 
     def _update_residue_display(self, shown_regions):
+        self._selected_regions = shown_regions
         if shown_regions:
-            residues=[]
-            for region in shown_regions:
-                residues.extend(self.sv.region_browser.region_residues(region))
-            from chimerax.atomic import concise_residue_spec
-            spec = concise_residue_spec(self.sv.session, residues)
+            spec = res_spec = self._sel_spec()
             parts = []
             line_limit = 40
             while len(spec) > line_limit:
@@ -231,9 +266,11 @@ class FeatureBrowser:
             parts.append(spec)
             text = '\n'.join(parts)
         else:
-            text = ""
+            text = res_spec = ""
+        if self.sel_check_box.isChecked():
+            self._sel_on_structures(res_spec)
         self.residue_display.setText(text)
-        self._selected_regions = shown_regions
+        self.residue_display.setHidden(not bool(text))
 
 class FeatureList(QListWidget):
     def __init__(self, *args, feature_browser=None, **kw):

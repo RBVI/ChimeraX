@@ -32,7 +32,6 @@ Session data, ie., data that is archived, uses the :py:class:`State` and
 """
 
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, plural_form
 from .errors import UserError
 
 _builtin_open = open
@@ -346,6 +345,7 @@ class _RestoreManager:
             raise UserError(f"your version of ChimeraX is too old, install version {need_core_version} or newer")
         if missing_bundles or out_of_date_bundles:
             msg = ""
+            from .commands import plural_form
             if missing_bundles:
                 msg += "need to install missing " + plural_form(missing_bundles, 'bundle')
             if out_of_date_bundles:
@@ -446,8 +446,17 @@ class Session:
 
         from . import logger
         self.logger = logger.Logger(self)
+        from . import nogui
+        self.ui = nogui.UI(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
+
+        from .core_triggers import register_core_triggers
+        register_core_triggers(self.triggers)
+
+        from .triggerset import set_exception_reporter
+        set_exception_reporter(lambda preface, logger=self.logger:
+                               logger.report_exception(preface=preface))
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -465,6 +474,18 @@ class Session:
         from chimerax.graphics.view import View
         self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
                               trigger_set=self.triggers)
+        try:
+            from .core_settings import settings
+            self.main_view.background_color = settings.background_color.rgba
+        except ImportError:
+            pass
+
+        from .selection import Selection
+        self.selection = Selection(self)
+
+        from .updateloop import UpdateLoop
+        self.update_loop = UpdateLoop(self)
+
         self.user_aliases = UserAliases()
 
         from . import colors
@@ -1024,48 +1045,21 @@ def register_misc_commands(session):
     from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
 
-
-def common_startup(sess):
-    """Initialize session with common data containers"""
-
-    from .core_triggers import register_core_triggers
-    register_core_triggers(sess.triggers)
-
-    from .triggerset import set_exception_reporter
-    set_exception_reporter(lambda preface, logger=sess.logger:
-                           logger.report_exception(preface=preface))
-
+    from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
         sdump,
-        logger=sess.logger
+        logger=session.logger
     )
     register(
         'debug exception',
         CmdDesc(synopsis="generate exception to test exception handling"),
         _gen_exception,
-        logger=sess.logger
+        logger=session.logger
     )
-
-    register_misc_commands(sess)
-
-    if not hasattr(sess, 'models'):
-        return  # Minimal session mode.
-
-    from .selection import Selection
-    sess.selection = Selection(sess)
-
-    try:
-        from .core_settings import settings
-        sess.main_view.background_color = settings.background_color.rgba
-    except ImportError:
-        pass
-
-    from .updateloop import UpdateLoop
-    sess.update_loop = UpdateLoop(sess)
 
 
 def _gen_exception(session):
