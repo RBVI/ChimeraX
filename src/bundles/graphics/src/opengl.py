@@ -24,41 +24,8 @@ and texture coordinates.  The Bindings class defines the connections
 between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
-def configure_offscreen_rendering():
-    from chimerax import core
-    if not hasattr(core, 'offscreen_rendering'):
-        return
-    import chimerax
-    if not hasattr(chimerax, 'app_lib_dir'):
-        return
-    import sys
-    import os
-    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-    # Check for local version of OSMesa library
-    from distutils import ccompiler
-    lib_name = ccompiler.new_compiler().library_filename('OSMesa', 'shared')
-    from chimerax import app_lib_dir
-    lib_mesa = os.path.join(app_lib_dir, lib_name)
-    if os.path.exists(lib_mesa):
-        os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
-
-# Set environment variables set before importing PyOpenGL.
-configure_offscreen_rendering()
-
-log_opengl_calls = False
-if log_opengl_calls:
-    # Log all OpenGL calls
-    import logging
-    from os.path import expanduser
-    logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
-    logging.info('started logging')
-    import OpenGL
-    OpenGL.FULL_LOGGING = True
-
-#import OpenGL
-#OpenGL.ERROR_CHECKING = False
-
-from OpenGL import GL
+# Set to PyOpenGL module OpenGL.GL by _initialize_pyopengl().
+GL = None
 
 # OpenGL workarounds:
 stencil8_needed = False
@@ -79,6 +46,8 @@ class OpenGLContext:
     required_opengl_core_profile = True
 
     def __init__(self, graphics_window, screen, use_stereo = False):
+        _initialize_pyopengl()		# Set global GL module.
+        
         self.window = graphics_window
         self._screen = screen
         self._color_bits = None		# None, 8, 12, 16
@@ -287,6 +256,33 @@ class OpenGLContext:
             for fb in tuple(self._framebuffers):
                 fb.set_color_bits(bits)
             self.done_current()
+
+_initialized_pyopengl = False
+def _initialize_pyopengl(log_opengl_calls = False):
+    global _initialized_pyopengl
+    if _initialized_pyopengl:
+        return
+    _initialized_pyopengl = True
+    
+    # Offscreen rendering requires setting environment variables
+    # before set before importing PyOpenGL.
+    configure_offscreen_rendering()
+
+    if log_opengl_calls:
+        # Log all OpenGL calls
+        import logging
+        from os.path import expanduser
+        logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
+        logging.info('started logging')
+        import OpenGL
+        OpenGL.FULL_LOGGING = True
+
+    #import OpenGL
+    #OpenGL.ERROR_CHECKING = False
+
+    global GL
+    import OpenGL.GL
+    GL = OpenGL.GL
 
 def _qobject_deleted(o):
     import shiboken2
@@ -2464,13 +2460,14 @@ def deactivate_bindings():
 from numpy import uint8, uint32, float32
 
 
+GL_ARRAY_BUFFER = 34962
 class BufferType:
     '''
     Describes a shader variable and the vertex buffer object value type
     required and what rendering capabilities are required to use this
     shader variable.
     '''
-    def __init__(self, shader_variable_name, buffer_type=GL.GL_ARRAY_BUFFER,
+    def __init__(self, shader_variable_name, buffer_type=GL_ARRAY_BUFFER,
                  value_type=float32, normalize=False, instance_buffer=False,
                  requires_capabilities=()):
         self.shader_variable_name = shader_variable_name
@@ -2502,10 +2499,13 @@ TEXTURE_COORDS_BUFFER = BufferType(
                              Render.SHADER_TEXTURE_3D |
                              Render.SHADER_TEXTURE_OUTLINE |
                              Render.SHADER_DEPTH_OUTLINE))
-ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
+GL_ELEMENT_ARRAY_BUFFER = 34963
+ELEMENT_BUFFER = BufferType(None, buffer_type=GL_ELEMENT_ARRAY_BUFFER,
                             value_type=uint32)
 
-
+GL_TRIANGLES = 4
+GL_LINES = 1
+GL_POINTS = 0
 class Buffer:
     '''
     Create an OpenGL buffer of vertex data such as vertex positions,
@@ -2614,9 +2614,9 @@ class Buffer:
         return replace_buffer
 
     # Element types for Buffer draw_elements()
-    triangles = GL.GL_TRIANGLES
-    lines = GL.GL_LINES
-    points = GL.GL_POINTS
+    triangles = GL_TRIANGLES
+    lines = GL_LINES
+    points = GL_POINTS
 
     def draw_elements(self, element_type=triangles, ninst=None, count=None, offset=None):
         '''
@@ -3174,6 +3174,24 @@ def pyopengl_string_list(strings):
 def pyopengl_null():
     import ctypes
     return ctypes.c_void_p(0)
+
+def configure_offscreen_rendering():
+    from chimerax import core
+    if not hasattr(core, 'offscreen_rendering'):
+        return
+    import chimerax
+    if not hasattr(chimerax, 'app_lib_dir'):
+        return
+    import sys
+    import os
+    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+    # Check for local version of OSMesa library
+    from distutils import ccompiler
+    lib_name = ccompiler.new_compiler().library_filename('OSMesa', 'shared')
+    from chimerax import app_lib_dir
+    lib_mesa = os.path.join(app_lib_dir, lib_name)
+    if os.path.exists(lib_mesa):
+        os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
 
 class OffScreenRenderingContext:
 
