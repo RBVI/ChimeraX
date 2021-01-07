@@ -3199,6 +3199,7 @@ class OffScreenRenderingContext:
         self.width = width
         self.height = height
         import ctypes
+        _initialize_pyopengl()
         import OpenGL
         from OpenGL import osmesa
         from OpenGL import GL, arrays, platform, error
