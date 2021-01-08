@@ -771,7 +771,7 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
         for alt_loc, rotamers in by_alt_loc.items():
             CA.alt_loc = alt_loc
             if ignore_other_models:
-                target_models = [residue.molecule] + rotamers
+                target_models = [residue.structure] + rotamers
             else:
                 from chimerax.atomic import AtomicStructure
                 target_models = [s for s in session.models if isinstance(s, AtomicStructure)] + rotamers

@@ -277,7 +277,8 @@ class RotamerDialog(ToolInstance):
         add_col_layout.addWidget(self.ignore_solvent_button, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
         from PySide2.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
+        bbox = qbbox(qbbox.Cancel | qbbox.Help)
+        bbox.addButton("Use Chosen Rotamer(s)", qbbox.AcceptRole)
         bbox.accepted.connect(self._apply_rotamer)
         bbox.rejected.connect(self.tool_window.destroy)
         from chimerax.core.commands import run
@@ -460,6 +461,9 @@ class RotamerDialog(ToolInstance):
             bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
             bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
             bbox.rejected.connect(lambda sd=sd: setattr(sd, 'shown', False))
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda run=run, ses=self.session:
+                run(ses, "help help:user/tools/rotamers.html#evaluation"))
             layout.addWidget(bbox)
             sd.manage(placement=None)
         else:

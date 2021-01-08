@@ -1566,7 +1566,7 @@ cdef class CyResidue:
         self.cpp_res.set_alt_loc(ord(loc[0]))
 
     def set_chi(self, chi_num, val):
-        cur_chi = self.get_chi(chi_num)
+        cur_chi = self.get_chi(chi_num, False)
         if cur_chi is None:
             return
         a1, a2, a3, a4 = self.get_chi_atoms(self.standard_aa_name, chi_num)
