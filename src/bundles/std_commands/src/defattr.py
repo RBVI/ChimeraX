@@ -146,12 +146,13 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
         recipient = attr_info.get('recipient', control_defaults['recipient'])
         recip_class, instance_fetch = recipient_info[recipient]
         seen_types = set()
+        is_builtin_attr = True
         try:
-            pre_existing_attr = getattr(recip_class, attr_name)
+            builtin_attr = getattr(recip_class, attr_name)
         except AttributeError:
-            pass
+            is_builtin_attr = False
         else:
-            if callable(pre_existing_attr):
+            if callable(builtin_attr):
                 raise ValueError("%s is a method of the %s class and cannot be redefined"
                     % (attr_name, recip_class.__name__))
             if attr_name[0].isupper():
@@ -242,7 +243,7 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
                 if value is not None or none_handling == "None":
                     setattr(match, attr_name, value)
                 elif hasattr(match, attr_name):
-                    if pre_existing_attr:
+                    if is_builtin_attr:
                         raise RuntimeError("Cannot remove builtin attribute %s from class %s"
                             % (attr_name, recip_class.__name__))
                     else:

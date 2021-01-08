@@ -12,8 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-# will likely have to add HOH and ADP, etc. charges afterward
-#
+# include pre-parameterized/supplement.lib to get ADP, etc. charges
 #
 
 # As per the AmberTools 20 docs, recommended assignments are:
