@@ -39,6 +39,7 @@ Developer Guide
 .. toctree::
    :maxdepth: 1
 
+   getcode.rst
    conventions.rst
    apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst

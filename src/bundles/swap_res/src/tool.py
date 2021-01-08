@@ -461,6 +461,9 @@ class RotamerDialog(ToolInstance):
             bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
             bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
             bbox.rejected.connect(lambda sd=sd: setattr(sd, 'shown', False))
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda run=run, ses=self.session:
+                run(ses, "help help:user/tools/rotamers.html#evaluation"))
             layout.addWidget(bbox)
             sd.manage(placement=None)
         else:

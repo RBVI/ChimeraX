@@ -41,8 +41,9 @@ installs various non-Python third-party libraries.  It builds
 wheels for about 100 ChimeraX-specific bundles written in Python and C++.  And it builds an application
 with an appropriate directory structure the operating system.
 
-The ChimeraX build uses a commercial license version of PyQt and gets this from plato.cgl.ucsf.edu and
-requires a password or that the build machine can ssh to plato.
+The ChimeraX build as of December 2020 uses PySide2 for the Qt user interface.
+Formerly it used a commercial license version of PyQt and this was fetched from plato.cgl.ucsf.edu and
+required that the build machine can ssh to plato.
 
 The prereqs subdirectory contains Makefiles to build the various third party packages.  Most of the ChimeraX
 build time is making these prereq packages.  To save time on subsequent builds the installed packages are
@@ -85,11 +86,6 @@ Steps for compiling ChimeraX on Windows 10:
   
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
 
-#. Setup ssh access to plato.cgl.ucsf.edu to get commercial PyQt wheel::
-
-    Make sure ssh to plato works without a password so build can fetch PyQt licensed wheels.
-    TODO: We plan to switch from PyQt to PySide2 to avoid the licensing hassles.
-    
 #. Run ". vsvars.sh" in chimerax root directory to set path to Visual Studio compiler.
 
 #. "make install" in the repository root.
@@ -166,13 +162,11 @@ Here is an example of the requirements for building on Ubuntu 20.04::
 macOS Build
 -----------
 
-XCode 11 compilers are currently used.
+XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021).
   
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
 
-#. Setup ssh access to plato.cgl.ucsf.edu to get commercial PyQt wheel::
+#. There may be some build tools or libraries needed from Homebrew.  We need to start with
+   a clean machine to figure out what is needed.
 
-    Make sure ssh to plato works without a password so build can fetch PyQt licensed wheels.
-    TODO: We plan to switch from PyQt to PySide2 to avoid the licensing hassles.
-    
 #. "make install" in the repository root.
