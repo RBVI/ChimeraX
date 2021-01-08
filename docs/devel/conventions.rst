@@ -12,64 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Obtaining Code
-==============
-
-Most of ChimeraX is written in Python and that code is included in the ChimeraX distribution::
-
-	Windows: ChimeraX/bin/Lib/site-packages/chimerax
-	macOS: ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax
-	Linux: chimerax/lib/python3.7/site-packages/chimerax
-
-Small modifications to the code can be tested by simply editing the Python code and restarting ChimeraX.
-
-Git Repository
---------------
-
-Currently the `ChimeraX GitHub repository <https://github.com/RBVI/ChimeraX/>`_ is private. Send email to chimerax-users@cgl.ucsf.edu to request access.  We plan to make it public.
-
-Here are a minimal set of commands to get started using git:
-
-    #. Git associates a user name and email address with all check-ins.
-       The defaults are based on your :envvar:`USERNAME` and your computer's
-       hostname.
-       The email address is usually wrong.
-       To explicitly set those values::
-
-            git config --global user.name "Your Name"
-            git config --global user.email you@example.com
-
-    #. Make local copy of repository::
-
-        git clone https://github.com/RBVI/ChimeraX.git
-
-    #. Use the develop branch (the master branch is only used for releases)::
-
-	git switch develop
-	 
-    #. To update repository to latest version::
-
-        git pull
-
-    #. Add current state of file to the repository::
-
-        git add "filename(s)"
-
-    #. Commit all changes to repository (added files and changes to those added files)::
-
-        git commit -a
-
-    #. Copy local repository changes to master repository::
-
-        git push
-
-    #. Diff from previous to current revision of file (ignores additions)::
-
-        git whatchanged -n 1 -p <file>
-
-    #. Diff to previous commit of file::
-
-        git diff HEAD^ <file>
+Code Conventions
+================
 
 Coding Style
 ------------
