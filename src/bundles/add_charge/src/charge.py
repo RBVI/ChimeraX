@@ -80,8 +80,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
         status("Adding standard charges")
     uncharged_res_types = {}
     uncharged_residues = set()
-    #TODO: create data.py (mostly done; needs ATP etc.)
-    from .data import heavy_charge_type_data, hyd_charge_type_data
+   from .data import heavy_charge_type_data, hyd_charge_type_data
     from chimerax.atomic import Atom
     Atom.register_attr(session, "charge", "add charge", attr_type=float)
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
