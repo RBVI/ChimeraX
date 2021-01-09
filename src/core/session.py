@@ -433,7 +433,8 @@ class Session:
         Default view.
     """
 
-    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
+                 offscreen_rendering = False):
         self._snapshot_methods = {}     # For saving classes with no State base class.
         self._state_containers = {}     # stuff to save in sessions.
 
@@ -472,13 +473,16 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from chimerax.graphics.view import View
-        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
-                              trigger_set=self.triggers)
+        view = View(self.models.scene_root_model, window_size=(256, 256),
+                    trigger_set=self.triggers)
+        self.main_view = view
         try:
             from .core_settings import settings
             self.main_view.background_color = settings.background_color.rgba
         except ImportError:
             pass
+        if offscreen_rendering:
+            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
         self.selection = Selection(self)
