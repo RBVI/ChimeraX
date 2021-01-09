@@ -256,12 +256,6 @@ class ConfigFile:
     PROPERTY_INFO = {}
 
     def __init__(self, session, tool_name, version="1"):
-        import configparser
-        from packaging.version import Version
-        import os
-        if not isinstance(version, Version):
-            version = Version(version)
-        major_version = version.major
         self._session = session
         self._on_disk = False
         self._tool_name = tool_name
@@ -274,6 +268,13 @@ class ConfigFile:
                 self.PROPERTY_INFO[name] = Value(value)
         if only_use_defaults:
             return
+
+        import configparser
+        from packaging.version import Version
+        import os
+        if not isinstance(version, Version):
+            version = Version(version)
+        major_version = version.major
         # don't want all tools forgetting their settings when core version number changes,
         # so use unversioned appdirs
         from chimerax import app_dirs_unversioned
