@@ -41,11 +41,11 @@ def initialize_atomic(session):
     from . import settings
     settings.settings = settings._AtomicSettings(session, "atomic")
 
-    from chimerax.core.toolshed import get_toolshed
-    ts = get_toolshed()
-    if ts:
-        atomic_lib_bundle = ts.find_bundle("AtomicLibrary", session.logger)
-        Residue.set_templates_dir(atomic_lib_bundle.data_dir())
+    from chimerax import atomic_lib
+    import os.path
+    res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
+    Residue.set_templates_dir(res_templates_dir)
+    
     import chimerax
     if hasattr(chimerax, 'app_dirs'):
         Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
