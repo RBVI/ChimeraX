@@ -1591,12 +1591,10 @@ class StructureGraphicsChangeManager:
 
             self._model_display_change = False
 
-            # Fire selection changed trigger.
-            if (gc & StructureData._SELECT_CHANGE).any():
-                self.session.selection.trigger_fire_needed = True
-                # XXX: No data for now.  What should be passed?
+        # set by changes.py when "selected changed" is in the global Atom reasons,
+        # which is the easiest way to detect that there was a selection in a
+        # deleted structure; also set by non-atomic models
         if self.session.selection.trigger_fire_needed:
-            # Models can also set it
             self.session.selection.trigger_fire_needed = False
             from chimerax.core.selection import SELECTION_CHANGED
             self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
