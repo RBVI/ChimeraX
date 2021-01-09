@@ -266,6 +266,11 @@ class ConfigFile:
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
                 self.PROPERTY_INFO[name] = Value(value)
+
+        global only_use_defaults
+        import chimerax
+        if not hasattr(chimerax, 'app_dirs_unversioned'):
+            only_use_defaults = True
         if only_use_defaults:
             return
 
