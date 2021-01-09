@@ -112,7 +112,7 @@ class UI:
             except ImportError:
                 pass
 
-    def initialize_offscreen_rendering(self, create_qt_application = True):
+    def initialize_offscreen_rendering(self):
         session = self._session()
         from chimerax import graphics
         try:
@@ -127,12 +127,14 @@ class UI:
         session.main_view.initialize_rendering(c)
         self.has_graphics = True
 
-        if create_qt_application:
-            # Create an offscreen QApplication so labels will work
-            import chimerax
-            app_name = chimerax.app_dirs.appname if hasattr(chimerax, 'app_dirs') else 'ChimeraX'
+        # Create an offscreen QApplication so labels will work
+        try:
             from PySide2.QtWidgets import QApplication
-            self._app = QApplication([app_name, '-platform', 'offscreen'])
+        except ModuleNotFoundError:
+            return	# ChimeraX being used without Qt
+        import chimerax
+        app_name = chimerax.app_dirs.appname if hasattr(chimerax, 'app_dirs') else 'ChimeraX'
+        self._app = QApplication([app_name, '-platform', 'offscreen'])
 
     def splash_info(self, message, splash_step=None, num_splash_steps=None):
         import sys
