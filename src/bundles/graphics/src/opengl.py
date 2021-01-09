@@ -258,7 +258,7 @@ class OpenGLContext:
             self.done_current()
 
 _initialized_pyopengl = False
-def _initialize_pyopengl(log_opengl_calls = False):
+def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     global _initialized_pyopengl
     if _initialized_pyopengl:
         return
@@ -266,7 +266,8 @@ def _initialize_pyopengl(log_opengl_calls = False):
     
     # Offscreen rendering requires setting environment variables
     # before set before importing PyOpenGL.
-    configure_offscreen_rendering()
+    if offscreen:
+        configure_offscreen_rendering()
 
     if log_opengl_calls:
         # Log all OpenGL calls
@@ -3176,9 +3177,6 @@ def pyopengl_null():
     return ctypes.c_void_p(0)
 
 def configure_offscreen_rendering():
-    from chimerax import core
-    if not hasattr(core, 'offscreen_rendering'):
-        return
     import chimerax
     if not hasattr(chimerax, 'app_lib_dir'):
         return
@@ -3199,7 +3197,7 @@ class OffScreenRenderingContext:
         self.width = width
         self.height = height
         import ctypes
-        _initialize_pyopengl()
+        _initialize_pyopengl(offscreen = True)
         import OpenGL
         from OpenGL import osmesa
         from OpenGL import GL, arrays, platform, error

@@ -119,8 +119,6 @@ class UI:
             c = graphics.OffScreenRenderingContext()
         except Exception as e:
             # OSMesa library was not found, or old version
-            from chimerax import core
-            del core.offscreen_rendering
             if not session.silent:
                 session.logger.info('Offscreen rendering is not available.')
                 session.logger.info(str(e))
