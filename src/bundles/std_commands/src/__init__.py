@@ -119,3 +119,18 @@ class StdCommandsAPI(BundleAPI):
         return DefattrInfo()
 
 bundle_api = StdCommandsAPI()
+
+def register_commands(session):
+    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
+
+    if not session.ui.is_gui:
+        # Remove commands that require Qt to import
+        gui_mod_names = ['coordset_gui', 'defattr_gui']
+        for mod_name in gui_mod_names:
+            mod_names.remove(mod_name)
+
+    # Run command registration for each command.
+    from importlib import import_module
+    for mod_name in mod_names:
+        mod = import_module(".%s" % mod_name, __package__)
+        mod.register_command(session.logger)
