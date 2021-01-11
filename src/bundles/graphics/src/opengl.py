@@ -258,15 +258,17 @@ class OpenGLContext:
             self.done_current()
 
 _initialized_pyopengl = False
-def _initialize_pyopengl(log_opengl_calls = False):
+def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     global _initialized_pyopengl
     if _initialized_pyopengl:
         return
     _initialized_pyopengl = True
     
-    # Offscreen rendering requires setting environment variables
-    # before set before importing PyOpenGL.
-    configure_offscreen_rendering()
+    if offscreen:
+        # Offscreen rendering requires setting environment variable
+        # before set before importing PyOpenGL.
+        import os
+        os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
 
     if log_opengl_calls:
         # Log all OpenGL calls
@@ -3175,31 +3177,13 @@ def pyopengl_null():
     import ctypes
     return ctypes.c_void_p(0)
 
-def configure_offscreen_rendering():
-    from chimerax import core
-    if not hasattr(core, 'offscreen_rendering'):
-        return
-    import chimerax
-    if not hasattr(chimerax, 'app_lib_dir'):
-        return
-    import sys
-    import os
-    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-    # Check for local version of OSMesa library
-    from distutils import ccompiler
-    lib_name = ccompiler.new_compiler().library_filename('OSMesa', 'shared')
-    from chimerax import app_lib_dir
-    lib_mesa = os.path.join(app_lib_dir, lib_name)
-    if os.path.exists(lib_mesa):
-        os.environ['PYOPENGL_OSMESA_LIB_PATH'] = lib_mesa
-
 class OffScreenRenderingContext:
 
     def __init__(self, width = 512, height = 512):
         self.width = width
         self.height = height
         import ctypes
-        _initialize_pyopengl()
+        _initialize_pyopengl(offscreen = True)
         import OpenGL
         from OpenGL import osmesa
         from OpenGL import GL, arrays, platform, error

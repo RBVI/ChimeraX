@@ -360,8 +360,6 @@ def init(argv, event_loop=True):
 
     from chimerax import core
     if opts.offscreen:
-        # Flag to configure off-screen rendering before PyOpenGL imported
-        core.offscreen_rendering = True
         opts.gui = False
 
     if not opts.gui and opts.load_tools:
@@ -463,7 +461,11 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
     try:
-        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
+        sess = session.Session(app_name,
+                               debug=opts.debug,
+                               silent=opts.silent,
+                               minimal=opts.safe_mode,
+                               offscreen_rendering=opts.offscreen)
     except ImportError as err:
         if opts.offscreen and 'OpenGL' in err.args[0]:
             if sys.platform.startswith("linux"):
@@ -496,8 +498,6 @@ def init(argv, event_loop=True):
         sess.ui = gui.UI(sess)
 
     # Set ui options
-    if opts.offscreen:
-        sess.ui.initialize_offscreen_rendering()
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
     if not opts.gui:

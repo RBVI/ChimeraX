@@ -43,7 +43,6 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
 cdef class CyAtom:
     '''Base class for Atom, and is present only for performance reasons.'''
     cdef cydecl.Atom *cpp_atom
-    cdef cydecl.bool _deleted
 
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
     HIDE_RIBBON = 0x1
@@ -63,8 +62,10 @@ cdef class CyAtom:
     }
     _alt_loc_suppress_count = 0
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_atom = <cydecl.Atom *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
     @property
@@ -895,10 +896,11 @@ cydecl.cyelem.Element.set_py_class(Element)
 cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
     cdef cydecl.Residue *cpp_res
-    cdef cydecl.bool _deleted
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_res = <cydecl.Residue *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
     @property
