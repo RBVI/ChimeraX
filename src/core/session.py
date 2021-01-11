@@ -433,7 +433,8 @@ class Session:
         Default view.
     """
 
-    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
+                 offscreen_rendering = False):
         self._snapshot_methods = {}     # For saving classes with no State base class.
         self._state_containers = {}     # stuff to save in sessions.
 
@@ -472,13 +473,16 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from chimerax.graphics.view import View
-        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
-                              trigger_set=self.triggers)
+        view = View(self.models.scene_root_model, window_size=(256, 256),
+                    trigger_set=self.triggers)
+        self.main_view = view
         try:
             from .core_settings import settings
             self.main_view.background_color = settings.background_color.rgba
         except ImportError:
             pass
+        if offscreen_rendering:
+            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
         self.selection = Selection(self)
@@ -762,7 +766,14 @@ def standard_metadata(previous_metadata={}):
     https://www.w3.org/TR/html5/document-metadata.html.
     """
     from .fetch import html_user_agent
-    from chimerax import app_dirs
+
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        from chimerax import app_dirs
+        app_name = app_dirs.appname
+    else:
+        app_dirs = None
+        app_name = 'ChimeraX'
     from html import unescape
     import os
     import datetime
@@ -771,7 +782,7 @@ def standard_metadata(previous_metadata={}):
     metadata = {}
     if previous_metadata:
         metadata.update(previous_metadata)
-    generator = unescape(html_user_agent(app_dirs))
+    generator = unescape(html_user_agent(app_dirs)) if app_dirs else app_name
     generator += ", http://www.rbvi.ucsf.edu/chimerax/"
     metadata['generator'] = generator
     now = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -807,9 +818,9 @@ def standard_metadata(previous_metadata={}):
     metadata['dateCopyrighted'] = tmp
     # build information
     # version is in 'generator'
-    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
-    metadata['%s-date' % app_dirs.appname] = buildinfo.date
-    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
+    metadata['%s-commit' % app_name] = buildinfo.commit
+    metadata['%s-date' % app_name] = buildinfo.date
+    metadata['%s-branch' % app_name] = buildinfo.branch
     return metadata
 
 

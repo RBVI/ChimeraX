@@ -37,6 +37,35 @@ from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
 
+def initialize_atomic(session):
+    from . import settings
+    settings.settings = settings._AtomicSettings(session, "atomic")
+
+    from chimerax import atomic_lib
+    import os.path
+    res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
+    Residue.set_templates_dir(res_templates_dir)
+    
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
+
+    session.change_tracker = ChangeTracker()
+    session.pb_manager = PseudobondManager(session)
+
+    from . import attr_registration
+    session.attr_registration = attr_registration.RegAttrManager()
+    session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
+
+    session._atomic_command_handler = session.triggers.add_handler("command finished",
+        lambda *args: check_for_changes(session))
+
+    if session.ui.is_gui:
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            _AtomicBundleAPI._add_gui_items(ses))
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            settings.register_settings_options(ses))
+
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -68,28 +97,7 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        from . import settings
-        settings.settings = settings._AtomicSettings(session, "atomic")
-
-        from chimerax.core.toolshed import get_toolshed
-        Residue.set_templates_dir(get_toolshed().find_bundle("AtomicLibrary", session.logger).data_dir())
-        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
-
-        session.change_tracker = ChangeTracker()
-        session.pb_manager = PseudobondManager(session)
-
-        from . import attr_registration
-        session.attr_registration = attr_registration.RegAttrManager()
-        session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
-
-        session._atomic_command_handler = session.triggers.add_handler("command finished",
-            lambda *args: check_for_changes(session))
-
-        if session.ui.is_gui:
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                _AtomicBundleAPI._add_gui_items(ses))
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                settings.register_settings_options(ses))
+        initialize_atomic(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

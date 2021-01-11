@@ -142,10 +142,9 @@ class Structure(Model, StructureData):
     def apply_auto_styling(self, set_lighting = False, style=None):
         # most auto-styling only makes sense for atomic structures
         if set_lighting:
-            from chimerax.core.commands import Command
-            cmd = Command(self.session)
-            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
-            cmd.run("lighting " + lighting, log=False)
+            kw = {} if self.num_atoms >= 300000 else {'multi_shadow': 16}
+            from chimerax.std_commands.lighting import lighting
+            lighting(self.session, preset = 'full', **kw)
 
     # used by custom-attr registration code
     @property
@@ -1180,14 +1179,14 @@ class AtomicStructure(Structure):
 
         atoms = self.atoms
         if style == "non-polymer":
-            lighting = "default"
+            lighting = {'preset': 'default'}
             from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
-            lighting = "default"
+            lighting = {'preset': 'default'}
             from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
@@ -1230,7 +1229,9 @@ class AtomicStructure(Structure):
                 display_atoms.displays = True
                 ribbonable.ribbon_displays = True
         elif style == "medium polymer":
-            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
+            lighting = {'preset': 'full'}
+            if self.num_atoms >= 300000:
+                lighting['multi_shadow'] = 16
             from .colors import chain_colors, element_colors
             residues = self.residues
             residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
@@ -1244,7 +1245,9 @@ class AtomicStructure(Structure):
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
-            lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
+            lighting = {'preset': 'soft'}
+            if self.num_atoms >= 300000:
+                lighting['multi_shadow'] = 16
 
         # correct the styling of per-structure pseudobond bond groups
         for cat, pbg in self.pbg_map.items():
@@ -1267,9 +1270,8 @@ class AtomicStructure(Structure):
             pbg.dashes = dashes
 
         if set_lighting:
-            from chimerax.core.commands import Command
-            cmd = Command(self.session)
-            cmd.run("lighting " + lighting, log=False)
+            from chimerax.std_commands.lighting import lighting as light_cmd
+            light_cmd(self.session, **lighting)
 
     # used by custom-attr registration code
     @property
@@ -1591,12 +1593,10 @@ class StructureGraphicsChangeManager:
 
             self._model_display_change = False
 
-            # Fire selection changed trigger.
-            if (gc & StructureData._SELECT_CHANGE).any():
-                self.session.selection.trigger_fire_needed = True
-                # XXX: No data for now.  What should be passed?
+        # set by changes.py when "selected changed" is in the global Atom reasons,
+        # which is the easiest way to detect that there was a selection in a
+        # deleted structure; also set by non-atomic models
         if self.session.selection.trigger_fire_needed:
-            # Models can also set it
             self.session.selection.trigger_fire_needed = False
             from chimerax.core.selection import SELECTION_CHANGED
             self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
