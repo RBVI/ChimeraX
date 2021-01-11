@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .save import save_image
+
 from chimerax.core.toolshed import BundleAPI
 
 class _ImageFormatsBundleAPI(BundleAPI):
