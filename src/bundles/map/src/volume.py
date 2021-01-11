@@ -2038,9 +2038,15 @@ class VolumeSurface(Surface):
   def set_color(self, color):
     if (color != self.color).any():
       Surface.set_color(self, color)
+      self._set_clip_cap_color(color)
       self.volume.call_change_callbacks('colors changed')
   color = property(get_color, set_color)
 
+  def _set_clip_cap_color(self, color):
+    for c in self.child_models():
+      if getattr(c, 'is_clip_cap'):
+        c.set_color(color)
+        
   def _get_colors(self):
     return Surface.get_colors(self)
   def _set_colors(self, colors):
