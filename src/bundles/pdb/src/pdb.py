@@ -18,11 +18,22 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
+def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False):
 
-    path = stream.name if hasattr(stream, 'name') else None
+    if isinstance(stream, str):
+        path = stream
+        stream = open(stream, 'r')
+    else:
+        path = stream.name if hasattr(stream, 'name') else None
 
+    if file_name is None:
+        if path:
+            from os.path import basename
+            file_name = basename(path)
+        else:
+            file_name = 'structure'
+            
     from . import _pdbio
     try:
         pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains)
@@ -31,7 +42,8 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
             from chimerax.core.errors import UserError
             raise UserError(str(e))
         raise
-    stream.close()
+    finally:
+        stream.close()
 
     if atomic:
         from chimerax.atomic.structure import AtomicStructure as StructureClass
