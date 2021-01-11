@@ -1373,12 +1373,16 @@ def get_toolshed():
 def get_help_directories():
     global _default_help_dirs
     if _default_help_dirs is None:
-        import os
-        from chimerax import app_data_dir, app_dirs
-        _default_help_dirs = [
-            os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
-            os.path.join(app_data_dir, 'docs')              # for builtin files
-        ]
+        import chimerax
+        if hasattr(chimerax, 'app_dirs'):
+            from chimerax import app_data_dir, app_dirs
+            import os
+            _default_help_dirs = [
+                os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
+                os.path.join(app_data_dir, 'docs')              # for builtin files
+            ]
+        else:
+            _default_help_dirs = []
     hd = _default_help_dirs[:]
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)
