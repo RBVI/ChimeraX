@@ -794,8 +794,7 @@ def init(argv, event_loop=True):
     if opts.cmd:
         # Emulated Python's -c option.
         # This is needed for -m pip to work in some cases.
-        sys.argv = args
-        sys.argv[0] = '-c'
+        sys.argv = ['-c', opts.cmd]
         global_dict = {
             'session': sess,
             '__name__': '__main__',
