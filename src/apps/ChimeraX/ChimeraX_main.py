@@ -84,156 +84,131 @@ if sys.platform.startswith('win'):
                 pass
 
 
-def parse_arguments(argv):
-    """Initialize ChimeraX application."""
+class Opts:
+
+    def __init__(self):
+        self.help = False
+        self.commands = []
+        self.cmd = None   # Python's -c option
+        self.debug = False
+        self.event_loop = True
+        self.gui = True
+        self.color = None
+        self.module = None  # Python's -m option
+        self.run_path = None  # Need to act like "python path args"
+        self.line_profile = False
+        self.list_io_formats = False
+        self.load_tools = True
+        self.offscreen = False
+        self.scripts = []
+        self.silent = False
+        self.start_tools = []
+        self.status = True
+        self.stereo = False
+        self.uninstall = False
+        self.use_defaults = False
+        self.version = -1
+        self.get_available_bundles = True
+        self.safe_mode = False
+        self.toolshed = None
+
+
+def _parse_python_args(argv, usage):
+    # ChimeraX can be invoked by pip thinking that it is Python.
+    # Treat all single letter arguments as Python arguments
+    # and make sure to cover all of the arguments that the
+    # subprocess package generates as well as -c, -m, and -u.
+    # Can't use getopt because -m short circuits argument parsing.
+
+    opts = Opts()
+    opts.gui = False
+    opts.event_loop = False
+    opts.get_available_bundles = False
+    opts.load_tools = False
+    opts.silent = True
+
+    def next_arg(argv):
+        no_arg = "bdhiqvuBEIOSV"  # python option w/o argument
+        has_arg = "cmWX"          # python option w/argument
+        cur_index = 1
+        while len(argv) > cur_index and argv[cur_index][0] == '-':
+            cur_opts = argv[cur_index]
+            cur_index += 1
+            if cur_opts == '--':
+                yield None, argv[cur_index:]
+                return
+            for opt in cur_opts[1:]:
+                if opt in no_arg:
+                    yield f"-{opt}", None
+                elif opt in has_arg:
+                    if len(argv) <= cur_index:
+                        raise RuntimeError(f"Missing argument for '-{opt}'")
+                    if opt == 'm':
+                        # special case, eats rest of arguments
+                        yield '-m', argv[cur_index]
+                        yield None, argv[cur_index + 1:]
+                        return
+                    arg = argv[cur_index]
+                    cur_index += 1
+                    yield f"-{opt}", arg
+                else:
+                    raise RuntimeError(f"Unknown argument '-{opt}'")
+        yield None, argv[cur_index:]
+
+    args = []
+    try:
+        for opt, optarg in next_arg(argv):
+            if opt is None:
+                args = optarg
+                break  # last one anyway
+            # silently ignore options we don't use
+            if opt == "-c":
+                if not opts.cmd:
+                    opts.cmd = optarg
+            elif opt == "-m":
+                opts.module = optarg
+                opts.safe_mode = True
+            elif opt == "-u":
+                import io
+                sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), 'wb'),
+                                              write_through=True)
+                sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), 'wb'),
+                                              write_through=True)
+            elif opt == "-h":
+                opts.help = True
+            elif opt == "-d":
+                opts.debug = True
+                opts.silent = False
+            elif opt == "-v":
+                opts.silent = False
+            elif opt == "-V":
+                opts.version = 0
+    except RuntimeError as message:
+        print("%s: %s" % (argv[0], message), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
+        raise SystemExit(os.EX_USAGE)
+
+    return opts, args
+
+
+def _parse_chimerax_args(argv, arguments, usage):
     import getopt
 
-    if sys.platform.startswith('darwin'):
-        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
-        for i, arg in enumerate(argv):
-            if i > 0 and arg.startswith('-psn_'):
-                del argv[i]
-                break
-
-    class Opts:
-        pass
-    opts = Opts()
-    opts.commands = []
-    opts.cmd = None   # Python's -c option
-    opts.debug = False
-    opts.event_loop = True
-    opts.gui = True
-    opts.color = None
-    opts.module = None  # Python's -m option
-    opts.run_path = None  # Need to act like "python path args"
-    opts.line_profile = False
-    opts.list_io_formats = False
-    opts.load_tools = True
-    opts.offscreen = False
-    opts.scripts = []
-    opts.silent = False
-    opts.start_tools = []
-    opts.status = True
-    opts.stereo = False
-    opts.uninstall = False
-    opts.use_defaults = False
-    opts.version = -1
-    opts.get_available_bundles = True
-    opts.safe_mode = False
-    opts.toolshed = None
-
-    # Will build usage string from list of arguments
-    arguments = [
-        "--debug",
-        "--exit",   # No event loop
-        "--nogui",
-        "--nocolor",
-        "--help",
-        "--lineprofile",
-        "--listioformats",
-        "--offscreen",
-        "--silent",
-        "--nostatus",
-        "--start <tool name>",
-        "--cmd <command>",
-        "--script <python script and arguments>",
-        "--notools",
-        "--safemode",
-        "--stereo",
-        "--uninstall",
-        "--usedefaults",
-        "--version",
-        "--qtscalefactor <factor>",
-        "--toolshed preview|<url>",
-    ]
-    if sys.platform.startswith("win"):
-        arguments += ["--console", "--noconsole"]
-    usage = '[' + "] [".join(arguments) + ']'
-    usage += " or -m module_name [args]"
-    usage += " or -c command [args]"
-    usage += " or -u -c command [args]"
-    # add in default argument values
-    arguments += [
-        "--nodebug",
-        "--noexit",
-        "--gui",
-        "--color",
-        "--nolineprofile",
-        "--nosilent",
-        "--nousedefaults",
-        "--nooffscreen",
-        "--status",
-        "--tools",
-        "--nousedefaults",
-    ]
-    if len(sys.argv) > 2 and sys.argv[1] == '-m':
-        # treat like Python's -m argument
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.module = sys.argv[2]
-        opts.load_tools = False
-        opts.safe_mode = True
-        return opts, sys.argv[2:]
-    if len(sys.argv) > 2 and sys.argv[1] == '-c':
-        # treat like Python's -c argument
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.cmd = sys.argv[2]
-        opts.load_tools = False
-        return opts, sys.argv[2:]
-    if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
-        # treat like Python's -c argument
-        import io
-        sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), 'wb'),
-                                      write_through=True)
-        sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), 'wb'),
-                                      write_through=True)
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.module = sys.argv[1]
-        opts.cmd = sys.argv[3]
-        opts.load_tools = False
-        return opts, sys.argv[3:]
-    import pip
-    if len(sys.argv) > 1 and sys.argv[1].startswith(pip.__path__[0]):
-        # treat like recursive invokation of pip
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.run_path = sys.argv[1]
-        opts.load_tools = False
-        opts.safe_mode = True
-        return opts, sys.argv[1:]
     try:
-        shortopts = ""
         longopts = []
         for a in arguments:
-            if a.startswith("--"):
-                i = a.find(' ')
-                if i == -1:
-                    longopts.append(a[2:])
-                else:
-                    longopts.append(a[2:i] + '=')
-            elif a.startswith('-'):
-                i = a.find(' ')
-                if i == -1:
-                    shortopts += a[1]
-                else:
-                    shortopts += a[1] + ':'
-        options, args = getopt.getopt(argv[1:], shortopts, longopts)
+            i = a.find(' ')
+            if i == -1:
+                longopts.append(a[2:])
+            else:
+                longopts.append(a[2:i] + '=')
+        options, args = getopt.getopt(argv[1:], "", longopts)
     except getopt.error as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
 
-    help = False
+    opts = Opts()
     for opt, optarg in options:
         if opt in ("--debug", "--nodebug"):
             opts.debug = opt[2] == 'd'
@@ -241,7 +216,7 @@ def parse_arguments(argv):
             opts.event_loop = opt[2] != 'e'
             opts.get_available_bundles = False
         elif opt == "--help":
-            help = True
+            opts.help = True
         elif opt in ("--gui", "--nogui"):
             opts.gui = opt[2] == 'g'
         elif opt in ("--color", "--nocolor"):
@@ -281,15 +256,98 @@ def parse_arguments(argv):
             opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
-            help = True
+            opts.help = True
             break
-    if help:
-        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
-        raise SystemExit(os.EX_USAGE)
     if opts.version >= 0 or opts.list_io_formats:
         opts.gui = False
         opts.silent = True
         opts.get_available_bundles = False
+    return opts, args
+
+
+def parse_arguments(argv):
+    """Initialize ChimeraX application."""
+    if sys.platform.startswith('darwin'):
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
+        for i, arg in enumerate(argv):
+            if i > 0 and arg.startswith('-psn_'):
+                del argv[i]
+                break
+
+    if len(sys.argv) <= 1:
+        return Opts(), []
+
+    # Will build usage string from list of arguments
+    arguments = [
+        "--debug",
+        "--exit",   # No event loop
+        "--nogui",
+        "--nocolor",
+        "--help",
+        "--lineprofile",
+        "--listioformats",
+        "--offscreen",
+        "--silent",
+        "--nostatus",
+        "--start <tool name>",
+        "--cmd <command>",
+        "--script <python script and arguments>",
+        "--notools",
+        "--safemode",
+        "--stereo",
+        "--uninstall",
+        "--usedefaults",
+        "--version",
+        "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
+    ]
+    if sys.platform.startswith("win"):
+        arguments += ["--console", "--noconsole"]
+    usage = '[' + "] [".join(arguments) + ']'
+    usage += " or Python command line arguments"
+    usage += " (e.g., -m module_name [args]"
+    usage += " or -c command [args])"
+    # add in default argument values
+    arguments += [
+        "--nodebug",
+        "--noexit",
+        "--gui",
+        "--color",
+        "--nolineprofile",
+        "--nosilent",
+        "--nousedefaults",
+        "--nooffscreen",
+        "--status",
+        "--tools",
+        "--nousedefaults",
+    ]
+
+    import pip
+    if sys.argv[1].startswith(pip.__path__[0]):
+        # treat like recursive invokation of pip
+        opts = Opts()
+        opts.gui = False
+        opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
+        opts.run_path = sys.argv[1]
+        opts.load_tools = False
+        opts.safe_mode = True
+        args = sys.argv[1:]
+    elif sys.argv[1][0:2] == '--':
+        # ChimeraX style options
+        opts, args = _parse_chimerax_args(argv, arguments, usage)
+    elif sys.argv[1][0] == '-':
+        # Python style options
+        opts, args = _parse_python_args(argv, usage)
+    else:
+        # no options
+        opts = Opts()
+        args = sys.argv[1:]
+
+    if opts.help:
+        print("usage: %s %s\n" % (argv[0], usage))
+        raise SystemExit(os.EX_USAGE)
     return opts, args
 
 
@@ -358,7 +416,6 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
-    from chimerax import core
     if opts.offscreen:
         opts.gui = False
 
@@ -501,7 +558,7 @@ def init(argv, event_loop=True):
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
     if not opts.gui:
-        sess.ui.initialize_color_output(opts.color)	# Colored text
+        sess.ui.initialize_color_output(opts.color)    # Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
