@@ -139,4 +139,4 @@ def _format_name_from_suffix(path):
     if i < 0:
         return None
     suffix = path[i+1:]
-    return suffix_format.get(suffix.lower())
+    return _suffix_formats.get(suffix.lower())
