@@ -269,6 +269,11 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
         # before set before importing PyOpenGL.
         import os
         os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+        try:
+            import osmesa
+            os.environ['OSMESA_LIB_PATH'] = osmesa.osmesa_library_path()
+        except ImportError:
+            pass
 
     if log_opengl_calls:
         # Log all OpenGL calls

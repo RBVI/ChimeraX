@@ -276,7 +276,8 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
+def write_gltf(session, filename, models = None,
+               center = None, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True):
     if models is None:
         models = session.models.list()
