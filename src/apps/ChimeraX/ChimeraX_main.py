@@ -187,7 +187,6 @@ def _parse_python_args(argv, usage):
         print("%s: %s" % (argv[0], message), file=sys.stderr)
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-
     return opts, args
 
 
@@ -759,7 +758,7 @@ def init(argv, event_loop=True):
     if opts.module or opts.run_path:
         import runpy
         import warnings
-        sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        sys.argv = ['argv0'] + args
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -768,9 +767,11 @@ def init(argv, event_loop=True):
             }
             try:
                 if opts.module:
+                    sys.argv[0] = opts.module
                     runpy.run_module(opts.module, init_globals=global_dict,
                                      run_name='__main__', alter_sys=True)
                 else:
+                    sys.argv[0] = opts.run_path
                     runpy.run_path(opts.run_path)
             except SystemExit as e:
                 exit = e
