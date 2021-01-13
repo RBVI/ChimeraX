@@ -7,7 +7,8 @@ include $(TOP)/mk/config.make
 # It is only done when a new version is desired and the library is then included
 # by hand in the tar ball that is installed by prereqs/osmesa.
 #
-# Requires meson build system.  Can be installed with homebrew on Mac:  brew install meson
+# Requires meson build system and llvm compiler tools.
+# These can be installed with homebrew on Mac:  brew install meson llvm
 #
 VERSION = 20.3.2
 DISTRIBUTION = mesa-$(VERSION).tar.xz
