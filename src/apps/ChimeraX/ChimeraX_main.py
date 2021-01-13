@@ -273,7 +273,7 @@ def parse_arguments(argv):
                 del argv[i]
                 break
 
-    if len(sys.argv) <= 1:
+    if len(argv) <= 1:
         return Opts(), []
 
     # Will build usage string from list of arguments
@@ -322,27 +322,27 @@ def parse_arguments(argv):
     ]
 
     import pip
-    if sys.argv[1].startswith(pip.__path__[0]):
+    if argv[1].startswith(pip.__path__[0]):
         # treat like recursive invokation of pip
         opts = Opts()
         opts.gui = False
         opts.silent = True
         opts.event_loop = False
         opts.get_available_bundles = False
-        opts.run_path = sys.argv[1]
+        opts.run_path = argv[1]
         opts.load_tools = False
         opts.safe_mode = True
-        args = sys.argv[1:]
-    elif sys.argv[1][0:2] == '--':
+        args = argv[1:]
+    elif argv[1][0:2] == '--':
         # ChimeraX style options
         opts, args = _parse_chimerax_args(argv, arguments, usage)
-    elif sys.argv[1][0] == '-':
+    elif argv[1][0] == '-':
         # Python style options
         opts, args = _parse_python_args(argv, usage)
     else:
         # no options
         opts = Opts()
-        args = sys.argv[1:]
+        args = argv[1:]
 
     if opts.help:
         print("usage: %s %s\n" % (argv[0], usage))
@@ -434,7 +434,7 @@ def init(argv, event_loop=True):
     # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/ChimeraX_main.py'
     # TODO: more robust way
     dn = os.path.dirname
-    rootdir = dn(dn(dn(dn(sys.argv[0]))))
+    rootdir = dn(dn(dn(dn(argv[0]))))
     if sys.platform.startswith('darwin'):
         rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
