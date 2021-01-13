@@ -1004,6 +1004,13 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     elif h_name[-1] == "'" and len(h_name) + (total_hydrogens-1) <= 4:
         while find_atom(h_name):
             h_name += "'"
+            if len(h_name) > 4:
+                for digit in range(10):
+                    h_name = h_name[:3] + str(digit)
+                    if not find_atom(h_name):
+                        break
+                else:
+                    raise ValueError("Too many hydrogens attached to %s" % atom)
     elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
         if atom.residue.polymer_type == atom.residue.PT_AMINO and total_hydrogens == 2 and len(

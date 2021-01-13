@@ -158,6 +158,9 @@ class Mol2Parser:
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
             SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
+            from chimerax.atomic import Atom
+            Atom.register_attr(self.session, "charge", "ViewDockX", attr_type=float)
+            Atom.register_attr(self.session, "mol2_type", "ViewDockX", attr_type=str)
             s.viewdockx_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type
@@ -188,6 +191,7 @@ class Mol2Parser:
                                    dtype=float64)
                 if atom_data.charge is not None:
                     atom.charge = atom_data.charge
+                atom.mol2_type = atom_data.atom_type
                 try:
                     residue = substid2residue[atom_data.subst_id]
                 except KeyError:

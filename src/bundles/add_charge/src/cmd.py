@@ -11,8 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.commands import EnumOf
+class ChargeMethodArg(EnumOf):
+    default_value = 'am1-bcc'
+
+    def __init__(self):
+        super().__init__(['am1-bcc', 'gasteiger'])
+
+"""
 from chimerax.core.errors import UserError
 from chimerax.add_charge import ChargeMethodArg
+
+chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
@@ -69,6 +79,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
 
     # check whether the atoms have charges, and if not, that we know how to assign charges
     # to the requested atoms
+    problem_residues = set()
     needs_assignment = set()
     for surf_atoms, shown_atoms, srf in atoms_per_surf:
         for r in surf_atoms.unique_residues:
@@ -80,15 +91,23 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                     try:
                         a.charge + 1.0
                     except (AttributeError, TypeError):
-                        needs_assignment.add(r)
+                        if r.name in chargeable_residues:
+                            needs_assignment.add(r)
+                        else:
+                            problem_residues.add(r.name)
                         break
+    if problem_residues:
+        session.logger.status("")
+        from chimerax.core.commands import commas
+        raise UserError("Don't know how to assign charges to the following residue types: %s"
+            % commas(problem_residues, conjunction='and'))
+
     if needs_assignment:
         session.logger.status("Assigning charges", secondary=True)
         from .coulombic import assign_charges
         from chimerax.add_charge import ChargeError
         try:
-            assign_charges(session, needs_assignment, his_scheme, charge_method,
-                status=session.logger.status)
+            assign_charges(session, needs_assignment, his_scheme)
         except ChargeError as e:
             session.logger.status("")
             raise UserError(str(e))
@@ -141,12 +160,6 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     session.logger.status("", secondary=True)
     session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
 
-"""
-def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):
-    data, bounds = calculate_map(target_surface, charged_atoms, spacing, offset + padding)
-    #TODO
-"""
-
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf, FloatArg
     from chimerax.core.commands import BoolArg, ColormapArg, ColormapRangeArg
@@ -169,3 +182,4 @@ def register_command(logger):
         synopsis = 'Color surfaces by coulombic potential'
     )
     register("coulombic", desc, cmd_coulombic, logger=logger)
+"""
