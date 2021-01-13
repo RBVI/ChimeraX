@@ -436,21 +436,22 @@ class RotamerDialog(ToolInstance):
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
                 from chimerax.hbonds.gui import HBondsGUI
-                sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
+                sd.hbonds_gui = gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
                     show_inter_model=False, show_intra_model=False, show_intra_mol=False,
                     show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
                     show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
             elif sd_type == "Clashes":
                 from chimerax.clashes.gui import ClashesGUI
-                sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers", radius=0.075,
-                    show_restrict=False, show_bond_separation=False, show_res_separation=False,
+                sd.clashes_gui = gui = ClashesGUI(self.session, False, settings_name="rotamers",
+                    radius=0.075, show_restrict=False, show_bond_separation=False, show_res_separation=False,
                     show_inter_model=False, show_intra_model=False, show_intra_res=False,
                     show_intra_mol=False, show_attr_name=False, show_set_attrs=False,
                     show_checking_frequency=False, restrict="cross", bond_separation=0, reveal=True,
                     show_save_file=False)
                 layout.addWidget(sd.clashes_gui)
             else: # Density
+                gui = None
                 from chimerax.ui.widgets import ModelListWidget
                 from PySide2.QtWidgets import QFormLayout
                 density_layout = QFormLayout()
@@ -464,6 +465,10 @@ class RotamerDialog(ToolInstance):
             from chimerax.core.commands import run
             bbox.helpRequested.connect(lambda run=run, ses=self.session:
                 run(ses, "help help:user/tools/rotamers.html#evaluation"))
+            if gui:
+                reset_button = bbox.addButton("Reset", qbbox.ActionRole)
+                reset_button.setToolTip("Reset to initial-installation defaults")
+                reset_button.clicked.connect(lambda *args, gui=gui: gui.reset())
             layout.addWidget(bbox)
             sd.manage(placement=None)
         else:
