@@ -128,8 +128,8 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-#SUBDIRS	+= cxservices gdcm imex lineprofiler openmm pips Python
-SUBDIRS	+= cxservices imex lineprofiler openmm pips Python
+#SUBDIRS	+= ambertools cxservices gdcm imex lineprofiler openmm pips Python
+SUBDIRS	+= ambertools cxservices imex lineprofiler openmm pips Python
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
