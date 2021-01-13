@@ -14,10 +14,18 @@
 class ChargeError(RuntimeError):
     pass
 
-def add_standard_charges(session, models=None, *, status=None, phosphorylation=None, query_user=True):
+def add_charges(session, residues=None, *, method="am1-bcc", phosphorylation=None, query_user=True,
+        status=None):
+    uncharged_res_types = add_standard_charges(session, residues, status=status, query_user=query_user,
+        phosphorylation=phosphorylation)
+    for res_list in uncharged_res_types.values():
+        add_nonstandard_res_charges(session, res_list, estimate_net_charge(res_list[0].atoms),
+            method=method, status=status)
+
+def add_standard_charges(session, residues=None, *, status=None, phosphorylation=None, query_user=True):
     """add AMBER charges to well-known residues
 
-       'models' restricts the addition to the specified models
+       'residues' restricts the addition to the specified residues
 
        'status' is where status messages go (e.g. session.logger.status)
 
@@ -31,35 +39,36 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
 
        Hydrogens need to be present.
     """
+    from chimerax.atomic import Atom, Residues
+    if residues is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    elif not isinstance(residues, Residues):
+        residues = Residues(residues)
+    structures = residues.unique_structures
+
     import os.path
     attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
     if status:
         status("Defining AMBER residue types")
     from chimerax.std_commands.defattr import defattr
-    defattr(session, attr_file, restriction=models, summary=False)
-
-    if models is None:
-        from chimerax.atomic import all_atomic_structures
-        structures = all_atomic_structures(session)
-    else:
-        structures = models
+    defattr(session, attr_file, restriction=structures, summary=False)
 
     if status:
         status("Checking phosphorylation of chain-terminal nucleic acids")
     deletes = []
-    for s in structures:
-        for r in s.residues:
-            amber_name = getattr(r, 'amber_name', "UNK")
-            if len(amber_name) != 2 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU' \
-            or not r.find_atom('P'):
-                continue
-            p = r.find_atom('P')
-            for nb in p.neighbors:
-                if nb.residue != r:
-                    break
-            else:
-                # trailing phosphate
-                deletes.append(r)
+    for r in residues:
+        amber_name = getattr(r, 'amber_name', "UNK")
+        if len(amber_name) != 2 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU' \
+        or not r.find_atom('P'):
+            continue
+        p = r.find_atom('P')
+        for nb in p.neighbors:
+            if nb.residue != r:
+                break
+        else:
+            # trailing phosphate
+            deletes.append(r)
     if deletes:
         if phosphorylation is None:
             if query_user and not session.in_script:
@@ -78,27 +87,24 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
                 delattr(r, 'amber_name')
     if status:
         status("Adding standard charges")
-    uncharged_res_types = {}
-    uncharged_residues = set()
-   from .data import heavy_charge_type_data, hyd_charge_type_data
-    from chimerax.atomic import Atom
     Atom.register_attr(session, "charge", "add charge", attr_type=float)
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
     from chimerax.amber_info import amber_version
     session.logger.info("Using Amber %s recommended default charges and atom types for standard residues"
         % amber_version)
-    for s in structures:
-        for r in s.residues:
-            if not hasattr(r, "amber_name"):
-                uncharged_residues.add(r)
-                uncharged_res_types.setdefault(r.name, []).append(r)
-        modified_atoms = []
+    from .data import heavy_charge_type_data, hyd_charge_type_data
+    uncharged_res_types = {}
+    uncharged_residues = set()
+    modified_atoms = []
+    for r in residues:
+        if not hasattr(r, "amber_name"):
+            uncharged_residues.add(r)
+            uncharged_res_types.setdefault(r.name, []).append(r)
+            continue
         # since hydrogen names are so unreliable, look them up based on the atom they are bonded to
         # rather than their own name
         hydrogen_data = []
-        for a in s.atoms:
-            if a.residue.name in uncharged_res_types:
-                continue
+        for a in r.atoms:
             modified_atoms.append(a)
             if a.element.number == 1:
                 if a.num_bonds != 1:
@@ -119,6 +125,7 @@ def add_standard_charges(session, models=None, *, status=None, phosphorylation=N
             except KeyError:
                 raise ChargeError("Hydrogen %s bonded to atom that should not have hydrogens (%s)"
                     % (h, heavy))
+    if modified_atoms:
         session.change_tracker.add_modified(modified_atoms, "charge changed")
         session.change_tracker.add_modified(modified_atoms, "gaff_type changed")
 
@@ -256,8 +263,7 @@ ion_types = {
     "Zn": "Zn"
 }
 
-def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc", *,
-        gaff_type=True, status=None):
+def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc", *, status=None):
     """Add Antechamber charges to non-standard residue
 
        'residues' is a list of residues of the same type.  The first
@@ -268,9 +274,6 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
        'net_charge' is the net charge of the residue type.
 
        'method' is either 'am1-bcc' or 'gasteiger'
-
-       'gaff_type' is a boolean that determines whether GAFF
-       atom types are assigned to atoms in non-standard residues
 
        'status' is where status messages go (e.g. session.logger.status)
 
@@ -285,11 +288,10 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
             a = r.atoms[0]
             a.charge = net_charge
             session.change_tracker.add_modified(a, "charge changed")
-            if gaff_type:
-                if a.element.name in ion_types:
-                    a.gaff_type = ion_types[a.element.name]
-                else:
-                    session.logger.info("Could not determine GAFF type for atom %s" % a)
+            if a.element.name in ion_types:
+                a.gaff_type = ion_types[a.element.name]
+            else:
+                session.logger.info("Could not determine GAFF type for atom %s" % a)
         return
 
     electrons = net_charge
@@ -317,12 +319,12 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
                     bonds.append((i1, i2))
                 else:
                     bonds.append((i2, i1))
-        bonds.sort()
+        bonds.sort(key=lambda b: (b[0], (-1 if b[1] is None else b[1])))
         varieties.setdefault(tuple(bonds), []).append(r)
     if len(varieties) > 1:
         session.logger.info("%d tautomers of %s; charging separately" % (len(varieties), r0.name))
     for tautomer_residues in varieties.values():
-        _nonstd_charge(session, tautomer_residues, net_charge, method, gaff_type, status)
+        _nonstd_charge(session, tautomer_residues, net_charge, method, status)
 
 def estimate_net_charge(atoms):
     charge_info = {
@@ -413,7 +415,7 @@ def _get_aname(base, known_names):
 
 def _methylate(na, n, atom_names):
     added = []
-    from chimerax.atom import Element
+    from chimerax.atomic import Element
     from chimerax.atomic.struct_edit import add_atom
     nn = add_atom(_get_aname("C", atom_names), Element.get_element("C"), na.residue, n.coord)
     added.append(nn)
@@ -462,7 +464,7 @@ def _n2_charge(atom):
             return 0
     return 2
 
-def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
+def _nonstd_charge(session, residues, net_charge, method, status):
     r = residues[0]
     if status:
         status("Copying residue %s" % r.name)
@@ -566,7 +568,8 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
             line = ante_messages.readline()
             if not line:
                 break
-            session.logger.status("(%s) %s" % (r.name, line.rstrip()))
+            if status:
+                status("(%s) %s" % (r.name, line.rstrip()))
             session.logger.info("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
@@ -611,29 +614,31 @@ def _nonstd_charge(session, residues, net_charge, method, gaff_type, status):
             if ta in extras:
                 continue
             ta.charge = ca.charge + adjustment
-            if gaff_type:
-                ta.gaff_type = ca.mol2_type
+            ta.gaff_type = ca.mol2_type
         # map template charges onto first residue
         assigned = set()
         for fa, ta in atom_map.items():
             if ta in extras:
                 continue
             fa.charge = ta.charge
-            if gaff_type:
-                fa.gaff_type = ta.gaff_type
-            assigned.add(fa)
+            fa.gaff_type = ta.gaff_type
+            if isinstance(fa, FakeAtom):
+                assigned.add(fa.fa_atom)
+            else:
+                assigned.add(fa)
         # map charges onto remaining residues
         r_atoms = sorted(r.atoms)
         for rr in residues[1:]:
             rr_atoms = sorted(rr.atoms)
             for fa, ra in zip(r_atoms, rr_atoms):
                 ra.charge = fa.charge
-                if gaff_type:
-                    ra.gaff_type = fa.gaff_type
-                assigned.add(ra)
+                ra.gaff_type = fa.gaff_type
+                if isinstance(ra, FakeAtom):
+                    assigned.add(ra.fa_atom)
+                else:
+                    assigned.add(ra)
         session.change_tracker.add_modified(assigned, "charge changed")
-        if gaff_type:
-            session.change_tracker.add_modified(assigned, "gaff_type changed")
+        session.change_tracker.add_modified(assigned, "gaff_type changed")
         if status:
             status("Charges for residue %s determined" % r.name)
         session.logger.info("Charges for residue %s determined" % r.name)
@@ -667,13 +672,13 @@ def _phosphorylate(session, status, deletes):
         add_atom("HO5'", 'H', r, o.coord + v, serial_number=sn, bonded_to=o)
 
 class FakeAtom:
-    def __init__(self, atom, res, name_mod=None):
+    def __init__(self, atom, res, name=None):
         if isinstance(atom, FakeAtom):
             self.fa_atom = atom.fa_atom
         else:
             self.fa_atom = atom
         self.fa_res = res
-        self.fa_name_mod = name_mod
+        self.fa_name = name
 
     def __eq__(self, other):
         if isinstance(other, FakeAtom):
@@ -681,8 +686,8 @@ class FakeAtom:
         return self.fa_atom == other
 
     def __getattr__(self, attr_name):
-        if attr_name == "name" and self.fa_name_mod:
-            return "%s-%s" % (self.fa_atom.name, self.fa_name_mod)
+        if attr_name == "name" and self.fa_name:
+            return self.fa_name
         if attr_name == "residue":
             return self.fa_res
         if attr_name == "neighbors":
@@ -692,6 +697,14 @@ class FakeAtom:
                 lookup[fa.fa_atom] = fa
             return [lookup.get(x, x) for x in real_neighbors]
         return getattr(self.fa_atom, attr_name)
+
+    def __hash__(self):
+        return hash(self.fa_atom)
+
+    def __lt__(self, other):
+        if isinstance(other, FakeAtom):
+            return self.fa_atom < other.fa_atom
+        return self.fa_atom < other
 
     def __setattr__(self, name, val):
         if name.startswith("fa_"):
@@ -705,7 +718,24 @@ class FakeRes:
             # mega residue
             residues = name
             name = "+".join([r.name for r in residues])
-            atoms = [FakeAtom(a, self, a.residue.name) for r in residues for a in r.atoms]
+            # do our best to keep atom names 4 characters or less
+            atom_names = set()
+            atoms = []
+            import string
+            for r in residues:
+                for a in r.atoms:
+                    if a.name in atom_names:
+                        for c in string.digits + string.ascii_uppercase:
+                            fa_name = a.name[:3] + c
+                            if fa_name not in atom_names:
+                                break
+                        else:
+                            raise ValueError("Could not come up with unique atom name in mega-residue")
+                        fa = FakeAtom(a, self, fa_name)
+                    else:
+                        fa = FakeAtom(a, self)
+                    atoms.append(fa)
+                    atom_names.add(fa.name)
         else:
             atoms = [FakeAtom(a, self) for a in atoms]
         self.name = name
@@ -717,4 +747,8 @@ class FakeRes:
             if a.name == atom_name:
                 return a
         return None
+
+    @property
+    def num_atoms(self):
+        return len(self.atoms)
 

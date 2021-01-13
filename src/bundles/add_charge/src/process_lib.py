@@ -35,6 +35,12 @@ for na in "ACGU":
         rna_remap[na+suffix] = "R"+na+suffix
 heavy_synonyms = {'op1': ['o1p'], 'op2': ['o2p'], 'op3': ['o3p'],
     'c7': ['c5m'], 'o': ['ot1'], 'oxt': ['ot2']}
+def get_heavy_synonyms(resid, heavy):
+    if resid.endswith('MET') and heavy == 'sd':
+        # so MSE also works
+        return ['se']
+    return heavy_synonyms.get(heavy, [])
+
 heavy_data = {}
 hyd_data = {}
 for lib in sys.argv[1:]:
@@ -73,16 +79,16 @@ for lib in sys.argv[1:]:
                         raise AssertionError("Hydrogen not followed by heavy atom")
                     waiting = (final_resids, charge, atom_type)
                 else:
-                    for name in [heavy] + heavy_synonyms.get(heavy, []):
+                    for name in [heavy] + get_heavy_synonyms(final_resid, heavy):
                         hyd_data[(final_resid, name)] = (charge, atom_type)
             else:
-                for name in [atom_name] + heavy_synonyms.get(atom_name, []):
+                for name in [atom_name] + get_heavy_synonyms(final_resid, atom_name):
                     heavy_data[(final_resid, name)] = (charge, atom_type)
                 heavy = atom_name
                 if waiting:
                     wait_finals, wait_charge, wait_type = waiting
                     for wf in wait_finals:
-                        for wname in [heavy] + heavy_synonyms.get(heavy, []):
+                        for wname in [heavy] + get_heavy_synonyms(final_resid, heavy):
                             hyd_data[(wf, wname)] = (wait_charge, wait_type)
                     waiting = None
 from pprint import pformat

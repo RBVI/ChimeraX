@@ -33,6 +33,7 @@ recipient: residues
 	:LYS	LYS
 
 	:MET	MET
+	:MSE	MET
 
 	:PHE	PHE
 

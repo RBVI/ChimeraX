@@ -11,16 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class ChargeError(ValueError):
-    pass
-
-def assign_charges(session, uncharged_residues, his_scheme):
+def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, status=None):
     from chimerax.atomic import Atom
     Atom.register_attr(session, "charge", "coulombic coloring", attr_type=float)
     by_structure = {}
     for r in uncharged_residues:
-        #if r.name == 'HIS':
-        #    r._coulombic_his_scheme = his_scheme
+        if r.name == 'HIS':
+            r._coulombic_his_scheme = his_scheme
         by_structure.setdefault(r.structure, []).append(r)
 
     missing_heavies = []
@@ -35,19 +32,8 @@ def assign_charges(session, uncharged_residues, his_scheme):
         copy_needed[struct] = len(heavies) < len(missing)
         extra_atoms.extend(extra)
 
-    if extra_atoms:
-        from chimerax.core.commands import commas
-        if len(extra_atoms) <= 7:
-            atoms_text = commas([str(a) for a in extra_atoms], conjunction="and")
-        else:
-            atoms_text = commas([str(a) for a in extra_atoms[:5]]
-                + ["%d other atoms" % (len(extra_atoms)-5)], conjunction="and")
-        if len([a for a in extra_atoms if a.element.number == 1]) == len(extra_atoms):
-            hint = "  Try deleting all hydrogens first."
-        else:
-            hint = ""
-        raise ChargeError("Atoms with non-standard names found in standard residues: %s.%s"
-            % (atoms_text, hint))
+    # add_charge will complain about extra heavies, and it also allows any kind of crazy
+    # naming scheme for hydrogens, so don't need to do anything with "extra_atoms" anymore
 
     if missing_heavies:
         from chimerax.core.commands import commas
@@ -95,7 +81,13 @@ def assign_charges(session, uncharged_residues, his_scheme):
             charged_residues = struct_residues
 
         # assign charges
-        assign_residue_charges(charged_residues, his_scheme)
+        from chimerax.add_charge import add_charges
+        try:
+            add_charges(session, charged_residues, method=charge_method, status=status)
+        except BaseException:
+            if copy_needed[struct]:
+                charged_struct.delete()
+            raise
 
         if copy_needed[struct]:
             session.logger.status("Copying charges back to %s" % struct, secondary=True)
@@ -131,7 +123,8 @@ def check_residues(residues):
         try:
             res_data = reference[rname]
         except KeyError:
-            raise ChargeError("Don't know charges for %s residue %s" % (type_text, r.name))
+            # Hope add_charge can handle it!
+            continue
         name_to_atom = {}
         for a in r.atoms:
             aname = a.name if r.name != "MSE" or a.name != "SE" else "SD"
@@ -144,28 +137,6 @@ def check_residues(residues):
         extra_atoms.extend([name_to_atom[n] for n in (existing_names - needed_names)])
 
     return missing_atoms, extra_atoms
-
-def assign_residue_charges(residues, his_scheme):
-    from .data import starting_residues, ending_residues, other_residues
-    for r in residues:
-        chain = r.chain
-        rname = template_residue_name(r)
-        if chain is None:
-            reference = other_residues
-        elif r == chain.residues[0]:
-            reference = starting_residues
-        elif r == chain.residues[-1]:
-            reference = ending_residues
-        else:
-            reference = other_residues
-        res_data = reference[rname]
-        for a in r.atoms:
-            aname = a.name if r.name != "MSE" or a.name != "SE" else "SD"
-            try:
-                a.charge = res_data[aname]
-            except KeyError:
-                print(a)
-                raise
 
 def template_residue_name(r):
     if r.name == "HIS":
