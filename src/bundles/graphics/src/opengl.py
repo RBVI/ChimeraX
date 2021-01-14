@@ -295,7 +295,7 @@ def _configure_pyopengl_to_use_osmesa():
         os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
         return
 
-    # PyOpenGL 3.1.5 has can only find libOSMesa in system locations.
+    # PyOpenGL 3.1.5 can only find libOSMesa in system locations.
     # This hack allows it to find libOSMesa in the Python osmesa module.
     from OpenGL.platform.osmesa import OSMesaPlatform
     import ctypes
