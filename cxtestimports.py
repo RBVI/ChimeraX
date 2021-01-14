@@ -9,6 +9,7 @@ import importlib
 import chimerax
 
 blacklist = set([
+    "chimerax.add_charge.process_lib",  # creates data.py
     "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.alignment_algs.libalign_algs",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
