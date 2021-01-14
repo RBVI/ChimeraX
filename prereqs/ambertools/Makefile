@@ -12,8 +12,8 @@ AMBERHOME = $(SOURCE)/amber$(VERSION)_src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
 AMBERBIN_DST = $(app_bindir)/amber$(VERSION)/bin
-AMBERDAT_SRC = $(AMBERHOME)/dat
-AMBERDAT_DST = $(app_bindir)/amber$(VERSION)/dat
+AMBERDAT_SRC = $(AMBERHOME)/dat/antechamber
+AMBERDAT_DST = $(app_bindir)/amber$(VERSION)/dat/antechamber
 
 PATCHES	= $(wildcard AmberTools-*.patch)
 
@@ -52,7 +52,7 @@ app-install: install
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
 	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
-	$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
+	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
 ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cd $(AMBERBIN_DST) && for i in sqm; do \

@@ -190,6 +190,7 @@ class BuildStructureTool(ToolInstance):
         checkbox_layout.addWidget(color, alignment=Qt.AlignLeft)
 
         res_group = QGroupBox("Residue Name")
+        self._prev_mod_res = None
         layout.addWidget(res_group, alignment=Qt.AlignCenter)
         group_layout = QGridLayout()
         group_layout.setContentsMargins(0,0,0,0)
@@ -325,12 +326,14 @@ class BuildStructureTool(ToolInstance):
         if not self.ms_element_color.isChecked():
             cmd += " colorByElement false"
 
+        self._prev_mod_res = None
         if self.ms_res_mod.isChecked():
             res_name = self.ms_mod_edit.text().strip()
             if not res_name:
                 raise UserError("Must provided modified residue name")
             if res_name != a.residue.name:
                 cmd += " resName " + res_name
+            self._prev_mod_res = a.residue
         elif self.ms_res_new.isChecked():
             res_name = self.ms_res_new_name.text().strip()
             if not res_name:
@@ -372,7 +375,8 @@ class BuildStructureTool(ToolInstance):
         self._ms_update_atom_name(a)
         from .mod import unknown_res_name
         res_name = unknown_res_name(a.residue)
-        self.ms_mod_edit.setText(res_name)
+        if self._prev_mod_res != a.residue:
+            self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
 
     def _ms_update_atom_name(self, a=None):
