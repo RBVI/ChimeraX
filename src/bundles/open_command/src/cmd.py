@@ -557,12 +557,12 @@ def cmd_open_formats(session):
     all_formats = session.open_command.open_data_formats
     by_category = {}
     for fmt in all_formats:
-        if not session.open_command.provider_info(fmt).bundle_info.installed:
-            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()
     lines = []
+    from chimerax.core import toolshed
+    ts = toolshed.get_toolshed()
     for title in titles:
         formats = by_category[title]
         if session.ui.is_gui:
@@ -575,21 +575,34 @@ def cmd_open_formats(session):
             session.logger.info(title)
             session.logger.info('File format, Short name(s), Suffixes:')
         formats.sort(key = lambda f: f.name.lower())
+        some_uninstalled = False
         for f in formats:
+            bundle_info = session.open_command.provider_info(f).bundle_info
             if session.ui.is_gui:
                 from html import escape
-                if f.reference_url:
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    descrip = '<a href="%s">%s</a><sup>*</sup>' % (ts.bundle_url(bundle_info.name),
+                        escape(f.synopsis))
+                elif f.reference_url:
                     descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
                 else:
                     descrip = escape(f.synopsis)
                 lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
                     escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
             else:
-                session.logger.info('    %s: %s: %s' % (f.synopsis,
-                    commas(f.nicknames), ', '.join(f.suffixes)))
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    session.logger.info('    %s (not installed): %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
+                else:
+                    session.logger.info('    %s: %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
         if session.ui.is_gui:
             lines.append('</table>')
-            lines.append('<p></p>')
+            if some_uninstalled:
+                lines.append('<sup>*</sup>Not installed; click on link to install<br>')
+            lines.append('<br>')
         else:
             session.logger.info('\n')
 
