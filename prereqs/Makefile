@@ -25,6 +25,7 @@ endif
 
 ifdef WIN32
 SUBDIRS += win32
+SUBDIRS += ambertools
 endif
 
 ifeq ($(OS),Darwin)
