@@ -31,12 +31,19 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)]
         + [StringArg.unparse(token) for token in tokens])
 
+    more_log_info = None
     try:
-        from .manager import NoSaverError
+        from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
         data_format= file_format(session, file_name, format_name)
         try:
             provider_args = mgr.save_args(data_format)
+        except SaverNotInstalledError as e:
+            from chimerax.core import toolshed
+            bi = mgr.provider_info(data_format).bundle_info
+            more_log_info = '<a href="%s">Install the %s bundle</a> to save "%s" format files.' % (
+                toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, data_format.name)
+            raise LimitationError("%s; see log for more info" % e)
         except NoSaverError as e:
             raise LimitationError(str(e))
 
@@ -62,6 +69,8 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     except BaseException as e:
         # want to log command even for keyboard interrupts
         log_command(session, "save", provider_cmd_text, url=_main_save_CmdDesc.url)
+        if more_log_info:
+            session.logger.info(more_log_info, is_html=True)
         raise
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 

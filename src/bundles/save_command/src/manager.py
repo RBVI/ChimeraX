@@ -14,6 +14,9 @@
 class NoSaverError(ValueError):
     pass
 
+class SaverNotInstalledError(NoSaverError):
+    pass
+
 class ProviderInfo:
     def __init__(self, bundle_info, format_name, compression_okay, is_default):
         self.bundle_info = bundle_info
@@ -66,6 +69,8 @@ class SaveManager(ProviderManager):
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
+        if not provider_info.bundle_info.installed:
+            raise SaverNotInstalledError("File-saver for format '%s' not installed" % data_format.name)
         return provider_info.bundle_info.run_provider(self.session,
             provider_info.format_name, self).save_args
 
