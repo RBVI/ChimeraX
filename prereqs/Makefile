@@ -47,7 +47,6 @@ NEED_OPENSSL=1
 NEED_ZLIB=1
 endif
 endif
-SUBDIRS += ambertools
 endif
 
 ifdef NEED_CHRPATH
