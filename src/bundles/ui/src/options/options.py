@@ -921,6 +921,18 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 return True
             return super().eventFilter(source, event)
 
+        def validate(self, text, pos):
+            suffix_index = len(text)
+            while suffix_index > 0 and not text[suffix_index-1].isdigit():
+                suffix_index -= 1
+            if suffix_index == 0:
+                return super().validate(text, pos)
+            try:
+                fval = float(text[:suffix_index])
+            except ValueError:
+                return super().validate(text, pos)
+            return super().validate("%g%s" % (fval, text[suffix_index:]), pos)
+
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
     spin_box.setDecimals(decimal_places)
