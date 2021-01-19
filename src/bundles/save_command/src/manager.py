@@ -63,6 +63,13 @@ class SaveManager(ProviderManager):
     def end_providers(self):
         self.triggers.activate_trigger("save command changed", self)
 
+    def provider_info(self, data_format):
+        try:
+            return self._savers[data_format]
+        except KeyError:
+            raise NoSaverError("No file-saver registered for format '%s'"
+                % data_format.name)
+
     def save_args(self, data_format):
         try:
             provider_info = self._savers[data_format]
@@ -89,8 +96,10 @@ class SaveManager(ProviderManager):
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return provider_info.bundle_info.run_provider(self.session,
-            provider_info.format_name, self).save_args_widget(self.session)
+        bi = provider_info.bundle_info
+        if not bi.installed:
+            raise SaverNotInstalledError("File-saver for format '%s' not installed" % data_format.name)
+        return bi.run_provider(self.session, provider_info.format_name, self).save_args_widget(self.session)
 
     def save_args_string_from_widget(self, data_format, widget):
         try:
@@ -118,13 +127,6 @@ class SaveManager(ProviderManager):
         The names of data formats for which an saver function has been registered.
         """
         return list(self._savers.keys())
-
-    def save_info(self, data_format):
-        try:
-            return self._savers[data_format]
-        except KeyError:
-            raise NoSaverError("No file-saver registered for format '%s'"
-                % data_format.name)
 
 def _readable_bundle_name(bundle_info):
     name = bundle_info.name

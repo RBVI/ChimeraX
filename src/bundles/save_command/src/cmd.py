@@ -77,7 +77,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
     data_format = file_format(session, file_name, format)
-    provider_info = mgr.save_info(data_format)
+    provider_info = mgr.provider_info(data_format)
     path = _get_path(file_name, provider_info.compression_okay)
 
     # TODO: The following line does a graphics update so that if the save command is
@@ -154,7 +154,7 @@ def cmd_save_formats(session):
         formats.sort(key = lambda f: f.name.lower())
         some_uninstalled = False
         for f in formats:
-            bundle_info = session.save_command.save_info(f).bundle_info
+            bundle_info = session.save_command.provider_info(f).bundle_info
             if session.ui.is_gui:
                 from html import escape
                 if not bundle_info.installed:
