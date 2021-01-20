@@ -22,7 +22,7 @@ Bundle Information XML Tags
 ChimeraX bundle information is stored in **bundle_info.xml**.
 XML elements in the file typically have *attributes* and either
 (a) *child elements*, or (b) *element text*.
-An attributes is used for a value that may be represented
+An attribute is used for a value that may be represented
 as a simple string, such as an identifiers or a version numbers.
 The element text is used for a more complex value, such as a
 file name which may contain spaces.
@@ -30,7 +30,7 @@ Child elements are used for multi-valued data, such as a
 list of file names, one element per value.
 
 The supported elements are listed below in alphabetical order.
-The root document elements is **BundleInfo**, which contains
+The root document element is **BundleInfo**, which contains
 all the information needed to build the bundle.
 
 NB: All elements except **BundleInfo** may have a **platform**
@@ -38,7 +38,7 @@ attribute.  If the **platform** attribute *is* present and its
 value does *not* matches the build platform, then the element and
 all its children are ignored.  Supported values for **platform**
 are: ``mac``, ``windows``, and ``linux``.  An example use for the
-**platform** attribute is in supporting the Space Navigator device.
+**platform** attribute is to support the Space Navigator device.
 On macOS, ChimeraX relies on a compiled C module, while on Windows
 and Linux, it uses pure Python with the ``ctypes`` module;
 in this case, the **CModule** element has a **platform** attribute
