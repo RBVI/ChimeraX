@@ -22,7 +22,7 @@ Bundle Information XML Tags
 ChimeraX bundle information is stored in **bundle_info.xml**.
 XML elements in the file typically have *attributes* and either
 (a) *child elements*, or (b) *element text*.
-An attributes is used for a value that may be represented
+An attribute is used for a value that may be represented
 as a simple string, such as an identifiers or a version numbers.
 The element text is used for a more complex value, such as a
 file name which may contain spaces.
