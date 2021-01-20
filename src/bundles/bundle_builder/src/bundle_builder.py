@@ -536,7 +536,7 @@ class BundleBuilder:
                             prefix = folder
                             break
                     else:
-                        prefix = "src"
+                        prefix = os.path.join(self.path, "src")
                     prefix_len = len(prefix) + 1
                     root = os.path.join(prefix, name)
                     for dirp, dns, fns in os.walk(root):
@@ -720,7 +720,7 @@ class BundleBuilder:
                 if not isinstance(node.tag, str):
                     # skip comments
                     continue
-                print("WARNING: unsupported element:", node.tag())
+                print("WARNING: unsupported element:", node.tag)
 
 
 class _CompiledCode:
