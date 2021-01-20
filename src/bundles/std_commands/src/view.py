@@ -41,14 +41,15 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
     need_undo : bool
       Whether to create undo action
     '''
-    v = session.main_view
-    if orient:
-        v.initial_camera_view(set_pivot = cofr)
 
     if need_undo:
         models = session.models.list()
         undo = UndoView("view", session, models)
+
     with session.undo.block():
+        v = session.main_view
+        if orient:
+            v.initial_camera_view(set_pivot = cofr)
         if objects is None:
             v.view_all(pad = pad)
             if cofr:
@@ -60,6 +61,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
             show_view(session, objects, frames)
         else:
             view_objects(objects, v, clip, cofr, pad)
+
     if need_undo:
         undo.finish(session, models)
         session.undo.register(undo)
