@@ -927,11 +927,19 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 suffix_index -= 1
             if suffix_index == 0:
                 return super().validate(text, pos)
+            numeric_text = text[:suffix_index]
+            suffix = text[suffix_index:]
             try:
-                fval = float(text[:suffix_index])
+                fval = float(numeric_text)
             except ValueError:
                 return super().validate(text, pos)
-            return super().validate("%g%s" % (fval, text[suffix_index:]), pos)
+            # drop trailing decimal zeros if possible until input it valid
+            from PySide2.QtGui import QValidator
+            while super().validate("%s%s" % (numeric_text, suffix), pos)[0] == QValidator.Invalid:
+                if len(numeric_text) < 2 or numeric_text[-1] != '0':
+                    return super().validate(text, pos)
+                numeric_text = numeric_text[:-1]
+            return super().validate("%s%s" % (numeric_text, suffix), pos)
 
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
