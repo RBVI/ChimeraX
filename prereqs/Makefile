@@ -28,11 +28,6 @@ SUBDIRS += win32
 endif
 
 ifeq ($(OS),Darwin)
-NEED_EXPAT=1
-NEED_OPENSSL=1
-NEED_PKGCONFIG=1
-NEED_P7ZIP=1
-NEED_ZLIB=1
 SUBDIRS += ambertools
 endif
 
