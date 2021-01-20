@@ -921,6 +921,26 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 return True
             return super().eventFilter(source, event)
 
+        def validate(self, text, pos):
+            suffix_index = len(text)
+            while suffix_index > 0 and not text[suffix_index-1].isdigit():
+                suffix_index -= 1
+            if suffix_index == 0:
+                return super().validate(text, pos)
+            numeric_text = text[:suffix_index]
+            suffix = text[suffix_index:]
+            try:
+                fval = float(numeric_text)
+            except ValueError:
+                return super().validate(text, pos)
+            # drop trailing decimal zeros if possible until input it valid
+            from PySide2.QtGui import QValidator
+            while super().validate("%s%s" % (numeric_text, suffix), pos)[0] == QValidator.Invalid:
+                if len(numeric_text) < 2 or numeric_text[-1] != '0':
+                    return super().validate(text, pos)
+                numeric_text = numeric_text[:-1]
+            return super().validate("%s%s" % (numeric_text, suffix), pos)
+
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
     spin_box.setDecimals(decimal_places)
