@@ -15,7 +15,7 @@ from chimerax.core.commands import Annotation, AnnotationError
 
 
 def view(session, objects=None, frames=None, clip=True, cofr=True,
-         orient=False, pad=0.05, need_undo=True):
+         orient=False, zalign=None, pad=0.05, need_undo=True):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -35,6 +35,9 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
+    zalign : Atoms
+      Rotate view point so two specified atoms are aligned along the view
+      axis with the first atom in front.  Exactly two atoms must be specified.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
@@ -50,6 +53,8 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
         v = session.main_view
         if orient:
             v.initial_camera_view(set_pivot = cofr)
+        if zalign:
+            _z_align_view(session.main_view.camera, zalign)
         if objects is None:
             v.view_all(pad = pad)
             if cofr:
@@ -93,6 +98,24 @@ def view_objects(objects, v, clip, cofr, pad):
         if not clip:
             v.set_rotation_depth(c)
 
+def _z_align_view(camera, atoms):
+    '''
+    Rotate camera so two atoms are along view direction, first atom in front.
+    Rotation is about midpoint between the two atoms.
+    '''
+    if len(atoms) != 2:
+        from chimerax.core.errors import UserError
+        raise UserError('view: Must specify two atoms with zalign option, got %d'
+                        % len(atoms))
+    xyz_front, xyz_back = atoms.scene_coords
+    new_view_direction = xyz_back - xyz_front
+    center = 0.5*(xyz_front + xyz_back) - camera.position.origin()
+    from chimerax.geometry import vector_rotation, translation
+    r = (translation(-center)
+         * vector_rotation(camera.view_direction(), new_view_direction)
+         * translation(center))
+    camera.position = r * camera.position
+    
 def view_name(session, name):
     """Save current view as given name.
 
@@ -103,7 +126,7 @@ def view_name(session, name):
       later with the "show" option.
     """
     reserved = ('clip', 'cofr', 'delete', 'frames', 'initial',
-                'list', 'matrix', 'orient', 'pad', 'position')
+                'list', 'matrix', 'orient', 'zalign', 'pad', 'position')
     matches = [r for r in reserved if r.startswith(name)]
     if matches:
         from chimerax.core.errors import UserError
@@ -551,12 +574,14 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, FloatArg
     from chimerax.core.commands import StringArg, PositiveIntArg, Or, BoolArg, NoArg
     from chimerax.core.commands import PlaceArg, ModelsArg, TopModelsArg, Or, CoordSysArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional=[('objects', Or(ObjectsArg, NamedViewArg)),
                   ('frames', PositiveIntArg)],
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
                  ('orient', NoArg),
+                 ('zalign', AtomsArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=logger)
