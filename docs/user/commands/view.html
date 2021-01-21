@@ -69,10 +69,10 @@ See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;<b>orient</b>&nbsp;]
-[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>cofr</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -119,7 +119,17 @@ X-axis horizontal increasing rightward, Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
-</p><p>
+Alternatively, the <b>zalign</b> option can be used to align two atoms 
+along the <a href="#screencoords">screen</a> Z-axis. 
+If exactly two atoms are <a href="../selection.html">selected</a>,
+they can be <a href="atomspec.html#builtin">specified</a> collectively
+with the word <b>sel</b>;
+for example, to align and center a selection of two atoms:
+</p>
+<blockquote>
+<b>view sel zalign sel</b>
+</blockquote>
+<p>
 The <b>view initial</b> command removes rotations and translations of
 models relative to the scene (aligns individual model coordinates with
 <a href="#scenecoords">scene coordinates</a>).
@@ -269,5 +279,5 @@ later applied from such a file.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+January 2021</address>
 </body></html>
