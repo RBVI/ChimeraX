@@ -24,7 +24,6 @@ Steps:
 import os
 import subprocess
 import sys
-import tempfile
 import textwrap
 
 # app_author and app_name are the same as ChimeraX_main.py
@@ -35,7 +34,7 @@ CHIMERAX_INSTALL = f"{os.getcwd()}/{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
 INST_DIR = f"/opt/{app_author}/{app_name}"
-#INST_DIR = "/usr/libexec/{app_author}-{app_name}""
+# INST_DIR = "/usr/libexec/{app_author}-{app_name}""
 
 CENTOS_DEPENDENCIES = {
     "7": {
@@ -59,6 +58,7 @@ CENTOS_DEPENDENCIES = {
        "libdrm": "2.4.97",
        "libffi": "3.0.13",
        "libgcc": "4.8.5",
+       "libgfortran4": "4.8.5",
        "libglvnd-egl": "1.0.1",
        "libglvnd-glx": "1.0.1",
        "libstdc++": "4.8.5",
@@ -112,6 +112,7 @@ CENTOS_DEPENDENCIES = {
        "libdrm": "2.4.98",
        "libffi": "3.1",
        "libgcc": "8.3.1",
+       "libgfortran": "8.3.1",
        "libglvnd-egl": "1.0.1",
        "libglvnd-glx": "1.0.1",
        "libstdc++": "8.3.1",
@@ -150,6 +151,7 @@ CENTOS_DEPENDENCIES = {
        "zlib": "1.2.11",
     }
 }
+
 
 def main():
     """main program"""
@@ -201,8 +203,8 @@ def main():
         # release build
         version = version.base_version
         rpm_release = f"0.{version_date}"
-    rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
 
+    # rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
     # print('full_version:', repr(full_version))
     # print('version_number:', version_number)
     # print('version_date:', version_date)
@@ -232,7 +234,7 @@ def make_rpmbuild_tree():
 
 def clean_app():
     """Clean application
-    
+
     remove unwanted __pycache__ directories
     remove script's who interpreter is not a system binary
     (eg., Python scripts with paths to "nonexisting" python)
@@ -281,7 +283,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
         #    /usr/lib/rpm/redhat/brp-strip %{{__strip}} \
         #    /usr/lib/rpm/redhat/brp-strip-comment-note %{{__strip}} %{{__objdump}} \
         #    }} \
-        #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}} 
+        #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}}
         print(textwrap.dedent(f"""\
             %define __spec_install_post %{{nil}}
             %define debug_package %{{nil}}
@@ -309,7 +311,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             %description
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
              molecular visualization program from the Resource for Biocomputing
-             Visualization, and Informatics (RBVI), following UCSF Chimera. 
+             Visualization, and Informatics (RBVI), following UCSF Chimera.
              ChimeraX can be downloaded free of charge for academic, government
              nonprofit, and personal use. Commercial users, please see licensing.
 
@@ -373,13 +375,13 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             find {pkg_root} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
             """), file=f)
 
-        #Icon: .gif or .xpm!
-        #Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
-        #Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
-        # field::biology:structural, field::biology:bioinformatics,
-        # biology::nucleic-acids, biology::peptidic,
-        # scope::application, x11::application, role::program, interface::3d,
-        # implemented-in::python, uitoolkit::qt, use:viewing, network::client
+        # Icon: .gif or .xpm!
+        # Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
+        # Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
+        #  field::biology:structural, field::biology:bioinformatics,
+        #  biology::nucleic-acids, biology::peptidic,
+        #  scope::application, x11::application, role::program, interface::3d,
+        #  implemented-in::python, uitoolkit::qt, use:viewing, network::client
 
 
 def make_copyright_file(doc_dir):

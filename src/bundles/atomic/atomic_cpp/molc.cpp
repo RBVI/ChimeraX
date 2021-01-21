@@ -3595,35 +3595,45 @@ extern "C" EXPORT void change_tracker_clear(void *vct)
     }
 }
 
-extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, void *modded,
-    const char *reason)
+extern "C" EXPORT void change_tracker_add_modified(int class_num, void *modded, const char *reason)
 {
-    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
         if (class_num == 0) {
             auto atomic_ptr = static_cast<Atom*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 1) {
             auto atomic_ptr = static_cast<Bond*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 2) {
             auto atomic_ptr = static_cast<Pseudobond*>(modded);
-            ct->add_modified(atomic_ptr->group()->structure(), atomic_ptr, reason);
+            auto mgr = atomic_ptr->group()->manager();
+            auto s_mgr = dynamic_cast<StructureManager*>(mgr);
+            Structure* s = (s_mgr == nullptr ? nullptr : s_mgr->structure());
+            mgr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 3) {
             auto atomic_ptr = static_cast<Residue*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 4) {
             auto atomic_ptr = static_cast<Chain*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            s->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 5) {
             auto atomic_ptr = static_cast<AtomicStructure*>(modded);
-            ct->add_modified(atomic_ptr, atomic_ptr, reason);
+            auto s = atomic_ptr;
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 6) {
             auto atomic_ptr = static_cast<Proxy_PBGroup*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto mgr = atomic_ptr->manager();
+            auto s_mgr = dynamic_cast<StructureManager*>(mgr);
+            Structure* s = (s_mgr == nullptr ? nullptr : s_mgr->structure());
+            mgr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 7) {
             auto atomic_ptr = static_cast<CoordSet*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            s->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }

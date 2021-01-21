@@ -2930,7 +2930,12 @@ class Command:
 def command_trigger(session, log, cmd_text):
     if session is not None and log:
         session.triggers.activate_trigger("command started", cmd_text)
-    yield
+    try:
+        yield
+    except Exception:
+        if session is not None and log:
+            session.triggers.activate_trigger("command failed", cmd_text)
+        raise
     if session is not None and log:
         session.triggers.activate_trigger("command finished", cmd_text)
 

@@ -1,0 +1,7 @@
+from Amber Parameters Database (http://www.pharmacy.manchester.ac.uk/bryce/amber/)
+
+MASS
+FE 55.0
+
+NONBON
+  FE         1.20000   0.05000   0.00000

@@ -9,15 +9,22 @@ PIP_VERSION = 20.3.1
 WHEEL_VERSION = 0.36.0
 SETUPTOOLS_VERSION = 50.3.2
 
-ifdef WIN32
+ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
 DISTDIR = $(tmpdir)/python-$(PYTHON_PATCH_LEVEL)-win-amd64
 SOURCE = 
 DYNLOAD_DIR = $(bindir)/DLLs
-else
+endif
+ifeq ($(OS),Linux)
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 DISTDIR =
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
+DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
+endif
+ifeq ($(OS),Darwin)
+DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+DISTDIR =
+SOURCE = 
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
@@ -103,8 +110,7 @@ ifeq ($(OS),Windows)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
-	cd $(SOURCE) && $(MAKE) EXTRA_CFLAGS=$(EXTRA_CFLAGS) && $(MAKE) -j1 EXTRA_CFLAGS=$(EXTRA_CFLAGS) install
-	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
+	tar xf $(DISTRIBUTION) -C $(frameworkdir)
 
 	# copy bin, include, lib, and share to common location and leave symbolic links
 	dir=$(PYTHON_FRAMEWORK)/bin; \
@@ -144,10 +150,8 @@ else ifdef USE_MAC_FRAMEWORKS
 		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
 
-	# replace python executable with version that doesn't invoke Python.app
-	cp $(SOURCE)/python.exe $(PYTHON_BIN)
 	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_BIN)
-	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+	install_name_tool -change /Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python \
 		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_BIN)
 
@@ -164,11 +168,9 @@ else ifdef USE_MAC_FRAMEWORKS
 	install_name_tool -add_rpath \
 		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
-	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+	install_name_tool -change /Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python \
 		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
-	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
-	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 
 else
 	# Linux or Mac OS X without framework
@@ -225,8 +227,6 @@ else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
-	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
-	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \

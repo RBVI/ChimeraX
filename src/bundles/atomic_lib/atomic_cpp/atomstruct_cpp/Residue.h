@@ -437,8 +437,8 @@ Residue::ribbon_clear_hide() {
 inline bool
 Residue::selected() const {
     for (auto atom: atoms())
-      if (atom->selected())
-	return true;
+        if (atom->selected())
+            return true;
     return false;
 }
 

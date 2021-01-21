@@ -1953,22 +1953,24 @@ class ChangeTracker:
         return not hasattr(self, '_c_pointer')
 
     def add_modified(self, modded, reason):
+        # So to avoid having all code test whether a structure is open or not,
+        # have this call use the structure's own change tracker rather than self
         f = c_function('change_tracker_add_modified',
-            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
+            args = (ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
         from .molarray import Collection
         from collections.abc import Iterable
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
+                f(class_num, int(ptr), reason.encode('utf-8'))
         else:
             try:
                 iterable_test = iter(modded)
             except TypeError:
-                f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+                f(self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
             else:
                 for item in modded:
-                    f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+                    f(self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
 
     @property
     def changed(self):

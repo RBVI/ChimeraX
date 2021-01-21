@@ -265,10 +265,7 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     _initialized_pyopengl = True
     
     if offscreen:
-        # Offscreen rendering requires setting environment variable
-        # before set before importing PyOpenGL.
-        import os
-        os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+        _configure_pyopengl_to_use_osmesa()
 
     if log_opengl_calls:
         # Log all OpenGL calls
@@ -285,6 +282,31 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     global GL
     import OpenGL.GL
     GL = OpenGL.GL
+
+def _configure_pyopengl_to_use_osmesa():
+    '''Tell PyOpenGL where to find libOSMesa.'''
+
+    # Get libOSMesa from the Python module osmesa if it exists.
+    try:
+        import osmesa
+    except ImportError:
+        # Let PyOpenGL try to find a system libOSMesa library.
+        import os
+        os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+        return
+
+    # PyOpenGL 3.1.5 can only find libOSMesa in system locations.
+    # This hack allows it to find libOSMesa in the Python osmesa module.
+    from OpenGL.platform.osmesa import OSMesaPlatform
+    import ctypes
+    OSMesaPlatform.GL = ctypes.CDLL(osmesa.osmesa_library_path(), ctypes.RTLD_GLOBAL)
+
+    import os
+    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
+
+    # Reload the PyOpenGL platform which is set when OpenGL first imported.
+    from OpenGL.platform import _load
+    _load()
 
 def _qobject_deleted(o):
     import shiboken2

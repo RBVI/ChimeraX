@@ -68,10 +68,6 @@ setup(
         "PKG_NAME": ["*.json", "*.PYMOD_EXT", "*.pdb"],
     },
     data_files=[
-        (rel_inst_shlib_dir, [
-        ]),
-        (os.path.join(os.path.basename(data_dir), "idatm", "templates"),
-         glob(os.path.join(data_dir, "idatm", "templates", "*"))),
     ],
     ext_modules=[
         Extension("chimerax.core._serialize", sources=["_serialize.cpp"])

@@ -76,7 +76,7 @@ class MultitouchTrackpad:
         '''
         Various attempts to enable touch events from Python in Qt 5.9 all failed.
         print('graphics window winId', wid, int(wid))
-        from PySide2.Qt import Qt
+        from PySide2.QtCore import Qt
         w = self.widget
         wwid = w.winId()
         # wwid != wid so touch events are not enabled on graphics window.

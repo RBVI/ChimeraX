@@ -128,7 +128,7 @@ class Parser:
             name = pdbid
         else:
             m = RE_ChainId.match(desc)
-            name = pdbid + '_' + m.group("id") if m else chain
+            name = pdbid + '_' + (m.group("id") if m else chain)
         return name
 
     def _extract_hsp(self, hspe, name, pdb, desc):

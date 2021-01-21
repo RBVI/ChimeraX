@@ -53,6 +53,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         tokens.append(token)
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
         for fn in file_names] + [StringArg.unparse(token) for token in tokens])
+    more_log_info = None
     try:
         database_name = format_name = None
         for i in range(len(tokens)-2, -1, -2):
@@ -62,7 +63,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             elif "fromdatabase".startswith(test_token):
                 database_name = tokens[i+1]
 
-        from .manager import NoOpenerError
+        from .manager import NoOpenerError, OpenerNotInstalledError
         mgr = session.open_command
         fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
         if fetches:
@@ -78,6 +79,12 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             else:
                 try:
                     provider_args = mgr.open_args(data_format)
+                except OpenerNotInstalledError as e:
+                    from chimerax.core import toolshed
+                    bi = mgr.provider_info(data_format).bundle_info
+                    more_log_info = '<a href="%s">Install the %s bundle</a> to open "%s" format files.' % (
+                        toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, data_format.name)
+                    raise LimitationError("%s; see log for more info" % e)
                 except NoOpenerError as e:
                     raise LimitationError(str(e))
 
@@ -104,6 +111,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     except BaseException as e:
         # want to log command even for keyboard interrupts
         log_command(session, "open", provider_cmd_text, url=_main_open_CmdDesc.url)
+        if more_log_info:
+            session.logger.info(more_log_info, is_html=True)
         raise
     # Unlike run(), Command.run returns a list of results
     models = Command(session, registry=registry).run(provider_cmd_text, log=log)[0]
@@ -557,12 +566,12 @@ def cmd_open_formats(session):
     all_formats = session.open_command.open_data_formats
     by_category = {}
     for fmt in all_formats:
-        if not session.open_command.provider_info(fmt).bundle_info.installed:
-            continue
         by_category.setdefault(fmt.category.title(), []).append(fmt)
     titles = list(by_category.keys())
     titles.sort()
     lines = []
+    from chimerax.core import toolshed
+    ts = toolshed.get_toolshed()
     for title in titles:
         formats = by_category[title]
         if session.ui.is_gui:
@@ -575,21 +584,34 @@ def cmd_open_formats(session):
             session.logger.info(title)
             session.logger.info('File format, Short name(s), Suffixes:')
         formats.sort(key = lambda f: f.name.lower())
+        some_uninstalled = False
         for f in formats:
+            bundle_info = session.open_command.provider_info(f).bundle_info
             if session.ui.is_gui:
                 from html import escape
-                if f.reference_url:
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    descrip = '<a href="%s">%s</a><sup>*</sup>' % (ts.bundle_url(bundle_info.name),
+                        escape(f.synopsis))
+                elif f.reference_url:
                     descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
                 else:
                     descrip = escape(f.synopsis)
                 lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
                     escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
             else:
-                session.logger.info('    %s: %s: %s' % (f.synopsis,
-                    commas(f.nicknames), ', '.join(f.suffixes)))
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    session.logger.info('    %s (not installed): %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
+                else:
+                    session.logger.info('    %s: %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
         if session.ui.is_gui:
             lines.append('</table>')
-            lines.append('<p></p>')
+            if some_uninstalled:
+                lines.append('<sup>*</sup>Not installed; click on link to install<br>')
+            lines.append('<br>')
         else:
             session.logger.info('\n')
 

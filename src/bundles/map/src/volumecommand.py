@@ -688,9 +688,9 @@ class PlanesArg(Annotation):
         if fields[0] not in ('x', 'y', 'z'):
             raise AnnotationError('Planes argument first field must be x, y, or z, got "%s"' % fields[0])
         try:
-            values = [int(f) for f in fields[1:]]
+            values = [float(f) for f in fields[1:]]
         except Exception:
-            raise AnnotationError('Planes arguments after axis must be integers')
+            raise AnnotationError('Planes arguments after axis must be numbers')
         result = tuple([fields[0]] + values)
         return result, text, rest
     
