@@ -29,14 +29,14 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         block = session.in_script or not session.ui.is_gui
     if fast:
         num_models = 1
-    from . import comparative
+    from . import comparative, common
     try:
         comparative.model(session, targets, block=block, multichain=multichain,
             custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
             hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_gui,
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
-    except comparative.ModelingError as e:
+    except common.ModelingError as e:
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
@@ -47,13 +47,14 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
     from chimerax.core.errors import UserError
     if block is None:
         block = session.in_script or not session.ui.is_gui
-    #TODO: the entire backend implied by this call
-    from . import loops
+    if chains is not None and not chains:
+        raise UserError("'chains' argument doe not match any chains")
+    from . import loops, common
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
             executable_location=executable_location, license_key=license_key, num_models=num_models,
             protocol=protocol, show_gui=show_gui, temp_path=temp_path)
-    except loops.ModelingError as e:
+    except common.ModelingError as e:
         raise UserError(e)
 
 def score_models(session, structures, *, block=None, license_key=None, refresh=False):
@@ -83,10 +84,10 @@ def register_command(logger):
     register('modeller comparative', desc, sequence_model, logger=logger)
 
     class LoopsRegionArg(SeqRegionArg):
-        special_region_values = ["all-missing", "non-terminal-missing"]
+        from .loops import special_region_values
 
     desc = CmdDesc(
-        required = [('targets', LoosRegionArg)],
+        required = [('targets', LoopsRegionArg)],
         keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg), ('chains', ChainsArg),
             ('executable_location', OpenFileNameArg), ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])), ('show_gui', BoolArg),

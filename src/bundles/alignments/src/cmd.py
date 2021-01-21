@@ -40,7 +40,7 @@ class SeqRegionArg(Annotation):
        (truncation allowed), the full value text is returned instead of the region list.
 
 
-       Return value is (seq, list of (start,end) Python-like indices into sequence.
+       Return value is (alignment, seq, list of (start,end) Python-like indices into sequence.
     '''
 
     name = "[alignment-id]:sequence-name-or-number:[sequence-positions-or-ranges]"
@@ -61,7 +61,7 @@ class SeqRegionArg(Annotation):
         if _rest:
             raise AnnotationError("Unexpected text (%s) after alignment/sequence name and before range"
                 % _rest)
-        seq = align_seq[-1]
+        align, seq = align_seq
         if not region_text:
             # whole sequence
             regions = [(0, len(seq))]
@@ -77,16 +77,16 @@ class SeqRegionArg(Annotation):
                     else:
                         start = end = seqment
                     try:
-                        start, end = int(start), int(end)+1
+                        start, end = int(start)-1, int(end)
                     except ValueError:
                         raise AnnotationError("Sequence position is not a comma-separated list of integer"
                             " positions or position ranges")
                     if start < 0:
-                        raise AnnotationError("Sequence position is less than zero")
+                        raise AnnotationError("Sequence position is less than one")
                     elif end > len(seq):
-                        raise AnnotationError("Sequence position (%d) is past end of sequence" % (end-1))
+                        raise AnnotationError("Sequence position (%d) is past end of sequence" % end)
                     regions.append((start, end))
-        return (seq, regions), text, rest
+        return (align, seq, regions), text, rest
 
 class AlignSeqPairArg(Annotation):
     '''Same as SeqArg, but the return value is (alignment, seq)'''

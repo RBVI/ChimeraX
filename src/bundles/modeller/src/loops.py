@@ -11,55 +11,62 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def model(session, targets, *, block=True, multichain=True, custom_script=None,
-    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
-    thorough_opt=False, water_preserve=False):
+ALL_MISSING = "all-missing"
+NT_MISSING "non-terminal-missing"
+
+special_region_values = [ALL_MISSING, NT_MISSING]
+
+def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
+    license_key=None, num_models=5, protocol=None, show_gui=True, temp_path=None):
     """
-    Generate comparative models for the target sequences.
+    Model or remodel parts of structure, typically missing structure regions.
 
     Arguments:
     session
         current session
     targets
-        list of (alignment, sequence) tuples.  Each sequence will be modelled.
+        What parts of the structures associated with a sequence to remodel.  It should be an
+        (alignment, sequence, indices) tuple.  The indices should be a list of two-tuples of
+        (start, end) Python-style indices into the sequence.  Alternatively, "indices" can be
+        one of the string values from special_region_values above to remodel all missing structure
+        or non-terminal missing structure associated with the sequence.
+    adjacent_flexible
+        How many residues adjacent to the remodelled region(s) on each side to allow to be adjusted
+        to accomodate the remodelled segment(s).  Can be zero.
     block
-        If True, wait for modelling job to finish before returning and return list of
-        (opened) models.  Otherwise return immediately.
-    multichain
-        If True, the associated chains of each structure are used individually to generate
-        chains in the resulting models (i.e. the models will be multimers).  If False, all
-        associated chains are used together as templates to generate a single-chain model
-        for the target sequence.
-    custom_script
-        If provided, the location of a custom Modeller script to use instead of the
-        one we would otherwise generate.  Only used when executing locally.
-    dist_restraints
-        If provided, the location of a file containing additional distance restraints
+        If True, wait for modelling job to finish before returning and return list of (opened) models.
+        Otherwise return immediately.
+    chains
+        If specified, the particular chains associated with the sequence to remodel.  If omitted, all
+        associated chains will be remodeled.
     executable_location
-        If provided, the path to the locally installed Modeller executable.  If not
-        provided, use the web service.
-    fast
-        Whether to use fast but crude generation of models
-    het_preserve
-        Whether to preserve HET atoms in generated models
-    hydrogens
-        Whether to generate models with hydrogen atoms
+        If provided, the path to the locally installed Modeller executable.  If not provided, use the
+        web service.
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
-        Number of models to generate for each template sequence
+        Number of models to generate
     show_gui
         If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
-    thorough_opt
-        Whether to perform thorough optimization
-    water_preserve
-        Whether to preserve water in generated models
     """
 
     from chimerax.core.errors import LimitationError, UserError
+
+    alignment, seq, region_info = targets
+    if not alignment.associations:
+        raise UserError("No chains/structures associated with sequence %s" % seq.name)
+    model_chains = set(alignment.associations.keys())
+    if chains:
+        model_chains = [chain for chain in chains if chain in model_chains]
+    by_structure = {}
+    for chain in model_chains:
+        by_structure.setdefault(chain.structure, []).append(chain)
+
+    #TODO: for loop_info data
+
+
     from .common import modeller_copy
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.

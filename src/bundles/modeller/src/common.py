@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class ModelingError(ValueError):
+    pass
+
 def modeller_copy(seq):
 	from copy import copy
 	mseq = copy(seq)
