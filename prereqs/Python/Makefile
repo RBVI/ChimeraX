@@ -90,7 +90,7 @@ endif
 
 all:
 
-install: $(SOURCE) $(DISTDIR)
+install: $(SOURCE) $(DISTRIBUTION) $(DISTDIR)
 ifeq ($(OS),Windows)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
 	  '$(DISTDIR)'/DLLs \
