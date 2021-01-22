@@ -41,6 +41,84 @@ def place_helium(structure, res_name, position=None):
     a.draw_mode = a.BALL_STYLE
     return a
 
+import os
+nuc_data_dir = os.path.join(os.path.dirname(__file__), "nuc-data")
+nucleic_forms = []
+for entry in os.listdir(nuc_data_dir):
+    if entry.endswith(".xform"):
+        nucleic_forms.append(entry[:-5])
+
+class NucleicError(ValueError):
+    pass
+
+def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
+    """
+    Place a nucleotide sequence (and its complementary chain).
+
+    *structure* is an AtomicStructure to add the peptide to.
+
+    *sequence* contains the sequence of the first chain.
+
+    *form* is the (upper case) form (e.g. A); the supported forms are in the
+    chimerax.build_structure.start.nucleic_forms list variable.
+
+    If *type* is "dna", then both strands are DNA.  If "rna", then both are RNA.
+    If "hybrid", then the first is DNA (and the sequence should be a DNA sequence) and the second DNA.
+
+    The chains will be given the first two empty chain IDs.
+
+    Returns a Chains collection containing the two chains.
+    """
+
+    if not sequence
+        raise NucleicError("No sequence supplied")
+    sequence = sequence.upper()
+    type = type.lower()
+    if type == "rna":
+        alphabet = "ACGU"
+    else:
+        alphabet = "ACGT"
+    for let in sequence:
+        if let not in alphabet:
+            raise NucleotideError("Sequence letter %s is illegal for %s"
+                % (let, "RNA" if type == "rna" else "DNA"))
+    if type == "rna":
+        # treat U as T for awhile...
+        sequence = sequence.replace('U', 'T')
+
+    session = structure.session
+
+    open_models = session.models[:]
+    if len(open_models) == 0:
+        need_focus = True
+    elif len(open_models) == 1:
+        if open_models[0] == structure:
+            need_focus = not structure.atoms
+        else:
+            need_focus = False
+    else:
+        need_focus = False
+
+    if position is None:
+        position = session.main_view.center_of_rotation
+    from numpy import array
+    position = array(position)
+
+    xform_file = os.path.join(nuc_data_dir, form + '.xform')
+    xform_values = []
+    with open(xform_file "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            xform_values.extend([float(x) for x in line.split()])
+    from chimerax.geometry import Place
+    xform = Place(xform_values)
+
+    #TODO: put a function in atomic for generating chain IDs; find two consecutive empty chains
+    #TODO: if not need_focus, reposition center to 'position'
+
+
 class PeptideError(ValueError):
     pass
 
@@ -54,7 +132,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     *phi_psis* is a list of phi/psi tuples, one per residue.
 
-    *position* is either an array or sequence specifying an xyz world coordinate position or None.
+    *position* is either an array/sequence specifying an xyz world coordinate position or None.
     If None, the peptide is positioned at the center of the view.
 
     *rot_lib* is the name of the rotamer library to use to position the side chains.

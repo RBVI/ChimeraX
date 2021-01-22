@@ -49,10 +49,12 @@ class StartStructureProvider(metaclass=abc.ABCMeta):
 def get_provider(session, name):
     return {
         "atom": AtomProvider,
-        "peptide": PeptideProvider
+        "nucleic": NucleicProvider,
+        "peptide": PeptideProvider,
     }[name](session, name)
 
-from chimerax.core.commands import register, CmdDesc, Command, StringArg, Float2Arg, Float3Arg, BoolArg
+from chimerax.core.commands import register, CmdDesc, Command, Annotation, StringArg, Float2Arg, Float3Arg, \
+    BoolArg, DynamicEnum
 
 class AtomProvider(StartStructureProvider):
     def __init__(self, session, name):
@@ -147,6 +149,71 @@ class AtomProvider(StartStructureProvider):
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
+class NucleicProvider(StartStructureProvider):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.name = name
+        # register commands to private registry
+        from chimerax.core.commands.cli import RegisteredCommandInfo
+        self.registry = RegisteredCommandInfo()
+
+        from .start import nucleic_forms
+        register(name,
+            CmdDesc(
+                required=[("sequence", StringArg)],
+                keyword=[("form", DynamicEnum(nucleic_forms)),
+                    ("type", DynamicEnum(["dna", "rna", "hybrid"])],
+                synopsis="construct helical nucleic acid from sequence"
+            ), shim_place_nucleic_acid, registry=self.registry)
+
+    #TODO
+    def command_string(self, widget):
+        args = []
+        seq_edit = widget.findChild(QTextEdit, "peptide sequence")
+        seq = "".join(seq_edit.toPlainText().split()).upper()
+        if not seq:
+            raise UserError("No peptide sequence entered")
+        param_dialog = PeptideParamDialog(self.session, widget, seq)
+        if not param_dialog.exec():
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("peptide building cancelled")
+        args.append(StringArg.unparse(seq))
+        args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
+        args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
+        chain_id = param_dialog.chain_id
+        if chain_id:
+            args.append("chainId %s" % StringArg.unparse(chain_id))
+        return " ".join(args)
+
+    def execute_command(self, structure, args):
+        # the command uses the trick that the structure arg is temporarily made available in the
+        # global namespace as '_structure'
+        global _structure
+        _structure = structure
+        try:
+            cmd = Command(self.session, registry=self.registry)
+            return cmd.run(self.name + ' ' + args, log=False)[0]
+        finally:
+            _structure = None
+
+    def fill_parameters_widget(self, widget):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(3,0,3,5)
+        layout.setSpacing(0)
+        widget.setLayout(layout)
+        layout.addWidget(QLabel("Peptide Sequence", alignment=Qt.AlignCenter))
+        peptide_seq = QTextEdit()
+        peptide_seq.setObjectName("peptide sequence")
+        layout.addWidget(peptide_seq, stretch=1)
+        tip = QLabel("'Apply' button will bring up dialog for setting"
+            "\N{GREEK CAPITAL LETTER PHI}/\N{GREEK CAPITAL LETTER PSI} angles")
+        tip.setWordWrap(True)
+        # specify alignment within the label itself (instead of the layout) so that the label
+        # is given the full width of the layout to work with, otherwise you get unneeded line
+        # wrapping
+        tip.setAlignment(Qt.AlignCenter)
+        layout.addWidget(tip)
+
 class PeptideProvider(StartStructureProvider):
     def __init__(self, session, name):
         super().__init__(session)
@@ -155,7 +222,6 @@ class PeptideProvider(StartStructureProvider):
         from chimerax.core.commands.cli import RegisteredCommandInfo
         self.registry = RegisteredCommandInfo()
 
-        from chimerax.core.commands import Annotation, DynamicEnum
         class RepeatableFloat2Arg(Annotation):
             allow_repeat = True
             parse = Float2Arg.parse
@@ -350,6 +416,13 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
         session.selection.clear()
         a.selected = True
     return a
+
+def shim_place_nucleic_acid(session, sequence, **kw):
+    from .start import place_nucleic_acid, NucleicError
+    try:
+        return place_nucleic_acid(_structure, sequence, **kw)
+    except NucleicError as e:
+        raise UserError(str(e))
 
 def shim_place_peptide(session, sequence, phi_psis, **kw):
     from .start import place_peptide, PeptideError

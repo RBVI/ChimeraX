@@ -11,6 +11,10 @@
   <Synopsis>Create/modify structures</Synopsis>
   <Description>Create/modify atomic structures</Description>
 
+  <DataFiles>
+  	<DataDir>nuc-data</DataDir>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Analysis"/>
@@ -32,9 +36,10 @@
     <Manager name="start structure" autostart="false"/>
   </Managers>
 
-  <Providers manager="start structure" autostart="false">
+  <Providers manager="start structure">
     <Provider name="atom"/>
     <Provider name="peptide"/>
+    <Provider name="nucleic" ui_name="helical DNA/RNA" />
   </Providers>
 
   <Classifiers>
