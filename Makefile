@@ -76,7 +76,7 @@ vdocs.install:
 
 
 build-dirs:
-	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
+	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) $(etcdir) \
 		$(webdir) $(wheelhouse) $(build_prefix)/sync/{python-only,binary}
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
@@ -94,7 +94,7 @@ build-app-dirs:
 		$(app_includedir) $(APP_PYSITEDIR)
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
-		$(app_frameworkdir)
+		$(app_frameworkdir) $(app_etcdir)
 endif
 
 distclean: clean

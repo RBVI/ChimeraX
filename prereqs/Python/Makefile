@@ -149,11 +149,18 @@ else ifdef USE_MAC_FRAMEWORKS
 		rm -rf $$dir ; \
 		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
 	fi
+	dir=$(PYTHON_FRAMEWORK)/etc; \
+	if [ ! -L $$dir ]; \
+	then \
+		cp -r $$dir/* $(etcdir) ; \
+		rm -rf $$dir ; \
+		ln -s $(shell python -ES -c 'import os; print(os.path.relpath("$(etcdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
 
+	# Moved python binary needs new relative RPATH so python standard modules find the Python library
+	install_name_tool -rpath '@executable_path/../../../' '@executable_path/../Library/Frameworks/Python.framework' $(PYTHON_BIN)
+	# Add an RPATH so ChimeraX C++ modules can find the lib directory
 	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_BIN)
-	install_name_tool -change /Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python \
-		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(PYTHON_BIN)
 
 	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
 		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
@@ -227,7 +234,9 @@ else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
+	$(RSYNC) $(libdir)/libssl.* $(libdir)/libcrypto.* $(app_libdir)
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
+	$(RSYNC) $(etcdir)/openssl $(app_etcdir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
