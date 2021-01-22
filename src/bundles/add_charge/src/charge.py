@@ -501,6 +501,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     while nearby:
         nb = nearby.pop()
         na = add_atom(_get_aname(nb.element.name, atom_names), nb.element, nr, nb.coord)
+        extras.add(na)
         atom_map[nb] = na
         for nbnb in nb.neighbors:
             if nbnb in atom_map:
