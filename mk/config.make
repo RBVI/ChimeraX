@@ -17,7 +17,6 @@ TOP := $(shell (cd "$(TOP)"; pwd))
 build_prefix = $(TOP)/build
 bindir = $(build_prefix)/bin
 includedir = $(build_prefix)/include
-etcdir = $(build_prefix)/etc
 libdir = $(build_prefix)/lib
 shlibdir = $(libdir)
 datadir = $(build_prefix)/share
@@ -96,7 +95,6 @@ endif
 app_bindir = $(app_prefix)/bin
 app_includedir = $(app_prefix)/include
 app_libdir = $(app_prefix)/lib
-app_etcdir = $(app_prefix)/etc
 ifdef WIN32
 app_shlibdir = $(app_bindir)
 else
