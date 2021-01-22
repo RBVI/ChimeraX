@@ -162,23 +162,6 @@ else ifdef USE_MAC_FRAMEWORKS
 	# Add an RPATH so ChimeraX C++ modules can find the lib directory
 	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_BIN)
 
-	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
-		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
-
-	chmod 644 $(PYTHON_FRAMEWORK)/Python
-	install_name_tool -id \
-		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(PYTHON_FRAMEWORK)/Python
-	chmod 444 $(PYTHON_FRAMEWORK)/Python
-
-	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -add_rpath \
-		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
-		$(pyappdir)/Python
-	install_name_tool -change /Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python \
-		@executable_path/$(shell python -ES -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
-		$(pyappdir)/Python
-
 else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
@@ -191,13 +174,6 @@ ifeq ($(OS),Linux)
 	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
 	       $(bindir)/chrpath -C $(PYTHON_BIN); \
 	fi
-endif
-ifeq ($(OS),Darwin)
-	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
-	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
-		chmod 644 $(libdir)/$$pylib ;\
-		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
-		chmod 444 $(libdir)/$$pylib
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
