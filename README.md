@@ -4,7 +4,7 @@
 
 ## Platforms
 
-ChimeraX runs on Windows, macOS and Linux and is free for academic and government use ([license](https://www.cgl.ucsf.edu/chimerax/docs/licensing.html)).  Commercial use requires a fee which supports development of the software.  It is about 80% Python 3 code and 20% C++ code.  The C++ is for speed critical parts.  It uses the Qt window toolkit.  
+ChimeraX runs on Windows, macOS and Linux and is free for academic and government use ([license](https://www.rbvi.ucsf.edu/chimerax/docs/license.html)).  Commercial use requires a [fee](https://www.rbvi.ucsf.edu/chimera/commercial_license.html) which supports development of the software.  It is about 80% Python 3 code and 20% C++ code.  The C++ is for speed critical parts.  It uses the Qt window toolkit.  
 
 ## Installing ChimeraX
 
