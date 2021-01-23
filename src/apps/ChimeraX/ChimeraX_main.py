@@ -126,6 +126,7 @@ def _parse_python_args(argv, usage):
     opts.get_available_bundles = False
     opts.load_tools = False
     opts.silent = True
+    opts.safe_mode = True
 
     def next_arg(argv):
         no_arg = "bdhiqvuBEIOSV"  # python option w/o argument

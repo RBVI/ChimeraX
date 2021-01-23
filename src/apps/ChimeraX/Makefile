@@ -138,6 +138,11 @@ ifeq ($(OS),Linux)
 		$(bindir)/chrpath -C $(PROG); \
 	fi
 endif
+ifeq ($(OS),Darwin)
+	# Add RPATH so Python ssl module can find libssl.dylib.
+	# It needs Python.Framework in the RPATH
+	install_name_tool -add_rpath '@executable_path/../Library/Frameworks/Python.framework' $(PROG)
+endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg
