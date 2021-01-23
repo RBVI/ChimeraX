@@ -17,6 +17,7 @@ import chimerax.atomic_lib
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
+from .molobject import next_chain_id, chain_id_characters
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds
 from .pbgroup import interatom_pseudobonds, selected_pseudobonds
