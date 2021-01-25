@@ -54,7 +54,7 @@ def get_provider(session, name):
     }[name](session, name)
 
 from chimerax.core.commands import register, CmdDesc, Command, Annotation, StringArg, Float2Arg, Float3Arg, \
-    BoolArg, DynamicEnum
+    BoolArg, DynamicEnum, EnumOf
 
 class AtomProvider(StartStructureProvider):
     def __init__(self, session, name):
@@ -161,8 +161,7 @@ class NucleicProvider(StartStructureProvider):
         register(name,
             CmdDesc(
                 required=[("sequence", StringArg)],
-                keyword=[("form", DynamicEnum(nucleic_forms)),
-                    ("type", DynamicEnum(["dna", "rna", "hybrid"])],
+                keyword=[("form", EnumOf(nucleic_forms)), ("type", EnumOf(["dna", "rna", "hybrid"]))],
                 synopsis="construct helical nucleic acid from sequence"
             ), shim_place_nucleic_acid, registry=self.registry)
 

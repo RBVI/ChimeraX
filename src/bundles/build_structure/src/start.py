@@ -46,12 +46,12 @@ nuc_data_dir = os.path.join(os.path.dirname(__file__), "nuc-data")
 nucleic_forms = []
 for entry in os.listdir(nuc_data_dir):
     if entry.endswith(".xform"):
-        nucleic_forms.append(entry[:-5])
+        nucleic_forms.append(entry[:-6])
 
 class NucleicError(ValueError):
     pass
 
-def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
+def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=None):
     """
     Place a nucleotide sequence (and its complementary chain).
 
@@ -65,12 +65,15 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
     If *type* is "dna", then both strands are DNA.  If "rna", then both are RNA.
     If "hybrid", then the first is DNA (and the sequence should be a DNA sequence) and the second DNA.
 
+    Position is where the center of the chains will be positioned.  If None, at the center of the
+    current view.
+
     The chains will be given the first two empty chain IDs.
 
     Returns a Chains collection containing the two chains.
     """
 
-    if not sequence
+    if not sequence:
         raise NucleicError("No sequence supplied")
     sequence = sequence.upper()
     type = type.lower()
@@ -80,7 +83,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
         alphabet = "ACGT"
     for let in sequence:
         if let not in alphabet:
-            raise NucleotideError("Sequence letter %s is illegal for %s"
+            raise NucleicError("Sequence letter %s is illegal for %s"
                 % (let, "RNA" if type == "rna" else "DNA"))
     if type == "rna":
         # treat U as T for awhile...
@@ -108,12 +111,12 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
         raise NucleicError(form + "-form RNA/DNA not supported")
     xform_file = os.path.join(nuc_data_dir, form + '.xform')
     xform_values = []
-    with open(xform_file "r") as f:
+    with open(xform_file, "r") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            xform_values.extend([float(x) for x in line.split()])
+            xform_values.append([float(x) for x in line.split()])
     from chimerax.geometry import Place
     xform = Place(xform_values)
 
@@ -149,14 +152,15 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
         if let not in coord_cache:
             coord_cache[let] = coords = {}
             coord_file = os.path.join(nuc_data_dir, "%s-%s%s.coords" % (form, let, complement[let]))
-            for open(coord_file, "r") as f:
-                strand, at_name, *xyz = line.strip().split()
-                strand = int(strand)
-                coords[(strand, at_name)] = array([float(crd) for crd in xyz])
+            with open(coord_file, "r") as f:
+                for line in f:
+                    strand, at_name, *xyz = line.strip().split()
+                    strand = int(strand)
+                    coords[(strand, at_name)] = array([float(crd) for crd in xyz])
         else:
             coords = coord_cache[let]
         type1 = let
-        type2 = complement(let)
+        type2 = complement[let]
         if type != "rna":
             type1 = "D" + type1
         if type == "DNA":
@@ -168,7 +172,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
         for at_info, crd in coords.items():
             strand, at_name = at_info
             residue = r1 if strand == 0 else r2
-            a = add_atom(at_name, at_name[0], residue, cur_xform.apply(crd). serial_number=serial_number)
+            a = add_atom(at_name, at_name[0], residue, cur_xform * crd, serial_number=serial_number)
             serial_number = a.serial_number + 1
         for b1, b2, restriction in bonds:
             for r in (r1, r2):
@@ -177,7 +181,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
                 a1, a2 = r.find_atom(b1), r.find_atom(b2)
                 if a1 and a2:
                     structure.new_bond(a1, a2)
-        if len(residues) > 1:
+        if len(residues1) > 1:
             for res_list, a1, a2 in [(residues1, "O3'", "P"), (residues2, "P", "O3'")]:
                 r1, r2 = res_list[-2:]
                 structure.new_bond(r1.find_atom(a1), r2.find_atom(a2))
@@ -215,8 +219,19 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna"):
             structure.delete_atom(res.find_atom("C7"))
             res.name = "U"
 
-    #TODO: if not need_focus, reposition center to 'position'
+    # reposition center to 'position'
+    from chimerax.atomic import Chains
+    chains = Chains([residues1[0].chain, residues2[0].chain])
+    atoms = chains.existing_residues.atoms
+    coords = atoms.coords
+    center = coords.mean(0)
+    correction = position - center
+    atoms.coords = coords - correction
 
+    if need_focus:
+        from chimerax.core.commands import run
+        run(session, "view", log=False)
+    return chains
 
 class PeptideError(ValueError):
     pass
@@ -343,7 +358,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     if need_focus:
         from chimerax.core.commands import run
-        run(session, "view")
+        run(session, "view", log=False)
     return residues
 
 def unused_chain_id(structure):
