@@ -430,7 +430,8 @@ class RotamerDialog(ToolInstance):
                 self._eval_vol(volumes[0])
                 return
         if sd_type not in self.subdialogs:
-            self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
+            self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type,
+                close_destroys=False)
             from PySide2.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
             layout = QVBoxLayout()
             sd.ui_area.setLayout(layout)
