@@ -168,20 +168,20 @@ class NucleicProvider(StartStructureProvider):
     #TODO
     def command_string(self, widget):
         args = []
-        seq_edit = widget.findChild(QTextEdit, "peptide sequence")
+        seq_edit = widget.findChild(QTextEdit, "sequence")
         seq = "".join(seq_edit.toPlainText().split()).upper()
         if not seq:
-            raise UserError("No peptide sequence entered")
-        param_dialog = PeptideParamDialog(self.session, widget, seq)
-        if not param_dialog.exec():
-            from chimerax.core.errors import CancelOperation
-            raise CancelOperation("peptide building cancelled")
+            raise UserError("No nucleotide sequence entered")
         args.append(StringArg.unparse(seq))
-        args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
-        args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
-        chain_id = param_dialog.chain_id
-        if chain_id:
-            args.append("chainId %s" % StringArg.unparse(chain_id))
+        for nuc_type in ["dna", "rna", "hybrid"]:
+            if widget.findChild(QRadioButton, nuc_type).isChecked():
+                args.append("type " + nuc_type)
+                break
+        from .start import nucleic_forms
+        for form in nucleic_forms:
+            if widget.findChild(QRadioButton, form).isChecked():
+                args.append("form " + form)
+                break
         return " ".join(args)
 
     def execute_command(self, structure, args):
@@ -200,18 +200,45 @@ class NucleicProvider(StartStructureProvider):
         layout.setContentsMargins(3,0,3,5)
         layout.setSpacing(0)
         widget.setLayout(layout)
-        layout.addWidget(QLabel("Peptide Sequence", alignment=Qt.AlignCenter))
-        peptide_seq = QTextEdit()
-        peptide_seq.setObjectName("peptide sequence")
-        layout.addWidget(peptide_seq, stretch=1)
-        tip = QLabel("'Apply' button will bring up dialog for setting"
-            "\N{GREEK CAPITAL LETTER PHI}/\N{GREEK CAPITAL LETTER PSI} angles")
-        tip.setWordWrap(True)
-        # specify alignment within the label itself (instead of the layout) so that the label
-        # is given the full width of the layout to work with, otherwise you get unneeded line
-        # wrapping
-        tip.setAlignment(Qt.AlignCenter)
-        layout.addWidget(tip)
+        layout.addWidget(QLabel("Sequence", alignment=Qt.AlignCenter))
+        seq = QTextEdit()
+        seq.setObjectName("sequence")
+        layout.addWidget(seq, stretch=1)
+        guidance = QLabel("Enter single strand; double helix will be generated", alignment=Qt.AlignCenter)
+        from chimerax.ui import shrink_font
+        shrink_font(guidance)
+        layout.addWidget(guidance)
+        radios_layout = QHBoxLayout()
+        layout.addLayout(radios_layout)
+        type_layout = QVBoxLayout()
+        type_layout.setContentsMargins(0,0,0,0)
+        type_widget = QWidget()
+        type_widget.setLayout(type_layout)
+        radios_layout.addStretch(1)
+        radios_layout.addWidget(type_widget)
+        button = QRadioButton("DNA")
+        button.setChecked(True)
+        button.setObjectName("dna")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        button = QRadioButton("RNA")
+        button.setObjectName("rna")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        button = QRadioButton("Hybrid DNA/RNA (enter DNA)")
+        button.setObjectName("hybrid")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        from .start import nucleic_forms
+        radios_layout.addStretch(1)
+        form_layout = QVBoxLayout()
+        form_layout.setContentsMargins(0,0,0,0)
+        form_widget = QWidget()
+        form_widget.setLayout(form_layout)
+        radios_layout.addWidget(form_widget)
+        for form in nucleic_forms:
+            button = QRadioButton(form + "-form")
+            button.setChecked(form == 'B')
+            button.setObjectName(form)
+            form_layout.addWidget(button, alignment=Qt.AlignLeft)
+        radios_layout.addStretch(1)
 
 class PeptideProvider(StartStructureProvider):
     def __init__(self, session, name):
