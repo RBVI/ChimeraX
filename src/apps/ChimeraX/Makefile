@@ -190,6 +190,9 @@ ChimeraX-icon16.png:
 #
 # For Windows
 #
+
+ifdef WIN32
+
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
@@ -210,3 +213,5 @@ icon.$(OBJ_EXT): $(APP_NAME).ico
 
 icon.rc: icon.rc.in
 	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
+
+endif
