@@ -39,7 +39,7 @@
   <Providers manager="start structure">
     <Provider name="atom"/>
     <Provider name="peptide"/>
-    <Provider name="nucleic" ui_name="helical DNA/RNA" />
+    <Provider name="nucleic" ui_name="nucleic double helix" />
   </Providers>
 
   <Classifiers>

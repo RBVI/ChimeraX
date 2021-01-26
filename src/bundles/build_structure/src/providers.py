@@ -161,7 +161,8 @@ class NucleicProvider(StartStructureProvider):
         register(name,
             CmdDesc(
                 required=[("sequence", StringArg)],
-                keyword=[("form", EnumOf(nucleic_forms)), ("type", EnumOf(["dna", "rna", "hybrid"]))],
+                keyword=[("form", EnumOf(nucleic_forms)), ("type", EnumOf(["dna", "rna", "hybrid"])),
+                    ("position", Float3Arg)],
                 synopsis="construct helical nucleic acid from sequence"
             ), shim_place_nucleic_acid, registry=self.registry)
 
@@ -222,7 +223,7 @@ class NucleicProvider(StartStructureProvider):
         button = QRadioButton("RNA")
         button.setObjectName("rna")
         type_layout.addWidget(button, alignment=Qt.AlignLeft)
-        button = QRadioButton("Hybrid DNA/RNA (enter DNA)")
+        button = QRadioButton("DNA/RNA hybrid (enter DNA sequence)")
         button.setObjectName("hybrid")
         type_layout.addWidget(button, alignment=Qt.AlignLeft)
         from .start import nucleic_forms
