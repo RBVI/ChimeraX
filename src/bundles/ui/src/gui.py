@@ -991,8 +991,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
             session=self.session, balloon="Initial overall size of ChimeraX window"))
         self.add_settings_option("Window", ToolSideOption("Default tool side",
-            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
-            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+            settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
+            balloon="Which side of main window that new tool windows appear on by default"))
+        from .options import BooleanOption
+        self.add_settings_option("Window", BooleanOption("Start tool windows undocked",
+            settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
+            balloon="Tools (other than Toolbar/Command Line) start undocked and undockable.\n"
+            'A tool can be made dockable through its "Dockable Tool" context menu entry.'))
 
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
@@ -1939,6 +1944,9 @@ class ToolWindow(StatusLogger):
         ui = self.session.ui
         settings =  ui.settings
         tool_name = self.tool_instance.tool_name
+        if settings.auto_float_tools and tool_name not in settings.autostart:
+            if tool_name not in settings.undockable:
+                settings.undockable = settings.undockable + [tool_name]
         if tool_name in settings.undockable:
             from PySide2.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
