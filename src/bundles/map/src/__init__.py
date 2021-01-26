@@ -46,6 +46,7 @@ from ._map import indices_to_colors
 # Control whether maps are pickable with mouse.
 #
 from .volume import maps_pickable
+from .volume import PickedMap
 
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level

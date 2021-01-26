@@ -37,8 +37,8 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``supercedes`` : str
-   Comma-separated list of superceded bundle names.
+4. ``supersedes`` : str
+   Comma-separated list of superseded bundle names.
 5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
@@ -668,7 +668,7 @@ class Toolshed:
         best_version = None
         for bi in container:
             if bi.name.casefold() not in lc_names:
-                for name in bi.supercedes:
+                for name in bi.supersedes:
                     if name.casefold() in lc_names:
                         break
                 else:

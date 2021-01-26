@@ -749,8 +749,11 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
-class AtomCenterOfRotationMode(MouseMode):
-    '''Clicking on an atom sets the center of rotation at that position.'''
+class CenterOfRotationMode(MouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    sets the center of rotation at that position.
+    '''
     name = 'pivot'
     icon_file = 'icons/pivot.png'
 
@@ -760,6 +763,8 @@ class AtomCenterOfRotationMode(MouseMode):
         view = self.session.main_view
         pick = view.picked_object(x, y)
         from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
+        from chimerax.map import PickedMap
+        from chimerax.graphics import PickedTriangle
         if hasattr(pick, 'atom'):
             xyz = pick.atom.scene_coord
         elif isinstance(pick, PickedResidue):
@@ -771,6 +776,8 @@ class AtomCenterOfRotationMode(MouseMode):
         elif isinstance(pick, PickedPseudobond):
             b = pick.pbond
             xyz = sum([a.scene_coord for a in b.atoms]) / 2
+        elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
+            xyz = pick.position
         else:
             return
         from chimerax.std_commands import cofr
@@ -1052,7 +1059,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
-        AtomCenterOfRotationMode,
+        CenterOfRotationMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]

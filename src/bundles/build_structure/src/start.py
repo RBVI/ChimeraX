@@ -41,6 +41,198 @@ def place_helium(structure, res_name, position=None):
     a.draw_mode = a.BALL_STYLE
     return a
 
+import os
+nuc_data_dir = os.path.join(os.path.dirname(__file__), "nuc-data")
+nucleic_forms = []
+for entry in os.listdir(nuc_data_dir):
+    if entry.endswith(".xform"):
+        nucleic_forms.append(entry[:-6])
+
+class NucleicError(ValueError):
+    pass
+
+def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=None):
+    """
+    Place a nucleotide sequence (and its complementary chain).
+
+    *structure* is an AtomicStructure to add the peptide to.
+
+    *sequence* contains the sequence of the first chain.
+
+    *form* is the (upper case) form (e.g. A); the supported forms are in the
+    chimerax.build_structure.start.nucleic_forms list variable.
+
+    If *type* is "dna", then both strands are DNA.  If "rna", then both are RNA.
+    If "hybrid", then the first is DNA (and the sequence should be a DNA sequence) and the second DNA.
+
+    Position is where the center of the chains will be positioned.  If None, at the center of the
+    current view.
+
+    The chains will be given the first two empty chain IDs.
+
+    Returns a Chains collection containing the two chains.
+    """
+
+    if not sequence:
+        raise NucleicError("No sequence supplied")
+    sequence = sequence.upper()
+    type = type.lower()
+    if type == "rna":
+        alphabet = "ACGU"
+    else:
+        alphabet = "ACGT"
+    for let in sequence:
+        if let not in alphabet:
+            raise NucleicError("Sequence letter %s is illegal for %s"
+                % (let, "RNA" if type == "rna" else "DNA"))
+    if type == "rna":
+        # treat U as T for awhile...
+        sequence = sequence.replace('U', 'T')
+
+    session = structure.session
+
+    open_models = session.models[:]
+    if len(open_models) == 0:
+        need_focus = True
+    elif len(open_models) == 1:
+        if open_models[0] == structure:
+            need_focus = not structure.atoms
+        else:
+            need_focus = False
+    else:
+        need_focus = False
+
+    if position is None:
+        position = session.main_view.center_of_rotation
+    from numpy import array
+    position = array(position)
+
+    if form not in nucleic_forms:
+        raise NucleicError(form + "-form RNA/DNA not supported")
+    xform_file = os.path.join(nuc_data_dir, form + '.xform')
+    xform_values = []
+    with open(xform_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            xform_values.append([float(x) for x in line.split()])
+    from chimerax.geometry import Place
+    xform = Place(xform_values)
+
+    # find consecutive unused chain IDs
+    existing_chain_ids = set(structure.residues.chain_ids)
+    from chimerax.atomic import next_chain_id, chain_id_characters
+    cid = chain_id_characters[0]
+    while cid in existing_chain_ids or next_chain_id(cid) in existing_chain_ids:
+        cid = next_chain_id(cid)
+    chain_id1 = cid
+    chain_id2 = next_chain_id(cid)
+
+    # get bond info
+    bonds = []
+    with open(os.path.join(nuc_data_dir, "bonds"), "r") as f:
+        for line in f:
+            fields = line.strip().split()
+            if len(fields) < 3:
+                fields.append(None)
+            bonds.append(fields)
+
+    # build nucleotide
+    from chimerax.atomic.struct_edit import add_atom
+    serial_number = None
+    residues1 = []
+    residues2 = []
+    cur_xform = Place()
+    complement = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A' }
+    coord_cache = {}
+    prev_residues = structure.residues
+    from tinyarray import array
+    for i, let in enumerate(sequence):
+        if let not in coord_cache:
+            coord_cache[let] = coords = {}
+            coord_file = os.path.join(nuc_data_dir, "%s-%s%s.coords" % (form, let, complement[let]))
+            with open(coord_file, "r") as f:
+                for line in f:
+                    strand, at_name, *xyz = line.strip().split()
+                    strand = int(strand)
+                    coords[(strand, at_name)] = array([float(crd) for crd in xyz])
+        else:
+            coords = coord_cache[let]
+        type1 = let
+        type2 = complement[let]
+        if type != "rna":
+            type1 = "D" + type1
+        if type == "DNA":
+            type2 = "D" + type2
+        r1 = structure.new_residue(type1, chain_id1, i+1)
+        r2 = structure.new_residue(type2, chain_id2, len(sequence)-1)
+        residues1.append(r1)
+        residues2.append(r2)
+        for at_info, crd in coords.items():
+            strand, at_name = at_info
+            residue = r1 if strand == 0 else r2
+            a = add_atom(at_name, at_name[0], residue, cur_xform * crd, serial_number=serial_number)
+            serial_number = a.serial_number + 1
+        for b1, b2, restriction in bonds:
+            for r in (r1, r2):
+                if restriction and r.name[-1] not in restriction:
+                    continue
+                a1, a2 = r.find_atom(b1), r.find_atom(b2)
+                if a1 and a2:
+                    structure.new_bond(a1, a2)
+        if len(residues1) > 1:
+            for res_list, a1, a2 in [(residues1, "O3'", "P"), (residues2, "P", "O3'")]:
+                r1, r2 = res_list[-2:]
+                structure.new_bond(r1.find_atom(a1), r2.find_atom(a2))
+        cur_xform = cur_xform * xform
+    structure.reorder_residues(list(prev_residues) + residues1 + list(reversed(residues2)))
+
+    # strip dangling phosphorus
+    for res in [residues1[0], residues2[-1]]:
+        for aname in ["P", "OP1", "OP2"]:
+            structure.delete_atom(res.find_atom(aname))
+
+    # if RNA: modify sugar ring, swap U for T (including changing res type)
+    if type != "dna":
+        if type == "rna":
+            residues = residues1 + residues2
+        else:
+            residues = residues2
+        from chimerax.atomic.bond_geom import bond_positions, tetrahedral, planar
+        from chimerax import geometry
+        for res in residues:
+            c1p, c2p, c3p, o3p = [res.find_atom(x) for x in ["C1'", "C2'", "C3'", "O3'"]]
+            positions = bond_positions(c2p.coord, tetrahedral, 1.43, [c1p.coord, c3p.coord])
+            # want the position nearer the O3'
+            angle = geometry.angle(positions[0] - c2p.coord, o3p.coord - c3p.coord)
+            if angle < 90.0:
+                pos = positions[0]
+            else:
+                pos = positions[1]
+            a = add_atom("O2'", "O", res, pos, serial_number=serial_number, bonded_to=c2p)
+            serial_number = a.serial_number + 1
+
+        for res in residues:
+            if res.name != "T":
+                continue
+            structure.delete_atom(res.find_atom("C7"))
+            res.name = "U"
+
+    # reposition center to 'position'
+    from chimerax.atomic import Chains
+    chains = Chains([residues1[0].chain, residues2[0].chain])
+    atoms = chains.existing_residues.atoms
+    coords = atoms.coords
+    center = coords.mean(0)
+    correction = position - center
+    atoms.coords = coords - correction
+
+    if need_focus:
+        from chimerax.core.commands import run
+        run(session, "view", log=False)
+    return chains
+
 class PeptideError(ValueError):
     pass
 
@@ -54,7 +246,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     *phi_psis* is a list of phi/psi tuples, one per residue.
 
-    *position* is either an array or sequence specifying an xyz world coordinate position or None.
+    *position* is either an array/sequence specifying an xyz world coordinate position or None.
     If None, the peptide is positioned at the center of the view.
 
     *rot_lib* is the name of the rotamer library to use to position the side chains.
@@ -166,7 +358,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     if need_focus:
         from chimerax.core.commands import run
-        run(session, "view")
+        run(session, "view", log=False)
     return residues
 
 def unused_chain_id(structure):
