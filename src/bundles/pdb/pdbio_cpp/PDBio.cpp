@@ -994,7 +994,7 @@ start_t = end_t;
                 auto r_id_code = record.obslte.r_id_code[i];
                 if (r_id_code[0] != '\0')
                     logger::warning(py_logger, "Entry ", record.obslte.id_code,
-                        " superceded by entry ", r_id_code);
+                        " superseded by entry ", r_id_code);
             }
             break;
         }
