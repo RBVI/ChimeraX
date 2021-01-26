@@ -72,7 +72,7 @@ class BundleInfo:
                  managers=None,
                  providers=None,
                  inits=None,
-                 packages=[], supercedes=[]):
+                 packages=[], supersedes=[]):
         """Initialize instance.
 
         Parameters
@@ -121,7 +121,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
-        self.supercedes = supercedes
+        self.supersedes = supersedes
         self.package_name = api_package_name
         self.installed_data_dir = data_dir
         self.installed_include_dir = include_dir
@@ -135,6 +135,11 @@ class BundleInfo:
         self._name = name
         self._version = version
         self._synopsis = synopsis
+
+    @property
+    def supercedes(self):
+        # deprecated in ChimeraX 1.2
+        return self.supersedes
 
     @property
     def name(self):
@@ -197,7 +202,7 @@ class BundleInfo:
             "api_package_name": self.package_name,
             "packages": self.packages,
             "description": self.description,
-            "supercedes": self.supercedes,
+            "supersedes": self.supersedes,
             "data_dir": self.installed_data_dir,
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
@@ -223,6 +228,10 @@ class BundleInfo:
         instance of BundleInfo
         """
         args, kw, more = data
+        if 'supercedes' in kw:
+            # handle spelling mistake from ChimeraX 1.1 and earlier
+            kw['supersedes'] = kw['supercedes']
+            del kw['supercedes']
         kw['session_versions'] = range(*kw['session_versions'])
         kw['packages'] = [tuple(x) for x in kw['packages']]
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]

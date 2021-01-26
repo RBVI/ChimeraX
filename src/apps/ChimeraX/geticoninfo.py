@@ -5,10 +5,12 @@ import sys
 
 # Read buildinfo.py without importing chimerax.core because
 # this is used with generic python before ChimeraX app is built.
-import site, os.path
-bi_path = os.path.join(site.getsitepackages()[0], 'chimerax', 'core', 'buildinfo.py')
 buildinfo = {}
-exec(open(bi_path).read(), buildinfo)
+import site, os.path
+for spath in site.getsitepackages():
+    bi_path = os.path.join(spath, 'chimerax', 'core', 'buildinfo.py')
+    if os.path.exists(bi_path):
+        exec(open(bi_path).read(), buildinfo)
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "vypr")

@@ -162,7 +162,7 @@ def _build_bundle(d):
     _set_value(kw, bundle_d, "categories")
     _set_value(kw, bundle_d, "session_versions", _parse_session_versions)
     _set_value(kw, bundle_d, "api_package_name")
-    _set_value(kw, bundle_d, "supercedes")
+    _set_value(kw, bundle_d, "supersedes")
     _set_value(kw, bundle_d, "custom_init", lambda v: v == "true")
     bi = BundleInfo(installed=False, **kw)
 
