@@ -1243,8 +1243,18 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
             set_alt_loc(alt_loc, create=false);
             return;
         }
+        Coord crd;
+        if (_coord_index != COORD_UNASSIGNED)
+            crd = coord();
+        auto bf = bfactor();
+        auto sn = serial_number();
         _alt_loc_map[alt_loc];    // Create map entry.
         _alt_loc = alt_loc;
+        if (_coord_index != COORD_UNASSIGNED)
+            set_coord(crd);
+        set_bfactor(bf);
+        set_serial_number(sn);
+        set_occupancy(0.0);
         return;
     }
 
