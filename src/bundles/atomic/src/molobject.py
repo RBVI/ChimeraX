@@ -1305,6 +1305,20 @@ class Chain(StructureSeq):
         }
         return data
 
+import string
+chain_id_characters = string.ascii_uppercase + string.ascii_lowercase + '1234567890'
+_cid_index = { c:i for i,c in enumerate(chain_id_characters) }
+def next_chain_id(cid):
+    if not cid or cid.isspace():
+        return chain_id_characters[0]
+    try:
+        next_index = _cid_index[cid[-1]] + 1
+    except KeyError:
+        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
+    if next_index == len(chain_id_characters):
+        return cid + chain_id_characters[0]
+    return cid[:-1] + chain_id_characters[next_index]
+
 # -----------------------------------------------------------------------------
 #
 class StructureData:
