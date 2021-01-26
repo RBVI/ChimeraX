@@ -165,7 +165,6 @@ class NucleicProvider(StartStructureProvider):
                 synopsis="construct helical nucleic acid from sequence"
             ), shim_place_nucleic_acid, registry=self.registry)
 
-    #TODO
     def command_string(self, widget):
         args = []
         seq_edit = widget.findChild(QTextEdit, "sequence")
