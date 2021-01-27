@@ -883,7 +883,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         ghb_action.setCheckable(True)
         rab_action.setCheckable(True)
         rab_action.setChecked(True)
-        ghb_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
+        from chimerax.core.commands import run
+        ghb_action.toggled.connect(lambda checked, run=run, ses=self.session: run(ses, 'ui windowfill toggle'))
         rab_action.toggled.connect(lambda checked: setattr(self, 'rapid_access_shown', checked))
         ghb_action.setIcon(self._expand_icon)
         rab_action.setIcon(self._ra_shown_icon)
