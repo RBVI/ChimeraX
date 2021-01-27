@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.2" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.4" package="chimerax.build_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -11,6 +11,10 @@
   <Synopsis>Create/modify structures</Synopsis>
   <Description>Create/modify atomic structures</Description>
 
+  <DataFiles>
+  	<DataDir>nuc-data</DataDir>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="Structure Analysis"/>
@@ -20,7 +24,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.2dev2020"/>
     <Dependency name="ChimeraX-AddH" version="~=2.0"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.11"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
@@ -32,9 +36,10 @@
     <Manager name="start structure" autostart="false"/>
   </Managers>
 
-  <Providers manager="start structure" autostart="false">
+  <Providers manager="start structure">
     <Provider name="atom"/>
     <Provider name="peptide"/>
+    <Provider name="nucleic" ui_name="nucleic double helix" auto_style="false" />
   </Providers>
 
   <Classifiers>

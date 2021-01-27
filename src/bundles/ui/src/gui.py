@@ -883,7 +883,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         ghb_action.setCheckable(True)
         rab_action.setCheckable(True)
         rab_action.setChecked(True)
-        ghb_action.toggled.connect(lambda checked: setattr(self, 'hide_tools', checked))
+        from chimerax.core.commands import run
+        ghb_action.toggled.connect(lambda checked, run=run, ses=self.session: run(ses, 'ui windowfill toggle'))
         rab_action.toggled.connect(lambda checked: setattr(self, 'rapid_access_shown', checked))
         ghb_action.setIcon(self._expand_icon)
         rab_action.setIcon(self._ra_shown_icon)
@@ -991,8 +992,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
             session=self.session, balloon="Initial overall size of ChimeraX window"))
         self.add_settings_option("Window", ToolSideOption("Default tool side",
-            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
-            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+            settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
+            balloon="Which side of main window that new tool windows appear on by default"))
+        from .options import BooleanOption
+        self.add_settings_option("Window", BooleanOption("Start tool windows undocked",
+            settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
+            balloon="Tools (other than ones launched at ChimeraX startup) start undocked and undockable.\n"
+            'A tool can be made dockable through its "Dockable Tool" context menu entry.'))
 
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
@@ -1939,6 +1945,9 @@ class ToolWindow(StatusLogger):
         ui = self.session.ui
         settings =  ui.settings
         tool_name = self.tool_instance.tool_name
+        if settings.auto_float_tools and tool_name not in settings.autostart:
+            if tool_name not in settings.undockable:
+                settings.undockable = settings.undockable + [tool_name]
         if tool_name in settings.undockable:
             from PySide2.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
@@ -2422,7 +2431,8 @@ def _remember_tool_pos(ui, tool_instance, widget):
         geom = widget.geometry()
         geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
-        side = get_side(widget)
+        # unlike PyQt, PySide needs cast to int
+        side = int(get_side(widget))
         geom_info = None
     version = 3
     mem_location[tool_instance.tool_name] = {

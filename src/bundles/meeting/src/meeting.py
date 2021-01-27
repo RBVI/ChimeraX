@@ -1078,7 +1078,7 @@ class MeetingHub:
         
         if 'join' in msg:
             rmn = self._registered_meeting_name
-            if rmn is None or msg['join'] == rmn.name:
+            if rmn is None or msg['join'].casefold() == rmn.name.casefold():
                 self._add_connection(msg_stream)
             else:
                 # Did not provide the right meeting name, so disconnect.

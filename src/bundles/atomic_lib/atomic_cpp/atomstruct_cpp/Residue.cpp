@@ -225,7 +225,7 @@ Residue::session_restore(int version, int** ints, float** floats)
             _ss_type = SS_STRAND;
         _ribbon_display = int_ptr[5];
         _ribbon_hide_backbone = int_ptr[6];
-	// int_ptr[7] unused ribbon selected
+        // int_ptr[7] unused ribbon selected
         _ss_id = int_ptr[8];
         num_atoms = int_ptr[9];
     } else if (version < 10) {
@@ -350,7 +350,14 @@ void
 Residue::set_templates_dir(const std::string& templates_dir)
 {
     using tmpl::TemplateCache;
-    TemplateCache::set_bundle_dir(templates_dir);
+    TemplateCache::set_templates_dir(templates_dir);
+}
+
+void
+Residue::set_user_templates_dir(const std::string& templates_dir)
+{
+    using tmpl::TemplateCache;
+    TemplateCache::set_user_templates_dir(templates_dir);
 }
 
 std::string

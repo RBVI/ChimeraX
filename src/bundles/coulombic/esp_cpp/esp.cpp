@@ -19,10 +19,7 @@
 #include <thread>
 #include <vector>
 
-#include <arrays/pythonarray.h>		// use array_from_python()
-#include <arrays/rcarray.h>		// Numeric_Array
-
-using Reference_Counted_Array::Numeric_Array;
+#include <arrays/pythonarray.h>		// use parse_float_n3_array, ...
 
 static void
 initiate_compute_esp(float* target_points, float* values, int64_t num_points, float* atom_coords,
@@ -52,7 +49,7 @@ initiate_compute_esp(float* target_points, float* values, int64_t num_points, fl
 static PyObject*
 potential_at_points(PyObject*, PyObject* args)
 {
-    DArray target_points, atom_coords, charges, values;
+    FArray target_points, atom_coords, charges, values;
     int py_dist_dep, num_cpus;
     float dielectric;
     if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&pfi"),
@@ -66,8 +63,8 @@ potential_at_points(PyObject*, PyObject* args)
             atom_coords.size(0), charges.size());
     bool dist_dep = (py_dist_dep != 0);
 
-    DArray tp_contig = target_points.contiguous_array();
-    float *tp_array = reinterpret_cast<float*>(tp_contig.values());
+    FArray tp_contig = target_points.contiguous_array();
+    float *tp_array = tp_contig.values();
 
     int64_t n = target_points.size(0);
 
@@ -81,9 +78,9 @@ potential_at_points(PyObject*, PyObject* args)
     num_threads = std::min(num_threads, n);
     std::vector<std::thread> threads;
     auto tp_ptr = tp_array;
-    auto value_ptr = reinterpret_cast<float*>(values.values());
-    auto coord_ptr = reinterpret_cast<float*>(atom_coords.values());
-    auto charges_ptr = reinterpret_cast<float*>(charges.values());
+    auto value_ptr = values.values();
+    auto coord_ptr = atom_coords.values();
+    auto charges_ptr = charges.values();
     auto num_atoms = atom_coords.size(0);
     auto unallocated = n;
     while (num_threads-- > 0) {

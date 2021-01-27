@@ -19,7 +19,8 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
-REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search \
+REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
+	  alignments arrays atom_search \
 	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -30,7 +31,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces io label list_info log looking_glass \
+	  interfaces io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -49,6 +50,10 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search \
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
+endif
+
+ifeq ($(OS),Darwin)
+REST_SUBDIRS += amber_info
 endif
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)

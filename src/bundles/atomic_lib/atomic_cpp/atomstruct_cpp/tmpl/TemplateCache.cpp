@@ -21,7 +21,6 @@
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
 #include <chutil/cmp_nocase.h>
-#include <appdirs/AppDirs.h>
 #include <iostream>
 #include <sstream>
 #include <string.h>
@@ -41,7 +40,8 @@ using atomstruct::ResName;
 using namespace ioutil;
 
 TemplateCache *TemplateCache::_instance = nullptr;
-std::string TemplateCache::_bundle_dir;
+std::string TemplateCache::_template_dir;
+std::string TemplateCache::_user_template_dir;
 
 TemplateCache *
 TemplateCache::template_cache()
@@ -76,24 +76,44 @@ TemplateCache::res_template(ResName res_name, const char *app,
     return &((*rmi).second);
 }
 
+// TODO: Might instead use C++17 std::filesystem::path::concat() when we require C++17.
+static std::string
+path_join(std::initializer_list<std::string> path_components)
+{
+    std::string path;
+#ifdef _WIN32
+    std::string path_sep = "\\";
+#else
+    std::string path_sep = "/";
+#endif
+    for (auto comp: path_components) {
+        if (path.empty()) {
+            path = comp;
+        } else {
+            path += path_sep;
+            path += comp;
+        }
+    }
+    return path;
+}
+
 void
 TemplateCache::cache_template_type(std::string &key, const char *app,
             const char *template_dir, const char *extension)
 {
     ResMap res_map;
     cache[key] = res_map;
-    auto ap = appdirs::AppDirs::get();
 
-    std::vector<std::string> search_dirs = { ap.user_data_dir, _bundle_dir };
+    std::vector<std::string> search_dirs = { _user_template_dir, _template_dir };
     for (auto search_dir: search_dirs) {
-        std::string t_dir = ap.form_path({ search_dir, app, template_dir });
+        std::string t_dir = path_join({ search_dir, app, template_dir });
         DIR *tmpls = opendir(t_dir.c_str());
         if (tmpls == NULL)
             continue;
 
         struct dirent *entry;
         while ((entry = readdir(tmpls)) != NULL) {
-            std::string full_path = ap.form_path({ t_dir, entry->d_name });
+	    std::string full_path = path_join({ t_dir, entry->d_name });
             struct stat s;
             if (stat(full_path.c_str(), &s) != 0)
                 // couldn't stat

@@ -166,7 +166,8 @@ class CoordinatesPanel(ToolInstance):
       self._voxel_size.value = vector_value_text(data.step)
       self._cell_angles.value = vector_value_text(data.cell_angles)
       from chimerax.geometry import Place
-      axis, angle = Place(axes = data.rotation).rotation_axis_and_angle()
+      from numpy import transpose
+      axis, angle = Place(axes = transpose(data.rotation)).rotation_axis_and_angle()
       from .volume_viewer import float_format
       self._rotation_axis.value = ' '.join([float_format(x,5) for x in axis])
       self._rotation_angle.value = angle

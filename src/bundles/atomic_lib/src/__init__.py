@@ -18,10 +18,16 @@ class _AtomicLibAPI(BundleAPI):
 
 bundle_api = _AtomicLibAPI()
 
-# make our shared libs linkable by other bundles
+# Load libarrays since atomic_libs C++ shared libraries use it.
+from chimerax import arrays
+arrays.load_libarrays()
+
+# Include atomic_libs/lib in runtime library search path.
 import sys
 if sys.platform.startswith('win'):
     from os import path, add_dll_directory
     libdir = path.join(path.dirname(__file__), 'lib')
     add_dll_directory(libdir)
+
+# Load atomic_libs libraries so they are found by other C++ modules that link to them.
 from . import _load_libs

@@ -52,9 +52,9 @@ class SequenceViewer(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(alignment)
+        self._finalize_init(alignment, from_session=False)
 
-    def _finalize_init(self, alignment):
+    def _finalize_init(self, alignment, *, from_session=True):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -186,9 +186,15 @@ class SequenceViewer(ToolInstance):
                 self.region_browser._seq_renamed_cb)
             if seq.match_maps:
                self._update_errors_gaps(seq)
-        if self.alignment.intrinsic:
+        if self.alignment.intrinsic and not from_session:
             self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
+        self._feature_browsers = {}
+        if not from_session:
+            if len(self.alignment.seqs) == 1:
+                seq = self.alignment.seqs[0]
+                if seq.features(fetch=False):
+                    self.show_feature_browser(seq)
         """TODO
         if self.fileMarkups:
             from HeaderSequence import FixedHeaderSequence
@@ -438,9 +444,7 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        # Until floating windows behavior is better...
-        #self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else None)
-        self.tool_window.manage('side')
+        self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else None)
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -462,6 +466,10 @@ class SequenceViewer(ToolInstance):
                 self.associations_tool._assoc_mod(note_data)
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_browser._pre_remove_lines(note_data)
+            for seq in note_data:
+                if seq in self._feature_browsers:
+                    self._feature_browsers[seq].tool_window.destroy()
+                    del self._feature_browsers[seq]
         elif note_name == alignment.NOTE_DESTROYED:
             self.delete()
         elif note_name == alignment.NOTE_COMMAND:
@@ -556,9 +564,6 @@ class SequenceViewer(ToolInstance):
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 
-        # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info")
-
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
         comp_model_action.triggered.connect(lambda: run(self.session,
@@ -579,6 +584,25 @@ class SequenceViewer(ToolInstance):
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
 
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info"); for now with only
+        # sequence features available, use "Features"
+        feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
+        if feature_seqs:
+            if len(self.alignment.seqs) == 1:
+                action = QAction("Sequence Features...", menu)
+                action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
+                    show(seq))
+                menu.addAction(action)
+            else:
+                features_menu = menu.addMenu("Sequence Features")
+                from .seq_canvas import _seq_name as seq_name
+                for seq in feature_seqs:
+                    action = QAction(seq_name(seq), features_menu)
+                    action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
+                        show(seq))
+                    features_menu.addAction(action)
+
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
@@ -587,7 +611,7 @@ class SequenceViewer(ToolInstance):
         """color_structures=None means use user's preference setting"""
         self.region_browser.load_scf_file(path, color_structures)
 
-    def new_region(self, **kw):
+    def new_region(self, name=None, **kw):
         if 'blocks' in kw:
             # interpret numeric values as indices into sequences
             blocks = kw['blocks']
@@ -612,7 +636,7 @@ class SequenceViewer(ToolInstance):
                 blocks.append((self.alignment.seqs[0], self.alignment.seqs[-1], left, right))
             kw['blocks'] = blocks
             del kw['columns']
-        return self.region_browser.new_region(**kw)
+        return self.region_browser.new_region(name, **kw)
 
     def show_associations(self):
         if not hasattr(self, "associations_tool"):
@@ -621,6 +645,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
+
+    def show_feature_browser(self, seq, *, state=None):
+        if seq not in self._feature_browsers:
+            from .feature_browser import FeatureBrowser
+            self._feature_browsers[seq] = FeatureBrowser(self, seq, state,
+                self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
+            self._feature_browsers[seq].tool_window.manage(None)
+        self._feature_browsers[seq].tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):
@@ -649,6 +681,11 @@ class SequenceViewer(ToolInstance):
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
+        # feature browsers depend on regions (and therefore the region browser) being restored first
+        if 'feature browsers' in data:
+            from .feature_browser import FeatureBrowser
+            for seq, fb_data in data['feature browsers'].items():
+                inst.show_feature_browser(seq, state=fb_data)
         return inst
 
     SESSION_SAVE = True
@@ -657,8 +694,9 @@ class SequenceViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'alignment': self.alignment,
-            'region browser': self.region_browser.save_state(),
-            'seq canvas': self.seq_canvas.save_state()
+            'feature browsers': {seq: fb.state() for seq, fb in self._feature_browsers.items()},
+            'region browser': self.region_browser.state(),
+            'seq canvas': self.seq_canvas.state()
         }
         return data
 

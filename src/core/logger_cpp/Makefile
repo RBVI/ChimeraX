@@ -27,27 +27,21 @@ LIBS	+= $(PYTHON_LIB)
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
-install: $(SHLIB)
-	$(RSYNC) $(SHLIB) $(shlibdir)
-ifdef WIN32
+$(LIBRARY): imex.h $(OBJS)
+	$(LIB_LINK)
+
+install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
-ifdef DEBUG
-	$(RSYNC) lib$(LIBNAME).pdb $(shlibdir)
-endif
-endif
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
 		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
-ifdef WIN32
 	if [ -d "$(app_libdir)" ]; then \
 		$(RSYNC) $(LIBRARY) $(app_libdir); \
 	fi
-endif
-	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
-	rm -f $(OBJS) $(SHLIB) imex.h
+	rm -f $(OBJS) $(LIBRARY) imex.h
 ifdef WIN32
 	rm -f lib$(LIBNAME).{lib,pdb,exp} vc*.pdb
 endif

@@ -28,7 +28,6 @@
 
 #include <logger/logger.h>
 #include <pysupport/convert.h>
-#include <arrays/pythonarray.h>
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if, std::min
 #include <cmath> // std::abs

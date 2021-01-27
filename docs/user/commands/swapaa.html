@@ -223,10 +223,11 @@ probability will be used.
 Only the sidechain atoms of a rotamer are evaluated.  For
 <a href="#clash">clash</a> and <a href="#H-bond">H-bond</a> detection,
 interactions with other rotamers in the same set and the current residue at that
-position are disregarded, but all other atoms in the vicinity will be included
-unless <a href="#ignore"><b>ignoreOtherModels</b></a> is used.
-In addition, atoms in the same model that are unwanted
-for such calculations (for example, <a href="atomspec.html#builtin">solvent</a>)
+position are disregarded, but all other nearby atoms will be included
+(at least those in the same model; 
+see <a href="#ignore"><b>ignoreOtherModels</b></a>).
+Atoms in the same model that are unwanted for such calculations
+(for example, <a href="atomspec.html#builtin">solvent</a>)
 should be deleted beforehand.
 </p><p>
 Alternatively, an integer <i>N</i> can be given instead of the <i>method</i>.
@@ -284,10 +285,10 @@ only the backbone angles are reported, since no swap has yet occurred when the
 </blockquote>
 <blockquote>
 <a name="ignore"></a>
-<b>ignoreOtherModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<b>ignoreOtherModels</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>In <a href="#clash">clash</a>
-and <a href="#H-bond">H-bond</a> detection, whether to include
-only atoms in the same model as the residue being swapped;
+and <a href="#H-bond">H-bond</a> detection, whether to ignore
+atoms that are not in the same model as the residue being swapped;
 useful for preventing superimposed related proteins
 or additional copies of the starting structure from affecting the results.
 </blockquote>
@@ -352,5 +353,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+January 2021</address>
 </body></html>

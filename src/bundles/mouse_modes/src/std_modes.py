@@ -113,19 +113,26 @@ class SelectMouseMode(MouseMode):
     def _draw_drag_rectangle(self, event):
         dx,dy = self.mouse_down_position
         x, y = event.position()
-        v = self.session.main_view
+        v = self.view
         w,h = v.window_size
-        v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
+        v.draw_xor_rectangle(dx, h-dy, x, h-y, self._xor_color)
         self._drawn_rectangle = (dx,dy), (x,y)
 
     def _undraw_drag_rectangle(self):
         dr = self._drawn_rectangle
         if dr:
             (dx,dy), (x,y) = dr
-            v = self.session.main_view
+            v = self.view
             w,h = v.window_size
-            v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
+            v.draw_xor_rectangle(dx, h-dy, x, h-y, self._xor_color)
             self._drawn_rectangle = None
+
+    @property
+    def _xor_color(self):
+        from chimerax.core.colors import rgba_to_rgba8
+        bg_color = rgba_to_rgba8(self.view.background_color)
+        xor_color = tuple(bc ^ dc for bc,dc in zip(bg_color, self.drag_color))
+        return xor_color
 
     def vr_press(self, event):
         # Virtual reality hand controller button press.
@@ -742,8 +749,11 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
-class AtomCenterOfRotationMode(MouseMode):
-    '''Clicking on an atom sets the center of rotation at that position.'''
+class CenterOfRotationMode(MouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    sets the center of rotation at that position.
+    '''
     name = 'pivot'
     icon_file = 'icons/pivot.png'
 
@@ -753,6 +763,8 @@ class AtomCenterOfRotationMode(MouseMode):
         view = self.session.main_view
         pick = view.picked_object(x, y)
         from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
+        from chimerax.map import PickedMap
+        from chimerax.graphics import PickedTriangle
         if hasattr(pick, 'atom'):
             xyz = pick.atom.scene_coord
         elif isinstance(pick, PickedResidue):
@@ -764,6 +776,8 @@ class AtomCenterOfRotationMode(MouseMode):
         elif isinstance(pick, PickedPseudobond):
             b = pick.pbond
             xyz = sum([a.scene_coord for a in b.atoms]) / 2
+        elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
+            xyz = pick.position
         else:
             return
         from chimerax.std_commands import cofr
@@ -1045,7 +1059,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
-        AtomCenterOfRotationMode,
+        CenterOfRotationMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]

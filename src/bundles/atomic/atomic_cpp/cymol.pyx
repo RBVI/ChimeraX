@@ -43,7 +43,6 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
 cdef class CyAtom:
     '''Base class for Atom, and is present only for performance reasons.'''
     cdef cydecl.Atom *cpp_atom
-    cdef cydecl.bool _deleted
 
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
     HIDE_RIBBON = 0x1
@@ -63,17 +62,12 @@ cdef class CyAtom:
     }
     _alt_loc_suppress_count = 0
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_atom = <cydecl.Atom *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
-
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -902,18 +896,13 @@ cydecl.cyelem.Element.set_py_class(Element)
 cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
     cdef cydecl.Residue *cpp_res
-    cdef cydecl.bool _deleted
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_res = <cydecl.Residue *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Residue already deleted")
@@ -1579,7 +1568,7 @@ cdef class CyResidue:
         self.cpp_res.set_alt_loc(ord(loc[0]))
 
     def set_chi(self, chi_num, val):
-        cur_chi = self.get_chi(chi_num)
+        cur_chi = self.get_chi(chi_num, False)
         if cur_chi is None:
             return
         a1, a2, a3, a4 = self.get_chi_atoms(self.standard_aa_name, chi_num)
@@ -1643,6 +1632,10 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
+    def set_user_templates_dir(tmpl_dir):
+        cydecl.Residue.set_user_templates_dir(tmpl_dir.encode())
 
     @staticmethod
     def get_standard_aa_name(res_name):

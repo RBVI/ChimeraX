@@ -138,6 +138,7 @@ public:
         }
     }
     static void  set_templates_dir(const std::string&);
+    static void  set_user_templates_dir(const std::string&);
     int  ss_id() const;
     SSType  ss_type() const;
     std::string  str() const;
@@ -436,8 +437,8 @@ Residue::ribbon_clear_hide() {
 inline bool
 Residue::selected() const {
     for (auto atom: atoms())
-      if (atom->selected())
-	return true;
+        if (atom->selected())
+            return true;
     return false;
 }
 

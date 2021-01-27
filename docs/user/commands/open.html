@@ -140,24 +140,6 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
-<td align="center">
-<a href="https://en.wikipedia.org/wiki/Chemical_table_file"
-target="_blank">MDL Molfile/SDF</a></td>
-<td align="center"><b>sdf</b></td>
-<td align="center">.mol, .sdf</td>
-<td align="center">atomic coordinates</td>
-</tr><tr>
-<td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file"
-target="_blank">PDBQT</a></td>
-<td align="center"><b>pdbqt</b></td>
-<td align="center">.pdbqt</td>
-<td align="center" class="text">atomic coordinates
-<br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
-for analysis of docking results from
-<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
-</td>
-</tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
@@ -172,13 +154,31 @@ target="_blank">DOCK&nbsp;v3.7</a>, or
 target="_blank">GOLD</a>)
 </td>
 </tr><tr>
-<td align="center">Schr&ouml;dinger Maestro
-<br><br>*requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxmaestro"
-target="_blank"><b>Maestro</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
+<td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file"
+target="_blank">PDBQT</a></td>
+<td align="center"><b>pdbqt</b></td>
+<td align="center">.pdbqt</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
 </td>
+</tr><tr>
+<td align="center"><a href="https://gromos.net/"
+target="_blank">Gromos87</a></td>
+<td align="center"><b>gro</td>
+<td align="center">.gro</td>
+<td align="center">atomic coordinates<br>(not read as a trajectory)</td>
+</tr><tr>
+<td align="center">
+<a href="https://en.wikipedia.org/wiki/Chemical_table_file"
+target="_blank">MDL Molfile/SDF</a></td>
+<td align="center"><b>sdf</b></td>
+<td align="center">.mol, .sdf</td>
+<td align="center">atomic coordinates</td>
+</tr><tr>
+<td align="center">Schr&ouml;dinger Maestro</td>
 <td align="center"><b>mae</b></td>
 <td align="center">.mae<br>.maegz</td>
 <td align="center" class="text">atomic coordinates
@@ -436,6 +436,13 @@ and specifying a corresponding atomic model
 <td align="center">.mtz</td>
 <td align="center" class="text">reciprocal space map
 </td>
+</tr><tr>
+<td align="center">NetCDF map</td>
+<td align="center"><b>netcdfmap</b></td>
+<td align="center">.nc</td>
+<td align="center">electron density map
+<br>(use <b>format netcdfmap</b> to disambiguate from 
+<a href="#trajectory">Amber NetCDF trajectories</a>)</td>
 </tr><tr>
 <td align="center">Priism data</td>
 <td align="center"><b>priism</b></td>
@@ -1336,7 +1343,9 @@ target="_blank">UniProt</a></td>
 <td align="center"><b>uniprot</b></td>
 <td align="center">protein sequence
 (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>;
+see <a href="../tools/sequenceviewer.html#uniprot">UniProt
+Sequence Features</a>)</td>
 <td align="center"><b>uniprot</b></td>
 </tr></table>
 
@@ -1553,5 +1562,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+December 2020</address>
 </body></html>

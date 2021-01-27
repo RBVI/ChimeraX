@@ -21,10 +21,12 @@ TODO
 from PySide2.QtWidgets import QFileDialog, QSizePolicy
 from PySide2.QtCore import Qt
 class SaveDialog(QFileDialog):
-    def __init__(self, session, parent = None, *args, data_formats=None, **kw):
+    def __init__(self, session, parent = None, *args, data_formats=None, installed_only=True, **kw):
         if data_formats is None:
-            data_formats = [fmt for fmt in session.save_command.save_data_formats
-                if fmt.suffixes and session.save_command.save_info(fmt).bundle_info.installed]
+            data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
+            if installed_only:
+                data_formats = [fmt for fmt in data_formats
+                    if session.save_command.provider_info(fmt).bundle_info.installed]
         data_formats.sort(key=lambda fmt: fmt.name.casefold())
         # make some things public
         self.data_formats = data_formats

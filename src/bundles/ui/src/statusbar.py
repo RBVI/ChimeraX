@@ -43,6 +43,7 @@ class _StatusBarOpenGL:
     def destroy(self):
         self.widget.destroy()
         self.widget = None
+        self._window = None
 
         for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
             v = getattr(self, attr)
@@ -68,8 +69,9 @@ class _StatusBarOpenGL:
 
     def _resize_event(self, event):
         r = self._renderer
-        if r:
-            s = self._window.size()
+        win = self._window
+        if r and win:
+            s = win.size()
             w,h = s.width(), s.height()
             r.set_default_framebuffer_size(w, h)
 
@@ -86,6 +88,11 @@ class _StatusBarOpenGL:
         
         # Create opengl context
         w = self._window
+        if w is None or _qwindow_deleted(w):
+            return False  # Window has been closed
+        if not w.isExposed():
+            return False  # Window has not yet created.
+        
         from chimerax.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         
@@ -116,7 +123,7 @@ class _StatusBarOpenGL:
             self._last_message = msg
             self._last_color = color
             
-        if not self._window.isExposed():
+        if self._window is None or not self._window.isExposed():
             return # TODO: Need to show the status message when window is mapped.
 
         # Need to preserve OpenGL context across processing events, otherwise
@@ -127,6 +134,7 @@ class _StatusBarOpenGL:
 
         if self._opengl_context is None:
             if not self._create_opengl_context():
+                self.session.logger.info(msg)
                 return	# OpenGL version is not sufficient
 
         r = self._renderer
@@ -180,6 +188,10 @@ class _StatusBarOpenGL:
 
         from chimerax.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
+
+def _qwindow_deleted(w):
+    import shiboken2
+    return not shiboken2.isValid(w)
 
 from PySide2.QtGui import QWindow
 class StatusOpenGLWindow(QWindow):

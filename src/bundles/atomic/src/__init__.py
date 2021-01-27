@@ -17,6 +17,7 @@ import chimerax.atomic_lib
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
+from .molobject import next_chain_id, chain_id_characters
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds
 from .pbgroup import interatom_pseudobonds, selected_pseudobonds
@@ -37,17 +38,45 @@ from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
 
+def initialize_atomic(session):
+    from . import settings
+    settings.settings = settings._AtomicSettings(session, "atomic")
+
+    from chimerax import atomic_lib
+    import os.path
+    res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
+    Residue.set_templates_dir(res_templates_dir)
+    
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
+
+    session.change_tracker = ChangeTracker()
+    session.pb_manager = PseudobondManager(session)
+
+    from . import attr_registration
+    session.attr_registration = attr_registration.RegAttrManager()
+    session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
+
+    session._atomic_command_handler = session.triggers.add_handler("command finished",
+        lambda *args: check_for_changes(session))
+
+    if session.ui.is_gui:
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            _AtomicBundleAPI._add_gui_items(ses))
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            settings.register_settings_options(ses))
+
 
 from chimerax.core.toolshed import BundleAPI
 
 class _AtomicBundleAPI(BundleAPI):
 
     KNOWN_CLASSES = {
-        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Atom", "AtomicStructure", "AtomicShapeDrawing", "AtomicStructures", "Atoms", "Bond", "Bonds",
         "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
         "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
         "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
-        "AtomicShapeDrawing",
     }
 
     @staticmethod
@@ -63,30 +92,13 @@ class _AtomicBundleAPI(BundleAPI):
         elif class_name == "XSectionManager":
             from . import ribbon
             return ribbon.XSectionManager
+        elif class_name in ["GenericSeqFeature", "SeqVariantFeature"]:
+            from . import seq_support
+            return getattr(seq_support, class_name)
 
     @staticmethod
     def initialize(session, bundle_info):
-        from . import settings
-        settings.settings = settings._AtomicSettings(session, "atomic")
-
-        from chimerax.core.toolshed import get_toolshed
-        Residue.set_templates_dir(get_toolshed().find_bundle("AtomicLibrary", session.logger).data_dir())
-
-        session.change_tracker = ChangeTracker()
-        session.pb_manager = PseudobondManager(session)
-
-        from . import attr_registration
-        session.attr_registration = attr_registration.RegAttrManager()
-        session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
-
-        session._atomic_command_handler = session.triggers.add_handler("command finished",
-            lambda *args: check_for_changes(session))
-
-        if session.ui.is_gui:
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                _AtomicBundleAPI._add_gui_items(ses))
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                settings.register_settings_options(ses))
+        initialize_atomic(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

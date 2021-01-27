@@ -1,0 +1,376 @@
+attribute: amber_name
+none handling: delete
+recipient: residues
+
+# start out by assigning most residues their own names as a default
+
+# ... standard amino acids
+
+	:ALA	ALA
+
+	:ARG	ARG
+
+	:ASN	ASN
+
+	:ASP	ASP
+
+	:CYS	CYS
+
+	:GLN	GLN
+
+	:GLU	GLU
+
+	:GLY	GLY
+
+	:HID	HID
+	:HIE	HIE
+	:HIP	HIP
+
+	:ILE	ILE
+
+	:LEU	LEU
+
+	:LYS	LYS
+
+	:MET	MET
+	:MSE	MET
+
+	:PHE	PHE
+
+	:PRO	PRO
+
+	:SER	SER
+
+	:THR	THR
+
+	:TRP	TRP
+
+	:TYR	TYR
+
+	:VAL	VAL
+
+# ... modified/non-standard amino acids
+
+	:NME	NME
+
+	:NH2	NH2
+
+	:ACE	ACE
+
+# ... nucleic acids, defaulting to DNA name, since it is easier to
+
+# select RNA later to override the name
+
+	:A	DA
+	:RA	RA
+	:RA3	RA3
+	:RA5	RA5
+	:DA3	DA3
+	:DA5	DA5
+
+	:C	DC
+	:RC	RC
+	:RC3	RC3
+	:RC5	RC5
+	:DC3	DC3
+	:DC5	DC5
+
+	:G	DG
+	:RG	RG
+	:RG3	RG3
+	:RG5	RG5
+	:DG3	DG3
+	:DG5	DG5
+
+	:T	DT
+	:DT	DT
+	:DT3	DT3
+	:DT5	DT5
+
+	:U	RU
+	:RU	RU
+	:RU3	RU3
+	:RU5	RU5
+
+	:DA	DA
+
+	:DC	DC
+
+	:DG	DG
+
+	:DT	DT
+
+# ... misc
+
+	:HOH	HOH
+	:DOD	HOH
+
+# highly negatively charged residues cause sqm failures
+# use templates for commonplace ones
+	:ADP	ADP
+	:ADP@H1B	None
+	:ADP@H2B	None
+	:ADP@H3B	None
+	:ATP	ATP
+	:ATP@H1G	None
+	:ATP@H2G	None
+	:ATP@H3G	None
+	:GDP	GDP
+	:GDP@H1B	None
+	:GDP@H2B	None
+	:GDP@H3B	None
+	:GTP	GTP
+	:GTP@H1G	None
+	:GTP@H2G	None
+	:GTP@H3G	None
+	:NAD	NAD
+	:NDP	NDP
+
+# find RNA and override name
+
+	:A@o2'	RA
+
+	:C@o2'	RC
+
+	:G@o2'	RG
+
+# histidine protonation states
+
+	:HI?@hd1	HID
+	:HI?@dd1	HID
+	:HI?@td1	HID
+
+	:HI?@he2	HIE
+	:HI?@de2	HIE
+	:HI?@te2	HIE
+
+	::amber_name="HIE"@hd1	HIP
+	::amber_name="HIE"@dd1	HIP
+	::amber_name="HIE"@td1	HIP
+
+# di-sulfide CYS
+
+	:CY? & disulfide	CYX
+
+# negative CYS
+
+	::amber_name="CYS"	CYM
+
+	:CYS@hg	CYS
+
+# protonated aspartic/glutamic acid
+
+	:AS?@od? & @@idatm_type=O3	ASH
+
+	:GL?@oe? & @@idatm_type=O3	GLH
+
+# neutral lysine
+
+	:LY?@nz  & @@idatm_type=N3	LYN
+
+# chain-terminal variants
+
+	::amber_name=ALA @oxt	CALA
+
+	::amber_name=ARG @oxt	CARG
+
+	::amber_name=ASH @oxt	CASH
+
+	::amber_name=ASN @oxt	CASN
+
+	::amber_name=ASP @oxt	CASP
+
+	::amber_name=CYM @oxt	CCYM
+
+	::amber_name=CYS @oxt	CCYS
+
+	::amber_name=CYX @oxt	CCYX
+
+	::amber_name=GLH @oxt	CGLH
+
+	::amber_name=GLN @oxt	CGLN
+
+	::amber_name=GLU @oxt	CGLU
+
+	::amber_name=GLY @oxt	CGLY
+
+	::amber_name=HID @oxt	CHID
+
+	::amber_name=HIE @oxt	CHIE
+
+	::amber_name=HIP @oxt	CHIP
+
+	::amber_name=ILE @oxt	CILE
+
+	::amber_name=LEU @oxt	CLEU
+
+	::amber_name=LYN @oxt	CLYN
+
+	::amber_name=LYS @oxt	CLYS
+
+	::amber_name=MET @oxt	CMET
+
+	::amber_name=PHE @oxt	CPHE
+
+	::amber_name=PRO @oxt	CPRO
+
+	::amber_name=SER @oxt	CSER
+
+	::amber_name=THR @oxt	CTHR
+
+	::amber_name=TRP @oxt	CTRP
+
+	::amber_name=TYR @oxt	CTYR
+
+	::amber_name=VAL @oxt	CVAL
+
+	::amber_name=ALA @N & @@idatm_type=N3+	NALA
+
+	::amber_name=ARG @N & @@idatm_type=N3+	NARG
+
+	::amber_name=ASH @N & @@idatm_type=N3+	NASH
+
+	::amber_name=ASN @N & @@idatm_type=N3+	NASN
+
+	::amber_name=ASP @N & @@idatm_type=N3+	NASP
+
+	::amber_name=CYM @N & @@idatm_type=N3+	NCYM
+
+	::amber_name=CYS @N & @@idatm_type=N3+	NCYS
+
+	::amber_name=CYX @N & @@idatm_type=N3+	NCYX
+
+	::amber_name=GLH @N & @@idatm_type=N3+	NGLH
+
+	::amber_name=GLN @N & @@idatm_type=N3+	NGLN
+
+	::amber_name=GLU @N & @@idatm_type=N3+	NGLU
+
+	::amber_name=GLY @N & @@idatm_type=N3+	NGLY
+
+	::amber_name=HID @N & @@idatm_type=N3+	NHID
+
+	::amber_name=HIE @N & @@idatm_type=N3+	NHIE
+
+	::amber_name=HIP @N & @@idatm_type=N3+	NHIP
+
+	::amber_name=ILE @N & @@idatm_type=N3+	NILE
+
+	::amber_name=LEU @N & @@idatm_type=N3+	NLEU
+
+	::amber_name=LYN @N & @@idatm_type=N3+	NLYN
+
+	::amber_name=LYS @N & @@idatm_type=N3+	NLYS
+
+	::amber_name=MET @N & @@idatm_type=N3+	NMET
+
+	::amber_name=PHE @N & @@idatm_type=N3+	NPHE
+
+	::amber_name=PRO @N & @@idatm_type=N3+	NPRO
+
+	::amber_name=SER @N & @@idatm_type=N3+	NSER
+
+	::amber_name=THR @N & @@idatm_type=N3+	NTHR
+
+	::amber_name=TRP @N & @@idatm_type=N3+	NTRP
+
+	::amber_name=TYR @N & @@idatm_type=N3+	NTYR
+
+	::amber_name=VAL @N & @@idatm_type=N3+	NVAL
+
+	::amber_name="DA"@h3t	DA3
+
+	::amber_name="DC"@h3t	DC3
+
+	::amber_name="DG"@h3t	DG3
+
+	::amber_name="DT"@h3t	DT3
+
+	::amber_name="RA"@h3t	RA3
+
+	::amber_name="RC"@h3t	RC3
+
+	::amber_name="RG"@h3t	RG3
+
+	::amber_name="RU"@h3t	RU3
+
+	::amber_name="DA"@h5t	DA5
+
+	::amber_name="DC"@h5t	DC5
+
+	::amber_name="DG"@h5t	DG5
+
+	::amber_name="DT"@h5t	DT5
+
+	::amber_name="RA"@h5t	RA5
+
+	::amber_name="RC"@h5t	RC5
+
+	::amber_name="RG"@h5t	RG5
+
+	::amber_name="RU"@h5t	RU5
+
+	::amber_name="DA5"@h3t	DAN
+
+	::amber_name="DC5"@h3t	DCN
+
+	::amber_name="DG5"@h3t	DGN
+
+	::amber_name="DT5"@h3t	DTN
+
+	::amber_name="RA5"@h3t	RAN
+
+	::amber_name="RC5"@h3t	RCN
+
+	::amber_name="RG5"@h3t	RGN
+
+	::amber_name="RU5"@h3t	RUN
+
+	::amber_name="DA"@ho3'	DA3
+
+	::amber_name="DC"@ho3'	DC3
+
+	::amber_name="DG"@ho3'	DG3
+
+	::amber_name="DT"@ho3'	DT3
+
+	::amber_name="RA"@ho3'	RA3
+
+	::amber_name="RC"@ho3'	RC3
+
+	::amber_name="RG"@ho3'	RG3
+
+	::amber_name="RU"@ho3'	RU3
+
+	::amber_name="DA"@ho5'	DA5
+
+	::amber_name="DC"@ho5'	DC5
+
+	::amber_name="DG"@ho5'	DG5
+
+	::amber_name="DT"@ho5'	DT5
+
+	::amber_name="RA"@ho5'	RA5
+
+	::amber_name="RC"@ho5'	RC5
+
+	::amber_name="RG"@ho5'	RG5
+
+	::amber_name="RU"@ho5'	RU5
+
+	::amber_name="DA5"@ho3'	DAN
+
+	::amber_name="DC5"@ho3'	DCN
+
+	::amber_name="DG5"@ho3'	DGN
+
+	::amber_name="DT5"@ho3'	DTN
+
+	::amber_name="RA5"@ho3'	RAN
+
+	::amber_name="RC5"@ho3'	RCN
+
+	::amber_name="RG5"@ho3'	RGN
+
+	::amber_name="RU5"@ho3'	RUN
+

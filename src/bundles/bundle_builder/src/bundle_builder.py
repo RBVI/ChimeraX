@@ -5,10 +5,10 @@
 import distutils  # noqa
 import setuptools
 from Cython.Build import cythonize
+from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
 from numpy.distutils.misc_util import get_numpy_include_dirs
-
 
 #
 # The compile process is initiated by setuptools and handled
@@ -37,6 +37,10 @@ else:
         def __init__(self, *args, **kw):
             super().__init__(*args, **kw)
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
+
+
+# Python version was 3.7 in ChimeraX 1.0
+CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
@@ -181,7 +185,7 @@ class BundleBuilder:
 
     def _get_identifiers(self, bi):
         # TODO: more syntax checking
-        from packaging.version import Version, InvalidVersion
+        from packaging.version import InvalidVersion
         self.name = bi.get("name", '')
         if '_' in self.name:
             self.name = self.name.replace('_', '-')
@@ -197,7 +201,8 @@ class BundleBuilder:
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
-        self.supercedes = bi.get("supercedes", '')
+        # "supercedes" is deprecated in ChimeraX 1.2
+        self.supersedes = bi.get("supersedes", '') or bi.get("supercedes", '')
         self.custom_init = bi.get("customInit", '')
         self.pure_python = bi.get("purePython", '')
         self.limited_api = bi.get("limitedAPI", '')
@@ -425,6 +430,8 @@ class BundleBuilder:
             c.add_macro_undef(self._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
+            if v < CHIMERAX1_0_PYTHON_VERSION:
+                v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
             c.add_macro_define("Py_LIMITED_API", hex_version)
 
@@ -460,7 +467,7 @@ class BundleBuilder:
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: " + self.supercedes +
+             " :: " + self.package + " :: " + self.supersedes +
              " :: " + self.custom_init)
         ]
         if self.installed_data_dir:
@@ -530,7 +537,7 @@ class BundleBuilder:
                             prefix = folder
                             break
                     else:
-                        prefix = "src"
+                        prefix = os.path.join(self.path, "src")
                     prefix_len = len(prefix) + 1
                     root = os.path.join(prefix, name)
                     for dirp, dns, fns in os.walk(root):
@@ -560,12 +567,18 @@ class BundleBuilder:
             else:
                 data_files.extend(binary_files)
         if self.limited_api:
+            # Limited API was first in Python 3.2
             rel = self.limited_api.release
-            if rel < (3, 2):
-                rel = (3, 2)
-        else:
+            if rel < CHIMERAX1_0_PYTHON_VERSION.release:
+                rel = CHIMERAX1_0_PYTHON_VERSION.release
+        elif binary_files:
+            # Binary files are tied to the current version of Python
             import sys
             rel = sys.version_info[:2]
+        else:
+            # Python-only bundles default to the ChimeraX 1.0
+            # version of Python.
+            rel = CHIMERAX1_0_PYTHON_VERSION.release
         self.setup_arguments = {"name": self.name,
                                 "python_requires": f">={rel[0]}.{rel[1]}"}
         add_argument("version", self.version)
@@ -708,7 +721,7 @@ class BundleBuilder:
                 if not isinstance(node.tag, str):
                     # skip comments
                     continue
-                print("WARNING: unsupported element:", node.tag())
+                print("WARNING: unsupported element:", node.tag)
 
 
 class _CompiledCode:
@@ -739,8 +752,8 @@ class _CompiledCode:
     def add_include_dir(self, d):
         self.include_dirs.append(d)
 
-    def add_library(self, l):
-        self.libraries.append(l)
+    def add_library(self, lib):
+        self.libraries.append(lib)
 
     def add_library_dir(self, d):
         self.library_dirs.append(d)

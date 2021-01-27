@@ -15,7 +15,7 @@
 # Create and show a volume madel from a GridData object as defined by the
 # data module.
 #
-from .volume import volume_from_grid_data
+from .volume import open_map, volume_from_grid_data
 
 # -----------------------------------------------------------------------------
 # A grid data object combined with graphical display state is a Volume object.
@@ -28,6 +28,9 @@ from .volume import VolumeSurface, VolumeImage
 # -----------------------------------------------------------------------------
 # Map contouring and distance maps.
 #
+# Make sure _map can runtime link shared library libarrays.
+from chimerax import arrays ; arrays.load_libarrays()
+
 from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors
 from ._map import extend_crystal_map
@@ -43,6 +46,7 @@ from ._map import indices_to_colors
 # Control whether maps are pickable with mouse.
 #
 from .volume import maps_pickable
+from .volume import PickedMap
 
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level
