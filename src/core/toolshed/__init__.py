@@ -651,6 +651,7 @@ class Toolshed:
             "ChimeraX-List-Info": "ChimeraX-ListInfo",
             "ChimeraX-MD-crds": "ChimeraX-MDcrds",
             "ChimeraX-Preset-Mgr": "ChimeraX-PresetMgr",
+            "ChimeraX-Read-Pbonds": "ChimeraX-ReadPbonds",
             "ChimeraX-Rotamer-Lib-Mgr": "ChimeraX-RotamerLibMgr",
             "ChimeraX-Rotamer-Libs-Dunbrack": "ChimeraX-RotamerLibsDunbrack",
             "ChimeraX-Rotamer-Libs-Dynameomics": "ChimeraX-RotamerLibsDynameomics",
