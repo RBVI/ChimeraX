@@ -433,7 +433,11 @@ class PhiPsiOption(SymbolicEnumOption):
         "\N{GREEK SMALL LETTER PI} helix"
     ]
 
-
+def show_sticks_and_elements(atoms):
+    from chimerax.atomic import Atom
+    atoms.draw_modes = Atom.STICK_STYLE
+    from chimerax.atomic.colors import element_colors
+    atoms.colors = element_colors(atoms.element_numbers)
 
 def shim_place_atom(session, position=None, res_name="UNL", select=True):
     from .start import place_helium
@@ -446,13 +450,19 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
     try:
-        return place_nucleic_acid(_structure, sequence, **kw)
+        chains = place_nucleic_acid(_structure, sequence, **kw)
     except NucleicError as e:
         raise UserError(str(e))
+    show_sticks_and_elements(chains.existing_residues.atoms)
+    return chains
 
 def shim_place_peptide(session, sequence, phi_psis, **kw):
+    set_styles = _structure.num_atoms != 0
     from .start import place_peptide, PeptideError
     try:
-        return place_peptide(_structure, sequence, phi_psis, **kw)
+        residues = place_peptide(_structure, sequence, phi_psis, **kw)
     except PeptideError as e:
         raise UserError(str(e))
+    if set_styles:
+        show_sticks_and_elements(residues.atoms)
+    return residues
