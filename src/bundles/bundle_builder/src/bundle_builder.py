@@ -201,7 +201,8 @@ class BundleBuilder:
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
-        self.supersedes = bi.get("supersedes", '')
+        # "supercedes" is deprecated in ChimeraX 1.2
+        self.supersedes = bi.get("supersedes", '') or bi.get("supercedes", '')
         self.custom_init = bi.get("customInit", '')
         self.pure_python = bi.get("purePython", '')
         self.limited_api = bi.get("limitedAPI", '')
