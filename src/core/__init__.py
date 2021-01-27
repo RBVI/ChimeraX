@@ -149,6 +149,5 @@ def is_daily_build():
     """Supported API. Return if ChimeraX Core is from a daily build."""
     # Daily builds are development releases
     from packaging.version import Version
-    from chimerax import core
-    ver = Version(core.version)
+    ver = Version(version)
     return ver.is_devrelease
