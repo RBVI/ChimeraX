@@ -996,7 +996,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .options import BooleanOption
         self.add_settings_option("Window", BooleanOption("Start tool windows undocked",
             settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
-            balloon="Tools (other than Toolbar/Command Line) start undocked and undockable.\n"
+            balloon="Tools (other than ones that start at ChimeraX startup) start undocked and undockable.\n"
             'A tool can be made dockable through its "Dockable Tool" context menu entry.'))
 
         self.favorites_menu = mb.addMenu("Fa&vorites")
