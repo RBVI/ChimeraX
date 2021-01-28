@@ -386,8 +386,13 @@ class HelpUI(ToolInstance):
             if not _installable(wh, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
+            prefix = _install_or_upgrade(filename, self.session).decode()
+            if prefix in ("Downgrade", "Upgrade"):
+                prefix += " to"
+            elif prefix == "Installed":
+                prefix = "Reinstall"
             how = ask(self.session,
-                      "Install %s %s (file %s)?" % (wh.name, wh.version, filename),
+                      f"{prefix} {wh.name} {wh.version} (file {filename})?",
                       ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
@@ -607,11 +612,23 @@ def _compatible(filename, logger=None):
     return False
 
 
-def _installed(filename, session):
+def _install_or_upgrade(filename, session):
     from wheel_filename import parse_wheel_filename
     winfo = parse_wheel_filename(filename)
-    bundle = session.toolshed.find_bundle(winfo.project, session.logger, version=winfo.version)
-    return bundle is not None
+    bundle = session.toolshed.find_bundle(winfo.project, session.logger)
+    if bundle is None:
+        return b"Install"
+    try:
+        from packaging.version import Version
+        b_ver = Version(bundle.version)
+        wh_ver = Version(winfo.version)
+        if b_ver == wh_ver:
+            return b"Installed"
+        if b_ver < wh_ver:
+            return b"Upgrade"
+        return b"Downgrade"
+    except Exception:
+        return b"Install"
 
 
 class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
@@ -623,15 +640,16 @@ class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
     def requestStarted(self, request):
         from PySide2.QtCore import QBuffer
         wheel_name = request.requestUrl().path()
-        compatible = _compatible(wheel_name)
+        try:
+            compatible = _compatible(wheel_name)
+        except Exception:
+            compatible = False
         reply = QBuffer(parent=self)
         request.destroyed.connect(reply.deleteLater)
         reply.open(QBuffer.WriteOnly)
         if not compatible:
-            reply.write(b"Download")
-        elif _installed(wheel_name, self.session):
-            reply.write(b"Installed")
+            reply.write(b"Not compatible")
         else:
-            reply.write(b"Install")
+            reply.write(_install_or_upgrade(wheel_name, self.session))
         reply.close()
         request.reply(b"text/plain", reply)
