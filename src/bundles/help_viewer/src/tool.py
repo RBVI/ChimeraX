@@ -22,8 +22,11 @@ from chimerax.ui.widgets.htmlview import (
     ChimeraXHtmlView, chimerax_intercept,
     create_chimerax_profile
 )
+from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 _singleton = None
+_sys_tags = None
+_sys_info = None
 
 
 def _qurl2text(qurl):
@@ -196,6 +199,8 @@ class HelpUI(ToolInstance):
 
         self.profile = create_chimerax_profile(
             self.tabs, interceptor=self.intercept,
+            schemes=("installable",),
+            handlers={"installable": _InstallableSchemeHandler(self.session)},
             download=self.download_requested)
 
     def status(self, message):
@@ -229,6 +234,7 @@ class HelpUI(ToolInstance):
     def authorize(self, requestUrl, auth):
         from Qt.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
         from Qt.QtCore import Qt
+
         class PasswordDialog(QDialog):
 
             def __init__(self, requestUrl, auth, parent=None):
@@ -301,7 +307,9 @@ class HelpUI(ToolInstance):
                     qurl.setPath(new_path)
                     request_info.redirect(qurl)
                     return
-
+        elif scheme == "installable":
+            # dealt with in scheme handler
+            return
         tabs = self.tabs
         from Qt import qt_object_is_deleted
         if not qt_object_is_deleted(tabs):
@@ -370,16 +378,16 @@ class HelpUI(ToolInstance):
             item.finished.disconnect()
             filename = item.path()
             try:
-                w = pkginfo.Wheel(filename)
+                wh = pkginfo.Wheel(filename)
             except Exception as e:
                 self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
                 self.session.logger.info("File saved as %s" % filename)
                 continue
-            if not _installable(w, self.session.logger):
+            if not _installable(wh, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
             how = ask(self.session,
-                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
+                      "Install %s %s (file %s)?" % (wh.name, wh.version, filename),
                       ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
@@ -544,25 +552,86 @@ class HelpUI(ToolInstance):
         return _singleton
 
 
-def _installable(w, logger):
-    return True
-    # TODO: check if installable to give better error message than
+def _installable(wh, logger):
+    # check if installable to give better error message than
     #       downstream use of pip.
-    import re
-    from distutils.version import LooseVersion as Version
+    if not _compatible(wh.filename, logger):
+        return False
     import chimerax.core
-    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
-    for req in w.requires_dist:
-        m = pat.match(req)
-        if m:
-            op = m.group("op")
-            version = m.group("version")
-            if op == ">=":
-                return Version(chimerax.core.version) >= Version(version)
-            elif op == "==":
-                return Version(chimerax.core.version) == Version(version)
-            elif op == "<=":
-                return Version(chimerax.core.version) <= Version(version)
-            logger.info("Unsupported version comparison:", op)
+    core_bundle = chimerax.core.BUNDLE_NAME + ' '
+    for r in wh.requires_dist:
+        if not r.startswith(core_bundle):
+            continue
+        from packaging.requirements import Requirement
+        from packaging.version import Version
+        core_version = Version(chimerax.core.version)
+        try:
+            req = Requirement(r)
+            return req.specifier.contains(core_version, prereleases=True)
+        except Exception:
+            logger.info(f"Unsupported ChimeraX-Core requirement: {repr(r)}")
             return False
     return True
+
+
+def _compatible(filename, logger=None):
+    # using wheel filename check if compatible with running ChimeraX
+    from wheel_filename import parse_wheel_filename
+    global _sys_tags, _sys_info
+    if _sys_tags is None:
+        from packaging import tags
+        _sys_tags = list(tags.sys_tags())
+        i, a, p = zip(*((s.interpreter, s.abi, s.platform) for s in _sys_tags))
+        _sys_info = (set(i), set(a), set(p))
+
+    def supported_tags(winfo):
+        for interpreter in winfo.python_tags:
+            for abi in winfo.abi_tags:
+                for platform in winfo.platform_tags:
+                    yield (interpreter, abi, platform)
+
+    winfo = parse_wheel_filename(filename)
+    for t in supported_tags(winfo):
+        for s in _sys_tags:
+            if t == (s.interpreter, s.abi, s.platform):
+                return True
+    if logger:
+        if _sys_info[0].isdisjoint(winfo.python_tags):
+            logger.info("bundle is for different version of Python")
+        elif _sys_info[1].isdisjoint(winfo.abi_tags):
+            logger.info("bundle uses incompatible Python ABI")
+        elif _sys_info[2].isdisjoint(winfo.platform_tags):
+            logger.info("bundle is for different platform")
+        else:
+            logger.info("bundle is incompatible")
+    return False
+
+
+def _installed(filename, session):
+    from wheel_filename import parse_wheel_filename
+    winfo = parse_wheel_filename(filename)
+    bundle = session.toolshed.find_bundle(winfo.project, session.logger, version=winfo.version)
+    return bundle is not None
+
+
+class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
+
+    def __init__(self, session):
+        self.session = session
+        super().__init__()
+
+    def requestStarted(self, request):
+        from PySide2.QtCore import QBuffer
+        wheel_name = request.requestUrl().path()
+        compatible = _compatible(wheel_name)
+        reply = QBuffer(parent=self)
+        request.destroyed.connect(reply.deleteLater)
+        reply.open(QBuffer.WriteOnly)
+        if not compatible:
+            reply.write(b"Download")
+        elif _installed(wheel_name, self.session):
+            reply.write(b"Installed")
+        else:
+            reply.write(b"Install")
+        reply.close()
+        request.reply(b"text/plain", reply)
