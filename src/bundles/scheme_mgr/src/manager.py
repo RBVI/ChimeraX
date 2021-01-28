@@ -30,7 +30,7 @@ class SchemesManager(ProviderManager):
         def is_true(value):
             return value and value.casefold() in ('true', '1', 'on')
 
-        from PySide2.QtWebEngineCore import QWebEngineUrlScheme
+        from Qt.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
         port = kw.get('defaultPort', None)
         if port is not None:

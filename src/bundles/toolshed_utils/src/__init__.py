@@ -350,7 +350,7 @@ def _add_restart_action(action_type, bundles, extra_args, logger, message, sessi
     if session is None or not session.ui.is_gui:
         logger.error(message)
     else:
-        from PySide2.QtWidgets import QMessageBox
+        from Qt.QtWidgets import QMessageBox
         msg_box = QMessageBox(QMessageBox.Question, "Restart ChimeraX?", message)
         msg_box.setInformativeText("Do you want to restart now?")
         yes = msg_box.addButton("Restart Now", QMessageBox.AcceptRole)

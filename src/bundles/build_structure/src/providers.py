@@ -11,11 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
-from PySide2.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
-from PySide2.QtWidgets import QTableWidgetItem, QPushButton
-from PySide2.QtGui import QDoubleValidator, QIntValidator
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
+from Qt.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
+from Qt.QtWidgets import QTableWidgetItem, QPushButton
+from Qt.QtGui import QDoubleValidator, QIntValidator
+from Qt.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
 import abc
@@ -377,7 +377,7 @@ class PeptideParamDialog(QDialog):
         container.setLayout(lib_chain_layout)
         layout.addWidget(container, alignment=Qt.AlignCenter)
 
-        from PySide2.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel)
         bbox.accepted.connect(self.accept)
         bbox.rejected.connect(self.reject)

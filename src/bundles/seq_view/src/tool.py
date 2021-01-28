@@ -512,7 +512,7 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from PySide2.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
@@ -550,7 +550,7 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 action.setEnabled(False)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda action=action, hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
         headers_menu.addSeparator()
@@ -560,7 +560,7 @@ class SequenceViewer(ToolInstance):
                 continue
             action = QAction(hdr.name, hdr_save_menu)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 

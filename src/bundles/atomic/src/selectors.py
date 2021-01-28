@@ -184,7 +184,7 @@ def add_select_menu_items(session):
 
     parent_menus = [_chains_menu_name]
     select_chains_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    select_chains_menu.aboutToShow.connect(lambda ses=session: _update_select_chains_menu(ses))
+    select_chains_menu.aboutToShow.connect(lambda *, ses=session: _update_select_chains_menu(ses))
     select_chains_menu.setToolTipsVisible(True)
     from . import get_triggers
     atom_triggers = get_triggers()
@@ -197,14 +197,14 @@ def add_select_menu_items(session):
     parent_menus = ["Che&mistry", "&IDATM Type"]
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
-    from PySide2.QtWidgets import QAction
+    from Qt.QtWidgets import QAction
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
 
     parent_menus = [_residues_menu_name]
     select_residues_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
-    select_residues_menu.aboutToShow.connect(lambda ses=session: _update_select_residues_menu(ses))
+    select_residues_menu.aboutToShow.connect(lambda *, ses=session: _update_select_residues_menu(ses))
     select_residues_menu.setToolTipsVisible(True)
     from . import get_triggers
     atom_triggers = get_triggers()
@@ -251,7 +251,7 @@ def _update_select_chains_menu(session):
         if len(description) < 110:
             return False, description
         return True, description[:50] + "..." + description[-50:]
-    from PySide2.QtWidgets import QAction
+    from Qt.QtWidgets import QAction
     for chain_key in chain_keys:
         chains = chain_info[chain_key]
         if len(chains) > 1:

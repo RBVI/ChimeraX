@@ -436,7 +436,7 @@ class VRHeadModel(Model):
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
-        from PySide2.QtGui import QImage
+        from Qt.QtGui import QImage
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
@@ -454,7 +454,7 @@ class VRHeadModel(Model):
 
     def update_image(self, base64_image_bytes):
         image_bytes = _decode_face_image(base64_image_bytes)
-        from PySide2.QtGui import QImage
+        from Qt.QtGui import QImage
         qi = QImage()
         qi.loadFromData(image_bytes)
         aspect = qi.width() / qi.height()

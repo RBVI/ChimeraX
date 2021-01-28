@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
+from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
     QGridLayout, QSizePolicy
-from PySide2.QtCore import Qt
+from Qt.QtCore import Qt
 
 class SaveOptionsWidget(QFrame):
     tip_text = "To save multiple structures into <i>multiple</i> files," \
