@@ -27,8 +27,21 @@ class ColorKeyModel(Model):
 
     CT_BLENDED = "blended"
     CT_DISTINCT = "distinct"
+    color_treatments = (CT_BLENDED, CT_DISTINCT)
+
+    JUST_LEFT = "left"
+    JUST_DECIMAL = "decimal point"
+    JUST_RIGHT = "right"
+    justifications = (JUST_LEFT, JUST_DECIMAL, JUST_RIGHT)
+
+    LS_LEFT_TOP = "left/top"
+    LS_RIGHT_BOTTOM = "right/bottom"
+    label_sides = (LS_LEFT_TOP, LS_RIGHT_BOTTOM)
+
     NLS_EQUAL = "equal"
     NLS_PROPORTIONAL = "proportional to value"
+    numeric_label_spacings = (NLS_EQUAL, NLS_PROPORTIONAL)
+
 
     def __init__(self, session):
         super().__init__("Color key", session)
@@ -42,14 +55,17 @@ class ColorKeyModel(Model):
 
         from chimerax.core.triggerset import TriggerSet
         self.key_triggers = TriggerSet()
+        #TODO: actually fire these appropriately
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
         self._position = None
         self._size = (0.25, 0.05)
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
-        self._num_label_spacing = self.NLS_PROPORTIONAL
+        self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
+        self._justification = JUST_DECIMAL
+        self._label_size = LS_RIGHT_BOTTOM
         self._bold = False
         self._italic = False
         self._font_size = 24
@@ -79,6 +95,18 @@ class ColorKeyModel(Model):
         if bold == self._bold:
             return
         self._bold = bold
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def color_treatment(self):
+        return self._color_treatment
+
+    @color_treatment.setter
+    def color_treatment(self, ct):
+        if ct == self._color_treatment:
+            return
+        self._color_treatment = ct
         self.needs_update = True
         self.redraw_needed()
 
@@ -115,6 +143,42 @@ class ColorKeyModel(Model):
         if italic == self._italic:
             return
         self._italic = italic
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def justification(self):
+        return self._justification
+
+    @justification.setter
+    def justification(self, just):
+        if just == self._justification:
+            return
+        self._justification = just
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def label_side(self):
+        return self._label_side
+
+    @label_side.setter
+    def label_side(self, side):
+        if side == self._label_side:
+            return
+        self._label_side = side
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def numeric_label_spacing(self):
+        return self._numeric_label_spacing
+
+    @numeric_label_spacing.setter
+    def numeric_label_spacing(self, spacing):
+        if spacing == self._numeric_label_spacing:
+            return
+        self._numeric_label_spacing = spacing
         self.needs_update = True
         self.redraw_needed()
 
@@ -226,9 +290,6 @@ class ColorKeyModel(Model):
 
         font = QFont(self.font, self.font_size, (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
-        #TODO: All the commented-out code below needs to be redone to account for left/decimal-point/right
-        # justification
-        """
         # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
         # horizontally across the full width
         if labels[0]:
@@ -241,8 +302,29 @@ class ColorKeyModel(Model):
             pixels[long_index] += extra
 
         # need room below or to right to layout labels
+        # if layout is vertical and justification is decimal-point, the "widest label" is actually the
+        # combination of the widest to the left of the decimal point + the widest to the right of it
+        decimal_widths = []
+        if layout == "vertical" and self._justification == self.JUST_DECIMAL:
+            left_widest = right_widest = 0
+            for label in labels:
+                if '.' in label:
+                    left = fm.boundingRect(label[:label.index('.')]).getRect()[2]
+                    right = fm.boundingRect(label[label.index('.'):]).getRect()[2]
+                else:
+                    left = fm.boundingRect(label).getRect()[2]
+                    right = 0
+                left_widest = max(left_widest, left)
+                right_widest = max(right_widest, right)
+                decimal_widths.append((left, right))
+            extra = left_widest + right_widest
+        else:
+            extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
         extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
-        end_offset[1-long_index] += extra
+        if self._labels_side == self.LS_LEFT_TOP:
+            start_offset[1-long_index] += extra
+        else:
+            end_offset[1-long_index] += extra
         pixels[1-long_index] += extra
 
         if labels[-1]:
@@ -256,7 +338,6 @@ class ColorKeyModel(Model):
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1][long_index]), 0)
             end_offset[long_index] += extra
             pixels[long_index] += extra
-        """
 
         image = QImage(max(pixels[0], 1), max(pixels[0], 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
@@ -297,7 +378,7 @@ class ColorKeyModel(Model):
                     p.drawRect(QRect(QPoint(x1 + start_offset[0], y1 + start_offset[1]),
                         QPoint(x2 + start_offset[0], y2 + start_offset[1])))
             p.setFont(font)
-            #TODO: draw labels
+            #TODO: draw labels (incl. justification)
         finally:
             p.end()
 
@@ -308,7 +389,7 @@ class ColorKeyModel(Model):
     def _rect_positions(self, long_size):
         proportional = False
         texts = [color_text[1] for color_text in self._rgbas_and_labels]
-        if self._num_label_spacing == "proportional to value":
+        if self._numeric_label_spacing == self.NLS_PROPORTIONAL:
             try:
                 values = [float(t) for t in texts]
             except (ValueError, TypeError):
