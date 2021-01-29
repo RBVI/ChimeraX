@@ -650,7 +650,7 @@ class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
         super().__init__()
 
     def requestStarted(self, request):
-        from PySide2.QtCore import QBuffer
+        from Qt.QtCore import QBuffer
         wheel_name = request.requestUrl().path()
         try:
             compatible = _compatible(wheel_name)
