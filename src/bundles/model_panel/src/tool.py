@@ -357,5 +357,8 @@ def show(models, session):
 def view(objs, session):
     from chimerax.core.models import Model
     models = [o for o in objs if isinstance(o, Model)]
-    run(session, "view %s clip false" % concise_model_spec(session, models))
+    # 'View' should include submodels, even if not explicitly selected in the panel.
+    # In particular a "volume model" is a grouping model with nothing directly in it, but
+    # one or more surfaces as submodels.  So change any '#!'s to just '#'.
+    run(session, "view %s clip false" % concise_model_spec(session, models).replace('#!', '#'))
 
