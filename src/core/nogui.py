@@ -129,7 +129,7 @@ class UI:
 
         # Create an offscreen QApplication so labels will work
         try:
-            from PySide2.QtWidgets import QApplication
+            from Qt.QtWidgets import QApplication
         except ModuleNotFoundError:
             return	# ChimeraX being used without Qt
         import chimerax

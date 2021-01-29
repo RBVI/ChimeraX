@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
-from PySide2.QtWidgets import QCheckBox, QSizePolicy
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
+from Qt.QtWidgets import QCheckBox, QSizePolicy
+from Qt.QtCore import Qt
 from chimerax.core.errors import UserError
 from chimerax.build_structure import StartStructureProvider
 

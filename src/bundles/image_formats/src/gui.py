@@ -16,8 +16,8 @@ SUPERSAMPLE_OPTIONS = (("None", 1),
                        ("3x", 3),
                        ("4x", 4))
 
-from PySide2.QtWidgets import QFrame, QHBoxLayout, QComboBox, QLabel, QLineEdit, QCheckBox
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QFrame, QHBoxLayout, QComboBox, QLabel, QLineEdit, QCheckBox
+from Qt.QtCore import Qt
 class SaveOptionsWidget(QFrame):
     def __init__(self, session, fmt):
         super().__init__()

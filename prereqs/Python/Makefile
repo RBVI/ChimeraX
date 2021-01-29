@@ -149,7 +149,7 @@ endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*$(PYMOD_EXT)
 
-app-install:
+app-install: $(DISTDIR)
 	$(RSYNC) $(PYTHON_BIN) $(app_bindir)
 ifeq ($(OS),Windows)
 	# need include and libs so pip install will work

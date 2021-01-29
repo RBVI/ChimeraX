@@ -36,7 +36,7 @@ def cmd_start_structure(session, method, model_info, subargs):
         raise UserError("No command support for '%s' start-structure method" % method)
     if isinstance(model_info, str):
         from chimerax.atomic import AtomicStructure
-        model = AtomicStructure(session, name=model_info)
+        model = AtomicStructure(session, name=model_info, auto_style=manager.auto_style(method))
     else:
         model = model_info
     try:

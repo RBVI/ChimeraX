@@ -73,7 +73,7 @@ class SelectMouseMode(MouseMode):
                     entries.append(entry)
         entries.sort(key = lambda e: e.label(ses))
         dangerous_entries.sort(key = lambda e: e.label(ses))
-        from PySide2.QtWidgets import QMenu, QAction
+        from Qt.QtWidgets import QMenu, QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
@@ -85,7 +85,7 @@ class SelectMouseMode(MouseMode):
                     menu.addSeparator()
                     continue
                 action = QAction(entry.label(ses))
-                action.triggered.connect(lambda cb=entry.callback, sess=ses: cb(sess))
+                action.triggered.connect(lambda *, cb=entry.callback, sess=ses: cb(sess))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
@@ -726,12 +726,12 @@ class ObjectIdMouseMode(MouseMode):
             # and even if the this app is minimized, it gets events for where it used to be on the screen.
             return
         # ensure that no other top-level window is above the graphics
-        from PySide2.QtGui import QCursor
+        from Qt.QtGui import QCursor
         if ui.topLevelAt(QCursor.pos()) != ui.main_window:
             return
         # ensure there's no popup menu above the graphics
         apw = ui.activePopupWidget()
-        from PySide2.QtCore import QPoint
+        from Qt.QtCore import QPoint
         if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position

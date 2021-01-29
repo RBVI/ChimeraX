@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.3" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.4" package="chimerax.build_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -39,7 +39,7 @@
   <Providers manager="start structure">
     <Provider name="atom"/>
     <Provider name="peptide"/>
-    <Provider name="nucleic" ui_name="nucleic double helix" />
+    <Provider name="nucleic" ui_name="nucleic double helix" auto_style="false" />
   </Providers>
 
   <Classifiers>
