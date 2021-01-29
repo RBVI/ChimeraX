@@ -32,7 +32,7 @@
   </Providers>
 
   <Providers manager="url_schemes">
-    <Provider name="installable" syntax="Path"/>
+    <Provider name="installable" syntax="Path" CorsEnabled="true" SecureScheme="true"/>
   </Providers>
 
   <Providers manager="open command">

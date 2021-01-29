@@ -59,6 +59,8 @@ class SchemesManager(ProviderManager):
             flags |= QWebEngineUrlScheme.ViewSourceAllowed
         if is_true(kw.get("ContentSecurityPolicyIgnored", None)):
             flags |= QWebEngineUrlScheme.ContentSecurityPolicyIgnored
+        if is_true(kw.get("CorsEnabled", None)):
+            flags |= QWebEngineUrlScheme.CorsEnabled
         if flags:
             scheme.setFlags(flags)
         QWebEngineUrlScheme.registerScheme(scheme)
