@@ -65,7 +65,7 @@ class ConferenceUI(HtmlToolInstance):
 
     def handle_scheme(self, url):
         # Called when GUI sets browser URL location.
-        # ``url`` - ``PySide2.QtCore.QUrl`` instance
+        # ``url`` - ``Qt.QtCore.QUrl`` instance
 
         # First check that the path is a real command
         command = url.path()

@@ -31,7 +31,7 @@ class MeetingTool(ToolInstance):
     self.tool_window = tw
     parent = tw.ui_area
 
-    from PySide2.QtWidgets import QVBoxLayout, QLabel
+    from Qt.QtWidgets import QVBoxLayout, QLabel
     layout = QVBoxLayout(parent)
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(0)
@@ -60,9 +60,9 @@ class MeetingTool(ToolInstance):
   #
   def _create_name_gui(self, parent, settings):
 
-    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton
-    from PySide2.QtGui import QIcon
-    from PySide2.QtCore import QSize
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton
+    from Qt.QtGui import QIcon
+    from Qt.QtCore import QSize
         
     f = QFrame(parent)
     layout = QHBoxLayout(f)
@@ -122,12 +122,12 @@ class MeetingTool(ToolInstance):
   #
   def _choose_photo(self):
     parent = self.tool_window.ui_area
-    from PySide2.QtWidgets import QFileDialog
+    from Qt.QtWidgets import QFileDialog
     path, ftype  = QFileDialog.getOpenFileName(parent, caption = 'Face Image',
                                                filter = 'Images (*.png *.jpg *.tif)')
     if path:
       self._face_image = path
-      from PySide2.QtGui import QIcon
+      from Qt.QtGui import QIcon
       icon = QIcon(path)
       self._photo_button.setIcon(icon)
   
@@ -139,7 +139,7 @@ class MeetingTool(ToolInstance):
     p = CollapsiblePanel(parent, title = None)
     f = p.content_area
 
-    from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QFrame
+    from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QFrame
     layout = QVBoxLayout(f)
     layout.setContentsMargins(30,0,30,10)
     layout.setSpacing(0)
@@ -180,7 +180,7 @@ class MeetingTool(ToolInstance):
   #
   def _create_buttons(self, parent):
     
-    from PySide2.QtWidgets import QFrame, QHBoxLayout, QPushButton
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QPushButton
     f = QFrame(parent)
     layout = QHBoxLayout(f)
     layout.setContentsMargins(0,0,0,0)

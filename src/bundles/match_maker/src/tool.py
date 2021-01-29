@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from PySide2.QtCore import Qt, Signal
+from Qt.QtCore import Qt, Signal
 
 class MatchMakerTool(ToolInstance):
 
@@ -26,8 +26,8 @@ class MatchMakerTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PySide2.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
-        from PySide2.QtWidgets import QCheckBox
+        from Qt.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
+        from Qt.QtWidgets import QCheckBox
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
         overall_layout.setSpacing(0)
@@ -163,14 +163,14 @@ class MatchMakerTool(ToolInstance):
         bring_layout.addWidget(self.bring_model_list)
         self._match_value_change()
 
-        from PySide2.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_matchmaker)
         bbox.button(qbbox.Apply).clicked.connect(self.run_matchmaker)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         overall_layout.addWidget(bbox)
 
         self._pairing_change(cp_opt)
@@ -398,9 +398,9 @@ class SSScoringMatrixOption(Option):
         pass
 
     def _make_widget(self, **kw):
-        from PySide2.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
-        from PySide2.QtGui import QDoubleValidator
-        from PySide2.QtCore import Qt
+        from Qt.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
+        from Qt.QtGui import QDoubleValidator
+        from Qt.QtCore import Qt
         self.widget = QFrame()
         self._cells = {}
         cell_order = ['H', 'S', 'O']
@@ -436,7 +436,7 @@ class SSScoringMatrixOption(Option):
                         grid.addWidget(text, ri, ci, alignment=Qt.AlignCenter)
         self.widget.setLayout(grid)
 
-from PySide2.QtWidgets import QWidget
+from Qt.QtWidgets import QWidget
 class ChainListsWidget(QWidget):
 
     value_changed = Signal()
@@ -444,7 +444,7 @@ class ChainListsWidget(QWidget):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.__session = session
-        from PySide2.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
+        from Qt.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
         self.__work_layout = QVBoxLayout()
         self.__work_layout.setSpacing(0)
         self.__work_layout.setContentsMargins(0,0,0,0)
@@ -480,7 +480,7 @@ class ChainListsWidget(QWidget):
             return
         # rearranging widgets in an existing layout is nigh impossible so...
         self.__show_widget(self.__scroll_area)
-        from PySide2.QtWidgets import QVBoxLayout, QLabel
+        from Qt.QtWidgets import QVBoxLayout, QLabel
         next_layout = QVBoxLayout()
         next_layout.setSpacing(0)
         next_layout.setContentsMargins(0,0,0,0)
@@ -496,7 +496,7 @@ class ChainListsWidget(QWidget):
                 chain_list = ChainMenuButton(self.__session,
                     filter_func=lambda c, ref=chain: c.structure != ref.structure)
                 chain_list.value_changed.connect(self.value_changed.emit)
-            from PySide2.QtCore import Qt
+            from Qt.QtCore import Qt
             if next_mapping:
                 next_layout.addSpacing(10)
             next_layout.addWidget(label, alignment=Qt.AlignBottom)

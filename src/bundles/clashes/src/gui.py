@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .settings import defaults
-from PySide2.QtWidgets import QWidget
+from Qt.QtWidgets import QWidget
 from chimerax.ui.options import OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     StringOption, OptionalRGBAOption, make_optional
 from chimerax.atomic.options import AtomPairRestrictOption
@@ -82,10 +82,10 @@ class AtomProximityGUI(QWidget):
             final_val[def_name] = getattr(settings, def_name) if settings else frame_dict[def_name]
 
         super().__init__()
-        from PySide2.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
-        from PySide2.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
-        from PySide2.QtWidgets import QSpinBox, QCheckBox
-        from PySide2.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
+        from Qt.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
+        from Qt.QtWidgets import QSpinBox, QCheckBox
+        from Qt.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -428,7 +428,7 @@ class AtomProximityGUI(QWidget):
         atom_spec = ""
         if self.show_values['save_file']:
             if self.save_file_option.value:
-                from PySide2.QtWidgets import QFileDialog
+                from Qt.QtWidgets import QFileDialog
                 fname = QFileDialog.getSaveFileName(self, "Save %s File" % self.prox_words.capitalize())[0]
                 if fname:
                     command_values['save_file'] = fname

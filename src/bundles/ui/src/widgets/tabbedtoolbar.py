@@ -19,12 +19,12 @@ Note: This widget is under active development and the API may change.
 TODO: documnentation!
 """
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (
+from Qt.QtCore import Qt
+from Qt.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
 )
-from PySide2.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
+from Qt.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
 
 _debug = False   # DEBUG
 
@@ -472,7 +472,7 @@ class TabbedToolbar(QTabWidget):
 
 if __name__ == "__main__":
     import sys
-    from PySide2.QtWidgets import QApplication, QVBoxLayout, QTextEdit
+    from Qt.QtWidgets import QApplication, QVBoxLayout, QTextEdit
     app = QApplication(sys.argv)
     app.setApplicationName("Tabbed Toolbar Demo")
     window = QWidget()

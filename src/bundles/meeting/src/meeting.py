@@ -771,7 +771,7 @@ class MeetingParticipant:
     def connect(self, host, port, timeout = None):
         if self._hub:
             raise RuntimeError('Cannot join a meeting when currently hosting a meeting.')
-        from PySide2.QtNetwork import QTcpSocket
+        from Qt.QtNetwork import QTcpSocket
         socket = QTcpSocket()
         msg_stream = MessageStream(socket, self._message_received, self._disconnected,
                                    self._session.logger, connection_timeout = timeout)
@@ -1009,7 +1009,7 @@ class MeetingHub:
     def listen(self, port):
         if self._server:
             return
-        from PySide2.QtNetwork import QTcpServer, QHostAddress
+        from Qt.QtNetwork import QTcpServer, QHostAddress
         self._server = s = QTcpServer()
         a = QHostAddress.Any
         if not s.listen(a, port):
@@ -1033,7 +1033,7 @@ class MeetingHub:
         s = self._server
         port = s.serverPort()
         addresses = [a.toString() for a in self._available_server_ipv4_addresses()]
-        from PySide2.QtNetwork import QHostInfo
+        from Qt.QtNetwork import QHostInfo
         host = QHostInfo.localHostName()
         if host:
             addresses.insert(0, host)
@@ -1045,7 +1045,7 @@ class MeetingHub:
                 if not isinstance(c, MessageStreamLocal)]
     
     def _available_server_ipv4_addresses(self):
-        from PySide2.QtNetwork import QNetworkInterface, QAbstractSocket
+        from Qt.QtNetwork import QNetworkInterface, QAbstractSocket
         a = []
         for ni in QNetworkInterface.allInterfaces():
             flags = ni.flags()
@@ -1215,7 +1215,7 @@ class MessageStream:
         return (s.peerAddress().toString(), s.peerPort())
     
     def send_message_bytes(self, msg_bytes):
-        from PySide2.QtCore import QByteArray
+        from Qt.QtCore import QByteArray
         qbytes = QByteArray(msg_bytes)
         self._socket.write(qbytes)
 
@@ -1347,8 +1347,8 @@ class MessageStream:
         socket = self._socket
         if socket is None:
             return
-        import shiboken2
-        if not shiboken2.isValid(socket):
+        from Qt import qt_object_is_deleted
+        if qt_object_is_deleted(socket):
             return	# Happens when exiting ChimeraX
         if report:
             host, port = (socket.peerAddress().toString(), socket.peerPort())
@@ -1372,7 +1372,7 @@ class MessageStream:
             self._socket_disconnected(report = False)  # QTcpSocket is not firing the disconnected signal
 
 def _set_timer(timeout, callback):
-    from PySide2.QtCore import QTimer
+    from Qt.QtCore import QTimer
     delay_msec = int(1000*timeout)
     return QTimer.singleShot(delay_msec, callback)
 
@@ -1873,7 +1873,7 @@ class VRHeadModel(Model):
         if image_file is None:
             from os.path import join, dirname
             image_file = join(dirname(__file__), self.default_face_file)
-        from PySide2.QtGui import QImage
+        from Qt.QtGui import QImage
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
@@ -1891,7 +1891,7 @@ class VRHeadModel(Model):
 
     def update_image(self, image_bytes):
         im_bytes = _decode_face_image(image_bytes)
-        from PySide2.QtGui import QImage
+        from Qt.QtGui import QImage
         qi = QImage()
         qi.loadFromData(im_bytes)
         aspect = qi.width() / qi.height()

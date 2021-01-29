@@ -66,8 +66,8 @@ class StartStructureManager(ProviderManager):
         if self._provider_bundles[name].installed:
             self._get_provider(name).fill_parameters_widget(widget)
         else:
-            from PySide2.QtWidgets import QLabel, QVBoxLayout
-            from PySide2.QtCore import Qt
+            from Qt.QtWidgets import QLabel, QVBoxLayout
+            from Qt.QtCore import Qt
             layout = QVBoxLayout()
             widget.setLayout(layout)
             info = QLabel('This feature is not installed.  To enable it,'

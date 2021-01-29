@@ -73,7 +73,7 @@ class MainSaveDialog:
                 pass
             else:
                 dialog.selectNameFilter(file_filter)
-        from PySide2.QtWidgets import QHBoxLayout, QLabel
+        from Qt.QtWidgets import QHBoxLayout, QLabel
         self._current_option = self._no_options_label = QLabel(
             "No user-settable options")
         self._options_layout = QHBoxLayout()
@@ -92,7 +92,7 @@ class MainSaveDialog:
         try:
             self._current_option = save_mgr.save_args_widget(fmt) or self._no_options_label
         except SaverNotInstalledError:
-            from PySide2.QtWidgets import QLabel
+            from Qt.QtWidgets import QLabel
             from chimerax.core import toolshed
             bi = save_mgr.provider_info(fmt).bundle_info
             self._current_option = QLabel('<a href="%s">Install the %s bundle</a> to save "%s" format files.'

@@ -163,8 +163,8 @@ class MapEraserSettings(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QCheckBox, QLabel, QPushButton, QLineEdit, QSlider
-        from PySide2.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QCheckBox, QLabel, QPushButton, QLineEdit, QSlider
+        from Qt.QtCore import Qt
 
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0,0,0,0)
@@ -332,7 +332,7 @@ class MapEraserSettings(ToolInstance):
         run(self.session, cmd)
 
     def _eraser_region(self):
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         if self._show_eraser.checkState() != Qt.Checked:
             return None, None, None
 

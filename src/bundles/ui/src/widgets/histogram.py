@@ -11,10 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGraphicsScene, QFrame
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
-from PySide2.QtCore import QSize, Qt, QTimer, QRectF
-from PySide2.QtGui import QBrush, QColor, QPen
+from Qt.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGraphicsScene, QFrame
+from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
+from Qt.QtCore import QSize, Qt, QTimer, QRectF
+from Qt.QtGui import QBrush, QColor, QPen
 from chimerax.mouse_modes import mod_key_info
 from chimerax.core.colors import Color
 

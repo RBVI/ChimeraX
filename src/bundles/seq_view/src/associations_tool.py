@@ -20,7 +20,7 @@ class AssociationsTool:
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
-        from PySide2.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(sv.session, autoselect='single')
