@@ -402,6 +402,7 @@ class HelpUI(ToolInstance):
                                                  self.session.logger,
                                                  per_user=True,
                                                  session=self.session)
+        self.reload_toolshed_tabs()
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
@@ -549,10 +550,21 @@ class HelpUI(ToolInstance):
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
 
+    def reload_toolshed_tabs(self):
+        toolshed_url = self.session.toolshed.remote_url
+        import sys  # DEBUG
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            tab_url = w.url().url()
+            if tab_url.startswith(toolshed_url):
+                w.reload()
+
     @classmethod
-    def get_viewer(cls, session, target=None):
+    def get_viewer(cls, session, target=None, create=True):
         global _singleton
         if _singleton is None:
+            if not create:
+                return None
             _singleton = HelpUI(session)
         return _singleton
 

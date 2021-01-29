@@ -299,6 +299,9 @@ def toolshed_install(session, bundle_names, user_only=True,
     if reinstall is not None:
         kw["reinstall"] = reinstall
     ts.install_bundle(bundles, logger, **kw)
+    if session.is_gui:
+        from chimerax import help_viewer
+        help_viewer.reload_toolshed_tabs(session)
 
 
 toolshed_install_desc = CmdDesc(required=[("bundle_names", ListOf(Or(BundleNameArg, WheelArg)))],
@@ -329,6 +332,9 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
             return
         bundles.add(bi)
     ts.uninstall_bundle(bundles, logger, session=session, force_remove=force_remove)
+    if session.is_gui:
+        from chimerax import help_viewer
+        help_viewer.reload_toolshed_tabs(session)
 
 
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_names", ListOf(BundleNameArg))],
