@@ -21,6 +21,7 @@ all:
 
 ifndef UBUNTU_DIST
 NEED_FFMPEG=1
+SUBDIRS += ambertools
 endif
 
 ifdef WIN32

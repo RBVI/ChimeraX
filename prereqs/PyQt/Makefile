@@ -5,8 +5,8 @@ include $(TOP)/mk/config.make
 # alternate method is "fromsrc"
 METHOD=wheel
 
-# PYQT_LICENSE can be "gpl" for gpl version
-PYQT_LICENSE = commercial
+# PYQT_LICENSE can be "commercial" for commercial version
+PYQT_LICENSE = gpl
 
 VERSION = 5.15
 PYQT_MINOR_VERSION = 2
