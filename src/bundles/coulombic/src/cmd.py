@@ -18,9 +18,9 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
         charge_method=ChargeMethodArg.default_value):
     import sys
-    if sys.platform != "darwin":
+    if sys.platform in ("win32", "cygwin"):
         from chimerax.core.errors import LimitationError
-        raise LimitationError("The coulombic command is temporarily not working on non-Mac systems.  "
+        raise LimitationError("The coulombic command is temporarily not working on Windows systems.  "
             "We hope to have this remedied in a few days.  Until then, please use the production "
             "build for the coulombic command.")
     if map:
