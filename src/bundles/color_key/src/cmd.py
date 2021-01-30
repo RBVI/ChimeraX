@@ -13,7 +13,8 @@
 
 from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
-        color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None):
+        color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
+        label_color=None):
     if colors_and_labels is not None and len(colors_and_labels) < 2:
         raise UserError("Must specify at least two colors for key")
     from .model import get_model
@@ -40,6 +41,8 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         key.label_side = label_side
     if numeric_label_spacing is not None:
         key.numeric_label_spacing = numeric_label_spacing
+    if label_color is not None:
+        key.label_rgba = label_color.rgba
     if pos is not None or size is not None:
         if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
         or (key.position[1] + key.size[1]) > 1:
@@ -91,13 +94,14 @@ def register_command(logger):
         optional=[('colors_and_labels', ColorLabelPairArg)],
         keyword=[
             ('bold', BoolArg),
-            ('color_treatment', EnumOf([x.split()[0] for x in ColorKeyModel.color_treatments]),
+            ('color_treatment', EnumOf([x.split()[0] for x in ColorKeyModel.color_treatments])),
             ('font', StringArg),
             ('font_size', PositiveIntArg),
             ('italic', BoolArg),
-            ('justification', EnumOf([x.split()[0] for x in ColorKeyModel.justifications]),
-            ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides]),
-            ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings]),
+            ('justification', EnumOf([x.split()[0] for x in ColorKeyModel.justifications])),
+            ('label_color', ColorArg),
+            ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
+            ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
             ('size', TupleOf(PositiveFloatArg,2)),
         ],

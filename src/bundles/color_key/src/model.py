@@ -64,8 +64,10 @@ class ColorKeyModel(Model):
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
-        self._justification = JUST_DECIMAL
-        self._label_size = LS_RIGHT_BOTTOM
+        self._justification = self.JUST_DECIMAL
+        self._label_side = self.LS_RIGHT_BOTTOM
+        #TODO: label color None needs to monitor background color changes
+        self._label_rgba = None
         self._bold = False
         self._italic = False
         self._font_size = 24
@@ -74,6 +76,7 @@ class ColorKeyModel(Model):
         session.main_view.add_overlay(self)
 
     def delete(self):
+        #TODO: is "close session" calling this?  If so, why aren't we disappearing?
         self.session.main_view.remove_overlays([self], delete = False)
         self.key_triggers.activate_trigger("closed", None)
         super().delete()
@@ -155,6 +158,19 @@ class ColorKeyModel(Model):
         if just == self._justification:
             return
         self._justification = just
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def label_rgba(self):
+        # None means contrast with background
+        return self._label_rgba
+
+    @label_rgba.setter
+    def label_rgba(self, rgba):
+        if rgba == self._label_rgba:
+            return
+        self._label_rgba = rgba
         self.needs_update = True
         self.redraw_needed()
 
@@ -297,7 +313,7 @@ class ColorKeyModel(Model):
             bounds = fm.boundingRect(labels[0])
             xywh = bounds.getRect()
             label_size = xywh[long_index+2] + (xywh[1] if layout == "vertical" else 0)
-            extra = max(label_size / 2 - label_positions[0][long_index], 0)
+            extra = max(label_size / 2 - label_positions[0], 0)
             start_offset[long_index] += extra
             pixels[long_index] += extra
 
@@ -320,8 +336,9 @@ class ColorKeyModel(Model):
             extra = left_widest + right_widest
         else:
             extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
+            decimal_widths = [(None, None)] * len(labels)
         extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
-        if self._labels_side == self.LS_LEFT_TOP:
+        if self._label_side == self.LS_LEFT_TOP:
             start_offset[1-long_index] += extra
         else:
             end_offset[1-long_index] += extra
@@ -329,13 +346,13 @@ class ColorKeyModel(Model):
 
         if labels[-1]:
             # may need extra room to right or bottom for last label
-            bounds = fm.boundingRect(labels[0])
+            bounds = fm.boundingRect(labels[-1])
             xywh = bounds.getRect()
             # since vertical labels are centered on the half height ignoring the descender,
             # need to use the full height here (which includes the descender) *plus*
             # the descender again, in order to account for the full descender after halving
             label_size = xywh[long_index+2] - (xywh[1] if layout == "vertical" else 0)
-            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1][long_index]), 0)
+            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]), 0)
             end_offset[long_index] += extra
             pixels[long_index] += extra
 
@@ -350,8 +367,8 @@ class ColorKeyModel(Model):
             if self._color_treatment == self.CT_BLENDED:
                 gradient = QLinearGradient()
                 gradient.setCoordinateMode(QLinearGradient.ObjectMode)
-                rect_start = [start_offset[i] / pixels[i] for in in (0,1)]
-                rect_end = [(pixels[i] - end_offset[i]) / x_pixels[i] for i in (0,1)]
+                rect_start = [start_offset[i] / pixels[i] for i in (0,1)]
+                rect_end = [(pixels[i] - end_offset[i]) / pixels[i] for i in (0,1)]
                 if layout == "vertical":
                     start, stop = (rect_start[0], rect_end[1]), (rect_start[0], rect_start[1])
                 else:
@@ -364,7 +381,8 @@ class ColorKeyModel(Model):
                         fraction = 1.0 - fraction
                     gradient.setColorAt(fraction, QColor(*rgba))
                 p.setBrush(QBrush(gradient))
-                p.drawRect(QRect(QPoint(0, 0), QPoint(x_pixels, y_pixels)))
+                p.drawRect(QRect(QPoint(start_offset[0], start_offset[1]),
+                    QPoint(pixels[0] - end_offset[0], pixels[1] - end_offset[1])))
             else:
                 for i in range(len(rect_positions)-1):
                     brush = QBrush(QColor(*rgbas[i]))
@@ -378,7 +396,39 @@ class ColorKeyModel(Model):
                     p.drawRect(QRect(QPoint(x1 + start_offset[0], y1 + start_offset[1]),
                         QPoint(x2 + start_offset[0], y2 + start_offset[1])))
             p.setFont(font)
-            #TODO: draw labels (incl. justification)
+            from chimerax.core.colors import contrast_with_background
+            rgba = contrast_with_background(self.session) if self._label_rgba is None else self._label_rgba
+            p.setPen(QColor(*[int(255.0*c + 0.5) for c in rgba]))
+            for label, pos, decimal_info in zip(labels, label_positions, decimal_widths):
+                if not label:
+                    continue
+                rect = fm.boundingRect(label)
+                if layout == "vertical":
+                    if self._justification == self.JUST_DECIMAL:
+                        pre_decimal_width, decimal_width = decimal_info
+                        if self._label_side == self.LS_LEFT_TOP:
+                            x = start_offset[0] - right_widest - pre_decimal_width
+                        else:
+                            x = end_offset[0] + left_widest - pre_decimal_width
+                    elif self._justification == self.JUST_LEFT:
+                        if self._label_side == self.LS_LEFT_TOP:
+                            x = 0
+                        else:
+                            x = pixels[0] - end_offset[0]
+                    else:
+                        if self._label_side == self.LS_LEFT_TOP:
+                            x = start_offset[0] - (rect.width() - rect.x())
+                        else:
+                            x = pixels[0] - (rect.width() - rect.x())
+                    y = pos + (rect.y() + rect.height()) / 2
+                else:
+                    #TODO: account for descenders ala decimal points
+                    if self._label_side == self.LS_LEFT_TOP:
+                        y = rect.height() + rect.y()
+                    else:
+                        y = pixels[1] + rect.y()
+                    x = pos - (rect.width() - rect.x())
+                p.drawText(x, y, label)
         finally:
             p.end()
 
