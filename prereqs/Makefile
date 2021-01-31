@@ -21,7 +21,6 @@ all:
 
 ifndef UBUNTU_DIST
 NEED_FFMPEG=1
-SUBDIRS += ambertools
 endif
 
 ifdef WIN32
@@ -33,6 +32,7 @@ SUBDIRS += ambertools
 endif
 
 ifeq ($(OS),Linux)
+SUBDIRS += ambertools
 NEED_CHRPATH=1
 NEED_P7ZIP=1
 NEED_OSMESA=1
