@@ -32,6 +32,7 @@ SUBDIRS += ambertools
 endif
 
 ifeq ($(OS),Linux)
+SUBDIRS += ambertools
 NEED_CHRPATH=1
 NEED_P7ZIP=1
 NEED_OSMESA=1

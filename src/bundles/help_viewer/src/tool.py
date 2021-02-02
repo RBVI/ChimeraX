@@ -102,7 +102,7 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from Qt.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
+        from Qt.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
         from Qt.QtGui import QIcon
         from Qt.QtCore import Qt
         shortcuts = (
@@ -194,6 +194,9 @@ class HelpUI(ToolInstance):
 
         self.status_bar = QStatusBar()
         layout.addWidget(self.status_bar)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.status_bar.addPermanentWidget(self.progress_bar)
 
         self.tool_window.manage(placement=None)
 
@@ -203,8 +206,8 @@ class HelpUI(ToolInstance):
             handlers={"installable": _InstallableSchemeHandler(self.session)},
             download=self.download_requested)
 
-    def status(self, message):
-        self.status_bar.showMessage(message, 2000)
+    def status(self, message, timeout=2000):
+        self.status_bar.showMessage(message, timeout)
 
     def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self, profile=self.profile)
@@ -327,6 +330,7 @@ class HelpUI(ToolInstance):
         # but since neither one is set by the server, we look at the
         # download extension instead
         if extension == ".whl":
+            is_wheel = True
             if not base.endswith("x86_64"):
                 # Since the file name encodes the package name and version
                 # number, we make sure that we are using the right name
@@ -349,59 +353,64 @@ class HelpUI(ToolInstance):
                 os.remove(file_path)
             except OSError:
                 pass
-            self._pending_downloads.append(item)
             self.session.logger.info("Downloading bundle %s" % url_file)
-            item.finished.connect(self.download_finished)
+            self.status("Downloading bundle %s" % url_file, 0)
         else:
+            is_wheel = False
             from Qt.QtWidgets import QFileDialog
             path, filt = QFileDialog.getSaveFileName(directory=item.path())
             if not path:
                 return
             self.session.logger.info("Downloading file %s" % url_file)
+            self.status("Downloading file %s" % url_file, 0)
             item.setPath(path)
         # print("HelpUI.download_requested accept", file_path)
+        item.downloadProgress.connect(self.download_progress)
+        item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
-    def download_finished(self, *args, **kw):
+    def download_progress(self, bytes_received, bytes_total):
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setMaximum(bytes_total)
+        self.progress_bar.setValue(bytes_received)
+        self.progress_bar.update()
+
+    def download_finished(self, *args, item=None, is_wheel=False, **kw):
         # print("HelpUI.download_finished", args, kw)
-        finished = []
-        pending = []
-        for item in self._pending_downloads:
-            if not item.isFinished():
-                pending.append(item)
-            else:
-                finished.append(item)
-        self._pending_downloads = pending
+        self.progress_bar.setVisible(False)
+        self.status("Download finished")
+        item.downloadProgress.disconnect()
+        item.finished.disconnect()
+        if not is_wheel:
+            return
         import pkginfo
         from chimerax.ui.ask import ask
-        for item in finished:
-            item.finished.disconnect()
-            filename = item.path()
-            try:
-                wh = pkginfo.Wheel(filename)
-            except Exception as e:
-                self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
-                self.session.logger.info("File saved as %s" % filename)
-                continue
-            if not _installable(wh, self.session.logger):
-                self.session.logger.info("Bundle saved as %s" % filename)
-                continue
-            prefix = _install_or_upgrade(filename, self.session).decode()
-            if prefix in ("Downgrade", "Upgrade"):
-                prefix += " to"
-            elif prefix == "Installed":
-                prefix = "Reinstall"
-            how = ask(self.session,
-                      f"{prefix} {wh.name} {wh.version} (file {filename})?",
-                      ["install", "cancel"],
-                      title="Toolshed")
-            if how == "cancel":
-                self.session.logger.info("Bundle installation canceled")
-                continue
-            self.session.toolshed.install_bundle(filename,
-                                                 self.session.logger,
-                                                 per_user=True,
-                                                 session=self.session)
+        filename = item.path()
+        try:
+            wh = pkginfo.Wheel(filename)
+        except Exception as e:
+            self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
+            self.session.logger.info("File saved as %s" % filename)
+            return
+        if not _installable(wh, self.session.logger):
+            self.session.logger.info("Bundle saved as %s" % filename)
+            return
+        prefix = _install_or_upgrade(filename, self.session).decode()
+        if prefix in ("Downgrade", "Upgrade"):
+            prefix += " to"
+        elif prefix == "Installed":
+            prefix = "Reinstall"
+        how = ask(self.session,
+                  f"{prefix} {wh.name} {wh.version} (file {filename})?",
+                  ["install", "cancel"],
+                  title="Toolshed")
+        if how == "cancel":
+            self.session.logger.info("Bundle installation canceled")
+            return
+        self.session.toolshed.install_bundle(filename,
+                                             self.session.logger,
+                                             per_user=True,
+                                             session=self.session)
         self.reload_toolshed_tabs()
 
     def show(self, url, *, new_tab=False, html=None):
@@ -552,7 +561,6 @@ class HelpUI(ToolInstance):
 
     def reload_toolshed_tabs(self):
         toolshed_url = self.session.toolshed.remote_url
-        import sys  # DEBUG
         for i in range(self.tabs.count()):
             w = self.tabs.widget(i)
             tab_url = w.url().url()
