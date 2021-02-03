@@ -235,7 +235,7 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
         _add_restart_action("install", bundle_names, args, logger, message, session)
         return
     from chimerax.core.commands import plural_form
-    logger.info("Installing %s" % plural_form(bundle_names, "bundle"))
+    logger.status("Installing %s" % plural_form(bundle_names, "bundle"))
     try:
         results = _pip_install(
             toolshed, bundle_names, logger, per_user=per_user, reinstall=reinstall, no_deps=no_deps)
@@ -353,7 +353,7 @@ def _add_restart_action(action_type, bundles, extra_args, logger, message, sessi
     if session is None or not session.ui.is_gui:
         logger.error(message)
     else:
-        from PySide2.QtWidgets import QMessageBox
+        from Qt.QtWidgets import QMessageBox
         msg_box = QMessageBox(QMessageBox.Question, "Restart ChimeraX?", message)
         msg_box.setInformativeText("Do you want to restart now?")
         yes = msg_box.addButton("Restart Now", QMessageBox.AcceptRole)

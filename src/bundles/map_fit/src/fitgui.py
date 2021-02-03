@@ -36,7 +36,7 @@ class FitMapDialog(ToolInstance):
     self.tool_window = tw
     parent = tw.ui_area
 
-    from PySide2.QtWidgets import QVBoxLayout, QLabel
+    from Qt.QtWidgets import QVBoxLayout, QLabel
     layout = QVBoxLayout(parent)
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(0)
@@ -84,7 +84,7 @@ class FitMapDialog(ToolInstance):
   #
   def _create_mol_map_menu(self, parent):
 
-    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -125,7 +125,7 @@ class FitMapDialog(ToolInstance):
   #
   def _create_correlation_gui(self, parent):
 
-    from PySide2.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -160,7 +160,7 @@ class FitMapDialog(ToolInstance):
     p = CollapsiblePanel(parent, 'Options')
     f = p.content_area
 
-    from PySide2.QtWidgets import QVBoxLayout
+    from Qt.QtWidgets import QVBoxLayout
     layout = QVBoxLayout(f)
     layout.setContentsMargins(30,0,0,0)
     layout.setSpacing(0)
@@ -205,7 +205,7 @@ class FitMapDialog(ToolInstance):
   #
   def _create_action_buttons(self, parent):
     
-    from PySide2.QtWidgets import QFrame, QHBoxLayout, QPushButton
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QPushButton
     bf = QFrame(parent)
     blayout = QHBoxLayout(bf)
     blayout.setContentsMargins(0,0,0,0)

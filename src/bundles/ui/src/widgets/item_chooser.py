@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QListWidget, QPushButton, QMenu
-from PySide2.QtCore import Qt, Signal
+from Qt.QtWidgets import QListWidget, QPushButton, QMenu
+from Qt.QtCore import Qt, Signal
 
 class ItemsGenerator:
     def __init__(self, list_func=lambda: [], key_func=lambda x: x, filter_func=lambda x: True,

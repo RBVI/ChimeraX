@@ -57,7 +57,7 @@ class _StatusBarOpenGL:
             w.setVisible(show)
             
     def _make_widget(self):
-        from PySide2.QtWidgets import QStatusBar, QSizePolicy
+        from Qt.QtWidgets import QStatusBar, QSizePolicy
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         w = StatusOpenGLWindow(parent = sb,
@@ -190,10 +190,10 @@ class _StatusBarOpenGL:
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
 
 def _qwindow_deleted(w):
-    import shiboken2
-    return not shiboken2.isValid(w)
+    from Qt import qt_object_is_deleted
+    return qt_object_is_deleted(w)
 
-from PySide2.QtGui import QWindow
+from Qt.QtGui import QWindow
 class StatusOpenGLWindow(QWindow):
     def __init__(self, parent, expose_cb = None, resize_cb = None, key_press_cb = None):
         QWindow.__init__(self)
@@ -203,9 +203,9 @@ class StatusOpenGLWindow(QWindow):
             self.resizeEvent = resize_cb
         if key_press_cb:
             self.keyPressEvent = key_press_cb
-        from PySide2.QtWidgets import QWidget
+        from Qt.QtWidgets import QWidget
         self._widget = QWidget.createWindowContainer(self, parent)
-        from PySide2.QtGui import QSurface
+        from Qt.QtGui import QSurface
         self.setSurfaceType(QSurface.OpenGLSurface)
         parent.addWidget(self._widget, stretch = 1)
 
@@ -235,7 +235,7 @@ class _StatusBarQt:
         self.widget = None
         
     def _make_widget(self):
-        from PySide2.QtWidgets import QStatusBar, QSizePolicy, QLabel
+        from Qt.QtWidgets import QStatusBar, QSizePolicy, QLabel
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         sb._primary_status_label = QLabel()
@@ -283,7 +283,7 @@ class _StatusBarQt:
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
         self._in_status_event_processing = True
-        from PySide2.QtCore import QEventLoop
+        from Qt.QtCore import QEventLoop
         s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         self._in_status_event_processing = False
         ul.unblock_redraw()
@@ -311,7 +311,7 @@ class _StatusBarQt:
                 self._processing_deferred_events = False
 
         self._flush_timer_queued = True
-        from PySide2.QtCore import QTimer
+        from Qt.QtCore import QTimer
         QTimer.singleShot(0, flush_pending_user_events)
 
 #_StatusBar = _StatusBarQt

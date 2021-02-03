@@ -574,7 +574,7 @@ class ArrowModel(Model):
         self.xpos = left / w
         self.ypos = bottom / h
 
-        from PySide2.QtGui import QImage, QPainter, QColor, QBrush, QPen
+        from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen
 
         iw = int(right-left)+2*self.PIXEL_MARGIN
         ih = int(top-bottom)+2*self.PIXEL_MARGIN
@@ -586,7 +586,7 @@ class ArrowModel(Model):
             p = QPainter(image)
             p.setRenderHint(QPainter.Antialiasing)
             bcolor = QColor(*self.arrow_color)
-            from PySide2.QtCore import Qt, QPointF
+            from Qt.QtCore import Qt, QPointF
             pbr = QBrush(bcolor, Qt.SolidPattern)
             p.setBrush(pbr)
             ppen = QPen(Qt.NoPen)
@@ -597,7 +597,8 @@ class ArrowModel(Model):
                 return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
             """
             if len(shaft_geom) == 4:
-                p.drawPolygon([QPointF(*image_xy(xy)) for xy in shaft_geom])
+                from Qt.QtGui import QPolygonF
+                p.drawPolygon(QPolygonF([QPointF(*image_xy(xy)) for xy in shaft_geom]))
             else:
                 #TODO: draw arc
                 pass
@@ -642,7 +643,8 @@ class ArrowModel(Model):
             else:
                 raise ValueError("Don't know how to draw arrowhead style '%s'" % self.arrow.head_style)
             if poly_points:
-                p.drawPolygon([QPointF(*image_xy(xy)) for xy in poly_points])
+                from Qt.QtGui import QPolygonF
+                p.drawPolygon(QPolygonF([QPointF(*image_xy(xy)) for xy in poly_points]))
 
             # Convert to numpy rgba array.
             from chimerax.graphics import qimage_to_numpy
