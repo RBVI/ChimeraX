@@ -20,7 +20,7 @@ BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
-	  alignments arrays atom_search \
+	  alignments amber_info arrays atom_search \
 	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -50,11 +50,6 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
-REST_SUBDIRS += amber_info
-endif
-
-ifeq ($(OS),Darwin)
-REST_SUBDIRS += amber_info
 endif
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
