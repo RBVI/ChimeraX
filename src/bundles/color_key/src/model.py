@@ -63,7 +63,7 @@ class ColorKeyModel(Model):
 
         self._position = None
         self._size = (0.25, 0.05)
-        self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), "Middling"), ((1,0,0,1), "max")]
+        self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
         self._justification = self.JUST_DECIMAL
