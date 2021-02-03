@@ -688,8 +688,6 @@ cdef class CyAtom:
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing); if omit_structure is None, the the structure"
         " will be omitted if only one structure is open"
-        import sys
-        print("atom.string()", file=sys.__stderr__)
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
