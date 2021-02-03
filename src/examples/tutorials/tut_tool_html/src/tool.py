@@ -56,7 +56,7 @@ class TutorialTool(HtmlToolInstance):
         self.html_view.setUrl(pathlib.Path(html_file).as_uri())
 
     def handle_scheme(self, url):
-        # ``url`` - ``PySide2.QtCore.QUrl`` instance
+        # ``url`` - ``Qt.QtCore.QUrl`` instance
 
         # This method is called when the user clicks a link on the HTML
         # page with our custom scheme.  The URL path and query parameters

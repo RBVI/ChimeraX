@@ -50,6 +50,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
+REST_SUBDIRS += amber_info
 endif
 
 ifeq ($(OS),Darwin)

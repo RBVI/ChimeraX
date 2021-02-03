@@ -14,9 +14,9 @@
 """ Citation:  show citation for literature reference"""
 
 import os
-from PySide2.QtWidgets import QFrame, QGridLayout, QLabel, QToolButton, QAction
-from PySide2.QtGui import QFont, QIcon
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QFrame, QGridLayout, QLabel, QToolButton, QAction
+from Qt.QtGui import QFont, QIcon
+from Qt.QtCore import Qt
 
 class Citation(QFrame):
 

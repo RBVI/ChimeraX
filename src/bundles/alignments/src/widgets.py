@@ -13,7 +13,7 @@
 
 from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
 from chimerax.core.triggerset import TriggerSet
-from PySide2.QtCore import Signal
+from Qt.QtCore import Signal
 
 class AlignmentListWidget(ItemListWidget):
 

@@ -14,8 +14,8 @@
 from chimerax.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 from .hbond import rec_dist_slop, rec_angle_slop
-from PySide2.QtWidgets import QWidget
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QWidget
+from Qt.QtCore import Qt
 from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     OptionalRGBAOption, make_optional
 
@@ -78,7 +78,7 @@ class HBondsGUI(QWidget):
             final_val[name] = getattr(settings, name) if settings else frame_dict[name]
 
         super().__init__()
-        from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -269,7 +269,7 @@ class HBondsGUI(QWidget):
 
         if self.__show_values['save_file']:
             if self.__save_file_option.value:
-                from PySide2.QtWidgets import QFileDialog
+                from Qt.QtWidgets import QFileDialog
                 fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
                 if fname:
                     command_values['save_file'] = fname
