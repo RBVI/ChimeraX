@@ -1595,7 +1595,7 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()

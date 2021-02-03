@@ -212,7 +212,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     # form the sequences to be written out as a PIR
     from chimerax.atomic import Sequence
-    pir_target = Sequence(name=target_name)
+    pir_target = Sequence(name=opal_safe_file_name(target_name))
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
     pir_seqs = [pir_target]
@@ -374,8 +374,11 @@ def find_affixes(chains, chain_info):
     s.in_seq_hets = het_set
     return prefixes, suffixes
 
+def opal_safe_file_name(fn):
+    return fn.replace(':', '_').replace(' ', '_').replace('|', '_')
+
 def structure_save_name(s):
-    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string
+    return opal_safe_file_name(s.name) + "_" + s.id_string
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
