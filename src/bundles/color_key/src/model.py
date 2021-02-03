@@ -16,6 +16,7 @@ def get_model(session, *, create=True):
     if not _model and create:
         # constructor sets _model, which makes session restore easier
         ColorKeyModel(session)
+        session.models.add([_model], root_model = True)
     return _model
 
 from chimerax.core.models import Model
@@ -59,12 +60,14 @@ class ColorKeyModel(Model):
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
+        #TODO: session save/restore
         self._position = None
         self._size = (0.25, 0.05)
-        self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
+        self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), "Middling"), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
         self._justification = self.JUST_DECIMAL
+        self._label_offset = 0
         self._label_side = self.LS_RIGHT_BOTTOM
         #TODO: label color None needs to monitor background color changes
         self._label_rgba = None
@@ -155,9 +158,24 @@ class ColorKeyModel(Model):
 
     @justification.setter
     def justification(self, just):
+        if just == self.JUST_DECIMAL.split()[0]:
+            just = self.JUST_DECIMAL
         if just == self._justification:
             return
         self._justification = just
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def label_offset(self):
+        # None means contrast with background
+        return self._label_offset
+
+    @label_offset.setter
+    def label_offset(self, offset):
+        if offset == self._label_offset:
+            return
+        self._label_offset = offset
         self.needs_update = True
         self.redraw_needed()
 
@@ -168,7 +186,8 @@ class ColorKeyModel(Model):
 
     @label_rgba.setter
     def label_rgba(self, rgba):
-        if rgba == self._label_rgba:
+        from numpy import array_equal
+        if array_equal(rgba, self._label_rgba):
             return
         self._label_rgba = rgba
         self.needs_update = True
@@ -192,6 +211,8 @@ class ColorKeyModel(Model):
 
     @numeric_label_spacing.setter
     def numeric_label_spacing(self, spacing):
+        if spacing == self.NLS_PROPORTIONAL.split()[0]:
+            spacing = self.NLS_PROPORTIONAL
         if spacing == self._numeric_label_spacing:
             return
         self._numeric_label_spacing = spacing
@@ -222,6 +243,13 @@ class ColorKeyModel(Model):
         self.redraw_needed()
 
     @property
+    def single_color(self):
+        return None
+
+    @single_color.setter(self, val):
+        pass
+
+    @property
     def size(self):
         return self._size
 
@@ -245,7 +273,7 @@ class ColorKeyModel(Model):
         if getattr(renderer, 'image_save', False):
             # When saving an image, match the key's on-screen fractional size, even though the image size
             # in pixels may be different from on screen
-            sw, sh = self.session.main_window.window_size
+            sw, sh = self.session.main_view.window_size
             w, h = window_size
             pixel_scale = (w / sw) if sw > 0 else 1
             aspect = (w*sh) / (h*sw) if h*sw > 0 else 1
@@ -275,13 +303,13 @@ class ColorKeyModel(Model):
             self._set_key_image(rgba)
 
     def _key_image_rgba(self):
-        ulx, uly = self._position
         key_w, key_h = self._size
         win_w, win_h = self._window_size
         rect_pixels = [int(win_w * key_w + 0.5), int(win_h * key_h + 0.5)]
         pixels = rect_pixels[:]
         start_offset = [0, 0]
         end_offset = [0, 0]
+        label_offset = self._label_offset + 5
         if pixels[0] > pixels[1]:
             layout = "horizontal"
             long_index = 0
@@ -300,19 +328,26 @@ class ColorKeyModel(Model):
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
 
-        from PySide2.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, \
-            QFont
-        from PySide2.QtCore import Qt, QRect, QPoint
+        from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
+        from Qt.QtCore import Qt, QRect, QPoint
 
         font = QFont(self.font, self.font_size, (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
+        font_height = fm.ascent()
+        font_descender = fm.descent()
         # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
         # horizontally across the full width
+        #
+        # fm.boundingRect(label) basically returns a fixed height for all labels (and a large negative y)
+        # so just use the font size instead
         if labels[0]:
             # may need extra room to left or top for first label
             bounds = fm.boundingRect(labels[0])
             xywh = bounds.getRect()
-            label_size = xywh[long_index+2] + (xywh[1] if layout == "vertical" else 0)
+            # Qt seemingly will not return the actual height of a text string; estimate all lower case
+            # to be 2/3 height
+            label_height = (font_height * 2/3) if labels[0].islower() else font_height
+            label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - label_positions[0], 0)
             start_offset[long_index] += extra
             pixels[long_index] += extra
@@ -324,39 +359,53 @@ class ColorKeyModel(Model):
         if layout == "vertical" and self._justification == self.JUST_DECIMAL:
             left_widest = right_widest = 0
             for label in labels:
+                overall = fm.boundingRect(label).getRect()[2]
                 if '.' in label:
-                    left = fm.boundingRect(label[:label.index('.')]).getRect()[2]
                     right = fm.boundingRect(label[label.index('.'):]).getRect()[2]
+                    left = overall - right
                 else:
-                    left = fm.boundingRect(label).getRect()[2]
+                    left = overall
                     right = 0
                 left_widest = max(left_widest, left)
                 right_widest = max(right_widest, right)
                 decimal_widths.append((left, right))
-            extra = left_widest + right_widest
+            extra = left_widest + right_widest + label_offset
         else:
-            extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
+            if layout == "vertical":
+                extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels]) + label_offset
+            else:
+                # Qt seemingly will not return the actual height of a text string; estimate all lower case
+                # to be 2/3 height
+                for label in labels:
+                    if label and not label.islower():
+                        label_height = font_height
+                        break
+                else:
+                    label_height = font_height * 2/3
+                extra = label_height + label_offset
             decimal_widths = [(None, None)] * len(labels)
-        extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels])
         if self._label_side == self.LS_LEFT_TOP:
             start_offset[1-long_index] += extra
         else:
             end_offset[1-long_index] += extra
         pixels[1-long_index] += extra
 
+        pixels[1] += font_descender
+        end_offset[1] += font_descender
+
         if labels[-1]:
             # may need extra room to right or bottom for last label
             bounds = fm.boundingRect(labels[-1])
             xywh = bounds.getRect()
-            # since vertical labels are centered on the half height ignoring the descender,
-            # need to use the full height here (which includes the descender) *plus*
-            # the descender again, in order to account for the full descender after halving
-            label_size = xywh[long_index+2] - (xywh[1] if layout == "vertical" else 0)
+            # Qt seemingly will not return the actual height of a text string; estimate all lower case
+            # to be 2/3 height
+            label_height = (font_height * 2/3) if labels[-1].islower() else font_height
+            label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]), 0)
             end_offset[long_index] += extra
             pixels[long_index] += extra
 
-        image = QImage(max(pixels[0], 1), max(pixels[0], 1), QImage.Format_ARGB32)
+        image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         try:
@@ -365,6 +414,23 @@ class ColorKeyModel(Model):
             p.setPen(QPen(Qt.NoPen))
 
             if self._color_treatment == self.CT_BLENDED:
+                edge1, edge2 = start_offset[1-long_index], pixels[1-long_index] - end_offset[1-long_index]
+                for i in range(len(rect_positions)-1):
+                    start = start_offset[long_index] + rect_positions[i]
+                    stop = start_offset[long_index] + rect_positions[i+1]
+                    if layout == "vertical":
+                        x1, y1, x2, y2 = edge1, start, edge2, stop
+                        gradient = QLinearGradient(0, start, 0, stop)
+                    else:
+                        x1, y1, x2, y2 = start, edge1, stop, edge2
+                        gradient = QLinearGradient(start, 0, stop, 0)
+                    gradient.setColorAt(0, QColor(*rgbas[i]))
+                    gradient.setColorAt(1, QColor(*rgbas[i+1]))
+                    p.setBrush(QBrush(gradient))
+                    p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
+                # The one-call gradient below doesn't seem to position the transition points
+                # completely correct, whereas the above piecemeal code does
+                """
                 gradient = QLinearGradient()
                 gradient.setCoordinateMode(QLinearGradient.ObjectMode)
                 rect_start = [start_offset[i] / pixels[i] for i in (0,1)]
@@ -383,6 +449,7 @@ class ColorKeyModel(Model):
                 p.setBrush(QBrush(gradient))
                 p.drawRect(QRect(QPoint(start_offset[0], start_offset[1]),
                     QPoint(pixels[0] - end_offset[0], pixels[1] - end_offset[1])))
+                """
             else:
                 for i in range(len(rect_positions)-1):
                     brush = QBrush(QColor(*rgbas[i]))
@@ -407,27 +474,29 @@ class ColorKeyModel(Model):
                     if self._justification == self.JUST_DECIMAL:
                         pre_decimal_width, decimal_width = decimal_info
                         if self._label_side == self.LS_LEFT_TOP:
-                            x = start_offset[0] - right_widest - pre_decimal_width
+                            x = start_offset[0] - right_widest - pre_decimal_width - label_offset
                         else:
-                            x = end_offset[0] + left_widest - pre_decimal_width
+                            x = pixels[0] - right_widest - pre_decimal_width
                     elif self._justification == self.JUST_LEFT:
                         if self._label_side == self.LS_LEFT_TOP:
                             x = 0
                         else:
-                            x = pixels[0] - end_offset[0]
+                            x = pixels[0] - end_offset[0] + label_offset
                     else:
                         if self._label_side == self.LS_LEFT_TOP:
-                            x = start_offset[0] - (rect.width() - rect.x())
+                            x = start_offset[0] - (rect.width() - rect.x()) - label_offset
                         else:
                             x = pixels[0] - (rect.width() - rect.x())
-                    y = pos + (rect.y() + rect.height()) / 2
+                    # Qt seemingly will not return the actual height of a text string; estimate all
+                    # lower case to be 2/3 height
+                    label_height = (font_height * 2/3) if label.islower() else font_height
+                    y = start_offset[1] + pos + label_height / 2
                 else:
-                    #TODO: account for descenders ala decimal points
                     if self._label_side == self.LS_LEFT_TOP:
-                        y = rect.height() + rect.y()
+                        y = font_height
                     else:
-                        y = pixels[1] + rect.y()
-                    x = pos - (rect.width() - rect.x())
+                        y = pixels[1] - font_descender
+                    x = start_offset[0] + pos - (rect.width() - rect.x())/2
                 p.drawText(x, y, label)
         finally:
             p.end()
@@ -463,7 +532,7 @@ class ColorKeyModel(Model):
             val_size = abs(vN-v0)
             positions = [long_size * abs(v-v0) / val_size for v in values]
             rect_positions = [0.0] + [(positions[i] + positions[i+1])/2.0
-                for i in range(len(values)-1)] + [1.0]
+                for i in range(len(values)-1)] + [long_size]
         return rect_positions
 
     def _set_key_image(self, rgba):

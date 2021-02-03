@@ -14,7 +14,7 @@
 from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
-        label_color=None):
+        label_color=None, label_offset=None, font=None):
     if colors_and_labels is not None and len(colors_and_labels) < 2:
         raise UserError("Must specify at least two colors for key")
     from .model import get_model
@@ -42,7 +42,14 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     if numeric_label_spacing is not None:
         key.numeric_label_spacing = numeric_label_spacing
     if label_color is not None:
-        key.label_rgba = label_color.rgba
+        if label_color == 'none':
+            key.label_rgba = None
+        else:
+            key.label_rgba = label_color.rgba
+    if label_offset is not None:
+        key.label_offset = label_offset
+    if font is not None:
+        key.font = font
     if pos is not None or size is not None:
         if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
         or (key.position[1] + key.size[1]) > 1:
@@ -50,6 +57,12 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     if colors_and_labels is not None:
         key.rgbas_and_labels = [(c.rgba, l) for c,l in colors_and_labels]
     return key
+
+def key_delete_cmd(session):
+    from .model import get_model
+    key = get_model(session, create=False)
+    if key is not None:
+        key.delete()
 
 from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token
 class ColorLabelPairArg(Annotation):
@@ -88,7 +101,8 @@ class ColorLabelPairArg(Annotation):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
-        PositiveIntArg, StringArg, EnumOf
+        PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias
+    from chimerax.label.label3d import NoneArg
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
         optional=[('colors_and_labels', ColorLabelPairArg)],
@@ -99,7 +113,8 @@ def register_command(logger):
             ('font_size', PositiveIntArg),
             ('italic', BoolArg),
             ('justification', EnumOf([x.split()[0] for x in ColorKeyModel.justifications])),
-            ('label_color', ColorArg),
+            ('label_color', Or(NoneArg,ColorArg)),
+            ('label_offset', FloatArg),
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
@@ -107,3 +122,8 @@ def register_command(logger):
         ],
         synopsis = 'Create/change a color key')
     register('key', cmd_desc, key_cmd, logger=logger)
+
+    delete_desc = CmdDesc(synopsis = 'Delete the color key')
+    register('key delete', delete_desc, key_delete_cmd, logger=logger)
+    create_alias('~key', 'key delete', logger=logger)
+    create_alias('key listfonts', '2dlabels listfonts $*', logger=logger)
