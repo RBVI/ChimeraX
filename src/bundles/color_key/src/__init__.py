@@ -24,9 +24,9 @@ class _ColorKeyBundle(BundleAPI):
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
-        if class_name == 'KeyModel':
-            from .model import KeyModel
-            return KeyModel
+        if class_name == 'ColorKeyModel':
+            from .model import ColorKeyModel
+            return ColorKeyModel
         return None
 
     @staticmethod

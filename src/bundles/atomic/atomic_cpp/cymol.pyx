@@ -688,6 +688,8 @@ cdef class CyAtom:
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing); if omit_structure is None, the the structure"
         " will be omitted if only one structure is open"
+        import sys
+        print("atom.string()", file=sys.__stderr__)
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
@@ -1595,7 +1597,7 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()

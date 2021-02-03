@@ -1206,6 +1206,8 @@ Residue*
 Structure::new_residue(const ResName& name, const ChainID& chain,
     int pos, char insert, Residue *neighbor, bool after)
 {
+    if (chain.size() == 0)
+        throw std::invalid_argument("Chain ID cannot be the empty string");
     if (neighbor == nullptr) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));
         return _residues.back();

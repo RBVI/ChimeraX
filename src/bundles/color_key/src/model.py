@@ -12,11 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 _model = None
-def get_model(session, *, create=True):
+def get_model(session, *, create=True, add_created=True):
     if not _model and create:
         # constructor sets _model, which makes session restore easier
         ColorKeyModel(session)
-        session.models.add([_model], root_model = True)
+        if add_created:
+            session.models.add([_model], root_model = True)
     return _model
 
 from chimerax.core.models import Model
@@ -60,7 +61,6 @@ class ColorKeyModel(Model):
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
-        #TODO: session save/restore
         self._position = None
         self._size = (0.25, 0.05)
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), "Middling"), ((1,0,0,1), "max")]
@@ -69,17 +69,21 @@ class ColorKeyModel(Model):
         self._justification = self.JUST_DECIMAL
         self._label_offset = 0
         self._label_side = self.LS_RIGHT_BOTTOM
-        #TODO: label color None needs to monitor background color changes
         self._label_rgba = None
         self._bold = False
         self._italic = False
         self._font_size = 24
         self._font = 'Arial'
 
+        self._background_handler = None
+        self._update_background_handler()
+
         session.main_view.add_overlay(self)
 
     def delete(self):
-        #TODO: is "close session" calling this?  If so, why aren't we disappearing?
+        if self._background_handler:
+            from chimerax.core.core_settings import settings
+            settings.triggers.remove_handler(self._background_handler)
         self.session.main_view.remove_overlays([self], delete = False)
         self.key_triggers.activate_trigger("closed", None)
         super().delete()
@@ -192,6 +196,7 @@ class ColorKeyModel(Model):
         self._label_rgba = rgba
         self.needs_update = True
         self.redraw_needed()
+        self._update_background_handler()
 
     @property
     def label_side(self):
@@ -246,7 +251,8 @@ class ColorKeyModel(Model):
     def single_color(self):
         return None
 
-    @single_color.setter(self, val):
+    @single_color.setter
+    def single_color(self, val):
         pass
 
     @property
@@ -260,6 +266,48 @@ class ColorKeyModel(Model):
         self._size = wh
         self.needs_update = True
         self.redraw_needed()
+
+    session_attrs = [
+            "_bold",
+            "_color_treatment",
+            "_font",
+            "_font_size",
+            "_italic",
+            "_justification",
+            "_label_offset",
+            "_label_rgba",
+            "_label_side",
+            "_numeric_label_spacing",
+            "_position",
+            "_rgbas_and_labels",
+            "_size",
+    ]
+
+    def take_snapshot(self, session, flags):
+        return { attr: getattr(self, attr) for attr in self.session_attrs }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        key = get_model(session, add_created=False)
+        for attr, val in data.items():
+            setattr(key, attr, val)
+        key.needs_update = True
+        key.redraw_needed()
+        key._update_background_handler()
+        return key
+
+    def _update_background_handler(self):
+        need_handler = self._label_rgba is None
+        from chimerax.core.core_settings import settings
+        if need_handler and not self._background_handler:
+            def check_setting(trig_name, data, key=self):
+                if data[0] == 'background_color':
+                    key.needs_update = True
+                    key.redraw_needed()
+            self._background_handler = settings.triggers.add_handler('setting changed', check_setting)
+        elif not need_handler and self._background_handler:
+            settings.triggers.remove_handler(self._background_handler)
+            self._background_handler = None
 
     def _update_graphics(self, renderer):
         """
@@ -331,7 +379,8 @@ class ColorKeyModel(Model):
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRect, QPoint
 
-        font = QFont(self.font, self.font_size, (QFont.Bold if self.bold else QFont.Normal), self.italic)
+        font = QFont(self.font, self.font_size * self._texture_pixel_scale,
+            (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
         font_height = fm.ascent()
         font_descender = fm.descent()
