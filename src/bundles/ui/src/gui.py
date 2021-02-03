@@ -1948,8 +1948,8 @@ class ToolWindow(StatusLogger):
         if settings.auto_float_tools and tool_name not in settings.autostart:
             if tool_name not in settings.undockable:
                 settings.undockable = settings.undockable + [tool_name]
+        from Qt.QtCore import Qt
         if tool_name in settings.undockable:
-            from Qt.QtCore import Qt
             allowed_areas = Qt.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
@@ -1979,9 +1979,20 @@ class ToolWindow(StatusLogger):
             if geom_info is not None:
                 from Qt.QtCore import QRect
                 geometry = QRect(*geom_info)
-        ui.main_window._about_to_manage(self,
-            placement is None or (isinstance(placement, ToolWindow) and placement.floating))
+        resize_docked = False
+        place_floating = placement is None or (isinstance(placement, ToolWindow) and placement.floating)
+        if not place_floating and placement in ('side', 'left', 'right'):
+            # if the tool's sizeHint indicates that the graphics window would be forced to shrink by more
+            # than 50% to accomodate; resize docked widget instead
+            central_width = ui.main_window.centralWidget().size().width()
+            overall_width = ui.main_window.size().width()
+            graphics_width = overall_width - central_width
+            if overall_width - self.ui_area.sizeHint().width() < graphics_width / 2:
+                resize_docked = True
+        ui.main_window._about_to_manage(self, place_floating)
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
+        if resize_docked:
+            ui.main_window.resizeDocks([self._dock_widget], [overall_width - central_width], Qt.Horizontal)
         if initially_hidden:
             self.shown = False
         else:
