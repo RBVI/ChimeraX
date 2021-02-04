@@ -17,12 +17,6 @@ from chimerax.add_charge import ChargeMethodArg
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
         charge_method=ChargeMethodArg.default_value):
-    import sys
-    if sys.platform != "darwin":
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("The coulombic command is temporarily not working on non-Mac systems.  "
-            "We hope to have this remedied in a few days.  Until then, please use the production "
-            "build for the coulombic command.")
     if map:
         session.logger.warning("Computing electrostatic volume map not yet supported")
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))

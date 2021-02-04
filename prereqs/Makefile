@@ -27,10 +27,6 @@ ifdef WIN32
 SUBDIRS += win32
 endif
 
-ifeq ($(OS),Darwin)
-SUBDIRS += ambertools
-endif
-
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
@@ -124,8 +120,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-#SUBDIRS	+= ambertools cxservices gdcm imex lineprofiler openmm pips Python
-SUBDIRS	+= cxservices imex lineprofiler openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools cxservices imex lineprofiler openmm pips PyQt Python qtshim
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

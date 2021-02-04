@@ -488,6 +488,9 @@ def contrast_with(rgb):
         return (1.0, 1.0, 1.0)
     return (0.0, 0.0, 0.0)
 
+def contrast_with_background(session):
+    """Contrast with the graphics-window background color"""
+    return contrast_with(session.main_view.background_color)
 
 # CSS4 colors + multiword color names
 BuiltinColors = {
