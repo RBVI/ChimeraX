@@ -155,7 +155,7 @@ def standard_shortcuts(session):
 
         ('sB', run_on_atoms('show %s bonds'), 'Display bonds', molcat, sesarg, mlmenu),
         ('hB', run_on_atoms('hide %s bonds'), 'Hide bonds', molcat, sesarg, mlmenu),
-        ('hb', run_on_atoms('hbonds %s'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
+        ('hb', run_on_atoms('hbonds %s reveal true'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
         #        ('sq', run_on_atoms('sequence chain sel', 'seq chain all'), 'Show polymer sequence', molcat, sesarg, mlmenu),
         ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),

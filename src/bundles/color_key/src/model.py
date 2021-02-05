@@ -558,18 +558,24 @@ class ColorKeyModel(Model):
         proportional = False
         texts = [color_text[1] for color_text in self._rgbas_and_labels]
         if self._numeric_label_spacing == self.NLS_PROPORTIONAL:
+            import locale
+            local_numeric = locale.getlocale(locale.LC_NUMERIC)
             try:
-                values = [float(t) for t in texts]
-            except (ValueError, TypeError):
-                pass
-            else:
-                if values == sorted(values):
-                    proportional = True
+                locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
+                try:
+                    values = [locale.atof(t) for t in texts]
+                except (ValueError, TypeError):
+                    pass
                 else:
-                    values.reverse()
                     if values == sorted(values):
                         proportional = True
-                    values.reverse()
+                    else:
+                        values.reverse()
+                        if values == sorted(values):
+                            proportional = True
+                        values.reverse()
+            finally:
+                locale.setlocale(locale.LC_NUMERIC, local_numeric)
         if not proportional:
             values = range(len(texts))
         if self._color_treatment == self.CT_BLENDED:
