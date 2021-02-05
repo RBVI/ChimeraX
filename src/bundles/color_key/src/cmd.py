@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+auto_color_strings = ['default', 'auto']
+
 from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
@@ -42,7 +44,7 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     if numeric_label_spacing is not None:
         key.numeric_label_spacing = numeric_label_spacing
     if label_color is not None:
-        if label_color == 'none':
+        if label_color in auto_color_strings:
             key.label_rgba = None
         else:
             key.label_rgba = label_color.rgba
@@ -102,7 +104,6 @@ class ColorLabelPairArg(Annotation):
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
         PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias
-    from chimerax.label.label3d import NoneArg
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
         optional=[('colors_and_labels', ColorLabelPairArg)],
@@ -113,7 +114,7 @@ def register_command(logger):
             ('font_size', PositiveIntArg),
             ('italic', BoolArg),
             ('justification', EnumOf([x.split()[0] for x in ColorKeyModel.justifications])),
-            ('label_color', Or(NoneArg,ColorArg)),
+            ('label_color', Or(EnumOf(auto_color_strings), ColorArg)),
             ('label_offset', FloatArg),
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
