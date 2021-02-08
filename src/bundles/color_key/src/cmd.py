@@ -35,8 +35,6 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     key = get_model(session, create=False)
     if key is None:
         key = get_model(session)
-        if pos is None:
-            key.position = (0.65, 0.1)
     if pos is not None:
         key.position = pos
     if size is not None:

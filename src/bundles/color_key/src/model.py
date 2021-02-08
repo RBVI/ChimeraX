@@ -61,7 +61,7 @@ class ColorKeyModel(Model):
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
-        self._position = None
+        self._position = (0.7, 0.05)
         self._size = (0.25, 0.05)
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
