@@ -17,8 +17,20 @@ from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
         label_color=None, label_offset=None, font=None):
-    if colors_and_labels is not None and len(colors_and_labels) < 2:
-        raise UserError("Must specify at least two colors for key")
+    if colors_and_labels is not None:
+        # list of (color, label) and/or (colormap, label1, label2...) items.  Convert...
+        from chimerax.core.colors import Colormap
+        rgbas_and_labels = []
+        for item in colors_and_labels:
+            if isinstance(item[0], Colormap):
+                cmap, *labels = item
+                if len(cmap.colors) != len(labels):
+                    raise ValueError("Must supply the same number of labels as colors in the colormap")
+                rgbas_and_labels.extend(list(zip(cmap.colors, labels)))
+            else:
+                rgbas_and_labels.append((item[0].rgba, item[1]))
+        if len(rgbas_and_labels) < 2:
+            raise UserError("Must specify at least two colors for key")
     from .model import get_model
     key = get_model(session, create=False)
     if key is None:
@@ -57,7 +69,7 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         or (key.position[1] + key.size[1]) > 1:
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
-        key.rgbas_and_labels = [(c.rgba, l) for c,l in colors_and_labels]
+        key.rgbas_and_labels = rgbas_and_labels
     return key
 
 def key_delete_cmd(session):
@@ -66,10 +78,10 @@ def key_delete_cmd(session):
     if key is not None:
         key.delete()
 
-from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token
+from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token, \
+    ColormapArg, Or
 class ColorLabelPairArg(Annotation):
     name = "color:label pair"
-    allow_repeat = True
 
     @staticmethod
     def parse(text, session):
@@ -101,12 +113,46 @@ class ColorLabelPairArg(Annotation):
             text += ':' + label
         return text
 
+class PaletteLabelsArg(Annotation):
+    name = "palette-name :label1 :label2 ..."
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % PaletteLabelsArg.name)
+        cmap, text, rest = ColormapArg.parse(text, session)
+        if len(cmap.colors) < 2:
+            raise AnnotationError("Palette must contain at least two colors")
+        final_text = text
+        vals = [cmap]
+        num_labels = len(cmap.colors)
+        for i in range(num_labels):
+            if not rest.lstrip():
+                raise AnnotationError("Need at least %d labels to match palette" % num_labels)
+            label_token, text, rest = next_token(rest.lstrip(), session)
+            final_text += ' ' + text
+            if not label_token.startswith(':'):
+                raise AnnotationError("Each label must be prefixed with ':'")
+            vals.append(label_token[1:])
+        return vals, final_text, rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        cmap, *labels = value
+        text = ColormapArg.unparse(cmap, session)
+        if labels:
+            text += ' ' + ' '.join([StringArg.unparse(':' + l, session) for l in labels])
+        return text
+
+class RepeatableOr(Or):
+    allow_repeat = True
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
         PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
-        optional=[('colors_and_labels', ColorLabelPairArg)],
+        optional=[('colors_and_labels', RepeatableOr(ColorLabelPairArg, PaletteLabelsArg))],
         keyword=[
             ('bold', BoolArg),
             ('color_treatment', EnumOf([x.split()[0] for x in ColorKeyModel.color_treatments])),
