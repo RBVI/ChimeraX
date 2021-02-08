@@ -355,8 +355,8 @@ class ColorKeyModel(Model):
         win_w, win_h = self._window_size
         rect_pixels = [int(win_w * key_w + 0.5), int(win_h * key_h + 0.5)]
         pixels = rect_pixels[:]
-        start_offset = [0, 0]
-        end_offset = [0, 0]
+        self.start_offset = start_offset = [0, 0]
+        self.end_offset = end_offset = [0, 0]
         label_offset = self._label_offset + 5
         if pixels[0] > pixels[1]:
             layout = "horizontal"
@@ -594,9 +594,12 @@ class ColorKeyModel(Model):
         if self._position is None:
             return
         key_x, key_y = self._position
+        # adjust to the corner of the key itself, excluding labels etc.
+        w, h = self._window_size
+        key_x -= self.start_offset[0] / w
+        key_y -= self.end_offset[1] / h
         x, y = (-1 + 2*key_x, -1 + 2*key_y)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
-        w, h = self._window_size
         th, tw = rgba.shape[:2]
         self._texture_size = (tw, th)
         uw, uh = 2*tw/w, 2*th/h
