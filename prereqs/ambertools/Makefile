@@ -23,6 +23,7 @@ ENV_OPTS =
 ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
+PATCHES += flex-cygwin.patch
 else
 ifeq ($(OS),Darwin)
 CONFIG_ARGS = clang
