@@ -16,6 +16,7 @@ or derivations thereof.
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>ChimeraX Tutorial: Protein-Ligand Binding Sites</title>
+<script type="text/javascript" src="../../js/cxlinks.js"></script>
 </head><body>
 
 <a name="top"></a>
@@ -861,6 +862,20 @@ or shadows
 <img class="iconbar" src="../tools/shortcut-icons/flat.png">
 </ul>
 <p>
+You can also try adding a color key and associated label, for example:
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .6,.05">key red:-10 white:0 blue:10 pos .6,.05</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .6 ypos .18">2dlab text 'electrostatic potential' xpos .6 ypos .18</a></b>
+</blockquote>
+<p>
+Which values are best to use for the 
+<a href="/chimerax/docs/user/commands/key.html">color key</a> and
+<a href="/chimerax/docs/user/commands/2dlabels.html">2D label</a> positions
+and sizes in an image will depend on the current size and aspect ratio of the 
+graphics window and on how the image is laid out.
+</p><p>
 To quit from ChimeraX, just close its main window or use a command:
 </p>
 <blockquote>
@@ -869,5 +884,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2021</address>
+February 2021</address>
 </body></html>
