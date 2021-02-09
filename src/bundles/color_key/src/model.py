@@ -284,16 +284,20 @@ class ColorKeyModel(Model):
     ]
 
     def take_snapshot(self, session, flags):
-        return { attr: getattr(self, attr) for attr in self.session_attrs }
+        data = { attr: getattr(self, attr) for attr in self.session_attrs }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
         key = get_model(session, add_created=False)
+        Model.set_state_from_snapshot(key, session, data.pop('model state'))
         for attr, val in data.items():
             setattr(key, attr, val)
         key.needs_update = True
         key.redraw_needed()
         key._update_background_handler()
+        session.models.add([key], root_model = True)
         return key
 
     def _update_background_handler(self):
