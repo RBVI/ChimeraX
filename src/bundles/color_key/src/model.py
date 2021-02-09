@@ -563,7 +563,7 @@ class ColorKeyModel(Model):
             try:
                 locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
                 try:
-                    values = [locale.atof(t) for t in texts]
+                    values = [locale.atof('' if t is None else t) for t in texts]
                 except (ValueError, TypeError):
                     pass
                 else:
