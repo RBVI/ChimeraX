@@ -61,7 +61,7 @@ class ColorKeyModel(Model):
         self.key_triggers.add_trigger("changed")
         self.key_triggers.add_trigger("closed")
 
-        self._position = (0.7, 0.05)
+        self._position = (0.7, 0.08)
         self._size = (0.25, 0.05)
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
@@ -284,16 +284,20 @@ class ColorKeyModel(Model):
     ]
 
     def take_snapshot(self, session, flags):
-        return { attr: getattr(self, attr) for attr in self.session_attrs }
+        data = { attr: getattr(self, attr) for attr in self.session_attrs }
+        data['model state'] = Model.take_snapshot(self, session, flags)
+        return data
 
     @staticmethod
     def restore_snapshot(session, data):
         key = get_model(session, add_created=False)
+        Model.set_state_from_snapshot(key, session, data.pop('model state'))
         for attr, val in data.items():
             setattr(key, attr, val)
         key.needs_update = True
         key.redraw_needed()
         key._update_background_handler()
+        session.models.add([key], root_model = True)
         return key
 
     def _update_background_handler(self):
@@ -375,6 +379,8 @@ class ColorKeyModel(Model):
         rgbas, labels = zip(*self._rgbas_and_labels)
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
+        if layout == "vertical":
+            rgbas = list(reversed(rgbas))
 
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRect, QPoint
@@ -390,7 +396,7 @@ class ColorKeyModel(Model):
         # fm.boundingRect(label) basically returns a fixed height for all labels (and a large negative y)
         # so just use the font size instead
         if labels[0]:
-            # may need extra room to left or top for first label
+            # may need extra room to left or bottom for first label
             bounds = fm.boundingRect(labels[0])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
@@ -398,7 +404,7 @@ class ColorKeyModel(Model):
             label_height = (font_height * 2/3) if labels[0].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - label_positions[0], 0)
-            start_offset[long_index] += extra
+            (end_offset if layout == "vertical" else start_offset)[long_index] += extra
             pixels[long_index] += extra
 
         # need room below or to right to layout labels
@@ -443,7 +449,7 @@ class ColorKeyModel(Model):
         end_offset[1] += font_descender
 
         if labels[-1]:
-            # may need extra room to right or bottom for last label
+            # may need extra room to right or top for last label
             bounds = fm.boundingRect(labels[-1])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
@@ -451,7 +457,7 @@ class ColorKeyModel(Model):
             label_height = (font_height * 2/3) if labels[-1].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]), 0)
-            end_offset[long_index] += extra
+            (start_offset if layout == "vertical" else end_offset)[long_index] += extra
             pixels[long_index] += extra
 
         image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
@@ -539,7 +545,7 @@ class ColorKeyModel(Model):
                     # Qt seemingly will not return the actual height of a text string; estimate all
                     # lower case to be 2/3 height
                     label_height = (font_height * 2/3) if label.islower() else font_height
-                    y = start_offset[1] + pos + label_height / 2
+                    y = pixels[1] - end_offset[1] - pos + label_height / 2
                 else:
                     if self._label_side == self.LS_LEFT_TOP:
                         y = font_height
@@ -563,7 +569,7 @@ class ColorKeyModel(Model):
             try:
                 locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
                 try:
-                    values = [locale.atof(t) for t in texts]
+                    values = [locale.atof('' if t is None else t) for t in texts]
                 except (ValueError, TypeError):
                     pass
                 else:

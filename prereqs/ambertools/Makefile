@@ -22,7 +22,7 @@ test: $(SOURCE)
 ENV_OPTS =
 ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
-ENV_OPTS = -u CC -u CXX
+ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 else
 ifeq ($(OS),Darwin)
 CONFIG_ARGS = clang
