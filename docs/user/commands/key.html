@@ -25,7 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: key</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>key</b> &nbsp;<i>colors-and-labels</i>
+<br><b>key</b> [&nbsp;<i>colors-and-labels</i>&nbsp;]
 [&nbsp;<b>pos</b>&nbsp;&nbsp;<i>xpos,ypos</i>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>width,height</i>&nbsp;]
 [&nbsp;<b>colorTreatment</b>&nbsp;&nbsp;<b>blended</b>&nbsp;|&nbsp;distinct&nbsp;]
@@ -39,6 +39,17 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="../tutorials/bind6.png" 
+alt="Coulombic ESP flat lighting" width="280px">
+</td></tr>
+<tr><td align="center">
+<font size="-1">
+see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
+</font>
+</td></tr>
+</table>
 <a name="listfonts"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>key listfonts</b>
@@ -65,26 +76,42 @@ See also:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>,
 <a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img 
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="2dlabels.html"><b>2dlabels</b></a>,
-<a href="../images.html">making images</a>,
-the <a href="../tutorials/binding-sites.html#esp">Protein-Ligand Binding Sites
-tutorial</a>
+<a href="../images.html">making images</a>
 </p><p>
-The required <i>colors-and-labels</i> specification 
-can be given in either of the two ways described below, or even
+The color key is added as a new model that can be acted on 
+by general commands such as <a href="close.html"><b>close</b></a> and
+<a href="show.html"><b>show/hide</b></a>.
+Initial defaults are described in this page,
+but if a color key is already present, the existing model is
+simply updated and any unspecified options are left unchanged.
+Only one color key can be present at a time.
+The <a href="#delete"><b>key delete</b></a> or 
+<a href="#delete"><b>~key</b></a> command removes an existing color-key model.
+</p><p>
+The <i>colors-and-labels</i> specification 
+can be given in either of the two ways described below, or even as
 a mixture of the two. Each label can be numeric, text, or blank.
+The initial default is 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px" title="blue"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=red width="10px" title="red"></td>
+</tr></table>
+with labels <b>min</b>, blank, and <b>max</b>.
 </p>
 <ol>
 <li>Two or more space-separated pairs of the form:
 <blockquote>
 <a href="colornames.html"><i>color-spec</i></a>:<i>label</i>
 </blockquote>
-For example, where the middle label is blank:
+For example, to give the initial-default colors and labels mentioned above:
 <blockquote>
-<b>blue:min white: red:max</b>
+<b>key blue:min white: red:max</b>
 </blockquote>
 <li>An existing <a href="color.html#palette-options"><i>palette-name</i></a>
 followed by labels entered as:
@@ -95,39 +122,32 @@ followed by labels entered as:
 ...where the number of labels must equal the number of colors in the palette.
 The command <a href="palette.html#list"><b>palette list</b></a>
 lists the available palettes in the <a href="../tools/log.html"><b>Log</b></a>.
-Example:
+Examples:
 </p>
 <blockquote>
-<b>key lipophilicity :-20 :0 :10 size .05,.25 pos .85,.05</b>
+<b>key ^piyg-5 :-2 :-1 :0 :1 :2</b>
+<br>
+<b>key lipophilicity :-20 :0 :20 size .05,.25 pos .85,.05</b>
 </blockquote>
 <p>
 Example of a mixture of the two types of specification:
 </p>
 <blockquote>
-<b>blue:0 cyanmaroon :0.1 :0.5 :1.0 pos .2,.05 size .5,.05</b>
+<b>key blue:0.0 cyanmaroon :0.2 :0.5 :1.0 pos .2,.08 size .6,.05</b>
 </blockquote>
 </ol>
 <p>
-Any label text that includes a space must be enclosed in quotation marks.
-The colors must be given in left-right order for a horizontal key
-or top-to-bottom order for a vertical key, and if the labels are numeric,
+The colors must be given in left&rarr;right order for a horizontal key
+or bottom&rarr;top for a vertical key, and if the labels are numeric,
 the values should be in monotonically increasing or decreasing order.
-</p><p>
-The color key is added as a new model that can be acted on 
-by general commands such as <a href="close.html"><b>close</b></a> and
-<a href="show.html"><b>show/hide</b></a>.
-Initial defaults are shown above with <b>bold</b>, 
-but if a color key is already present, the existing model is
-simply updated and any unspecified options are left unchanged.
-The <a href="#delete"><b>key delete</b></a> or 
-<a href="#delete"><b>~key</b></a> command removes an existing color-key model.
+Any label text that includes a space must be enclosed in quotation marks.
 </p><p>
 The <b>size</b> and <b>pos</b> options, respectively,
 set the dimensions and lower-left-corner position of the rectangular 
 color-key bar. The values are expressed in fractional coordinates 
 0.0-1.0 where 1.0 represents the full width or height of the 
 <a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner.
-The initial default position is <b>0.7,0.05</b>,
+The initial default position is <b>0.7,0.08</b>,
 and the initial default size is <b>0.25,0.05</b>.
 </p><p>
 The <b>colorTreatment</b> indicates whether the colors should be
