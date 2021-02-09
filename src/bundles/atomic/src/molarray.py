@@ -1269,10 +1269,13 @@ class Residues(Collection):
         return seqs, seq_ids
 
     def ribbon_clear_hides(self):
-        '''Clear the hide bit for all atoms in given residues.'''
-        f = c_function('residue_ribbon_clear_hide',
-                       args = [ctypes.c_void_p, ctypes.c_size_t])
-        f(self._c_pointers, len(self))
+        self.clear_hide_bits(Atom.HIDE_RIBBON)
+
+    def clear_hide_bits(self, mask, atoms_only=False):
+        '''Clear the hide bit for all atoms and bonds in given residues.'''
+        f = c_function('residue_clear_hide_bits',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_bool])
+        f(self._c_pointers, len(self), mask, atoms_only)
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

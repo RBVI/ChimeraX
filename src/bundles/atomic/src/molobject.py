@@ -676,6 +676,11 @@ class Residue(CyResidue, State):
     na_max_backbone_names = c_function('residue_na_max_backbone_names', args = (), ret = ctypes.py_object)()
     na_side_connector_names = c_function('residue_na_side_connector_names', args = (), ret = ctypes.py_object)()
     na_min_ordered_backbone_names = c_function('residue_na_min_ordered_backbone_names', args = (), ret = ctypes.py_object)()
+    def clear_hide_bits(self, bit_mask, atoms_only=False):
+        "Clear Residue's atoms' and bonds' hide bits in bit mask"
+        f = c_array_function('residue_clear_hide_bits', args=(uint32, npy_bool), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask, atoms_only)
 
 Residue.set_py_class(Residue)
 

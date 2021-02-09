@@ -3059,12 +3059,12 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
     }
 }
 
-extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
+extern "C" EXPORT void residue_clear_hide_bits(void *residues, size_t n, int32_t bit_mask, npy_bool atoms_only)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
-        for (size_t i = 0; i != n; ++i)
-            r[i]->ribbon_clear_hide();
+        for (size_t i = 0; i < n; ++i)
+            r[i]->clear_hide_bits(bit_mask, atoms_only);
     } catch (...) {
         molc_error();
     }

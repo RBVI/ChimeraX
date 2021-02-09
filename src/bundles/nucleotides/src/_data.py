@@ -23,7 +23,7 @@ import numpy
 from chimerax.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
-from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds, AtomicShapeDrawing, AtomicShapeInfo
+from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds, AtomicShapeDrawing, AtomicShapeInfo, Atom
 nucleic3to1 = Sequence.nucleic3to1
 
 _SQRT2 = math.sqrt(2)
@@ -34,14 +34,6 @@ FROM_CMD = 'default from command'
 STATE_VERSION = 1  # version of session state information
 
 SideOptions = ['orient', 'fill/slab', 'slab', 'tube/slab', 'ladder']
-
-BackboneRiboseRE = re.compile("^(C[12345]'|H[12345]'|O[2345]'|HO[2345]'|P|OP[123]|HOP[123])$", re.I)
-BaseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246])$", re.I)
-RiboseAtomsRE = re.compile("^(C[1234]'|O[24]')$", re.I)
-BaseRiboseAtomsRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[1234]'|O[24]')$", re.I)
-# NoRib versions are missing C3' and C4' from Ribose
-RiboseAtomsNoRibRE = re.compile("^(C[12]'|O[24]')$", re.I)
-BaseRiboseAtomsNoRibRE = re.compile("^(C[245678]|C5M|N[1234679]|O[246]|C[12]'|O[24]')$", re.I)
 
 # # clockwise rings
 # purine = ("N9", "C8", "N7", "C5", "C4")        # + pyrimidine
@@ -689,22 +681,25 @@ def _rebuild_molecule(trigger_name, mol):
         # hydrogen bonds to atoms hidden by nucleotides.
         hide_hydrogen_bonds(hide_bases)
 
+        # TODO: hide other pseudobonds for the same reason.
+
     # make sure ribose/base atoms are hidden/shown
+    affected_residues = hide_riboses | hide_bases
     hide_all = hide_riboses & hide_bases
     hide_riboses = hide_riboses - hide_all
     hide_bases = hide_bases - hide_all
 
-    all_residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
+    atoms = affected_residues.atoms
+    backbone_atoms = atoms.filter(atoms.is_backbones(Atom.BBE_RIBBON))
+    ribose_atoms = atoms.filter(atoms.is_riboses)
 
-    set_hide_atoms(BaseAtomsRE, hide_bases)
-    rib_res = hide_all.filter(hide_all.ribbon_displays)
-    other_res = hide_all - rib_res
-    set_hide_atoms(BaseRiboseAtomsRE, rib_res)
-    set_hide_atoms(BaseRiboseAtomsNoRibRE, other_res)
-    rib_res = hide_riboses.filter(hide_riboses.ribbon_displays)
-    other_res = hide_riboses - rib_res
-    set_hide_atoms(RiboseAtomsRE, rib_res)
-    set_hide_atoms(RiboseAtomsNoRibRE, other_res)
+    all_residues.clear_hide_bits(HIDE_NUCLEOTIDE, True)
+    # hide all non-backbone atoms
+    (hide_all.atoms - backbone_atoms).set_hide_bits(HIDE_NUCLEOTIDE)
+    # hide all bases (non-ribose) atoms
+    (hide_bases.atoms - ribose_atoms - backbone_atoms).set_hide_bits(HIDE_NUCLEOTIDE)
+    # hide all ribose atoms
+    (hide_riboses.atoms - backbone_atoms).set_hide_bits(HIDE_NUCLEOTIDE)
 
     for residue in show_glys:
         rd = nuc_info[residue]
@@ -715,30 +710,7 @@ def _rebuild_molecule(trigger_name, mol):
             c1p.clear_hide_bits(HIDE_NUCLEOTIDE)
             ba.clear_hide_bits(HIDE_NUCLEOTIDE)
 
-    # TODO: If a hidden atom is pseudobonded to another atom,
-    # then hide the pseudobond.
-
     nuc.need_rebuild.discard(mol)
-
-
-def set_hide_atoms(AtomsRE, residues):
-    # Hide that atoms match AtomsRE and associated hydrogens.
-    from chimerax.atomic import Element
-    H = Element.get_element(1)
-    atoms = []
-    for r in residues:
-        for a in r.atoms:
-            if AtomsRE.match(a.name):
-                atoms.append(a)
-                continue
-            if a.element != H:
-                continue
-            b = a.neighbors
-            if not b:
-                continue
-            if AtomsRE.match(b[0].name):
-                atoms.append(a)
-    Atoms(atoms).set_hide_bits(HIDE_NUCLEOTIDE)
 
 
 def get_cylinder(radius, p0, p1, bottom=True, top=True):
@@ -962,8 +934,11 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return shapes
-    c3p_coord = c3p.ribbon_coord
-    c4p_coord = c4p.ribbon_coord
+    if residue.ribbon_display:
+        c3p_coord = c3p.ribbon_coord
+        c4p_coord = c4p.ribbon_coord
+    else:
+        c3p_coord = c4p_coord = None
     if c3p_coord is None or c4p_coord is None:
         ep1 = (c3p.coord + c4p.coord) / 2
     else:
@@ -1163,8 +1138,7 @@ def make_ladder(nd, residues, params):
         r1 = a1.residue
         if r0 not in residue_set or r1 not in residue_set:
             continue
-        non_base = (BackboneRiboseRE.match(a0.name),
-                    BackboneRiboseRE.match(a1.name))
+        non_base = (a0.is_ribose, a1.is_ribose)
         if params.skip_nonbase_Hbonds and any(non_base):
             continue
         if r0.connects_to(r1):
@@ -1241,26 +1215,31 @@ def make_ladder(nd, residues, params):
         color = r.ring_color
         ep1 = None
         name = nucleic3to1(r.name)
-        if name not in standard_bases:
-            continue
-        is_purine = standard_bases[name]['tag'] == PURINE
-        if is_purine:
-            a = r.find_atom('N1')
-            if a:
-                ep1 = a.coord
-        else:
-            # pyrimidine
-            a = r.find_atom('N3')
-            if a:
-                ep1 = a.coord
+        if name in standard_bases:
+            is_purine = standard_bases[name]['tag'] == PURINE
+            if is_purine:
+                a = r.find_atom('N1')
+                if a:
+                    ep1 = a.coord
+            else:
+                # pyrimidine
+                a = r.find_atom('N3')
+                if a:
+                    ep1 = a.coord
         if ep1 is None:
-            # find farthest atom from C3'
+            # find farthest heavy atom from C3'
+            from chimerax.atomic import Element
+            H = Element.get_element(1)
             dist_atom = (0, None)
             for a in r.atoms:
+                if a.element == H:
+                    continue
                 dist = distance_squared(ep0, a.coord)
                 if dist > dist_atom[0]:
                     dist_atom = (dist, a)
             ep1 = dist_atom[1].coord
+        if ep1 is None:
+            continue
         va, na, ta = get_cylinder(params.rung_radius, ep0, ep1)
         all_shapes.append(AtomicShapeInfo(va, na, ta, color, r.atoms, str(r)))
         # make exposed end rounded (TODO: use a hemisphere)
