@@ -353,7 +353,7 @@ class LabelsArrowsArg(ModelsArg):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
-    from chimerax.core.commands import NonNegativeFloatArg, EnumOf
+    from chimerax.core.commands import NonNegativeFloatArg, EnumOf, create_alias
     from .label3d import NoneArg
 
     labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
@@ -379,6 +379,7 @@ def register_label_command(logger):
     delete_desc = CmdDesc(optional = [('labels', Or(EnumOf(['all']), LabelsArrowsArg))],
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
+    create_alias('~2dlabels', '2dlabels delete $*', logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
     register('2dlabels listfonts', fonts_desc, label_listfonts, logger=logger)
 
