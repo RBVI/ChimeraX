@@ -38,8 +38,9 @@
 
   <Providers manager="start structure">
     <Provider name="atom"/>
-    <Provider name="peptide"/>
+    <Provider name="fragment"/>
     <Provider name="nucleic" ui_name="nucleic double helix" auto_style="false" />
+    <Provider name="peptide"/>
   </Providers>
 
   <Classifiers>

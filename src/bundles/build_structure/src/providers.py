@@ -49,6 +49,7 @@ class StartStructureProvider(metaclass=abc.ABCMeta):
 def get_provider(session, name):
     return {
         "atom": AtomProvider,
+        "fragment": FragmentProvider,
         "nucleic": NucleicProvider,
         "peptide": PeptideProvider,
     }[name](session, name)
@@ -148,6 +149,97 @@ class AtomProvider(StartStructureProvider):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
+
+class FragmentProvider(StartStructureProvider):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.name = name
+        # register commands to private registry
+        from chimerax.core.commands.cli import RegisteredCommandInfo
+        self.registry = RegisteredCommandInfo()
+
+        from .fragment_manager import get_manager
+        register(name,
+            CmdDesc(
+                required=[("fragment_name", EnumOf(get_manager(session).fragment_names))],
+                keyword=[("position", Float3Arg), ("res_name", StringArg)],
+                synopsis="place initial structure fragment"
+            ), shim_place_fragment, registry=self.registry)
+
+    #TODO
+    def command_string(self, widget):
+        args = []
+        seq_edit = widget.findChild(QTextEdit, "sequence")
+        seq = "".join(seq_edit.toPlainText().split()).upper()
+        if not seq:
+            raise UserError("No nucleotide sequence entered")
+        args.append(StringArg.unparse(seq))
+        for nuc_type in ["dna", "rna", "hybrid"]:
+            if widget.findChild(QRadioButton, nuc_type).isChecked():
+                args.append("type " + nuc_type)
+                break
+        from .start import nucleic_forms
+        for form in nucleic_forms:
+            if widget.findChild(QRadioButton, form).isChecked():
+                args.append("form " + form)
+                break
+        return " ".join(args)
+
+    def execute_command(self, structure, args):
+        # the command uses the trick that the structure arg is temporarily made available in the
+        # global namespace as '_structure'
+        global _structure
+        _structure = structure
+        try:
+            cmd = Command(self.session, registry=self.registry)
+            return cmd.run(self.name + ' ' + args, log=False)[0]
+        finally:
+            _structure = None
+
+    def fill_parameters_widget(self, widget):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(3,0,3,5)
+        layout.setSpacing(0)
+        widget.setLayout(layout)
+        layout.addWidget(QLabel("Sequence", alignment=Qt.AlignCenter))
+        seq = QTextEdit()
+        seq.setObjectName("sequence")
+        layout.addWidget(seq, stretch=1)
+        guidance = QLabel("Enter single strand; double helix will be generated", alignment=Qt.AlignCenter)
+        from chimerax.ui import shrink_font
+        shrink_font(guidance)
+        layout.addWidget(guidance)
+        radios_layout = QHBoxLayout()
+        layout.addLayout(radios_layout)
+        type_layout = QVBoxLayout()
+        type_layout.setContentsMargins(0,0,0,0)
+        type_widget = QWidget()
+        type_widget.setLayout(type_layout)
+        radios_layout.addStretch(1)
+        radios_layout.addWidget(type_widget)
+        button = QRadioButton("DNA")
+        button.setChecked(True)
+        button.setObjectName("dna")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        button = QRadioButton("RNA")
+        button.setObjectName("rna")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        button = QRadioButton("DNA/RNA hybrid (enter DNA sequence)")
+        button.setObjectName("hybrid")
+        type_layout.addWidget(button, alignment=Qt.AlignLeft)
+        from .start import nucleic_forms
+        radios_layout.addStretch(1)
+        form_layout = QVBoxLayout()
+        form_layout.setContentsMargins(0,0,0,0)
+        form_widget = QWidget()
+        form_widget.setLayout(form_layout)
+        radios_layout.addWidget(form_widget)
+        for form in nucleic_forms:
+            button = QRadioButton(form + "-form")
+            button.setChecked(form == 'B')
+            button.setObjectName(form)
+            form_layout.addWidget(button, alignment=Qt.AlignLeft)
+        radios_layout.addStretch(1)
 
 class NucleicProvider(StartStructureProvider):
     def __init__(self, session, name):
@@ -446,6 +538,10 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
         session.selection.clear()
         a.selected = True
     return a
+
+def shim_place_fragment(session, fragment_name, position=None, res_name="UNL"):
+    from .start import place_fragment
+    return place_fragment(_structure, fragment_name, res_name=res_name, position=position)
 
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
