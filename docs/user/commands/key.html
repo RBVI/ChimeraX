@@ -137,9 +137,8 @@ Example of a mixture of the two types of specification:
 </blockquote>
 </ol>
 <p>
-The colors must be given in left&rarr;right order for a horizontal key
-or bottom&rarr;top for a vertical key, and if the labels are numeric,
-the values should be in monotonically increasing or decreasing order.
+The colors and labels must be given in left&rarr;right order 
+for a horizontal key or bottom&rarr;top for a vertical key.
 Any label text that includes a space must be enclosed in quotation marks.
 </p><p>
 The <b>size</b> and <b>pos</b> options, respectively,
@@ -157,9 +156,10 @@ or shown as <b>distinct</b> bands.
 Numeric labels can be spaced equally along the bar or
 proportional to the values (<b>numericLabelSpacing proportional</b>, 
 initial default). Text labels are spaced equally.
-If numeric and text (or blank) labels are used in the same color key, or the 
-numeric labels are not in monotonic order, the entire set of labels will be
-treated as text and cannot be spaced proportionally to the numeric values.
+If numeric and text (or blank) labels are used in the same color key,
+or the numeric labels are not in monotonic order 
+(always increasing or always decreasing), the entire set of labels
+will be treated as text and cannot be spaced proportional to values.
 </p><p>
 The <b>labelSide</b> sets which side of the bar to place labels.
 Vertical bars (taller than wide) can have the labels on the left or right 
