@@ -13,8 +13,8 @@
 
 from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
 from Qt.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
-from Qt.QtWidgets import QTableWidgetItem, QPushButton, QMenu
-from Qt.QtGui import QDoubleValidator, QIntValidator
+from Qt.QtWidgets import QTableWidgetItem, QPushButton, QMenu, QGraphicsView, QGraphicsScene
+from Qt.QtGui import QDoubleValidator, QIntValidator, QPalette, QPainter
 from Qt.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
@@ -187,15 +187,21 @@ class FragmentProvider(StartStructureProvider):
         from .fragment_manager import get_manager
         mgr = get_manager(self.session)
         frag_names = mgr.fragment_names
-        init_frag_name = "benzene" if "benzene" in frag_names else frag_names[0]
+        init_fragment_name = "benzene" if "benzene" in frag_names else frag_names[0]
 
         layout = QHBoxLayout()
         layout.setContentsMargins(3,0,3,5)
         layout.setSpacing(0)
         widget.setLayout(layout)
-        but = QPushButton(init_frag_name)
+        but = QPushButton()
         but.setObjectName("fragment name")
         layout.addWidget(but)
+
+        gscene = QGraphicsScene()
+        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Background))
+        gview = QGraphicsView(gscene)
+        gview.setRenderHint(QPainter.Antialiasing, True)
+        layout.addWidget(gview)
 
         # organize the fragment names so that the menus can be alphabetized
         by_cat = {}
@@ -203,60 +209,23 @@ class FragmentProvider(StartStructureProvider):
             category = mgr.fragment_category(frag_name)
             by_cat.setdefault(category, []).append(frag_name)
 
-        def set_button_text(action, but=but):
-            but.setText(action.text())
+        def set_button_text(frag_name, but=but, scene=gscene, mgr=mgr):
+            but.setText(frag_name)
+            frag = mgr.fragment(frag_name)
+            scene.clear()
+            frag.depict(scene, 15)
+            scene.setSceneRect(scene.itemsBoundingRect())
+
         root_menu = QMenu(widget)
         but.setMenu(root_menu)
         categories = sorted(list(by_cat.keys()))
         for cat in categories:
             cat_menu = QMenu(cat, widget)
-            cat_menu.triggered.connect(set_button_text)
+            cat_menu.triggered.connect(lambda action, func=set_button_text: func(action.text()))
             root_menu.addMenu(cat_menu)
             for entry in sorted(list(by_cat[cat]), key=lambda x: x.casefold()):
                 cat_menu.addAction(entry)
-
-        #TODO
-        """
-        layout.addWidget(QLabel("Sequence", alignment=Qt.AlignCenter))
-        seq = QTextEdit()
-        seq.setObjectName("sequence")
-        layout.addWidget(seq, stretch=1)
-        guidance = QLabel("Enter single strand; double helix will be generated", alignment=Qt.AlignCenter)
-        from chimerax.ui import shrink_font
-        shrink_font(guidance)
-        layout.addWidget(guidance)
-        radios_layout = QHBoxLayout()
-        layout.addLayout(radios_layout)
-        type_layout = QVBoxLayout()
-        type_layout.setContentsMargins(0,0,0,0)
-        type_widget = QWidget()
-        type_widget.setLayout(type_layout)
-        radios_layout.addStretch(1)
-        radios_layout.addWidget(type_widget)
-        button = QRadioButton("DNA")
-        button.setChecked(True)
-        button.setObjectName("dna")
-        type_layout.addWidget(button, alignment=Qt.AlignLeft)
-        button = QRadioButton("RNA")
-        button.setObjectName("rna")
-        type_layout.addWidget(button, alignment=Qt.AlignLeft)
-        button = QRadioButton("DNA/RNA hybrid (enter DNA sequence)")
-        button.setObjectName("hybrid")
-        type_layout.addWidget(button, alignment=Qt.AlignLeft)
-        from .start import nucleic_forms
-        radios_layout.addStretch(1)
-        form_layout = QVBoxLayout()
-        form_layout.setContentsMargins(0,0,0,0)
-        form_widget = QWidget()
-        form_widget.setLayout(form_layout)
-        radios_layout.addWidget(form_widget)
-        for form in nucleic_forms:
-            button = QRadioButton(form + "-form")
-            button.setChecked(form == 'B')
-            button.setObjectName(form)
-            form_layout.addWidget(button, alignment=Qt.AlignLeft)
-        radios_layout.addStretch(1)
-        """
+        set_button_text(init_fragment_name)
 
 class NucleicProvider(StartStructureProvider):
     def __init__(self, session, name):
