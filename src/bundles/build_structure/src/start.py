@@ -12,14 +12,65 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Element
+from chimerax.core.errors import LimitationError
+
+def place_fragment(structure, fragment_name, res_name, position=None):
+    '''Place a structure fragment
+
+    *structure* is an AtomicStructure to add the fragment to.
+
+    *fragment_name* is name of the fragment, as given in the "name" argument of its provider tag.
+    A list of all names can be obtained by calling
+    chimerax.build_structure.fragment_manager.get_manager(session).fragment_names
+
+    *res_name* will be the name given to the residue created for the fragment
+
+    Position is where the center of the chains will be positioned.  If None, at the center of the
+    current view.
+
+    Returns the created residue.
+    '''
+    session = structure.session
+    from .fragment_manager import get_manager, FragmentNotInstalledError
+    mgr = get_manager(session)
+    try:
+        fragment = mgr.fragment(fragment_name)
+    except FragmentNotInstalledError as e:
+        from chimerax.core import toolshed
+        bi = mgr.provider_bundle(fragment_name)
+        session.logger.info('<a href="%s">Install the %s bundle</a> to use "%s" fragment.' % (
+            toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, fragment_name), is_html=True)
+        raise LimitationError("%s; see log for more info" % e)
+
+    res = structure.new_residue(res_name, "het", _next_het_res_num(structure))
+    need_focus = _need_focus(structure)
+
+    if position is None:
+        position = session.main_view.center_of_rotation
+
+    from chimerax.atomic.struct_edit import add_atom, gen_atom_name, add_bond
+    from tinyarray import array
+    atoms = []
+    for element, xyz in fragment.atoms:
+        atoms.append(add_atom(gen_atom_name(element, res), element, res, array(xyz)))
+    for indices, depict in fragment.bonds:
+        add_bond(atoms[indices[0]], atoms[indices[1]])
+
+    # find fragment center
+    atoms = res.atoms
+    coords = atoms.coords
+    center = coords.mean(0)
+    correction = position - center
+    atoms.coords = coords - correction
+
+    if need_focus:
+        from chimerax.core.commands import run
+        run(session, "view", log=False)
+    return res
 
 def place_helium(structure, res_name, position=None):
     '''If position is None, place in the center of view'''
-    max_existing = 0
-    for r in structure.residues:
-        if r.chain_id == "het" and r.number > max_existing:
-            max_existing = r.number
-    res = structure.new_residue(res_name, "het", max_existing+1)
+    res = structure.new_residue(res_name, "het", _next_het_res_num(structure))
     if position is None:
         if len(structure.session.models) == 0:
             position = (0.0, 0.0 ,0.0)
@@ -92,15 +143,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
     session = structure.session
 
     open_models = session.models[:]
-    if len(open_models) == 0:
-        need_focus = True
-    elif len(open_models) == 1:
-        if open_models[0] == structure:
-            need_focus = not structure.atoms
-        else:
-            need_focus = False
-    else:
-        need_focus = False
+    need_focus = _need_focus(structure)
 
     if position is None:
         position = session.main_view.center_of_rotation
@@ -280,15 +323,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     session = structure.session
 
     open_models = session.models[:]
-    if len(open_models) == 0:
-        need_focus = True
-    elif len(open_models) == 1:
-        if open_models[0] == structure:
-            need_focus = not structure.atoms
-        else:
-            need_focus = False
-    else:
-        need_focus = False
+    need_focus = _need_focus(structure)
 
     if position is None:
         position = session.main_view.center_of_rotation
@@ -373,7 +408,6 @@ def unused_chain_id(structure):
             continue
         break
     if chain_id is None:
-        from chimerax.core.errors import LimitationError
         raise LimitationError("Could not find unused legal chain ID for peptide!")
     return chain_id
 
@@ -388,3 +422,20 @@ def _gen_chain_id(existing_ids, cur_id, legal_chars, rem_length):
             if next_id not in existing_ids:
                 return next_id
     return None
+
+def _need_focus(structure):
+    open_models = structure.session.models[:]
+    if len(open_models) == 0:
+        return True
+    if len(open_models) == 1:
+        if open_models[0] == structure:
+            return not structure.atoms
+        return False
+    return False
+
+def _next_het_res_num(structure):
+    max_existing = 0
+    for r in structure.residues:
+        if r.chain_id == "het" and r.number > max_existing:
+            max_existing = r.number
+    return max_existing+1

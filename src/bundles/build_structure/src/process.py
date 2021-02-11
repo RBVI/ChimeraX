@@ -25,17 +25,18 @@ cat_lookup = {
 }
 
 import os
-for frag_file in os.listdir(frag_src_dir):
+for frag_file in sorted(os.listdir(frag_src_dir)):
     if not frag_file.endswith(".py") or frag_file.startswith("mk") or frag_file == "__init__.py":
         continue
-    print(frag_file)
     with open("fragments/" + frag_file, "w") as outf:
         print("name = %s" % repr(frag_file[:-3]), file=outf)
         with open(frag_src_dir + '/' + frag_file, 'r') as inf:
             state = "category"
             for line in inf:
                 if state == "category":
-                    print("category = %s" % repr(cat_lookup[line.split()[-1]]), file=outf)
+                    category = cat_lookup[line.split()[-1]]
+                    print('<Provider name="%s" category="%s"/>' % (frag_file[:-3], category))
+                    print("category = %s" % repr(category), file=outf)
                     state = "class"
                     print("atoms = [", file=outf)
                     continue

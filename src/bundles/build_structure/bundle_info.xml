@@ -12,6 +12,7 @@
   <Description>Create/modify atomic structures</Description>
 
   <DataFiles>
+  	<DataDir>fragments</DataDir>
   	<DataDir>nuc-data</DataDir>
   </DataFiles>
 
@@ -34,6 +35,7 @@
 
   <Managers>
     <Manager name="start structure" autostart="false"/>
+    <Manager name="start structure fragments" autostart="false"/>
   </Managers>
 
   <Providers manager="start structure">
@@ -41,6 +43,43 @@
     <Provider name="fragment"/>
     <Provider name="nucleic" ui_name="nucleic double helix" auto_style="false" />
     <Provider name="peptide"/>
+  </Providers>
+
+  <Providers manager="start structure fragments">
+    <Provider name="acridine" category="fused 6+6+6 member rings"/>
+    <Provider name="anthracene" category="fused 6+6+6 member rings"/>
+    <Provider name="benzcisoxazole" category="fused 6+5 member rings"/>
+    <Provider name="benzdisoxazole" category="fused 6+5 member rings"/>
+    <Provider name="benzene" category="6-member rings"/>
+    <Provider name="benzimidazole" category="fused 6+5 member rings"/>
+    <Provider name="benzocthiophene" category="fused 6+5 member rings"/>
+    <Provider name="benzofuran" category="fused 6+5 member rings"/>
+    <Provider name="benzothiazole" category="fused 6+5 member rings"/>
+    <Provider name="benzothiophene" category="fused 6+5 member rings"/>
+    <Provider name="benzoxazole" category="fused 6+5 member rings"/>
+    <Provider name="cinnoline" category="fused 6+6 member rings"/>
+    <Provider name="furan" category="5-member rings"/>
+    <Provider name="imidazole" category="5-member rings"/>
+    <Provider name="indazole" category="fused 6+5 member rings"/>
+    <Provider name="indole" category="fused 6+5 member rings"/>
+    <Provider name="isobenzofuran" category="fused 6+5 member rings"/>
+    <Provider name="isoindole" category="fused 6+5 member rings"/>
+    <Provider name="isoquinoline" category="fused 6+6 member rings"/>
+    <Provider name="isoxazole" category="5-member rings"/>
+    <Provider name="naphthalene" category="fused 6+6 member rings"/>
+    <Provider name="oxazole" category="5-member rings"/>
+    <Provider name="purine" category="fused 6+5 member rings"/>
+    <Provider name="pyrazine" category="6-member rings"/>
+    <Provider name="pyrazole" category="5-member rings"/>
+    <Provider name="pyridazine" category="6-member rings"/>
+    <Provider name="pyridine" category="6-member rings"/>
+    <Provider name="pyrimidine" category="6-member rings"/>
+    <Provider name="pyrrole" category="5-member rings"/>
+    <Provider name="quinazoline" category="fused 6+6 member rings"/>
+    <Provider name="quinoline" category="fused 6+6 member rings"/>
+    <Provider name="quinoxaline" category="fused 6+6 member rings"/>
+    <Provider name="thiazole" category="5-member rings"/>
+    <Provider name="thiophene" category="5-member rings"/>
   </Providers>
 
   <Classifiers>

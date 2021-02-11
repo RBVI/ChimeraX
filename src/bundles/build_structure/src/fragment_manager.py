@@ -13,6 +13,9 @@
 
 from chimerax.core.toolshed import ProviderManager
 
+class FragmentNotInstalledError(ValueError):
+    pass
+
 class FragmentManager(ProviderManager):
 
     def __init__(self, session):
@@ -28,6 +31,12 @@ class FragmentManager(ProviderManager):
                 % (bundle_info.short_name, name))
         self._provider_bundles[name] = bundle_info
         self._category[name] = category
+
+    def fragment(self, name):
+        bi = self._provider_bundles[name]
+        if not bi.installed:
+            raise FragmentNotInstalledError("Bundle for fragment '%s' is not installed" % name)
+        return bi.run_provider(self.session, name, self)
 
     def fragment_category(self, name):
         return self._category[name]

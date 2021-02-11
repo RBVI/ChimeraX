@@ -13,7 +13,7 @@
 
 from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
 from Qt.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
-from Qt.QtWidgets import QTableWidgetItem, QPushButton
+from Qt.QtWidgets import QTableWidgetItem, QPushButton, QMenu
 from Qt.QtGui import QDoubleValidator, QIntValidator
 from Qt.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
@@ -46,7 +46,10 @@ class StartStructureProvider(metaclass=abc.ABCMeta):
         # command
         pass
 
-def get_provider(session, name):
+def get_provider(session, name, mgr):
+    from .fragment_manager import FragmentManager
+    if isinstance(mgr, FragmentManager):
+        return get_fragment(name)
     return {
         "atom": AtomProvider,
         "fragment": FragmentProvider,
@@ -166,24 +169,8 @@ class FragmentProvider(StartStructureProvider):
                 synopsis="place initial structure fragment"
             ), shim_place_fragment, registry=self.registry)
 
-    #TODO
     def command_string(self, widget):
-        args = []
-        seq_edit = widget.findChild(QTextEdit, "sequence")
-        seq = "".join(seq_edit.toPlainText().split()).upper()
-        if not seq:
-            raise UserError("No nucleotide sequence entered")
-        args.append(StringArg.unparse(seq))
-        for nuc_type in ["dna", "rna", "hybrid"]:
-            if widget.findChild(QRadioButton, nuc_type).isChecked():
-                args.append("type " + nuc_type)
-                break
-        from .start import nucleic_forms
-        for form in nucleic_forms:
-            if widget.findChild(QRadioButton, form).isChecked():
-                args.append("form " + form)
-                break
-        return " ".join(args)
+        return widget.findChild(QPushButton, "fragment name").text()
 
     def execute_command(self, structure, args):
         # the command uses the trick that the structure arg is temporarily made available in the
@@ -197,10 +184,39 @@ class FragmentProvider(StartStructureProvider):
             _structure = None
 
     def fill_parameters_widget(self, widget):
-        layout = QVBoxLayout()
+        from .fragment_manager import get_manager
+        mgr = get_manager(self.session)
+        frag_names = mgr.fragment_names
+        init_frag_name = "benzene" if "benzene" in frag_names else frag_names[0]
+
+        layout = QHBoxLayout()
         layout.setContentsMargins(3,0,3,5)
         layout.setSpacing(0)
         widget.setLayout(layout)
+        but = QPushButton(init_frag_name)
+        but.setObjectName("fragment name")
+        layout.addWidget(but)
+
+        # organize the fragment names so that the menus can be alphabetized
+        by_cat = {}
+        for frag_name in frag_names:
+            category = mgr.fragment_category(frag_name)
+            by_cat.setdefault(category, []).append(frag_name)
+
+        def set_button_text(action, but=but):
+            but.setText(action.text())
+        root_menu = QMenu(widget)
+        but.setMenu(root_menu)
+        categories = sorted(list(by_cat.keys()))
+        for cat in categories:
+            cat_menu = QMenu(cat, widget)
+            cat_menu.triggered.connect(set_button_text)
+            root_menu.addMenu(cat_menu)
+            for entry in sorted(list(by_cat[cat]), key=lambda x: x.casefold()):
+                cat_menu.addAction(entry)
+
+        #TODO
+        """
         layout.addWidget(QLabel("Sequence", alignment=Qt.AlignCenter))
         seq = QTextEdit()
         seq.setObjectName("sequence")
@@ -240,6 +256,7 @@ class FragmentProvider(StartStructureProvider):
             button.setObjectName(form)
             form_layout.addWidget(button, alignment=Qt.AlignLeft)
         radios_layout.addStretch(1)
+        """
 
 class NucleicProvider(StartStructureProvider):
     def __init__(self, session, name):
@@ -540,8 +557,12 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
     return a
 
 def shim_place_fragment(session, fragment_name, position=None, res_name="UNL"):
+    set_styles = _structure.num_atoms != 0
     from .start import place_fragment
-    return place_fragment(_structure, fragment_name, res_name=res_name, position=position)
+    res = place_fragment(_structure, fragment_name, res_name, position=position)
+    if set_styles:
+        show_sticks_and_elements(res.atoms)
+    return res
 
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
@@ -562,3 +583,12 @@ def shim_place_peptide(session, sequence, phi_psis, **kw):
     if set_styles:
         show_sticks_and_elements(residues.atoms)
     return residues
+
+def get_fragment(name):
+    import os
+    fragment_file = os.path.join(os.path.dirname(__file__), "fragments", name + ".py")
+    frag_vars = {}
+    with open(fragment_file) as f:
+        exec(f.read(), frag_vars)
+    from .fragment import Fragment
+    return Fragment(frag_vars['name'], frag_vars['atoms'], frag_vars['bonds'])
