@@ -1084,10 +1084,15 @@ class Render:
         # mask framebuffer does not work correctly.  So use offscreen rendering
         # in this case.  ChimeraX bug #2216.
         #
-        self.outline.offscreen_outline_needed = (
-            self.framebuffer_depth_bits() != 24 or
-            (sys.platform.startswith('darwin') and
-             self.opengl_renderer().startswith('AMD Radeon Pro Vega')))
+        offscreen_outline = False
+        if self.framebuffer_depth_bits() != 24:
+            offscreen_outline = True
+        elif sys.platform.startswith('darwin'):
+            rname = self.opengl_renderer()
+            if (rname.startswith('AMD Radeon Pro Vega') or
+                rname.startswith('AMD Radeon Pro 5500M')):  # Ticket # 4238
+                offscreen_outline = True
+        self.outline.offscreen_outline_needed = offscreen_outline
         
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
