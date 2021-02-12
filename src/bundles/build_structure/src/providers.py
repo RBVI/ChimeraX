@@ -13,8 +13,8 @@
 
 from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
 from Qt.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
-from Qt.QtWidgets import QTableWidgetItem, QPushButton
-from Qt.QtGui import QDoubleValidator, QIntValidator
+from Qt.QtWidgets import QTableWidgetItem, QPushButton, QMenu, QGraphicsView, QGraphicsScene
+from Qt.QtGui import QDoubleValidator, QIntValidator, QPalette, QPainter
 from Qt.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
@@ -46,9 +46,13 @@ class StartStructureProvider(metaclass=abc.ABCMeta):
         # command
         pass
 
-def get_provider(session, name):
+def get_provider(session, name, mgr):
+    from .fragment_manager import FragmentManager
+    if isinstance(mgr, FragmentManager):
+        return get_fragment(name)
     return {
         "atom": AtomProvider,
+        "fragment": FragmentProvider,
         "nucleic": NucleicProvider,
         "peptide": PeptideProvider,
     }[name](session, name)
@@ -148,6 +152,80 @@ class AtomProvider(StartStructureProvider):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
+
+class FragmentProvider(StartStructureProvider):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.name = name
+        # register commands to private registry
+        from chimerax.core.commands.cli import RegisteredCommandInfo
+        self.registry = RegisteredCommandInfo()
+
+        from .fragment_manager import get_manager
+        register(name,
+            CmdDesc(
+                required=[("fragment_name", EnumOf(get_manager(session).fragment_names))],
+                keyword=[("position", Float3Arg), ("res_name", StringArg)],
+                synopsis="place initial structure fragment"
+            ), shim_place_fragment, registry=self.registry)
+
+    def command_string(self, widget):
+        return widget.findChild(QPushButton, "fragment name").text()
+
+    def execute_command(self, structure, args):
+        # the command uses the trick that the structure arg is temporarily made available in the
+        # global namespace as '_structure'
+        global _structure
+        _structure = structure
+        try:
+            cmd = Command(self.session, registry=self.registry)
+            return cmd.run(self.name + ' ' + args, log=False)[0]
+        finally:
+            _structure = None
+
+    def fill_parameters_widget(self, widget):
+        from .fragment_manager import get_manager
+        mgr = get_manager(self.session)
+        frag_names = mgr.fragment_names
+        init_fragment_name = "benzene" if "benzene" in frag_names else frag_names[0]
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(3,0,3,5)
+        layout.setSpacing(0)
+        widget.setLayout(layout)
+        but = QPushButton()
+        but.setObjectName("fragment name")
+        layout.addWidget(but)
+
+        gscene = QGraphicsScene()
+        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Background))
+        gview = QGraphicsView(gscene)
+        gview.setRenderHint(QPainter.Antialiasing, True)
+        layout.addWidget(gview)
+
+        # organize the fragment names so that the menus can be alphabetized
+        by_cat = {}
+        for frag_name in frag_names:
+            category = mgr.fragment_category(frag_name)
+            by_cat.setdefault(category, []).append(frag_name)
+
+        def set_button_text(frag_name, but=but, scene=gscene, mgr=mgr):
+            but.setText(frag_name)
+            frag = mgr.fragment(frag_name)
+            scene.clear()
+            frag.depict(scene, 15)
+            scene.setSceneRect(scene.itemsBoundingRect())
+
+        root_menu = QMenu(widget)
+        but.setMenu(root_menu)
+        categories = sorted(list(by_cat.keys()))
+        for cat in categories:
+            cat_menu = QMenu(cat, widget)
+            cat_menu.triggered.connect(lambda action, func=set_button_text: func(action.text()))
+            root_menu.addMenu(cat_menu)
+            for entry in sorted(list(by_cat[cat]), key=lambda x: x.casefold()):
+                cat_menu.addAction(entry)
+        set_button_text(init_fragment_name)
 
 class NucleicProvider(StartStructureProvider):
     def __init__(self, session, name):
@@ -447,6 +525,14 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
         a.selected = True
     return a
 
+def shim_place_fragment(session, fragment_name, position=None, res_name="UNL"):
+    set_styles = _structure.num_atoms != 0
+    from .start import place_fragment
+    res = place_fragment(_structure, fragment_name, res_name, position=position)
+    if set_styles:
+        show_sticks_and_elements(res.atoms)
+    return res
+
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
     try:
@@ -466,3 +552,12 @@ def shim_place_peptide(session, sequence, phi_psis, **kw):
     if set_styles:
         show_sticks_and_elements(residues.atoms)
     return residues
+
+def get_fragment(name):
+    import os
+    fragment_file = os.path.join(os.path.dirname(__file__), "fragments", name + ".py")
+    frag_vars = {}
+    with open(fragment_file) as f:
+        exec(f.read(), frag_vars)
+    from .fragment import Fragment
+    return Fragment(frag_vars['name'], frag_vars['atoms'], frag_vars['bonds'])
