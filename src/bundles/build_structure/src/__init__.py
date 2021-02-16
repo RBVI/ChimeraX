@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mod import modify_atom
-from .start import place_helium, place_peptide, PeptideError
+from .start import place_fragment, place_helium, place_peptide, PeptideError
 from .providers import StartStructureProvider
 
 from chimerax.core.toolshed import BundleAPI
@@ -27,7 +27,7 @@ class BuildStructureAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         from .providers import get_provider
-        return get_provider(session, name)
+        return get_provider(session, name, mgr)
 
     @staticmethod
     def start_tool(session, tool_name):

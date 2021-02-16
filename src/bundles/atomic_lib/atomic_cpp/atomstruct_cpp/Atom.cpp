@@ -61,9 +61,12 @@ Atom::~Atom()
       _ribbon_coord = nullptr;
     }
     DestructionUser(this);
-    if (selected())
+    if (selected()) {
         // so that closing a structure can fire "selection changed" trigger
         change_tracker()->add_modified(nullptr, this, ChangeTracker::REASON_SELECTED);
+	graphics_changes()->set_gc_select(); // update ribbon selection highlight
+    }
+
     change_tracker()->add_deleted(structure(), this);
     graphics_changes()->set_gc_adddel();
 }

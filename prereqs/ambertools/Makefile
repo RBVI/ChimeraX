@@ -52,6 +52,9 @@ app-install: install
 	# Some executables live directly in bin, but many are shell scripts whose
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
 	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
+ifeq ($(OS),Windows)
+	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll $(AMBERBIN_DST)
+endif
 	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
 	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
 ifeq ($(OS),Darwin)
@@ -60,8 +63,13 @@ ifeq ($(OS),Darwin)
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
-			install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+			install_filename=$(app_libdir)/$$filename; \
+			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
+			for k in `otool -L $$j | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+				subfilename=`basename $$k`; \
+				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
+			done; \
 		done; \
 	done
 endif

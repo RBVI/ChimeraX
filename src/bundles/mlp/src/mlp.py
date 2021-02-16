@@ -65,12 +65,19 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         from chimerax.core.undo import UndoState
         undo_state = UndoState('mlp')
         for s in surfs:
-            satoms = s.atoms
+            surf_has_atoms = hasattr(s, 'atoms')
+            satoms = s.atoms if surf_has_atoms else patoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
-            v = mlp_map(session, satoms, method, spacing, max_distance, nexp, name, open_map = map)
-            from chimerax.surface import color_surfaces_by_map_value
-            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range,
-                                        undo_state = undo_state)
+            v = mlp_map(session, satoms, method, spacing,
+                        max_distance, nexp, name, open_map = map)
+            if surf_has_atoms:
+                from chimerax.surface import color_surfaces_by_map_value
+                color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range,
+                                            undo_state = undo_state)
+            else:
+                from chimerax.surface import color_sample
+                color_sample(session, [s], v, palette = cmap, range = range,
+                             undo_state = undo_state)
         session.undo.register(undo_state)
     else:
         name = 'mlp map'

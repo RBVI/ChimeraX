@@ -519,10 +519,8 @@ class BundleInfo:
 
         Raises
         ------
-        ToolshedUninstalledError
-            If the bundle is not installed.
         ToolshedError
-            If the tool cannot be started.
+            If the tool is not installed or cannot be started.
         """
         if not self.installed:
             raise ToolshedError("bundle \"%s\" is not installed"
