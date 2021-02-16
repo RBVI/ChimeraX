@@ -173,7 +173,8 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                         del uncharged_res_types[cr.name]
                     continue
     # split isolated atoms (e.g. metals) into separate "residues"
-    for res_type, residues in uncharged_res_types.items():
+    urt_list = list(uncharged_res_types.items())
+    for res_type, residues in urt_list:
         bond_residues = residues
         br_type = res_type
         while True:
@@ -202,7 +203,7 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                         continue
                     non_iso_res = FakeRes(br_type, non_iso_atoms)
                     non_iso.append(non_iso_res)
-                uncharged_res_types[iso_type] = iso
+                urt_list.append((iso_type, iso))
                 bond_residues = non_iso
             else:
                 # no isolated atoms
