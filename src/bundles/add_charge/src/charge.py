@@ -297,10 +297,10 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
     electrons = net_charge
     for a in r0.atoms:
         electrons += a.element.number
-    if electrons % 2 == 1:
-        # cannot compute charges for radical species
-        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute"
-            " charges for radical species" % (r0.name, electrons - net_charge, net_charge))
+    if electrons % 2 == 1 and method == "am1-bcc":
+        # cannot compute charges for radical species with AM1-BCC
+        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
+            " for radical species using AM1-BCC method" % (r0.name, electrons - net_charge, net_charge))
 
     # detect tautomers by checking bonds
     varieties = {}
