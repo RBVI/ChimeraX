@@ -1661,6 +1661,8 @@ class StructureData:
         '''
         if not insert:
             insert = ' '
+        if not chain_id:
+            chain_id = ' '
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char, ctypes.c_void_p),
                        ret = ctypes.py_object)

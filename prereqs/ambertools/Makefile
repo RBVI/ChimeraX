@@ -63,8 +63,13 @@ ifeq ($(OS),Darwin)
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
-			install_name_tool -id @executable_path/$$filename $(app_libdir)/$$filename; \
+			install_filename=$(app_libdir)/$$filename; \
+			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
+			for k in `otool -L $$j | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+				subfilename=`basename $$k`; \
+				install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$install_filename; \
+			done; \
 		done; \
 	done
 endif
