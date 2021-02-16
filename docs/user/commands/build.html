@@ -76,6 +76,13 @@ See also:
 [&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="#top" class="nounder">&bull;</a>
+<b>build start</b> <b>fragment</b>
+&nbsp;<i>model-info</i>&nbsp;
+&nbsp;<i>fragment-name</i></b>&nbsp;
+[&nbsp;<b>position</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
 <b>build start</b> <b>peptide</b>
 &nbsp;<i>model-info</i> &nbsp;<i>sequence</i>&nbsp;
 &nbsp;<i>&phi;<sub><font size="-1">1</font></sub>,&psi;<sub><font size="-1">1</font></sub></i>&nbsp;
@@ -93,7 +100,7 @@ See also:
 [&nbsp;<b>form</b>&nbsp;&nbsp;A&nbsp;|&nbsp;<b>B</b>&nbsp;]
 <blockquote>
 For starting a new molecule with <b>build start</b>, the choices are
-<b>atom</b>, <b>peptide</b>, or <b>nucleic</b>.
+<b>atom</b>, <b>fragment</b>, <b>peptide</b>, or <b>nucleic</b>.
 With the <a href="open.html"><b>open</b></a> command, however, a wide variety
 of atomic structures for subsequent <a href="#modify">modification</a> can be 
 <a href="open.html#fetch">fetched from online sources</a> or modeled from a
@@ -109,12 +116,17 @@ The <b>position</b> of the new atom or new molecule's geometric center
 defaults to the current center of view, but can be given as
 <i>x,y,z</i> coordinates separated by commas only.
 </p><p>
-For <b>peptide</b>, required arguments other than <i>model-info</i> are the 
+For <b>fragment</b>, both <i>model-info</i> and <i>fragment-name</i> are 
+required. Several planar 5- and 6-membered rings and their fused ring
+systems are available, with choices for <i>fragment-name</i> as listed in the 
+<a href="../tools/buildstructure.html#start"><b>Build Structure</b></a> dialog.
+</p><p>
+For <b>peptide</b>, the required arguments are <i>model-info</i> and the 
 <i>sequence</i> as a string of single-letter amino acid codes 
 (upper- or lowercase)
 and a list of comma-separated pairs of <i>&phi;,&psi;</i> values,
 one pair for each residue, in the same order as in the sequence.
-Even though the terminal residues lack <i>&phi;</i> or <i>&psi;</i>,
+Even though the terminal residues lack either <i>&phi;</i> or <i>&psi;</i>,
 a pair of values is required for each residue. 
 The &ldquo;extra&rdquo; values for the terminal residues will be ignored.
 Example:
@@ -132,11 +144,12 @@ For building a <b>hybrid</b> DNA/RNA, the sequence of the DNA strand
 should be given. The nucleic acid chains will be assigned 
 the first two unused chain IDs of the atomic model.
 </p><p>
-Options for <b>atom</b> only:
+Further options:
 </p>
 <ul>
-<li><b>resName</b> &ndash; a name for the new residue (default <b>UNL</b>)
-<li><b>select</b> &ndash; whether to 
+<li><b>resName</b> &ndash; for <b>atom</b> or <b>fragment</b>,
+a name for the new residue (default <b>UNL</b>)
+<li><b>select</b> &ndash; for <b>atom</b> only, whether to 
 <a href="../selection.html">select</a> the new atom (default <b>true</b>),
 as may be convenient for subsequent <a href="#modify">modification</a>
 </ul>
@@ -244,5 +257,5 @@ If <b>newRes</b> is <b>true</b>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2021</address>
+February 2021</address>
 </body></html>
