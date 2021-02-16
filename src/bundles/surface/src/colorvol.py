@@ -32,14 +32,14 @@ _color_map_args_doc = '''
 # -----------------------------------------------------------------------------
 #
 def color_sample(session, surfaces, map, palette = None, range = None,
-                 offset = 0, transparency = None, update = True):
+                 offset = 0, transparency = None, update = True, undo_state = None):
     '''
     Color surfaces using an interpolated map value at each surface vertex
     with values mapped to colors by a color palette.
     '''
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, auto_update = update,
-                        undo_name = 'color sample')
+                        undo_name = 'color sample', undo_state = undo_state)
 
 color_sample.__doc__ += _color_map_args_doc
 
@@ -105,20 +105,26 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
 #
 def _color_by_map_value(session, surfaces, map, palette = None, range = None,
                         offset = 0, transparency = None, gradient = False, caps_only = False,
-                        auto_update = True, undo_name = 'color map by value'):
+                        auto_update = True, undo_name = 'color map by value', undo_state = None):
 
     surfs = [s for s in surfaces if s.vertices is not None]
     cs_class = GradientColor if gradient else VolumeColor
-    from chimerax.core.undo import UndoState
-    undo_state = UndoState(undo_name)
+
+    if undo_state is None:
+        from chimerax.core.undo import UndoState
+        undo = UndoState(undo_name)
+    else:
+        undo = undo_state
+
     for surf in surfs:
         cprev = surf.color_undo_state
         cs = cs_class(surf, map, palette, range, transparency = transparency,
                       offset = offset, auto_recolor = auto_update)
         cs.set_vertex_colors()
-        undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+        undo.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
 
-    session.undo.register(undo_state)
+    if undo_state is None:
+        session.undo.register(undo)
         
 # -----------------------------------------------------------------------------
 #
