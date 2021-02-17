@@ -734,6 +734,8 @@ by incorporating alphabetical characters
 [&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>fixedWidth</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>bestGuess</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic coordinates and associated information can be saved in 
@@ -741,8 +743,20 @@ Atomic coordinates and associated information can be saved in
 A subset of the mmCIF data types are written
 (<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
 target="_blank">details...</a>). 
-The options are as described for <a href="#pdb">saving PDB</a>.
+The options are as described for <a href="#pdb">saving PDB</a>,
+except for the following:
 </p>
+<ul>
+<li><b>fixedWidth</b> (default <b>true</b>) 
+&ndash; whether to write fixed-width columns, as in mmCIF files from the 
+<a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
+fixed-width columns make reading the file
+<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
+target="_blank">faster in ChimeraX</a>
+<li><b>bestGuess</b> (default <b>false</b>) 
+&ndash; whether to try to write polymer sequence information when it was
+missing from the input file, or the structure was built or modified by the user
+</ul>
 
 <a name="mol2"></a>
 <p class="nav">
@@ -964,5 +978,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+February 2021</address>
 </body></html>
