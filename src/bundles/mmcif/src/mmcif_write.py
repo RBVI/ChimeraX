@@ -22,6 +22,8 @@ import sys
 
 WRITER_VERSION = 'v9'  # TODO: update after any change
 
+MMCIF_PREAMBLE = "#\\#CIF_1.1\n" "# mmCIF\n"
+
 # chains only keep the single letter for missing residues, but entity_poly_seq
 # wants the multiletter version, so fake the names for the missing residues
 _rna1to3 = {
@@ -110,42 +112,42 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
     if not _standard_residues:
         _set_standard_residues()
 
-    used_data_names = set()
     file_per_model = "[NAME]" in path or "[ID]" in path
     if file_per_model:
         for m in models:
+            used_data_names = set()
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             with open(file_name, 'w', encoding='utf-8', newline='\r\n') as f:
-                print("#\\#CIF_1.1", file=f)
-                print("# mmCIF", file=f)
+                f.write(MMCIF_PREAMBLE)
                 save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
-    else:
-        # Need to figure out which ChimeraX models should be grouped together
-        # as mmCIF models.  Start with assumption that all models with the same
-        # "parent" id (other than blank) are a nmr ensemble.
-        grouped = {}
-        for m in models:
-            grouped.setdefault(m.id[:-1], []).append(m)
+        return
 
-        # Go through grouped models and confirm they look like an NMR ensemble
-        # This should catch fix for docking models and hierarchical models (IHM)
-        is_ensemble = {}
+    # Need to figure out which ChimeraX models should be grouped together
+    # as mmCIF models.  Start with assumption that all models with the same
+    # "parent" id (other than blank) are a nmr ensemble.
+    grouped = {}
+    for m in models:
+        grouped.setdefault(m.id[:-1], []).append(m)
+
+    # Go through grouped models and confirm they look like an NMR ensemble
+    # This should catch fix for docking models and hierarchical models (IHM)
+    is_ensemble = {}
+    for g, models in grouped.items():
+        if len(models) == 1:
+            is_ensemble[g] = False
+            continue
+        chains = models[0].chains
+        is_ensemble[g] = all(_same_chains(chains, m.chains) for m in models[1:])
+
+    used_data_names = set()
+    with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
+        f.write(MMCIF_PREAMBLE)
         for g, models in grouped.items():
-            if len(models) == 1:
-                is_ensemble[g] = False
-                continue
-            chains = models[0].chains
-            is_ensemble[g] = all(_same_chains(chains, m.chains) for m in models[1:])
-
-        with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
-            print("#\\#CIF_1.1", file=f)
-            print("# mmCIF", file=f)
-            for g, models in grouped.items():
-                if is_ensemble[g]:
-                    save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
-                else:
-                    for m in models:
-                        save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+            if is_ensemble[g]:
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+            else:
+                for m in models:
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
