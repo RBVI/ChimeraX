@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QGridLayout, QSizePolicy
+from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QSizePolicy
 from Qt.QtCore import Qt
+
 
 class SaveOptionsWidget(QFrame):
     tip_text = "To save multiple structures into <i>multiple</i> files," \
@@ -55,7 +55,6 @@ class SaveOptionsWidget(QFrame):
             self.structure_list.value_changed.connect(self._update_models_tip)
             self._update_models_tip()
 
-
         options_layout = QVBoxLayout()
         arguments_layout.addLayout(options_layout)
 
@@ -67,13 +66,15 @@ class SaveOptionsWidget(QFrame):
 
         self.fixed_width = QCheckBox('Use fixed-width columns in output')
         options_layout.addWidget(self.fixed_width, alignment=Qt.AlignLeft)
-        self.fixed_width.setToolTip("Whether to write fixed-width columns, as in mmCIF files from the RCSB"
+        self.fixed_width.setToolTip(
+            "Whether to write fixed-width columns, as in mmCIF files from the RCSB"
             " Protein Data Bank.\nFixed-width columns make reading the file faster in ChimeraX")
         self.fixed_width.setChecked(True)
 
         self.best_guess = QCheckBox('Estimate sequence information if necessary')
         options_layout.addWidget(self.best_guess, alignment=Qt.AlignLeft)
-        self.best_guess.setToolTip("Whether to try to write polymer sequence information"
+        self.best_guess.setToolTip(
+            "Whether to try to write polymer sequence information"
             " when it was missing from the input file")
 
         self.simple_rel_models = len(self.structure_list.value) < 2
@@ -134,4 +135,3 @@ class SaveOptionsWidget(QFrame):
 
     def _update_models_tip(self):
         self.multiple_models_tip.setEnabled(len(self.structure_list.value) > 1)
-
