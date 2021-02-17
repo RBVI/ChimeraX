@@ -61,7 +61,7 @@ def place_fragment(structure, fragment_name, res_name, position=None):
     coords = atoms.coords
     center = coords.mean(0)
     correction = position - center
-    atoms.coords = coords - correction
+    atoms.coords = coords + correction
 
     if need_focus:
         from chimerax.core.commands import run
@@ -269,7 +269,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
     coords = atoms.coords
     center = coords.mean(0)
     correction = position - center
-    atoms.coords = coords - correction
+    atoms.coords = coords + correction
 
     if need_focus:
         from chimerax.core.commands import run
@@ -386,7 +386,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     coords = atoms.coords
     center = coords.mean(0)
     correction = position - center
-    atoms.coords = coords - correction
+    atoms.coords = coords + correction
 
     from chimerax.std_commands.dssp import compute_ss
     compute_ss(session, structure)
