@@ -156,7 +156,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool is_side_connector()
         bool is_side_chain(bool)
         float maximum_bond_radius(float)
-        const char* name()
+        string name()
         const Neighbors& neighbors()
         int num_explicit_bonds()
         float occupancy()
