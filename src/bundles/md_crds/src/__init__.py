@@ -78,6 +78,14 @@ class _MDCrdsBundleAPI(BundleAPI):
                 def save_args(self):
                     from chimerax.core.commands import ModelsArg
                     return { 'models': ModelsArg }
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
         return MDInfo()
 
 bundle_api = _MDCrdsBundleAPI()

@@ -1515,7 +1515,7 @@ ExtractMolecule::parse_atom_site()
         }
         if (make_new_atom) {
             const Element& elem = Element::get_element(symbol);
-            a = mol->new_atom(atom_name, elem);
+            a = mol->new_atom(atom_name.c_str(), elem);
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
@@ -1738,7 +1738,7 @@ ExtractMolecule::parse_struct_conn()
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
-        if (atom_name1 == '?' || atom_name2 == '?')
+        if (atom_name1 == "?" || atom_name2 == "?")
             continue;
         bool normal = false;
         bool metal = false;

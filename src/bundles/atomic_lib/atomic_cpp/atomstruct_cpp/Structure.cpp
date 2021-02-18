@@ -373,7 +373,7 @@ void Structure::_copy(Structure* s) const
     set_alt_loc_change_notify(false);
     std::map<Atom*, Atom*> amap;
     for (auto a: atoms()) {
-        Atom* ca = s->new_atom(a->name(), a->element());
+        Atom* ca = s->new_atom(a->name().c_str(), a->element());
         Residue *cr = rmap[a->residue()];
         cr->add_atom(ca);	// Must set residue before setting alt locs
         ca->_coord_index = a->coord_index();
@@ -1759,7 +1759,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     float_array = static_cast<float*>(farray.values());
     int i = 1; // atom names are in slot zero
     for (auto aname: atom_names) {
-        auto a = new_atom(aname, Element::get_element(*element_ints++));
+        auto a = new_atom(aname.c_str(), Element::get_element(*element_ints++));
         a->session_restore(version, &int_array, &float_array, PySequence_Fast_GET_ITEM(atoms_misc, i++));
     }
 

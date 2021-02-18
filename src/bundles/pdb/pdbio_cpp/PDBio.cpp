@@ -898,7 +898,7 @@ start_t = end_t;
                 a->set_bfactor(record.atom.temp_factor);
                 a->set_occupancy(record.atom.occupancy);
             } else {
-                a = as->new_atom(aname, *e);
+                a = as->new_atom(aname.c_str(), *e);
                 if (record.atom.alt_loc)
                     a->set_alt_loc(record.atom.alt_loc, true);
                 cur_residue->add_atom(a);
@@ -1708,7 +1708,7 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
             if (displayed_only && !a->display())
                 continue;
             std::string aname = s->asterisks_translated ?
-                primes_to_asterisks(a->name()) : a->name().c_str();
+                primes_to_asterisks(a->name().c_str()) : a->name().c_str();
             if (strlen(a->element().name()) > 1) {
                 strcpy(*rec_name, aname.c_str());
             } else {
