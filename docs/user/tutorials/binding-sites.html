@@ -657,8 +657,8 @@ width="220px">
 </table>
 <p>
 To color a <a href="../commands/surface.html#cap">surface cap</a> by the 
-<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP), 
-it is necessary to first generate a map of the MLP as a
+<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
+in ChimeraX 1.1, it is necessary to first generate a map of the MLP as a
 <a href="../tools/volumeviewer.html">volume model</a>
 and then color the cap in a separate step.
 </p><p>
@@ -716,23 +716,34 @@ interactively <a href="../commands/ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
 </p><p>
-In ChimeraX version 1.2 (2/17/2021 or later), a simpler method 
-for coloring the cap directly without creating a map model is available:
+In ChimeraX version 1.2 (2/17/2021 or later),
+a simpler method can be used to color the cap without creating a map.
+In this method, the atoms to use in the calculation (here, all
+<a href="../commands/atomspec.html#builtin"><b>protein</b></a> atoms)
+are specified separately from the surface to color:
 </p>
-<blockquote>
+<blockquote> 
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mlp protein surf #1.1.1">mlp protein surf #1.1.1</a></b>
 </blockquote>
-...and analogously for <a href="../commands/coulombic.html">Coulombic 
+<p>
+Cap transparency can be set with another command, for example:
+</p>
+<blockquote> 
+<i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 50">transparency #1.1.1 50</a></b>
+</blockquote>
+<p>
+Analogously, to color by <a href="../commands/coulombic.html">Coulombic 
 electrostatic potential</a>
 (more about this in the <a href="#esp">next section</a>), 
 where the first command colors the outer surface and the second the cap:
+</p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein surf #1.1.1 offset 0">coulombic protein surf #1.1.1 offset 0</a></b>
 </blockquote>
 <p>
-When finished with this structure and map, close the session:
+When finished with this structure, close the session:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:close session">close session</a></b>

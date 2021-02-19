@@ -1016,7 +1016,7 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
         if atom.residue.polymer_type == atom.residue.PT_AMINO and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
-        h_digits = 4 - len(h_name)
+        h_digits = max(4 - len(h_name), 1)
         while find_atom("%s%s" % (h_name, to_h36(h_num, h_digits))):
             h_num += 1
         h_name = "%s%s" % (h_name, to_h36(h_num, h_digits))
