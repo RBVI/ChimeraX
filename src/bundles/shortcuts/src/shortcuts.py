@@ -695,30 +695,6 @@ def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
     m.bind_mouse_mode(button, ZoomMouseMode(m.session))
 
-def fit_molecule_in_map(session):
-    mols, maps = shortcut_molecules(session), shortcut_maps(session)
-    log = session.logger
-    if len(mols) != 1 or len(maps) != 1:
-        log.status('Fit molecule in map requires one '
-                   'displayed or selected molecule (got %d) and map (got %d).'
-                   % (len(mols), len(maps)))
-        return
-
-    mol, map = mols[0], maps[0]
-    points = mol.atoms.coords
-    point_weights = None        # Equal weight for each atom
-    data_array = map.full_matrix()
-    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimerax.map_fit import locate_maximum
-    move_tf, stats = locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
-    mol.position = mol.position * move_tf
-
-    msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
-           % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
-    log.status(msg)
-    from chimerax.map_fit import fitmap
-    log.info(fitmap.atom_fit_message(mols, map, stats))
-
 def fit_subtract(session):
     models = session.models.list()
     from chimerax.map import Volume
@@ -747,6 +723,18 @@ def fit_subtract(session):
     from chimerax.map_fit.fitcmd import fit_sequence
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
+
+def fit_molecule_in_map(session):
+    mols, maps = shortcut_molecules(session), shortcut_maps(session)
+    log = session.logger
+    if len(mols) != 1 or len(maps) != 1:
+        log.status('Fit molecule in map requires one '
+                   'displayed or selected molecule (got %d) and map (got %d).'
+                   % (len(mols), len(maps)))
+        return
+
+    mol, map = mols[0], maps[0]
+    run(session, 'fit #%s in #%s' % (mol.id_string, map.id_string))
 
 def fit_map_in_map(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)
