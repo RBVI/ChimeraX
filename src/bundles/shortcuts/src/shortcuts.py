@@ -107,6 +107,7 @@ def standard_shortcuts(session):
         ('hM', run_on_maps('volume %s hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
+        ('fm', fit_in_map, 'Fit in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
@@ -437,9 +438,10 @@ def shortcut_maps(session, undisplayed = True, at_least = None):
     from chimerax.map import Volume
     return shortcut_models(session, Volume, undisplayed=undisplayed, at_least=at_least)
 
-def shortcut_molecules(session):
+def shortcut_molecules(session, undisplayed = False, at_least = None):
     from chimerax.atomic import AtomicStructure
-    return shortcut_models(session, AtomicStructure, undisplayed = False)
+    return shortcut_models(session, AtomicStructure,
+                           undisplayed = undisplayed, at_least = at_least)
 
 def shortcut_atoms(session):
     matoms = []
@@ -474,6 +476,23 @@ def shortcut_surfaces_and_maps(session):
         return sm
     sm = [m for m in session.models.list(type = (Surface, Volume)) if m.visible]
     return sm
+
+def sel_unsel_models(session, mclass = None, undisplayed = False):
+    sel = [m for m in session.selection.models()
+           if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))]
+    selset = set(sel)
+    usel = [m for m in session.models
+            if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))
+            and  not m in selset]
+    return sel, usel
+
+def sel_unsel_maps(session, undisplayed = False):
+    from chimerax.map import Volume
+    return sel_unsel_models(session, Volume, undisplayed=undisplayed)
+
+def sel_unsel_molecules(session, undisplayed = False):
+    from chimerax.atomic import AtomicStructure
+    return sel_unsel_models(session, AtomicStructure, undisplayed=undisplayed)
 
 def run(session, command, **kw):
   from chimerax.core.commands import run as run_command
@@ -746,6 +765,31 @@ def fit_map_in_map(session):
 
     map1, map2 = maps
     run(session, 'fit #%s in #%s' % (map1.id_string, map2.id_string))
+
+def fit_in_map(session):
+    smols,umols = sel_unsel_molecules(session)
+    nmols = len(smols) + len(umols)
+    smaps,umaps = sel_unsel_maps(session)
+    nmaps = len(smaps) + len(umaps)
+
+    if nmols == 1 and nmaps == 1:
+        # Exactly one atomic model and one map shown.
+        model, map = (smols + umols)[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and len(smaps) == 1:
+        model, map = smols[0], smaps[0]
+    elif len(smols) == 1 and nmaps == 1:
+        model, map = smols[0], (smaps + umaps)[0]
+    elif len(smols) == 0 and nmaps == 2:
+        model, map = (smaps + umaps)
+    else:
+        log = session.logger
+        msg = ('Fit in map shortcut requires 1 displayed atomic model and 1 map '
+               'or two maps, got %d atomic models, %d maps.' % (nmols, nmaps))
+        log.warning(msg)
+        log.status(msg, color='red')
+        return
+
+    run(session, 'fit #%s in #%s' % (model.id_string, map.id_string))
 
 def subtract_maps(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)

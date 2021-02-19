@@ -129,7 +129,7 @@
       name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
 
     <Provider tab="Map" section="Calculations"
-      name="fT" display_name="Fit" icon="fitmap.png" description="Fit map in map"/>
+      name="fm" display_name="Fit" icon="fitmap.png" description="Fit atomic model or map in map"/>
     <Provider tab="Map" section="Calculations"
       name="sb" display_name="Subtract" icon="diffmap.png" description="Subtract map from map"/>
     <Provider tab="Map" section="Calculations"
