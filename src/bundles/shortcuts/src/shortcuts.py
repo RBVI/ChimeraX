@@ -775,12 +775,14 @@ def fit_in_map(session):
     if nmols == 1 and nmaps == 1:
         # Exactly one atomic model and one map shown.
         model, map = (smols + umols)[0], (smaps + umaps)[0]
-    elif len(smols) == 1 and len(smaps) == 1:
-        model, map = smols[0], smaps[0]
+    elif nmols == 0 and nmaps == 2:
+        model, map = (smaps + umaps)
+    elif len(smols) == 0 and len(smaps) == 2:
+        model, map = smaps
     elif len(smols) == 1 and nmaps == 1:
         model, map = smols[0], (smaps + umaps)[0]
-    elif len(smols) == 0 and nmaps == 2:
-        model, map = (smaps + umaps)
+    elif len(smols) == 1 and len(smaps) == 1:
+        model, map = smols[0], smaps[0]
     else:
         log = session.logger
         msg = ('Fit in map shortcut requires 1 displayed atomic model and 1 map '
