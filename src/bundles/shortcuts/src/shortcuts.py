@@ -123,16 +123,21 @@ def standard_shortcuts(session):
         ('s4', run_on_maps('volume %s step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
         ('pl', run_on_maps('volume %s plane z style image imageMode full ; mousemode right "move planes"'), 'Show one plane', mapcat, sesarg, mmenu),
-        ('pa', run_on_maps('volume %s region all imageMode full ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
+        ('pa', run_on_maps('volume %s region all imageMode full ; volume unzone %s ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('is', show_slab, 'Show slab', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
+        ('cz', color_zone, 'Color map to match atoms', mapcat, sesarg, mmenu),
+        ('vz', volume_zone, 'Show map near atoms', mapcat, sesarg, mmenu),
+        ('hd', hide_dust, 'Hide dust', mapcat, sesarg, mmenu),
+        
         ('aw', run_on_maps('volume %s appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
         ('as', run_on_maps('volume %s appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
         ('bc', run_on_maps('volume %s appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
         ('ch', run_on_maps('volume %s appearance chest'), 'Chest CT scan coloring', mapcat, sesarg, mmenu),
+
         ('dc', run_on_maps('volume %s appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', run_on_maps('volume %s projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', run_on_maps('volume %s projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
@@ -792,6 +797,72 @@ def fit_in_map(session):
         return
 
     run(session, 'fit #%s in #%s' % (model.id_string, map.id_string))
+
+def atomic_model_and_map(session, shortcut_name):
+    smols,umols = sel_unsel_molecules(session)
+    nmols = len(smols) + len(umols)
+    smaps,umaps = sel_unsel_maps(session)
+    nmaps = len(smaps) + len(umaps)
+
+    if nmols == 1 and nmaps == 1:
+        # Exactly one atomic model and one map shown.
+        model, map = (smols + umols)[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and nmaps == 1:
+        model, map = smols[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and len(smaps) == 1:
+        model, map = smols[0], smaps[0]
+    else:
+        log = session.logger
+        msg = ('%s shortcut requires 1 displayed atomic model and 1 map, '
+               'got %d atomic models, %d maps.' % (shortcut_name, nmols, nmaps))
+        log.warning(msg)
+        log.status(msg, color='red')
+        model, map = None, None
+
+    return model, map
+
+def color_zone(session):
+    model, map = atomic_model_and_map(session, 'Color zone')
+    if model is None:
+        return
+    atomsel = model.atoms.num_selected
+    atom_spec = ('sel & #%s' if atomsel else '#%s') % model.id_string
+    map_spec = '#%s' % map.id_string
+    dist = 6 * max(map.data.step)
+    cmd = 'color zone %s near %s distance %.3g' % (map_spec, atom_spec, dist)
+    run(session, cmd)
+
+def volume_zone(session):
+    model, map = atomic_model_and_map(session, 'Volume zone')
+    if model is None:
+        return
+    atomsel = model.atoms.num_selected
+    atom_spec = ('sel & #%s' if atomsel else '#%s') % model.id_string
+    map_spec = '#%s' % map.id_string
+    dist = 6 * max(map.data.step)
+    cmd = 'volume zone %s near %s range %.3g' % (map_spec, atom_spec, dist)
+    run(session, cmd)
+
+def hide_dust(session):
+    smaps,umaps = sel_unsel_maps(session)
+    sfmaps = [v for v in smaps if v.surface_shown]
+    ufmaps = [v for v in umaps if v.surface_shown]
+
+    if sfmaps:
+        maps = sfmaps
+    elif ufmaps:
+        maps = ufmaps
+    elif smaps or umaps:
+        log = session.logger
+        msg = 'Hide dust shortcut requires a displayed map surface'
+        log.warning(msg)
+        log.status(msg, color='red')
+        maps = []
+        
+    for map in maps:
+        size = 10 * max(map.data.step)
+        cmd = 'surface dust #%s size %.3g' % (map.id_string, size)
+        run(session, cmd)
 
 def subtract_maps(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)
