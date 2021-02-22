@@ -68,6 +68,12 @@ run the command ``color red`` is::
     from chimerax.core.commands import run
     run(session, "color red")
 
+The ``run()`` call will return the result of the command,
+*e.g.* a list of opened models for the ``open`` command
+(in most cases a list of one) or a distance value for the
+``distance`` command.  If the "command" is actually a
+semi-colon-separated list of commands, the the returned
+value will be a list of the individual return values.
 
 What is a ChimeraX Bundle?
 ==========================
