@@ -96,10 +96,10 @@ Provides a Windows ribbon-style toolbar interface
       name="layout-map-steps" after="Style"/>
     <Provider tab="Map" section="Subregions"
       name="layout-map-subregions" after="Steps"/>
+    <Provider tab="Map" section="Appearance"
+      name="layout-map-image-display" after="Subregions"/>
     <Provider tab="Map" section="Calculations"
-      name="layout-map-calculations" after="Subregions"/>
-    <Provider tab="Map" section="Image Display"
-      name="layout-map-image-display" after="Calculations"/>
+      name="layout-map-calculations" after="Appearance"/>
 
 
     <!-- Markers tab -->
