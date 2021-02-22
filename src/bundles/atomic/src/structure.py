@@ -1412,7 +1412,7 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
-               chain_res_range(chain), chain.chain_id)
+               chain_res_range(chain), (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -1427,8 +1427,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (
-                chain_res_range(chain), chain.structure.id_string, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (chain_res_range(chain),
+                chain.structure.id_string, (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
@@ -1441,7 +1441,7 @@ class AtomicStructure(Structure):
         def descript_text(description, chains):
             from html import escape
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
-                ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
+                ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
