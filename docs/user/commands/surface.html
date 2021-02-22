@@ -435,8 +435,8 @@ See also:
 <blockquote>
 Hide smaller blobs (disconnected parts) of a surface, 
 such as to simplify the display of noisy density.
-Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
-will be hidden. The size units depend on the <b>metric</b>, which 
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>) will be hidden.
+The size units depend on the <b>metric</b>, which 
 can be any of the following (enclosed in single or double quotation marks 
 if it includes spaces):
   <ul>
@@ -448,13 +448,18 @@ if it includes spaces):
   <li><b>volume</b> &ndash; enclosed volume
   <li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
   </ul>
+The corresponding
+<a href="../tools/densitymaps.html"><b>Map Toolbar</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png">
+uses a <b>size</b> value ten times the grid spacing of the map.
+<p>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
 and blobs at or above the cutoff size will be displayed completely
 (although possibly still clipped) even if they had been hidden beforehand.
 The <b>update</b> option (default <b>true</b>) indicates
 whether to update automatically when the shape of the surface changes.
-<p>
+</p><p>
 The <b>surface undust</b> command turns off hiding smaller blobs,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#zone"><b>surface zone</b></a>.
@@ -556,5 +561,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+February 2021</address>
 </body></html>
