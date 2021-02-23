@@ -711,9 +711,8 @@ class MouseEvent:
             return self._wheel_value
         if self._event is not None:
             deltas = self._event.angleDelta()
-            delta = max(deltas.x(), deltas.y())
-            if delta == 0:
-                delta = min(deltas.x(), deltas.y())
+            dx, dy = deltas.x(), deltas.y()
+            delta = dy if abs(dy) > abs(dx) else dx
             return delta/120.0   # Usually one wheel click is delta of 120
         return 0
 
