@@ -56,6 +56,7 @@ on CPython.  However, developers are responsible
 for supplying a compatible compilation environment,
 e.g., installing Visual Studio 2015 on Microsoft Windows.
 
+.. _pro-tip:
 
 Pro Tip
 =======
