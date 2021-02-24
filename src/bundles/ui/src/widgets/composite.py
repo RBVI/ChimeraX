@@ -77,6 +77,9 @@ class EntriesRow:
             elif isinstance(a, bool):
                 cb = BooleanEntry(f, a)
                 layout.addWidget(cb.widget)
+                import sys
+                if sys.platform == 'darwin':
+                    layout.addSpacing(5)  # Fix checkbuttons spacing problem macOS 10.15.7
                 values.append(cb)
             elif isinstance(a, int):
                 ie = IntegerEntry(f, a)
