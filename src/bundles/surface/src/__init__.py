@@ -75,6 +75,14 @@ class _SurfaceBundle(BundleAPI):
             check.register_command(logger)
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Hide Dust':
+            from .dustgui import show_hide_dust_panel
+            ti = show_hide_dust_panel(session)
+            return ti
+        return None
+
+    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         from .cap import ClipCap
