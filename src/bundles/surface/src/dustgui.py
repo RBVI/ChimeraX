@@ -19,6 +19,7 @@ class HideDustGUI(ToolInstance):
 
   def __init__(self, session, tool_name):
 
+    self._size_range = (1, 1000)
     self._block_dusting = 0
 
     ToolInstance.__init__(self, session, tool_name)
@@ -39,8 +40,8 @@ class HideDustGUI(ToolInstance):
     layout.addWidget(vm)
 
     # Dust size slider
-    sl = self._create_slider(parent)
-    layout.addWidget(sl)
+    self._slider = sl = self._create_slider(parent)
+    layout.addWidget(sl.frame)
 
     # Hide Dust and Show Dust buttons
     bf = self._create_action_buttons(parent)
@@ -95,34 +96,12 @@ class HideDustGUI(ToolInstance):
   # ---------------------------------------------------------------------------
   #
   def _create_slider(self, parent):
-
-    self._size_range = (1, 1000)
-    
-    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QDoubleSpinBox, QSlider
-    f = QFrame(parent)
-    layout = QHBoxLayout(f)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(4)
-
-    vl = QLabel('Size limit')
-    layout.addWidget(vl)
-
-    self._size_entry = se = QDoubleSpinBox(f)
-    se.setRange(self._size_range[0], self._size_range[1])
-    se.setStepType(se.AdaptiveDecimalStepType)
-    se.valueChanged.connect(self._size_entry_changed_cb)
-    layout.addWidget(se)
-
-    from Qt.QtCore import Qt
-    self._slider = sl = QSlider(Qt.Horizontal, f)
-    self._slider_range = (0,10000)
-    sl.setRange(self._slider_range[0], self._slider_range[1])
-    sl.valueChanged.connect(self._slider_moved_cb)
-    sl.sliderReleased.connect(self._slider_released_cb)
-    layout.addWidget(sl)
-
-    return f
-
+      from chimerax.ui.widgets import LogSlider
+      s = LogSlider(parent, label = 'Size limit', range = self._size_range,
+                    value_change_cb = self._size_changed,
+                    release_cb = self._slider_released_cb)
+      return s
+  
   # ---------------------------------------------------------------------------
   #
   def _update_slider_size_range(self):
@@ -143,17 +122,16 @@ class HideDustGUI(ToolInstance):
         r = (1, 1000)
 
     self._size_range = r
-    se = self._size_entry
-    se.setRange(r[0], r[1])
+    self._slider.set_range(r[0], r[1])
 
     precision = 0 if size_metric.endswith('rank') else 2
-    se.setDecimals(precision)
+    self._slider.set_precision(precision)
 
   # ---------------------------------------------------------------------------
   #
   def _show_default_size(self):
     '''Set initial slider value.  Updates dusting if currently dusting.'''
-    self._size_entry.setValue(6*self._size_range[0])
+    self._slider.value = 6*self._size_range[0]
 
   # ---------------------------------------------------------------------------
   #
@@ -166,59 +144,14 @@ class HideDustGUI(ToolInstance):
         if d.metric != self._size_metric.value:
             self._size_metric.value = d.metric	# Does not fire callack
             self._size_metric_changed_cb()
-        self._size_entry.setValue(d.limit)
+        self._slider.set_value(d.limit)
         self._block_dusting -= 1
-
-  # ---------------------------------------------------------------------------
-  # Logarithmic slider range.
-  #
-  def _size_to_slider_value(self, size):
-      smin, smax = self._size_range
-      if size <= smin:
-          f = 0
-      elif size >= smax:
-          f = 1
-      else:
-          from math import log10
-          f = log10(size/smin) / log10(smax/smin)
-
-      rmin, rmax = self._slider_range
-      v = rmin + f * (rmax-rmin)
-      v = int(v + 0.5)
-      return v
-
-  # ---------------------------------------------------------------------------
-  # Logarithmic slider range.
-  #
-  def _slider_value_to_size(self, value):
-      rmin, rmax = self._slider_range
-      f = (value - rmin) / (rmax - rmin)
-      smin, smax = self._size_range
-      from math import log10, pow
-      size = smin * pow(10, f * log10(smax/smin))
-      return size
 
   # ---------------------------------------------------------------------------
   #
   @property
   def _size_limit(self):
-      return self._size_entry.value()
-  
-  # ---------------------------------------------------------------------------
-  #
-  def _size_entry_changed_cb(self, event):
-      size = self._size_entry.value()
-      if self._slider_value_to_size(self._slider.value()) != size:
-          self._slider.setValue(self._size_to_slider_value(size))
-      self._size_changed(size, log_command = not self._slider.isSliderDown())
-    
-  # ---------------------------------------------------------------------------
-  #
-  def _slider_moved_cb(self):
-      value = self._slider.value()
-      if self._size_to_slider_value(self._size_entry.value()) != value:
-          size = self._slider_value_to_size(value)
-          self._size_entry.setValue(size)
+      return self._slider.value
     
   # ---------------------------------------------------------------------------
   #
@@ -228,9 +161,9 @@ class HideDustGUI(ToolInstance):
     
   # ---------------------------------------------------------------------------
   #
-  def _size_changed(self, size, log_command):
+  def _size_changed(self, size, slider_down):
       if self._block_dusting == 0 and self._dusting:
-          self._dust(log_command = log_command)
+          self._dust(log_command = not slider_down)
 
   # ---------------------------------------------------------------------------
   #
@@ -357,7 +290,7 @@ class HideDustGUI(ToolInstance):
     cmd = 'surface undust #%s' % v.id_string
     from chimerax.core.commands import run
     run(self.session, cmd)
-    
+
 # -----------------------------------------------------------------------------
 #
 def hide_dust_panel(session, create = False):
