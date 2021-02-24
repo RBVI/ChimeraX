@@ -16,7 +16,8 @@ auto_color_strings = ['default', 'auto']
 from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
-        label_color=None, label_offset=None, font=None, border=None, border_color=None, border_width=None):
+        label_color=None, label_offset=None, font=None, border=None, border_color=None, border_width=None,
+        ticks=None, tick_length=None, tick_thickness=None):
     if colors_and_labels is not None:
         # list of (color, label) and/or (colormap, label1, label2...) items.  Convert...
         from chimerax.core.colors import Colormap
@@ -71,6 +72,12 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
             key.border_rgba = border_color.rgba
     if border_width is not None:
         key.border_width = border_width
+    if ticks is not None:
+        key.ticks = ticks
+    if tick_length is not None:
+        key.tick_length = tick_length
+    if tick_thickness is not None:
+        key.tick_thickness = tick_thickness
     if pos is not None or size is not None:
         if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
         or (key.position[1] + key.size[1]) > 1:
@@ -176,6 +183,9 @@ def register_command(logger):
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
             ('size', TupleOf(PositiveFloatArg,2)),
+            ('ticks', BoolArg),
+            ('tick_length', NonNegativeFloatArg),
+            ('tick_thickness', NonNegativeFloatArg),
         ],
         synopsis = 'Create/change a color key')
     register('key', cmd_desc, key_cmd, logger=logger)
