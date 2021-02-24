@@ -16,7 +16,7 @@ auto_color_strings = ['default', 'auto']
 from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
-        label_color=None, label_offset=None, font=None):
+        label_color=None, label_offset=None, font=None, border=None, border_color=None, border_width=None):
     if colors_and_labels is not None:
         # list of (color, label) and/or (colormap, label1, label2...) items.  Convert...
         from chimerax.core.colors import Colormap
@@ -62,6 +62,15 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         key.label_offset = label_offset
     if font is not None:
         key.font = font
+    if border is not None:
+        key.border = border
+    if border_color is not None:
+        if border_color in auto_color_strings:
+            key.border_rgba = None
+        else:
+            key.border_rgba = border_color.rgba
+    if border_width is not None:
+        key.border_width = border_width
     if pos is not None or size is not None:
         if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
         or (key.position[1] + key.size[1]) > 1:
@@ -147,12 +156,15 @@ class RepeatableOr(Or):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
-        PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias
+        PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias, NonNegativeFloatArg
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
         optional=[('colors_and_labels', RepeatableOr(ColorLabelPairArg, PaletteLabelsArg))],
         keyword=[
             ('bold', BoolArg),
+            ('border', BoolArg),
+            ('border_color', Or(EnumOf(auto_color_strings), ColorArg)),
+            ('border_width', NonNegativeFloatArg),
             ('color_treatment', EnumOf([x.split()[0] for x in ColorKeyModel.color_treatments])),
             ('font', StringArg),
             ('font_size', PositiveIntArg),

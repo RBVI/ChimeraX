@@ -74,6 +74,9 @@ class ColorKeyModel(Model):
         self._italic = False
         self._font_size = 24
         self._font = 'Arial'
+        self._border = True
+        self._border_rgba = None
+        self._border_width = 2
 
         self._background_handler = None
         self._update_background_handler()
@@ -105,6 +108,45 @@ class ColorKeyModel(Model):
         if bold == self._bold:
             return
         self._bold = bold
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def border(self):
+        return self._border
+
+    @border.setter
+    def border(self, border):
+        if border == self._border:
+            return
+        self._border = border
+        self.needs_update = True
+        self.redraw_needed()
+
+    @property
+    def border_rgba(self):
+        # None means contrast with background
+        return self._border_rgba
+
+    @border_rgba.setter
+    def border_rgba(self, rgba):
+        from numpy import array_equal
+        if array_equal(rgba, self._border_rgba):
+            return
+        self._border_rgba = rgba
+        self.needs_update = True
+        self.redraw_needed()
+        self._update_background_handler()
+
+    @property
+    def border_width(self):
+        return self._border_width
+
+    @border_width.setter
+    def border_width(self, border_width):
+        if border_width == self._border_width:
+            return
+        self._border_width = border_width
         self.needs_update = True
         self.redraw_needed()
 
@@ -301,7 +343,7 @@ class ColorKeyModel(Model):
         return key
 
     def _update_background_handler(self):
-        need_handler = self._label_rgba is None
+        need_handler = self._label_rgba is None or self._border_rgba is None
         from chimerax.core.core_settings import settings
         if need_handler and not self._background_handler:
             def check_setting(trig_name, data, key=self):
@@ -361,7 +403,8 @@ class ColorKeyModel(Model):
         pixels = rect_pixels[:]
         self.start_offset = start_offset = [0, 0]
         self.end_offset = end_offset = [0, 0]
-        label_offset = self._label_offset + 5
+        border = self._border_width if self._border else 0
+        label_offset = self._label_offset + 5 + border
         if pixels[0] > pixels[1]:
             layout = "horizontal"
             long_index = 0
@@ -381,6 +424,12 @@ class ColorKeyModel(Model):
             for r,g,b,a in rgbas]
         if layout == "vertical":
             rgbas = list(reversed(rgbas))
+
+        if border:
+            for i in range(2):
+                start_offset[i] += border
+                end_offset[i] += border
+                pixels[i] += 2 * border
 
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRect, QPoint
@@ -403,7 +452,7 @@ class ColorKeyModel(Model):
             # to be 2/3 height
             label_height = (font_height * 2/3) if labels[0].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
-            extra = max(label_size / 2 - label_positions[0], 0)
+            extra = max(label_size / 2 - label_positions[0] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
             pixels[long_index] += extra
 
@@ -414,6 +463,8 @@ class ColorKeyModel(Model):
         if layout == "vertical" and self._justification == self.JUST_DECIMAL:
             left_widest = right_widest = 0
             for label in labels:
+                if label is None:
+                    label = ""
                 overall = fm.boundingRect(label).getRect()[2]
                 if '.' in label:
                     right = fm.boundingRect(label[label.index('.'):]).getRect()[2]
@@ -456,18 +507,27 @@ class ColorKeyModel(Model):
             # to be 2/3 height
             label_height = (font_height * 2/3) if labels[-1].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
-            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]), 0)
+            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]) - border, 0)
             (start_offset if layout == "vertical" else end_offset)[long_index] += extra
             pixels[long_index] += extra
 
         image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
+        from chimerax.core.colors import contrast_with_background
         try:
             p = QPainter(image)
             p.setRenderHint(QPainter.Antialiasing)
             p.setPen(QPen(Qt.NoPen))
 
+            import sys
+            if border:
+                rgba = contrast_with_background(self.session) \
+                    if self._border_rgba is None else self._border_rgba
+                p.setBrush(QColor(*[int(255.0*c + 0.5) for c in rgba]))
+                corners = [QPoint(start_offset[0] - border, start_offset[1] - border),
+                    QPoint(pixels[0] - end_offset[0] + border, pixels[1] - end_offset[1] + border)]
+                p.drawRect(QRect(*corners))
             if self._color_treatment == self.CT_BLENDED:
                 edge1, edge2 = start_offset[1-long_index], pixels[1-long_index] - end_offset[1-long_index]
                 for i in range(len(rect_positions)-1):
@@ -484,7 +544,7 @@ class ColorKeyModel(Model):
                     p.setBrush(QBrush(gradient))
                     p.drawRect(QRect(QPoint(x1, y1), QPoint(x2, y2)))
                 # The one-call gradient below doesn't seem to position the transition points
-                # completely correct, whereas the above piecemeal code does
+                # completely correctly, whereas the above piecemeal code does
                 """
                 gradient = QLinearGradient()
                 gradient.setCoordinateMode(QLinearGradient.ObjectMode)
@@ -518,7 +578,6 @@ class ColorKeyModel(Model):
                     p.drawRect(QRect(QPoint(x1 + start_offset[0], y1 + start_offset[1]),
                         QPoint(x2 + start_offset[0], y2 + start_offset[1])))
             p.setFont(font)
-            from chimerax.core.colors import contrast_with_background
             rgba = contrast_with_background(self.session) if self._label_rgba is None else self._label_rgba
             p.setPen(QColor(*[int(255.0*c + 0.5) for c in rgba]))
             for label, pos, decimal_info in zip(labels, label_positions, decimal_widths):
