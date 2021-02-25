@@ -181,23 +181,13 @@ class HideDustGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _create_action_buttons(self, parent):
-    
-        from Qt.QtWidgets import QFrame, QHBoxLayout, QPushButton
-        f = QFrame(parent)
-        layout = QHBoxLayout(f)
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(10)
-
-        for name, callback in (('Hide dust', self._dust),
-                               ('Show dust', self._undust),
-                               ('Options', self._show_or_hide_options),
-                               ('Help', self._show_help)):
-            b = QPushButton(name, f)
-            b.clicked.connect(callback)
-            layout.addWidget(b)
-
-        layout.addStretch(1)    # Extra space at end
-
+        from chimerax.ui.widgets import button_row
+        f = button_row(parent,
+                       [('Hide dust', self._dust),
+                        ('Show dust', self._undust),
+                        ('Options', self._show_or_hide_options),
+                        ('Help', self._show_help)],
+                       spacing = 10)
         return f
 
     # ---------------------------------------------------------------------------

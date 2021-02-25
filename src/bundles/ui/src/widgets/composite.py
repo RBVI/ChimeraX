@@ -10,18 +10,24 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def button_row(parent, title, name_and_callback_list, hspacing = 3):
+def button_row(parent, name_and_callback_list, label = '', spacing = 3, margins = None):
     from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
     f = QFrame(parent)
 #    f.setStyleSheet('QFrame { background-color: pink; padding-top: 0px; padding-bottom: 0px;}')
     parent.layout().addWidget(f)
 
     layout = QHBoxLayout(f)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(hspacing)
+    if margins is None:
+        margins = (0,0,0,0)
+        import sys
+        if sys.platform == 'darwin':
+            margins = (0,0,0,15)  # Qt 5.15 on macOS 10.15.7 needs more space
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
 
-    l = QLabel(title, f)
-    layout.addWidget(l)
+    if label:
+        l = QLabel(label, f)
+        layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
     from Qt.QtCore import Qt
