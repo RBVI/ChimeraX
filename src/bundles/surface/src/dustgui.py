@@ -223,7 +223,7 @@ class HideDustGUI(ToolInstance):
         v = self._map_menu.value
         if v is None:
             if log_command:
-                self.session.logger.status('No surface chosen for hiding dust')
+                self.warn('No surface chosen for hiding dust')
             return
 
         cmd = 'surface dust #%s size %.5g' % (v.id_string, self._size_limit)
@@ -251,6 +251,13 @@ class HideDustGUI(ToolInstance):
         cmd = 'surface undust #%s' % v.id_string
         from chimerax.core.commands import run
         run(self.session, cmd)
+
+    # ---------------------------------------------------------------------------
+    #
+    def warn(self, message):
+        log = self.session.logger
+        log.warning(message)
+        log.status(message, color='red')
 
 # -----------------------------------------------------------------------------
 #
