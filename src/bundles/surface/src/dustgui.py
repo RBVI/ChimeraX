@@ -62,7 +62,6 @@ class HideDustGUI(ToolInstance):
     #
     @classmethod
     def get_singleton(self, session, create=True):
-
         from chimerax.core import tools
         return tools.get_singleton(session, HideDustGUI, 'Hide Dust', create=create)
     
@@ -86,7 +85,7 @@ class HideDustGUI(ToolInstance):
         self._map_menu = sm
         vlist = self.session.models.list(type = Volume)
         if vlist:
-          sm.value = vlist[0]
+            sm.value = vlist[0]
         sm.value_changed.connect(self._map_chosen)
         layout.addWidget(sm)
 
@@ -147,8 +146,8 @@ class HideDustGUI(ToolInstance):
             if d.metric != self._size_metric.value:
                 self._size_metric.value = d.metric	# Does not fire callack
                 self._size_metric_changed_cb()
-                self._slider.set_value(d.limit)
-                self._block_dusting -= 1
+            self._slider.set_value(d.limit)
+            self._block_dusting -= 1
 
     # ---------------------------------------------------------------------------
     #
