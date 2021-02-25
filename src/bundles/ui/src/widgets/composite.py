@@ -77,6 +77,9 @@ class EntriesRow:
             elif isinstance(a, bool):
                 cb = BooleanEntry(f, a)
                 layout.addWidget(cb.widget)
+                import sys
+                if sys.platform == 'darwin':
+                    layout.addSpacing(5)  # Fix checkbuttons spacing problem macOS 10.15.7
                 values.append(cb)
             elif isinstance(a, int):
                 ie = IntegerEntry(f, a)
@@ -87,7 +90,16 @@ class EntriesRow:
                 layout.addWidget(fe.widget)
                 values.append(fe)
             elif isinstance(a, tuple):
-                b = QPushButton(a[0], f)
+                if len(a) >= 2 and len([a for s in a if isinstance(s,str)]) == len(a):
+                    # Menu with fixed set of string values
+                    me = MenuEntry(f, a)
+                    layout.addWidget(me.widget)
+                    values.append(me)
+                else:
+                    # Button with callback function
+                    b = QPushButton(a[0], f)
+                    layout.addWidget(b)
+                    b.clicked.connect(a[1])
 # TODO: QPushButton has extra vertical space (about 5 pixels top and bottom) on macOS 10.14 (Mojave)
 #       with Qt 5.12.4.  Couldn't find any thing to fix this, although below are some attempts
 #                b.setMaximumSize(100,25)
@@ -101,8 +113,6 @@ class EntriesRow:
 #                b.setStyleSheet('QPushButton { border: none;}')
 #                b.setStyleSheet('QPushButton { background-color: pink;}')
 #                layout.setAlignment(b, Qt.AlignTop)
-                layout.addWidget(b)
-                b.clicked.connect(a[1])
 
         layout.addStretch(1)    # Extra space at end
 
@@ -184,6 +194,27 @@ class BooleanEntry:
     @property
     def widget(self):
         return self._check_box
+
+class MenuEntry:
+    def __init__(self, parent, values):
+        from Qt.QtWidgets import QPushButton, QMenu
+        self._button = b = QPushButton(parent)
+        b.setText(values[0])
+        m = QMenu(b)
+        for value in values:
+            m.addAction(value)
+        b.setMenu(m)
+        m.triggered.connect(self._menu_selection_cb)
+    def _menu_selection_cb(self, action):
+        self.value = action.text()
+    def _get_value(self):
+        return self._button.text()
+    def _set_value(self, value):
+        self._button.setText(value)
+    value = property(_get_value, _set_value)
+    @property
+    def widget(self):
+        return self._button
 
 from Qt.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
