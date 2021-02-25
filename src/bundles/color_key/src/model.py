@@ -573,8 +573,12 @@ class ColorKeyModel(Model):
                 border_rgba = contrast_with_background(self.session) \
                     if self._border_rgba is None else self._border_rgba
                 p.setBrush(border_qcolor)
-                corners = [QPointF(start_offset[0] - border, start_offset[1] - border),
-                    QPointF(pixels[0] - end_offset[0] + border, pixels[1] - end_offset[1] + border)]
+                p.setPen(QPen(border_qcolor, 0))
+                # because of the way pen stroking works, subtract 0.5 from the "correct" y values
+                adjustment = 0.0 if layout == "vertical" else -0.5
+                corners = [QPointF(start_offset[0] - border, start_offset[1] - border + adjustment),
+                    QPointF(pixels[0] - end_offset[0] + border,
+                        pixels[1] - end_offset[1] + border + adjustment)]
                 p.drawRect(QRectF(*corners))
             if self._color_treatment == self.CT_BLENDED:
                 edge1, edge2 = start_offset[1-long_index], pixels[1-long_index] - end_offset[1-long_index]
@@ -590,6 +594,8 @@ class ColorKeyModel(Model):
                     gradient.setColorAt(0, QColor(*rgbas[i]))
                     gradient.setColorAt(1, QColor(*rgbas[i+1]))
                     p.setBrush(QBrush(gradient))
+                    p.setPen(QPen(QBrush(gradient), 0))
+                    print("gradient corners:", (x1, y1), (x2, y2), file=sys.__stderr__)
                     p.drawRect(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
                 # The one-call gradient below doesn't seem to position the transition points
                 # completely correctly, whereas the above piecemeal code does
@@ -669,7 +675,9 @@ class ColorKeyModel(Model):
                             x1 = start_offset[0] - border - tick_length
                         else:
                             x1 = pixels[0] - end_offset[0] + border
-                        y1 = pixels[1] - end_offset[1] - pos - tick_thickness/2
+                        # because of the way pen stroking works, subtract 0.5 from the "correct" y values
+                        adjustment = 0.0 if layout == "vertical" else -0.5
+                        y1 = pixels[1] - end_offset[1] - pos - tick_thickness/2 + adjustment
                         x2, y2 = x1 + tick_length, y1 + tick_thickness
                     else:
                         if self._label_side == self.LS_LEFT_TOP:
@@ -678,7 +686,7 @@ class ColorKeyModel(Model):
                             y1 = pixels[1] - end_offset[1] + border
                         x1 = start_offset[0] + pos - tick_thickness/2
                         x2, y2 = x1 + tick_thickness, y1 + tick_length
-                    p.setPen(QPen(Qt.NoPen))
+                    p.setPen(QPen(border_qcolor, 0))
                     p.setBrush(border_qcolor)
                     p.drawRect(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
         finally:
