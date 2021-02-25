@@ -29,7 +29,7 @@ class HideDustGUI(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from Qt.QtWidgets import QVBoxLayout, QSlider
+        from Qt.QtWidgets import QVBoxLayout
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(5,0,0,0)
         layout.setSpacing(0)
@@ -162,16 +162,8 @@ class HideDustGUI(ToolInstance):
     def _create_options_gui(self, parent):
 
         from chimerax.ui.widgets import CollapsiblePanel
-        p = CollapsiblePanel(parent, title = None)
-        self._options_panel = p
+        self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
-
-        from Qt.QtWidgets import QVBoxLayout
-        layout = QVBoxLayout(f)
-        layout.setContentsMargins(0,0,0,0)
-        import sys
-        if sys.platform == 'darwin':
-            layout.setSpacing(0)  # Avoid very large spacing Qt 5.15.2, macOS 10.15.7
 
         from chimerax.ui.widgets import EntriesRow
         se = EntriesRow(f, 'Hide small blobs based on',

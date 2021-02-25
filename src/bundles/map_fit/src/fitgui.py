@@ -160,13 +160,6 @@ class FitMapDialog(ToolInstance):
     p = CollapsiblePanel(parent, 'Options')
     f = p.content_area
 
-    from Qt.QtWidgets import QVBoxLayout
-    layout = QVBoxLayout(f)
-    layout.setContentsMargins(30,0,0,0)
-    import sys
-    if sys.platform == 'darwin':
-      layout.setSpacing(0)  # Avoid very large spacing Qt 5.15.2, macOS 10.15.7
-
     from chimerax.ui.widgets import EntriesRow, radio_buttons
     
     rue = EntriesRow(f, False, 'Real-time correlation / average update')

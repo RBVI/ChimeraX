@@ -218,11 +218,23 @@ class MenuEntry:
 
 from Qt.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
-    def __init__(self, parent=None, title=''):
+    def __init__(self, parent=None, title='', margins = None):
         QWidget.__init__(self, parent=parent)
 
         from Qt.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
+
+        # Setup vertical layout for content area.
         self.content_area = c = QFrame(self)
+        from Qt.QtWidgets import QVBoxLayout
+        clayout = QVBoxLayout(c)
+        if margins is None:
+            margins = (0,0,0,0) if title is None else (30,0,0,0)
+        clayout.setContentsMargins(*margins)
+        import sys
+        if sys.platform == 'darwin':
+            clayout.setSpacing(0)  # Avoid very large spacing Qt 5.15.2, macOS 10.15.7
+
+        # Use grid layout for disclosure button and content.
         self.main_layout = layout = QGridLayout(self)
 
         if title is None:
