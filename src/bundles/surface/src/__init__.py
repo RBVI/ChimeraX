@@ -80,6 +80,10 @@ class _SurfaceBundle(BundleAPI):
             from .dustgui import show_hide_dust_panel
             ti = show_hide_dust_panel(session)
             return ti
+        elif tool_name == 'Surface Zone':
+            from .zonegui import show_surface_zone_panel
+            ti = show_surface_zone_panel(session)
+            return ti
         return None
 
     @staticmethod

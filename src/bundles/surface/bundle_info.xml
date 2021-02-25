@@ -87,6 +87,9 @@
     <ChimeraXClassifier>Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Hide Dust :: Volume Data :: hide small surface blobs</ChimeraXClassifier>  </Classifiers>
+    <ChimeraXClassifier>Tool :: Hide Dust :: Volume Data :: hide small surface blobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Zone :: Volume Data :: show surface near atoms</ChimeraXClassifier>
+  </Classifiers>
+
 
 </BundleInfo>
