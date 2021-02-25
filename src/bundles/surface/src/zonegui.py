@@ -10,17 +10,17 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Panel for hiding surface dust
+# Panel for showing surface zone
 #
 from chimerax.core.tools import ToolInstance
-class HideDustGUI(ToolInstance):
+class SurfaceZoneGUI(ToolInstance):
 
-    help = 'help:user/tools/hidedust.html'
+    help = 'help:user/tools/surfzone.html'
 
     def __init__(self, session, tool_name):
 
-        self._size_range = (1, 1000)
-        self._block_dusting = 0
+        self._distance_range = (1, 1000)
+        self._block_zoning = 0
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -33,20 +33,16 @@ class HideDustGUI(ToolInstance):
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
         # Make menus to choose surface menu
-        self._map_menu = vm = self._create_volume_menu(parent)
-        layout.addWidget(vm.frame)
+        self._map_menu, self._atoms_menu, mf = self._create_menus(parent)
+        layout.addWidget(mf)
 
-        # Dust size slider
+        # Zone distance slider
         self._slider = sl = self._create_slider(parent)
         layout.addWidget(sl.frame)
 
-        # Hide Dust, Show Dust and Options buttons
+        # Create buttons
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
-
-        # Options panel
-        options = self._create_options_gui(parent)
-        layout.addWidget(options)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -60,129 +56,97 @@ class HideDustGUI(ToolInstance):
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, HideDustGUI, 'Hide Dust', create=create)
+        return tools.get_singleton(session, SurfaceZoneGUI, 'Surface Zone', create=create)
     
     # ---------------------------------------------------------------------------
     #
-    def _create_volume_menu(self, parent):
+    def _create_menus(self, parent):
+
+        from Qt.QtWidgets import QFrame, QHBoxLayout
+        f = QFrame(parent)
+        layout = QHBoxLayout(f)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(10)
+        f.setLayout(layout)
+        
         from chimerax.map import Volume
         from chimerax.ui.widgets import ModelMenu
-        m = ModelMenu(self.session, parent, label = 'Dust surface',
-                      model_types = [Volume], model_chosen_cb = self._map_chosen)
-        return m
+        m = ModelMenu(self.session, f, label = 'Show surface', model_types = [Volume],
+                      model_chosen_cb = self._map_chosen)
+        layout.addWidget(m.frame)
+        
+        from chimerax.atomic import Structure
+        a = ModelMenu(self.session, f, label = 'near', model_types = [Structure],
+                      special_items = ['selected atoms'])
+        layout.addWidget(a.frame)
+
+        layout.addStretch(1)
+        
+        return m, a, f
     
     # ---------------------------------------------------------------------------
     #
     def _create_slider(self, parent):
         from chimerax.ui.widgets import LogSlider
-        s = LogSlider(parent, label = 'Size limit', range = self._size_range,
-                      value_change_cb = self._size_changed,
+        s = LogSlider(parent, label = 'Radius', range = self._distance_range,
+                      value_change_cb = self._distance_changed,
                       release_cb = self._slider_released_cb)
         return s
   
     # ---------------------------------------------------------------------------
     #
-    def _update_slider_size_range(self):
+    def _update_slider_distance_range(self):
 
         v = self._map_menu.value
         if v is None:
             return
 
-        min_size = min(v.data.step)
-        size_metric = self._size_metric.value
-        if size_metric == 'size':
-            r = (min_size, 1000*min_size)
-        elif size_metric == 'area':
-            r = (min_size*min_size, 1e6*min_size)
-        elif size_metric == 'volume':
-            r = (min_size**3, 1e9*min_size)
-        else:
-            # Rank metrics
-            r = (1, 1000)
-
-        self._size_range = r
+        min_dist = min(v.data.step)
+        self._distance_range = r = (min_dist, 1000*min_dist)
         self._slider.set_range(r[0], r[1])
 
-        precision = 0 if size_metric.endswith('rank') else 2
-        self._slider.set_precision(precision)
+    # ---------------------------------------------------------------------------
+    #
+    def _show_default_distance(self):
+        '''Set initial slider value.  Updates zoning if currently zoning.'''
+        self._slider.value = 6*self._distance_range[0]
 
     # ---------------------------------------------------------------------------
     #
-    def _show_default_size(self):
-        '''Set initial slider value.  Updates dusting if currently dusting.'''
-        self._slider.value = 6*self._size_range[0]
-
-    # ---------------------------------------------------------------------------
-    #
-    def _show_current_size_and_metric(self):
-        '''Do not update dusting.'''
-        d = self._dusting
-        if d:
-            # Currently hiding dust so show current size limit
-            self._block_dusting += 1
-            if d.metric != self._size_metric.value:
-                self._size_metric.value = d.metric	# Does not fire callack
-                self._size_metric_changed_cb()
-            self._slider.set_value(d.limit)
-            self._block_dusting -= 1
+    def _show_current_distance(self):
+        '''Do not update zoning.'''
+        z = self._zoning
+        if z:
+            # Currently zoning so show current distance limit
+            self._block_zoning += 1
+            self._slider.set_value(z.distance)
+            self._block_zoning -= 1
 
     # ---------------------------------------------------------------------------
     #
     @property
-    def _size_limit(self):
+    def _distance_limit(self):
         return self._slider.value
     
     # ---------------------------------------------------------------------------
     #
     def _slider_released_cb(self):
-        if self._dusting:
-            self._dust(log_command_only = True)
+        if self._zoning:
+            self._zone(log_command_only = True)
     
     # ---------------------------------------------------------------------------
     #
-    def _size_changed(self, size, slider_down):
-        if self._block_dusting == 0 and self._dusting:
-            self._dust(log_command = not slider_down)
-
-    # ---------------------------------------------------------------------------
-    #
-    def _size_metric_changed_cb(self):
-        self._update_slider_size_range()
-        d = self._dusting
-        if d and d.metric == self._size_metric:
-            self._show_current_size_and_metric()
-        else:
-            self._show_default_size()
-      
-    # ---------------------------------------------------------------------------
-    #
-    def _create_options_gui(self, parent):
-
-        from chimerax.ui.widgets import CollapsiblePanel
-        self._options_panel = p = CollapsiblePanel(parent, title = None)
-        f = p.content_area
-
-        from chimerax.ui.widgets import EntriesRow
-        se = EntriesRow(f, 'Hide small blobs based on',
-                        ('size', 'area', 'volume', 'size rank', 'area rank', 'volume rank'))
-        self._size_metric = sm = se.values[0]
-        sm.widget.menu().triggered.connect(self._size_metric_changed_cb)
-
-        return p
-
-    # ---------------------------------------------------------------------------
-    #
-    def _show_or_hide_options(self):
-        self._options_panel.toggle_panel_display()
+    def _distance_changed(self, distance, slider_down):
+        if self._block_zoning == 0 and self._zoning:
+            self._zone(log_command = not slider_down)
 
     # ---------------------------------------------------------------------------
     #
     def _create_action_buttons(self, parent):
         from chimerax.ui.widgets import button_row
         f = button_row(parent,
-                       [('Hide dust', self._dust),
-                        ('Show dust', self._undust),
-                        ('Options', self._show_or_hide_options),
+                       [('Zone', self._zone),
+                        ('No Zone', self._unzone),
                         ('Help', self._show_help)],
                        spacing = 10)
         return f
@@ -196,42 +160,63 @@ class HideDustGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _map_chosen(self):
-        self._update_slider_size_range()
-        if self._dusting:
-            self._show_current_size_and_metric()
+        self._update_slider_distance_range()
+        if self._zoning:
+            self._show_current_distance()
         else:
-            self._show_default_size()
+            self._show_default_distance()
 
     # ---------------------------------------------------------------------------
     #
     @property
-    def _dusting(self):
+    def _atoms_specifier(self):
+        a = self._atoms_menu.value
+        if a is None:
+            spec = None
+        elif a == 'selected atoms':
+            spec = 'sel'
+        else:
+            spec = '#%s' % a.id_string
+        return spec
+    
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _zoning(self):
         v = self._map_menu.value
         if v is None:
             return None
-        from .dust import dusting
+        from .zone import zoning
         for s in v.surfaces:
-            d = dusting(s)
-            if d:
-                return d
+            z = zoning(s)
+            if z:
+                return z
         return None
         
     # ---------------------------------------------------------------------------
     #
-    def _dust(self, *, log_command = True, log_command_only = False):
+    def _zone(self, *, log_command = True, log_command_only = False):
 
         v = self._map_menu.value
         if v is None:
             if log_command:
-                self.warn('No surface chosen for hiding dust')
+                self.warn('No surface chosen for zoning')
             return
 
-        cmd = 'surface dust #%s size %.5g' % (v.id_string, self._size_limit)
+        aspec = self._atoms_specifier
+        if aspec is None:
+            if log_command:
+                self.warn('No atoms chosen for zoning')
+            return
+        elif aspec == 'sel':
+            from chimerax.atomic import selected_atoms
+            if len(selected_atoms(self.session)) == 0:
+                if log_command:
+                    self.warn('No atoms selected for zoning')
+                return
 
-        size_metric = self._size_metric.value
-        if size_metric != 'size':
-            from chimerax.core.commands import quote_if_necessary
-            cmd += ' metric %s' % quote_if_necessary(size_metric)
+        cmd = ('surface zone #%s near %s distance %.5g'
+               % (v.id_string, aspec, self._distance_limit))
 
         if log_command_only:
             from chimerax.core.commands import log_equivalent_command
@@ -242,13 +227,13 @@ class HideDustGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _undust(self):
+    def _unzone(self):
 
         v = self._map_menu.value
         if v is None:
             return
 
-        cmd = 'surface undust #%s' % v.id_string
+        cmd = 'surface unzone #%s' % v.id_string
         from chimerax.core.commands import run
         run(self.session, cmd)
 
@@ -261,10 +246,10 @@ class HideDustGUI(ToolInstance):
 
 # -----------------------------------------------------------------------------
 #
-def hide_dust_panel(session, create = False):
-    return HideDustGUI.get_singleton(session, create=create)
+def surface_zone_panel(session, create = False):
+    return SurfaceZoneGUI.get_singleton(session, create=create)
   
 # -----------------------------------------------------------------------------
 #
-def show_hide_dust_panel(session):
-    return hide_dust_panel(session, create = True)
+def show_surface_zone_panel(session):
+    return surface_zone_panel(session, create = True)

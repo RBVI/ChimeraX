@@ -136,6 +136,11 @@ class ZoneColor(State):
         c.set_vertex_colors()
         return c
 
+# -----------------------------------------------------------------------------
+#
+def color_zoning(surface):
+    zc = surface.auto_recolor_vertices
+    return zc if isinstance(zc, ZoneColor) else None
         
 # -----------------------------------------------------------------------------
 #
