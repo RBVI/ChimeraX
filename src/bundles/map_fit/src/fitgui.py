@@ -106,7 +106,6 @@ class FitMapDialog(ToolInstance):
       om.value = vlist[0]
     om.value_changed.connect(self._object_chosen)
     mlayout.addWidget(om)
-    # TODO: Add "selected atoms" as a choice for fitting.
 
     iml = QLabel('in map', mf)
     mlayout.addWidget(iml)
