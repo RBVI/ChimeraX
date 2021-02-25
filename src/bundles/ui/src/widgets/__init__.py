@@ -20,5 +20,6 @@ from .citation import Citation
 from .histogram import MarkedHistogram
 from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
 from .item_table import ItemTable
-from .composite import EntriesRow, radio_buttons, CollapsiblePanel, button_row, ModelMenu
+from .composite import radio_buttons, button_row, vertical_layout
+from .composite import EntriesRow, CollapsiblePanel, ModelMenu
 from .slider import Slider, LogSlider

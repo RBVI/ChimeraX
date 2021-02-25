@@ -29,11 +29,8 @@ class HideDustGUI(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from Qt.QtWidgets import QVBoxLayout
-        layout = QVBoxLayout(parent)
-        layout.setContentsMargins(5,0,0,0)
-        layout.setSpacing(0)
-        parent.setLayout(layout)
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
 
         # Make menus to choose surface menu
         self._map_menu = vm = self._create_volume_menu(parent)
@@ -258,11 +255,9 @@ class HideDustGUI(ToolInstance):
 # -----------------------------------------------------------------------------
 #
 def hide_dust_panel(session, create = False):
-
     return HideDustGUI.get_singleton(session, create=create)
   
 # -----------------------------------------------------------------------------
 #
 def show_hide_dust_panel(session):
-
     return hide_dust_panel(session, create = True)

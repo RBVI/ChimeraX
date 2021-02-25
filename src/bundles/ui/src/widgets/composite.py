@@ -353,3 +353,11 @@ class ModelMenu:
     def _set_value(self, value):
         self._menu.value = value
     value = property(_get_value, _set_value)
+
+def vertical_layout(frame, margins = (0,0,0,0), spacing = 0):
+    from Qt.QtWidgets import QVBoxLayout
+    layout = QVBoxLayout(frame)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+    frame.setLayout(layout)
+    return layout
