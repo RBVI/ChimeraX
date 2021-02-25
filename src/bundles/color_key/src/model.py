@@ -350,6 +350,9 @@ class ColorKeyModel(Model):
 
     session_attrs = [
             "_bold",
+            "_border",
+            "_border_rgba",
+            "_border_width",
             "_color_treatment",
             "_font",
             "_font_size",
@@ -362,6 +365,9 @@ class ColorKeyModel(Model):
             "_position",
             "_rgbas_and_labels",
             "_size",
+            "_ticks",
+            "_tick_length",
+            "_tick_thickness",
     ]
 
     def take_snapshot(self, session, flags):
@@ -595,7 +601,6 @@ class ColorKeyModel(Model):
                     gradient.setColorAt(1, QColor(*rgbas[i+1]))
                     p.setBrush(QBrush(gradient))
                     p.setPen(QPen(QBrush(gradient), 0))
-                    print("gradient corners:", (x1, y1), (x2, y2), file=sys.__stderr__)
                     p.drawRect(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
                 # The one-call gradient below doesn't seem to position the transition points
                 # completely correctly, whereas the above piecemeal code does
