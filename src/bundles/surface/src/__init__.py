@@ -77,14 +77,17 @@ class _SurfaceBundle(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Hide Dust':
-            from .dustgui import show_hide_dust_panel
-            ti = show_hide_dust_panel(session)
-            return ti
+            from . import dustgui
+            ti = dustgui.show_hide_dust_panel(session)
         elif tool_name == 'Surface Zone':
-            from .zonegui import show_surface_zone_panel
-            ti = show_surface_zone_panel(session)
-            return ti
-        return None
+            from . import zonegui
+            ti = zonegui.show_surface_zone_panel(session)
+        elif tool_name == 'Color Zone':
+            from . import colorzonegui
+            ti = colorzonegui.show_color_zone_panel(session)
+        else:
+            ti = None
+        return ti
 
     @staticmethod
     def get_class(class_name):
