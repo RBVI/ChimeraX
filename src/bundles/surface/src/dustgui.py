@@ -36,14 +36,14 @@ class HideDustGUI(ToolInstance):
         parent.setLayout(layout)
 
         # Make menus to choose surface menu
-        vm = self._create_volume_menu(parent)
-        layout.addWidget(vm)
+        self._map_menu = vm = self._create_volume_menu(parent)
+        layout.addWidget(vm.frame)
 
         # Dust size slider
         self._slider = sl = self._create_slider(parent)
         layout.addWidget(sl.frame)
 
-        # Hide Dust and Show Dust buttons
+        # Hide Dust, Show Dust and Options buttons
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
 
@@ -68,35 +68,15 @@ class HideDustGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _create_volume_menu(self, parent):
-
-        from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
-
-        f = QFrame(parent)
-        layout = QHBoxLayout(f)
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(10)
-
-        fl = QLabel('Dust surface', f)
-        layout.addWidget(fl)
-
         from chimerax.map import Volume
-        from chimerax.ui.widgets import ModelMenuButton
-        sm = ModelMenuButton(self.session, class_filter = (Volume,), parent = f)
-        self._map_menu = sm
-        vlist = self.session.models.list(type = Volume)
-        if vlist:
-            sm.value = vlist[0]
-        sm.value_changed.connect(self._map_chosen)
-        layout.addWidget(sm)
-
-        layout.addStretch(1)    # Extra space at end
-
-        return f
+        from chimerax.ui.widgets import ModelMenu
+        m = ModelMenu(self.session, parent, label = 'Dust surface',
+                      model_types = [Volume], model_chosen_cb = self._map_chosen)
+        return m
     
     # ---------------------------------------------------------------------------
     #
     def _create_slider(self, parent):
-
         from chimerax.ui.widgets import LogSlider
         s = LogSlider(parent, label = 'Size limit', range = self._size_range,
                       value_change_cb = self._size_changed,
