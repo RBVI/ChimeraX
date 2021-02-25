@@ -10,21 +10,29 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def button_row(parent, title, name_and_callback_list, hspacing = 3):
+def button_row(parent, name_and_callback_list,
+               label = '', spacing = 3, margins = None, button_list = False):
     from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
     f = QFrame(parent)
 #    f.setStyleSheet('QFrame { background-color: pink; padding-top: 0px; padding-bottom: 0px;}')
     parent.layout().addWidget(f)
 
     layout = QHBoxLayout(f)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(hspacing)
+    if margins is None:
+        margins = (0,0,0,0)
+        import sys
+        if sys.platform == 'darwin':
+            margins = (0,0,0,15)  # Qt 5.15 on macOS 10.15.7 needs more space
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
 
-    l = QLabel(title, f)
-    layout.addWidget(l)
+    if label:
+        l = QLabel(label, f)
+        layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
-    from Qt.QtCore import Qt
+#    from Qt.QtCore import Qt
+    buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
@@ -36,8 +44,12 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
         else:
             b.clicked.connect(callback)
         layout.addWidget(b)
+        buttons.append(b)
 
     layout.addStretch(1)
+
+    if button_list:
+        return f, buttons
 
     return f
 
@@ -77,6 +89,9 @@ class EntriesRow:
             elif isinstance(a, bool):
                 cb = BooleanEntry(f, a)
                 layout.addWidget(cb.widget)
+                import sys
+                if sys.platform == 'darwin':
+                    layout.addSpacing(5)  # Fix checkbuttons spacing problem macOS 10.15.7
                 values.append(cb)
             elif isinstance(a, int):
                 ie = IntegerEntry(f, a)
@@ -87,7 +102,16 @@ class EntriesRow:
                 layout.addWidget(fe.widget)
                 values.append(fe)
             elif isinstance(a, tuple):
-                b = QPushButton(a[0], f)
+                if len(a) >= 2 and len([a for s in a if isinstance(s,str)]) == len(a):
+                    # Menu with fixed set of string values
+                    me = MenuEntry(f, a)
+                    layout.addWidget(me.widget)
+                    values.append(me)
+                else:
+                    # Button with callback function
+                    b = QPushButton(a[0], f)
+                    layout.addWidget(b)
+                    b.clicked.connect(a[1])
 # TODO: QPushButton has extra vertical space (about 5 pixels top and bottom) on macOS 10.14 (Mojave)
 #       with Qt 5.12.4.  Couldn't find any thing to fix this, although below are some attempts
 #                b.setMaximumSize(100,25)
@@ -101,8 +125,6 @@ class EntriesRow:
 #                b.setStyleSheet('QPushButton { border: none;}')
 #                b.setStyleSheet('QPushButton { background-color: pink;}')
 #                layout.setAlignment(b, Qt.AlignTop)
-                layout.addWidget(b)
-                b.clicked.connect(a[1])
 
         layout.addStretch(1)    # Extra space at end
 
@@ -185,13 +207,46 @@ class BooleanEntry:
     def widget(self):
         return self._check_box
 
+class MenuEntry:
+    def __init__(self, parent, values):
+        from Qt.QtWidgets import QPushButton, QMenu
+        self._button = b = QPushButton(parent)
+        b.setText(values[0])
+        m = QMenu(b)
+        for value in values:
+            m.addAction(value)
+        b.setMenu(m)
+        m.triggered.connect(self._menu_selection_cb)
+    def _menu_selection_cb(self, action):
+        self.value = action.text()
+    def _get_value(self):
+        return self._button.text()
+    def _set_value(self, value):
+        self._button.setText(value)
+    value = property(_get_value, _set_value)
+    @property
+    def widget(self):
+        return self._button
+
 from Qt.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
-    def __init__(self, parent=None, title=''):
+    def __init__(self, parent=None, title='', margins = None):
         QWidget.__init__(self, parent=parent)
 
         from Qt.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
+
+        # Setup vertical layout for content area.
         self.content_area = c = QFrame(self)
+        from Qt.QtWidgets import QVBoxLayout
+        clayout = QVBoxLayout(c)
+        if margins is None:
+            margins = (0,0,0,0) if title is None else (30,0,0,0)
+        clayout.setContentsMargins(*margins)
+        import sys
+        if sys.platform == 'darwin':
+            clayout.setSpacing(0)  # Avoid very large spacing Qt 5.15.2, macOS 10.15.7
+
+        # Use grid layout for disclosure button and content.
         self.main_layout = layout = QGridLayout(self)
 
         if title is None:
@@ -267,3 +322,52 @@ def _dock_widget_parent(widget):
     if p is None:
         return p
     return _dock_widget_parent(p)
+
+class ModelMenu:
+    '''Menu of session models prefixed with a text label.'''
+    def __init__(self, session, parent, label = None, model_types = None,
+                 model_chosen_cb = None, special_items = []):
+
+        from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
+        self.frame = f = QFrame(parent)
+        layout = QHBoxLayout(f)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(10)
+
+        if label:
+            fl = QLabel(label, f)
+            layout.addWidget(fl)
+
+        class_filter = None if model_types is None else tuple(model_types)
+        from chimerax.ui.widgets import ModelMenuButton
+        sm = ModelMenuButton(session, class_filter = class_filter,
+                             special_items = special_items, parent = f)
+        self._menu = sm
+        
+        mlist = session.models.list(type = class_filter)
+        mdisp = [m for m in mlist if m.visible]
+        if mdisp:
+            sm.value = mdisp[0]
+        elif mlist:
+            sm.value = mlist[0]
+
+        if model_chosen_cb:
+            sm.value_changed.connect(model_chosen_cb)
+
+        layout.addWidget(sm)
+
+        layout.addStretch(1)    # Extra space at end
+
+    def _get_value(self):
+        return self._menu.value
+    def _set_value(self, value):
+        self._menu.value = value
+    value = property(_get_value, _set_value)
+
+def vertical_layout(frame, margins = (0,0,0,0), spacing = 0):
+    from Qt.QtWidgets import QVBoxLayout
+    layout = QVBoxLayout(frame)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+    frame.setLayout(layout)
+    return layout

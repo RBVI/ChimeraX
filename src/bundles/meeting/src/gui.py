@@ -136,13 +136,11 @@ class MeetingTool(ToolInstance):
   def _create_options_gui(self, parent, settings):
 
     from chimerax.ui.widgets import CollapsiblePanel
-    p = CollapsiblePanel(parent, title = None)
+    p = CollapsiblePanel(parent, title = None, margins = (30,0,30,10))
     f = p.content_area
+    layout = f.layout()
 
-    from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QFrame
-    layout = QVBoxLayout(f)
-    layout.setContentsMargins(30,0,30,10)
-    layout.setSpacing(0)
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QMenu
 
     mf = QFrame(f)
     mlayout = QHBoxLayout(mf)
