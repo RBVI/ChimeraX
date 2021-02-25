@@ -10,7 +10,8 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def button_row(parent, name_and_callback_list, label = '', spacing = 3, margins = None):
+def button_row(parent, name_and_callback_list,
+               label = '', spacing = 3, margins = None, button_list = False):
     from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
     f = QFrame(parent)
 #    f.setStyleSheet('QFrame { background-color: pink; padding-top: 0px; padding-bottom: 0px;}')
@@ -30,7 +31,8 @@ def button_row(parent, name_and_callback_list, label = '', spacing = 3, margins 
         layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
-    from Qt.QtCore import Qt
+#    from Qt.QtCore import Qt
+    buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
@@ -42,8 +44,12 @@ def button_row(parent, name_and_callback_list, label = '', spacing = 3, margins 
         else:
             b.clicked.connect(callback)
         layout.addWidget(b)
+        buttons.append(b)
 
     layout.addStretch(1)
+
+    if button_list:
+        return f, buttons
 
     return f
 
