@@ -626,6 +626,11 @@ class Atoms(Collection):
         '''Returns a :mod:`numpy` Nx3 array of XYZ values.
         Raises error if any atom does nt have a ribbon coordinate.
         Can be set.''')
+    effective_coords = cvec_property('atom_effective_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate.
+        ''')
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
