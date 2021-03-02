@@ -437,8 +437,8 @@ See also:
 <b>surface undust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
-Hide smaller blobs (disconnected parts) of a surface, 
-such as to simplify the display of noisy density.
+Hide smaller blobs (disconnected parts) of a surface to simplify 
+the display of noisy density. 
 Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>) will be hidden.
 The size units depend on the <b>metric</b>, which 
 can be any of the following (enclosed in single or double quotation marks 
@@ -455,6 +455,9 @@ if it includes spaces):
 The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png">
 uses a <b>size</b> value ten times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/hidedust.html"><b>Hide Dust</b></a>, 
+includes a slider for adjusting the size limit.
 <p>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
@@ -527,6 +530,10 @@ when the shape of the surface changes.
 The <b>surface unzone</b> command turns off zoning,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#dust"><b>surface dust</b></a>.
+</p><p>
+The graphical implementation,
+<a href="../tools/surfacezone.html"><b>Surface Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
 See also: <a href="select.html#zone"><b>select zone</b></a>,
 <a href="volume.html#zone"><b>volume zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,

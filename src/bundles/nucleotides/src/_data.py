@@ -934,15 +934,9 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return shapes
-    if residue.ribbon_display:
-        c3p_coord = c3p.ribbon_coord
-        c4p_coord = c4p.ribbon_coord
-    else:
-        c3p_coord = c4p_coord = None
-    if c3p_coord is None or c4p_coord is None:
-        ep1 = (c3p.coord + c4p.coord) / 2
-    else:
-        ep1 = (c3p_coord + c4p_coord) / 2
+    c3p_coord = c3p.effective_coord
+    c4p_coord = c4p.effective_coord
+    ep1 = (c3p_coord + c4p_coord) / 2
 
     description = '%s ribose' % residue
 
@@ -957,13 +951,7 @@ def _c3pos(residue):
     c3p = residue.find_atom("C3'")
     if not c3p or not c3p.display:
         return None
-
-    if residue.ribbon_display:
-        coord = c3p.ribbon_coord
-        if coord is not None:
-            return c3p, coord
-
-    return c3p, c3p.coord
+    return c3p, c3p.effective_coord
 
 
 def set_normal(residues):

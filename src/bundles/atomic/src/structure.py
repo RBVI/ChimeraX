@@ -1100,7 +1100,7 @@ class BondsDrawing(Drawing):
         if bonds is None:
             return
         ba1, ba2 = bonds.atoms
-        cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
+        cyl_info = _halfbond_cylinder_x3d(ba1.effective_coords, ba2.effective_coords, bonds.radii)
         tab = ' ' * indent
         for ci, c in zip(cyl_info, self.colors):
             h = ci[0]
