@@ -78,8 +78,8 @@ class _MapBundle(BundleAPI):
         elif tool_name == 'Map Coordinates':
             from .coords_gui import show_coords_panel
             return show_coords_panel(session)
-        elif tool_name == 'Map Mean, SD, RMS':
-            from .statscommand import show_map_stats
+        elif tool_name == 'Map Statistics':
+            from .measure import show_map_stats
             show_map_stats(session)
             
     @staticmethod
@@ -88,9 +88,6 @@ class _MapBundle(BundleAPI):
         from chimerax import map
         if command_name == 'volume' or command_name == 'vop':
             map.register_volume_command(logger)
-        elif command_name == 'volume statistics':
-            from chimerax.map import statscommand
-            statscommand.register_volume_statistics_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)
         elif command_name == 'measure mapstats':
