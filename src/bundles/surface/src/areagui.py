@@ -166,9 +166,10 @@ class VolumeAreaGUI(ToolInstance):
             return False
         # Submodels are included in surface so check if any changed.
         from chimerax.core.models import Surface
-        surfaces = [s for s in surface.all_models() if isinstance(s, Surface)]
+        surfaces = [s for s in surface.all_models()
+                    if isinstance(s, Surface)]
         hash = [(len(s.vertices), id(s.vertices), len(s.triangles), id(s.triangles))
-                for s in surfaces]
+                for s in surfaces if s.vertices is not None and s.triangles is not None]
         changed = (hash != self._last_surface_hash)
         self._last_surface_hash = hash
         return changed
