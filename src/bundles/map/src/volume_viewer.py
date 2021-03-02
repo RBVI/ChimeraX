@@ -2476,7 +2476,7 @@ class Histogram_Pane:
       b,a = settings_before, settings_after
       bro,aro = b['rendering_options'], a['rendering_options']
       extra_opts = []
-      if a['surface_shown'] and not b['surface_shown'] or a['has_mesh'] != b['has_mesh']:
+      if a['surface_shown'] and (not b['surface_shown'] or a['has_mesh'] != b['has_mesh']):
           extra_opts.append('style mesh' if v.has_mesh else 'style surface')
       if (a['image_shown'] or v.image_will_show) and not b['image_shown']:
           extra_opts.append('style image')
