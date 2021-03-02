@@ -85,6 +85,9 @@ class _SurfaceBundle(BundleAPI):
         elif tool_name == 'Color Zone':
             from . import colorzonegui
             ti = colorzonegui.show_color_zone_panel(session)
+        elif tool_name == 'Measure Volume and Area':
+            from . import areagui
+            ti = areagui.show_volume_area_panel(session)
         else:
             ti = None
         return ti

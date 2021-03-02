@@ -43,17 +43,21 @@ def enclosed_volume(varray, tarray):
 def surface_volume_and_area(model):
     '''
     Return the surface area, enclosed volume and number of holes (i.e. boundary
-    curves) of a surface triangulation specified by vertex and triangle arrays.
+    curves) of surface triangulations specified by vertex and triangle arrays.
+    All triangles are used even if the surface is masked or clipped.
+    All child models are included.  Only Surface models are included.
     '''
-# TODO: exclude surface caps and outline boxes.
     volume = holes = area = 0
-    for d in model.all_drawings():
-        varray, tarray = d.vertices, d.triangles
-        if not varray is None:
-            v, hc = enclosed_volume(varray, tarray)
-            volume += 0 if v is None else v
-            holes += hc
-            area += surface_area(varray, tarray)
+    from chimerax.core.models import Surface
+    for d in model.all_models():
+        if isinstance(d, Surface) and not getattr(d, 'is_clip_cap', False):
+            varray = d.vertices
+            tarray = d.joined_triangles if hasattr(d, 'joined_triangles') else d.triangles
+            if varray is not None and tarray is not None:
+                v, hc = enclosed_volume(varray, tarray)
+                volume += 0 if v is None else v
+                holes += hc
+                area += surface_area(varray, tarray)
     return volume, area, holes
 
 # -----------------------------------------------------------------------------
