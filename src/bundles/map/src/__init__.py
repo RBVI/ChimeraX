@@ -85,6 +85,9 @@ class _MapBundle(BundleAPI):
         from chimerax import map
         if command_name == 'volume' or command_name == 'vop':
             map.register_volume_command(logger)
+        elif command_name == 'volume statistics':
+            from chimerax.map import statscommand
+            statscommand.register_volume_statistics_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)
         elif command_name == 'measure mapstats':
