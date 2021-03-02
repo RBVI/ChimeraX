@@ -340,9 +340,10 @@ class ModelMenu:
             layout.addWidget(fl)
 
         class_filter = None if model_types is None else tuple(model_types)
+        filter_func = (lambda model: True) if model_filter is None else model_filter
         from chimerax.ui.widgets import ModelMenuButton
         sm = ModelMenuButton(session, class_filter = class_filter,
-                             filter_func = model_filter,
+                             filter_func = filter_func,
                              special_items = special_items, parent = f)
         self._menu = sm
         
