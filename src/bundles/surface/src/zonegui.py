@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class SurfaceZoneGUI(ToolInstance):
 
-    help = 'help:user/tools/surfzone.html'
+    help = 'help:user/tools/surfacezone.html'
 
     def __init__(self, session, tool_name):
 
