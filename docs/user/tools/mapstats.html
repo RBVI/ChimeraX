@@ -1,0 +1,48 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Map Statistics</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Map Statistics</h3>
+<p>
+<b>Map Statistics</b> reports the minimum, maximum, and mean values, 
+the standard deviation (SD) from the mean, and the 
+root-mean-square (RMS) deviation from zero for
+<a href="volumeviewer.html">volume data</a> (map) models.
+</p><p>
+<b>Map Statistics</b> can be started 
+from the <b>Volume Data</b> section of the <b>Tools</b> menu.
+It does not have a graphical interface, but simply runs the
+<a href="../commands/measure.html#mapstats"><b>measure mapstats</b></a>
+command on the currently displayed map models (acting on
+<a href="../selection.html">selected</a> maps only, if any, otherwise all).
+If a map is cropped to a subregion and/or shown at step &gt; 1,
+only the corresponding values are used to calculate the statistics.
+See also: <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="../measurements.html">measurements</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2021</address>
+</body></html>
