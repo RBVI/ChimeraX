@@ -325,7 +325,8 @@ def _dock_widget_parent(widget):
 
 class ModelMenu:
     '''Menu of session models prefixed with a text label.'''
-    def __init__(self, session, parent, label = None, model_types = None,
+    def __init__(self, session, parent, label = None,
+                 model_types = None, model_filter = None,
                  model_chosen_cb = None, special_items = []):
 
         from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
@@ -341,6 +342,7 @@ class ModelMenu:
         class_filter = None if model_types is None else tuple(model_types)
         from chimerax.ui.widgets import ModelMenuButton
         sm = ModelMenuButton(session, class_filter = class_filter,
+                             filter_func = model_filter,
                              special_items = special_items, parent = f)
         self._menu = sm
         
