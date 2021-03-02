@@ -78,3 +78,10 @@ def _subregion_description(v, step = None, region = None):
     if dlist:
         return ', '.join(dlist)
     return ''
+
+# -----------------------------------------------------------------------------
+# Menu entry acts on selected or displayed maps.
+#
+def show_map_stats(session):
+    from chimerax.shortcuts.shortcuts import run_on_maps
+    run_on_maps('volume statistics %s')(session)
