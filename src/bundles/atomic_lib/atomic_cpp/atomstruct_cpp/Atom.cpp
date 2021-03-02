@@ -1060,6 +1060,17 @@ Atom::rings(bool cross_residues, int all_size_threshold,
     return _rings;
 }
 
+Coord
+Atom::effective_coord() const
+{
+    if (_residue && _residue->ribbon_display()) {
+        const Coord *c = ribbon_coord();
+        if (c != nullptr)
+            return *c;
+    }
+    return coord();
+}
+
 static inline double
 row_mul(const double row[4], const Coord& crd)
 {

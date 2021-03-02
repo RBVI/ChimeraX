@@ -90,6 +90,7 @@
     <ChimeraXClassifier>Tool :: Hide Dust :: Volume Data :: hide small surface blobs</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Surface Zone :: Volume Data :: show surface near atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Color Zone :: Volume Data :: color surface to match nearby atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Measure Volume and Area :: Volume Data :: measure surface area and enclosed volume</ChimeraXClassifier>
   </Classifiers>
 
 

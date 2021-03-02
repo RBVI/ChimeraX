@@ -164,6 +164,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         float radius()
         Residue* residue()
         const cycoord.Coord* ribbon_coord()
+        cycoord.Coord effective_coord()
         const Rings& rings(bool, int)
         cycoord.Coord scene_coord()
         cycoord.Coord scene_coord(char)

@@ -706,7 +706,11 @@ class ColorKeyModel(Model):
         texts = [color_text[1] for color_text in self._rgbas_and_labels]
         if self._numeric_label_spacing == self.NLS_PROPORTIONAL:
             import locale
-            local_numeric = locale.getlocale(locale.LC_NUMERIC)
+            restore_locale = True
+            try:
+                local_numeric = locale.getlocale(locale.LC_NUMERIC)
+            except locale.Error:
+                restore_locale = True
             try:
                 locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
                 try:
@@ -722,7 +726,8 @@ class ColorKeyModel(Model):
                             proportional = True
                         values.reverse()
             finally:
-                locale.setlocale(locale.LC_NUMERIC, local_numeric)
+                if restore_locale:
+                    locale.setlocale(locale.LC_NUMERIC, local_numeric)
         if not proportional:
             values = range(len(texts))
         if self._color_treatment == self.CT_BLENDED:

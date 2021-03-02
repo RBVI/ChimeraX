@@ -180,8 +180,8 @@ class HideDustGUI(ToolInstance):
     def _create_action_buttons(self, parent):
         from chimerax.ui.widgets import button_row
         f = button_row(parent,
-                       [('Hide dust', self._dust),
-                        ('Show dust', self._undust),
+                       [('Hide Dust', self._dust),
+                        ('Show Dust', self._undust),
                         ('Options', self._show_or_hide_options),
                         ('Help', self._show_help)],
                        spacing = 10)
