@@ -33,6 +33,8 @@ _additional_categories = (
     "entity_src_nat",
     "cell",
     "symmetry",
+    "struct_ncs_oper",
+    "atom_sites",
     "software",
     "struct",
     "citation",
@@ -109,6 +111,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
     for model in models:
+        model.is_mmcif = True	# Indicates metadata is from mmcif.
         struct = get_mmcif_tables_from_metadata(model, ["struct"])[0]
         if not struct:
             continue

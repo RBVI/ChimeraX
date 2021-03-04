@@ -30,7 +30,8 @@ def space_group_matrices(space_group, a, b, c, alpha, beta, gamma):
         r2r = u2r * r2u_sym
         r2r_symops.append(r2r)
 
-    return r2r_symops
+    from chimerax.geometry import Places
+    return Places(r2r_symops)
 
 # -----------------------------------------------------------------------------
 # Angle arguments must be in radians.
@@ -122,8 +123,7 @@ def close_packing_matrices(tflist, ref_point, center,
   from numpy import array, subtract, add
   for tf in tflist:
 #    shift = u2r * -map(int, r2u * (tf * center - center) + (.5,.5,.5))
-    ntf = array(tf)
-    tfc = ntf * ref_point
+    tfc = tf * ref_point
     csep = subtract(tfc, center)
     ucsep = r2u * csep
     import math
@@ -131,7 +131,7 @@ def close_packing_matrices(tflist, ref_point, center,
     shift = u2r * ushift
     neg_shift = [-x for x in shift]
     tfshift = translation(neg_shift)
-    stf = tfshift * ntf
+    stf = tfshift * tf
     stflist.append(stf)
 
   return stflist
