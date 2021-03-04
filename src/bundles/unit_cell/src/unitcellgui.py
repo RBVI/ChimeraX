@@ -34,7 +34,8 @@ class UnitCellGUI(ToolInstance):
         layout.addWidget(sm.frame)
 
         # Unit cell info
-        inf = self._create_info_labels(parent)
+        from Qt.QtWidgets import QLabel
+        self._info_text = inf = QLabel(parent)
         layout.addWidget(inf)
         
         # Add buttons
@@ -70,35 +71,6 @@ class UnitCellGUI(ToolInstance):
                       model_types = [AtomicStructure], model_filter = model_filter,
                       model_chosen_cb = self._structure_chosen)
         return m
-
-    # ---------------------------------------------------------------------------
-    #
-    def _create_info_labels(self, parent):
-        from Qt.QtWidgets import QFrame, QLabel
-        frame = QFrame(parent)
-
-        from chimerax.ui.widgets import vertical_layout
-        layout = vertical_layout(frame)
-        
-        labels = []
-        for text in ('Space group: ',
-                     'Cell size: ',
-                     'Cell angles: ',
-                     'Crystal symmetries in file: ',
-                     'Space group symmetries: ',
-                     'Non-crystal symmetries in file: '):
-            lbl = QLabel(text, frame)
-            layout.addWidget(lbl)
-            labels.append(lbl)
-
-        (self._space_group,
-         self._cell_size,
-         self._cell_angles,
-         self._smtry_count,
-         self._sg_smtry_count,
-         self._mtrix_count) = labels
-
-        return frame
     
     # ---------------------------------------------------------------------------
     #
@@ -374,16 +346,15 @@ class UnitCellGUI(ToolInstance):
         else:
             sg = cs = ca = sgsc = ''
 
-        self._space_group.setText('Space group: ' + sg)
-        self._cell_size.setText('Cell size: ' + cs)
-        self._cell_angles.setText('Cell angles: ' + ca)
-        self._sg_smtry_count.setText('Space group symmetries: ' + sgsc)
-
         sm = pm.crystal_symmetries(m, use_space_group_table = False)
-        self._smtry_count.setText('Crystal symmetries in file: %d' % len(sm))
-
         mm = pm.noncrystal_symmetries(m, add_identity = False)
-        self._mtrix_count.setText('Non-crystal symmetries in file: %d' % len(mm))
+        info = '\n'.join(['Space group: ' + sg,
+                          'Cell size: ' + cs,
+                          'Cell angles: ' + ca,
+                          'Space group symmetries: ' + sgsc,
+                          'Crystal symmetries in file: %d' % len(sm),
+                          'Non-crystal symmetries in file: %d' % len(mm)])
+        self._info_text.setText(info)
 
     # ---------------------------------------------------------------------------
     #
