@@ -23,7 +23,7 @@ class _UnitCellAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
-        from . import cmd
-        cmd.register_unitcell_command(logger)
+        from . import unitcellcmd
+        unitcellcmd.register_unitcell_command(logger)
 
 bundle_api = _UnitCellAPI()
