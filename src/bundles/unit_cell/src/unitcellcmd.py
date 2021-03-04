@@ -16,7 +16,7 @@
 #
 def unitcell(session, structures = None, cells = (1,1,1), offset = (0,0,0), origin = (0,0,0),
              sym_from_file = True, spacegroup = True, ncs = True, pack = True,
-             outline = False, replace = True):
+             outline = False):
     '''
     Make copies of an atomic model to fill out the crystal unit cell.
 
@@ -67,6 +67,8 @@ def unitcell(session, structures = None, cells = (1,1,1), offset = (0,0,0), orig
         group_model = unitcell.copies_group_model(m)
         unitcell.place_molecule_copies(m, group_model, tflist)
         unitcell.remove_extra_copies(m, group_model, len(tflist))
+        if outline:
+            unitcell.show_outline_model(m, origin)
 
 # -----------------------------------------------------------------------------------
 #
