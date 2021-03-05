@@ -243,5 +243,8 @@ make_win_distribution:
 	exe_path="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/InstallPath/ExecutablePath)" && \
 	tar -jcf python-$$version-win-amd64.tar.bz2 --exclude __pycache__ --xform "s/^./python-$$version-win-amd64/" -C "$$exe_path"/.. .
 
+make_mac_distribution:
+	make -f Makefile.macos
+
 clean:
 	rm -rf $(SOURCE)

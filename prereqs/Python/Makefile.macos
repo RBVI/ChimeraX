@@ -24,16 +24,22 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 DIST_TAR_FILE = python-$(PYTHON_PATCH_LEVEL)-mac.tar
 DISTRIBUTION = $(DIST_TAR_FILE).bz2
 
+all : $(DISTRIBUTION)
+
 $(DISTRIBUTION):
 	git clone git@github.com:gregneagle/relocatable-python.git
-	cd relocatable-python
 	# Create requirements.txt to pip install certifi
+	cd relocatable-python && \
 	echo certifi > requirements.txt
+	cd relocatable-python && \
 	./make_relocatable_python_framework.py \
-	   --python-version $(PYTHON_PATCH_LEVEL) \
-	   --pip-requirements requirements.txt \
-	   --upgrade-pip
+		   --python-version $(PYTHON_PATCH_LEVEL) \
+		   --pip-requirements requirements.txt \
+		   --upgrade-pip
 	# For Python ssl to find the certifi certificates need this symbolic link
-	ln -s ../../lib/python3.8/site-packages/certifi/cacert.pem Python.framework/Versions/3.8/etc/openssl/cert.pem
-	tar cf $(DIST_TAR_FILE) Python.framework
+	cd relocatable-python && \
+	ln -s ../../lib/python$(PYTHON_VERSION)/site-packages/certifi/cacert.pem Python.framework/Versions/$(PYTHON_VERSION)/etc/openssl/cert.pem ;
+	cd relocatable-python && \
+	tar cf $(DIST_TAR_FILE) Python.framework && \
 	bzip2 $(DIST_TAR_FILE)
+	mv relocatable-python/$(DIST_TAR_FILE).bz2 .
