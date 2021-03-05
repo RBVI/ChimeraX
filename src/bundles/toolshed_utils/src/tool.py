@@ -72,6 +72,16 @@ class UpdateTool(ToolInstance):
         self.choice.setCurrentIndex(self.choice.findData(dialog_type))
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
+        from chimerax.ui.core_settings_ui import UpdateIntervalOption
+        from chimerax.core.core_settings import settings as core_settings
+        callback = None  # TODO
+        uio = UpdateIntervalOption(
+                "Toolshed update interval", core_settings.toolshed_update_interval, callback,
+                attr_name='toolshed_update_interval', settings=core_settings, auto_set_attr=True)
+        label = QLabel(uio.name + ':')
+        label.setToolTip('How frequently to check toolshed for new updates<br>')
+        choice_layout.addWidget(label)
+        choice_layout.addWidget(uio.widget)
         self.all_items = None
 
         class SizedTreeWidget(QTreeWidget):
