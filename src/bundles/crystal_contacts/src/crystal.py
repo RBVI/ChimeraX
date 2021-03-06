@@ -429,23 +429,6 @@ def close_residue_pairs(apairs):
     return rpairs
 
 # -----------------------------------------------------------------------------
-# Find the atoms of the asymmetric unit that make contacts with
-# other asymmetric units anywhere in the crystal.
-#
-def crystal_contact_atoms(molecule, distance,
-                          intra_biounit = True,
-                          angle_tolerance = pi/1800,   # 0.1 degrees
-                          shift_tolerance = 0.1):      # Angstroms
-
-    clist = asymmetric_unit_contacts(molecule, distance, intra_biounit,
-                                     angle_tolerance, shift_tolerance)
-    catoms = set()
-    for atoms1, atoms2, equiv_asu_pairs in clist:
-        catoms.update(atoms1)
-    alist = list(catoms)
-    return alist
-
-# -----------------------------------------------------------------------------
 # Angle and shift tolerance values are used to eliminate equivalent pairs
 # of asymmetric units. To find only contacts between different biological
 # units (defined by PDB BIOMT matrices) use intra_biounit = False.
@@ -539,8 +522,9 @@ def interbiounit_asu_pairs(molecule, plist, angle_tolerance, shift_tolerance):
     ilist = []
     for asu1, asu2 in plist:
         rel = asu1.transform.inverse() * asu2.transform
-        if not b.close_transforms(rel):
+        if len(b.close_transforms(rel)) == 0:
             ilist.append((asu1, asu2))
+
     return ilist
 
 # -----------------------------------------------------------------------------
