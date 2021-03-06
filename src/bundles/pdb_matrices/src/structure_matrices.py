@@ -134,11 +134,12 @@ def noncrystal_symmetries(molecule, add_identity = True):
 #
 def biological_unit_matrices(molecule):
 
+    fmt = metadata_type(molecule)
     from chimerax import pdb_matrices as pm
-    if hasattr(molecule, 'metadata') and 'REMARK' in molecule.metadata:
+    if fmt == 'pdb':
         s = pm.pdb_biomt_matrices(molecule.metadata)
-    elif hasattr(molecule, 'mmCIFHeaders'):
-        s = pm.mmcif_biounit_matrices(molecule.mmCIFHeaders)
+    elif fmt == 'mmcif':
+        s = pm.mmcif_biounit_matrices(molecule)
     else:
         from chimerax.geometry import Places
         s = Places([])
