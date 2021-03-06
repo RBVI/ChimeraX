@@ -27,8 +27,8 @@ def show_crystal_contacts(molecule, dist,
                           probe_radius = 1.4,
                           intra_biounit = True,
                           angle_tolerance = pi/1800,   # 0.1 degrees
-                          shift_tolerance = 0.1,       # Angstroms
-                          replace = False):
+                          shift_tolerance = 0.1       # Angstroms
+                          ):
 
     from chimerax.pdb_matrices import unit_cell_parameters
     if unit_cell_parameters(molecule) is None:
@@ -59,6 +59,11 @@ def show_crystal_contacts(molecule, dist,
         cmodels.append(marker_set)
 
     if make_copies:
+        # Remove previous copies
+        gm = copies_group_model(molecule, create=False)
+        if gm:
+            molecule.session.models.close([gm])
+
         # Make molecule copies.
         cm = make_asu_copies(molecule, contacting_asu(clist), crystal)
         if cm:
@@ -69,11 +74,6 @@ def show_crystal_contacts(molecule, dist,
 
     # Zoom to show all asym units.
     molecule.session.main_view.view_all()
-
-    # Remember contact models so they can be replaced if recalculated.
-    if replace and hasattr(molecule, '_crystal_contact_models'):
-        molecule.session.models.close(molecule._crystal_contact_models)
-    molecule._crystal_contact_models = cmodels
 
     return cmodels
 

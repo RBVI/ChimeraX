@@ -17,7 +17,7 @@
 def crystalcontacts(session, structures = None, distance = 3.0,
                     residue_info = False, buried_areas = False, probe_radius = 1.4,
                     intra_biounit = True,
-                    copies = True, rainbow = True, schematic = False, replace = True):
+                    copies = True, rainbow = True, schematic = False):
     '''
     Make contacting copies of an atomic model of a crystal asymmetric unit.
 
@@ -45,8 +45,6 @@ def crystalcontacts(session, structures = None, distance = 3.0,
         copies are colored the same as the original.  Default true.
     schematic : bool
         Whether a schematic of the contacting units shown as balls is shown.  Default false.
-    replace : bool
-        Whether to replace an existing schematic and contacting asymmetric units.  Default true.
     '''
 
     if structures is None:
@@ -65,8 +63,7 @@ def crystalcontacts(session, structures = None, distance = 3.0,
                               residue_info = residue_info,
                               buried_areas = buried_areas,
                               probe_radius = probe_radius,
-                              intra_biounit = intra_biounit,
-                              replace = replace)
+                              intra_biounit = intra_biounit)
     
 # -----------------------------------------------------------------------------------
 #
@@ -109,8 +106,7 @@ def register_crystalcontacts_command(logger):
                    ('ncs', BoolArg),
                    ('copies', BoolArg),
                    ('rainbow', BoolArg),
-                   ('schematic', BoolArg),
-                   ('replace', BoolArg)],
+                   ('schematic', BoolArg)],
         synopsis = 'Find contacting copies of crystal asymmetric unit'
     )
     register('crystalcontacts', desc, crystalcontacts, logger=logger)
