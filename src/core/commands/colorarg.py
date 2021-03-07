@@ -246,16 +246,20 @@ class ColormapArg(Annotation):
         else:
             ci_token = token.casefold()
             if session is not None:
-                name = _complete_key_name(session.user_colormaps, ci_token)
-                if name:
-                    consumed = f'^{name}' if reversed else name
-                    cmap = session.user_colormaps[name]
+                i = session.user_colormaps.bisect_left(ci_token)
+                if i < len(session.user_colormaps):
+                    name = session.user_colormaps.keys()[i]
+                    if name.startswith(ci_token):
+                        consumed = f'^{name}' if reversed else name
+                        cmap = session.user_colormaps[name]
             if cmap is None:
                 from ..colors import BuiltinColormaps
-                name = _complete_key_name(BuiltinColormaps, ci_token)
-                if name:
-                    consumed = f'^{name}' if reversed else name
-                    cmap = BuiltinColormaps[name]
+                i = BuiltinColormaps.bisect_left(ci_token)
+                if i < len(BuiltinColormaps):
+                    name = BuiltinColormaps.keys()[i]
+                    if name.startswith(ci_token):
+                        consumed = f'^{name}' if reversed else name
+                        cmap = BuiltinColormaps[name]
             if cmap is None and session is not None:
                 consumed = f'^{text}' if reversed else text
                 cmap = _fetch_colormap(session, palette_id=token)
@@ -264,15 +268,6 @@ class ColormapArg(Annotation):
             raise UserError("Cannot find palette named %r" % token)
         return cmap.reversed() if reversed else cmap, consumed, rest
 
-def _complete_key_name(dictionary, prefix, first_only=True):
-    keys = []
-    for key in dictionary:
-        if key.startswith(prefix):
-            if first_only:
-                return key
-            else:
-                keys.append(key)
-    return None if first_only else keys
 
 def find_named_color(color_dict, name):
     # handle color names with spaces
@@ -329,7 +324,15 @@ def find_named_color(color_dict, name):
         if cur_name:
             cur_name += ' '
         cur_name += words[w][0]
-        choices = _complete_key_name(color_dict, cur_name, first_only=False)
+        i = color_dict.bisect_left(cur_name)
+        if i >= num_colors:
+            break
+        choices = []
+        for i in range(i, num_colors):
+            color_name = color_dict.keys()[i]
+            if not color_name.startswith(cur_name):
+                break
+            choices.append(color_name)
         if len(choices) == 0:
             break
         multiword_choices = [(c.split()[w], c) for c in choices if ' ' in c]
