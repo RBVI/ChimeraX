@@ -103,7 +103,6 @@ def register_crystalcontacts_command(logger):
                    ('buried_areas', BoolArg),
                    ('probe_radius', FloatArg),
                    ('intra_biounit', BoolArg),
-                   ('ncs', BoolArg),
                    ('copies', BoolArg),
                    ('rainbow', BoolArg),
                    ('schematic', BoolArg)],
