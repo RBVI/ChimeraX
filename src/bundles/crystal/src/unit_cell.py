@@ -26,7 +26,7 @@ def space_group_matrices(space_group, a, b, c, alpha, beta, gamma):
     r2u = u2r.inverse()
 
     for u2u in unit_cell_matrices:
-        r2r = u2u if u2u.is_identity else u2r * u2u * r2u
+        r2r = u2u if u2u.is_identity() else u2r * u2u * r2u
         r2r_symops.append(r2r)
 
     from chimerax.geometry import Places
