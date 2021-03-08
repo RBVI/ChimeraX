@@ -105,7 +105,7 @@ class Crystal:
         self.axes = unit_cell_axes(a, b, c, alpha, beta, gamma)
 
         self.identity_smtry_index = identity_matrix_index(self.smtry_matrices)
-        
+
     # -------------------------------------------------------------------------
     # Return transformation matrix for a specific asymmetric unit.
     #
@@ -150,7 +150,7 @@ def contact_marker_model(molecule, crystal, clist, asu_list):
     xyz = molecule.atoms.coords
     asu_center = xyz.mean(axis = 0)
     bbox = bounding_box(xyz)
-    radius_ncs = .25*min(map(lambda a,b: a-b, bbox[1], bbox[0]))
+    radius_ncs = .25*min([a-b for a, b in zip(bbox[1], bbox[0])])
     radius_copies = .8 * radius_ncs
     rgba_ncs = (128, 255, 128, 255)   # NCS asym unit, light green
     rgba_uc = (128, 205, 230, 255)   # Unit cell, light blue
@@ -237,7 +237,7 @@ def create_unit_cell(marker_set, axes, color, thickness):
 
     corner_indices = ((0,0,0), (0,0,1), (0,1,1), (0,1,0),
                       (1,0,0), (1,0,1), (1,1,1), (1,1,0))
-    corners = map(lambda i: unit_cell_translation(i, axes), corner_indices)
+    corners = [unit_cell_translation(i, axes) for i in corner_indices]
     
     markers = []
     for c in corners:
