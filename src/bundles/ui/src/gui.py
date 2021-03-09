@@ -779,7 +779,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.rapid_access_shown = len(self.session.models) == 0
 
     def resizeEvent(self, event):
-        return
         QMainWindow.resizeEvent(self, event)
         size = event.size()
         wh = (size.width(), size.height())

@@ -91,7 +91,7 @@ class ToolbarTool(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
-        session.triggers.add_handler('set right mouse', self._set_right_mouse_button)
+        session.triggers.add_handler('set mouse mode', self._set_right_mouse_button)
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -206,8 +206,14 @@ class ToolbarTool(ToolInstance):
         self.ttb.show_tab('Home')
         self._set_right_mouse_button('init', self.session.ui.mouse_modes.mode("right", exact=True))
 
-    def _set_right_mouse_button(self, trigger_name, mode):
+    def _set_right_mouse_button(self, trigger_name, data):
         # highlight current right mouse button
+        if trigger_name == 'init':
+            mode = data
+        else:
+            button, modifiers, prev_mode, mode = data
+            if button != "right" or modifiers:
+                return
         name = mode.name if mode is not None else None
         if name == self.current_right_mouse_button:
             return

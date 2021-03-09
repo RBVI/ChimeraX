@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class VolumeAreaGUI(ToolInstance):
 
-    help = 'help:user/tools/volarea.html'
+    help = 'help:user/tools/measurevolume.html'
 
     def __init__(self, session, tool_name):
 

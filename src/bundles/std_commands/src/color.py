@@ -519,7 +519,7 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
 
     # Each structure is colored separately with cmap applied by chain
     import numpy
-    from chimerax.core.colors import Color
+    from chimerax.core.colors import Color, rgba_to_rgba8
     colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(models)))
     for color, m in zip(colors, models):
         c = Color(color)
@@ -530,7 +530,8 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
         if 'f' in target:
             _set_ring_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
-            _color_surfaces_at_atoms(m.atoms, color, opacity=opacity, undo_state=undo_state)
+            _color_surfaces_at_atoms(m.atoms, rgba_to_rgba8(color),
+                                     opacity=opacity, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #

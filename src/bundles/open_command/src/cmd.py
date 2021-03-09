@@ -119,11 +119,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     if return_json:
         from chimerax.core.commands import JSONResult
         from json import JSONEncoder
-        # chimera.core.commands.run() is going to return the first element of a one-element list,
-        # so 'models' is a list of a single list, so that the return value of run() is always
-        # a list of models.  Consequently, we have to use models[0] in the line below
-        open_data = { 'model specs': [m.string(style="command") for m in models[0]] }
-        return JSONResult(JSONEncoder().encode(open_data), models[0])
+        open_data = { 'model specs': [m.string(style="command") for m in models] }
+        return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,

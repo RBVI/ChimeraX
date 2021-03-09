@@ -376,16 +376,19 @@ class Toolshed:
                     need_check = True
                 else:
                     interval = settings.toolshed_update_interval
-                    last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
-                    delta = now - last_check
-                    max_delta = timedelta(days=1)
-                    if interval == "week":
-                        max_delta = timedelta(days=7)
-                    elif interval == "day":
+                    if interval == "never":
+                        need_check = False
+                    else:
+                        last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
+                        delta = now - last_check
                         max_delta = timedelta(days=1)
-                    elif interval == "month":
-                        max_delta = timedelta(days=30)
-                    need_check = delta > max_delta
+                        if interval == "week":
+                            max_delta = timedelta(days=7)
+                        elif interval == "day":
+                            max_delta = timedelta(days=1)
+                        elif interval == "month":
+                            max_delta = timedelta(days=30)
+                        need_check = delta > max_delta
             if need_check:
                 if ui is None or not ui.is_gui:
                     self.async_reload_available(logger)
