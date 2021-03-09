@@ -41,7 +41,7 @@ class CrystalContactsGUI(ToolInstance):
 
         # Contact distance entry
         from chimerax.ui.widgets import EntriesRow
-        cd = EntriesRow(mdf, 'contact distance', 3.0)
+        cd = EntriesRow(mdf, 'contact distance', 3.0, '\N{ANGSTROM SIGN}')
         self._contact_distance = cd.values[0]
         
         mdlayout.addStretch(1)
@@ -72,7 +72,7 @@ class CrystalContactsGUI(ToolInstance):
         from chimerax.ui.widgets import ModelMenu
         # Do not list crystal contact copies in menu.
         model_filter = lambda m: not hasattr(m, '_crystal_contacts_copy') and hasattr(m, 'metadata') and len(m.metadata) > 0
-        m = ModelMenu(self.session, parent, label = 'Molecule',
+        m = ModelMenu(self.session, parent, label = 'Atomic structure',
                       model_types = [AtomicStructure], model_filter = model_filter)
         return m
     
@@ -97,13 +97,13 @@ class CrystalContactsGUI(ToolInstance):
         f = p.content_area
 
         from chimerax.ui.widgets import EntriesRow
-        cp = EntriesRow(f, True, 'Create copies of contacting molecules.')
+        cp = EntriesRow(f, True, 'Create copies of contacting structures')
         self._copies = cp.values[0]
 
-        rc = EntriesRow(f, True, 'Rainbow color copies.')
+        rc = EntriesRow(f, True, 'Rainbow color copies')
         self._rainbow = rc.values[0]
 
-        sc = EntriesRow(f, False, 'Show schematic of contacting molecules.')
+        sc = EntriesRow(f, False, 'Show schematic of contacting structures')
         self._schematic = sc.values[0]
 
         return p
