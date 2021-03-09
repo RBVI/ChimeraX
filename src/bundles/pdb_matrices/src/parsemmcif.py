@@ -126,9 +126,10 @@ def mmcif_matrix(matrix_values):
 def mmcif_biounit_matrices(molecule):
 
   # TODO: mmCIF file lists multiple assemblies, not just a single biological
-  # unit like PDB format files.  This code returns all assembly matrices that
-  # have integer id names.
-  
+  # unit like PDB format files.  This code returns matrices of all the numbered
+  # operators in pdbx_struct_oper_list.  It would be better to choose the first
+  # mmcif assembly but that can apply different operators to different chains.
+    
   from chimerax.geometry import Places
 
   from chimerax import mmcif
@@ -137,11 +138,11 @@ def mmcif_biounit_matrices(molecule):
   if pdbx_struct_oper_list_table is None:
     return Places([])
 
-  entries = struct_ncs_oper_table.fields(['id'] + matrix_field_names)
+  entries = pdbx_struct_oper_list_table.fields(['id'] + matrix_field_names)
   tflist = []
   for fields in entries:
     try:
-      i = int(fields['id'])
+      i = int(fields[0])
     except ValueError:
       continue
     tflist.append((i, mmcif_matrix(fields[1:13])))

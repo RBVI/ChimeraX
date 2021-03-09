@@ -53,7 +53,7 @@ def button_row(parent, name_and_callback_list,
 
     return f
 
-def _row_frame(parent, spacing = 5):
+def row_frame(parent, spacing = 5):
     from Qt.QtWidgets import QFrame, QHBoxLayout
     f = QFrame(parent)
     parent.layout().addWidget(f)
@@ -65,7 +65,7 @@ def _row_frame(parent, spacing = 5):
 
 class EntriesRow:
     def __init__(self, parent, *args, spacing = 5):
-        f, layout = _row_frame(parent, spacing)
+        f, layout = row_frame(parent, spacing)
         self.frame = f
         
         from Qt.QtWidgets import QLabel, QPushButton
@@ -85,7 +85,7 @@ class EntriesRow:
                     if newline:
                         # String ends in newline so make new row.
                         layout.addStretch(1)
-                        f, layout = _row_frame(parent)
+                        f, layout = row_frame(parent)
             elif isinstance(a, bool):
                 cb = BooleanEntry(f, a)
                 layout.addWidget(cb.widget)

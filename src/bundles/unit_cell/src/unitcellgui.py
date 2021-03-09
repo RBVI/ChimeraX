@@ -67,7 +67,7 @@ class UnitCellGUI(ToolInstance):
         from chimerax.ui.widgets import ModelMenu
         # Do not list unit cell copies in menu.
         model_filter = lambda m: not hasattr(m, '_unit_cell_copy') and hasattr(m, 'metadata') and len(m.metadata) > 0
-        m = ModelMenu(self.session, parent, label = 'Molecule',
+        m = ModelMenu(self.session, parent, label = 'Atomic structure',
                       model_types = [AtomicStructure], model_filter = model_filter,
                       model_chosen_cb = self._structure_chosen)
         return m
@@ -103,7 +103,7 @@ class UnitCellGUI(ToolInstance):
         umr = EntriesRow(f, True, 'Use non-crystallographic symmetry')
         self._use_mtrix_records = umr.values[0]
 
-        pam = EntriesRow(f, True, 'Pack molecules in unit cell')
+        pam = EntriesRow(f, True, 'Pack structures in unit cell')
         self._pack_molecules = pam.values[0]
 
         co = EntriesRow(f, 'Cell origin ', '')

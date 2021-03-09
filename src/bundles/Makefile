@@ -26,7 +26,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  bumps buttons cage_builder \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
-	  coulombic crosslinks crystal data_formats \
+	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dist_ui dssp \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
