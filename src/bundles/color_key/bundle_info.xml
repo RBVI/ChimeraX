@@ -26,9 +26,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: key :: General :: add color key to graphics</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~key :: General :: remove color key</ChimeraXClassifier>
-	<!--
-    <ChimeraXClassifier>Tool :: Color Key :: General :: add color key to graphics</ChimeraXClassifier>
-	-->
+    <ChimeraXClassifier>Tool :: Color Key :: Depiction :: add color key to graphics</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
