@@ -24,8 +24,8 @@ from .options import StringOption, HostPortOption
 from chimerax.core.colors import color_name
 
 class UpdateIntervalOption(SymbolicEnumOption):
-    values = ("day", "week", "month")
-    labels = ("every day", "every week", "every month")
+    values = ("day", "week", "month", "never")
+    labels = ("every day", "every week", "every month", "never")
 
 class CoreSettingsPanel:
 
