@@ -105,6 +105,21 @@ class ColorKeyTool(ToolInstance):
         position_layout.addWidget(self.pos_y_box, alignment=Qt.AlignLeft, stretch=1)
         layout.addLayout(position_layout)
 
+        position_layout = QHBoxLayout()
+        pos_label = QLabel("Size: width")
+        pos_label.setToolTip("Size of the colored part of they key, from 0-1 (fraction of screen size)")
+        position_layout.addWidget(pos_label, alignment=Qt.AlignRight, stretch=1)
+        self.size_w_box = ScreenFloatSpinBox()
+        self.size_w_box.setValue(self.key.size[0])
+        self.size_w_box.valueChanged.connect(self._new_key_size)
+        position_layout.addWidget(self.size_w_box)
+        position_layout.addWidget(QLabel(" height"))
+        self.size_h_box = ScreenFloatSpinBox()
+        self.size_h_box.setValue(self.key.size[1])
+        self.size_h_box.valueChanged.connect(self._new_key_size)
+        position_layout.addWidget(self.size_h_box, alignment=Qt.AlignLeft, stretch=1)
+        layout.addLayout(position_layout)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
@@ -143,6 +158,20 @@ class ColorKeyTool(ToolInstance):
     def _key_changed(self, trig_name, what_changed):
         if what_changed == "rgbas_and_labels":
             self._update_colors_layout()
+        elif what_changed == "position":
+            self.pos_x_box.blockSignals(True)
+            self.pos_y_box.blockSignals(True)
+            self.pos_x_box.setValue(self.key.position[0])
+            self.pos_y_box.setValue(self.key.position[1])
+            self.pos_x_box.blockSignals(False)
+            self.pos_y_box.blockSignals(False)
+        elif what_changed == "size":
+            self.size_w_box.blockSignals(True)
+            self.size_h_box.blockSignals(True)
+            self.size_w_box.setValue(self.key.size[0])
+            self.size_h_box.setValue(self.key.size[1])
+            self.size_w_box.blockSignals(False)
+            self.size_h_box.blockSignals(False)
 
     def _key_closed(self, *args):
         self.delete()
@@ -152,6 +181,9 @@ class ColorKeyTool(ToolInstance):
 
     def _new_key_position(self):
         run(self.session, "key pos %s,%s" % (self.pos_x_box.cleanText(), self.pos_y_box.cleanText()))
+
+    def _new_key_size(self):
+        run(self.session, "key size %s,%s" % (self.size_w_box.cleanText(), self.size_h_box.cleanText()))
 
     def _colors_changed(self, num_colors):
         if num_colors > len(self.wells):
