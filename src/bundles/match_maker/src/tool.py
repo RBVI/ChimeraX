@@ -187,8 +187,8 @@ class MatchMakerTool(ToolInstance):
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
             ref_spec = "".join([rchain.atomspec for rchain, mchain in match_value])
         else:
-            ref_spec = ref_value.atomspec
-        if not ref_spec:
+            ref_spec = None if ref_value is None else ref_value.atomspec
+        if not ref_spec or not match_value:
             raise UserError("No reference and/or match structure/chain chosen")
         if self.ref_sel_restrict.isChecked():
             ref_spec = ref_spec + " & sel"
