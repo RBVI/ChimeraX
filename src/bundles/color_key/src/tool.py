@@ -18,6 +18,8 @@ from Qt.QtCore import Qt
 from chimerax.core.commands import run, StringArg
 from chimerax.core.colors import hex_color
 
+_mouse_mode = None
+
 class ColorKeyTool(ToolInstance):
 
     #help = "help:user/tools/modelpanel.html"
@@ -81,6 +83,12 @@ class ColorKeyTool(ToolInstance):
         palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft, stretch=1)
         layout.addLayout(palette_layout)
         self._update_colors_layout() # which also updates palette menu
+
+        global _mouse_mode
+        if _mouse_mode is None:
+            from .mouse_key import ColorKeyMouseMode
+            _mouse_mode = ColorKeyMouseMode(session)
+            session.ui.mouse_modes.add_mode(_mouse_mode)
 
         class ScreenFloatSpinBox(QDoubleSpinBox):
             def __init__(self, *args, minimum=0.0, maximum=1.0, **kw):
