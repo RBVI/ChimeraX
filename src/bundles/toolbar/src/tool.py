@@ -211,7 +211,7 @@ class ToolbarTool(ToolInstance):
         if trigger_name == 'init':
             mode = data
         else:
-            button, modifiers, prev_mode, mode = data
+            button, modifiers, mode = data
             if button != "right" or modifiers:
                 return
         name = mode.name if mode is not None else None
