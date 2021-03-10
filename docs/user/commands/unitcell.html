@@ -56,7 +56,8 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The <b>unitcell</b> command builds crystallographic unit cells
-using symmetry information from the input coordinate file (PDB or mmCIF).
+using symmetry information from the input coordinate file
+(PDB or mmCIF, but not small-molecule CIF).
 It can regenerate the full unit cell, multiple unit cells,
 or only those parts defined by
 crystallographic symmetry or noncrystallographic symmetry.
@@ -126,8 +127,8 @@ these MTRIX records are ignored.
 <a name="pack"></a>
 <b>pack</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Whether to pack the chains so that their centers fall within one unit cell box
-(default <b>true</b>).
+Whether to pack the structures so that their centers fall within
+one unit cell box (default <b>true</b>).
 </blockquote>
 <blockquote>
 <a name="outline2"></a>

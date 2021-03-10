@@ -26,7 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#tools">Tool</a>: Unit Cell</h3>
 <p>
 <b>Unit Cell</b> builds crystallographic unit cells
-using symmetry information from the input coordinate file (PDB or mmCIF).
+using symmetry information from the input coordinate file 
+(PDB or mmCIF, but not small-molecule CIF).
 It can regenerate the full unit cell, multiple unit cells,
 or only those parts defined by
 crystallographic symmetry or noncrystallographic symmetry.
@@ -47,7 +48,7 @@ and numbers of transformation matrices (if available from the input file)
 are shown in the dialog. Buttons:
 </p>
 <ul>
-<li><b>Make Copies</b> &ndash; load additional copies of the atomic structure 
+<li><b>Make Copies</b> &ndash; create additional copies of the atomic structure 
 and transform them as specified by the <a href="#options">options</a>
 <li><b>Outline</b> &ndash; show/hide a white outline box of the unit cell
 <li><b>Delete Copies</b> &ndash; remove the additional copies of the structure 
@@ -86,8 +87,9 @@ There may be errors in MTRIX records, or they may be missing entirely.
 For example, 1cd3 has no MTRIX records, but the remarks describe how 
 to produce them from the BIOMT records. This is not handled by <b>Unit Cell</b>.
 <p>
-MTRIX records do not describe crystallographic symmetries, but
-additional symmetries of the asymmetric unit of the crystal.
+MTRIX records give coordinate transformations that are needed
+to make a complete asymmetric unit from the coordinates contained in the file.
+These are not crystallographic symmetries.
 Because the copies of the molecule occupy nonequivalent positions
 in the crystal, they usually have small structural differences due
 to differing crystal contacts.
@@ -97,8 +99,8 @@ However, they are often used for icosahedral virus particles,
 where the size of the virus particle precludes independent refinement 
 of coordinates for each subunit.
 </p>
-<li><b>Pack molecules in unit cell</b>
-&ndash; whether to pack the chains so that their centers fall within
+<li><b>Pack structures in unit cell</b>
+&ndash; whether to pack the structures so that their centers fall within
 one unit cell box
 </p>
 <li><b>Cell origin</b> coordinates (default <b>0 0 0</b>)
@@ -140,16 +142,16 @@ Contacts</b></a> tool.
 BIOMT matrices, but this can be done with the
 <a href="../commands/sym.html"><b>sym</b></a> command.
 </p><p>
-Only the following mmCIF unit cell fields are used:
+ChimeraX does not read small-molecule CIF files, and <b>Unit Cell</b>
+does not handle them.
+</p><p>
+Only the following mmCIF tables are used:
 <blockquote><pre>
-symmetry_space_group_name_h-m
-symmetry_equiv_pos
-symmetry_equiv_pos_site_id
-symmetry_equiv_pos_as_xyz
-space_group_symop_operation_xyz
-cell_length_a, cell_length_b, cell_length_c
-cell_angle_alpha, cell_angle_beta, cell_angle_gamma
-cell_formula_units_z
+cell
+symmetry
+struct_ncs_oper
+pdbx_struct_oper_list
+atom_sites
 </pre></blockquote>
 </p>
 
