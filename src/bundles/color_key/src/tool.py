@@ -13,10 +13,11 @@
 
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QScrollArea, QWidget, QGridLayout
-from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox
+from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox, QCheckBox
 from Qt.QtCore import Qt
-from chimerax.core.commands import run, StringArg
+from chimerax.core.commands import run, StringArg, camel_case
 from chimerax.core.colors import hex_color
+from .cmd import auto_color_strings
 
 _mouse_mode = None
 
@@ -89,6 +90,7 @@ class ColorKeyTool(ToolInstance):
             from .mouse_key import ColorKeyMouseMode
             _mouse_mode = ColorKeyMouseMode(session)
             session.ui.mouse_modes.add_mode(_mouse_mode)
+        self.handlers.append(_mouse_mode.triggers.add_handler('drag finished', self._drag_finished))
 
         class ScreenFloatSpinBox(QDoubleSpinBox):
             def __init__(self, *args, minimum=0.0, maximum=1.0, **kw):
@@ -128,6 +130,81 @@ class ColorKeyTool(ToolInstance):
         position_layout.addWidget(self.size_h_box, alignment=Qt.AlignLeft, stretch=1)
         layout.addLayout(position_layout)
 
+        mouse_layout = QHBoxLayout()
+        self.mouse_on_button = QCheckBox("Adjust key with")
+        self.mouse_on_button.setChecked(True)
+        self.mouse_on_button.clicked.connect(self._mouse_on_changed)
+        mouse_layout.addWidget(self.mouse_on_button, alignment=Qt.AlignRight, stretch=1)
+        self.mouse_button_button = QPushButton("left")
+        menu = QMenu()
+        for but in ["left", "middle", "right"]:
+            menu.addAction(but)
+        menu.triggered.connect(self._mouse_button_changed)
+        self.mouse_button_button.setMenu(menu)
+        mouse_layout.addWidget(self.mouse_button_button)
+        mouse_layout.addWidget(QLabel("mouse button"), alignment=Qt.AlignLeft, stretch=1)
+        self._mouse_on_changed(True)
+        layout.addLayout(mouse_layout)
+
+        from chimerax.ui.options import CategorizedOptionsPanel, EnumOption, OptionalColorOption, \
+            FloatOption, IntOption, BooleanOption, FontOption
+        class ColorTransitionOption(EnumOption):
+            values = self.key.color_treatments
+        class LabelSideOption(EnumOption):
+            values = self.key.label_sides
+        class AutoColorOption(OptionalColorOption):
+            def get_value(self):
+                val = super().get_value()
+                if val is None:
+                    return auto_color_strings[0]
+                return val
+            def set_value(self, val):
+                if val in auto_color_strings:
+                    val = None
+                super().set_value(val)
+        class LabelJustificationOption(EnumOption):
+            values = self.key.justifications
+        class NumLabelSpacingOption(EnumOption):
+            values = self.key.numeric_label_spacings
+        options_data = [
+            ("Labels", [
+                ("Positions", 'label_side', LabelSideOption),
+                ("Color", 'label_rgba', AutoColorOption),
+                ("Justification", 'justification', LabelJustificationOption),
+                ("Numeric separation", 'numeric_label_spacing', NumLabelSpacingOption),
+                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
+                ('Font size', 'font_size', (IntOption, {'min': 1})),
+                ('Bold', 'bold', BooleanOption),
+                ('Italic', 'italic', BooleanOption),
+                ('Font', 'font', FontOption),
+                ]),
+            ("Coloring", [('Color range depiction', 'color_treatment', ColorTransitionOption)]),
+            ("Border", [
+                ("Show border", 'border', BooleanOption),
+                ("Color", 'border_rgba', AutoColorOption),
+                ('Width', 'border_width', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
+                ]),
+            ("Tick Marks", [
+                ("Show tick marks", 'ticks', BooleanOption),
+                ('Length', 'tick_length', (FloatOption, {'decimal_places': 1, 'step': 2, 'min': 0})),
+                ('Thickness', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
+            ]),
+        ]
+        scrolling = { x[0]: False for x in options_data }
+        scrolling = { }
+        self._options = {}
+        options = CategorizedOptionsPanel(option_sorting=False, category_scrolled=scrolling)
+        for cat, opt_info in options_data:
+            for label, attr_name, opt_class in opt_info:
+                if isinstance(opt_class, tuple):
+                    opt_class, kw = opt_class
+                else:
+                    kw = {}
+                opt = opt_class(label, getattr(self.key, attr_name), self._opt_cb, attr_name=attr_name, **kw)
+                self._options[attr_name] = opt
+                options.add_option(cat, opt)
+        layout.addWidget(options)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
@@ -140,6 +217,15 @@ class ColorKeyTool(ToolInstance):
         tw.manage(placement=None)
 
     def delete(self):
+        if self._mouse_handler:
+            button = self.mouse_button_button.text()
+            if self._prev_mouse_mode:
+                new_mode = self._prev_mouse_mode.name
+            else:
+                new_mode = 'none'
+            self._self_mm_change = True
+            run(self.session, "ui mousemode %s %s" % (button, StringArg.unparse(new_mode)))
+            self._self_mm_change = False
         for handler in self.handlers:
             handler.remove()
         self.key = None
@@ -151,6 +237,16 @@ class ColorKeyTool(ToolInstance):
         run(self.session, "key " + StringArg.unparse(self.palette_menu_button.text())
             + " " + " ".join([StringArg.unparse(':' + label.text()) for label in reversed(self.labels)]))
 
+    def _colors_changed(self, num_colors):
+        if num_colors > len(self.wells):
+            arg = self._colors_labels_arg() + ' ' + " ".join(["white: "] * (num_colors - len(self.wells)))
+        elif num_colors < len(self.wells):
+            skip = len(self.wells) - num_colors
+            arg = self._colors_labels_arg(wells=self.wells[skip:], labels=self.labels[skip:])
+        else:
+            arg = self._colors_labels_arg()
+        run(self.session, "key " + arg)
+
     def _colors_labels_arg(self, wells=None, labels=None):
         if wells is None:
             wells = self.wells
@@ -160,13 +256,28 @@ class ColorKeyTool(ToolInstance):
             for well, label in reversed(list(zip(wells, labels)))])
 
     def _delete_key(self):
-        from chimerax.core.commands import run
         run(self.session, "key delete")
+
+    def _drag_finished(self, *args):
+        self.pos_x_box.blockSignals(True)
+        self.pos_y_box.blockSignals(True)
+        self.pos_x_box.setValue(self.key.position[0])
+        self.pos_y_box.setValue(self.key.position[1])
+        self.pos_x_box.blockSignals(False)
+        self.pos_y_box.blockSignals(False)
+        self.size_w_box.blockSignals(True)
+        self.size_h_box.blockSignals(True)
+        self.size_w_box.setValue(self.key.size[0])
+        self.size_h_box.setValue(self.key.size[1])
+        self.size_w_box.blockSignals(False)
+        self.size_h_box.blockSignals(False)
 
     def _key_changed(self, trig_name, what_changed):
         if what_changed == "rgbas_and_labels":
             self._update_colors_layout()
         elif what_changed == "position":
+            if _mouse_mode.mouse_down_position:
+                return
             self.pos_x_box.blockSignals(True)
             self.pos_y_box.blockSignals(True)
             self.pos_x_box.setValue(self.key.position[0])
@@ -174,15 +285,68 @@ class ColorKeyTool(ToolInstance):
             self.pos_x_box.blockSignals(False)
             self.pos_y_box.blockSignals(False)
         elif what_changed == "size":
+            if _mouse_mode.mouse_down_position:
+                return
             self.size_w_box.blockSignals(True)
             self.size_h_box.blockSignals(True)
             self.size_w_box.setValue(self.key.size[0])
             self.size_h_box.setValue(self.key.size[1])
             self.size_w_box.blockSignals(False)
             self.size_h_box.blockSignals(False)
+        elif what_changed in self._options:
+            self._options[what_changed].value = getattr(self.key, what_changed)
 
     def _key_closed(self, *args):
         self.delete()
+
+    def _mm_changed(self, trig_name, data):
+        if self._self_mm_change:
+            return
+        button, modifiers, mode = data
+        key_button = self.mouse_button_button.text()
+        if button != key_button or modifiers:
+            return
+        self.mouse_on_button.setChecked(False)
+        self._prev_mouse_mode = None
+        self.handlers.remove(self._mouse_handler)
+        self._mouse_handler.remove()
+        self._mouse_handler = None
+
+    def _mouse_button_changed(self, action):
+        old_button = self.mouse_button_button.text()
+        new_button = action.text()
+        self.mouse_button_button.setText(new_button)
+        if self._mouse_handler:
+            if self._prev_mouse_mode:
+                restore_mode = self._prev_mouse_mode.name
+            else:
+                restore_mode = 'none'
+            mm = self.session.ui.mouse_modes
+            self._prev_mouse_mode = mm.mode(button=new_button)
+            self._self_mm_change = True
+            run(self.session, "ui mousemode %s %s" % (old_button, StringArg.unparse(restore_mode)))
+            run(self.session, "ui mousemode %s 'color key'" % new_button)
+            self._self_mm_change = False
+
+    def _mouse_on_changed(self, mouse_on):
+        button = self.mouse_button_button.text()
+        if mouse_on:
+            self._prev_mouse_mode = self.session.ui.mouse_modes.mode(button=button)
+            new_mode = 'color key'
+            self._mouse_handler = self.session.triggers.add_handler('set mouse mode', self._mm_changed)
+            self.handlers.append(self._mouse_handler)
+        else:
+            if self._prev_mouse_mode:
+                new_mode = self._prev_mouse_mode.name
+            else:
+                new_mode = 'none'
+            self._prev_mouse_mode = None
+            self.handlers.remove(self._mouse_handler)
+            self._mouse_handler.remove()
+            self._mouse_handler = None
+        self._self_mm_change = True
+        run(self.session, "ui mousemode %s %s" % (button, StringArg.unparse(new_mode)))
+        self._self_mm_change = False
 
     def _new_key_data(self, *args):
         run(self.session, "key " + self._colors_labels_arg())
@@ -193,15 +357,21 @@ class ColorKeyTool(ToolInstance):
     def _new_key_size(self):
         run(self.session, "key size %s,%s" % (self.size_w_box.cleanText(), self.size_h_box.cleanText()))
 
-    def _colors_changed(self, num_colors):
-        if num_colors > len(self.wells):
-            arg = self._colors_labels_arg() + ' ' + " ".join(["white: "] * (num_colors - len(self.wells)))
-        elif num_colors < len(self.wells):
-            skip = len(self.wells) - num_colors
-            arg = self._colors_labels_arg(wells=self.wells[skip:], labels=self.labels[skip:])
+    def _opt_cb(self, opt):
+        attr_name = opt.attr_name
+        if attr_name.endswith('rgba'):
+            attr_name = attr_name[:-4] + 'color'
+            val = opt.value
+            if val is None:
+                val = auto_color_strings[0]
+            else:
+                from chimerax.core.colors import color_name
+                val = color_name(opt.value)
+        elif attr_name == 'font':
+            val = StringArg.unparse(opt.value)
         else:
-            arg = self._colors_labels_arg()
-        run(self.session, "key " + arg)
+            val = str(opt.value).split()[0]
+        run(self.session, "key %s %s" % (camel_case(attr_name), val))
 
     def _reverse_data(self, *args):
         run(self.session, "key " + self._colors_labels_arg(wells=reversed(self.wells),

@@ -505,7 +505,7 @@ class ColorKeyModel(Model):
         font = QFont(self.font, self.font_size * self._texture_pixel_scale,
             (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
-        font_height = fm.ascent()
+        top_label_y_offset = font_height = fm.ascent()
         font_descender = fm.descent()
         # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
         # horizontally across the full width
@@ -555,7 +555,7 @@ class ColorKeyModel(Model):
                         label_height = font_height
                         break
                 else:
-                    label_height = font_height * 2/3
+                    label_height = top_label_y_offset = font_height * 2/3
                 extra = label_height + label_offset
             decimal_widths = [(None, None)] * len(labels)
         if self._label_side == self.LS_LEFT_TOP:
@@ -683,7 +683,7 @@ class ColorKeyModel(Model):
                     y = pixels[1] - end_offset[1] - pos + label_height / 2
                 else:
                     if self._label_side == self.LS_LEFT_TOP:
-                        y = font_height
+                        y = top_label_y_offset
                     else:
                         y = pixels[1] - font_descender
                     x = start_offset[0] + pos - (rect.width() - rect.x())/2

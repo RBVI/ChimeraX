@@ -781,7 +781,7 @@ def hex_color(rgba8):
     return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % tuple(rgba8))
 
 def rgba_to_rgba8(rgba):
-    return tuple(int(255 * r) for r in rgba)
+    return tuple(int(255 * r + 0.5) for r in rgba)
 
 
 def rgba8_to_rgba(rgba):

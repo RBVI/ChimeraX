@@ -15,21 +15,22 @@ from chimerax.mouse_modes import MouseMode
 
 class ColorKeyMouseMode(MouseMode):
     name = 'color key'
-    #icon_file = 'bondrot.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('drag finished')
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        self.window_mouse_down = [e/w for e, w in zip(self.mouse_down_position,
-            self.session.main_view.window_size)]
+        self.window_mouse_down = self._mouse_xy_to_window(self.mouse_down_position)
         self._start_or_grab_key()
 
     def mouse_drag(self, event):
         pos, size = self._key_position_size(event)
         from .model import get_model
-        key = get_model()
+        key = get_model(self.session)
         key.position = pos
         if size is not None:
             key.size = size
@@ -40,15 +41,17 @@ class ColorKeyMouseMode(MouseMode):
         cmd = "key pos %g,%g" % pos
         if size is not None:
             cmd += " size %g,%g" % size
-        from chimera.core.commands import run
+        from chimerax.core.commands import run
         run(self.session, cmd)
+        self.triggers.activate_trigger('drag finished', None)
 
     def _key_position_size(self, event):
-        dx, dy = [e/w for e, w in zip(self.mouse_motion(event), self.session.main_view.window_size)]
+        from .model import get_model
+        key = get_model(self.session)
+        ex, ey = self._mouse_xy_to_window(event.position())
+        dx, dy = [(epos - startpos) for epos, startpos in zip((ex, ey), self.window_mouse_down)]
         if self.grab:
-            return (self.window_mouse_down[0] + dx, self.window_mouse_down[1] + dy), None
-        if dx == 0 or dy == 0:
-            return
+            return (self.grab_key_pos[0] + dx, self.grab_key_pos[1] + dy), None
         if dx < 0:
             key_x = self.window_mouse_down[0] + dx
             size_x = -dx
@@ -61,17 +64,23 @@ class ColorKeyMouseMode(MouseMode):
         else:
             key_y = self.window_mouse_down[1]
             size_y = dy
+        if dx == 0 or dy == 0:
+            return (key_x, key_y), None
         return (key_x, key_y), (size_x, size_y)
+
+    def _mouse_xy_to_window(self, xy):
+        # Y axis inverted
+        ws = self.session.main_view.window_size
+        return (xy[0] / ws[0], 1 - (xy[1] / ws[1]))
 
     def _start_or_grab_key(self):
         from .model import get_model
-        key_exists = get_model(create=False) is not None
-        key = get_model()
+        key_exists = get_model(self.session, create=False) is not None
+        key = get_model(self.session)
         if key_exists:
             # check for grab; see if in middle thrid of long side...
-            p1, p2 = key.position
-            x1, y1 = p1
-            x2, x2 = p2
+            x1, y1 = key.position
+            x2, y2 = x1 + key.size[0], y1 + key.size[1]
             if abs(x2 - x1) < abs(y2 - y1):
                 long_axis = 1
                 ymin = min(y2, y1)
@@ -92,9 +101,10 @@ class ColorKeyMouseMode(MouseMode):
             and o1 < self.window_mouse_down[1-long_axis] < o2:
                 # grab
                 self.grab = True
+                self.grab_key_pos = key.position
                 return
         self.grab = False
         key.position = self.window_mouse_down
-        key.size = (1,1)
+        key.size = [1 / ws for ws in self.session.main_view.window_size]
         self.session.logger.status("Grab middle of key to reposition", color="blue")
 
