@@ -348,7 +348,6 @@ class MouseModes:
         Modifiers is a list 0 or more of 'alt', 'command', 'control', 'shift'.
         Mode is a MouseMode instance.
         '''
-        prev_mode = self.mode(button=button, modifiers=modifiers, exact=True)
         self.remove_binding(button, modifiers)
         if mode is not None:
             from .std_modes import NullMouseMode
@@ -359,7 +358,7 @@ class MouseModes:
             else:
                 # make handling trigger simpler
                 mode = None
-        self.session.triggers.activate_trigger("set mouse mode", (button, modifiers, prev_mode, mode))
+        self.session.triggers.activate_trigger("set mouse mode", (button, modifiers, mode))
 
     def _bind_trackpad_mode(self, action, modifiers, mode):
         '''
