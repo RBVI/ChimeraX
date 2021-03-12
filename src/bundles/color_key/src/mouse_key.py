@@ -64,8 +64,6 @@ class ColorKeyMouseMode(MouseMode):
         else:
             key_y = self.window_mouse_down[1]
             size_y = dy
-        if dx == 0 or dy == 0:
-            return (key_x, key_y), None
         return (key_x, key_y), (size_x, size_y)
 
     def _mouse_xy_to_window(self, xy):

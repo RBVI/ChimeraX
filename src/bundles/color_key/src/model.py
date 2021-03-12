@@ -54,6 +54,7 @@ class ColorKeyModel(Model):
         self._texture_pixel_scale = 1
         self._aspect = 1
         self.needs_update = True
+        self._small_key = False
 
         self.triggers.add_trigger("key changed")
         self.triggers.add_trigger("key closed")
@@ -94,9 +95,9 @@ class ColorKeyModel(Model):
         _model = None
 
     def draw(self, renderer, draw_pass):
-        if self._position is None:
-            return
         self._update_graphics(renderer)
+        if self._small_key:
+            return
         super().draw(renderer, draw_pass)
 
     @property
@@ -452,10 +453,7 @@ class ColorKeyModel(Model):
 
     def _update_key_image(self):
         rgba = self._key_image_rgba()
-        if rgba is None:
-            self.session.logger.info("Can't find font for color key labels")
-        else:
-            self._set_key_image(rgba)
+        self._set_key_image(rgba)
 
     def _key_image_rgba(self):
         key_w, key_h = self._size
@@ -473,6 +471,12 @@ class ColorKeyModel(Model):
         else:
             layout = "vertical"
             long_index = 1
+        rgbas, labels = zip(*self._rgbas_and_labels)
+        if rect_pixels[long_index] < len(rgbas):
+            # Don't draw tiny keys
+            self._small_key = True
+            return None
+        self._small_key = False
         rect_positions = self._rect_positions(pixels[long_index])
 
         if self._color_treatment == self.CT_BLENDED:
@@ -481,7 +485,6 @@ class ColorKeyModel(Model):
             label_positions = [(rect_positions[i] + rect_positions[i+1])/2
                 for i in range(len(rect_positions)-1)]
 
-        rgbas, labels = zip(*self._rgbas_and_labels)
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
         if layout == "vertical":
@@ -759,7 +762,7 @@ class ColorKeyModel(Model):
         return rect_positions
 
     def _set_key_image(self, rgba):
-        if self._position is None:
+        if self._small_key:
             return
         key_x, key_y = self._position
         # adjust to the corner of the key itself, excluding labels etc.
@@ -769,7 +772,6 @@ class ColorKeyModel(Model):
         x, y = (-1 + 2*key_x, -1 + 2*key_y)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
         th, tw = rgba.shape[:2]
-        self._texture_size = (tw, th)
         uw, uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque=False)

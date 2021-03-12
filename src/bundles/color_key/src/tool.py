@@ -208,7 +208,7 @@ class ColorKeyTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
-        delete_button = bbox.addButton("Delete", qbbox.DestructiveRole)
+        delete_button = bbox.addButton("Delete/Close", qbbox.DestructiveRole)
         delete_button.clicked.connect(self._delete_key)
         #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         bbox.button(qbbox.Help).setEnabled(False)
