@@ -92,6 +92,22 @@ def key_delete_cmd(session):
     if key is not None:
         key.delete()
 
+def show_key(session, color_map, *, show_tool=True):
+    from chimerax.core.commands import run, StringArg
+    from chimerax.core.colors import BuiltinColormaps, color_name, rgba_to_rgba8
+    if color_map.name in BuiltinColormaps:
+        key_arg = "%s :%g" % (StringArg.unparse(color_map.name), color_map.data_values[0]) \
+            + ''.join([" :"] * (len(color_map.colors)-2)) \
+            + " :%g" % color_map.data_values[-1]
+    else:
+        vals = ["%g" % color_map.data_values[0]] + [''] * (len(color_map.colors)-2) + [
+            "%g" % color_map.data_values[-1]]
+        key_arg =  " ".join(["%s:%s" % (color_name(rgba_to_rgba8(c)), v)
+            for c,v in zip(color_map.colors, vals)])
+    run(session, "key " + key_arg)
+    if show_tool and session.ui.is_gui and not session.in_script:
+        run(session,"ui tool show 'Color Key'")
+
 from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token, \
     ColormapArg, Or
 class ColorLabelPairArg(Annotation):

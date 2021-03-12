@@ -16,7 +16,7 @@ from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QScrollArea
 from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run, StringArg, camel_case
-from chimerax.core.colors import hex_color
+from chimerax.core.colors import color_name
 from .cmd import auto_color_strings
 
 _mouse_mode = None
@@ -244,8 +244,6 @@ class ColorKeyTool(ToolInstance):
         super().delete()
 
     def _apply_palette(self):
-        print("sending command:", "key " + StringArg.unparse(self.palette_menu_button.text())
-            + " " + " ".join([StringArg.unparse(':' + label.text()) for label in reversed(self.labels)]))
         run(self.session, "key " + StringArg.unparse(self.palette_menu_button.text())
             + " " + " ".join([StringArg.unparse(':' + label.text()) for label in reversed(self.labels)]))
 
@@ -267,7 +265,7 @@ class ColorKeyTool(ToolInstance):
             wells = self.wells
         if labels is None:
             labels = self.labels
-        return " ".join([StringArg.unparse("%s:%s" % (hex_color(well.color), label.text()))
+        return " ".join([StringArg.unparse("%s:%s" % (color_name(well.color), label.text()))
             for well, label in reversed(list(zip(wells, labels)))])
 
     def _delete_key(self):
