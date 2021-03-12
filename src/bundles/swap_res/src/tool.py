@@ -222,7 +222,7 @@ class RotamerDialog(ToolInstance):
             auto_multiline_headers=False)
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
-        self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
+        self.table.add_column("Prevalence", "rotamer_prob", format="%.6f ")
 
         if table_info:
             table_state, additional_col_info = table_info

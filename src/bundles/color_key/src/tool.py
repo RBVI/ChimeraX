@@ -78,8 +78,8 @@ class ColorKeyTool(ToolInstance):
         palette_layout.addWidget(QLabel("palette"))
         self.palette_menu_button = QPushButton()
         self.palette_menu = QMenu()
-        self.palette_menu.triggered.connect(lambda act, *, but=self.palette_menu_button:
-            but.setText(act.text()))
+        self.palette_menu.triggered.connect(lambda act, *, mbut=self.palette_menu_button,
+            abut=self.palette_button: (mbut.setText(act.text()),abut.setEnabled(True)))
         self.palette_menu_button.setMenu(self.palette_menu)
         palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft, stretch=1)
         layout.addLayout(palette_layout)
@@ -377,6 +377,20 @@ class ColorKeyTool(ToolInstance):
         run(self.session, "key " + self._colors_labels_arg(wells=reversed(self.wells),
             labels=reversed(self.labels)))
 
+    def _set_palette_name(self, rgbas):
+        from chimerax.core.colors import BuiltinColormaps
+        for name, cm in BuiltinColormaps.items():
+            # idiotic comparison due to numpy...
+            if palette_equal(cm.colors, rgbas):
+                palette_name = name
+                enabled = True
+                break
+        else:
+            palette_name = "custom"
+            enabled = False
+        self.palette_menu_button.setText(palette_name)
+        self.palette_button.setEnabled(enabled)
+
     def _update_colors_layout(self):
         rgbas_and_labels = self.key.rgbas_and_labels
         num_colors = len(rgbas_and_labels)
@@ -430,6 +444,7 @@ class ColorKeyTool(ToolInstance):
             rgba, text = rgbas_and_labels[i]
             self.wells[num_colors - 1 - i].color = [int(255.0 * x + 0.5) for x in rgba]
             self.labels[num_colors - 1 - i].setText("" if text is None else text)
+        self._set_palette_name([rgba for rgba, text in rgbas_and_labels])
 
     def _update_palette_menu(self, num_colors):
         from chimerax.core.colors import BuiltinColormaps
@@ -449,4 +464,17 @@ class ColorKeyTool(ToolInstance):
             self.palette_menu_button.setEnabled(False)
             self.palette_menu_button.setText("No %d-color palettes known" % num_colors)
 
-
+def palette_equal(p1, p2):
+    if len(p1) != len(p2):
+        return False
+    tolerance = 1 / 512
+    def len4(c):
+        if len(c) == 4:
+            return c
+        else:
+            return [x for x in c] + [1.0]
+    for c1, c2 in zip(p1, p2):
+        for v1, v2 in zip(len4(c1), len4(c2)):
+            if abs(v1 - v2) > tolerance:
+                return False
+    return True
