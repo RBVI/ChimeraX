@@ -54,12 +54,10 @@ class ColorKeyModel(Model):
         self._texture_pixel_scale = 1
         self._aspect = 1
         self.needs_update = True
+        self._small_key = False
 
-        from chimerax.core.triggerset import TriggerSet
-        self.key_triggers = TriggerSet()
-        #TODO: actually fire these appropriately
-        self.key_triggers.add_trigger("changed")
-        self.key_triggers.add_trigger("closed")
+        self.triggers.add_trigger("key changed")
+        self.triggers.add_trigger("key closed")
 
         self._position = (0.7, 0.08)
         self._size = (0.25, 0.05)
@@ -91,15 +89,15 @@ class ColorKeyModel(Model):
             from chimerax.core.core_settings import settings
             settings.triggers.remove_handler(self._background_handler)
         self.session.main_view.remove_overlays([self], delete = False)
-        self.key_triggers.activate_trigger("closed", None)
+        self.triggers.activate_trigger("key closed", None)
         super().delete()
         global _model
         _model = None
 
     def draw(self, renderer, draw_pass):
-        if self._position is None:
-            return
         self._update_graphics(renderer)
+        if self._small_key:
+            return
         super().draw(renderer, draw_pass)
 
     @property
@@ -113,6 +111,7 @@ class ColorKeyModel(Model):
         self._bold = bold
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "bold")
 
     @property
     def border(self):
@@ -125,6 +124,7 @@ class ColorKeyModel(Model):
         self._border = border
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "border")
 
     @property
     def border_rgba(self):
@@ -140,6 +140,7 @@ class ColorKeyModel(Model):
         self.needs_update = True
         self.redraw_needed()
         self._update_background_handler()
+        self.triggers.activate_trigger("key changed", "border_rgba")
 
     @property
     def border_width(self):
@@ -152,6 +153,7 @@ class ColorKeyModel(Model):
         self._border_width = border_width
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "border_width")
 
     @property
     def color_treatment(self):
@@ -164,6 +166,7 @@ class ColorKeyModel(Model):
         self._color_treatment = ct
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "color_treatment")
 
     @property
     def font(self):
@@ -176,6 +179,7 @@ class ColorKeyModel(Model):
         self._font = font
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "font")
 
     @property
     def font_size(self):
@@ -188,6 +192,7 @@ class ColorKeyModel(Model):
         self._font_size = font_size
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "font_size")
 
     @property
     def italic(self):
@@ -200,6 +205,7 @@ class ColorKeyModel(Model):
         self._italic = italic
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "italic")
 
     @property
     def justification(self):
@@ -214,6 +220,7 @@ class ColorKeyModel(Model):
         self._justification = just
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "justification")
 
     @property
     def label_offset(self):
@@ -227,6 +234,7 @@ class ColorKeyModel(Model):
         self._label_offset = offset
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "label_offset")
 
     @property
     def label_rgba(self):
@@ -242,6 +250,7 @@ class ColorKeyModel(Model):
         self.needs_update = True
         self.redraw_needed()
         self._update_background_handler()
+        self.triggers.activate_trigger("key changed", "label_rgba")
 
     @property
     def label_side(self):
@@ -254,6 +263,7 @@ class ColorKeyModel(Model):
         self._label_side = side
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "label_side")
 
     @property
     def numeric_label_spacing(self):
@@ -268,6 +278,7 @@ class ColorKeyModel(Model):
         self._numeric_label_spacing = spacing
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "numeric_label_spacing")
 
     @property
     def position(self):
@@ -280,6 +291,7 @@ class ColorKeyModel(Model):
         self._position = llxy
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "position")
 
     @property
     def rgbas_and_labels(self):
@@ -291,6 +303,7 @@ class ColorKeyModel(Model):
         self._rgbas_and_labels = r_l
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
     def single_color(self):
@@ -311,6 +324,7 @@ class ColorKeyModel(Model):
         self._size = size
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "size")
 
     @property
     def ticks(self):
@@ -323,6 +337,7 @@ class ColorKeyModel(Model):
         self._ticks = ticks
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "ticks")
 
     @property
     def tick_length(self):
@@ -335,6 +350,7 @@ class ColorKeyModel(Model):
         self._tick_length = tick_length
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "tick_length")
 
     @property
     def tick_thickness(self):
@@ -347,6 +363,7 @@ class ColorKeyModel(Model):
         self._tick_thickness = tick_thickness
         self.needs_update = True
         self.redraw_needed()
+        self.triggers.activate_trigger("key changed", "tick_thickness")
 
     session_attrs = [
             "_bold",
@@ -436,10 +453,7 @@ class ColorKeyModel(Model):
 
     def _update_key_image(self):
         rgba = self._key_image_rgba()
-        if rgba is None:
-            self.session.logger.info("Can't find font for color key labels")
-        else:
-            self._set_key_image(rgba)
+        self._set_key_image(rgba)
 
     def _key_image_rgba(self):
         key_w, key_h = self._size
@@ -457,6 +471,12 @@ class ColorKeyModel(Model):
         else:
             layout = "vertical"
             long_index = 1
+        rgbas, labels = zip(*self._rgbas_and_labels)
+        if rect_pixels[long_index] < len(rgbas):
+            # Don't draw tiny keys
+            self._small_key = True
+            return None
+        self._small_key = False
         rect_positions = self._rect_positions(pixels[long_index])
 
         if self._color_treatment == self.CT_BLENDED:
@@ -465,7 +485,6 @@ class ColorKeyModel(Model):
             label_positions = [(rect_positions[i] + rect_positions[i+1])/2
                 for i in range(len(rect_positions)-1)]
 
-        rgbas, labels = zip(*self._rgbas_and_labels)
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
         if layout == "vertical":
@@ -489,7 +508,7 @@ class ColorKeyModel(Model):
         font = QFont(self.font, self.font_size * self._texture_pixel_scale,
             (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
-        font_height = fm.ascent()
+        top_label_y_offset = font_height = fm.ascent()
         font_descender = fm.descent()
         # text is centered vertically from 0 to height (i.e. ignore descender) whereas it is centered
         # horizontally across the full width
@@ -539,7 +558,7 @@ class ColorKeyModel(Model):
                         label_height = font_height
                         break
                 else:
-                    label_height = font_height * 2/3
+                    label_height = top_label_y_offset = font_height * 2/3
                 extra = label_height + label_offset
             decimal_widths = [(None, None)] * len(labels)
         if self._label_side == self.LS_LEFT_TOP:
@@ -667,7 +686,7 @@ class ColorKeyModel(Model):
                     y = pixels[1] - end_offset[1] - pos + label_height / 2
                 else:
                     if self._label_side == self.LS_LEFT_TOP:
-                        y = font_height
+                        y = top_label_y_offset
                     else:
                         y = pixels[1] - font_descender
                     x = start_offset[0] + pos - (rect.width() - rect.x())/2
@@ -743,7 +762,7 @@ class ColorKeyModel(Model):
         return rect_positions
 
     def _set_key_image(self, rgba):
-        if self._position is None:
+        if self._small_key:
             return
         key_x, key_y = self._position
         # adjust to the corner of the key itself, excluding labels etc.
@@ -753,7 +772,6 @@ class ColorKeyModel(Model):
         x, y = (-1 + 2*key_x, -1 + 2*key_y)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
         th, tw = rgba.shape[:2]
-        self._texture_size = (tw, th)
         uw, uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque=False)

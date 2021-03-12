@@ -461,6 +461,17 @@ class FloatEnumOption(EnumBase):
         layout.addWidget(self._enum)
         self.widget.setLayout(layout)
 
+class FontOption(EnumOption):
+    # setting 'values' delayed until (first) constructor, so avoid the expense of querying the font database
+    # until someone actually uses this option
+    values = None
+    def __init__(self, *args, **kw):
+        if self.values is None:
+            from Qt.QtGui import QFontDatabase
+            fdb = QFontDatabase()
+            self.values = sorted(list(fdb.families()))
+            super().__init__(*args, **kw)
+
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
 
@@ -588,6 +599,8 @@ class ColorOption(RGBA8Option):
 
     value = property(get_value, RGBA8Option.set_value)
 
+OptionalColorOption = make_optional(ColorOption)
+OptionalColorOption.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 OptionalRGBA8Option = make_optional(RGBA8Option)
 OptionalRGBA8Option.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 

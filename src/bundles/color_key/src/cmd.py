@@ -162,7 +162,7 @@ class RepeatableOr(Or):
     allow_repeat = True
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
+    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, BoolArg, \
         PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias, NonNegativeFloatArg
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
@@ -182,7 +182,7 @@ def register_command(logger):
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
-            ('size', TupleOf(PositiveFloatArg,2)),
+            ('size', TupleOf(NonNegativeFloatArg,2)),
             ('ticks', BoolArg),
             ('tick_length', NonNegativeFloatArg),
             ('tick_thickness', NonNegativeFloatArg),
