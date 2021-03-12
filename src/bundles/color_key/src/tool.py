@@ -63,25 +63,34 @@ class ColorKeyTool(ToolInstance):
 
         reverse_layout = QHBoxLayout()
         reverse_layout.setSpacing(2)
+        reverse_layout.addStretch(1)
         rev_but = QPushButton("Reverse")
         rev_but.clicked.connect(self._reverse_data)
         reverse_layout.addWidget(rev_but, alignment=Qt.AlignRight)
         reverse_layout.addWidget(QLabel("the above"), alignment=Qt.AlignLeft)
+        reverse_layout.addStretch(1)
+        self.blend_colors_box = QCheckBox("Blend colors")
+        self.blend_colors_box.setChecked(key.color_treatment == key.CT_BLENDED)
+        self.blend_colors_box.clicked.connect(self._color_treatment_changed)
+        reverse_layout.addWidget(self.blend_colors_box)
+        reverse_layout.addStretch(1)
         layout.addLayout(reverse_layout)
 
         palette_layout = QHBoxLayout()
         palette_layout.setSpacing(2)
         palette_layout.setContentsMargins(1,1,1,1)
+        palette_layout.addStretch(1)
         self.palette_button = QPushButton("Apply")
         self.palette_button.clicked.connect(self._apply_palette)
-        palette_layout.addWidget(self.palette_button, alignment=Qt.AlignRight, stretch=1)
+        palette_layout.addWidget(self.palette_button, alignment=Qt.AlignRight)
         palette_layout.addWidget(QLabel("palette"))
         self.palette_menu_button = QPushButton()
         self.palette_menu = QMenu()
         self.palette_menu.triggered.connect(lambda act, *, mbut=self.palette_menu_button,
             abut=self.palette_button: (mbut.setText(act.text()),abut.setEnabled(True)))
         self.palette_menu_button.setMenu(self.palette_menu)
-        palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft, stretch=1)
+        palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft)
+        palette_layout.addStretch(1)
         layout.addLayout(palette_layout)
         self._update_colors_layout() # which also updates palette menu
 
@@ -101,9 +110,10 @@ class ColorKeyTool(ToolInstance):
                 self.setSingleStep(0.01)
 
         position_layout = QHBoxLayout()
+        position_layout.addStretch(1)
         pos_label = QLabel("Position: x")
         pos_label.setToolTip("Position of lower left corner of the colored part of the key")
-        position_layout.addWidget(pos_label, alignment=Qt.AlignRight, stretch=1)
+        position_layout.addWidget(pos_label, alignment=Qt.AlignRight)
         self.pos_x_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
         self.pos_x_box.setValue(self.key.position[0])
         self.pos_x_box.valueChanged.connect(self._new_key_position)
@@ -112,29 +122,33 @@ class ColorKeyTool(ToolInstance):
         self.pos_y_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
         self.pos_y_box.setValue(self.key.position[1])
         self.pos_y_box.valueChanged.connect(self._new_key_position)
-        position_layout.addWidget(self.pos_y_box, alignment=Qt.AlignLeft, stretch=1)
+        position_layout.addWidget(self.pos_y_box, alignment=Qt.AlignLeft)
+        position_layout.addStretch(1)
         layout.addLayout(position_layout)
 
-        position_layout = QHBoxLayout()
+        size_layout = QHBoxLayout()
+        size_layout.addStretch(1)
         pos_label = QLabel("Size: width")
         pos_label.setToolTip("Size of the colored part of they key, from 0-1 (fraction of screen size)")
-        position_layout.addWidget(pos_label, alignment=Qt.AlignRight, stretch=1)
+        size_layout.addWidget(pos_label, alignment=Qt.AlignRight)
         self.size_w_box = ScreenFloatSpinBox()
         self.size_w_box.setValue(self.key.size[0])
         self.size_w_box.valueChanged.connect(self._new_key_size)
-        position_layout.addWidget(self.size_w_box)
-        position_layout.addWidget(QLabel(" height"))
+        size_layout.addWidget(self.size_w_box)
+        size_layout.addWidget(QLabel(" height"))
         self.size_h_box = ScreenFloatSpinBox()
         self.size_h_box.setValue(self.key.size[1])
         self.size_h_box.valueChanged.connect(self._new_key_size)
-        position_layout.addWidget(self.size_h_box, alignment=Qt.AlignLeft, stretch=1)
-        layout.addLayout(position_layout)
+        size_layout.addWidget(self.size_h_box, alignment=Qt.AlignLeft)
+        size_layout.addStretch(1)
+        layout.addLayout(size_layout)
 
         mouse_layout = QHBoxLayout()
+        mouse_layout.addStretch(1)
         self.mouse_on_button = QCheckBox("Adjust key with")
         self.mouse_on_button.setChecked(True)
         self.mouse_on_button.clicked.connect(self._mouse_on_changed)
-        mouse_layout.addWidget(self.mouse_on_button, alignment=Qt.AlignRight, stretch=1)
+        mouse_layout.addWidget(self.mouse_on_button, alignment=Qt.AlignRight)
         self.mouse_button_button = QPushButton("left")
         menu = QMenu()
         for but in ["left", "middle", "right"]:
@@ -142,14 +156,13 @@ class ColorKeyTool(ToolInstance):
         menu.triggered.connect(self._mouse_button_changed)
         self.mouse_button_button.setMenu(menu)
         mouse_layout.addWidget(self.mouse_button_button)
-        mouse_layout.addWidget(QLabel("mouse button"), alignment=Qt.AlignLeft, stretch=1)
+        mouse_layout.addWidget(QLabel("mouse button"), alignment=Qt.AlignLeft)
         self._mouse_on_changed(True)
+        mouse_layout.addStretch(1)
         layout.addLayout(mouse_layout)
 
         from chimerax.ui.options import CategorizedOptionsPanel, EnumOption, OptionalColorOption, \
             FloatOption, IntOption, BooleanOption, FontOption
-        class ColorTransitionOption(EnumOption):
-            values = self.key.color_treatments
         class LabelSideOption(EnumOption):
             values = self.key.label_sides
         class AutoColorOption(OptionalColorOption):
@@ -178,7 +191,6 @@ class ColorKeyTool(ToolInstance):
                 ('Italic', 'italic', BooleanOption),
                 ('Font', 'font', FontOption),
                 ]),
-            ("Coloring", [('Color range depiction', 'color_treatment', ColorTransitionOption)]),
             ("Border", [
                 ("Show border", 'border', BooleanOption),
                 ("Color", 'border_rgba', AutoColorOption),
@@ -237,6 +249,9 @@ class ColorKeyTool(ToolInstance):
         run(self.session, "key " + StringArg.unparse(self.palette_menu_button.text())
             + " " + " ".join([StringArg.unparse(':' + label.text()) for label in reversed(self.labels)]))
 
+    def _color_treatment_changed(self, blend):
+        run(self.session, "key colorTreatment " + (self.key.CT_BLENDED if blend else self.key.CT_DISTINCT))
+
     def _colors_changed(self, num_colors):
         if num_colors > len(self.wells):
             arg = self._colors_labels_arg() + ' ' + " ".join(["white: "] * (num_colors - len(self.wells)))
@@ -293,6 +308,8 @@ class ColorKeyTool(ToolInstance):
             self.size_h_box.setValue(self.key.size[1])
             self.size_w_box.blockSignals(False)
             self.size_h_box.blockSignals(False)
+        elif what_changed == "color_treatment":
+            self.blend_colors_box.setChecked(self.key.color_treatment == self.key.CT_BLENDED)
         elif what_changed in self._options:
             self._options[what_changed].value = getattr(self.key, what_changed)
 
