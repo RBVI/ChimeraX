@@ -16,7 +16,7 @@ from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QScrollArea
 from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run, StringArg, camel_case
-from chimerax.core.colors import color_name
+from chimerax.core.colors import color_name, rgba8_to_rgba
 from .cmd import auto_color_strings
 
 _mouse_mode = None
@@ -265,8 +265,15 @@ class ColorKeyTool(ToolInstance):
             wells = self.wells
         if labels is None:
             labels = self.labels
-        return " ".join([StringArg.unparse("%s:%s" % (color_name(well.color), label.text()))
-            for well, label in reversed(list(zip(wells, labels)))])
+        # iterators and reverseiterators are not directly zippable or reverseable
+        wells = list(reversed(list(wells)))
+        labels = list(reversed(list(labels)))
+        palette = palette_name([rgba8_to_rgba(w.color) for w in wells])
+        if palette is None:
+            return " ".join([StringArg.unparse("%s:%s" % (color_name(well.color), label.text()))
+                for well, label in zip(wells, labels)])
+        return StringArg.unparse(palette) + ' ' + ' '.join([StringArg.unparse(':' + l.text())
+            for l in labels])
 
     def _delete_key(self):
         run(self.session, "key delete")
@@ -393,17 +400,13 @@ class ColorKeyTool(ToolInstance):
             labels=reversed(self.labels)))
 
     def _set_palette_name(self, rgbas):
-        from chimerax.core.colors import BuiltinColormaps
-        for name, cm in BuiltinColormaps.items():
-            # idiotic comparison due to numpy...
-            if palette_equal(cm.colors, rgbas):
-                palette_name = name
-                enabled = True
-                break
-        else:
-            palette_name = "custom"
+        palette = palette_name(rgbas)
+        if palette is None:
+            palette = "custom"
             enabled = False
-        self.palette_menu_button.setText(palette_name)
+        else:
+            enabled = True
+        self.palette_menu_button.setText(palette)
         self.palette_button.setEnabled(enabled)
 
     def _update_colors_layout(self):
@@ -493,3 +496,10 @@ def palette_equal(p1, p2):
             if abs(v1 - v2) > tolerance:
                 return False
     return True
+
+def palette_name(rgbas):
+    from chimerax.core.colors import BuiltinColormaps
+    for name, cm in BuiltinColormaps.items():
+        if palette_equal(cm.colors, rgbas):
+            return name
+    return None
