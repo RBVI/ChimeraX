@@ -449,7 +449,21 @@ class Log(ToolInstance, HtmlLog):
     def set_state_from_snapshot(self, session, data):
         super().set_state_from_snapshot(session, data)
         log_data = data['log data']
-        prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (log_data['date'], log_data['contents'], log_data['date'])
+        # don't blindly trust HTML in log_data
+        date = log_data['date']
+        if '<' in date:
+            session.logger.warning("Potentially malicious date found in session file's log data ignored")
+            date = "unknown"
+        from lxml import html
+        contents = log_data['contents']
+        tmp = html.fromstring(contents)
+        script_elements = tmp.findall(".//script")
+        if script_elements:
+            session.logger.warning("Potentially malicious HTML script elements found in session file's log data ignored")
+            for e in reversed(script_elements):
+                e.getparent().remove(e)
+            contents = html.tostring(tmp)
+        prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
         if self.settings.session_restore_clears and session.restore_options['clear log']:
             # "retain" version info
             class FakeLogger:
