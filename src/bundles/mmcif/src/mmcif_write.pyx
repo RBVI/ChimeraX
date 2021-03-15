@@ -1,3 +1,5 @@
+# distutils: language=c++
+#cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -152,15 +154,15 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
 
 ChimeraX_audit_conform = mmcif.CIFTable(
     "audit_conform",
-    (
+    [
         "dict_name",
         "dict_version",
         "dict_location",
-    ), (
+    ], [
         "mmcif_pdbx.dic",
         "4.007",
         "http://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
-    )
+    ]
 )
 
 ChimeraX_audit_syntax_info = {
@@ -308,15 +310,13 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     if not fixed_width:
         audit_syntax_info["fixed_width"] = ""
     tags, data = zip(*audit_syntax_info.items())
-    audit_syntax = mmcif.CIFTable("audit_syntax", tags, data)
+    audit_syntax = mmcif.CIFTable("audit_syntax", tags, list(data))
     audit_syntax.print(file=file, fixed_width=fixed_width)
 
-    from .mmcif import _add_citation, _add_software
-
-    citation, citation_author, citation_editor = _add_citation(
+    citation, citation_author, citation_editor = mmcif._add_citation(
             best_m, ChimeraX_citation_id, ChimeraX_citation_info,
             ChimeraX_authors, metadata=best_metadata, return_existing=True)
-    software = _add_software(
+    software = mmcif._add_software(
             best_m, ChimeraX_software_info['name'], ChimeraX_software_info,
             metadata=best_metadata, return_existing=True)
     citation.print(file, fixed_width=fixed_width)
@@ -589,7 +589,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     atom_site.print(file, fixed_width=fixed_width)
     atom_site_anisotrop_data[:] = flattened(atom_site_anisotrop_data)
     atom_site_anisotrop.print(file, fixed_width=fixed_width)
-    del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
+    # del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop  # not in cython
 
     struct_conn_data = []
     struct_conn = mmcif.CIFTable("struct_conn", [
@@ -760,7 +760,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     struct_conn.print(file, fixed_width=fixed_width)
     # struct_conn_type_data[:] = flattened(struct_conn_type_data)
     struct_conn_type.print(file, fixed_width=fixed_width)
-    del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type
+    # del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type  # not in cython
 
     # struct_conf
     struct_conf_data = []
@@ -901,10 +901,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=fixed_width)
-    del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
+    # del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type  # not in cython
     sheet_range_data[:] = flattened(sheet_range_data)
     sheet_range.print(file, fixed_width=fixed_width)
-    del sheet_range_data, sheet_range
+    # del sheet_range_data, sheet_range  # not in cython
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file, best_metadata)
     _save_metadata(best_m, ['cell', 'symmetry'], file, best_metadata)
