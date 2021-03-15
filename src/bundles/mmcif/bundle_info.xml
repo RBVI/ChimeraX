@@ -33,6 +33,14 @@
     <Library>arrays</Library>
   </CModule>
 
+  <CModule name="mmcif">
+    <SourceFile>src/mmcif.pyx</SourceFile>
+  </CModule>
+
+  <CModule name="mmcif_write">
+    <SourceFile>src/mmcif_write.pyx</SourceFile>
+  </CModule>
+
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
