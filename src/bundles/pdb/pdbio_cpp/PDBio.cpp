@@ -85,11 +85,7 @@ canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
         --i;
         // strip embedded blanks
         if (aname[i] == ' ') {
-            int j = i;
-            do {
-                aname[j] = aname[j+1];
-                ++j;
-            } while (aname[j-1] != '\0');
+            aname.replace(i, 1, "");
             continue;
         }
         // use prime instead of asterisk
