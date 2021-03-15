@@ -610,6 +610,7 @@ start_t = end_t;
                 // make additional CoordSets same size as others
                 int cs_size = as->active_coord_set()->coords().size();
                 if (!explode && csid > as->active_coord_set()->id() + 1) {
+#if 0
                     // fill in coord sets for Monte-Carlo
                     // trajectories
                     const CoordSet *acs = as->active_coord_set();
@@ -617,6 +618,7 @@ start_t = end_t;
                         CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
                         cs->fill(acs);
                     }
+#endif
                 }
                 CoordSet *cs = as->new_coord_set(csid, cs_size);
                 as->set_active_coord_set(cs);
