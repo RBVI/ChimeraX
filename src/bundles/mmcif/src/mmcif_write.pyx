@@ -678,9 +678,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # disulfide bonds
     count = 0
     atoms = best_m.atoms
-    if restrict is not None:
+    if restrict is None:
+        bonds = best_m.bonds
+    else:
         atoms = atoms.intersect(restrict)
-    bonds = best_m.bonds
+        bonds = atoms.bonds.unique()
     has_disulf = False
     covalent = []
     sg = atoms.filter(atoms.names == "SG")
@@ -746,7 +748,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             struct_conn_bond('hydrog', b, a0, a1)
 
     # extra/other covalent bonds
-    # TODO: covalent bonds not in resdiue template
+    # TODO: covalent bonds not in residue template
     count = 0
     if len(covalent) > 0:
         struct_conn_type_data.append('covale')
