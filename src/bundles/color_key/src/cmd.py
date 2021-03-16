@@ -92,6 +92,56 @@ def key_delete_cmd(session):
     if key is not None:
         key.delete()
 
+def palette_equal(p1, p2):
+    if len(p1) != len(p2):
+        return False
+    tolerance = 1 / 512
+    def len4(c):
+        if len(c) == 4:
+            return c
+        else:
+            return [x for x in c] + [1.0]
+    for c1, c2 in zip(p1, p2):
+        for v1, v2 in zip(len4(c1), len4(c2)):
+            if abs(v1 - v2) > tolerance:
+                return False
+    return True
+
+def palette_name(rgbas):
+    from chimerax.core.colors import BuiltinColormaps
+    for name, cm in BuiltinColormaps.items():
+        if palette_equal(cm.colors, rgbas):
+            return name
+    return None
+
+def show_key(session, color_map, *, show_tool=True, show_all_values=False):
+    from chimerax.core.commands import run, StringArg
+    from chimerax.core.colors import color_name, rgba_to_rgba8
+    palette = palette_name(color_map.colors)
+    # if it's a 3-value map symmetric around zero, don't bother labeling zero
+    if show_all_values or len(color_map.data_values) != 3 or color_map.data_values[1] != 0 \
+    or color_map.data_values[0] != -color_map.data_values[2]:
+        # not a symmetric 3-value map
+        if palette is None:
+            key_arg = ' '.join([StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(c)), dv))
+                for c, dv in zip(color_map.colors, color_map.data_values)])
+        else:
+            key_arg = "%s %s" % (StringArg.unparse(palette),
+                " ".join([":%g" % dv for dv in color_map.data_values]))
+    else:
+        # symmetric 3-value map
+        if palette is None:
+            key_arg = StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(color_map.colors[0])),
+                color_map.data_values[0])) + ' ' + StringArg.unparse("%s:" % color_name(rgba_to_rgba8(
+                color_map.colors[1]))) + ' ' + StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(
+                color_map.colors[2])), color_map.data_values[2]))
+        else:
+            key_arg = "%s :%g : :%g" % (StringArg.unparse(palette), color_map.data_values[0],
+                color_map.data_values[2])
+    run(session, "key " + key_arg)
+    if show_tool and session.ui.is_gui and not session.in_script:
+        run(session,"ui tool show 'Color Key'")
+
 from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token, \
     ColormapArg, Or
 class ColorLabelPairArg(Annotation):
@@ -162,7 +212,7 @@ class RepeatableOr(Or):
     allow_repeat = True
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, PositiveFloatArg, BoolArg, \
+    from chimerax.core.commands import CmdDesc, register, Float2Arg, TupleOf, BoolArg, \
         PositiveIntArg, StringArg, EnumOf, FloatArg, Or, create_alias, NonNegativeFloatArg
     from .model import ColorKeyModel
     cmd_desc = CmdDesc(
@@ -182,7 +232,7 @@ def register_command(logger):
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
-            ('size', TupleOf(PositiveFloatArg,2)),
+            ('size', TupleOf(NonNegativeFloatArg,2)),
             ('ticks', BoolArg),
             ('tick_length', NonNegativeFloatArg),
             ('tick_thickness', NonNegativeFloatArg),

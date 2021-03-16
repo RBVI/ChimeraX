@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
+from .cmd import show_key
 
 class _ColorKeyBundle(BundleAPI):
 

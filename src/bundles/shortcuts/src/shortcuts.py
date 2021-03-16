@@ -56,6 +56,13 @@ def standard_shortcuts(session):
     sep = True  # Add menu separator after entry.
 #    from ..files import opensave
 #    from .. import ui
+    def advise_key(func, cmd):
+        def func_plus_tip(session, *, func=func, cmd=cmd):
+            func(cmd + " %s")(session)
+            session.logger.info('<span style="color:blue">To also show corresponding color key,'
+                ' enter the above</span> <b>' + cmd + '</b> <span style="color:blue">command'
+                ' and add</span> <i>key true</i>', is_html=True)
+        return func_plus_tip
     shortcuts = [
         # Sessions
 #        ('op', ui.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
@@ -179,8 +186,8 @@ def standard_shortcuts(session):
 
         ('ms', run_on_atoms('show %s surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
         ('sa', run_on_atoms('measure sasa %s'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
-        ('ep', run_on_atoms('coulombic %s'), 'Color surface by electrostatic potential', molcat, sesarg, mlmenu),
-        ('hp', run_on_atoms('mlp %s'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
+        ('ep', advise_key(run_on_atoms, 'coulombic'), 'Color surface by electrostatic potential', molcat, sesarg, mlmenu),
+        ('hp', advise_key(run_on_atoms, 'mlp'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 

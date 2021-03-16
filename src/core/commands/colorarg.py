@@ -168,6 +168,7 @@ class Color8Arg(ColorArg):
         c, text, rest = ColorArg.parse(text, session)
         return c.uint8x4(), text, rest
 
+
 class Color8TupleArg(ColorArg):
     @staticmethod
     def parse(text, session):
@@ -246,20 +247,16 @@ class ColormapArg(Annotation):
         else:
             ci_token = token.casefold()
             if session is not None:
-                i = session.user_colormaps.bisect_left(ci_token)
-                if i < len(session.user_colormaps):
-                    name = session.user_colormaps.keys()[i]
-                    if name.startswith(ci_token):
-                        consumed = f'^{name}' if reversed else name
-                        cmap = session.user_colormaps[name]
+                name = _name_completion(session.user_colormaps, ci_token)
+                if name:
+                    consumed = f'^{name}' if reversed else name
+                    cmap = session.user_colormaps[name]
             if cmap is None:
                 from ..colors import BuiltinColormaps
-                i = BuiltinColormaps.bisect_left(ci_token)
-                if i < len(BuiltinColormaps):
-                    name = BuiltinColormaps.keys()[i]
-                    if name.startswith(ci_token):
-                        consumed = f'^{name}' if reversed else name
-                        cmap = BuiltinColormaps[name]
+                name = _name_completion(BuiltinColormaps, ci_token)
+                if name:
+                    consumed = f'^{name}' if reversed else name
+                    cmap = BuiltinColormaps[name]
             if cmap is None and session is not None:
                 consumed = f'^{text}' if reversed else text
                 cmap = _fetch_colormap(session, palette_id=token)
@@ -269,11 +266,32 @@ class ColormapArg(Annotation):
         return cmap.reversed() if reversed else cmap, consumed, rest
 
 
+def _name_completion(sorted_dict, prefix, all_possible=False):
+    # find best match(es) for prefix
+    # Use fact that Colors and ColorMaps are subclassed from SortedDict
+    num_names = len(sorted_dict)
+    i = sorted_dict.bisect_left(prefix)
+    if i >= num_names:
+        return None
+    all_names = sorted_dict.keys()
+    if not all_possible:
+        name = all_names[i]
+        if name.startswith(prefix):
+            return name
+        return None
+    matches = []
+    for i in range(i, num_names):
+        name = all_names[i]
+        if not name.startswith(prefix):
+            break
+        matches.append(name)
+    return matches
+
+
 def find_named_color(color_dict, name):
     # handle color names with spaces
     # returns key, value, part of name that was unused
-    num_colors = len(color_dict)
-    if num_colors == 0:
+    if len(color_dict) == 0:
         return None, None, name
     # extract up to 10 words from name
     from . import cli
@@ -324,15 +342,7 @@ def find_named_color(color_dict, name):
         if cur_name:
             cur_name += ' '
         cur_name += words[w][0]
-        i = color_dict.bisect_left(cur_name)
-        if i >= num_colors:
-            break
-        choices = []
-        for i in range(i, num_colors):
-            color_name = color_dict.keys()[i]
-            if not color_name.startswith(cur_name):
-                break
-            choices.append(color_name)
+        choices = _name_completion(color_dict, cur_name, all_possible=True)
         if len(choices) == 0:
             break
         multiword_choices = [(c.split()[w], c) for c in choices if ' ' in c]

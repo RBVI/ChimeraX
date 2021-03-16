@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
-        color=True, palette=None, range=None, surfaces=[], map=False):
+        color=True, palette=None, range=None, surfaces=[], map=False, key=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
@@ -38,6 +38,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         If the color options is true then these surfaces are colored instead of computing surfaces.
     map : bool
         Whether to open a volume model of lipophilicity values
+    key : bool
+        Whether to show a color key
     '''
     if atoms is None:
         from chimerax.atomic import all_atoms
@@ -82,7 +84,12 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     else:
         name = 'mlp map'
         v = mlp_map(session, patoms, method, spacing, max_distance, nexp, name, open_map = map)
-            
+
+    if key:
+        from chimerax.color_key import show_key
+        if not cmap.values_specified:
+            cmap = cmap.linear_range(*range)
+        show_key(session, cmap)
 
 def register_mlp_command(logger):
     from chimerax.core.commands import register, CmdDesc, FloatArg, EnumOf, BoolArg, SurfacesArg
@@ -98,6 +105,7 @@ def register_mlp_command(logger):
                             ('range', ColormapRangeArg),
                             ('surfaces', SurfacesArg),
                             ('map', BoolArg),
+                            ('key', BoolArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')
     register('mlp', desc, mlp, logger=logger)

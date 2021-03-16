@@ -11,11 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255), coordinate_system = None):
+def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255),
+           coordinate_system = None):
 
     mset = _create_marker_set(session, marker_set)
     center = position.scene_coordinates(coordinate_system)
-    m = mset.create_marker(center, color, radius)
+    xyz = mset.scene_position.inverse() * center
+    m = mset.create_marker(xyz, color, radius)
     return m
 
 def _create_marker_set(session, marker_set, name = 'markers'):

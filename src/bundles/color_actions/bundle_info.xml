@@ -27,7 +27,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Color Actions :: General :: color items</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Color Actions :: Depiction :: color items</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

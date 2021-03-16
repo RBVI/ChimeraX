@@ -1,3 +1,5 @@
+# distutils: language=c++
+#cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -152,15 +154,15 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
 
 ChimeraX_audit_conform = mmcif.CIFTable(
     "audit_conform",
-    (
+    [
         "dict_name",
         "dict_version",
         "dict_location",
-    ), (
+    ], [
         "mmcif_pdbx.dic",
         "4.007",
         "http://mmcif.pdb.org/dictionaries/ascii/mmcif_pdbx.dic",
-    )
+    ]
 )
 
 ChimeraX_audit_syntax_info = {
@@ -308,15 +310,13 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     if not fixed_width:
         audit_syntax_info["fixed_width"] = ""
     tags, data = zip(*audit_syntax_info.items())
-    audit_syntax = mmcif.CIFTable("audit_syntax", tags, data)
+    audit_syntax = mmcif.CIFTable("audit_syntax", tags, list(data))
     audit_syntax.print(file=file, fixed_width=fixed_width)
 
-    from .mmcif import _add_citation, _add_software
-
-    citation, citation_author, citation_editor = _add_citation(
+    citation, citation_author, citation_editor = mmcif._add_citation(
             best_m, ChimeraX_citation_id, ChimeraX_citation_info,
             ChimeraX_authors, metadata=best_metadata, return_existing=True)
-    software = _add_software(
+    software = mmcif._add_software(
             best_m, ChimeraX_software_info['name'], ChimeraX_software_info,
             metadata=best_metadata, return_existing=True)
     citation.print(file, fixed_width=fixed_width)
@@ -589,7 +589,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     atom_site.print(file, fixed_width=fixed_width)
     atom_site_anisotrop_data[:] = flattened(atom_site_anisotrop_data)
     atom_site_anisotrop.print(file, fixed_width=fixed_width)
-    del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
+    # del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop  # not in cython
 
     struct_conn_data = []
     struct_conn = mmcif.CIFTable("struct_conn", [
@@ -620,8 +620,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "id",
     ], struct_conn_type_data)
 
-    def struct_conn_bond(tag, b, a0, a1):
-        nonlocal count, struct_conn_data
+    def struct_conn_bond(tag, count, b, a0, a1):
+        nonlocal struct_conn_data
         r0 = a0.residue
         r1 = a1.residue
         r0_asym, r0_seq = residue_info[r0]
@@ -664,9 +664,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             else:
                 a1.set_alt_loc(alt_loc1, False)
             dist = "%.3f" % b.length
-            count += 1
             struct_conn_data.append((
-                '%s%d' % (tag, count), tag,
+                f"{tag}{count}", tag,
                 a0.name, alt_loc0, r0_asym, r0_seq, cid0, rnum0, rins0, r0.name, "1_555",
                 a1.name, alt_loc1, r1_asym, r1_seq, cid1, rnum1, rins1, r1.name, "1_555",
                 dist))
@@ -675,92 +674,64 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
-    # disulfide bonds
-    count = 0
     atoms = best_m.atoms
-    if restrict is not None:
+    if restrict is None:
+        bonds = best_m.bonds
+    else:
         atoms = atoms.intersect(restrict)
-    bonds = best_m.bonds
-    has_disulf = False
-    covalent = []
-    sg = atoms.filter(atoms.names == "SG")
-    for b, a0, a1 in zip(bonds, *bonds.atoms):
-        if a0 in sg and a1 in sg:
-            has_disulf = True
-            struct_conn_bond('disulf', b, a0, a1)
-            continue
-        r0 = a0.residue
-        r1 = a1.residue
-        if restrict is not None:
-            if r0 not in restrict_residues or r1 not in restrict_residues:
-                continue
-        if r0 == r1:
-            continue
-        if r0.chain is None or r0.chain != r1.chain:
-            covalent.append((b, a0, a1))
-        elif r0.name not in _standard_residues or r1.name not in _standard_residues:
-            covalent.append((b, a0, a1))
-        else:
-            # check for non-implicit bond
-            res_map = r0.chain.res_map
-            r0index = res_map[r0]
-            r1index = res_map[r1]
-            if abs(r1index - r0index) != 1:
-                # not adjacent (circular)
-                covalent.append((b, a0, a1))
-            elif b.polymeric_start_atom is None:
-                # non-polymeric bond
-                covalent.append((b, a0, a1))
-    if has_disulf:
+        bonds = atoms.bonds.unique()
+    disulfide, covalent = mmcif.non_standard_bonds(bonds)
+
+    if disulfide:
         struct_conn_type_data.append('disulf')
+        for count, (b, a0, a1) in enumerate(zip(disulfide, *disulfide.atoms), start=1):
+            struct_conn_bond('disulf', count, b, a0, a1)
 
     # metal coordination bonds
     # assume intra-residue metal coordination bonds are handled by residue template
-    count = 0
     pbg = best_m.pseudobond_group(best_m.PBG_METAL_COORDINATION, create_type=None)
     if pbg:
         bonds = pbg.pseudobonds
         if len(bonds) > 0:
-            struct_conn_type_data.append('metalc')
-        for b, a0, a1 in zip(bonds, *bonds.atoms):
-            r0 = a0.residue
-            r1 = a1.residue
-            if restrict is not None:
-                if r0 not in restrict_residues or r1 not in restrict_residues:
+            count = 0
+            for b, a0, a1 in zip(bonds, *bonds.atoms):
+                r0 = a0.residue
+                r1 = a1.residue
+                if r0 == r1:
                     continue
-            if r0 == r1:
-                continue
-            struct_conn_bond('metalc', b, a0, a1)
+                if restrict is not None:
+                    if a0 not in restrict or a1 not in restrict:
+                        continue
+                count += 1
+                struct_conn_bond('metalc', count, b, a0, a1)
+            if count > 0:
+                struct_conn_type_data.append('metalc')
 
     # hydrogen bonds
-    count = 0
     pbg = best_m.pseudobond_group(best_m.PBG_HYDROGEN_BONDS, create_type=None)
     if pbg:
         bonds = pbg.pseudobonds
         if len(bonds) > 0:
-            struct_conn_type_data.append('hydrog')
-        for b, a0, a1 in zip(bonds, *bonds.atoms):
-            if restrict is not None:
-                if a0 not in restrict or a1 not in restrict:
-                    continue
-            struct_conn_bond('hydrog', b, a0, a1)
+            count = 0
+            for b, a0, a1 in zip(bonds, *bonds.atoms):
+                if restrict is not None:
+                    if a0 not in restrict or a1 not in restrict:
+                        continue
+                count += 1
+                struct_conn_bond('hydrog', count, b, a0, a1)
+            if count > 0:
+                struct_conn_type_data.append('hydrog')
 
-    # extra/other covalent bonds
-    # TODO: covalent bonds not in resdiue template
-    count = 0
-    if len(covalent) > 0:
+    if covalent:
         struct_conn_type_data.append('covale')
-    for b, a0, a1 in covalent:
-        if restrict is not None:
-            if a0 not in restrict or a1 not in restrict:
-                continue
-        struct_conn_bond('covale', b, a0, a1)
+        for count, (b, a0, a1) in enumerate(zip(covalent, *covalent.atoms), start=1):
+            struct_conn_bond('covale', count, b, a0, a1)
 
     struct_conn_data[:] = flattened(struct_conn_data)
     struct_conn.print(file, fixed_width=fixed_width)
     # struct_conn_type_data[:] = flattened(struct_conn_type_data)
     struct_conn_type.print(file, fixed_width=fixed_width)
-    del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type
+    # del struct_conn_data, struct_conn, struct_conn_type_data, struct_conn_type  # not in cython
 
     # struct_conf
     struct_conf_data = []
@@ -901,10 +872,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=fixed_width)
-    del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type
+    # del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type  # not in cython
     sheet_range_data[:] = flattened(sheet_range_data)
     sheet_range.print(file, fixed_width=fixed_width)
-    del sheet_range_data, sheet_range
+    # del sheet_range_data, sheet_range  # not in cython
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file, best_metadata)
     _save_metadata(best_m, ['cell', 'symmetry'], file, best_metadata)

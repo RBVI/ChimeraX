@@ -1,3 +1,5 @@
+# distutils: language=c++
+#cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -389,20 +391,29 @@ def load_mmCIF_templates(filename):
     _mmcif.load_mmCIF_templates(filename)
 
 
-def quote(s, max_len=60):
+def quote(value, max_len=60):
     """Return CIF 1.1 data value version of string"""
     # max_len is for mimicing the output from the PDB (see #2230)
-    if isinstance(s, (int, float)):
-        return str(s)
-    s = str(s)
-    examine = s[0:1]
-    sing_quote = examine == "'"
-    dbl_quote = examine == '"'
-    line_break = examine == '\n'
-    special = examine in ' _$[;'  # True if empty string too
-    if not (special or sing_quote or dbl_quote or line_break):
-        cf = s[0:8].casefold()
-        special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
+    if isinstance(value, (int, float)):
+        return str(value)
+    cdef int sing_quote, dbl_quote, line_break, special, i
+    cdef Py_UCS4 ch
+    cdef str examine, s
+    s = str(value)
+    if len(s) == 0:
+        sing_quote = False
+        dbl_quote = False
+        line_break = False
+        special = True
+    else:
+        ch = s[0]
+        sing_quote = ch == "'"
+        dbl_quote = ch == '"'
+        line_break = ch == '\n'
+        special = ch in ' _$[;'  # True if empty string too
+        if not (special or sing_quote or dbl_quote or line_break):
+            cf = s[0:8].casefold()
+            special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
     for i in range(1, len(s)):
         examine = s[i:i + 2]
         if len(examine) == 2:
@@ -424,13 +435,13 @@ def quote(s, max_len=60):
             else:
                 special = True
     if line_break or (sing_quote and dbl_quote) or (max_len and len(s) > max_len):
-        return '\n;' + s + '\n;\n'
+        return f'\n;{s}\n;\n'
     if sing_quote:
-        return '"%s"' % s
+        return f'"{s}"'
     if dbl_quote:
-        return "'%s'" % s
+        return f"'{s}'"
     if special:
-        return '"%s"' % s
+        return f'"{s}"'
     return s
 
 
@@ -562,15 +573,15 @@ def _add_citation(model, citation_id, info, authors=(), editors=(),
 
     # construct new table entries
     new_authors = CIFTable(
-        "citation_author", (
+        "citation_author", [
             'citation_id', 'name', 'ordinal'
-        ),
+        ],
         flattened((citation_id, str(author), str(i))
                   for author, i in zip(authors, range(1, sys.maxsize))))
     new_editors = CIFTable(
-        "citation_editor", (
+        "citation_editor", [
             'citation_id', 'name', 'ordinal'
-        ),
+        ],
         flattened((citation_id, str(editor), str(i))
                   for editor, i in zip(editors, range(1, sys.maxsize))))
     possible_items = [
@@ -788,14 +799,17 @@ class TableMissingFieldsError(ValueError):
     pass
 
 
-class CIFTable:
+cdef class CIFTable:
     """
     Supported API. Present a table interface for a (mm)CIF category
 
     Tags should be in the mixed case version given in the associated dictionary
     """
+    cdef str table_name
+    cdef list _tags, _folded_tags
+    cdef list _data
 
-    def __init__(self, table_name, tags=None, data=None):
+    def __init__(self, str table_name not None, tags=None, data=None):
         self.table_name = table_name
         self._tags = [] if tags is None else list(tags)
         self._folded_tags = [t.casefold() for t in self._tags]
@@ -810,7 +824,9 @@ class CIFTable:
         """True if not empty"""
         return len(self._tags) != 0 and len(self._data) != 0
 
-    def __eq__(self, other):
+    def __eq__(self, CIFTable other):
+        if other is None:
+            return False
         return self._tags == other._tags and self._data == other._data
 
     def __repr__(self):
@@ -892,7 +908,7 @@ class CIFTable:
             m.set_default(f, {})[k] = v
         return m
 
-    def fields(self, field_names, *, allow_missing_fields=False, missing_value=''):
+    def fields(self, field_names, *, int allow_missing_fields=False, missing_value=''):
         """Supported API. Return subset of rows of the table for the given fields
 
         Parameters
@@ -906,21 +922,22 @@ class CIFTable:
         missing fields are allowed, then the corresponding items are the
         missing_value object.
         """
+        cdef int i, n
         t = self._folded_tags
         n = len(self._folded_tags)
         if allow_missing_fields:
             from itertools import zip_longest
             fi = []
-            for f in field_names:
+            for fn in field_names:
                 try:
-                    fi.append(t.index(f.casefold()))
+                    fi.append(t.index(fn.casefold()))
                 except ValueError:
                     fi.append(-1)
             ftable = list(zip_longest(
                 *(self._data[i::n] if i >= 0 else [] for i in fi),
                 fillvalue=missing_value))
         else:
-            missing = [n for n in field_names if n.casefold() not in t]
+            missing = [fn for fn in field_names if fn.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
                 missed = commas(['"%s"' % m for m in missing], 'and')
@@ -931,11 +948,11 @@ class CIFTable:
                 raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
                     have))
-            fi = tuple(t.index(f.casefold()) for f in field_names)
+            fi = tuple(t.index(fn.casefold()) for fn in field_names)
             ftable = list(zip(*(self._data[i::n] for i in fi)))
         return ftable
 
-    def extend(self, table):
+    def extend(self, CIFTable table not None):
         """Supported API. Extend mmCIF table
 
         Parameters
@@ -997,7 +1014,7 @@ class CIFTable:
             return 0
         return len(self._data) // len(self._tags)
 
-    def print(self, file=None, *, fixed_width=False):
+    def print(self, file=None, *, int fixed_width=False):
         """Supported API. Print contents of table to given file
 
         Parameters
@@ -1010,6 +1027,7 @@ class CIFTable:
         fixed width columns (e.g., there is a newline in a string field),
         then the first row is broken up into multiple lines.
         """
+        cdef int n, bad_fixed_width, first, i
         if len(self._data) == 0:
             return
         n = len(self._tags)
@@ -1093,3 +1111,14 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     new_structure.html_title = process_chem_name(ccd.description)
 
     return [new_structure], f"Opened CCD {ccd_id}"
+
+
+def non_standard_bonds(bonds):
+    from . import _mmcif
+    from chimerax.atomic import Bonds
+    disulfide, covalent = _mmcif.non_standard_bonds(bonds)
+    if disulfide is not None:
+        disulfide = Bonds(disulfide)
+    if covalent is not None:
+        covalent = Bonds(covalent)
+    return disulfide, covalent
