@@ -94,7 +94,7 @@ The main <b>swapaa</b> command uses
 several <a href="#criteria">criteria</a> to choose the best rotamer
 for a given type and position:
 lowest clash score, most H-bonds, best agreement with a density map,
-and/or highest probability according to the library.
+and/or highest prevalence according to the library.
 Bond lengths and angles are taken from the
 <a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>, and hydrogens are not included.
@@ -117,7 +117,7 @@ and <b>swapaa mousemode</b> does not have any options.
 <b>rotLib</b> &nbsp;<i>rotamer-library</i>
 <br>
 What rotamer library to use; the source of rotamer torsion angles and 
-probabilities. Possible values of <i>rotamer-library</i>
+prevalence values. Possible values of <i>rotamer-library</i>
 (capitalization optional):
 <ul>
   <li><b>Dunbrack</b> (default)
@@ -204,11 +204,11 @@ without spaces, of one or more of the following letters (default <b>dchp</b>):
   </ul>
 <li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
 <li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
-<li><b>p</b> &ndash; by highest probability according to the 
+<li><b>p</b> &ndash; by highest prevalence according to the 
 <a href="#rotLib">rotamer library</a> 
-(probabilities are simply taken from the library and are not
-affected by the structural environment,
-except by phi and psi angles when the Dunbrack library is used)
+(prevalence values are simply taken from the library and are <b><i>not</i></b>
+affected by the specific structural environment,
+except by phi and psi backbone angles when the Dunbrack library is used)
 </ul>
 <p>
 Each successive method is only used when the previous method(s) have
@@ -218,9 +218,9 @@ clashes will be evaluated; if the
 and more than one rotamer ties for the lowest number of clashes,
 H-bonds will be evaluated to break the tie; if the lowest-clashing
 rotamers also have equal numbers of H-bonds, the one with the highest
-probability will be used. 
+prevalence will be used. 
 <p>
-Only the sidechain atoms of a rotamer are evaluated.  For
+Only the sidechain atoms of a rotamer are evaluated. For
 <a href="#clash">clash</a> and <a href="#H-bond">H-bond</a> detection,
 interactions with other rotamers in the same set and the current residue at that
 position are disregarded, but all other nearby atoms will be included
@@ -231,10 +231,10 @@ Atoms in the same model that are unwanted for such calculations
 should be deleted beforehand.
 </p><p>
 Alternatively, an integer <i>N</i> can be given instead of the <i>method</i>.
-This indicates ignoring all criteria other than probability and
-choosing the rotamer with the Nth highest probability.
+This indicates ignoring all criteria other than prevalence and
+choosing the rotamer with the Nth highest prevalence.
 Specifying <i>N</i> as <b>0</b> (zero) indicates the rotamer 
-with the lowest probability.
+with the lowest prevalence.
 </p>
 </blockquote>
 <blockquote>
@@ -353,5 +353,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2021</address>
+March 2021</address>
 </body></html>

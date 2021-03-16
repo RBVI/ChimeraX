@@ -17,7 +17,7 @@ from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox, QCheckBo
 from Qt.QtCore import Qt
 from chimerax.core.commands import run, StringArg, camel_case
 from chimerax.core.colors import color_name, rgba8_to_rgba
-from .cmd import auto_color_strings
+from .cmd import auto_color_strings, palette_name, palette_equal
 
 _mouse_mode = None
 
@@ -181,15 +181,15 @@ class ColorKeyTool(ToolInstance):
             values = self.key.numeric_label_spacings
         options_data = [
             ("Labels", [
-                ("Positions", 'label_side', LabelSideOption),
                 ("Color", 'label_rgba', AutoColorOption),
-                ("Justification", 'justification', LabelJustificationOption),
-                ("Numeric separation", 'numeric_label_spacing', NumLabelSpacingOption),
-                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
                 ('Font size', 'font_size', (IntOption, {'min': 1})),
+                ('Font', 'font', FontOption),
                 ('Bold', 'bold', BooleanOption),
                 ('Italic', 'italic', BooleanOption),
-                ('Font', 'font', FontOption),
+                ("Numeric spacing", 'numeric_label_spacing', NumLabelSpacingOption),
+                ("Side", 'label_side', LabelSideOption),
+                ("Justification", 'justification', LabelJustificationOption),
+                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
                 ]),
             ("Border", [
                 ("Show border", 'border', BooleanOption),
@@ -199,7 +199,7 @@ class ColorKeyTool(ToolInstance):
             ("Tick Marks", [
                 ("Show tick marks", 'ticks', BooleanOption),
                 ('Length', 'tick_length', (FloatOption, {'decimal_places': 1, 'step': 2, 'min': 0})),
-                ('Thickness', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
+                ('Width', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
             ]),
         ]
         scrolling = { x[0]: False for x in options_data }
@@ -481,25 +481,3 @@ class ColorKeyTool(ToolInstance):
             self.palette_button.setEnabled(False)
             self.palette_menu_button.setEnabled(False)
             self.palette_menu_button.setText("No %d-color palettes known" % num_colors)
-
-def palette_equal(p1, p2):
-    if len(p1) != len(p2):
-        return False
-    tolerance = 1 / 512
-    def len4(c):
-        if len(c) == 4:
-            return c
-        else:
-            return [x for x in c] + [1.0]
-    for c1, c2 in zip(p1, p2):
-        for v1, v2 in zip(len4(c1), len4(c2)):
-            if abs(v1 - v2) > tolerance:
-                return False
-    return True
-
-def palette_name(rgbas):
-    from chimerax.core.colors import BuiltinColormaps
-    for name, cm in BuiltinColormaps.items():
-        if palette_equal(cm.colors, rgbas):
-            return name
-    return None

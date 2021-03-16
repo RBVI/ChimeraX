@@ -46,7 +46,8 @@ different sets of items:
 <li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
 <li><b>Coloring by Value</b>
-(see the <a href="key.html"><b>key</b></a> command for drawing a color key):
+(see also the <a href="../tools/colorkey.html"><b>Color Key</b></a> tool
+or <a href="key.html"><b>key</b></a> command):
   <ul>
   <li><a href="#byattribute"><b>Attribute</b></a>
   &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
@@ -451,6 +452,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic models can be colored to show the values of numerical
@@ -482,6 +484,12 @@ can be set independently.
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
 with the <b>noValueColor</b> option.
+</p><p>
+When <b>color byattribute</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
@@ -1090,5 +1098,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+March 2021</address>
 </body></html>

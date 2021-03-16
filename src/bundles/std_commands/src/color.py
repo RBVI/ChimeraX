@@ -1043,7 +1043,7 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
 
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range=None, no_value_color=None,
-                  transparency=None, undo_name="color byattribute"):
+                  transparency=None, undo_name="color byattribute", key=False):
     '''
     Color atoms by attribute value using a color palette.
 
@@ -1065,6 +1065,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
       Specifies the range of map values used for sampling from a palette.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
+    key : boolean
+      Whether to also show a color key
     '''
 
     from chimerax.core.errors import UserError
@@ -1215,10 +1217,16 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
             msg.append('%d surfaces' % ns)
 
     session.undo.register(undo_state)
-    if msg and len(attr_vals):
-        r = 'atom %s range' if average is None else 'residue average %s range'
-        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min(attr_vals), max(attr_vals))
-        session.logger.status(m, log=True)
+    if len(attr_vals):
+        min_val, max_val, cmap = _value_colors(palette, range, attr_vals, return_cmap_data=True)
+        if key:
+            from chimerax.color_key import show_key
+            show_key(session, cmap)
+
+        if msg:
+            r = 'atom %s range' if average is None else 'residue average %s range'
+            m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min_val, max_val)
+            session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
 #
@@ -1250,14 +1258,17 @@ def _residue_atoms_and_colors(residues, colors):
     acolors = repeat(colors, residues.num_atoms, axis=0)
     return atoms, acolors
 
-def _value_colors(palette, range, values):
+def _value_colors(palette, range, values, *, return_cmap_data=False):
     from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
-    r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    min_val, max_val = min(values), max(values)
+    r = (min_val, max_val) if _use_full_range(range, palette) else range
     if r is not None and r[0] == r[1]:
         # all values the same; artificially manipulate the range to get the
         # 'middle' of the color range used
         r = (r[0]-1, r[1]+1)
     cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
+    if return_cmap_data:
+        return min_val, max_val, cmap
     colors = cmap.interpolated_rgba8(values)
     return colors
         
@@ -1410,7 +1421,8 @@ def register_command(logger):
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
                             ('no_value_color', ColorArg),
-                            ('transparency', FloatArg)],
+                            ('transparency', FloatArg),
+                            ('key', BoolArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
     create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,
