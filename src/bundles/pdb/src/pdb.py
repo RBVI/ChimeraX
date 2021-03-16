@@ -19,7 +19,8 @@ Read Protein DataBank (PDB) files.
 """
 
 def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False):
+             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
+             missing_coordsets="compact"):
     """Read PDB data from a file or stream and return a list of models and status information.
 
     ``stream`` is either a string a string with a file system path to a PDB file, or an open input
@@ -48,6 +49,11 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
 
     ``segid_chains`` controls whether the chain ID should come from the normal chain ID columns or from
     the "segment ID" columns.
+
+    ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
+    MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
+    of the preceding coord set), 'skip' (don't fill in; use MODEL number as is for coordset ID), and
+    'compact' (don't fill in and use the next available coordset ID).
     """
 
     if isinstance(stream, str):
@@ -65,7 +71,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
             
     from . import _pdbio
     try:
-        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains)
+        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains,
+            ['fill', 'skip', 'compact'].index(missing_coordsets))
     except ValueError as e:
         if 'non-ASCII' in str(e):
             from chimerax.core.errors import UserError

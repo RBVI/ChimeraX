@@ -460,6 +460,10 @@ void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char seco
     }
 }
 
+#define MCS_FILL 0
+#define MCS_SKIP 1
+#define MCS_COMPACT 2
+
 #ifdef CLOCK_PROFILING
 #include <ctime>
 static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
@@ -476,8 +480,8 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB> *secondary_structure,
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
-    std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res, bool segid_chains)
+    std::set<MolResId> *mod_res, bool *reached_end, PyObject *py_logger, bool explode, bool *eof,
+    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -610,15 +614,17 @@ start_t = end_t;
                 // make additional CoordSets same size as others
                 int cs_size = as->active_coord_set()->coords().size();
                 if (!explode && csid > as->active_coord_set()->id() + 1) {
-#if 0
-                    // fill in coord sets for Monte-Carlo
-                    // trajectories
-                    const CoordSet *acs = as->active_coord_set();
-                    for (int fill_in_ID = acs->id()+1; fill_in_ID < csid; ++fill_in_ID) {
-                        CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
-                        cs->fill(acs);
+                    if (missing_coordsets == MCS_FILL) {
+                        // fill in coord sets for Monte-Carlo trajectories
+                        const CoordSet *acs = as->active_coord_set();
+                        for (int fill_in_ID = acs->id()+1; fill_in_ID < csid; ++fill_in_ID) {
+                            CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
+                            cs->fill(acs);
+                        }
+                    } else if (missing_coordsets == MCS_COMPACT) {
+                        csid = as->active_coord_set()->id() + 1;
                     }
-#endif
+                    // do nothing for MSC_SKIP
                 }
                 CoordSet *cs = as->new_coord_set(csid, cs_size);
                 as->set_active_coord_set(cs);
@@ -1348,7 +1354,8 @@ read_fileno(void *f)
 }
 
 static PyObject *
-read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains,
+    int missing_coordsets)
 {
     std::vector<Structure *> file_structs;
     bool reached_end;
@@ -1432,9 +1439,9 @@ start_t = clock();
         else
             as = new Structure(py_logger);
         std::set<Residue*> het_res;
-        void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
-          &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res, segid_chains);
+        void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as], &start_res_map[as],
+            &end_res_map[as], &ss_map[as], &conect_map[as], &link_map[as], &mod_res_map[as], &reached_end,
+            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -2092,10 +2099,11 @@ read_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *pdb_file;
     PyObject *py_logger;
-    int explode, atomic, segid_chains;
-    if (!PyArg_ParseTuple(args, "OOppp", &pdb_file, &py_logger, &explode, &atomic, &segid_chains))
+    int explode, atomic, segid_chains, missing_coordsets;
+    if (!PyArg_ParseTuple(args, "OOpppi", &pdb_file, &py_logger, &explode, &atomic, &segid_chains,
+            &missing_coordsets))
         return nullptr;
-    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains);
+    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains, missing_coordsets);
 }
 
 static const char*

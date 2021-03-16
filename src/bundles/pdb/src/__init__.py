@@ -23,9 +23,6 @@ from chimerax.core.toolshed import BundleAPI
 
 class _PDBioAPI(BundleAPI):
 
-    from chimerax.core.commands import EnumOf
-    SerialNumberingArg = EnumOf(("amber","h36"))
-
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
@@ -38,7 +35,7 @@ class _PDBioAPI(BundleAPI):
 
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                        from chimerax.core.commands import BoolArg, IntArg, FloatArg, EnumOf
                         return {
                             'atomic': BoolArg,
                             'auto_style': BoolArg,
@@ -47,6 +44,7 @@ class _PDBioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                             'segid_chains': BoolArg,
+                            'missing_coordsets': EnumOf(('fill','skip','compact')),
                         }
             else:
                 from chimerax.open_command import FetcherInfo
