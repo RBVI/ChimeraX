@@ -181,15 +181,15 @@ class ColorKeyTool(ToolInstance):
             values = self.key.numeric_label_spacings
         options_data = [
             ("Labels", [
-                ("Positions", 'label_side', LabelSideOption),
                 ("Color", 'label_rgba', AutoColorOption),
-                ("Justification", 'justification', LabelJustificationOption),
-                ("Numeric separation", 'numeric_label_spacing', NumLabelSpacingOption),
-                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
                 ('Font size', 'font_size', (IntOption, {'min': 1})),
+                ('Font', 'font', FontOption),
                 ('Bold', 'bold', BooleanOption),
                 ('Italic', 'italic', BooleanOption),
-                ('Font', 'font', FontOption),
+                ("Numeric spacing", 'numeric_label_spacing', NumLabelSpacingOption),
+                ("Side", 'label_side', LabelSideOption),
+                ("Justification", 'justification', LabelJustificationOption),
+                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
                 ]),
             ("Border", [
                 ("Show border", 'border', BooleanOption),
@@ -199,7 +199,7 @@ class ColorKeyTool(ToolInstance):
             ("Tick Marks", [
                 ("Show tick marks", 'ticks', BooleanOption),
                 ('Length', 'tick_length', (FloatOption, {'decimal_places': 1, 'step': 2, 'min': 0})),
-                ('Thickness', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
+                ('Width', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
             ]),
         ]
         scrolling = { x[0]: False for x in options_data }
