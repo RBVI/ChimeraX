@@ -1384,18 +1384,12 @@ clock_t start_t, end_t;
             "HTTPResponse class not found in http.client module");
         return nullptr;
     }
-    PyObject *compression_mod = PyImport_ImportModule("_compression");
-    if (compression_mod == nullptr)
-        return nullptr;
-    PyObject *compression_stream = PyObject_GetAttrString(compression_mod, "BaseStream");
-    if (compression_stream == nullptr) {
-        Py_DECREF(compression_mod);
-        PyErr_SetString(PyExc_AttributeError,
-            "BaseStream class not found in _compression module");
-        return nullptr;
-    }
-    bool is_inst = PyObject_IsInstance(pdb_file, http_conn) == 1 || 
-        PyObject_IsInstance(pdb_file, compression_stream) == 1;
+    // nowadays, the result of gzip.open() and open() are normally indistinguishable,
+    // and the gzip has a fileno of the original compressed file, which is unreadable,
+    // so look for the 'from_compressed_source' attribute, which the chimerax.io module sets
+    auto fcs = PyObject_GetAttrString(pdb_file, "from_compressed_source");
+    bool is_inst = (fcs != nullptr && PyBool_Check(fcs) && fcs == Py_True) || 
+        PyObject_IsInstance(pdb_file, http_conn) == 1;
     int fd;
     if (is_inst)
         // due to buffering issues, cannot handle a socket like it 
