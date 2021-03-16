@@ -18,7 +18,7 @@
     <Category name="Molecular structure"/>
   </Categories>
 
-  <CModule name="_mmcif">
+  <CModule name="_mmcif" usesNumpy="true">
     <SourceFile>mmcif_cpp/_mmcif.cpp</SourceFile>
     <SourceFile>mmcif_cpp/mmcif.cpp</SourceFile>
     <SourceFile>mmcif_cpp/template.cpp</SourceFile>

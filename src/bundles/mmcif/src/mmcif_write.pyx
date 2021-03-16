@@ -620,8 +620,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "id",
     ], struct_conn_type_data)
 
-    def struct_conn_bond(tag, b, a0, a1):
-        nonlocal count, struct_conn_data
+    def struct_conn_bond(tag, count, b, a0, a1):
+        nonlocal struct_conn_data
         r0 = a0.residue
         r1 = a1.residue
         r0_asym, r0_seq = residue_info[r0]
@@ -664,9 +664,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             else:
                 a1.set_alt_loc(alt_loc1, False)
             dist = "%.3f" % b.length
-            count += 1
             struct_conn_data.append((
-                '%s%d' % (tag, count), tag,
+                f"{tag}{count}", tag,
                 a0.name, alt_loc0, r0_asym, r0_seq, cid0, rnum0, rins0, r0.name, "1_555",
                 a1.name, alt_loc1, r1_asym, r1_seq, cid1, rnum1, rins1, r1.name, "1_555",
                 dist))
@@ -675,88 +674,58 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
-    # disulfide bonds
-    count = 0
     atoms = best_m.atoms
     if restrict is None:
         bonds = best_m.bonds
     else:
         atoms = atoms.intersect(restrict)
         bonds = atoms.bonds.unique()
-    has_disulf = False
-    covalent = []
-    sg = atoms.filter(atoms.names == "SG")
-    for b, a0, a1 in zip(bonds, *bonds.atoms):
-        if a0 in sg and a1 in sg:
-            has_disulf = True
-            struct_conn_bond('disulf', b, a0, a1)
-            continue
-        r0 = a0.residue
-        r1 = a1.residue
-        if restrict is not None:
-            if r0 not in restrict_residues or r1 not in restrict_residues:
-                continue
-        if r0 == r1:
-            continue
-        if r0.chain is None or r0.chain != r1.chain:
-            covalent.append((b, a0, a1))
-        elif r0.name not in _standard_residues or r1.name not in _standard_residues:
-            covalent.append((b, a0, a1))
-        else:
-            # check for non-implicit bond
-            res_map = r0.chain.res_map
-            r0index = res_map[r0]
-            r1index = res_map[r1]
-            if abs(r1index - r0index) != 1:
-                # not adjacent (circular)
-                covalent.append((b, a0, a1))
-            elif b.polymeric_start_atom is None:
-                # non-polymeric bond
-                covalent.append((b, a0, a1))
-    if has_disulf:
+    disulfide, covalent = mmcif.non_standard_bonds(bonds)
+
+    if disulfide:
         struct_conn_type_data.append('disulf')
+        for count, (b, a0, a1) in enumerate(zip(disulfide, *disulfide.atoms), start=1):
+            struct_conn_bond('disulf', count, b, a0, a1)
 
     # metal coordination bonds
     # assume intra-residue metal coordination bonds are handled by residue template
-    count = 0
     pbg = best_m.pseudobond_group(best_m.PBG_METAL_COORDINATION, create_type=None)
     if pbg:
         bonds = pbg.pseudobonds
         if len(bonds) > 0:
-            struct_conn_type_data.append('metalc')
-        for b, a0, a1 in zip(bonds, *bonds.atoms):
-            r0 = a0.residue
-            r1 = a1.residue
-            if restrict is not None:
-                if r0 not in restrict_residues or r1 not in restrict_residues:
+            count = 0
+            for b, a0, a1 in zip(bonds, *bonds.atoms):
+                r0 = a0.residue
+                r1 = a1.residue
+                if r0 == r1:
                     continue
-            if r0 == r1:
-                continue
-            struct_conn_bond('metalc', b, a0, a1)
+                if restrict is not None:
+                    if a0 not in restrict or a1 not in restrict:
+                        continue
+                count += 1
+                struct_conn_bond('metalc', count, b, a0, a1)
+            if count > 0:
+                struct_conn_type_data.append('metalc')
 
     # hydrogen bonds
-    count = 0
     pbg = best_m.pseudobond_group(best_m.PBG_HYDROGEN_BONDS, create_type=None)
     if pbg:
         bonds = pbg.pseudobonds
         if len(bonds) > 0:
-            struct_conn_type_data.append('hydrog')
-        for b, a0, a1 in zip(bonds, *bonds.atoms):
-            if restrict is not None:
-                if a0 not in restrict or a1 not in restrict:
-                    continue
-            struct_conn_bond('hydrog', b, a0, a1)
+            count = 0
+            for b, a0, a1 in zip(bonds, *bonds.atoms):
+                if restrict is not None:
+                    if a0 not in restrict or a1 not in restrict:
+                        continue
+                count += 1
+                struct_conn_bond('hydrog', count, b, a0, a1)
+            if count > 0:
+                struct_conn_type_data.append('hydrog')
 
-    # extra/other covalent bonds
-    # TODO: covalent bonds not in residue template
-    count = 0
-    if len(covalent) > 0:
+    if covalent:
         struct_conn_type_data.append('covale')
-    for b, a0, a1 in covalent:
-        if restrict is not None:
-            if a0 not in restrict or a1 not in restrict:
-                continue
-        struct_conn_bond('covale', b, a0, a1)
+        for count, (b, a0, a1) in enumerate(zip(covalent, *covalent.atoms), start=1):
+            struct_conn_bond('covale', count, b, a0, a1)
 
     struct_conn_data[:] = flattened(struct_conn_data)
     struct_conn.print(file, fixed_width=fixed_width)

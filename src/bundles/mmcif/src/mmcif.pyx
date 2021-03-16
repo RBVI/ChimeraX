@@ -1111,3 +1111,14 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     new_structure.html_title = process_chem_name(ccd.description)
 
     return [new_structure], f"Opened CCD {ccd_id}"
+
+
+def non_standard_bonds(bonds):
+    from . import _mmcif
+    from chimerax.atomic import Bonds
+    disulfide, covalent = _mmcif.non_standard_bonds(bonds)
+    if disulfide is not None:
+        disulfide = Bonds(disulfide)
+    if covalent is not None:
+        covalent = Bonds(covalent)
+    return disulfide, covalent
