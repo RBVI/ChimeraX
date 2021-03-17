@@ -43,6 +43,7 @@ including the positions of any models that have been moved separately
 </ul>
 <p>
 See also: 
+<a href="fly.html"><b>fly</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="camera.html"><b>camera</b></a>,
@@ -187,6 +188,11 @@ in <a href="#screencoords">screen coordinates</a>
 to the center of rotation in the second view.
 At the same time, the positions of any models that have been moved
 relative to the scene are interpolated between the two views.
+</p><p>
+Whereas <b>view</b> only interpolates between a pair of views, the
+<a href="fly.html"><b>fly</b></a> command can smoothly traverse a series 
+of multiple views, generating a path that visits and leaves the intermediate 
+views without discontinuities in motion.
 </p>
 
 <a name="scenecoords"></a>
@@ -279,5 +285,5 @@ later applied from such a file.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2021</address>
+March 2021</address>
 </body></html>
