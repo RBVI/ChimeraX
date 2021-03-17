@@ -12,11 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import EnumOf
-class ChargeMethodArg(EnumOf):
-    default_value = 'am1-bcc'
-
-    def __init__(self):
-        super().__init__(['am1-bcc', 'gasteiger'])
+ChargeMethodArg = EnumOf(['am1-bcc', 'gasteiger'])
+ChargeMethodArg.default_value = 'am1-bcc'
 
 """
 from chimerax.core.errors import UserError

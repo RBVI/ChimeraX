@@ -91,6 +91,7 @@ class Opts:
         self.commands = []
         self.cmd = None   # Python's -c option
         self.debug = False
+        self.devel = False
         self.event_loop = True
         self.gui = True
         self.color = None
@@ -126,6 +127,7 @@ def _parse_python_args(argv, usage):
     opts.get_available_bundles = False
     opts.load_tools = False
     opts.silent = True
+    opts.safe_mode = True
 
     def next_arg(argv):
         no_arg = "bdhiqvuBEIOSV"  # python option w/o argument
@@ -178,6 +180,7 @@ def _parse_python_args(argv, usage):
                 opts.help = True
             elif opt == "-d":
                 opts.debug = True
+                opts.devel = True
                 opts.silent = False
             elif opt == "-v":
                 opts.silent = False
@@ -211,6 +214,10 @@ def _parse_chimerax_args(argv, arguments, usage):
     for opt, optarg in options:
         if opt in ("--debug", "--nodebug"):
             opts.debug = opt[2] == 'd'
+            if opts.debug:
+                opts.devel = True
+        elif opt in ("--devel", "--nodevel"):
+            opts.devel = opt[2] == 'd'
         elif opt in ("--exit", "--noexit"):
             opts.event_loop = opt[2] != 'e'
             opts.get_available_bundles = False
@@ -279,6 +286,7 @@ def parse_arguments(argv):
     # Will build usage string from list of arguments
     arguments = [
         "--debug",
+        "--devel",
         "--exit",   # No event loop
         "--nogui",
         "--nocolor",
@@ -309,6 +317,7 @@ def parse_arguments(argv):
     # add in default argument values
     arguments += [
         "--nodebug",
+        "--nodevel",
         "--noexit",
         "--gui",
         "--color",
@@ -383,6 +392,9 @@ def init(argv, event_loop=True):
         pass
 
     opts, args = parse_arguments(argv)
+    if not opts.devel:
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     # install line_profile decorator, and install it before
     # initialize_ssl_cert_dir() in case the line profiling is in the

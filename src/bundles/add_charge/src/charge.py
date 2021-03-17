@@ -173,7 +173,8 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                         del uncharged_res_types[cr.name]
                     continue
     # split isolated atoms (e.g. metals) into separate "residues"
-    for res_type, residues in uncharged_res_types.items():
+    urt_list = list(uncharged_res_types.items())
+    for res_type, residues in urt_list:
         bond_residues = residues
         br_type = res_type
         while True:
@@ -202,7 +203,7 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                         continue
                     non_iso_res = FakeRes(br_type, non_iso_atoms)
                     non_iso.append(non_iso_res)
-                uncharged_res_types[iso_type] = iso
+                urt_list.append((iso_type, iso))
                 bond_residues = non_iso
             else:
                 # no isolated atoms
@@ -297,10 +298,10 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
     electrons = net_charge
     for a in r0.atoms:
         electrons += a.element.number
-    if electrons % 2 == 1:
-        # cannot compute charges for radical species
-        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute"
-            " charges for radical species" % (r0.name, electrons - net_charge, net_charge))
+    if electrons % 2 == 1 and method == "am1-bcc":
+        # cannot compute charges for radical species with AM1-BCC
+        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
+            " for radical species using AM1-BCC method" % (r0.name, electrons - net_charge, net_charge))
 
     # detect tautomers by checking bonds
     varieties = {}
@@ -501,6 +502,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     while nearby:
         nb = nearby.pop()
         na = add_atom(_get_aname(nb.element.name, atom_names), nb.element, nr, nb.coord)
+        extras.add(na)
         atom_map[nb] = na
         for nbnb in nb.neighbors:
             if nbnb in atom_map:

@@ -33,11 +33,9 @@ install: $(LIBRARY)
 	if [ -d "$(app_includedir)" ]; then \
 		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
-ifdef WIN32
 	if [ -d "$(app_libdir)" ]; then \
 		$(RSYNC) $(LIBRARY) $(app_libdir); \
 	fi
-endif
 
 clean:
 	rm -f $(OBJS) $(LIBRARY)

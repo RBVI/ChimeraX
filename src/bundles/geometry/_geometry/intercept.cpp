@@ -269,7 +269,7 @@ static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cs
   dx /= d; dy /= d; dz /= d;
 
   float dc = 2*d;
-  int64_t sc;
+  int64_t sc = -1;
   for (int64_t s = 0 ; s < n ; ++s)
     {
       int64_t s3 = cstride0*s;
@@ -291,7 +291,7 @@ static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cs
 	    }
 	}
     }
-  if (dc > d)
+  if (sc == -1 || dc > d)
     return false;
 
   *fmin = dc/d;

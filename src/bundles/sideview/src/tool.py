@@ -17,7 +17,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from PySide2.QtGui import QWindow, QSurface
+from Qt.QtGui import QWindow, QSurface
 from chimerax.core.tools import ToolInstance
 from chimerax.geometry import Place
 from chimerax.graphics import View, Camera, Drawing
@@ -73,7 +73,7 @@ class SideViewCanvas(QWindow):
 
     def __init__(self, parent, view, session, panel, side=RIGHT_SIDE):
         QWindow.__init__(self)
-        from PySide2.QtWidgets import QWidget
+        from Qt.QtWidgets import QWidget
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.OpenGLSurface)
         self.view = view
@@ -98,7 +98,7 @@ class SideViewCanvas(QWindow):
         self.applique.use_lighting = False
         self.view.add_overlay(self.applique)
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
-        from PySide2.QtCore import QSize
+        from Qt.QtCore import QSize
         self.widget.setMinimumSize(QSize(20, 20))
 
     def close(self):
@@ -283,10 +283,10 @@ class SideViewCanvas(QWindow):
         self.view.render.done_current()
 
     def mousePressEvent(self, event):  # noqa
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.RightButton:
-            from PySide2.QtGui import QContextMenuEvent
+            from Qt.QtGui import QContextMenuEvent
             e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
             self.widget.parent().parent().contextMenuEvent(e)
             return
@@ -310,7 +310,7 @@ class SideViewCanvas(QWindow):
     def mouseReleaseEvent(self, event):  # noqa
         if not self.moving:
             return
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.LeftButton:
             self.moving = self.ON_NOTHING
@@ -319,7 +319,7 @@ class SideViewCanvas(QWindow):
     def mouseMoveEvent(self, event):  # noqa
         if self.moving is self.ON_NOTHING:
             return
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         b = event.button() | event.buttons()
         if (b & Qt.LeftButton) == 0:
             return
@@ -379,8 +379,8 @@ class SideViewUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PySide2.QtCore import Qt
-        from PySide2.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
+        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
         self.view = v = View(session.models.scene_root_model, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.graphics.camera import OrthographicCamera
@@ -412,7 +412,7 @@ class SideViewUI(ToolInstance):
         class graphics_area(QStackedWidget):
 
             def sizeHint(self):  # noqa
-                from PySide2.QtCore import QSize
+                from Qt.QtCore import QSize
                 return QSize(200, 200)
 
         layout = QVBoxLayout()

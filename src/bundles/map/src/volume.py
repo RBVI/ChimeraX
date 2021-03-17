@@ -1423,7 +1423,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
-  # The returned values are float32.
+  # The returned values are float32.  The returned outside array contains
+  # integer index value for points outside the volume.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',

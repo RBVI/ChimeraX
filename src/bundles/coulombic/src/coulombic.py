@@ -91,13 +91,20 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
 
         if copy_needed[struct]:
             session.logger.status("Copying charges back to %s" % struct, secondary=True)
+            need_deletion = []
             for o_r in struct_residues:
                 for o_a in o_r.atoms:
                     c_a = orig_a_to_copy[o_a]
+                    if c_a.deleted:
+                        # add_charge can delete atoms (e.g. 5' phosphates)
+                        need_deletion.append(o_a)
+                        continue
                     for nb in c_a.neighbors:
                         if nb.residue == c_a.residue and nb not in copy_a_to_orig:
                             c_a.charge += nb.charge
                     o_a.charge = c_a.charge
+            for del_a in need_deletion:
+                struct.delete_atom(del_a)
             session.logger.status("Destroying copy of %s" % struct, secondary=True)
             charged_struct.delete()
 

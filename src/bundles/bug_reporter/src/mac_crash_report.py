@@ -64,7 +64,11 @@ def crash_logs_directory():
 def recent_crash(time, dir, file_prefix):
 
     from os import listdir
-    filenames = listdir(dir)
+    try:
+        filenames = listdir(dir)
+    except PermissionError:
+        # Crash directory is not readable so can't report crashes.
+        return None
 
     from os.path import getmtime, join
     pypaths = [join(dir,f) for f in filenames if f.startswith(file_prefix)]

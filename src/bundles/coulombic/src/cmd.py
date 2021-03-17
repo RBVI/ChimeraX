@@ -16,13 +16,7 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
         padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
-        charge_method=ChargeMethodArg.default_value):
-    import sys
-    if sys.platform != "darwin":
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("The coulombic command is temporarily not working on non-Mac systems.  "
-            "We hope to have this remedied in a few days.  Until then, please use the production "
-            "build for the coulombic command.")
+        charge_method=ChargeMethodArg.default_value, key=False):
     if map:
         session.logger.warning("Computing electrostatic volume map not yet supported")
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
@@ -143,6 +137,9 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                 % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
     undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
+    if key:
+        from chimerax.color_key import show_key
+        show_key(session, cmap)
 
     session.logger.status("", secondary=True)
     session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
@@ -171,6 +168,7 @@ def register_command(logger):
             ('disp_dep', BoolArg),
             ('dielectric', FloatArg),
             ('charge_method', ChargeMethodArg),
+            ('key', BoolArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )

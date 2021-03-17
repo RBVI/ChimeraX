@@ -68,6 +68,7 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 using atomstruct::Real;
+using atomstruct::StructureSeq;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
@@ -1074,20 +1075,21 @@ ExtractMolecule::parse_chem_comp_bond()
         logger::warning(_logger, "Skipping chem_comp_bond category: ", e.what());
         return;
     }
-    // pretend all atoms are the same element, only need connectivity
-    const Element& e = Element::get_element("H");
+    // pretend all atoms are the same element. we only need connectivity,
+    // so we are ignoring the chem_comp_atom table
+    const Element& elem = Element::get_element("C");
     while (parse_row(pv)) {
         tmpl::Residue* tr = my_templates->find_residue(rname);
         if (!tr)
             continue;
         tmpl::Atom* a1 = tr->find_atom(aname1);
         if (!a1) {
-            a1 = my_templates->new_atom(aname1, e);
+            a1 = my_templates->new_atom(aname1, elem);
             tr->add_atom(a1);
         }
         tmpl::Atom* a2 = tr->find_atom(aname2);
         if (!a2) {
-            a2 = my_templates->new_atom(aname2, e);
+            a2 = my_templates->new_atom(aname2, elem);
             tr->add_atom(a2);
         }
         if (a1 != a2)
@@ -1515,7 +1517,7 @@ ExtractMolecule::parse_atom_site()
         }
         if (make_new_atom) {
             const Element& elem = Element::get_element(symbol);
-            a = mol->new_atom(atom_name, elem);
+            a = mol->new_atom(atom_name.c_str(), elem);
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
@@ -1738,7 +1740,7 @@ ExtractMolecule::parse_struct_conn()
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
-        if (atom_name1 == '?' || atom_name2 == '?')
+        if (atom_name1 == "?" || atom_name2 == "?")
             continue;
         bool normal = false;
         bool metal = false;
@@ -2748,6 +2750,59 @@ extract_CIF_tables(const char* filename,
         if (extract.data == nullptr)
             Py_RETURN_NONE;
         return extract.data;
+    }
+}
+
+void
+non_standard_bonds(const Bond **bonds, size_t num_bonds, Bonds& disulfide, Bonds& covalent)
+{
+    const Bond** end_bonds = bonds + num_bonds;
+    for (const Bond** bi = bonds; bi < end_bonds; ++bi) {
+        const Bond *b = *bi;
+        const auto atoms = b->atoms();
+        const Atom* a0 = atoms[0];
+        const Atom* a1 = atoms[1];
+        const Residue* r0 = a0->residue();
+        const Residue* r1 = a1->residue();
+        if (r0 == r1)
+            continue;  // intra-residue bonds should be in template
+        if (a0->element() == Element::S && a1->element() == Element::S) {
+            disulfide.push_back(b);
+            continue;
+        }
+        const Chain* c0 = r0->chain();
+        const Chain* c1 = r1->chain();
+        if (!c0 || c0 != c1) {
+            // atoms in different chains
+            covalent.push_back(b);
+            continue;
+        }
+        if (!is_standard_residue(r0->name()) || !is_standard_residue(r1->name())) {
+            // link to non-standard residue
+            covalent.push_back(b);
+            continue;
+        }
+        // check for non-implicit bond
+        if (b->polymeric_start_atom() == nullptr) {
+            // non-polymeric bond
+            covalent.push_back(b);
+            continue;
+        }
+        // check for non-adjacent bond
+        const StructureSeq::ResMap& res_map = c0->res_map();
+        StructureSeq::SeqPos p0, p1;
+        try {
+            p0 = res_map.at(const_cast<Residue*>(r0));
+            p1 = res_map.at(const_cast<Residue*>(r1));
+        } catch (std::out_of_range&) {
+            // should never happen because residues are in same chain
+            continue;
+        }
+        if (std::abs((ssize_t) (p1 - p0)) != 1) {
+            // not adjacent (circular)
+            covalent.push_back(b);
+            continue;
+        }
     }
 }
 

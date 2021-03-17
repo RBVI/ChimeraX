@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Help" version="1.0"
+<BundleInfo name="ChimeraX-Help" version="1.1"
     package="chimerax.help_viewer"
     minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -29,6 +29,10 @@
 		suffixes=".html,.htm,.xhtml,.xht,.xml" encoding="utf-8"
 		reference_url="http://en.wikipedia.org/wiki/Html "
 		mime_types="text/html,application/xhtml+xml" />
+  </Providers>
+
+  <Providers manager="url_schemes">
+    <Provider name="installable" syntax="Path" CorsEnabled="true" SecureScheme="true"/>
   </Providers>
 
   <Providers manager="open command">

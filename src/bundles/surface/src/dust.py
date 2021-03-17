@@ -112,7 +112,13 @@ class Redust(State):
         c = cls(surf, data['metric'], data['limit'])
         c.set_surface_mask()
         return c
-        
+
+# -----------------------------------------------------------------------------
+#
+def dusting(surface):
+    rd = surface.auto_remask_triangles
+    return rd if isinstance(rd, Redust) else None
+
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.
 #

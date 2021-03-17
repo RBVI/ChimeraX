@@ -18,8 +18,10 @@ Obtaining Code
 Most of ChimeraX is written in Python and that code is included in the ChimeraX distribution::
 
 	Windows: ChimeraX/bin/Lib/site-packages/chimerax
-	macOS: ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax
-	Linux: chimerax/lib/python3.7/site-packages/chimerax
+	macOS: ChimeraX.app/Contents/lib/python3.x/site-packages/chimerax
+	Linux: chimerax/lib/python3.x/site-packages/chimerax
+
+The '3.x' in the latter two lines depends on the exact version of Python 3 being used by your version of ChimeraX.  ChimeraX 1.0 and 1.1 use 3.7.  ChimeraX 1.2 uses 3.8.  Later ChimeraX versions may use even later versions of Python 3.
 
 Small modifications to the code can be tested by simply editing the Python code and restarting ChimeraX.
 

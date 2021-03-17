@@ -46,6 +46,7 @@ from ._map import indices_to_colors
 # Control whether maps are pickable with mouse.
 #
 from .volume import maps_pickable
+from .volume import PickedMap
 
 # -----------------------------------------------------------------------------
 # Mouse modes for moving planes and changing contour level
@@ -76,8 +77,11 @@ class _MapBundle(BundleAPI):
             return volume_viewer.show_volume_dialog(session)
         elif tool_name == 'Map Coordinates':
             from .coords_gui import show_coords_panel
-            show_coords_panel(session)
-
+            return show_coords_panel(session)
+        elif tool_name == 'Map Statistics':
+            from .measure import show_map_stats
+            show_map_stats(session)
+            
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced

@@ -295,7 +295,7 @@ def register_volume_filtering_subcommands(logger):
                         synopsis = 'Zero map values beyond a distance range from atoms')
     register('volume zone', zone_desc, volume_zone, logger=logger)
 
-    unzone_desc = CmdDesc(required = varg,
+    unzone_desc = CmdDesc(optional = varg,
                           synopsis = 'Show full map with no surface masking.')
     register('volume unzone', unzone_desc, volume_unzone, logger=logger)
 
@@ -1067,9 +1067,13 @@ def volume_zone(session, volumes, near_atoms, range = 3, bond_point_spacing = No
 
 # -----------------------------------------------------------------------------
 #
-def volume_unzone(session, volumes):
+def volume_unzone(session, volumes = None):
     '''Stop restricting volume surface display to a zone.'''
-    
+
+    if volumes is None:
+        from chimerax.map import Volume
+        volumes = [v for v in session.models if isinstance(v,Volume)]
+
     from chimerax.surface.zone import surface_unzone
     for v in volumes:
         r = v.full_region()

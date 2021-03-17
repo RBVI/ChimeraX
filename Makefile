@@ -91,10 +91,12 @@ endif
 
 build-app-dirs:
 	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir) $(APP_PYSITEDIR)
+		$(app_includedir)
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)
+else
+	-mkdir -p $(APP_PYSITEDIR)
 endif
 
 distclean: clean

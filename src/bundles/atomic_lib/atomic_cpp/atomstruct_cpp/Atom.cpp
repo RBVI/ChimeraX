@@ -61,9 +61,12 @@ Atom::~Atom()
       _ribbon_coord = nullptr;
     }
     DestructionUser(this);
-    if (selected())
+    if (selected()) {
         // so that closing a structure can fire "selection changed" trigger
         change_tracker()->add_modified(nullptr, this, ChangeTracker::REASON_SELECTED);
+	graphics_changes()->set_gc_select(); // update ribbon selection highlight
+    }
+
     change_tracker()->add_deleted(structure(), this);
     graphics_changes()->set_gc_adddel();
 }
@@ -1057,6 +1060,17 @@ Atom::rings(bool cross_residues, int all_size_threshold,
     return _rings;
 }
 
+Coord
+Atom::effective_coord() const
+{
+    if (_residue && _residue->ribbon_display()) {
+        const Coord *c = ribbon_coord();
+        if (c != nullptr)
+            return *c;
+    }
+    return coord();
+}
+
 static inline double
 row_mul(const double row[4], const Coord& crd)
 {
@@ -1243,8 +1257,22 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
             set_alt_loc(alt_loc, create=false);
             return;
         }
+        Coord crd;
+        float bf;
+        int sn;
+        if (_coord_index != COORD_UNASSIGNED) {
+            crd = coord();
+            bf = bfactor();
+            sn = serial_number();
+        }
         _alt_loc_map[alt_loc];    // Create map entry.
         _alt_loc = alt_loc;
+        if (_coord_index != COORD_UNASSIGNED) {
+            set_coord(crd);
+            set_bfactor(bf);
+            set_serial_number(sn);
+        }
+        set_occupancy(0.0);
         return;
     }
 

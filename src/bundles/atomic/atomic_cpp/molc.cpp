@@ -1143,6 +1143,21 @@ extern "C" EXPORT void set_atom_ribbon_coord(void *atoms, size_t n, float64_t *x
     }
 }
 
+extern "C" EXPORT void atom_effective_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto c = a[i]->effective_coord();
+            *xyz++ = c[0];
+            *xyz++ = c[1];
+            *xyz++ = c[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
 {
     Atom *a = static_cast<Atom *>(atom);
@@ -3059,12 +3074,12 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
     }
 }
 
-extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
+extern "C" EXPORT void residue_clear_hide_bits(void *residues, size_t n, int32_t bit_mask, npy_bool atoms_only)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
-        for (size_t i = 0; i != n; ++i)
-            r[i]->ribbon_clear_hide();
+        for (size_t i = 0; i < n; ++i)
+            r[i]->clear_hide_bits(bit_mask, atoms_only);
     } catch (...) {
         molc_error();
     }

@@ -73,7 +73,7 @@ class SelectMouseMode(MouseMode):
                     entries.append(entry)
         entries.sort(key = lambda e: e.label(ses))
         dangerous_entries.sort(key = lambda e: e.label(ses))
-        from PySide2.QtWidgets import QMenu, QAction
+        from Qt.QtWidgets import QMenu, QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
@@ -85,7 +85,7 @@ class SelectMouseMode(MouseMode):
                     menu.addSeparator()
                     continue
                 action = QAction(entry.label(ses))
-                action.triggered.connect(lambda cb=entry.callback, sess=ses: cb(sess))
+                action.triggered.connect(lambda *, cb=entry.callback, sess=ses: cb(sess))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
@@ -726,12 +726,12 @@ class ObjectIdMouseMode(MouseMode):
             # and even if the this app is minimized, it gets events for where it used to be on the screen.
             return
         # ensure that no other top-level window is above the graphics
-        from PySide2.QtGui import QCursor
+        from Qt.QtGui import QCursor
         if ui.topLevelAt(QCursor.pos()) != ui.main_window:
             return
         # ensure there's no popup menu above the graphics
         apw = ui.activePopupWidget()
-        from PySide2.QtCore import QPoint
+        from Qt.QtCore import QPoint
         if apw and ui.topLevelAt(apw.mapToGlobal(QPoint())) == ui.main_window:
             return
         x,y = position
@@ -749,8 +749,11 @@ class ObjectIdMouseMode(MouseMode):
         # Hide atom spec balloon
         self.session.ui.main_window.graphics_window.popup.hide()
 
-class AtomCenterOfRotationMode(MouseMode):
-    '''Clicking on an atom sets the center of rotation at that position.'''
+class CenterOfRotationMode(MouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    sets the center of rotation at that position.
+    '''
     name = 'pivot'
     icon_file = 'icons/pivot.png'
 
@@ -760,6 +763,8 @@ class AtomCenterOfRotationMode(MouseMode):
         view = self.session.main_view
         pick = view.picked_object(x, y)
         from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
+        from chimerax.map import PickedMap
+        from chimerax.graphics import PickedTriangle
         if hasattr(pick, 'atom'):
             xyz = pick.atom.scene_coord
         elif isinstance(pick, PickedResidue):
@@ -771,6 +776,8 @@ class AtomCenterOfRotationMode(MouseMode):
         elif isinstance(pick, PickedPseudobond):
             b = pick.pbond
             xyz = sum([a.scene_coord for a in b.atoms]) / 2
+        elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
+            xyz = pick.position
         else:
             return
         from chimerax.std_commands import cofr
@@ -1052,7 +1059,7 @@ def standard_mouse_mode_classes():
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
-        AtomCenterOfRotationMode,
+        CenterOfRotationMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]

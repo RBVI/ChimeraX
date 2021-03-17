@@ -1,0 +1,18 @@
+--- AmberTools/src/cifparse/cifparse.h	2021-02-09 14:12:59.832301300 -0800
++++ AmberTools/src/cifparse/cifparse.h	2021-02-09 14:13:21.629130900 -0800
+@@ -101,14 +101,13 @@
+ int ndb_cif_get_category_id(char*, char*);
+ 
+ 
++extern FILE *cifpin;
+ #ifdef CIF_GLOBAL
+-	FILE *cifpin;
+ 	char TempKeyword[MxNameLen+1], TempValue[MAXVALUELENGTH+1];
+ 	NdbCifDatablocksFormat cifFiles;
+ 	int  lineNo;      
+ #else
+ 	extern char TempKeyword[MxNameLen+1], TempValue[MAXVALUELENGTH+1];
+-	extern FILE *cifpin;
+ 	extern int  lineNo;
+ 	extern NdbCifDatablocksFormat cifFiles;
+ #endif

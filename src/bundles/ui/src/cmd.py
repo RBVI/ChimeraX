@@ -17,7 +17,7 @@
 def register_ui_command(logger):
 
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import BoolArg, StringArg, NoArg
+    from chimerax.core.commands import BoolArg, StringArg, NoArg, Or, EnumOf
 
     ui_autostart_desc = CmdDesc(
         required=[('do_start', BoolArg), ('tool_name', StringArg)],
@@ -33,6 +33,11 @@ def register_ui_command(logger):
         required=[('dockable', BoolArg), ('tool_name', StringArg)],
         synopsis = "control whether a tool's windows can be docked")
     register('ui dockable', ui_dockable_desc, ui_dockable, logger=logger)
+
+    ui_windowfill_desc = CmdDesc(
+        required=[('fill', Or(BoolArg,EnumOf(['toggle'])))],
+        synopsis="Whether to temporarily hide docked tools or not")
+    register('ui windowfill', ui_windowfill_desc, ui_windowfill, logger=logger)
 
     ui_statusbar_desc = CmdDesc(
         required=[('show', BoolArg)],
@@ -123,6 +128,17 @@ def ui_dockable(session, dockable, tool_name):
     settings.save('undockable')
     if session.ui.is_gui:
         session.ui.main_window._dockability_change(tool_name, dockable)
+
+# -----------------------------------------------------------------------------
+#
+def ui_windowfill(session, fill):
+    '''
+    Temporarily show/hide docked tools.
+    '''
+    mw = session.ui.main_window
+    if fill == 'toggle':
+        fill = not mw.hide_tools
+    mw.hide_tools = fill
 
 # -----------------------------------------------------------------------------
 #

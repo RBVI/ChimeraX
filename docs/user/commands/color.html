@@ -45,7 +45,9 @@ different sets of items:
 &ndash; atomic models
 <li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
-<li><b>Coloring by Value</b>:
+<li><b>Coloring by Value</b>
+(see also the <a href="../tools/colorkey.html"><b>Color Key</b></a> tool
+or <a href="key.html"><b>key</b></a> command):
   <ul>
   <li><a href="#byattribute"><b>Attribute</b></a>
   &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
@@ -59,6 +61,8 @@ different sets of items:
   &ndash; surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
 <li><a href="#image"><b>Coloring from Image File</b></a>
@@ -66,8 +70,12 @@ or <a href="../markers.html">markers</a>
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
-<a href="coulombic.html"><b>coulombic</b></a>,
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
@@ -444,6 +452,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic models can be colored to show the values of numerical
@@ -475,6 +484,12 @@ can be set independently.
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
 with the <b>noValueColor</b> option.
+</p><p>
+When <b>color byattribute</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
@@ -568,11 +583,15 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
-The <a href="coulombic.html"><b>coulombic</b></a> command
-colors molecular surfaces
+The <a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
+command colors molecular surfaces
 by Coulombic electrostatic potential without requiring an input map.
 See also: 
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img 
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
@@ -715,6 +734,13 @@ Coloring by <b>zone</b> to match nearby atoms or
 <a href="../markers.html">markers</a> applies to surfaces only.
 The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png">
+uses a <b>distance</b> value six times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/colorzone.html"><b>Color Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
+</p><p>
 For coloring a <a href="surface.html">molecular surface</a>
 (and/or its <a href="surface.html#cap">caps</a> where sliced by
 <a href="clip.html">clipping</a>)
@@ -735,7 +761,7 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 </p><p>
 A map that has been colored by zone can be split accordingly with
-<a href="volume#splitbyzone"><b>volume splitbyzone</b></a>.
+<a href="volume.html#splitbyzone"><b>volume splitbyzone</b></a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 </p>
@@ -1072,5 +1098,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+March 2021</address>
 </body></html>

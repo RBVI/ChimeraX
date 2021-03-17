@@ -466,6 +466,14 @@ cdef class CyAtom:
             self.cpp_atom.clear_ribbon_coord()
 
     @property
+    def effective_coord(self):
+        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
+        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.effective_coord()
+        return array((crd[0], crd[1], crd[2]))
+
+    @property
     def scene_coord(self):
         "Supported API. Atom center coordinates in the global scene coordinate system."
         " This accounts for the :class:`Drawing` positions for the hierarchy "
@@ -1595,7 +1603,7 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()

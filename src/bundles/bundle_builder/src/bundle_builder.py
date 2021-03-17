@@ -201,7 +201,8 @@ class BundleBuilder:
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
-        self.supercedes = bi.get("supercedes", '')
+        # "supercedes" is deprecated in ChimeraX 1.2
+        self.supersedes = bi.get("supersedes", '') or bi.get("supercedes", '')
         self.custom_init = bi.get("customInit", '')
         self.pure_python = bi.get("purePython", '')
         self.limited_api = bi.get("limitedAPI", '')
@@ -466,7 +467,7 @@ class BundleBuilder:
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: " + self.supercedes +
+             " :: " + self.package + " :: " + self.supersedes +
              " :: " + self.custom_init)
         ]
         if self.installed_data_dir:

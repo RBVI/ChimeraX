@@ -4,6 +4,8 @@
 #include <string.h>
 #include <typeinfo>
 #include <atomstruct/tmpl/restmpl.h>
+#define NPY_NO_DEPRECATED_API NPY_1_19_API_VERSION
+#include <numpy/arrayobject.h>
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
@@ -305,6 +307,61 @@ _mmcif_find_template_residue(PyObject*, PyObject* _ptArg)
 
 static const char _mmciffind_template_residue_doc[] = "find_template_residue(name: str)";
 
+static PyObject*
+_mmcif_non_standard_bonds(PyObject*, PyObject* _ptArg)
+{
+	static bool need_init = true;
+
+	if (need_init) {
+		import_array();
+		need_init = false;
+	}
+	try {
+		const char* tp_name = Py_TYPE(_ptArg)->tp_name;
+		// chimerax.atomic.molarray.Bonds
+		if (strcmp(tp_name, "Bonds") != 0)
+			throw std::invalid_argument("argument 1 should be a Bonds collection");
+		PyObject* pointers = PyObject_GetAttrString(_ptArg, "_pointers");
+		if (pointers == NULL)
+			return NULL;
+		if (!PyArray_Check(pointers) || PyArray_NDIM((PyArrayObject*) pointers) != 1) {
+			PyErr_Format(PyExc_ValueError, "unable to extract Bonds _pointers");
+			return NULL;
+		}
+		const Bond** bonds = static_cast<const Bond**>(PyArray_DATA((PyArrayObject*) pointers));
+		size_t bond_count = PyArray_DIMS((PyArrayObject*) pointers)[0];
+		std::vector<const Bond*> disulfide, covalent;
+		non_standard_bonds(bonds, bond_count, disulfide, covalent);
+		PyObject* _result = PyTuple_New(2);
+		PyObject* array;
+		npy_intp size[1];
+		size[0] = disulfide.size();
+		if (size[0] == 0) {
+			Py_INCREF(Py_None);
+			PyTuple_SET_ITEM(_result, 0, Py_None);
+		} else {
+			array = PyArray_SimpleNew(1, size, NPY_UINTP);
+			memcpy(PyArray_DATA((PyArrayObject*) array), &disulfide[0], size[0] * sizeof (void*));
+			PyTuple_SET_ITEM(_result, 0, array);
+		}
+		size[0] = covalent.size();
+		if (size[0] == 0) {
+			Py_INCREF(Py_None);
+			PyTuple_SET_ITEM(_result, 1, Py_None);
+		} else {
+			array = PyArray_SimpleNew(1, size, NPY_UINTP);
+			memcpy(PyArray_DATA((PyArrayObject*) array), &covalent[0], size[0] * sizeof (void*));
+			PyTuple_SET_ITEM(_result, 1, array);
+		}
+		return _result;
+	} catch (...) {
+		_mmcifError();
+	}
+	return NULL;
+}
+
+static const char _mmcifnon_standard_bonds_doc[] = "non_standard_bonds(bonds: Bonds) -> tuple[disulfide, covalent]";
+
 PyMethodDef _mmcifMethods[] = {
 	{
 		"extract_CIF_tables", (PyCFunction) _mmcif_extract_CIF_tables,
@@ -329,6 +386,10 @@ PyMethodDef _mmcifMethods[] = {
 	{
 		"find_template_residue", (PyCFunction) _mmcif_find_template_residue,
 		METH_O, _mmciffind_template_residue_doc
+	},
+	{
+		"non_standard_bonds", (PyCFunction) _mmcif_non_standard_bonds,
+		METH_O, _mmcifnon_standard_bonds_doc
 	},
 	{ NULL, NULL, 0, NULL }
 };

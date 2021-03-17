@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QVBoxLayout, QListWidget, QLabel, QGridLayout, QListWidgetItem, QWidget
-from PySide2.QtWidgets import QSizePolicy, QGroupBox, QStackedWidget, QHBoxLayout, QCheckBox
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QListWidget, QLabel, QGridLayout, QListWidgetItem, QWidget
+from Qt.QtWidgets import QSizePolicy, QGroupBox, QStackedWidget, QHBoxLayout, QCheckBox
+from Qt.QtCore import Qt
 
 class FeatureBrowser:
 

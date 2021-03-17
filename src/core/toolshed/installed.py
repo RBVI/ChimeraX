@@ -385,7 +385,7 @@ def _make_bundle_info(d, installed, logger):
         if parts[0] != 'ChimeraX':
             continue
         if parts[1] == 'Bundle':
-            # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supercedes :: custom_init
+            # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supersedes :: custom_init
             if bi is not None:
                 logger.warning("Second ChimeraX :: Bundle line ignored.")
                 break
@@ -393,7 +393,7 @@ def _make_bundle_info(d, installed, logger):
                 logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                 logger.warning("Expected 7 fields and got %d." % len(parts))
                 continue
-            categories, session_versions, module_name, supercedes, custom_init = parts[2:]
+            categories, session_versions, module_name, supersedes, custom_init = parts[2:]
             kw["categories"] = [v.strip() for v in categories.split(',')]
             if session_versions:
                 vs = [v.strip() for v in session_versions.split(',')]
@@ -413,8 +413,8 @@ def _make_bundle_info(d, installed, logger):
                     hi = lo
                 kw["session_versions"] = range(lo, hi + 1)
             kw["api_package_name"] = module_name
-            if supercedes:
-                kw['supercedes'] = [v.strip() for v in supercedes.split(',')]
+            if supersedes:
+                kw['supersedes'] = [v.strip() for v in supersedes.split(',')]
             if custom_init:
                 kw["custom_init"] = (custom_init == "true")
             bi = BundleInfo(installed=installed, **kw)

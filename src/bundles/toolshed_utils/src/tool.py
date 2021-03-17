@@ -48,8 +48,8 @@ class UpdateTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        from PySide2.QtCore import Qt
-        from PySide2.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
+        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
             QPushButton, QLabel, QComboBox
         layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -72,11 +72,21 @@ class UpdateTool(ToolInstance):
         self.choice.setCurrentIndex(self.choice.findData(dialog_type))
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
+        from chimerax.ui.core_settings_ui import UpdateIntervalOption
+        from chimerax.core.core_settings import settings as core_settings
+        callback = None  # TODO
+        uio = UpdateIntervalOption(
+                "Toolshed update interval", core_settings.toolshed_update_interval, callback,
+                attr_name='toolshed_update_interval', settings=core_settings, auto_set_attr=True)
+        label = QLabel(uio.name + ':')
+        label.setToolTip('How frequently to check toolshed for new updates<br>')
+        choice_layout.addWidget(label)
+        choice_layout.addWidget(uio.widget)
         self.all_items = None
 
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
-                from PySide2.QtCore import QSize
+                from Qt.QtCore import QSize
                 width = self.header().length()
                 return QSize(width, 200)
         self.updates = SizedTreeWidget()
@@ -119,7 +129,7 @@ class UpdateTool(ToolInstance):
         self.delete()
 
     def update_install_button(self, *args):
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         all_items = self.all_items
         for i in range(all_items.childCount()):
             item = all_items.child(i)
@@ -129,7 +139,7 @@ class UpdateTool(ToolInstance):
         self.install_button.setEnabled(False)
 
     def fill_context_menu(self, menu, x, y):
-        from PySide2.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
@@ -138,9 +148,11 @@ class UpdateTool(ToolInstance):
         self.session.ui.main_window.show_settings('Toolshed')
 
     def _fill_updates(self):
-        from PySide2.QtCore import Qt
-        from PySide2.QtWidgets import QTreeWidgetItem, QComboBox
+        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QTreeWidgetItem, QComboBox
         from packaging.version import Version
+        # TODO: make _compatible a non-private API
+        from chimerax.help_viewer.tool import _compatible as compatible
         session = self.session
         toolshed = session.toolshed
         self.actions = []
@@ -150,6 +162,9 @@ class UpdateTool(ToolInstance):
         last_bundle_name = None
         installed_version = ""
         for available in info:
+            release_file = getattr(available, 'release_file', None)
+            if release_file is not None and not compatible(release_file):
+                continue
             if last_bundle_name is None or available.name != last_bundle_name:
                 last_bundle_name = available.name
                 installed_bi = toolshed.find_bundle(last_bundle_name, session.logger)
@@ -219,7 +234,7 @@ class UpdateTool(ToolInstance):
         self._fill_updates()
 
     def install(self):
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         toolshed = self.session.toolshed
         logger = self.session.logger
         all_items = self.all_items

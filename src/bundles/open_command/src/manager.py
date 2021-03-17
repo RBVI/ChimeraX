@@ -176,6 +176,12 @@ class OpenManager(ProviderManager):
 
         The format name can be provided with the 'format' keyword if the filename suffix of the path
         does not correspond to those for the desired format.
+
+        The fact that the models have not been opened in the session can be an advantage if the models
+        are essentially temporary or if you need to make modifications to the models before adding them
+        to the session.  In the former case, you will have to explicitly destroy the models after you
+        are done with them by calling their :py:meth:`destroy()` method.  You add models to a session by
+        calling ``session.models.add(models)``.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,

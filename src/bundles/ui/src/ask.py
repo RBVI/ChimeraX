@@ -48,7 +48,7 @@ def _ask_nogui(session, question, buttons, default, info, title, help_url):
 
 
 def _ask_gui(session, question, buttons, default, info, title, help_url):
-    from PySide2.QtWidgets import QMessageBox
+    from Qt.QtWidgets import QMessageBox
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Question)
     if title:
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     while True:
         if ask(Session(False), "Really Quit") == "yes":
             break
-    from PySide2.QtWidgets import QApplication
-    from PySide2.QtWidgets import QWidget, QPushButton
+    from Qt.QtWidgets import QApplication
+    from Qt.QtWidgets import QWidget, QPushButton
     def do_test():
         if ask(Session(True), "Really Quit", ["oui", "non"], title="Ask") == "oui":
             QApplication.quit()

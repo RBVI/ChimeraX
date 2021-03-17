@@ -39,7 +39,7 @@ class OpenGLError(RuntimeError):
 class OpenGLContext:
     '''
     OpenGL context used by View for drawing.
-    This implementation uses PySide2 QOpenGLContext.
+    This implementation uses Qt QOpenGLContext.
     '''
     
     required_opengl_version = (3, 3)
@@ -75,8 +75,9 @@ class OpenGLContext:
 
     def delete(self):
         self._deleted = True
+        from Qt import qt_object_is_deleted
         for oc in self._contexts.values():
-            if oc and not _qobject_deleted(oc):
+            if oc and not qt_object_is_deleted(oc):
                 oc.deleteLater()
         self._contexts.clear()
         self._share_context = None
@@ -113,7 +114,7 @@ class OpenGLContext:
             window = self.window
 
         # Create context
-        from PySide2.QtGui import QOpenGLContext
+        from Qt.QtGui import QOpenGLContext
         qc = QOpenGLContext()
         qc.setScreen(self._screen)
 
@@ -151,7 +152,7 @@ class OpenGLContext:
         return qc
 
     def _context_format(self, mode):
-        from PySide2.QtGui import QSurfaceFormat
+        from Qt.QtGui import QSurfaceFormat
         fmt = QSurfaceFormat()
         fmt.setVersion(*self.required_opengl_version)
         cbits = self._color_bits
@@ -308,16 +309,12 @@ def _configure_pyopengl_to_use_osmesa():
     from OpenGL.platform import _load
     _load()
 
-def _qobject_deleted(o):
-    import shiboken2
-    return not shiboken2.isValid(o)
-
 def remember_current_opengl_context():
     '''
     Return an object that notes the current opengl context and its window
     so it can later be restored by restore_current_opengl_context().
     '''
-    from PySide2.QtGui import QOpenGLContext
+    from Qt.QtGui import QOpenGLContext
     opengl_context = QOpenGLContext.currentContext()
     opengl_surface = opengl_context.surface() if opengl_context else None
     return (opengl_context, opengl_surface)
@@ -328,7 +325,7 @@ def restore_current_opengl_context(remembered_context):
     the current context.
     '''
     opengl_context, opengl_surface = remembered_context
-    from PySide2.QtGui import QOpenGLContext
+    from Qt.QtGui import QOpenGLContext
     if opengl_context and QOpenGLContext.currentContext() != opengl_context:
         opengl_context.makeCurrent(opengl_surface)
 
@@ -1087,10 +1084,15 @@ class Render:
         # mask framebuffer does not work correctly.  So use offscreen rendering
         # in this case.  ChimeraX bug #2216.
         #
-        self.outline.offscreen_outline_needed = (
-            self.framebuffer_depth_bits() != 24 or
-            (sys.platform.startswith('darwin') and
-             self.opengl_renderer().startswith('AMD Radeon Pro Vega')))
+        offscreen_outline = False
+        if self.framebuffer_depth_bits() != 24:
+            offscreen_outline = True
+        elif sys.platform.startswith('darwin'):
+            rname = self.opengl_renderer()
+            if (rname.startswith('AMD Radeon Pro Vega') or
+                rname.startswith('AMD Radeon Pro 5500M')):  # Ticket # 4238
+                offscreen_outline = True
+        self.outline.offscreen_outline_needed = offscreen_outline
         
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
