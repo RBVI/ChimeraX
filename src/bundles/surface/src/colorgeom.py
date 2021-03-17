@@ -25,13 +25,16 @@ _color_geom_args_doc = '''
       Color map.
     range : 2 comma-separated floats or "full"
       Specifies the range of map values used for sampling from a palette.
+    key : bool
+      Whether to show a color key.  Default false.
     update : bool
       Whether to automatically update the surface coloring when the surface shape changes.
 '''
 
 # -----------------------------------------------------------------------------
 #
-def color_radial(session, surfaces, center = None, coordinate_system = None, palette = None, range = None,
+def color_radial(session, surfaces, center = None, coordinate_system = None,
+                 palette = None, range = None, key = False,
                  update = True):
     '''
     Color surfaces by distance from a center point to each surface vertex
@@ -39,14 +42,14 @@ def color_radial(session, surfaces, center = None, coordinate_system = None, pal
     '''
 
     _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = update)
+                    palette = palette, range = range, key = key, auto_update = update)
 
 color_radial.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
-                      palette = None, range = None, update = True):
+                      palette = None, range = None, key = False, update = True):
     '''
     Color surfaces by distance from a cylinder axis to each surface vertex
     with distances mapped to colors by a color palette.
@@ -54,14 +57,14 @@ def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_
 
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = update)
+                    palette = palette, range = range, key = key, auto_update = update)
 
 color_cylindrical.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
-                 palette = None, range = None, update = True):
+                 palette = None, range = None, key = False, update = True):
     '''
     Color surfaces by distance parallel an axis to each surface vertex
     with distances mapped to colors by a color palette.
@@ -69,7 +72,7 @@ def color_height(session, surfaces, center = None, axis = None, coordinate_syste
 
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, auto_update = update)
+                    palette = palette, range = range, key = key, auto_update = update)
 
 color_height.__doc__ += _color_geom_args_doc
 
@@ -77,7 +80,7 @@ color_height.__doc__ += _color_geom_args_doc
 #
 def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
-                    palette = 'redblue', range = None,
+                    palette = 'redblue', range = None, key = False,
                     auto_update = True, caps_only = False):
     surfs = [s for s in surfaces if s.vertices is not None]
 
@@ -104,6 +107,9 @@ def _color_geometry(session, surfaces, geometry = 'radial',
         cs = cclass(surf, palette, range, origin = c, axis = a, auto_recolor = auto_update)
         cs.set_vertex_colors()
         undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+        if key:
+            from chimerax.color_key import show_key
+            show_key(session, cs.colormap)
 
     session.undo.register(undo_state)
 

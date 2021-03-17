@@ -31,13 +31,13 @@ _color_map_args_doc = '''
 
 # -----------------------------------------------------------------------------
 #
-def color_sample(session, surfaces, map, palette = None, range = None,
+def color_sample(session, surfaces, map, palette = None, range = None, key = False,
                  offset = 0, transparency = None, update = True, undo_state = None):
     '''
     Color surfaces using an interpolated map value at each surface vertex
     with values mapped to colors by a color palette.
     '''
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color sample', undo_state = undo_state)
 
@@ -45,14 +45,14 @@ color_sample.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_electrostatic(session, surfaces, map, palette = None, range = None,
+def color_electrostatic(session, surfaces, map, palette = None, range = None, key = False,
                         offset = 1.4, transparency = None, update = True):
     '''
     Color surfaces using an interpolated electrostatic potential map value
     at each surface vertex with values mapped to colors by a color palette.
     '''
     
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
     
@@ -60,7 +60,7 @@ color_electrostatic.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_gradient(session, surfaces, map = None, palette = None, range = None,
+def color_gradient(session, surfaces, map = None, palette = None, range = None, key = False,
                    offset = 0, transparency = None, update = True):
     '''
     Color surfaces using an map gradient norm value at each surface vertex
@@ -74,7 +74,7 @@ def color_gradient(session, surfaces, map = None, palette = None, range = None,
             raise UserError('volume gradient command must specify "map" option')
         map = surfaces[0].volume
             
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, gradient = True,
                         auto_update = update, undo_name = 'color gradient')
 
@@ -103,7 +103,7 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
 
 # -----------------------------------------------------------------------------
 #
-def _color_by_map_value(session, surfaces, map, palette = None, range = None,
+def _color_by_map_value(session, surfaces, map, palette = None, range = None, key = False,
                         offset = 0, transparency = None, gradient = False, caps_only = False,
                         auto_update = True, undo_name = 'color map by value', undo_state = None):
 
@@ -122,6 +122,9 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None,
                       offset = offset, auto_recolor = auto_update)
         cs.set_vertex_colors()
         undo.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+        if key:
+            from chimerax.color_key import show_key
+            show_key(session, cs.colormap)
 
     if undo_state is None:
         session.undo.register(undo)
