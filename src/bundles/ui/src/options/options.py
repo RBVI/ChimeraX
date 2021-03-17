@@ -776,15 +776,24 @@ class StringsOption(Option):
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
 
-    def _make_widget(self, initial_text_width="10em", **kw):
-        """initial_text_width should be a string holding a "stylesheet-friendly"
+    def _make_widget(self, initial_text_width="10em", initial_text_height="4em", **kw):
+        """initial_text_width/height should be a string holding a "stylesheet-friendly"
            value, (e.g. '10em' or '7ch') or None"""
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
         self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        sheet_info = ""
         if initial_text_width:
-            self.widget.setStyleSheet("* { width: %s }" % initial_text_width)
+            sheet_info = "width: %s" % initial_text_width
+        else:
+            sheet_info = ""
+        if initial_text_height:
+            if sheet_info:
+                sheet_info += "; "
+            sheet_info += "height: %s" % initial_text_height
+        if sheet_info:
+            self.widget.setStyleSheet("* { " + sheet_info + " }")
 
 class HostPortOption(StringIntOption):
     """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
