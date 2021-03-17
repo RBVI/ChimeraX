@@ -23,7 +23,7 @@ _mouse_mode = None
 
 class ColorKeyTool(ToolInstance):
 
-    #help = "help:user/tools/modelpanel.html"
+    help = "help:user/tools/colorkey.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -222,8 +222,7 @@ class ColorKeyTool(ToolInstance):
         bbox.rejected.connect(self.delete)
         delete_button = bbox.addButton("Delete/Close", qbbox.DestructiveRole)
         delete_button.clicked.connect(self._delete_key)
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
