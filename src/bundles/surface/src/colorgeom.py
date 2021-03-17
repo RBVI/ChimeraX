@@ -112,12 +112,8 @@ def _color_geometry(session, surfaces, geometry = 'radial',
 from chimerax.core.state import State
 class GeometryColor(State):
 
-    menu_name = 'distance'
-    uses_volume_data = False
-    uses_origin = True
-    uses_axis = True
-
-    def __init__(self, surface, palette, range, origin = (0,0,0), axis = (0,0,1), auto_recolor = True):
+    def __init__(self, surface, palette, range, origin = (0,0,0), axis = (0,0,1),
+                 auto_recolor = True):
 
         self.surface = surface
         self.colormap = None
@@ -132,22 +128,6 @@ class GeometryColor(State):
         if auto_recolor:
             from .updaters import add_updater_for_session_saving
             add_updater_for_session_saving(surface.session, self)
-
-    # -------------------------------------------------------------------------
-    #
-    def set_origin(self, origin):
-        if not self.uses_origin:
-            return
-        if origin is None:
-            s = self.surface
-            b = s.bounds()
-            origin = (s.scene_position * (0,0,0)) if b is None else b.center()
-        self.origin = tuple(origin)
-
-    # -------------------------------------------------------------------------
-    #
-    def set_axis(self, axis):
-        self.axis = tuple(axis)
         
     # -------------------------------------------------------------------------
     #
@@ -155,14 +135,6 @@ class GeometryColor(State):
         from .colorvol import _use_full_range, _colormap_with_range
         r = self.value_range() if _use_full_range(range, palette) else range
         self.colormap = _colormap_with_range(palette, r)
-
-    # -------------------------------------------------------------------------
-    #
-    def color_surface_pieces(self, plist):
-
-        for p in plist:
-            p.vertexColors = self.vertex_colors(p)
-            p.using_surface_coloring = True
 
     # -------------------------------------------------------------------------
     #
@@ -231,13 +203,22 @@ class GeometryColor(State):
                 origin = data['origin'], axis = data['axis'])
         c.set_vertex_colors()
         return c
+
+# -----------------------------------------------------------------------------
+#
+def geometry_coloring(surface):
+    '''Return GeometryColor class for surface model if it is being auto colored.'''
+    arv = surface.auto_recolor_vertices
+    if hasattr(arv, '__self__'):
+        gc = arv.__self__  # Instance of a bound method
+        if isinstance(gc, GeometryColor):
+            return gc
+    return None
     
 # -----------------------------------------------------------------------------
 #
 class HeightColor(GeometryColor):
 
-    menu_name = 'height'
-        
     # -------------------------------------------------------------------------
     #
     def values(self, vertices):
@@ -262,9 +243,6 @@ def distances_along_axis(points, origin, axis):
 # -----------------------------------------------------------------------------
 #
 class RadialColor(GeometryColor):
-
-    menu_name = 'radius'
-    uses_axis = False
         
     # -------------------------------------------------------------------------
     #
@@ -289,8 +267,6 @@ def distances_from_origin(points, origin):
 # -----------------------------------------------------------------------------
 #
 class CylinderColor(GeometryColor):
-
-    menu_name = 'cylinder radius'
 
     def values(self, vertices):
 

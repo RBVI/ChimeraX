@@ -125,7 +125,9 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None,
 
     if undo_state is None:
         session.undo.register(undo)
-        
+
+    return cs
+
 # -----------------------------------------------------------------------------
 #
 def _use_full_range(range, palette):
@@ -152,12 +154,6 @@ def _colormap_with_range(cmap, range, default = 'redblue'):
 #
 from chimerax.core.state import State
 class VolumeColor(State):
-
-    menu_name = 'volume data value'
-    volume_name = 'volume'
-    uses_volume_data = True
-    uses_origin = False
-    uses_axis = False
 
     def __init__(self, surface, volume, palette = None, range = None,
                  transparency = None, offset = 0, auto_recolor = True):
@@ -187,21 +183,6 @@ class VolumeColor(State):
         self.colormap = _colormap_with_range(palette, r)
         self.per_pixel_coloring = per_pixel
         self.set_texture_colormap()
-
-    # -------------------------------------------------------------------------
-    #
-    def color_surface_pieces(self, plist):
-
-        t = self.texture()
-        if t:
-            txf = self.volume.openState.xform
-            border_color = self.colormap.color_no_value
-            for p in plist:
-                texture_surface_piece(p, t, txf, border_color, self.offset)
-        else:
-            for p in plist:
-                p.vertexColors = self.vertex_colors(p)
-                p.using_surface_coloring = True
         
     # -------------------------------------------------------------------------
     #
@@ -418,9 +399,18 @@ class VolumeColor(State):
 
 # -----------------------------------------------------------------------------
 #
-class GradientColor(VolumeColor):
+def volume_coloring(surface):
+    '''Return VolumeColor class for surface model if it is being auto colored.'''
+    arv = surface.auto_recolor_vertices
+    if hasattr(arv, '__self__'):
+        vc = arv.__self__  # Instance of a bound method
+        if isinstance(vc, VolumeColor):
+            return vc
+    return None
 
-    menu_name ='volume data gradient norm'
+# -----------------------------------------------------------------------------
+#
+class GradientColor(VolumeColor):
 
     def vertex_values(self, vertices, vertex_xform):
 
@@ -434,14 +424,6 @@ class GradientColor(VolumeColor):
         gnorms = sqrt(gnorms2)
         
         return gnorms, outside
-
-    # -------------------------------------------------------------------------
-    #
-    def color_surface_pieces(self, plist):
-
-        for p in plist:
-            p.vertexColors = self.vertex_colors(p)
-            p.using_surface_coloring = True
             
 # -----------------------------------------------------------------------------
 #

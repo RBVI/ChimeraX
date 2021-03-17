@@ -91,6 +91,7 @@
     <ChimeraXClassifier>Tool :: Surface Zone :: Volume Data :: show surface near atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Color Zone :: Volume Data :: color surface to match nearby atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Measure Volume and Area :: Volume Data :: measure surface area and enclosed volume</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Color :: Volume Data :: Color surface by geometry or map value</ChimeraXClassifier>
   </Classifiers>
 
 
