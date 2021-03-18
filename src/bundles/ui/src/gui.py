@@ -142,6 +142,7 @@ class UI(QApplication):
         self.has_graphics = True
         self.main_window = None
         self.already_quit = False
+        self.splash = None
         self.session = session
 
         from .settings import UI_Settings
@@ -203,6 +204,8 @@ class UI(QApplication):
         qInstallMessageHandler(cx_qt_msg_handler)
 
     def show_splash(self):
+        if not self.settings.show_splash_screen:
+            return
         # splash screen
         import os.path
         splash_pic_path = os.path.join(os.path.dirname(__file__), "splash.jpg")
@@ -239,7 +242,8 @@ class UI(QApplication):
         mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
         mw.rapid_access_shown = True
-        self.splash.finish(mw)
+        if self.splash:
+            self.splash.finish(mw)
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
         from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
@@ -262,6 +266,9 @@ class UI(QApplication):
                 self.settings.autostart = final_autostart
             self.session.tools.start_tools(final_autostart)
 
+        from .settings import register_settings_options
+        register_settings_options(self.session)
+        
         self.triggers.activate_trigger('ready', None)
 
     def event(self, event):
@@ -362,9 +369,10 @@ class UI(QApplication):
         self.main_window.set_tool_shown(tool_instance, shown)
 
     def splash_info(self, msg, step_num=None, num_steps=None):
-        from Qt.QtCore import Qt
-        self.splash.showMessage(msg, Qt.AlignLeft|Qt.AlignBottom, Qt.red)
-        self.processEvents()
+        if self.splash:
+            from Qt.QtCore import Qt
+            self.splash.showMessage(msg, Qt.AlignLeft|Qt.AlignBottom, Qt.red)
+            self.processEvents()
 
     def quit(self, confirm=True):
         # called by exit command

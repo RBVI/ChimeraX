@@ -1312,7 +1312,42 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
 
     session.undo.register(undo_state)
 
+        
+def color_single(session, models = None, color = None):
+    '''
+    Color models a single color.
 
+    models : list of models
+      Models to color.
+    color : (r,g,b,a) uint8 or None
+      Color to use, or if None then vertex colors are erased
+      and current model single color is used.
+    '''
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('color single')
+
+    if models is None:
+        models = session.models.list()
+
+    # Save undo state before setting any model single colors
+    # since setting may change child model colors, e.g. with Volume.
+    for m in models:
+        if color is not None:
+            undo_state.add(m, 'color', m.color, color)
+        if m.vertex_colors is not None:
+            if m.auto_recolor_vertices is not None:
+                undo_state.add(m, 'auto_recolor_vertices', m.auto_recolor_vertices, None)
+            undo_state.add(m, 'vertex_colors', m.vertex_colors, None)
+
+    # Set new colors
+    for m in models:
+        if color is not None:
+            m.single_color = color
+        else:
+            m.vertex_colors = None
+            
+    session.undo.register(undo_state)
+    
 from chimerax.core.commands import StringArg
 class TargetArg(StringArg):
     """String containing characters indicating what to color:
@@ -1338,8 +1373,8 @@ class TargetArg(StringArg):
 #
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
-    from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf
-    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg, StringArg
+    from chimerax.core.commands import ObjectsArg, ModelsArg, create_alias, EmptyArg, Or, EnumOf
+    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg, StringArg, Color8Arg
     from chimerax.core.commands import create_alias
     from chimerax.atomic import AtomsArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
@@ -1405,3 +1440,9 @@ def register_command(logger):
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
     register('color zone', desc, color_zone, logger=logger)
+
+    # color a single color
+    desc = CmdDesc(optional=[('models', ModelsArg),
+                             ('color', Color8Arg)],
+                   synopsis="color model a single color")
+    register('color single', desc, color_single, logger=logger)

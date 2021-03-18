@@ -114,30 +114,64 @@ def palette_name(rgbas):
             return name
     return None
 
-def show_key(session, color_map, *, show_tool=True, show_all_values=False):
+def _precision_values(values, precision):
+    if precision is None:
+        return "%g", values
+
+    # if all integer, return as is
+    for v in values:
+        if int(v) != v:
+            break
+    else:
+        return "%d", values
+
+    # how many non-zero digits to the left of the decimal point?
+    int_digits = 0
+    for v in values:
+        iv = int(v+0.5)
+        if iv > 0:
+            int_digits = max(int_digits, len(str(iv)))
+
+    if int_digits >= precision:
+        return "%d", [int(v+0.5) for v in values]
+
+    # use number of decimal places implied by remaining precision,
+    # but reduce that if last place of all values is zero
+    for decimal_places in range(precision - int_digits, 0, -1):
+        fmt = "%%.%df" % decimal_places
+        for v in values:
+            if (fmt % v)[-1] != '0':
+                break
+        else:
+            continue
+        return fmt, values
+    # should only happen if values very close to ints
+    return "%d", [int(v+0.5) for v in values]
+
+def show_key(session, color_map, *, show_tool=True, show_all_values=False, precision=3):
+    """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
     from chimerax.core.colors import color_name, rgba_to_rgba8
     palette = palette_name(color_map.colors)
+    v_fmt, values = _precision_values(color_map.data_values, precision)
     # if it's a 3-value map symmetric around zero, don't bother labeling zero
-    if show_all_values or len(color_map.data_values) != 3 or color_map.data_values[1] != 0 \
-    or color_map.data_values[0] != -color_map.data_values[2]:
+    if show_all_values or len(values) != 3 or values[1] != 0 \
+    or values[0] != -values[2]:
         # not a symmetric 3-value map
         if palette is None:
-            key_arg = ' '.join([StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(c)), dv))
-                for c, dv in zip(color_map.colors, color_map.data_values)])
+            key_arg = ' '.join([StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(c)), dv))
+                for c, dv in zip(color_map.colors, values)])
         else:
-            key_arg = "%s %s" % (StringArg.unparse(palette),
-                " ".join([":%g" % dv for dv in color_map.data_values]))
+            key_arg = "%s %s" % (StringArg.unparse(palette), " ".join([(':' + v_fmt) % dv for dv in values]))
     else:
         # symmetric 3-value map
         if palette is None:
-            key_arg = StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(color_map.colors[0])),
-                color_map.data_values[0])) + ' ' + StringArg.unparse("%s:" % color_name(rgba_to_rgba8(
-                color_map.colors[1]))) + ' ' + StringArg.unparse("%s:%g" % (color_name(rgba_to_rgba8(
-                color_map.colors[2])), color_map.data_values[2]))
+            key_arg = StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(color_map.colors[0])),
+                values[0])) + ' ' + StringArg.unparse("%s:" % color_name(rgba_to_rgba8(
+                color_map.colors[1]))) + ' ' + StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(
+                color_map.colors[2])), values[2]))
         else:
-            key_arg = "%s :%g : :%g" % (StringArg.unparse(palette), color_map.data_values[0],
-                color_map.data_values[2])
+            key_arg = ("%s :" + v_fmt +" : :" + v_fmt) % (StringArg.unparse(palette), values[0], values[2])
     run(session, "key " + key_arg)
     if show_tool and session.ui.is_gui and not session.in_script:
         run(session,"ui tool show 'Color Key'")

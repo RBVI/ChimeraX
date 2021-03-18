@@ -67,7 +67,8 @@ class EntriesRow:
     def __init__(self, parent, *args, spacing = 5):
         f, layout = row_frame(parent, spacing)
         self.frame = f
-        
+
+        from .color_button import ColorButton
         from Qt.QtWidgets import QLabel, QPushButton
         values = []
         for a in args:
@@ -125,6 +126,10 @@ class EntriesRow:
 #                b.setStyleSheet('QPushButton { border: none;}')
 #                b.setStyleSheet('QPushButton { background-color: pink;}')
 #                layout.setAlignment(b, Qt.AlignTop)
+            elif a is ColorButton:
+                cb = ColorButton(f, max_size = (20,20))
+                layout.addWidget(cb)
+                values.append(cb)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -283,19 +288,28 @@ class CollapsiblePanel(QWidget):
             row += 1
         layout.addWidget(c, row, 0, 1, 3)
 
+    @property
+    def shown(self):
+        return self.content_area.maximumHeight() > 0
+    
     def toggle_panel_display(self, checked = None):
         if checked is None:
-            checked = (self.content_area.maximumHeight() == 0)
+            checked = not self.shown
         tb = self.toggle_button
         if tb:
             from Qt.QtCore import Qt
             arrow_type = Qt.DownArrow if checked else Qt.RightArrow
             tb.setArrowType(arrow_type)
+        self.resize_panel(checked)
+
+    def resize_panel(self, shown = None):
+        if shown is None:
+            shown = self.shown
         c = self.content_area
-        h = c.sizeHint().height() if checked else 0
+        h = c.sizeHint().height() if shown else 0
         c.setMaximumHeight(h)
         c.setMinimumHeight(h)
-        if not checked:
+        if not shown:
             # Resize dock widget to reclaim spaced used by popup.
             _resize_dock_widget(self)
 
@@ -370,6 +384,14 @@ class ModelMenu:
 def vertical_layout(frame, margins = (0,0,0,0), spacing = 0):
     from Qt.QtWidgets import QVBoxLayout
     layout = QVBoxLayout(frame)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+    frame.setLayout(layout)
+    return layout
+
+def horizontal_layout(frame, margins = (0,0,0,0), spacing = 0):
+    from Qt.QtWidgets import QHBoxLayout
+    layout = QHBoxLayout(frame)
     layout.setContentsMargins(*margins)
     layout.setSpacing(spacing)
     frame.setLayout(layout)

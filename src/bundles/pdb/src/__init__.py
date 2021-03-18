@@ -44,7 +44,7 @@ class _PDBioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                             'segid_chains': BoolArg,
-                            'missing_coordsets': EnumOf(('fill','skip','compact')),
+                            'missing_coordsets': EnumOf(('fill','ignore','renumber')),
                         }
             else:
                 from chimerax.open_command import FetcherInfo

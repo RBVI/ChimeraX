@@ -20,7 +20,7 @@ Read Protein DataBank (PDB) files.
 
 def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
-             missing_coordsets="compact"):
+             missing_coordsets="renumber"):
     """Read PDB data from a file or stream and return a list of models and status information.
 
     ``stream`` is either a string a string with a file system path to a PDB file, or an open input
@@ -72,7 +72,7 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
     from . import _pdbio
     try:
         pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains,
-            ['fill', 'skip', 'compact'].index(missing_coordsets))
+            ['fill', 'ignore', 'renumber'].index(missing_coordsets))
     except ValueError as e:
         if 'non-ASCII' in str(e):
             from chimerax.core.errors import UserError
