@@ -57,14 +57,22 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     alignment, seq, region_info = targets
     if not alignment.associations:
         raise UserError("No chains/structures associated with sequence %s" % seq.name)
-    model_chains = set(alignment.associations.keys())
+    model_chains = set(seq.match_maps.keys())
     if chains:
         model_chains = [chain for chain in chains if chain in model_chains]
     by_structure = {}
     for chain in model_chains:
         by_structure.setdefault(chain.structure, []).append(chain)
 
-    #TODO: for loop_info data
+    #TODO: form loop_info data
+    chain_indices = {}
+    for chain in model_chains:
+        if region_info == ALL_MISSING:
+            chain_indices[chain] = find_missing(chain, seq.match_maps[chain], False)
+        elif region_info == NT_MISSING:
+            chain_indices[chain] = find_missing(chain, seq.match_maps[chain], True)
+        else:
+            chain_indices[chain] = region_info
 
 
     from .common import modeller_copy
@@ -305,6 +313,22 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             shutil.copy(script_path, temp_dir.name)
 
     return job_runner.run(block=block)
+
+def find_missing(chain, match_map, terminal):
+    missing = []
+    start_missing = None
+    for i in len(match_map):
+        if match_map[i] is None:
+            if start_missing is None:
+                start_missing = i
+        else:
+            if start_missing is not None:
+                if not terminal or start_missing == 0:
+                    missing.append((start_missing, i))
+                start_missing = None
+    if start_missing is not None:
+        missing.append((start_missing, len(match_map)))
+    return missing
 
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
