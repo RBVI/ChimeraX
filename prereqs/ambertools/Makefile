@@ -107,7 +107,7 @@ ifeq ($(UPLOAD_PREBUILT),true)
 ifeq ($(OS),Darwin)
 	tar cjf $(AMBERTOOLS_FLIBS_PREBUILT) -C "$(app_libdir)" `cat $(FLIB_NAMES_FILE)`
 endif
-	$(MAKE) upload_new_binary_version
+	$(MAKE) upload-new-binary-version
 endif
 ifeq ($(OS),Darwin)
 	rm $(tmpdir)/mac_flib_names
@@ -132,10 +132,10 @@ endif
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION)
 
-upload_new_source_version:
+upload-new-source-version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/ambertools
 
-upload_new_binary_version:
+upload-new-binary-version:
 	$(RSYNC) $(AMBERTOOLS_PREBUILT) $(PREREQS_UPLOAD)/ambertools
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(AMBERTOOLS_FLIBS_PREBUILT) $(PREREQS_UPLOAD)/ambertools
