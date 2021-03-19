@@ -59,10 +59,16 @@ ifeq ($(USE_PREBUILT),true)
 install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
-	(cd $(AMBERBIN_DST_HOME); tar xf $(AMBERTOOLS_PREBUILT))
+	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
+ifeq ($(OS),Darwin)
+	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
+endif
 
 $(AMBERTOOLS_PREBUILT):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT)
+ifeq ($(OS),Darwin)
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_FLIBS_PREBUILT)
+endif
 
 else
 install: $(SOURCE)
