@@ -6,14 +6,31 @@ include $(TOP)/mk/config.make
 
 VERSION = 20
 
+# to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
+# once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
+ifeq ($(OS),Linux)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=false
+AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
+else
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
+ifeq ($(OS),Darwin)
+AMBERTOOLS_FLIBS_PREBUILT = ambertools-flibs-$(VERSION)-$(OS).tar.bz2
+FLIB_NAMES_FILE = $(tmpdir)/mac_flib_names
+endif
+endif
+
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
 AMBERHOME = $(SOURCE)/amber$(VERSION)_src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
-AMBERBIN_DST = $(app_bindir)/amber$(VERSION)/bin
+AMBERBIN_DST_HOME = $(app_bindir)/amber$(VERSION)
+AMBERBIN_DST = $(AMBERBIN_DST_HOME)/bin
 AMBERDAT_SRC = $(AMBERHOME)/dat/antechamber
-AMBERDAT_DST = $(app_bindir)/amber$(VERSION)/dat/antechamber
+AMBERDAT_DST = $(AMBERBIN_DST_HOME)/dat/antechamber
 
 PATCHES	= $(wildcard AmberTools-*.patch)
 
@@ -38,6 +55,16 @@ else
 FLIBDIR = /usr/local/gfortran/lib
 endif
 
+ifeq ($(USE_PREBUILT),true)
+install:
+
+app-install: $(AMBERTOOLS_PREBUILT)
+	(cd $(AMBERBIN_DST_HOME); tar xf $(AMBERTOOLS_PREBUILT))
+
+$(AMBERTOOLS_PREBUILT):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT)
+
+else
 install: $(SOURCE)
 	cd $(AMBERHOME) && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' ./configure --no-updates -noX11 -nofftw3 --skip-python $(CONFIG_ARGS)
 	cd $(TOOL_SRC)/c9x-complex && env AMBERHOME='$(AMBERHOME)' $(MAKE) all
@@ -59,10 +86,12 @@ endif
 	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
 ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
+	cat /dev/null > $(FLIB_NAMES_FILE)
 	cd $(AMBERBIN_DST) && for i in sqm; do \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
+			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
@@ -72,6 +101,16 @@ ifeq ($(OS),Darwin)
 			done; \
 		done; \
 	done
+endif
+ifeq ($(UPLOAD_PREBUILT),true)
+	tar cjf $(AMBERTOOLS_PREBUILT) -C "$(AMBERBIN_DST_HOME)" .
+ifeq ($(OS),Darwin)
+	tar cjf $(AMBERTOOLS_FLIBS_PREBUILT) -C "$(app_libdir)" `cat $(FLIB_NAMES_FILE)`
+endif
+	$(MAKE) upload_new_binary_version
+endif
+ifeq ($(OS),Darwin)
+	rm $(tmpdir)/mac_flib_names
 endif
 
 $(SOURCE): $(DISTRIBUTION)
@@ -88,12 +127,19 @@ ifeq ($(BUILD_TYPE),daily)
 else
 	cd $(AMBERHOME) && env AMBERHOME='$(SOURCE)' ./update_amber --update
 endif
+endif
 
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION)
 
-upload_new_version:
+upload_new_source_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/ambertools
+
+upload_new_binary_version:
+	$(RSYNC) $(AMBERTOOLS_PREBUILT) $(PREREQS_UPLOAD)/ambertools
+ifeq ($(OS),Darwin)
+	$(RSYNC) $(AMBERTOOLS_FLIBS_PREBUILT) $(PREREQS_UPLOAD)/ambertools
+endif
 
 clean:
 	rm -rf $(SOURCE)
