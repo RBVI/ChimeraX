@@ -559,7 +559,7 @@ def init(argv, event_loop=True):
         initialize_qt()
 
     # initialize the user interface
-    # sets up logging, splash screen if gui
+    # sets up logging
     if opts.gui:
         sess.logger.clear()  # Remove nogui logging to stdout
         from chimerax.ui import gui
@@ -579,21 +579,8 @@ def init(argv, event_loop=True):
         except Exception:
             pass
 
-    # splash screen
-    if opts.gui:
-        sess.ui.show_splash()
-    num_splash_steps = 2
-    if opts.gui:
-        num_splash_steps += 1
-    if not opts.gui and opts.load_tools:
-        num_splash_steps += 1
-    import itertools
-    splash_step = itertools.count()
-
     # common core initialization
     if not opts.silent:
-        sess.ui.splash_info("Initializing core",
-                            next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
@@ -616,10 +603,6 @@ def init(argv, event_loop=True):
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                if line.startswith("install"):
-                    sess.ui.splash_info("Installing bundles")
-                elif line.startswith("uninstall"):
-                    sess.ui.splash_info("Uninstalling bundles")
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
@@ -637,8 +620,6 @@ def init(argv, event_loop=True):
     if opts.module != 'pip' and opts.run_path is None:
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
-            sess.ui.splash_info("Initializing bundles",
-                                next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
         sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
@@ -690,8 +671,6 @@ def init(argv, event_loop=True):
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
         if not opts.silent:
-            sess.ui.splash_info("Starting main interface",
-                                next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Starting main interface", flush=True)
         sess.ui.build()
@@ -699,7 +678,6 @@ def init(argv, event_loop=True):
     if opts.start_tools:
         if not opts.silent:
             msg = 'Starting tools %s' % ', '.join(opts.start_tools)
-            sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         # canonicalize tool names
@@ -715,7 +693,6 @@ def init(argv, event_loop=True):
     if opts.commands:
         if not opts.silent:
             msg = 'Running startup commands'
-            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
@@ -725,7 +702,6 @@ def init(argv, event_loop=True):
     if opts.scripts:
         if not opts.silent:
             msg = 'Running startup scripts'
-            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
@@ -742,13 +718,8 @@ def init(argv, event_loop=True):
                 return e.code
 
     if not opts.silent:
-        sess.ui.splash_info("Finished initialization",
-                            next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
             print("Finished initialization", flush=True)
-
-    if opts.gui:
-        sess.ui.close_splash()
 
     if not opts.silent:
         from chimerax.core.logger import log_version
