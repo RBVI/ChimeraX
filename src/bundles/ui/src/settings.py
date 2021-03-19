@@ -32,13 +32,4 @@ class UI_Settings(Settings):
 
     AUTO_SAVE = {
         'last_window_size': None,
-        'show_splash_screen': True,
     }
-
-def register_settings_options(session):
-    from .options import BooleanOption
-    settings = session.ui.settings
-    opt = BooleanOption('Show splash screen', settings.show_splash_screen, None,
-                        attr_name='show_splash_screen', settings=settings,
-                        balloon='Whether to show the splash screen when ChimeraX starts')
-    session.ui.main_window.add_settings_option("Startup", opt)
