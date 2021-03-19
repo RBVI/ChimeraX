@@ -618,20 +618,19 @@ from each surface vertex, along its normal, to evaluate the data
 with default <b>offset</b> <b>1.4</b> &Aring;, 
 which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
-The rationale for looking outward is that the values at the centers 
-of any interacting atoms are more relevant than those at their surfaces.
-By default, a <a href="surface.html#surfdefs">molecular surface</a>
-shows where the surface of a spherical probe 
-of radius 1.4 &Aring; can lie, the
-<a href="surface.html#surfdefs">solvent-excluded surface</a>.
-An offset of 1.4 &Aring; approximates the 
+The rationale for looking outward is to show the values that any atoms
+binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+A molecular surface in ChimeraX is the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>
+where the surface of a spherical probe can lie. The default probe radius
+is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
-** However, an offset of 0.0 may be preferred for coloring
-<a href="surface.html#cap">surface caps</a>
-(from <a href="clip.html">clipping</a>),
-and a zero or negative offset may be appropriate
-for coloring the surface of one structure by the potential from another. **
+**However, an offset of 0.0 may be preferred for coloring
+the <a href="surface.html#cap">cap</a>
+of a <a href="clip.html">clipped</a> surface,
+and a zero or negative offset for coloring the surface of one structure
+by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
 with default <b>offset</b> <b>0.0</b> &Aring;.
