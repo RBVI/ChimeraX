@@ -29,9 +29,9 @@ class="clRight" title="User Guide Index"/></a>
 </p>
 <ul>
 <li><a href="volumeviewer.html">volume data</a> (map) value or gradient norm
-<li><a href="../commands/open.html#volume">electrostatic potential</a>
-(a subtype of <a href="volumeviewer.html">volume data</a>
-associated with additional <a href="#options">surface color options</a>)
+<li><a href="../commands/open.html#volume">electrostatic potential</a> (ESP),
+a type of <a href="volumeviewer.html">volume data</a> for which values
+<a href="#options">offset</a> from the surface are used
 <li>distance from a point, axis, or plane
 </ul>
 <p>
@@ -110,22 +110,24 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>)
 <li>Clicking <b>Reverse</b> puts the color/value pairs in the opposite order.
 <li>Clicking <b>Set</b> fills in the values to span the full range 
-found in the data.
+and performs the coloring, same as clicking <b>Color</b>.
 <br><br>
 <li><b>Surface offset</b> (electrostatic coloring only)
 &ndash; how far out from each surface vertex, along its normal, 
 to evaluate the data (default <b>1.4</b> &Aring;).
-The rationale for looking outward is that the values at the centers
-of any interacting atoms are more relevant than those at their surfaces.
-By default, a <a href="../commands/surface.html#surfdefs">molecular surface</a>
-shows where the surface of a spherical probe of radius 1.4 &Aring; can lie, the
-<a href="../commands/surface.html#surfdefs">solvent-excluded surface</a> (SES).
-An offset of 1.4 &Aring; approximates the
-<a href="../commands/surface.html#surfdefs">solvent-accessible surface</a>
-(SAS), about as close as the probe center can get to the molecule.
-** However, an offset of 0.0 may be preferred for coloring
+The rationale for looking outward is to show the values that any atoms
+binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+A molecular surface in ChimeraX is the
+<a href="../commands/surface.html#surfdefs">solvent-excluded surface</a>
+where the surface of a spherical probe can lie. The default probe radius
+is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
+<a href="../commands/surface.html#surfdefs">solvent-accessible surface</a>,
+about as close as the probe center can get to the molecule.
+**However, an offset of 0.0 may be preferred for coloring
 the <a href="../commands/surface.html#cap">cap</a>
-of a <a href="../commands/clip.html">clipped</a> surface.
+of a <a href="../commands/clip.html">clipped</a> surface, 
+and a zero or negative offset for coloring the surface of one structure
+by the potential from another.**
 <br><br>
 <li><b>Color outside volume</b> (map coloring only)
 &ndash; what color to use for surface points outside of the map boundaries

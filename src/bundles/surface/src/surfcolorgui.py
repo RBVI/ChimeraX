@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class SurfaceColorGUI(ToolInstance):
 
-    help = 'help:user/tools/surfcolor.html'
+    help = 'help:user/tools/surfacecolor.html'
 
     def __init__(self, session, tool_name):
 
@@ -173,7 +173,7 @@ class SurfaceColorGUI(ToolInstance):
 
         palette_names = ('rainbow', 'red-white-blue', 'cyan-white-maroon',
                          'blue-white-red', 'grayscale')
-        num_colors = tuple(str(count) for count in range(2,11))
+        num_colors = tuple(str(count) for count in range(2,9))
         from chimerax.ui.widgets import EntriesRow, ColorButton
         po = EntriesRow(f,
                         'Colors', num_colors,
@@ -537,7 +537,7 @@ def _report_surface_value(session, win_x, win_y):
 # -----------------------------------------------------------------------------
 #
 class PaletteWidget:
-    def __init__(self, parent, max_colors = 10):
+    def __init__(self, parent, max_colors = 8):
         from Qt.QtWidgets import QFrame, QGridLayout, QLineEdit
         self.frame = cf = QFrame(parent)
         layout = QGridLayout(cf)
@@ -559,7 +559,7 @@ class PaletteWidget:
         row += 1
         for col in range(max_colors):
             le = QLineEdit(cf)
-            le.setMaximumWidth(40)
+            le.setMaximumWidth(65)
             values.append(le)
             layout.addWidget(le, row, col)
 
