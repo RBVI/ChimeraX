@@ -27,7 +27,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     targets
         What parts of the structures associated with a sequence to remodel.  It should be an
         (alignment, sequence, indices) tuple.  The indices should be a list of two-tuples of
-        (start, end) Python-style indices into the sequence.  Alternatively, "indices" can be
+        (start, end) Python-style indices into the ungapped sequence.  Alternatively, "indices" can be
         one of the string values from special_region_values above to remodel all missing structure
         or non-terminal missing structure associated with the sequence.
     adjacent_flexible
@@ -46,6 +46,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
         Number of models to generate
+    protocol
+        Loop-modeling refinement method.  One of: standard, DOPE, or DOPE-HR.
     show_gui
         If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
@@ -64,7 +66,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     for chain in model_chains:
         by_structure.setdefault(chain.structure, []).append(chain)
 
-    #TODO: form loop_info data
     chain_indices = {}
     for chain in model_chains:
         if region_info == ALL_MISSING:
@@ -73,6 +74,12 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             chain_indices[chain] = find_missing(chain, seq.match_maps[chain], True)
         else:
             chain_indices[chain] = region_info
+    #MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
+
+    # Use the ungapped sequence as the target sequence, changing name to conform to Modeller limitations
+    target = modeller_copy(seq.ungapped())
+    for s, s_chains in by_structure.items():
+        
 
 
     from .common import modeller_copy
