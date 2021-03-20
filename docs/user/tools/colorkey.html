@@ -36,49 +36,50 @@ see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
 </td></tr>
 </table>
 <p>
-<b>Color Key</b> creates a color key to show the value-to-color
-correspondences for:
+<b>Color Key</b> creates a legend or key to show the
+value-color correspondences in a figure, such as from:
+</p>
 <ul>
-<li><a href="../commands/color.html#byattribute">coloring by attribute</a>
-such as bfactor
+<li><a href="../commands/color.html#byattribute"><b>color</b> by attribute</a>
+(bfactor <a href="moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="shortcut-icons/bfactor.png"></a>, others)
+<li><a href="../commands/color.html#map"><b>color</b> by map value</a>
+(sample, electrostatic, gradient)
+<li><a href="../commands/color.html#distance"><b>color</b> by distance</a>
+(radial, cylindrical, height)
+<li><a href="../commands/coulombic.html"><b>coulombic</b></a>
 <a href="moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="shortcut-icons/bfactor.png"></a>
-<li><a href="../commands/color.html#map">coloring by map value or gradient</a>
-<li><a href="../commands/color.html#distance">coloring by distance</b></a>
-(radial, cylindrical, topographic height)
+<img class="icon" border=1 src="shortcut-icons/esp.png"></a>
+<li><a href="../commands/mlp.html"><b>mlp</b></a>
+<a href="moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="shortcut-icons/hydrophobicity.png"></a>
+<li><a href="../commands/measure.html#convexity"><b>measure convexity</b></a>
 </ul>
 <p>
 The <b>Color Key</b> dialog can be opened from the <b>Depiction</b> 
 section of the <b>Tools</b> menu and manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
+It can also be started by clicking the <b>Key</b> button in 
+<a href="surfacecolor.html"><b>Surface Color</b></a>.
 A color bar with value labels is automatically generated in the 
 graphics window according to the current settings in the dialog. 
 To create a title for the key
-(<i>e.g.</i>, &ldquo;electrostatic potential&rdquo; or &ldquo;radial
-distance&rdquo;), use <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
+(<i>e.g.</i>, &ldquo;electrostatic potential&rdquo; as shown in the image),
+use <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
 </p><p>
-When <a href="../commands/coulombic.html"><b>coulombic</b></a>
-<a href="moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="shortcut-icons/esp.png"></a>,
-<a href="../commands/mlp.html"><b>mlp</b></a>
-<a href="moldisplay.html" title="Molecule Display Toolbar..."><img
-class="icon" border=1 src="shortcut-icons/hydrophobicity.png"></a>,
-or <a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
-is run interactively (in gui mode and not via a 
+When a color-by-value command is run interactively (in gui mode and not via a
 <a href="../commands/usageconventions.html#cxc-files">script</a>), 
 the <b>key</b> option of that command can be used to start <b>Color Key</b>
-with the corresponding colors and values already set.
+with the corresponding colors and values already set. 
 See also:
-<a href="../commands/measure.html#convexity"><b>measure convexity</b></a>,
 <a href="../images.html">making images</a>
 </p><p>
 It is usually best to adjust the <b>Number of colors/labels</b> 
 (default <b>3</b>) as needed before making other changes.
 </p><p>
-The color/label pairs from top to bottom in the dialog will be arranged
-from top to bottom in a vertical key and from left to right in a
-horizontal key. 
-Label text can be entered directly or pasted, 
+The color/label pairs from bottom to top in the dialog will be arranged
+from bottom to top in a vertical key and from left to right in a
+horizontal key. Label text can be entered directly or pasted, 
 potentially including <a href="../commands/symbols.html">symbols</a>.
 </p><p>
 Clicking <b>Reverse</b> repopulates the color/label values in the 

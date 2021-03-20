@@ -225,6 +225,7 @@ See also: <a href="cofr"><b>cofr</b></a>
 [&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>writeSurfaceData</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>patches</b>&nbsp;&nbsp;<i>convexity-threshold</i>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
 <blockquote>
 Color a surface based on the convexity at each vertex, 
@@ -242,7 +243,7 @@ The surface vertex positions, normals, convexity values, and triangles
 can be saved to a text file with <b>writeSurfaceData</b>,
 where <i>filename</i> can be a pathname including the directory location.
 <p>
-The remaining options specify coloring.
+The remaining options relate to coloring.
 The <b>patches</b> option randomly assigns colors to contiguous patches
 of vertices with convexity values above the <i>convexity-threshold</i>. 
 Otherwise (<b>patches</b> not used),
@@ -260,10 +261,19 @@ style="display:inline-block; vertical-align:middle"><tr>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
 Unsmoothed values typically give mottled coloring.
-See also: <a href="key.html"><b>key</b></a>,
+When <b>measure convexity</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
+</p><p>
+See also:
+<a href="key.html"><b>key</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>, 
 <a href="mlp.html"><b>mlp</b></a>, 
 <a href="color.html"><b>color</b></a>,
 <a href="bumps.html"><b>bumps</b></a>
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>

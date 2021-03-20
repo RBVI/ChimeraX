@@ -225,7 +225,7 @@ def unit_cell_info(m):
 
     sm = pm.crystal_symmetries(m, use_space_group_table = False)
     mm = pm.noncrystal_symmetries(m, add_identity = False)
-    if sm == 0 and mm == 0 and sg == '' and cs == '' and ca == '' and sgsc == '':
+    if len(sm) == 0 and len(mm) == 0 and sg == '' and cs == '' and ca == '' and sgsc == '':
         info = ''
     else:
         info = '\n'.join(['Space group: ' + sg,

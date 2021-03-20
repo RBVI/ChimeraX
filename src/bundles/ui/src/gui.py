@@ -142,7 +142,6 @@ class UI(QApplication):
         self.has_graphics = True
         self.main_window = None
         self.already_quit = False
-        self.splash = None
         self.session = session
 
         from .settings import UI_Settings
@@ -203,24 +202,6 @@ class UI(QApplication):
             self.session.logger.method_map[log_level](msg_string)
         qInstallMessageHandler(cx_qt_msg_handler)
 
-    def show_splash(self):
-        if not self.settings.show_splash_screen:
-            return
-        # splash screen
-        import os.path
-        splash_pic_path = os.path.join(os.path.dirname(__file__), "splash.jpg")
-        from Qt.QtWidgets import QSplashScreen
-        from Qt.QtGui import QPixmap
-        self.splash = QSplashScreen(QPixmap(splash_pic_path))
-        font = self.splash.font()
-        font.setPointSize(40)
-        self.splash.setFont(font)
-        self.splash.show()
-        self.splash_info("Initializing ChimeraX")
-
-    def close_splash(self):
-        pass
-
     def window_image(self):
         '''
         Tests on macOS 10.14.5 show that QWidget.grab() gives a correct QPixmap
@@ -242,8 +223,6 @@ class UI(QApplication):
         mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
         mw.rapid_access_shown = True
-        if self.splash:
-            self.splash.finish(mw)
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
         from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
@@ -266,9 +245,6 @@ class UI(QApplication):
                 self.settings.autostart = final_autostart
             self.session.tools.start_tools(final_autostart)
 
-        from .settings import register_settings_options
-        register_settings_options(self.session)
-        
         self.triggers.activate_trigger('ready', None)
 
     def event(self, event):
@@ -367,12 +343,6 @@ class UI(QApplication):
 
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
-
-    def splash_info(self, msg, step_num=None, num_steps=None):
-        if self.splash:
-            from Qt.QtCore import Qt
-            self.splash.showMessage(msg, Qt.AlignLeft|Qt.AlignBottom, Qt.red)
-            self.processEvents()
 
     def quit(self, confirm=True):
         # called by exit command
@@ -847,9 +817,10 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.showFullScreen()
         else:
             self.showNormal()
-        
+
     def _about(self, arg):
         from Qt.QtWebEngineWidgets import QWebEngineView
+        from Qt.QtCore import QUrl
         import os.path
         from chimerax.core import buildinfo
         from chimerax import app_dirs as ad
@@ -859,7 +830,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         content = content.replace("VERSION", ad.version)
         content = content.replace("DATE", buildinfo.date.split()[0])
         self._about_dialog = QWebEngineView()
-        self._about_dialog.setHtml(content)
+        self._about_dialog.setHtml(content, QUrl.fromLocalFile(
+            os.path.dirname(os.path.realpath(__file__)) + os.sep))
         self._about_dialog.show()
 
     def _about_to_manage(self, tool_window, as_floating):

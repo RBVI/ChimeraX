@@ -80,6 +80,7 @@ class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="../tools/coloractions.html"><b>Color Actions</b></a>,
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
@@ -447,12 +448,12 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <b>color</b> &nbsp;<b>byattribute</b>
 &nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic models can be colored to show the values of numerical
@@ -561,6 +562,7 @@ to make the cap match the nearby atoms.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
@@ -568,6 +570,8 @@ to make the cap match the nearby atoms.
 <p>
 Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
 value applies to surfaces only, both molecular and nonmolecular.
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -578,6 +582,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> across the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently. 
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
@@ -609,20 +618,19 @@ from each surface vertex, along its normal, to evaluate the data
 with default <b>offset</b> <b>1.4</b> &Aring;, 
 which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
-The rationale for looking outward is that the values at the centers 
-of any interacting atoms are more relevant than those at their surfaces.
-By default, a <a href="surface.html#surfdefs">molecular surface</a>
-shows where the surface of a spherical probe 
-of radius 1.4 &Aring; can lie, the
-<a href="surface.html#surfdefs">solvent-excluded surface</a>.
-An offset of 1.4 &Aring; approximates the 
+The rationale for looking outward is to show the values that any atoms
+binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+A molecular surface in ChimeraX is the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>
+where the surface of a spherical probe can lie. The default probe radius
+is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
-** However, an offset of 0.0 may be preferred for coloring
-<a href="surface.html#cap">surface caps</a>
-(from <a href="clip.html">clipping</a>),
-and a zero or negative offset may be appropriate
-for coloring the surface of one structure by the potential from another. **
+**However, an offset of 0.0 may be preferred for coloring
+the <a href="surface.html#cap">cap</a>
+of a <a href="clip.html">clipped</a> surface,
+and a zero or negative offset for coloring the surface of one structure
+by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
 with default <b>offset</b> <b>0.0</b> &Aring;.
@@ -665,6 +673,7 @@ Same as previous except use royal blue instead of blue:
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 <br>
@@ -674,12 +683,15 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
 both molecular and nonmolecular (such as volume isosurfaces).
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-distance mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -688,6 +700,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> across the full range).
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
