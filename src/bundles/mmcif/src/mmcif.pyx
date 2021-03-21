@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False
+# cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -401,19 +401,21 @@ def quote(value, max_len=60):
     cdef str examine, s
     s = str(value)
     if len(s) == 0:
-        sing_quote = False
-        dbl_quote = False
-        line_break = False
-        special = True
-    else:
-        ch = s[0]
-        sing_quote = ch == "'"
-        dbl_quote = ch == '"'
-        line_break = ch == '\n'
-        special = ch in ' _$[;'  # True if empty string too
-        if not (special or sing_quote or dbl_quote or line_break):
-            cf = s[0:8].casefold()
-            special = cf.startswith(('data_', 'save_')) or cf in _reserved_words
+        return '""'
+
+    ch = s[0]
+    sing_quote = ch == "'"
+    dbl_quote = ch == '"'
+    line_break = ch == '\n'
+    special = ch in ' _$[;'  # True if empty string too
+    if not (special or sing_quote or dbl_quote or line_break):
+        if s.endswith('_'):
+            if len(s) < 8:
+                cf = s.casefold()
+                special = cf in _reserved_words
+        elif len(s) >= 5 and s[4] == '_':
+            cf = s[0:5].casefold()
+            special = cf.startswith(('data_', 'save_'))
     for i in range(1, len(s)):
         examine = s[i:i + 2]
         if len(examine) == 2:
@@ -1113,10 +1115,10 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     return [new_structure], f"Opened CCD {ccd_id}"
 
 
-def non_standard_bonds(bonds):
+def non_standard_bonds(bonds, selected_only=False, displayed_only=False):
     from . import _mmcif
     from chimerax.atomic import Bonds
-    disulfide, covalent = _mmcif.non_standard_bonds(bonds)
+    disulfide, covalent = _mmcif.non_standard_bonds(bonds, selected_only, displayed_only)
     if disulfide is not None:
         disulfide = Bonds(disulfide)
     if covalent is not None:

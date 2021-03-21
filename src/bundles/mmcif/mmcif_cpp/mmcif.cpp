@@ -2754,7 +2754,7 @@ extract_CIF_tables(const char* filename,
 }
 
 void
-non_standard_bonds(const Bond **bonds, size_t num_bonds, Bonds& disulfide, Bonds& covalent)
+non_standard_bonds(const Bond **bonds, size_t num_bonds, bool selected_only, bool displayed_only, Bonds& disulfide, Bonds& covalent)
 {
     const Bond** end_bonds = bonds + num_bonds;
     for (const Bond** bi = bonds; bi < end_bonds; ++bi) {
@@ -2766,6 +2766,10 @@ non_standard_bonds(const Bond **bonds, size_t num_bonds, Bonds& disulfide, Bonds
         const Residue* r1 = a1->residue();
         if (r0 == r1)
             continue;  // intra-residue bonds should be in template
+        if (selected_only && (!a0->selected() || !a1->selected()))
+            continue;
+        if (displayed_only && (!a0->display() || !a1->display()))
+            continue;
         if (a0->element() == Element::S && a1->element() == Element::S) {
             disulfide.push_back(b);
             continue;

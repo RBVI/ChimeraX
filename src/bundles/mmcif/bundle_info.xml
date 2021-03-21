@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.2"
+<BundleInfo name="ChimeraX-mmCIF" version="2.3"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -40,6 +40,13 @@
   <CModule name="mmcif_write">
     <SourceFile>src/mmcif_write.pyx</SourceFile>
   </CModule>
+
+  <!--
+  <ExtraFiles>
+    <ExtraFile source="src/mmcif.pyx">mmcif.pyx</ExtraFile>
+    <ExtraFile source="src/mmcif_write.pyx">mmcif_write.pyx</ExtraFile>
+  </ExtraFiles>
+  -->
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
