@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False
+# cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -1113,10 +1113,10 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     return [new_structure], f"Opened CCD {ccd_id}"
 
 
-def non_standard_bonds(bonds):
+def non_standard_bonds(bonds, selected_only=False, displayed_only=False):
     from . import _mmcif
     from chimerax.atomic import Bonds
-    disulfide, covalent = _mmcif.non_standard_bonds(bonds)
+    disulfide, covalent = _mmcif.non_standard_bonds(bonds, selected_only, displayed_only)
     if disulfide is not None:
         disulfide = Bonds(disulfide)
     if covalent is not None:
