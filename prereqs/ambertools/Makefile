@@ -59,6 +59,7 @@ ifeq ($(USE_PREBUILT),true)
 install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
+	-mkdir -p $(AMBERBIN_DST_HOME)
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
