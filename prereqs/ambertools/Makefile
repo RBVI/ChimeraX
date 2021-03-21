@@ -13,8 +13,8 @@ USE_PREBUILT=false
 UPLOAD_PREBUILT=false
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
 else
-USE_PREBUILT=false
-UPLOAD_PREBUILT=true
+USE_PREBUILT=true
+UPLOAD_PREBUILT=false
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
 ifeq ($(OS),Darwin)
 AMBERTOOLS_FLIBS_PREBUILT = ambertools-flibs-$(VERSION)-$(OS).tar.bz2
