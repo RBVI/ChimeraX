@@ -52,7 +52,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="PDB" />
+    <Provider name="PDB" compression_okay="false" />
   </Providers>
 
   <Classifiers>

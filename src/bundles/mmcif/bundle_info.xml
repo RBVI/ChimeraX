@@ -77,7 +77,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="mmCIF" />
+    <Provider name="mmCIF" compression_okay="false" />
   </Providers>
 
   <Classifiers>
