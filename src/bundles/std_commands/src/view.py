@@ -474,7 +474,10 @@ def view_matrix(session, camera=None, models=None, coordinate_system=None):
 def report_positions(session):
     c = session.main_view.camera
     lines = ['camera position: %s' % _position_string(c.position)]
-    mlist = session.models.list()
+
+    # List models belonging to the scene, excluding overlay models
+    # that don't use the position matrix such as 2D labels and color keys.
+    mlist = session.models.scene_root_model.all_models()[1:]
     if mlist:
         lines.append('model positions: %s\n' % model_positions_string(mlist))
     session.logger.info('\n'.join(lines))
