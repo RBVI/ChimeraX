@@ -10,8 +10,10 @@ VERSION = 20
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
 ifeq ($(OS),Linux)
 USE_PREBUILT=false
-UPLOAD_PREBUILT=false
-AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
+UPLOAD_PREBUILT=true
+LINUX_FLAVOR = $(shell lsb_release -i | awk '{ print $$NF }')
+LINUX_RELEASE = $(shell lsb_release -r | awk '{ print $$NF }')
+AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
