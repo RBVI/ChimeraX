@@ -115,12 +115,12 @@ class ColorKeyTool(ToolInstance):
         pos_label.setToolTip("Position of lower left corner of the colored part of the key")
         position_layout.addWidget(pos_label, alignment=Qt.AlignRight)
         self.pos_x_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
-        self.pos_x_box.setValue(self.key.position[0])
+        self.pos_x_box.setValue(self.key.pos[0])
         self.pos_x_box.valueChanged.connect(self._new_key_position)
         position_layout.addWidget(self.pos_x_box)
         position_layout.addWidget(QLabel(" y"))
         self.pos_y_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
-        self.pos_y_box.setValue(self.key.position[1])
+        self.pos_y_box.setValue(self.key.pos[1])
         self.pos_y_box.valueChanged.connect(self._new_key_position)
         position_layout.addWidget(self.pos_y_box, alignment=Qt.AlignLeft)
         position_layout.addStretch(1)
@@ -280,8 +280,8 @@ class ColorKeyTool(ToolInstance):
     def _drag_finished(self, *args):
         self.pos_x_box.blockSignals(True)
         self.pos_y_box.blockSignals(True)
-        self.pos_x_box.setValue(self.key.position[0])
-        self.pos_y_box.setValue(self.key.position[1])
+        self.pos_x_box.setValue(self.key.pos[0])
+        self.pos_y_box.setValue(self.key.pos[1])
         self.pos_x_box.blockSignals(False)
         self.pos_y_box.blockSignals(False)
         self.size_w_box.blockSignals(True)
@@ -294,13 +294,13 @@ class ColorKeyTool(ToolInstance):
     def _key_changed(self, trig_name, what_changed):
         if what_changed == "rgbas_and_labels":
             self._update_colors_layout()
-        elif what_changed == "position":
+        elif what_changed == "pos":
             if _mouse_mode.mouse_down_position:
                 return
             self.pos_x_box.blockSignals(True)
             self.pos_y_box.blockSignals(True)
-            self.pos_x_box.setValue(self.key.position[0])
-            self.pos_y_box.setValue(self.key.position[1])
+            self.pos_x_box.setValue(self.key.pos[0])
+            self.pos_y_box.setValue(self.key.pos[1])
             self.pos_x_box.blockSignals(False)
             self.pos_y_box.blockSignals(False)
         elif what_changed == "size":

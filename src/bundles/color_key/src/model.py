@@ -281,17 +281,19 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "numeric_label_spacing")
 
     @property
-    def position(self):
+    def pos(self):
+        # was named 'position', but conflicts with Model.position
         return self._position
 
-    @position.setter
-    def position(self, llxy):
+    @pos.setter
+    def pos(self, llxy):
+        # was named 'position', but conflicts with Model.position
         if llxy == self._position:
             return
         self._position = llxy
         self.needs_update = True
         self.redraw_needed()
-        self.triggers.activate_trigger("key changed", "position")
+        self.triggers.activate_trigger("key changed", "pos")
 
     @property
     def rgbas_and_labels(self):
