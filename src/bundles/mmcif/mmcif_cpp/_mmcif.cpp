@@ -308,6 +308,23 @@ _mmcif_find_template_residue(PyObject*, PyObject* _ptArg)
 static const char _mmciffind_template_residue_doc[] = "find_template_residue(name: str)";
 
 static PyObject*
+_mmcif_quote_value(PyObject*, PyObject* _args)
+{
+	PyObject* _ptArg1;
+	int _ptArg2 = 60;
+	if (!PyArg_ParseTuple(_args, "O|i:quote", &_ptArg1, &_ptArg2))
+		return NULL;
+	try {
+		return quote_value(_ptArg1, _ptArg2);
+	} catch (...) {
+		_mmcifError();
+	}
+	return NULL;
+}
+
+static const char _mmcifquote_value_doc[] = "quote_value(obj: objects, max_len: int=60)";
+
+static PyObject*
 _mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 {
 	static bool need_init = true;
@@ -391,6 +408,10 @@ PyMethodDef _mmcifMethods[] = {
 	{
 		"find_template_residue", (PyCFunction) _mmcif_find_template_residue,
 		METH_O, _mmciffind_template_residue_doc
+	},
+	{
+		"quote_value", (PyCFunction) _mmcif_quote_value,
+		METH_VARARGS, _mmcifquote_value_doc
 	},
 	{
 		"non_standard_bonds", (PyCFunction) _mmcif_non_standard_bonds,

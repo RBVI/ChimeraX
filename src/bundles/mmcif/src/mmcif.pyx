@@ -49,9 +49,9 @@ _additional_categories = (
     "em_3d_reconstruction",
     "exptl",
 )
-_reserved_words = {
-    'loop_', 'stop_', 'global_'
-}
+# _reserved_words = {
+#     'loop_', 'stop_', 'global_', "data_", "save_"
+# }
 
 
 def _initialize(session):
@@ -391,60 +391,62 @@ def load_mmCIF_templates(filename):
     _mmcif.load_mmCIF_templates(filename)
 
 
-def quote(value, max_len=60):
-    """Return CIF 1.1 data value version of string"""
-    # max_len is for mimicing the output from the PDB (see #2230)
-    if isinstance(value, (int, float)):
-        return str(value)
-    cdef int sing_quote, dbl_quote, line_break, special, i
-    cdef Py_UCS4 ch
-    cdef str examine, s
-    s = str(value)
-    if len(s) == 0:
-        return '""'
+# def quote(value, max_len=60):
+#     """Return CIF 1.1 data value version of string"""
+#     # max_len is for mimicing the output from the PDB (see #2230)
+#     if isinstance(value, (int, float)):
+#         return str(value)
+#     cdef int sing_quote, dbl_quote, line_break, special, i
+#     cdef Py_UCS4 ch
+#     cdef str examine, s
+#     s = str(value)
+#     if len(s) == 0:
+#         return '""'
+# 
+#     ch = s[0]
+#     sing_quote = ch == "'"
+#     dbl_quote = ch == '"'
+#     line_break = ch == '\n'
+#     special = ch in ' _$[;'  # True if empty string too
+#     if not (special or sing_quote or dbl_quote or line_break):
+#         if s.endswith('_'):
+#             if len(s) < 8:
+#                 cf = s.casefold()
+#                 special = cf in _reserved_words
+#         elif len(s) > 5 and s[4] == '_':
+#             cf = s[0:4].casefold()
+#             special = cf.startswith(('data', 'save'))
+#     for i in range(1, len(s)):
+#         examine = s[i:i + 2]
+#         if len(examine) == 2:
+#             if examine[0] == '"':
+#                 if examine[1].isspace():
+#                     dbl_quote = True
+#                 else:
+#                     special = True
+#                 continue
+#             elif examine[0] == "'":
+#                 if examine[1].isspace():
+#                     sing_quote = True
+#                 else:
+#                     special = True
+#                 continue
+#         if examine[0].isspace():
+#             if examine[0] == '\n':
+#                 line_break = True
+#             else:
+#                 special = True
+#     if line_break or (sing_quote and dbl_quote) or (max_len and len(s) > max_len):
+#         return f'\n;{s}\n;\n'
+#     if sing_quote:
+#         return f'"{s}"'
+#     if dbl_quote:
+#         return f"'{s}'"
+#     if special:
+#         return f'"{s}"'
+#     return s
 
-    ch = s[0]
-    sing_quote = ch == "'"
-    dbl_quote = ch == '"'
-    line_break = ch == '\n'
-    special = ch in ' _$[;'  # True if empty string too
-    if not (special or sing_quote or dbl_quote or line_break):
-        if s.endswith('_'):
-            if len(s) < 8:
-                cf = s.casefold()
-                special = cf in _reserved_words
-        elif len(s) >= 5 and s[4] == '_':
-            cf = s[0:5].casefold()
-            special = cf.startswith(('data_', 'save_'))
-    for i in range(1, len(s)):
-        examine = s[i:i + 2]
-        if len(examine) == 2:
-            if examine[0] == '"':
-                if examine[1].isspace():
-                    dbl_quote = True
-                else:
-                    special = True
-                continue
-            elif examine[0] == "'":
-                if examine[1].isspace():
-                    sing_quote = True
-                else:
-                    special = True
-                continue
-        if examine[0].isspace():
-            if examine[0] == '\n':
-                line_break = True
-            else:
-                special = True
-    if line_break or (sing_quote and dbl_quote) or (max_len and len(s) > max_len):
-        return f'\n;{s}\n;\n'
-    if sing_quote:
-        return f'"{s}"'
-    if dbl_quote:
-        return f"'{s}'"
-    if special:
-        return f'"{s}"'
-    return s
+from ._mmcif import quote_value as quote
 
 
 def citations(model, only=None):
