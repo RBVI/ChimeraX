@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False
+# cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -250,7 +250,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
     #
-    from chimerax.atomic import concatenate, Atoms
+    from chimerax.atomic import concatenate
     if len(models) == 1:
         best_m = models[0]
     else:
@@ -272,27 +272,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         name = n
     used_data_names.add(name)
 
-    restrict = None
-    if selected_only:
-        atoms_list = session.selection.items("atoms")
-        if not atoms_list:
-            if not session.in_script:
-                from chimerax.core.errors import UserError
-                raise UserError("No atoms selected")
-            session.logger.warning("No atoms selected")
-            restrict = Atoms()
-        else:
-            restrict = concatenate(atoms_list)
-            restrict = restrict.filter([st in models for st in restrict.structures])
-    if displayed_only:
-        displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
-        if restrict is None:
-            restrict = displayed_atoms
-        else:
-            restrict = restrict.intersect(displayed_atoms)
-    if restrict is not None:
-        restrict_residues = restrict.unique_residues
-        restrict_chains = restrict_residues.unique_chains
+    restricted = selected_only or displayed_only
 
     def nonblank_chars(name):
         return ''.join(ch for ch in name if not ch.isspace())
@@ -355,8 +335,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
-        if restrict is not None and c not in restrict_chains:
-            continue
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
@@ -433,8 +411,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     # assign label_asym_id's to each chain
     for c in best_m.chains:
-        if restrict is not None and c not in restrict_chains:
-            continue
         mcid = c.existing_residues[0].mmcif_chain_id
         label_asym_id = get_asym_id(mcid)
         chars = c.characters
@@ -451,8 +427,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     het_residues = concatenate(
         [m.residues.filter(m.residues.polymer_types == Residue.PT_NONE) for m in models])
     for r in het_residues:
-        if restrict is not None and r not in restrict_residues:
-            continue
         mcid = r.mmcif_chain_id
         n = r.name
         if n in het_entities:
@@ -530,8 +504,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         else:
             group = 'HETATM'
         for atom in atoms:
-            if restrict is not None:
-                if atom not in restrict:
+            if restricted:
+                if selected_only and not atom.selected:
+                    continue
+                if displayed_only and not atom.display:
                     continue
             elem = atom.element.name
             aname = atom.name
@@ -561,27 +537,19 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
-            if restrict is not None and c not in restrict_chains:
-                continue
             chain_id = c.chain_id
             chars = c.characters
             asym_id, entity_id = asym_info[(chain_id, chars)]
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
-                if restrict is not None and r not in restrict_residues:
-                    continue
                 atom_site_residue(r, seq_id, asym_id, entity_id, model_num, xform)
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
-                if restrict is not None and r not in restrict_residues:
-                    continue
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
                 atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
         for r in het_residues:
-            if restrict is not None and r not in restrict_residues:
-                continue
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
 
@@ -674,13 +642,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
-    atoms = best_m.atoms
-    if restrict is None:
-        bonds = best_m.bonds
-    else:
-        atoms = atoms.intersect(restrict)
-        bonds = atoms.bonds.unique()
-    disulfide, covalent = mmcif.non_standard_bonds(bonds)
+    disulfide, covalent = mmcif.non_standard_bonds(best_m.bonds, selected_only, displayed_only)
 
     if disulfide:
         struct_conn_type_data.append('disulf')
@@ -699,8 +661,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                 r1 = a1.residue
                 if r0 == r1:
                     continue
-                if restrict is not None:
-                    if a0 not in restrict or a1 not in restrict:
+                if restricted:
+                    if selected_only and (not a0.selected or not a1.selected):
+                        continue
+                    if displayed_only and (not a0.display or not a1.display):
                         continue
                 count += 1
                 struct_conn_bond('metalc', count, b, a0, a1)
@@ -714,8 +678,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if len(bonds) > 0:
             count = 0
             for b, a0, a1 in zip(bonds, *bonds.atoms):
-                if restrict is not None:
-                    if a0 not in restrict or a1 not in restrict:
+                if restricted:
+                    if selected_only and (not a0.selected or not a1.selected):
+                        continue
+                    if displayed_only and (not a0.display or not a1.display):
                         continue
                 count += 1
                 struct_conn_bond('hydrog', count, b, a0, a1)
@@ -840,8 +806,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             end_res = r
         else:
             skip = False
-            if restrict is not None:
-                skip = beg_res not in restrict_residues or end_res not in restrict_residues
             if skip:
                 pass
             elif beg_res.is_helix:
@@ -854,8 +818,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             last_ssid = ssid
     if last_ssid:
         skip = False
-        if restrict is not None:
-            skip = beg_res not in restrict_residues or end_res not in restrict_residues
         if skip:
             pass
         elif beg_res.is_helix:
