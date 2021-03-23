@@ -153,6 +153,45 @@ Residue::count_atom(const AtomName& name) const
     return count;
 }
 
+void
+Residue::delete_alt_loc(char alt_loc)
+{
+    if (alt_loc == ' ')
+        throw std::invalid_argument("Residue.delete_alt_loc(): cannot delete the ' ' alt loc");
+    std::set<Residue *> nb_res;
+    bool have_alt_loc = false;
+    bool some_multiple = false;
+    for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
+        Atom *a = *ai;
+        if (a->has_alt_loc(alt_loc)) {
+            have_alt_loc = true;
+            for (auto nb: a->neighbors()) {
+                if (nb->residue() != this && nb->alt_locs() == a->alt_locs())
+                    nb_res.insert(nb->residue());
+            }
+            a->delete_alt_loc(alt_loc);
+            if (!a->_alt_loc_map.empty())
+                some_multiple = true;
+        }
+    }
+    if (!have_alt_loc) {
+        std::stringstream msg;
+        msg << "delete_alt_loc(): residue " << str()
+            << " does not have an alt loc '" << alt_loc << "'";
+        throw std::invalid_argument(msg.str().c_str());
+    }
+    for (auto nri = nb_res.begin(); nri != nb_res.end(); ++nri) {
+        (*nri)->delete_alt_loc(alt_loc);
+    }
+    if (alt_loc == _alt_loc) {
+        if (some_multiple) {
+            auto best_alt_locs = structure()->best_alt_locs();
+            set_alt_loc(best_alt_locs[this]);
+        } else
+            _alt_loc = ' ';
+    }
+}
+
 Atom *
 Residue::find_atom(const AtomName& name) const
 {

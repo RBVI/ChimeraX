@@ -161,6 +161,7 @@ public:
     unsigned int  coord_index() const { return _coord_index; }
     int  coordination(int value_if_unknown) const;
     float  default_radius() const;
+    void  delete_alt_loc(char al);
     DrawMode  draw_mode() const { return _draw_mode; }
     const Element&  element() const { return *_element; }
     static const IdatmInfoMap&  get_idatm_info_map();

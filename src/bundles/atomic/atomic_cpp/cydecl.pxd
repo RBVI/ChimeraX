@@ -61,6 +61,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         Chain* chain()
         string chain_id()
         bool connects_to(Residue*)
+        void delete_alt_loc(char) except +
         Atom* find_atom(const char*)
         char insertion_code()
         bool is_helix()
@@ -143,6 +144,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         cycoord.Coord coord(CoordSet*) except +
         int coord_index()
         float default_radius()
+        void delete_alt_loc(char) except +
         bool display()
         DrawMode draw_mode()
         const cyelem.Element& element()
