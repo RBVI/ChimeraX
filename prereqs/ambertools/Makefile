@@ -11,8 +11,8 @@ VERSION = 20
 ifeq ($(OS),Linux)
 USE_PREBUILT=false
 UPLOAD_PREBUILT=true
-LINUX_FLAVOR = $(shell lsb_release -i | awk '{ print $$NF }')
-LINUX_RELEASE = $(shell lsb_release -r | awk '{ print $$NF }')
+LINUX_FLAVOR = $(shell /usr/bin/lsb_release -i | /usr/bin/awk '{ print $$NF }')
+LINUX_RELEASE = $(shell /usr/bin/lsb_release -r | /usr/bin/awk '{ print $$NF }')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 else
 USE_PREBUILT=true
