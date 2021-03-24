@@ -461,7 +461,8 @@ public:
     }
 };
 
-void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let)
+void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let,
+    bool *two_let_chains)
 {
     for (auto r: chain_residues) {
         auto name = r->name();
@@ -471,6 +472,8 @@ void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char seco
         cid.insert(0, 1, second_chain_id_let);
         r->set_chain_id(cid);
     }
+    if (second_chain_id_let != '\0')
+        *two_let_chains = true;
 }
 
 #define MCS_FILL 0
@@ -494,7 +497,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end, PyObject *py_logger, bool explode, bool *eof,
-    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets)
+    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets, bool *two_let_chains)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -513,8 +516,8 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     ChainID  seqres_cur_chain;
     int         seqres_cur_count;
     bool        dup_MODEL_numbers = false;
-    bool        second_chain_let_okay = true;
     std::vector<Residue*> chain_residues;
+    bool        second_chain_let_okay = true;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -522,6 +525,7 @@ start_t = clock();
 
     *reached_end = false;
     *eof = true;
+    *two_let_chains = false;
     PDB::reset_state();
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -672,7 +676,7 @@ start_t = end_t;
             recent_TER = true;
             break_hets = false;
             if (second_chain_let_okay)
-                correct_chain_ids(chain_residues, second_chain_id_let);
+                correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
             second_chain_let_okay = true;
             second_chain_id_let = '\0';
             chain_residues.clear();
@@ -794,7 +798,7 @@ start_t = end_t;
                 }
                 if (start_connect) {
                     if (second_chain_let_okay)
-                        correct_chain_ids(chain_residues, second_chain_id_let);
+                        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
                     second_chain_let_okay = true;
                     second_chain_id_let = '\0';
                     chain_residues.clear();
@@ -1076,7 +1080,7 @@ start_t = clock();
     }
     as->pdb_version = record.pdb_input_version();
     if (second_chain_let_okay)
-        correct_chain_ids(chain_residues, second_chain_id_let);
+        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
 
     if (redo_elements) {
         char test_name[3];
@@ -1146,7 +1150,7 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 static void
-assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger)
+assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger, bool two_let_chains)
 {
     std::vector<std::pair<Structure::Residues::const_iterator,
         Structure::Residues::const_iterator> > strand_ranges;
@@ -1170,6 +1174,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         auto chain_id = ChainID({init->chain_id});
         ResName name = init->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *init_res = as->find_residue(chain_id, init->seq_num,
             init->i_code, name);
         if (init_res == nullptr) {
@@ -1179,6 +1187,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         chain_id = ChainID({end->chain_id});
         name = end->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *end_res = as->find_residue(chain_id, end->seq_num,
             end->i_code, name);
         if (end_res == nullptr) {
@@ -1371,7 +1383,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, boo
     int missing_coordsets)
 {
     std::vector<Structure *> file_structs;
-    bool reached_end;
+    bool reached_end, two_letter_chains;
     std::unordered_map<Structure *, std::vector<Residue *> > start_res_map, end_res_map;
     std::unordered_map<Structure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
@@ -1454,7 +1466,7 @@ start_t = clock();
         std::set<Residue*> het_res;
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as], &start_res_map[as],
             &end_res_map[as], &ss_map[as], &conect_map[as], &link_map[as], &mod_res_map[as], &reached_end,
-            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets);
+            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets, &two_letter_chains);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1561,7 +1573,7 @@ start_t = end_t;
                 }
             }
 
-            assign_secondary_structure(fs, ss_map[fs], py_logger);
+            assign_secondary_structure(fs, ss_map[fs], py_logger, two_letter_chains);
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
