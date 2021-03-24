@@ -11,8 +11,9 @@ VERSION = 20
 ifeq ($(OS),Linux)
 USE_PREBUILT=false
 UPLOAD_PREBUILT=true
-LINUX_FLAVOR = $(shell /usr/bin/lsb_release -i | /usr/bin/awk '{ print $$NF }')
-LINUX_RELEASE = $(shell /usr/bin/lsb_release -r | /usr/bin/awk '{ print $$NF }')
+# CentOS uses "CentOS Linux", hence the second awk in the following line
+LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
+LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 else
 USE_PREBUILT=true
