@@ -423,7 +423,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
-    # ensure that N termini are protonated as N3+ (since Npl will fail)
+    # ensure that normal N termini are protonated as N3+ (since Npl will fail)
     from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
@@ -432,7 +432,9 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         # if residue wasn't templated, leave atom typing alone
         if Sequence.protein3to1(n.residue.name) == 'X':
             continue
-        if not (n.residue.name == "PRO" and n.num_bonds >= 2):
+        # if multiple heavy-atom bond partners then this is an unusual N terminus
+        # (e.g. FME in 3fil, or any proline)
+        if len([nb for nb in n.neighbors if nb.element.number > 1]) < 2:
             n.idatm_type = "N3+"
 
     coordinations = {}
