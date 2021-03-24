@@ -566,6 +566,14 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.structure().delete_atom(self.cpp_atom)
 
+    def delete_alt_loc(self, loc):
+        "'Raw' editing routine with very little consistency checking."
+        "  Using Residue.delete_alt_loc() is recommended in most cases."
+        if len(loc) != 1:
+            raise ValueError("Alt loc must be single character, not '%s'" % loc)
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_atom.delete_alt_loc(ord(loc[0]))
+
     def get_altloc_coord(self, loc):
         "Supported API.  Like the 'coord' property, but uses the given altloc"
         " (character) rather than the current altloc."
@@ -1508,6 +1516,17 @@ cdef class CyResidue:
         "Supported API. Delete this Residue from it's Structure"
         if self._deleted: raise RuntimeError("Residue already deleted")
         self.cpp_res.structure().delete_atoms(self.cpp_res.atoms())
+
+    def delete_alt_loc(self, loc):
+        "Deletes the specified alt loc in this residue and possibly other residues"
+        "  if their alt locs are 'connected'.  If deleting this residue's current alt"
+        "  loc, the best remaining one will become current.  For simply deleting all"
+        "  alt locs in the structure except the current ones (and changing those to"
+        "  non-alt locs) use Structure.delete_alt_locs()."
+        if len(loc) != 1:
+            raise ValueError("Alt loc must be single character, not '%s'" % loc)
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_res.delete_alt_loc(ord(loc[0]))
 
     def find_atom(self, atom_name):
         '''Supported API. Return the atom with the given name, or None if not found.\n'''

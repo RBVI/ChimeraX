@@ -840,6 +840,31 @@ Atom::default_radius() const
     return rad;
 }
 
+void
+Atom::delete_alt_loc(char al)
+{
+    // doesn't do any real consistency checking; use Residue::delete_alt_loc for that
+    if (al == ' ')
+        throw std::invalid_argument("Atom.delete_alt_loc(): cannot delete the ' ' alt loc");
+    auto al_i = _alt_loc_map.find(al);
+    if (al_i == _alt_loc_map.end()) {
+        std::stringstream msg;
+        msg << "delete_alt_loc(): atom " << name() << " in residue "
+            << residue()->str() << " does not have an alt loc '" << al << "'";
+        throw std::invalid_argument(msg.str().c_str());
+    }
+    _alt_loc_map.erase(al_i);
+    if (al == _alt_loc) {
+        if (_alt_loc_map.empty()) {
+            _alt_loc = ' ';
+        } else {
+            _alt_loc = (*_alt_loc_map.begin()).first;
+        }
+        if (structure()->alt_loc_change_notify())
+            graphics_changes()->set_gc_shape();
+    }
+}
+
 Atom::IdatmInfoMap _idatm_map = {
     { "Car", { Atom::Planar, 3, "aromatic carbon" } },
     { "C3", { Atom::Tetrahedral, 4, "sp3-hybridized carbon" } },

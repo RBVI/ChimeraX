@@ -308,7 +308,24 @@ _mmcif_find_template_residue(PyObject*, PyObject* _ptArg)
 static const char _mmciffind_template_residue_doc[] = "find_template_residue(name: str)";
 
 static PyObject*
-_mmcif_non_standard_bonds(PyObject*, PyObject* _ptArg)
+_mmcif_quote_value(PyObject*, PyObject* _args)
+{
+	PyObject* _ptArg1;
+	int _ptArg2 = 60;
+	if (!PyArg_ParseTuple(_args, "O|i:quote", &_ptArg1, &_ptArg2))
+		return NULL;
+	try {
+		return quote_value(_ptArg1, _ptArg2);
+	} catch (...) {
+		_mmcifError();
+	}
+	return NULL;
+}
+
+static const char _mmcifquote_value_doc[] = "quote_value(obj: objects, max_len: int=60)";
+
+static PyObject*
+_mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 {
 	static bool need_init = true;
 
@@ -316,12 +333,17 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _ptArg)
 		import_array();
 		need_init = false;
 	}
+	PyObject* _ptArg1;
+	int _ptArg2 = false;
+	int _ptArg3 = false;
+	if (!PyArg_ParseTuple(_args, "O|ii:non_standard_bonds", &_ptArg1, &_ptArg2, &_ptArg3))
+		return NULL;
 	try {
-		const char* tp_name = Py_TYPE(_ptArg)->tp_name;
+		const char* tp_name = Py_TYPE(_ptArg1)->tp_name;
 		// chimerax.atomic.molarray.Bonds
 		if (strcmp(tp_name, "Bonds") != 0)
 			throw std::invalid_argument("argument 1 should be a Bonds collection");
-		PyObject* pointers = PyObject_GetAttrString(_ptArg, "_pointers");
+		PyObject* pointers = PyObject_GetAttrString(_ptArg1, "_pointers");
 		if (pointers == NULL)
 			return NULL;
 		if (!PyArray_Check(pointers) || PyArray_NDIM((PyArrayObject*) pointers) != 1) {
@@ -331,7 +353,7 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _ptArg)
 		const Bond** bonds = static_cast<const Bond**>(PyArray_DATA((PyArrayObject*) pointers));
 		size_t bond_count = PyArray_DIMS((PyArrayObject*) pointers)[0];
 		std::vector<const Bond*> disulfide, covalent;
-		non_standard_bonds(bonds, bond_count, disulfide, covalent);
+		non_standard_bonds(bonds, bond_count, _ptArg2, _ptArg3, disulfide, covalent);
 		PyObject* _result = PyTuple_New(2);
 		PyObject* array;
 		npy_intp size[1];
@@ -360,7 +382,7 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _ptArg)
 	return NULL;
 }
 
-static const char _mmcifnon_standard_bonds_doc[] = "non_standard_bonds(bonds: Bonds) -> tuple[disulfide, covalent]";
+static const char _mmcifnon_standard_bonds_doc[] = "non_standard_bonds(bonds: Bonds, selected_only: bool, displayed_only: bool) -> tuple[disulfide, covalent]";
 
 PyMethodDef _mmcifMethods[] = {
 	{
@@ -388,8 +410,12 @@ PyMethodDef _mmcifMethods[] = {
 		METH_O, _mmciffind_template_residue_doc
 	},
 	{
+		"quote_value", (PyCFunction) _mmcif_quote_value,
+		METH_VARARGS, _mmcifquote_value_doc
+	},
+	{
 		"non_standard_bonds", (PyCFunction) _mmcif_non_standard_bonds,
-		METH_O, _mmcifnon_standard_bonds_doc
+		METH_VARARGS, _mmcifnon_standard_bonds_doc
 	},
 	{ NULL, NULL, 0, NULL }
 };

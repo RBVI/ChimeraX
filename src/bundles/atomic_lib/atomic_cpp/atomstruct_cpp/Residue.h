@@ -94,6 +94,7 @@ public:
         return !bonds_between(other_res, true).empty();
     }
     int  count_atom(const AtomName&) const;
+    void  delete_alt_loc(char al);
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }

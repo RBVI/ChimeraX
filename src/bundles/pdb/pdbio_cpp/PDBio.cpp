@@ -109,6 +109,23 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+{
+    if (res->chain_id().size() == 2) {
+        std::string adjusted_name;
+        int num_spaces = res->name().size() - 3;
+        if (num_spaces > 0)
+            adjusted_name.insert(0, num_spaces, ' ');
+        adjusted_name.append(res->name());
+        adjusted_name.append(1, res->chain_id()[0]);
+        strcpy(out_rn, adjusted_name.c_str());
+        *out_cid = res->chain_id()[1];
+    } else {
+        strcpy(out_rn, res->name().c_str());
+        *out_cid = res->chain_id()[0];
+    }
+}
+
 static void
 push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, int helix_num)
 {
@@ -119,12 +136,10 @@ push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, 
 
     hrec.helix.ser_num = helix_num;
     sprintf(hrec.helix.helix_id, "%3d", helix_num);
-    strncpy(hrec.helix.init.name, start->name().c_str(), 3);
-    hrec.helix.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, hrec.helix.init.name, &hrec.helix.init.chain_id);
     hrec.helix.init.seq_num = start->number();
     hrec.helix.init.i_code = start->insertion_code();
-    strncpy(hrec.helix.end.name, end->name().c_str(), 3);
-    hrec.helix.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, hrec.helix.end.name, &hrec.helix.end.chain_id);
     hrec.helix.end.seq_num = end->number();
     hrec.helix.end.i_code = end->insertion_code();
     hrec.helix.helix_class = 1;
@@ -144,12 +159,10 @@ push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, i
     srec.sheet.strand = sheet_num;
     sprintf(srec.sheet.sheet_id, "%3d", sheet_num);
     srec.sheet.num_strands = 1;
-    strncpy(srec.sheet.init.name, start->name().c_str(), 3);
-    srec.sheet.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, srec.sheet.init.name, &srec.sheet.init.chain_id);
     srec.sheet.init.seq_num = start->number();
     srec.sheet.init.i_code = start->insertion_code();
-    strncpy(srec.sheet.end.name, end->name().c_str(), 3);
-    srec.sheet.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, srec.sheet.end.name, &srec.sheet.end.chain_id);
     srec.sheet.end.seq_num = end->number();
     srec.sheet.end.i_code = end->insertion_code();
     srec.sheet.sense = 0;
@@ -1614,23 +1627,6 @@ aniso_u_to_int(Real aniso_u_val)
 {
     return static_cast<int>(aniso_u_val < 0.0 ?
         10000.0 * aniso_u_val - 0.5 : 10000.0 * aniso_u_val + 0.5);
-}
-
-void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
-{
-    if (res->chain_id().size() == 2) {
-        std::string adjusted_name;
-        int num_spaces = res->name().size() - 3;
-        if (num_spaces > 0)
-            adjusted_name.insert(0, num_spaces, ' ');
-        adjusted_name.append(res->name());
-        adjusted_name.append(1, res->chain_id()[0]);
-        strcpy(out_rn, adjusted_name.c_str());
-        *out_cid = res->chain_id()[1];
-    } else {
-        strcpy(out_rn, res->name().c_str());
-        *out_cid = res->chain_id()[0];
-    }
 }
 
 static void

@@ -35,7 +35,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     try:
         from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
-        data_format= file_format(session, file_name, format_name)
+        data_format = file_format(session, file_name, format_name)
         try:
             provider_args = mgr.save_args(data_format)
         except SaverNotInstalledError as e:
@@ -111,8 +111,8 @@ def _get_path(file_name, compression_okay):
     if not compression_okay:
         from chimerax import io
         if io.remove_compression_suffix(expanded) != expanded:
-            raise UserError("File saver requires uncompressed output file;"
-                " '%s' would be compressed" % file_name)
+            raise UserError("File saver not capable of writing compressed output files;"
+                " '%s' implies compression" % file_name)
     return expanded
 
 def file_format(session, file_name, format_name):

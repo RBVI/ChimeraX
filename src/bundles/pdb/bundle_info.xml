@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDB" version="2.3"
+<BundleInfo name="ChimeraX-PDB" version="2.3.1"
 	    package="chimerax.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -52,7 +52,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="PDB" />
+    <Provider name="PDB" compression_okay="false" />
   </Providers>
 
   <Classifiers>

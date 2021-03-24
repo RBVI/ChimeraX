@@ -15,7 +15,7 @@
 from chimerax.core.tools import ToolInstance
 class SurfaceColorGUI(ToolInstance):
 
-    help = 'help:user/tools/surfcolor.html'
+    help = 'help:user/tools/surfacecolor.html'
 
     def __init__(self, session, tool_name):
 
