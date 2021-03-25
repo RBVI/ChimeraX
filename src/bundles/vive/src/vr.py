@@ -494,10 +494,14 @@ class SteamVRCamera(Camera, StateManager):
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
+        self._vr_system = None		# openvr.IVRSystem instance
         self._new_frame_handler = None
         self._app_quit_handler = None
 
     def start_vr(self):
+        if self._vr_system is not None:
+            return	# VR is already started
+        
         import openvr
         self._vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
         # The init() call raises OpenVRError if SteamVR is not installed.
@@ -528,7 +532,7 @@ class SteamVRCamera(Camera, StateManager):
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
         t = self._session.triggers
-        self._new_frame_handler = t.add_handler('new frame', self.next_frame)
+        self._new_frame_handler = t.add_handler('new frame', self._next_frame)
 
         # Assign hand controllers
         self._find_hand_controllers()
@@ -779,7 +783,16 @@ class SteamVRCamera(Camera, StateManager):
         dp = p.mDeviceToAbsoluteTracking
         return hmd34_to_position(dp)
     
-    def next_frame(self, *_):
+    def _next_frame(self, *_):
+        if not self.active:
+            # If the session camera is changed from the VR camera
+            # without calling the VR camera close method (should
+            # never happen) then close the VR camera.  Othewise all
+            # the VR updating will continue even when the camera is
+            # not in use.
+            self.close()
+            return
+        
         c = self._compositor
         if c is None:
             return
