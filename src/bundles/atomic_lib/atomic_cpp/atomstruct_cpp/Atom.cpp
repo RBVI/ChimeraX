@@ -325,10 +325,11 @@ Atom::default_radius() const
                 return 1.88f;
             if (bonds().size() < 3) // implied hydrogen
                 return 1.76f;
-            for (auto nb: neighbors()) {
-                if (nb->element().number() == 1)
-                    return 1.76f;
-            }
+            if (structure()->num_hyds() > 0)
+                for (auto nb: neighbors()) {
+                    if (nb->element().number() == 1)
+                        return 1.76f;
+                }
             return 1.61f;
         
         case 7: // nitrogen

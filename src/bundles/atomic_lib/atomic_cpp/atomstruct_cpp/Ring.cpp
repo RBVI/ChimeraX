@@ -29,6 +29,8 @@ template class pyinstance::PythonInstance<atomstruct::Ring>;
 
 namespace atomstruct {
 
+bool Ring::_temporary_rings = false;
+
 bool
 Ring::operator<(const Ring &other) const
 {
@@ -237,7 +239,7 @@ Ring::remove_bond(Bond* element)
     _bonds.erase(element);
 }
 
-Ring::Ring(std::set<Bond*>& ring_bonds)
+Ring::Ring(std::set<Bond*>& ring_bonds): _temporary(Ring::_temporary_rings)
 {
 {
     _bonds = ring_bonds;
@@ -246,7 +248,8 @@ Ring::Ring(std::set<Bond*>& ring_bonds)
 
 Ring::~Ring()
 {
-    DestructionUser(this);
+    if (!_temporary)
+        DestructionUser(this);
 }
 
 } // namespace molecule

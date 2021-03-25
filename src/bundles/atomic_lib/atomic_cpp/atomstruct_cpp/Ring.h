@@ -22,6 +22,7 @@
 namespace atomstruct {
 
 class Bond;
+class Structure;
 
 class ATOMSTRUCT_IMEX Ring: public pyinstance::PythonInstance<Ring> {
 public:
@@ -30,6 +31,9 @@ public:
 private:
     Bonds  _bonds;
     mutable Atoms  _atoms;
+    bool _temporary;
+    friend class Structure; // to access _temporary_rings
+    static bool _temporary_rings;
 public:
     Ring(std::set<Bond*>& ring_bonds);
     ~Ring();
