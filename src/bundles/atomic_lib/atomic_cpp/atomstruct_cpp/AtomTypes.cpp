@@ -1092,11 +1092,12 @@ clock_t start_t = clock();
 #endif
     size_t too_many_rings = (residues().size() - mapped_residues.size()) * 20;
     int ring_limit = 3;
-    Rings try_rings = rings(false, ring_limit, &mapped_residues);
+    Rings try_rings;
+    _temporary_per_residue_rings(try_rings, ring_limit, &mapped_residues);
     if (try_rings.size() < too_many_rings) {
         // not something crazy like an averaged structure...
         ring_limit = 6;
-        try_rings = rings(false, ring_limit, &mapped_residues);
+        _temporary_per_residue_rings(try_rings, ring_limit, &mapped_residues);
         if (try_rings.size() < too_many_rings) {
             // not something crazy like a nanotube...
             ring_limit = 0;

@@ -286,7 +286,7 @@ class EnumBase(Option):
         if not self.__as_radio_buttons:
             self.widget.setText(self.multiple_value)
 
-    def remake_menu(self):
+    def remake_menu(self, *, make_callback=True):
         from Qt.QtWidgets import QAction, QRadioButton
         from Qt.QtCore import Qt
         if isinstance(self, SymbolicEnumOption):
@@ -313,7 +313,8 @@ class EnumBase(Option):
                 menu.addAction(action)
             if self.values and self.value not in self.values and self.value != self.multiple_value:
                 self.value = labels[0]
-                self.make_callback()
+                if make_callback:
+                    self.make_callback()
     remake_buttons = remake_menu
 
     def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
@@ -338,7 +339,7 @@ class EnumBase(Option):
             self.widget.setAutoDefault(False)
             menu = QMenu(self.widget)
             self.widget.setMenu(menu)
-            self.remake_menu()
+            self.remake_menu(make_callback=False)
         return self.widget
 
     def _menu_cb(self, value):

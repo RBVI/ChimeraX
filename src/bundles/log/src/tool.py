@@ -465,24 +465,32 @@ class Log(ToolInstance, HtmlLog):
             contents = html.tostring(tmp)
         prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
         if self.settings.session_restore_clears and session.restore_options['clear log']:
-            # "retain" version info
-            class FakeLogger:
-                def __init__(self):
-                    self.msgs = []
-                def info(self, msg):
-                    self.msgs.append(msg)
-            fl = FakeLogger()
-            from chimerax.core.logger import log_version
-            log_version(fl)
-            version = "<br>".join(fl.msgs)
+            def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
+                if session.restore_options['error encountered']:
+                    # if the session did't restore successfully, don't clear the log
+                    self.page_source += prev_ses_html
+                else:
+                    # "retain" version info
+                    class FakeLogger:
+                        def __init__(self):
+                            self.msgs = []
+                        def info(self, msg):
+                            self.msgs.append(msg)
+                    fl = FakeLogger()
+                    from chimerax.core.logger import log_version
+                    log_version(fl)
+                    version = "<br>".join(fl.msgs)
 
-            # look for the command that restored the session and include it
-            index = self.page_source.rfind('<div class="cxcmd">')
-            if index == -1:
-                retain = version
-            else:
-                retain = version + '<br>' + self.page_source[index:]
-            self.page_source = retain + prev_ses_html
+                    # look for the command that restored the session and include it
+                    index = self.page_source.rfind('<div class="cxcmd">')
+                    if index == -1:
+                        retain = version
+                    else:
+                        retain = version + '<br>' + self.page_source[index:]
+                    self.page_source = retain + prev_ses_html
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            session.triggers.add_handler('end restore session', clear_log_unless_error)
         else:
             self.page_source += prev_ses_html
         #self.show_page_source()

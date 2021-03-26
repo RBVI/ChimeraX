@@ -68,13 +68,25 @@ Structure::_calculate_rings(bool cross_residue,
 }
 
 void
-Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const
+Structure::_temporary_per_residue_rings(Rings& rings, unsigned int all_size_threshold,
+    std::set<const Residue *>* ignore) const
 {
+    Ring::_temporary_rings = true;
+    _per_residue_rings(all_size_threshold, ignore, &rings);
+    Ring::_temporary_rings = false;
+}
+
+void
+Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore,
+    Structure::Rings* rings) const
+{
+    if (rings == nullptr)
+        rings = &_rings;
     // set_symmetric_difference only works on sorted ranges, so use
     // std::set instead of std::unordered_set
     typedef std::set<Bond*> SpanningBonds;
     typedef std::MAP<Atom*, SpanningBonds > Atom2SpanningBonds;
-    _rings.clear();
+    rings->clear();
     for (auto& res: residues()) {
         // very big residues cause fits; just skip them
         if (res->atoms().size() > 2500)
@@ -417,7 +429,7 @@ Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Re
                 msr.insert(r);
             }
         }
-        _rings.insert(msr.begin(), msr.end());
+        rings->insert(msr.begin(), msr.end());
     }
     if (all_size_threshold > 0) {
         // return _all_ rings at most the given size
@@ -425,14 +437,14 @@ Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Re
         // to optimize the cross_residue==false case, sort rings by residue...
 
         Rings meets_size_criteria;
-        for (auto& r: _rings) {
+        for (auto& r: *rings) {
             if (r.bonds().size() <= all_size_threshold)
                 meets_size_criteria.insert(r);
         }
-        meets_size_criteria.swap(_rings);
+        meets_size_criteria.swap(*rings);
 
         std::MAP<Residue *, Rings> ring_lists;
-        for (auto& r: _rings) {
+        for (auto& r: *rings) {
             ring_lists[(*r.bonds().begin())->atoms()[0]->residue()].insert(r);
         }
 
@@ -524,7 +536,7 @@ Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Re
 
             }
             for (auto aa: all_additional) {
-                _rings.insert(aa);
+                rings->insert(aa);
             }
             new_added.swap(all_additional);
         }
