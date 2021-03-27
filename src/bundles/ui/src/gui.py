@@ -744,9 +744,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
-        ses.update_loop.block_redraw()
-        ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        ses.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)
