@@ -209,12 +209,28 @@ push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
     strcpy(lrec.link.name[0], a1->name().c_str());
     strcpy(lrec.link.name[1], a2->name().c_str());
     lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
-    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
-    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    if (a1->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+        lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a1->residue()->name();
+        auto chain_id = a1->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[0].name, res_name.c_str(), 4);
+        lrec.link.res[0].chain_id = chain_id[1];
+    }
     lrec.link.res[0].seq_num = a1->residue()->number();
     lrec.link.res[0].i_code = a1->residue()->insertion_code();
-    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
-    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    if (a2->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+        lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a2->residue()->name();
+        auto chain_id = a2->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[1].name, res_name.c_str(), 4);
+        lrec.link.res[1].chain_id = chain_id[1];
+    }
     lrec.link.res[1].seq_num = a2->residue()->number();
     lrec.link.res[1].i_code = a2->residue()->insertion_code();
     lrec.link.sym[0] = lrec.link.sym[1] = 1555;
