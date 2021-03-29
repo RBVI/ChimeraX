@@ -275,12 +275,28 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             // SSBOND
             PDB srec(PDB::SSBOND);
             srec.ssbond.ser_num = ssbond_serial++;
-            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
-            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            if (r1->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            } else {
+                auto res_name = r1->name();
+                auto chain_id = r1->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[0].name, res_name.c_str(), 4);
+                srec.ssbond.res[0].chain_id = chain_id[1];
+            }
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
-            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
-            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            if (r2->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r2->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r2->chain_id()[0];
+            } else {
+                auto res_name = r2->name();
+                auto chain_id = r2->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[1].name, res_name.c_str(), 4);
+                srec.ssbond.res[1].chain_id = chain_id[1];
+            }
             srec.ssbond.res[1].seq_num = r2->number();
             srec.ssbond.res[1].i_code = r2->insertion_code();
             srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
