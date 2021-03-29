@@ -34,7 +34,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=2.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.0"/>
   </Dependencies>
 
   <Classifiers>
