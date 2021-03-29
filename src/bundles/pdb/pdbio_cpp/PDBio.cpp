@@ -1300,9 +1300,17 @@ static Residue*
 pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
 {
     ResName rname = pdb_res.name;
+    auto orig_rname = rname;
     ChainID cid({pdb_res.chain_id});
     canonicalize_res_name(rname);
-    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    auto res = as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    if (res != nullptr || orig_rname.size() < 4)
+        return res;
+    // try two-letter chain ID
+    cid.insert(cid.begin(), orig_rname[3]);
+    orig_rname.pop_back();
+    canonicalize_res_name(orig_rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, orig_rname);
 }
 
 static Atom*
