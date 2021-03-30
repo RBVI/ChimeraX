@@ -68,6 +68,14 @@ class Atom(CyAtom, State):
         ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
     ]
 
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyAtom because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
@@ -92,7 +100,7 @@ class Bond(State):
     '''
     Bond connecting two atoms.
 
-    To create a Bond use the :class:`.AtomicStructure` new_bond() method.
+    To create a Bond use chimerax.atomic.struct_edit.add_bond()
     '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
@@ -625,6 +633,14 @@ class Residue(CyResidue, State):
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
 
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyResidue because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
@@ -660,6 +676,11 @@ class Residue(CyResidue, State):
     na_max_backbone_names = c_function('residue_na_max_backbone_names', args = (), ret = ctypes.py_object)()
     na_side_connector_names = c_function('residue_na_side_connector_names', args = (), ret = ctypes.py_object)()
     na_min_ordered_backbone_names = c_function('residue_na_min_ordered_backbone_names', args = (), ret = ctypes.py_object)()
+    def clear_hide_bits(self, bit_mask, atoms_only=False):
+        "Clear Residue's atoms' and bonds' hide bits in bit mask"
+        f = c_array_function('residue_clear_hide_bits', args=(uint32, npy_bool), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask, atoms_only)
 
 Residue.set_py_class(Residue)
 
@@ -1270,11 +1291,13 @@ class Chain(StructureSeq):
         set_custom_attrs(chain, data)
         return chain
 
-    def string(self, style=None):
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+    def string(self, style=None, include_structure=None):
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1 \
-        or not chain_str:
+        if include_structure is not False and (
+        include_structure is True
+        or len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1
+        or not chain_str):
             struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
@@ -1288,6 +1311,20 @@ class Chain(StructureSeq):
             'custom attrs': get_custom_attrs(StructureSeq, self)
         }
         return data
+
+import string
+chain_id_characters = string.ascii_uppercase + string.ascii_lowercase + '1234567890'
+_cid_index = { c:i for i,c in enumerate(chain_id_characters) }
+def next_chain_id(cid):
+    if not cid or cid.isspace():
+        return chain_id_characters[0]
+    try:
+        next_index = _cid_index[cid[-1]] + 1
+    except KeyError:
+        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
+    if next_index == len(chain_id_characters):
+        return cid + chain_id_characters[0]
+    return cid[:-1] + chain_id_characters[next_index]
 
 # -----------------------------------------------------------------------------
 #
@@ -1588,7 +1625,10 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.
+        In most cases one should use chimerax.atomic.struct_edit.add_bond() instead, which
+        does a lot of maintenance of data structures that new_bond() alone does not.
+        '''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
@@ -1623,6 +1663,8 @@ class StructureData:
         '''
         if not insert:
             insert = ' '
+        if not chain_id:
+            chain_id = ' '
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char, ctypes.c_void_p),
                        ret = ctypes.py_object)
@@ -1934,22 +1976,24 @@ class ChangeTracker:
         return not hasattr(self, '_c_pointer')
 
     def add_modified(self, modded, reason):
+        # So to avoid having all code test whether a structure is open or not,
+        # have this call use the structure's own change tracker rather than self
         f = c_function('change_tracker_add_modified',
-            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
+            args = (ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
         from .molarray import Collection
         from collections.abc import Iterable
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, int(ptr), reason.encode('utf-8'))
+                f(class_num, int(ptr), reason.encode('utf-8'))
         else:
             try:
                 iterable_test = iter(modded)
             except TypeError:
-                f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+                f(self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
             else:
                 for item in modded:
-                    f(self._c_pointer, self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+                    f(self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
 
     @property
     def changed(self):

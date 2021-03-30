@@ -138,6 +138,11 @@ ifeq ($(OS),Linux)
 		$(bindir)/chrpath -C $(PROG); \
 	fi
 endif
+ifeq ($(OS),Darwin)
+	# Add RPATH so Python ssl module can find libssl.dylib.
+	# It needs Python.Framework in the RPATH
+	install_name_tool -add_rpath '@executable_path/../Library/Frameworks/Python.framework' $(PROG)
+endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg
@@ -185,6 +190,9 @@ ChimeraX-icon16.png:
 #
 # For Windows
 #
+
+ifdef WIN32
+
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
@@ -205,3 +213,5 @@ icon.$(OBJ_EXT): $(APP_NAME).ico
 
 icon.rc: icon.rc.in
 	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
+
+endif

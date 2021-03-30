@@ -32,7 +32,6 @@ Session data, ie., data that is archived, uses the :py:class:`State` and
 """
 
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, plural_form
 from .errors import UserError
 
 _builtin_open = open
@@ -346,6 +345,7 @@ class _RestoreManager:
             raise UserError(f"your version of ChimeraX is too old, install version {need_core_version} or newer")
         if missing_bundles or out_of_date_bundles:
             msg = ""
+            from .commands import plural_form
             if missing_bundles:
                 msg += "need to install missing " + plural_form(missing_bundles, 'bundle')
             if out_of_date_bundles:
@@ -433,20 +433,31 @@ class Session:
         Default view.
     """
 
-    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
+                 offscreen_rendering = False):
+        self._snapshot_methods = {}     # For saving classes with no State base class.
+        self._state_containers = {}     # stuff to save in sessions.
+
         self.app_name = app_name
         self.debug = debug
         self.silent = silent
-        self._snapshot_methods = {}     # For saving classes with no State base class.
-        self._state_containers = {}     # stuff to save in sessions.
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
         self.session_file_path = None  # Last saved or opened session file.
 
         from . import logger
         self.logger = logger.Logger(self)
+        from . import nogui
+        self.ui = nogui.UI(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
+
+        from .core_triggers import register_core_triggers
+        register_core_triggers(self.triggers)
+
+        from .triggerset import set_exception_reporter
+        set_exception_reporter(lambda preface, logger=self.logger:
+                               logger.report_exception(preface=preface))
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -462,8 +473,23 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from chimerax.graphics.view import View
-        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
-                              trigger_set=self.triggers)
+        view = View(self.models.scene_root_model, window_size=(256, 256),
+                    trigger_set=self.triggers)
+        self.main_view = view
+        try:
+            from .core_settings import settings
+            self.main_view.background_color = settings.background_color.rgba
+        except ImportError:
+            pass
+        if offscreen_rendering:
+            self.ui.initialize_offscreen_rendering()
+
+        from .selection import Selection
+        self.selection = Selection(self)
+
+        from .updateloop import UpdateLoop
+        self.update_loop = UpdateLoop(self)
+
         self.user_aliases = UserAliases()
 
         from . import colors
@@ -532,9 +558,6 @@ class Session:
         for instance for primitive types.
         """
         cls = obj.__class__ if instance else obj
-        from .serialize import PRIMITIVE_TYPES
-        if cls in PRIMITIVE_TYPES:
-            return None
         if issubclass(cls, base_type):
             return cls
 
@@ -642,6 +665,7 @@ class Session:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
         self.restore_options['clear log'] = clear_log
+        self.restore_options['error encountered'] = False
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -690,6 +714,7 @@ class Session:
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
                             % traceback.format_exc())
             self.reset()
+            self.restore_options['error encountered'] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
@@ -743,7 +768,14 @@ def standard_metadata(previous_metadata={}):
     https://www.w3.org/TR/html5/document-metadata.html.
     """
     from .fetch import html_user_agent
-    from chimerax import app_dirs
+
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        from chimerax import app_dirs
+        app_name = app_dirs.appname
+    else:
+        app_dirs = None
+        app_name = 'ChimeraX'
     from html import unescape
     import os
     import datetime
@@ -752,7 +784,7 @@ def standard_metadata(previous_metadata={}):
     metadata = {}
     if previous_metadata:
         metadata.update(previous_metadata)
-    generator = unescape(html_user_agent(app_dirs))
+    generator = unescape(html_user_agent(app_dirs)) if app_dirs else app_name
     generator += ", http://www.rbvi.ucsf.edu/chimerax/"
     metadata['generator'] = generator
     now = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -788,9 +820,9 @@ def standard_metadata(previous_metadata={}):
     metadata['dateCopyrighted'] = tmp
     # build information
     # version is in 'generator'
-    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
-    metadata['%s-date' % app_dirs.appname] = buildinfo.date
-    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
+    metadata['%s-commit' % app_name] = buildinfo.commit
+    metadata['%s-date' % app_name] = buildinfo.date
+    metadata['%s-branch' % app_name] = buildinfo.branch
     return metadata
 
 
@@ -981,7 +1013,8 @@ def save_x3d(session, path, transparent_background=False):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(path, 'w', encoding='utf-8') as stream:
+    from chimerax import io
+    with io.open_output(path, 'utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, metadata, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
@@ -1026,51 +1059,21 @@ def register_misc_commands(session):
     from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
 
-
-def common_startup(sess):
-    """Initialize session with common data containers"""
-
-    from .core_triggers import register_core_triggers
-    register_core_triggers(sess.triggers)
-
-    from .triggerset import set_exception_reporter
-    set_exception_reporter(lambda preface, logger=sess.logger:
-                           logger.report_exception(preface=preface))
-
+    from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
         sdump,
-        logger=sess.logger
+        logger=session.logger
     )
     register(
         'debug exception',
         CmdDesc(synopsis="generate exception to test exception handling"),
         _gen_exception,
-        logger=sess.logger
+        logger=session.logger
     )
-
-    register_misc_commands(sess)
-
-    if not hasattr(sess, 'models'):
-        return  # Minimal session mode.
-
-    from .selection import Selection
-    sess.selection = Selection(sess)
-
-    try:
-        from .core_settings import settings
-        sess.main_view.background_color = settings.background_color.rgba
-    except ImportError:
-        pass
-
-    from .updateloop import UpdateLoop
-    sess.update_loop = UpdateLoop(sess)
-
-    from . import attributes
-    attributes.RegAttrManager(sess)
 
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")

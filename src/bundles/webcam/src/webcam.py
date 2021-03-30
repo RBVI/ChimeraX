@@ -95,7 +95,7 @@ class WebCam (Model):
         
     def _start_video(self):
         cam_info = self._find_camera()
-        from PySide2.QtMultimedia import QCamera
+        from Qt.QtMultimedia import QCamera
         cam = QCamera(cam_info)
         self._camera = cam
 #        print('camera availability (0 = available):', cam.availability())
@@ -111,7 +111,7 @@ class WebCam (Model):
         cam.start()
 
     def _find_camera(self):
-        from PySide2.QtMultimedia import QCameraInfo
+        from Qt.QtMultimedia import QCameraInfo
         cam_list = QCameraInfo.availableCameras()
         if len(cam_list) == 0:
             from chimerax.core.errors import UserError
@@ -138,7 +138,7 @@ class WebCam (Model):
     def _camera_status_changed(self, status):
 #        print ('current camera status', status)
 
-        from PySide2.QtMultimedia import QCamera
+        from Qt.QtMultimedia import QCamera
         if status == QCamera.ActiveStatus and not self._capture_started:
             self._start_capture()
 
@@ -150,6 +150,7 @@ class WebCam (Model):
             capture = VideoCapture(self._new_frame)
             self._capture = capture
             cam.setViewfinder(capture)
+            print ('set view finder')
         # self._report_supported_pixel_formats()
         # Have to set camera pixel format after setting camera view finder
         # otherwise it does not seem to know the available pixel formats
@@ -181,8 +182,8 @@ class WebCam (Model):
         self.session.logger.info(msg)
 
         # Start acquiring images.
-        from PySide2.QtMultimedia import QVideoSurfaceFormat
-        from PySide2.QtCore import QSize
+        from Qt.QtMultimedia import QVideoSurfaceFormat
+        from Qt.QtCore import QSize
         fmt = QVideoSurfaceFormat(QSize(w,h), settings.pixelFormat())
         self._capture.start(fmt)
         
@@ -261,7 +262,7 @@ class WebCam (Model):
         '''
         fg = self.foreground_color
         sat = int(2.55*self.saturation)  # Convert 0-100 scale to 0-255
-        from ._webcam import set_color_alpha
+        from .webcam_cpp import set_color_alpha
         set_color_alpha(rgba_image, fg, sat, 0)
         return
 
@@ -391,7 +392,7 @@ class WebCam (Model):
         if im is None:
             return None
 
-        from PySide2.QtGui import QCursor
+        from Qt.QtGui import QCursor
         p = gw.mapFromGlobal(QCursor.pos())
         x,y = p.x(), p.y()
         ih, iw = im.shape[:2]
@@ -420,7 +421,7 @@ class ColorPick(Pick):
 
 # -----------------------------------------------------------------------------
 #
-from PySide2.QtMultimedia import QAbstractVideoSurface, QVideoFrame
+from Qt.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
     supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
@@ -459,7 +460,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
 
     # Map video frame into memory.
-    from PySide2.QtMultimedia import QAbstractVideoBuffer
+    from Qt.QtMultimedia import QAbstractVideoBuffer
     f.map(QAbstractVideoBuffer.ReadOnly)
 
     # Check video frame size
@@ -488,7 +489,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     # Convert video frame data to rgba
     data = f.bits()		# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
-    from ._webcam import bgra_to_rgba, yuyv_to_rgba
+    from .webcam_cpp import bgra_to_rgba, yuyv_to_rgba
     if pixel_format == f.Format_ARGB32:
         a = bgra_to_rgba(pointer, rgba_image)
 #        a = _bgra_to_rgba(data, rgba_image)
@@ -571,7 +572,7 @@ _qt_pixel_format_names = {}
 def _qt_pixel_format_name(qt_pixel_format):
     global _qt_pixel_format_names
     if len(_qt_pixel_format_names) == 0:
-        from PySide2.QtMultimedia import QVideoFrame    
+        from Qt.QtMultimedia import QVideoFrame    
         for name in dir(QVideoFrame):
             if name.startswith('Format_'):
                 value = getattr(QVideoFrame, name)

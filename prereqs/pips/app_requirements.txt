@@ -10,13 +10,17 @@ filelock==3.0.12
 grako==3.16.5
 html2text==2020.1.16
 ihm==0.17
-imagecodecs-lite==2020.1.31
+imagecodecs==2020.5.30
 ipykernel==5.3.4
+# if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
+# try a newer version of jedi
 ipython==7.18.1
+# the version of jedi that works with ipython
+jedi==0.17.2
 jupyter-client==6.1.7
 # see ../lineprofiler
 #line_profiler==3.0.2
-lxml==4.5.2
+lxml==4.6.2
 lz4==3.1.0
 matplotlib==3.3.2
 msgpack==1.0.0
@@ -26,6 +30,8 @@ networkx==2.5
 # https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html
 numpy==1.19.2
 openvr==1.14.1501
+# as per Tristan's request in ticket #3055
+ParmEd==3.2.0
 Pillow==7.2.0
 pkginfo==1.5.0.1
 psutil==5.7.2
@@ -35,7 +41,7 @@ pydicom==2.0.0
 #PyOpenGL==3.1.5
 #PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
-PySide2==5.15.2
+#PySide2==5.15.2
 qtconsole==4.7.7
 requests==2.24.0
 scipy==1.5.2

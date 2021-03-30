@@ -11,11 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255), coordinate_system = None):
+def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255),
+           coordinate_system = None):
 
     mset = _create_marker_set(session, marker_set)
     center = position.scene_coordinates(coordinate_system)
-    m = mset.create_marker(center, color, radius)
+    xyz = mset.scene_position.inverse() * center
+    m = mset.create_marker(xyz, color, radius)
     return m
 
 def _create_marker_set(session, marker_set, name = 'markers'):
@@ -219,10 +221,11 @@ def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), m
     for surface in surfaces:
         blobstats = surface_blob_measurements(surface)
         centers = [bs['center'] for bs in blobstats]
-        scene_centers = surface.scene_position * centers
-        surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
-        _set_markers_frame_number(mset, surf_markers, surface)
-        markers.extend(surf_markers)
+        if len(centers) > 0:
+            scene_centers = surface.scene_position * centers
+            surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
+            _set_markers_frame_number(mset, surf_markers, surface)
+            markers.extend(surf_markers)
         if stats:
             lines.append('Surface %s #%s has %d visible blobs'
                          % (surface.name, surface.id_string, len(blobstats)))

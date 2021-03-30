@@ -411,30 +411,30 @@ def make_closest_placement_identity(tflist, center):
     rtflist[i] = Place()
     return Places(rtflist)
 
-class _ResSpec:
-    def __init__(self, initial_spec):
-        self.spec = initial_spec
-        self.comma_okay = False
-        self.cur_chain = None
-
-    def add_range(self, start_res, end_res):
-        if start_res.chain_id != self.cur_chain:
-            show_chain = True
-            self.cur_chain = start_res.chain_id
-            self.comma_okay = False
+def _form_range(items, index_map, str_func):
+    range_string = ""
+    start_range = end_range = items[0]
+    for item in items[1:]:
+        ii, ei = index_map[item], index_map[end_range]
+        if ii == ei:
+            continue
+        if ii == ei + 1:
+            end_range = item
         else:
-            show_chain = False
-        if self.comma_okay:
-            self.spec += ','
-        else:
-            self.comma_okay = True
-        if end_res:
-            self.spec += "%s-%s" % (start_res.string(omit_structure=True, residue_only=not show_chain,
-                style="command")[(0 if show_chain else 1):],
-                end_res.string(omit_structure=True, style="command", residue_only=True)[1:])
-        else:
-            self.spec += "%s" % start_res.string(omit_structure=True, residue_only=not show_chain,
-                style="command")[(0 if show_chain else 1):]
+            if range_string:
+                range_string += ','
+            if start_range == end_range:
+                range_string += str_func(start_range)
+            else:
+                range_string += str_func(start_range) + '-' + str_func(end_range)
+            start_range = end_range = item
+    if range_string:
+        range_string += ','
+    if start_range == end_range:
+        range_string += str_func(start_range)
+    else:
+        range_string += str_func(start_range) + '-' + str_func(end_range)
+    return range_string
 
 def concise_residue_spec(session, residues):
     from . import Residues
@@ -444,29 +444,26 @@ def concise_residue_spec(session, residues):
     need_model_spec = len(all_structures(session)) > 1
     full_spec = ""
     for struct, struct_residues in residues.by_structure:
-        sort_residues = list(struct_residues)
-        sort_residues.sort(key=lambda res: (res.chain_id, res.number, res.insertion_code))
         res_index_map = {}
-        for i, r in enumerate(sort_residues):
+        for i, r in enumerate(struct.residues):
             res_index_map[r] = i
-        prev_index = prev_res = None
-        res_spec = _ResSpec(struct.string(style="command") if need_model_spec else "")
-        add_comma = False
-        for r in sort_residues:
-            r_index = res_index_map[r]
-            if prev_res is None:
-                start_range = r
-                end_range = None
-            elif r.chain_id == prev_res.chain_id and r_index == prev_index+1:
-                end_range = r
-            else:
-                res_spec.add_range(start_range, end_range)
-                start_range = r
-                end_range = None
-            prev_res = r
-            prev_index = r_index
-        res_spec.add_range(start_range, end_range)
+        chain_id_index_map = {}
+        for i, cid in enumerate(sorted(struct.residues.unique_chain_ids)):
+            chain_id_index_map[cid] = i
+        specs = {}
+        for struct, chain_id, chain_residues in struct_residues.by_chain:
+            sort_residues = list(chain_residues)
+            sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
+            specs.setdefault(':' + _form_range(sort_residues, res_index_map, lambda r:
+                r.string(omit_structure=True, style="command", residue_only=True)[1:]), []).append(chain_id)
+
         if full_spec:
             full_spec += ' '
-        full_spec += res_spec.spec
+        spec_chain_ids = list(specs.items())
+        spec_chain_ids.sort(key=lambda spec_cids: sorted(spec_cids[1])[0])
+        if need_model_spec:
+            full_spec += struct.string(style="command")
+        for spec, chain_ids in spec_chain_ids:
+            full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
+
     return full_spec

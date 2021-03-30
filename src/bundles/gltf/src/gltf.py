@@ -276,7 +276,8 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models, center = None, size = None, short_vertex_indices = False,
+def write_gltf(session, filename, models = None,
+               center = None, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True):
     if models is None:
         models = session.models.list()
@@ -284,8 +285,8 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     drawings = all_visible_drawings(models)
     
     # Write 80 character comment.
-    from chimerax import app_dirs as ad
-    app_ver  = "%s %s version: %s" % (ad.appauthor, ad.appname, ad.version)
+    from chimerax.core import version
+    app_ver  = 'UCSF ChimeraX %s' % version
 
     b = Buffers()
     nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors,

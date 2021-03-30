@@ -626,6 +626,11 @@ class Atoms(Collection):
         '''Returns a :mod:`numpy` Nx3 array of XYZ values.
         Raises error if any atom does nt have a ribbon coordinate.
         Can be set.''')
+    effective_coords = cvec_property('atom_effective_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate.
+        ''')
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
@@ -1269,10 +1274,13 @@ class Residues(Collection):
         return seqs, seq_ids
 
     def ribbon_clear_hides(self):
-        '''Clear the hide bit for all atoms in given residues.'''
-        f = c_function('residue_ribbon_clear_hide',
-                       args = [ctypes.c_void_p, ctypes.c_size_t])
-        f(self._c_pointers, len(self))
+        self.clear_hide_bits(Atom.HIDE_RIBBON)
+
+    def clear_hide_bits(self, mask, atoms_only=False):
+        '''Clear the hide bit for all atoms and bonds in given residues.'''
+        f = c_function('residue_clear_hide_bits',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_bool])
+        f(self._c_pointers, len(self), mask, atoms_only)
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

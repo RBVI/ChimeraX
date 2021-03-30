@@ -14,6 +14,9 @@
 class NoOpenerError(ValueError):
     pass
 
+class OpenerNotInstalledError(NoOpenerError):
+    pass
+
 class OpenerProviderInfo:
     def __init__(self, bundle_info, name, want_path, check_path, batch, is_default):
         self.bundle_info = bundle_info
@@ -173,6 +176,12 @@ class OpenManager(ProviderManager):
 
         The format name can be provided with the 'format' keyword if the filename suffix of the path
         does not correspond to those for the desired format.
+
+        The fact that the models have not been opened in the session can be an advantage if the models
+        are essentially temporary or if you need to make modifications to the models before adding them
+        to the session.  In the former case, you will have to explicitly destroy the models after you
+        are done with them by calling their :py:meth:`destroy()` method.  You add models to a session by
+        calling ``session.models.add(models)``.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
@@ -192,7 +201,7 @@ class OpenManager(ProviderManager):
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
         opener_info = self.opener_info(data_format)
         if opener_info is None:
-            raise NoOpenerError("Opener for format '%s' is not installed" % data_format.name)
+            raise OpenerNotInstalledError("Opener for format '%s' is not installed" % data_format.name)
         return opener_info.open_args
 
     def opener_info(self, data_format):

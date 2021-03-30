@@ -489,6 +489,9 @@ def contrast_with(rgb):
         return (1.0, 1.0, 1.0)
     return (0.0, 0.0, 0.0)
 
+def contrast_with_background(session):
+    """Contrast with the graphics-window background color"""
+    return contrast_with(session.main_view.background_color)
 
 # CSS4 colors + multiword color names
 BuiltinColors = SortedDict({
@@ -778,7 +781,7 @@ def hex_color(rgba8):
     return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % tuple(rgba8))
 
 def rgba_to_rgba8(rgba):
-    return tuple(int(255 * r) for r in rgba)
+    return tuple(int(255 * r + 0.5) for r in rgba)
 
 
 def rgba8_to_rgba(rgba):

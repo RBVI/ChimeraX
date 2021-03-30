@@ -20,7 +20,7 @@ class AssociationsTool:
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
-        from PySide2.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(sv.session, autoselect='single')
@@ -40,7 +40,7 @@ class AssociationsTool:
                 self.chain_list.blockSignals(False)
                 self.assoc_button.blockSignals(False)
 
-        self.best_assoc_label = "Best matching sequence"
+        self.best_assoc_label = "Best-matching sequence"
         self.assoc_button = AllowMultiASMB(sv.alignment, no_value_button_text=not_associated_text,
             no_value_menu_text="(none)", special_items=[self.best_assoc_label])
         self.assoc_button.value_changed.connect(self._seq_changed)

@@ -40,9 +40,9 @@ class BugReporter(ToolInstance):
         parent = tw.ui_area
         parent.setMinimumWidth(600)
 
-        from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QTextEdit
-        from PySide2.QtWidgets import QWidget, QHBoxLayout, QCheckBox
-        from PySide2.QtCore import Qt
+        from Qt.QtWidgets import QGridLayout, QLabel, QPushButton, QLineEdit, QTextEdit
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QCheckBox
+        from Qt.QtCore import Qt
         
         layout = QGridLayout(parent)
         layout.setContentsMargins(3,3,3,3)
@@ -88,13 +88,13 @@ class BugReporter(ToolInstance):
                 self._lines = initial_line_height
                 QTextEdit.__init__(self, text)
             def sizeHint(self):
-                from PySide2.QtCore import QSize
+                from Qt.QtCore import QSize
                 fm = self.fontMetrics()
                 h = self._lines * fm.lineSpacing() + fm.ascent()
                 size = QSize(-1, h)
                 return size
             def minimumSizeHint(self):
-                from PySide2.QtCore import QSize
+                from Qt.QtCore import QSize
                 return QSize(1,1)
 
         dl = QLabel('Description:')
@@ -239,8 +239,21 @@ class BugReporter(ToolInstance):
         # Post form data.
         self.status("Contacting CGL....", color="blue")
         from chimerax.webservices.post_form import post_multipart_formdata
+        import socket
         try:
-            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields)
+            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields, timeout=10)
+        except socket.gaierror:
+            # Not connected to internet or hostname unknown.
+            msg = 'Possibly no internet connection.'
+            self._ses.logger.warning('Failed to send bug report. %s' % msg)
+            self.report_failure(msg)
+            return
+        except (TimeoutError, socket.timeout):
+            # Host did not respond.
+            msg = 'Bug report server %s is unavailable' % BUG_HOST
+            self._ses.logger.warning('Failed to send bug report. %s' % msg)
+            self.report_failure(msg)
+            return
         except Exception:
             self._ses.logger.warning('Failed to send bug report. Error while sending follows:')
             import traceback
@@ -293,8 +306,11 @@ class BugReporter(ToolInstance):
                 " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
-    def report_failure(self):
+    def report_failure(self, reason = None):
+        detail = ('<p>%s</p>' % reason) if reason else ''
+        
         oops = ("<font color=red><h3>Error while submitting feedback.</h3></font>"
+                + detail +
                 "<p>An error occured when trying to submit your feedback."
                 "  No information was received by the Computer Graphics Lab."
                 "  This could be due to network problems, but more likely,"
@@ -310,7 +326,7 @@ class BugReporter(ToolInstance):
         self.delete()
 
     def file_browse(self):
-        from PySide2.QtWidgets import QFileDialog
+        from Qt.QtWidgets import QFileDialog
         path,type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
@@ -749,11 +765,8 @@ def _darwin_info():
 def _qt_info(session):
     if not session.ui.is_gui:
         return ""
-    import PySide2, PySide2.QtCore
-    return (
-                f"PySide2 version: {PySide2.__version__}\n"
-                f"Qt version: {PySide2.QtCore.__version__}\n"
-    )
+    import Qt
+    return Qt.version + '\n'
 
 
 def _package_info():

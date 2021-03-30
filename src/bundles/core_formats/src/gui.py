@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QFrame, QVBoxLayout, QCheckBox
+from Qt.QtWidgets import QFrame, QVBoxLayout, QCheckBox
 class SaveOptionsWidget(QFrame):
     def __init__(self, session):
         super().__init__()

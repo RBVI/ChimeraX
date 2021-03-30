@@ -16,6 +16,7 @@
 #
 def compute_ss(session, structures=None, *,
         min_helix_len=3, min_strand_len=3, energy_cutoff=-0.5, report=False):
+
     from chimerax.atomic import Structure
     from chimerax.dssp import compute_ss
     if structures is None:
@@ -27,8 +28,17 @@ def compute_ss(session, structures=None, *,
         from chimerax.core.errors import UserError
         raise UserError('No structures specified')
 
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState("dssp")
     for struct in structures:
+        residues = struct.residues
+        ss_types = residues.ss_types
+        ss_ids = residues.ss_ids
         compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
+        undo_state.add(residues, "ss_types", ss_types, residues.ss_types)
+        undo_state.add(residues, "ss_ids", ss_ids, residues.ss_ids)
+
+    session.undo.register(undo_state)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, IntArg

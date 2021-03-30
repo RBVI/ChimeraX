@@ -1,0 +1,221 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Color Key</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Color Key</h3>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="../tutorials/bind6.png"
+alt="Coulombic ESP flat lighting" width="280px">
+</td></tr>
+<tr><td align="center">
+<font size="-1">
+see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
+</font>
+</td></tr>
+</table>
+<p>
+<b>Color Key</b> creates a legend or key to show the
+value-color correspondences in a figure, such as from:
+</p>
+<ul>
+<li><a href="../commands/color.html#byattribute"><b>color</b> by attribute</a>
+(bfactor <a href="moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="shortcut-icons/bfactor.png"></a>, others)
+<li><a href="../commands/color.html#map"><b>color</b> by map value</a>
+(sample, electrostatic, gradient)
+<li><a href="../commands/color.html#distance"><b>color</b> by distance</a>
+(radial, cylindrical, height)
+<li><a href="../commands/coulombic.html"><b>coulombic</b></a>
+<a href="moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="shortcut-icons/esp.png"></a>
+<li><a href="../commands/mlp.html"><b>mlp</b></a>
+<a href="moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="shortcut-icons/hydrophobicity.png"></a>
+<li><a href="../commands/measure.html#convexity"><b>measure convexity</b></a>
+</ul>
+<p>
+The <b>Color Key</b> dialog can be opened from the <b>Depiction</b> 
+section of the <b>Tools</b> menu and manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+It can also be started by clicking the <b>Key</b> button in 
+<a href="surfacecolor.html"><b>Surface Color</b></a>.
+A color bar with value labels is automatically generated in the 
+graphics window according to the current settings in the dialog. 
+To create a title for the key
+(<i>e.g.</i>, &ldquo;electrostatic potential&rdquo; as shown in the image),
+use <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
+</p><p>
+When a color-by-value command is run interactively (in gui mode and not via a
+<a href="../commands/usageconventions.html#cxc-files">script</a>), 
+the <b>key</b> option of that command can be used to start <b>Color Key</b>
+with the corresponding colors and values already set. 
+See also:
+<a href="../images.html">making images</a>
+</p><p>
+It is usually best to adjust the <b>Number of colors/labels</b> 
+(default <b>3</b>) as needed before making other changes.
+</p><p>
+The color/label pairs from bottom to top in the dialog will be arranged
+from bottom to top in a vertical key and from left to right in a
+horizontal key. Label text can be entered directly or pasted, 
+potentially including <a href="../commands/symbols.html">symbols</a>.
+</p><p>
+Clicking <b>Reverse</b> repopulates the color/label values in the 
+reverse of the current order. 
+<b>Blend colors</b> indicates whether to draw the color bar as a 
+continuous gradient (default), as opposed to distinct colors only.
+The colors can be changed collectively by choosing a named
+<a href="../commands/palettes.html"><b>palette</b></a>
+(default <b>blue-white-red</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px" title="blue"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=red width="10px" title="red"></td>
+</tr></table>) from the pulldown menu and clicking <b>Apply</b>,
+or individually by clicking the color well and using the system color editor. 
+</p><p>
+The <b>Size</b> and lower-left corner <b>Position</b> values can be edited
+directly, and are expressed in fractional coordinates 0.0-1.0
+where 1.0 represents the full width or height of the
+<a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner.
+However, it is usually easiest to set the location and size interactively
+<a href="../commands/ui.html#mousemode">with the mouse</a> according to 
+<b>Adjust key with [<i>button</i>] mouse button</b> 
+(on by default; sets the
+<a href="../commands/ui.html#mousemode"><b>color key</b> mouse mode</a>).
+Clicking with the assigned button or its trackpad equivalent
+sets the location, and dragging sets the size. 
+A color key can be vertical (taller than wide) or horizontal (wider than tall).
+A previously created color key can be moved by grabbing near
+its center and dragging, but clicking anywhere else will delete
+the color key and start over. If width and height are both extremely small,
+such as from clicking without dragging, the key is not drawn.
+The color key is created as a model, and only one color key can exist at a time,
+Further options are in tabbed sections: 
+</p>
+<ul class="none">
+<li><a href="#border"><b>Border</b></a>
+<li><a href="#labels"><b>Labels</b></a>
+<li><a href="#ticks"><b>Tick Marks</b></a>
+</ul>
+<p>
+Clicking <b>Close</b> hides the dialog without deleting the color key model,
+whereas <b>Delete/Close</b> both deletes the color key model (forgetting
+the current settings) and closes the dialog.
+Clicking <b>Help</b> shows this page in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<a name="border"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Key</a>]
+</p>
+<h3>Border</h3>
+<ul>
+<li><b>Show border</b> 
+&ndash; whether the color key should have an outline border (default <b>on</b>)
+<li><b>Color</b> 
+&ndash; whether to use the color in the color well
+(default <b>off</b>, meaning to adjust automatically to
+<b>black</b> or <b>white</b> depending on the color of the
+<a href="../commands/set.html#bgColor">window background</a>)
+<li><b>Width</b> 
+&ndash; pixel width of border (default <b>2.0</b>)
+</ul>
+
+<a name="labels"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Key</a>]
+</p>
+<h3>Labels</h3>
+<ul>
+<li><b>Color</b>
+&ndash; whether to use the color in the color well
+(default <b>off</b>, meaning to adjust automatically to
+<b>black</b> or <b>white</b> depending on the color of the
+<a href="../commands/set.html#bgColor">window background</a>)
+<li><b>Font size</b>
+&ndash; label font size, an integer greater than zero (default <b>24</b>)
+<li><b>Font</b>
+&ndash; label font (default <b>Arial</b>;
+available fonts vary by system and can be reported with the 
+<a href="../commands/key.html#listfonts"><b>key listfonts</b></a> command)
+<li><b>Bold</b>
+&ndash; whether labels should be bold (default <b>off</b>)
+<li><b>Italic</b>
+&ndash; whether labels should be italic (default <b>off</b>)
+<li><b>Numeric spacing</b>
+&ndash; how to space numeric values along the key
+ <ul>
+ <li><b>equal</b>
+ <li><b>proportional to value</b> (default)
+&ndash; by value if all labels are numeric and in monotonically
+increasing or decreasing order in the dialog, otherwise equally
+ </ul>
+<li><b>Side</b>
+&ndash; which side of the bar to place labels: 
+ <ul>
+ <li><b>left/top</b>
+ &ndash; to the left of a vertical key, above a horizontal key
+ <li><b>right/bottom</b> (default)
+ &ndash; to the right of a vertical key, below a horizontal key
+ </ul>
+<li><b>Justification</b>
+&ndash; how to justify the label text for a vertical key:
+ <ul>
+ <li><b>left</b>
+ <li><b>decimal point</b> (default) 
+&ndash; aligned on the decimal point if all labels are numeric,
+otherwise right-justified 
+ <li><b>right</b>
+ </ul>
+<li><b>Offset</b>
+&ndash; offset in pixels of labels from the bar
+(default <b>0.0</b>, no offset; 
+positive values move labels farther from the bar, negative closer to the bar)
+</ul>
+
+<a name="ticks"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Key</a>]
+</p>
+<h3>Tick Marks</h3>
+<ul>
+<li><b>Show tick marks</b>
+&ndash; whether the color key should have tick marks (default <b>off</b>)
+<li><b>Length</b>
+&ndash; tick mark length in pixels (default <b>10.0</b>)
+<li><b>Width</b>
+&ndash; tick mark width in pixels (default <b>4.0</b>)
+</ul>
+<p>
+Tick mark color is the same as <a href="#border">border color</a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2021</address>
+</body></html>

@@ -1423,7 +1423,8 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
-  # The returned values are float32.
+  # The returned values are float32.  The returned outside array contains
+  # integer index value for points outside the volume.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',
@@ -2038,9 +2039,15 @@ class VolumeSurface(Surface):
   def set_color(self, color):
     if (color != self.color).any():
       Surface.set_color(self, color)
+      self._set_clip_cap_color(color)
       self.volume.call_change_callbacks('colors changed')
   color = property(get_color, set_color)
 
+  def _set_clip_cap_color(self, color):
+    for c in self.child_models():
+      if getattr(c, 'is_clip_cap'):
+        c.set_color(color)
+        
   def _get_colors(self):
     return Surface.get_colors(self)
   def _set_colors(self, colors):
@@ -3424,8 +3431,9 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
 # -----------------------------------------------------------------------------
 #
 def show_volume_dialog(session):
-  from .volume_viewer import show_volume_dialog
-  show_volume_dialog(session)
+  if hasattr(session, 'ui') and session.ui.is_gui:
+    from .volume_viewer import show_volume_dialog
+    show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
 #
@@ -3970,7 +3978,8 @@ class VolumeUpdateManager:
     # Only update displayed volumes.  Keep list or efficiency with time series.
     self._displayed_volumes_to_update = set()
     t = session.triggers
-    t.add_handler('graphics update', self._update_drawings)
+    if t.has_trigger('graphics update'):
+      t.add_handler('graphics update', self._update_drawings)
     t.add_handler('model display changed', self._display_change)
     
   def add(self, v):

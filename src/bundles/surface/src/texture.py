@@ -93,7 +93,7 @@ def image_file_as_rgba(path):
     if not isfile(p):
         from chimerax.core.errors import UserError
         raise UserError('texture image file "%s" does not exist' % p)
-    from PySide2.QtGui import QImage
+    from Qt.QtGui import QImage
     qi = QImage(p)
     from chimerax.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(qi)

@@ -206,14 +206,14 @@ class LeapMotion(Model):
                        for hand, mode in (('left', mode_left), ('right', mode_right))]
         self.add(self._hands)	# Add hand models as children
         
-        from ._leap import leap_open
+        from .leap_cpp import leap_open
         self._connection = leap_open(head_mounted = head_mounted, debug = debug)
         self._new_frame_handler = session.triggers.add_handler('new frame', self._new_frame)
 
     def delete(self):
         self.session.triggers.remove_handler(self._new_frame_handler)
         self._new_frame_handler = None
-        from ._leap import leap_close
+        from .leap_cpp import leap_close
         leap_close(self._connection)
         self._connection = None
         Model.delete(self)
@@ -233,7 +233,7 @@ class LeapMotion(Model):
         self._max_delay = max_delay
  
     def _new_frame(self, tname, tdata):
-        from ._leap import leap_hand_state
+        from .leap_cpp import leap_hand_state
         for hnum, h in enumerate(self._hands):
             state = leap_hand_state(self._connection, hnum, self._max_delay)
             if state is None:

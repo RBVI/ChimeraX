@@ -444,7 +444,7 @@ class SequenceViewer(ToolInstance):
             # opened along with MAV a chance to load
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
-        self.tool_window.manage('side' if self.seq_canvas.wrap_okay() else None)
+        self.tool_window.manage('side')
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -512,7 +512,7 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from PySide2.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
@@ -550,7 +550,7 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 action.setEnabled(False)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda action=action, hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
         headers_menu.addSeparator()
@@ -560,28 +560,9 @@ class SequenceViewer(ToolInstance):
                 continue
             action = QAction(hdr.name, hdr_save_menu)
             align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-            action.triggered.connect(lambda hdr=hdr, align_arg=align_arg, self=self: run(
+            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
-
-        # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info"); for now with only
-        # sequence features available, use "Features"
-        feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
-        if feature_seqs:
-            if len(self.alignment.seqs) == 1:
-                action = QAction("Show Sequence Features", menu)
-                action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
-                    show(seq))
-                menu.addAction(action)
-            else:
-                features_menu = menu.addMenu("Show Sequence Features")
-                from .seq_canvas import _seq_name as seq_name
-                for seq in feature_seqs:
-                    action = QAction(seq_name(seq), features_menu)
-                    action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
-                        show(seq))
-                    features_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
@@ -602,6 +583,25 @@ class SequenceViewer(ToolInstance):
                 blast_action.triggered.connect(lambda: run(self.session,
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
+
+        # Whenever Region Browser and UniProt Annotations happen, the thought is to
+        # put them in an "Annotations" menu (rather than "Info"); for now with only
+        # sequence features available, use "Features"
+        feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
+        if feature_seqs:
+            if len(self.alignment.seqs) == 1:
+                action = QAction("Sequence Features...", menu)
+                action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
+                    show(seq))
+                menu.addAction(action)
+            else:
+                features_menu = menu.addMenu("Sequence Features")
+                from .seq_canvas import _seq_name as seq_name
+                for seq in feature_seqs:
+                    action = QAction(seq_name(seq), features_menu)
+                    action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
+                        show(seq))
+                    features_menu.addAction(action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)

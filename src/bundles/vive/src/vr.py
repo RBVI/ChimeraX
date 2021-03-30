@@ -494,10 +494,14 @@ class SteamVRCamera(Camera, StateManager):
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
+        self._vr_system = None		# openvr.IVRSystem instance
         self._new_frame_handler = None
         self._app_quit_handler = None
 
     def start_vr(self):
+        if self._vr_system is not None:
+            return	# VR is already started
+        
         import openvr
         self._vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
         # The init() call raises OpenVRError if SteamVR is not installed.
@@ -528,7 +532,7 @@ class SteamVRCamera(Camera, StateManager):
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
         self._poses = poses_t()
         t = self._session.triggers
-        self._new_frame_handler = t.add_handler('new frame', self.next_frame)
+        self._new_frame_handler = t.add_handler('new frame', self._next_frame)
 
         # Assign hand controllers
         self._find_hand_controllers()
@@ -779,7 +783,16 @@ class SteamVRCamera(Camera, StateManager):
         dp = p.mDeviceToAbsoluteTracking
         return hmd34_to_position(dp)
     
-    def next_frame(self, *_):
+    def _next_frame(self, *_):
+        if not self.active:
+            # If the session camera is changed from the VR camera
+            # without calling the VR camera close method (should
+            # never happen) then close the VR camera.  Othewise all
+            # the VR updating will continue even when the camera is
+            # not in use.
+            self.close()
+            return
+        
         c = self._compositor
         if c is None:
             return
@@ -907,6 +920,11 @@ class SteamVRCamera(Camera, StateManager):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
+            # TODO: Want to use near_far_clip in meters in room
+            #  rather than actual scene bounds because scene bounds
+            #  don't include hand controllers, vr user interface panels
+            #  and multi-person head models so those get clipped in
+            #  the room camera view if the data model bounds are too small.
             p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
             return p
         elif view_num == 0:
@@ -1564,7 +1582,7 @@ class UserInterface:
             
     def _check_for_new_panels(self):
         # Add new panels for newly appeared top level widgets.
-        from PySide2.QtWidgets import QDockWidget, QMainWindow, QMenu
+        from Qt.QtWidgets import QDockWidget, QMainWindow, QMenu
         tw = [w for w in self._session.ui.topLevelWidgets()
               if w.isVisible() and not isinstance(w, (QDockWidget, QMainWindow))]
         wset = set(p._widget for p in self._panels)
@@ -1780,7 +1798,7 @@ class UserInterface:
         window_xy, panel = self._click_position(room_point)
         if panel:
             widget, wpos = panel.clicked_widget(window_xy)
-            from PySide2.QtWidgets import QAbstractButton, QTabBar
+            from Qt.QtWidgets import QAbstractButton, QTabBar
             if isinstance(widget, (QAbstractButton, QTabBar)):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
@@ -2173,7 +2191,7 @@ class Panel:
         return icon_rgba
 
     def is_menu(self):
-        from PySide2.QtWidgets import QMenu
+        from Qt.QtWidgets import QMenu
         return isinstance(self.widget, QMenu)
     
     def _is_toplevel_widget(self):
@@ -2203,7 +2221,7 @@ class Panel:
         pw = self.widget
         if pw is None:
             return None
-        from PySide2.QtCore import QPoint
+        from Qt.QtCore import QPoint
         wxy0 = widget.mapTo(pw, QPoint(0,0))
         th = self._titlebar_height
         wx0,wy0 = wxy0.x(), wxy0.y() + th
@@ -2251,10 +2269,10 @@ class Panel:
         pw = self.widget
         if pw is not None:
             x,y = window_xy
-            from PySide2.QtCore import QPoint
+            from Qt.QtCore import QPoint
             wp = QPoint(int(x), int(y))
             p = pw.mapToGlobal(wp)
-            from PySide2.QtGui import QCursor
+            from Qt.QtGui import QCursor
             QCursor.setPos(p)
 
     def _post_mouse_event(self, type, window_xy):
@@ -2262,7 +2280,7 @@ class Panel:
         w, pos = self.clicked_widget(window_xy)
         if w is None or pos is None:
             return w
-        from PySide2.QtCore import Qt, QEvent
+        from Qt.QtCore import Qt, QEvent
         if type == 'press':
             from time import time
             t = time()
@@ -2279,7 +2297,7 @@ class Panel:
             et = QEvent.MouseMove
             button =  Qt.NoButton
             buttons = Qt.LeftButton
-        from PySide2.QtGui import QMouseEvent
+        from Qt.QtGui import QMouseEvent
         me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
         self._ui._session.ui.postEvent(w, me)
         return w
@@ -2290,7 +2308,7 @@ class Panel:
         pw = self.widget
         if pw is None:
             return None, None
-        from PySide2.QtCore import QPoint, QPointF
+        from Qt.QtCore import QPoint, QPointF
         x,y = window_xy
         pwp = QPoint(int(x), int(y))
         w = pw.childAt(pwp)	# Works even if widget is covered.
@@ -2340,7 +2358,7 @@ class Panel:
         if th > 0:
             return window_xy[1] < 0
         w, pos = self.clicked_widget(window_xy)
-        from PySide2.QtWidgets import QMenuBar, QDockWidget
+        from Qt.QtWidgets import QMenuBar, QDockWidget
         if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
             return True
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -2348,7 +2366,7 @@ class Panel:
                            
     def clicked_mouse_mode(self, window_xy):
         w, pos = self.clicked_widget(window_xy)
-        from PySide2.QtWidgets import QToolButton
+        from Qt.QtWidgets import QToolButton
         if isinstance(w, QToolButton):
             if hasattr(w, 'vr_mode'):
                 if isinstance(w.vr_mode, str):
@@ -2373,7 +2391,7 @@ class Panel:
         if w is None:
             return
         
-        from PySide2.QtCore import QPoint
+        from Qt.QtCore import QPoint
         pos = w.mapToGlobal(QPoint(0,0))
         ppos = p._widget.mapFromGlobal(pos)
         y = ppos.y() + p._titlebar_height
@@ -2432,7 +2450,7 @@ def _ancestor_widgets(w):
 
 def _tool_y_position(tool_window):
     w = tool_window.ui_area
-    from PySide2.QtCore import QPoint
+    from Qt.QtCore import QPoint
     return w.mapToGlobal(QPoint(0,0)).y()
 
 def _tool_windows(name, session):
@@ -3039,7 +3057,7 @@ class ButtonGeometry:
 
     def set_icon_image(self, tex_rgba, icon_path, image_size):
         if icon_path:
-            from PySide2.QtGui import QImage
+            from Qt.QtGui import QImage
             qi = QImage(icon_path)
             s = image_size
             if qi.width() != s or qi.height() != s:

@@ -115,8 +115,11 @@ class Place:
             return Places([self]) * p
 
         from numpy import ndarray
+        if isinstance(p, (ndarray, tuple, list)):
+            return m34.apply_matrix(self._matrix, p)
+
         from tinyarray import ndarray_int, ndarray_float
-        if isinstance(p, (ndarray_float, ndarray, tuple, list, ndarray_int)):
+        if isinstance(p, (ndarray_float, ndarray_int)):
             return m34.apply_matrix(self._matrix, p)
 
         raise TypeError('Cannot multiply Place times "%s"' % str(p))
@@ -298,6 +301,17 @@ class Place:
         linear part is a rotation.
         '''
         return m34.axis_center_angle_shift(self._matrix)
+
+    def rotation_quaternion(self):
+        '''Supported API. Return the quaternion of the rotation part of the transform.'''
+        axis, angle = self.rotation_axis_and_angle()
+        from math import pi, sin, cos
+        a = angle * pi/180
+        sa2 = sin(a/2)
+        ca2 = cos(a/2)
+        from numpy import array, float64
+        q = array((ca2, sa2*axis[0], sa2*axis[1], sa2*axis[2]), float64)
+        return q
 
     def translation(self):
         '''
@@ -756,6 +770,20 @@ class Places:
     def __iter__(self):
         '''Supported API. Iterator returning Place instances.'''
         return self.place_list().__iter__()
+    
+    def __eq__(self, p):
+        '''
+        Supported API.
+        Test if these places identical in order and matrix elements.
+        '''
+        if p is self:
+            return True
+        if len(p) != len(self):
+            return False
+        for p0,p in zip(self, p):
+            if p != p0:
+                return False
+        return True
 
     def __mul__(self, places_or_vector):
         '''

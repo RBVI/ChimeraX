@@ -43,7 +43,6 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
 cdef class CyAtom:
     '''Base class for Atom, and is present only for performance reasons.'''
     cdef cydecl.Atom *cpp_atom
-    cdef cydecl.bool _deleted
 
     SPHERE_STYLE, BALL_STYLE, STICK_STYLE = range(3)
     HIDE_RIBBON = 0x1
@@ -63,17 +62,12 @@ cdef class CyAtom:
     }
     _alt_loc_suppress_count = 0
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_atom = <cydecl.Atom *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
-
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -472,6 +466,14 @@ cdef class CyAtom:
             self.cpp_atom.clear_ribbon_coord()
 
     @property
+    def effective_coord(self):
+        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
+        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.effective_coord()
+        return array((crd[0], crd[1], crd[2]))
+
+    @property
     def scene_coord(self):
         "Supported API. Atom center coordinates in the global scene coordinate system."
         " This accounts for the :class:`Drawing` positions for the hierarchy "
@@ -563,6 +565,14 @@ cdef class CyAtom:
         "Supported API. Delete this Atom from it's Structure"
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.structure().delete_atom(self.cpp_atom)
+
+    def delete_alt_loc(self, loc):
+        "'Raw' editing routine with very little consistency checking."
+        "  Using Residue.delete_alt_loc() is recommended in most cases."
+        if len(loc) != 1:
+            raise ValueError("Alt loc must be single character, not '%s'" % loc)
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_atom.delete_alt_loc(ord(loc[0]))
 
     def get_altloc_coord(self, loc):
         "Supported API.  Like the 'coord' property, but uses the given altloc"
@@ -902,18 +912,13 @@ cydecl.cyelem.Element.set_py_class(Element)
 cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
     cdef cydecl.Residue *cpp_res
-    cdef cydecl.bool _deleted
 
-    def __cinit__(self, ptr_type ptr_val):
+    def __cinit__(self, ptr_type ptr_val, *args, **kw):
         self.cpp_res = <cydecl.Residue *>ptr_val
+
+    def __init__(self, ptr_val):
         self._deleted = False
 
-    # possibly long-term hack for interoperation with ctypes
-    def __delattr__(self, name):
-        if name == "_c_pointer" or name == "_c_pointer_ref":
-            self._deleted = True
-        else:
-            super().__delattr__(name)
     @property
     def cpp_pointer(self):
         if self._deleted: raise RuntimeError("Residue already deleted")
@@ -1512,6 +1517,17 @@ cdef class CyResidue:
         if self._deleted: raise RuntimeError("Residue already deleted")
         self.cpp_res.structure().delete_atoms(self.cpp_res.atoms())
 
+    def delete_alt_loc(self, loc):
+        "Deletes the specified alt loc in this residue and possibly other residues"
+        "  if their alt locs are 'connected'.  If deleting this residue's current alt"
+        "  loc, the best remaining one will become current.  For simply deleting all"
+        "  alt locs in the structure except the current ones (and changing those to"
+        "  non-alt locs) use Structure.delete_alt_locs()."
+        if len(loc) != 1:
+            raise ValueError("Alt loc must be single character, not '%s'" % loc)
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_res.delete_alt_loc(ord(loc[0]))
+
     def find_atom(self, atom_name):
         '''Supported API. Return the atom with the given name, or None if not found.\n'''
         '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
@@ -1579,7 +1595,7 @@ cdef class CyResidue:
         self.cpp_res.set_alt_loc(ord(loc[0]))
 
     def set_chi(self, chi_num, val):
-        cur_chi = self.get_chi(chi_num)
+        cur_chi = self.get_chi(chi_num, False)
         if cur_chi is None:
             return
         a1, a2, a3, a4 = self.get_chi_atoms(self.standard_aa_name, chi_num)
@@ -1606,7 +1622,7 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()
@@ -1643,6 +1659,10 @@ cdef class CyResidue:
     @staticmethod
     def set_templates_dir(tmpl_dir):
         cydecl.Residue.set_templates_dir(tmpl_dir.encode())
+
+    @staticmethod
+    def set_user_templates_dir(tmpl_dir):
+        cydecl.Residue.set_user_templates_dir(tmpl_dir.encode())
 
     @staticmethod
     def get_standard_aa_name(res_name):

@@ -32,6 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
@@ -42,9 +43,11 @@ By default, the results are shown with coloring on the
 ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
 <b>dark goldenrod</b> (most lipophilic)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>.
+<img class="icon" 
+border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>.
 </p><p>
 See also: 
+<a href="key.html"><b>key</b></a>,
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="coulombic.html"><b>coulombic</b></a>,
@@ -154,6 +157,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 <p>
 Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
 different values, and the <b>range</b> may need to be adjusted.
+When <b>mlp</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to 
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 With <b>color false</b>, a single MLP map will be calculated based on 
 the specified atoms (disregarding any nonprotein atoms),
@@ -175,5 +183,5 @@ where a surface is clipped.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+March 2021</address>
 </body></html>

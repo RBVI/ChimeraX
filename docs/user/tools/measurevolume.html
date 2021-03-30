@@ -1,0 +1,104 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Measure Volume and Area</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Measure Volume and Area</h3>
+<p>
+<b>Measure Volume and Area</b> reports the total surface area 
+(sum of triangle areas) and enclosed volume of a surface model.
+All types of surface models are handled,
+including <a href="volumeviewer.html">volume data</a> isosurfaces.
+To measure individual disconnected blobs within a single surface model,
+see <a href="measureblobs.html"><b>Measure and Color Blobs</b></a>
+<a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/pickblobs.png"></a>.
+To measure the
+<a href="../commands/surface.html#surfdefs">solvent-accessible surface area</a>
+of an atomic structure, the command
+<a href="../commands/measure.html#sasa"><b>measure sasa</b></a>
+should be used instead.
+See also: <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="../commands/measure.html#area"><b>measure area</b></a>,
+<a href="../commands/measure.html#volume"><b>measure volume</b></a>,
+<a href="../measurements.html">measurements</a>
+</p><p>
+<b>Measure Volume and Area</b> can be started 
+from the <b>Volume Data</b> section of the <b>Tools</b> menu.
+The tool window can be
+<a href="../window.html#panels">moved, resized, <i>etc.</i></a>
+</p><p>
+The <b>Surface</b> of interest should be chosen from the list 
+of available surfaces.
+The surface area and enclosed volume are reported in the dialog
+in the physical units of the data, typically
+&Aring;<sup>3</sup> for volume and &Aring;<sup>2</sup> for area.
+</p><p>
+Surfaces are composed of triangles.
+Anything that changes the positions of the vertices in a surface
+will change its area and enclosed volume, for example:
+<ul>
+<li>adjusting the contour level of an isosurface shown with
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>
+<li>changing the probe radius or other calculation parameter of a
+<a href="../commands/surface.html">molecular surface</a>
+</ul>
+<b>Update automatically</b> (on by default) indicates volume and area
+should be recomputed automatically whenever such a change occurs.
+Otherwise, a new calculation can be triggered  by clicking <b>Update</b>.
+</p>
+Clicking <b>Help</b> shows this page
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<a name="technical"></a>
+<p class="nav">
+[<a href="#top">back to top: Measure Volume and Area</a>]
+</p>
+<h3>Notes</h3>
+<p>
+<b>Clipping and zoning are ignored.</b>
+The calculation uses the full surface,
+even if part of it is hidden by <a href="../commands/clip.html">clipping</a>
+or zoning (<i>e.g.</i>, with 
+<a href="../commands/surface.html#zone"><b>surface zone</b></a>
+or <a href="../commands/volume.html#zone"><b>volume zone</b></a>).
+</p>
+<p>
+<b>Surface holes.</b>
+The volume enclosed by a surface with holes is calculated by assuming
+each hole has a planar cap. These caps are not displayed or included in
+the surface area determination. The number of holes is reported, as
+planar caps may not represent missing data very well.
+Holes in a <a href="volumeviewer.html">volume data</a> isosurface
+may occur at the boundary of the data,
+but <a href="../commands/volume.html#capfaces">by default</a> 
+these will already be covered with planar caps.
+Such boundary caps will be included in
+the surface area calculation and will not be reported as holes.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2021</address>
+</body></html>

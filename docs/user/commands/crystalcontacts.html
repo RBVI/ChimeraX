@@ -1,0 +1,167 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: crystalcontacts</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: crystalcontacts</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>crystalcontacts</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<a href="#distance"><b>distance</b></a>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<a href="#copies"><b>copies</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#rainbow"><b>rainbow</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#schematic"><b>schematic</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#intraBiounit"><b>intraBiounit</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#residueInfo"><b>residueInfo</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#buriedAreas"><b>buriedAreas</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#probeRadius"><b>probeRadius</b></a>&nbsp;&nbsp;<i>r</i>&nbsp;]
+</h3>
+<a name="delete"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>crystalcontacts delete</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+</h3>
+<p>
+The <b>crystalcontacts</b> command checks for close contacts
+between symmetry-related copies of atomic structures.
+It is the command-line implementation of the 
+<a href="../tools/crystalcontacts.html"><b>Crystal Contacts</b></a> tool.
+The symmetry information is read from the input coordinate file (PDB or mmCIF).
+See also:
+<a href="unitcell.html"><b>unitcell</b></a>,
+<a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>,
+<a href="sym.html"><b>sym</b></a>
+</p><p>
+One or more atomic models can be
+<a href="atomspec.html#hierarchy">specified</a>.
+Any atoms one wishes to exclude from the calculation (solvent, <i>etc.</i>)
+should be deleted beforehand. Symmetry copies can be shown as
+<a href="#copies">full atomic models</a> and/or
+<a href="#schematic">represented schematically</a>.
+Results are reported in the <a href="../tools/log.html"><b>Log</b></a>
+(<a href="../tools/crystalcontacts.html#results">details...</a>).
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: crystalcontacts</a>]
+</p>
+<h3>Options</h3>
+<blockquote>
+  <a name="distance"></a>
+  <b>distance</b> &nbsp;<i>d</i>
+  <br>
+The distance <i>d</i> (default <b>3.0</b> &Aring;) defines what is
+considered an atomic contact between copies.
+</blockquote>
+<blockquote>
+  <a name="copies"></a>
+  <b>copies</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+Whether to load the full atomic coordinates of any contacting copies
+(default <b>true</b>). Any previous set of contacting copies for the structure
+will be replaced automatically with the new copies.
+</blockquote>
+<blockquote>
+  <a name="rainbow"></a>
+  <b>rainbow</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+Whether to color the additional atomic copies sequentially
+using the <b>rainbow</b> palette:
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px" title="blue"></td>
+<td bgcolor=cyan width="10px" title="cyan"></td>
+<td bgcolor=lime width="10px" title="lime"></td>
+<td bgcolor=yellow width="10px" title="yellow"></td>
+<td bgcolor=red width="10px" title="red"></td>
+</tr></table> (default <b>true</b>).
+If the option is <b>false</b>, the copies will be colored 
+in the same way as the original structure.
+</blockquote>
+<blockquote>
+  <a name="schematic"></a>
+  <b>schematic</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+Whether to show a 
+<a href="../tools/crystalcontacts.html#schematic">schematic representation</a>
+of the results (default <b>false</b>): unit cell outline, 
+copies shown as balls, and contacts shown as red cylinders, 
+with thicker cylinders indicating greater numbers of contacts.
+The schematic is generated as a <a href="../markers.html">marker set</a>.
+Any previous schematic for the structure 
+will be replaced automatically with the new one.
+</blockquote>
+<blockquote>
+  <a name="intraBiounit"></a>
+  <b>intraBiounit</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+Whether contacts between subunits in the same biological unit
+should be included in the results (default <b>true</b>).
+The biological unit is defined by BIOMT matrices in the input PDB file.
+</blockquote>
+<blockquote>
+  <a name="residueInfo"></a>
+  <b>residueInfo</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+Whether to write a table of residue-residue contact information to the
+<a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
+Each line reports a contact between residues in different copies
+(NCS asymmetric units) and their closest interatomic distance.
+Several columns identify the specific residues and the copies in which 
+they reside (symmetry operator, ncs operator, and unit cell of the 
+second residue relative to the original copy).
+</blockquote>
+<blockquote>
+  <a name="buriedAreas"></a>
+  <b>buriedAreas</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+Whether to calculate per-residue buried solvent-accessible surface area (SASA)
+values and report them in the <a href="../tools/log.html"><b>Log</b></a>
+(default <b>false</b>).
+To calculate the buried area for a given residue, only the residues
+in contact with it according to the specified 
+<a href="#distance">distance</a> are used; this procedure is faster
+but may give slightly different results than a
+<a href="measure.html#buriedarea">buried-area calculation</a>
+using all atoms in multiple copies of the structure.
+To give very similar results,
+the distance should be large enough to include all atoms with 
+buried SASA, at least twice the <a href="#probeRadius">probe radius</a>
+plus twice the maximum <a href="../radii.html">VDW radius</a>
+(with default radii, about 6.6 &Aring;).
+</blockquote>
+<blockquote>
+  <a name="probeRadius"></a>
+  <b>probeRadius</b> &nbsp;<i>r</i>
+  <br>
+The probe radius <i>r</i> (default <b>1.4</b> &Aring;) is the
+size of the sphere rolled over the surface for
+<a href="#buriedAreas">buried area</a> calculations.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2021</address>
+</body></html>

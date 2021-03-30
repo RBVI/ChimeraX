@@ -345,7 +345,8 @@ def mark_map_center(volume):
         varea = surface.vertex_areas(va, ta)
         a = varea.sum()
         c = varea.dot(va)/a
-        _mouse_place_marker(volume.session, c, on_model = volume)
+        cscene = v.scene_position * c
+        _mouse_place_marker(volume.session, cscene, on_model = volume)
         
 # -----------------------------------------------------------------------------
 #
@@ -369,7 +370,7 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
         if f is None:
             continue
         vxyz = (1-f)*v_xyz_in + f*v_xyz_out
-        sxyz = v.position * vxyz
+        sxyz = v.scene_position * vxyz
         d = distance(sxyz, xyz_in)
         hits.append((d,sxyz,v))
 
@@ -399,7 +400,7 @@ def volume_plane_intercept(xyz_in, xyz_out, vlist):
         if v_xyz_in is None:
             continue
         vxyz = .5 * v_xyz_in + .5 * v_xyz_out
-        sxyz = v.position * vxyz
+        sxyz = v.scene_position * vxyz
         d = distance(sxyz, xyz_in)
         hits.append((d,sxyz,v))
 
@@ -476,10 +477,13 @@ def _mouse_markerset(session):
         ms['molecule'] = m
     return m
     
-def _mouse_place_marker(session, center, link_to_selected = False, select = True, log = True, on_model = None):
+def _mouse_place_marker(session, center, link_to_selected = False,
+                        select = True, log = True, on_model = None):
+    '''Center is in scene coordinates.'''
     m = _mouse_markerset(session)
     ms = _mouse_marker_settings(session)
-    a = m.create_marker(center, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    mcenter = m.scene_position.inverse() * center
+    a = m.create_marker(mcenter, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
     if on_model:
         _set_marker_frame_number(a, on_model)
     if log:

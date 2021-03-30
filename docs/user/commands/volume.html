@@ -121,9 +121,9 @@ The <b>volume</b> command has many options, here grouped into categories:
 <br><a href="#dispsolid">Image Display Options</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/slab.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
@@ -140,6 +140,8 @@ The <b>volume</b> command has many options, here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
 
 <p>
@@ -1062,9 +1064,9 @@ is white or some other light color.
   generating planes perpendicular to the line of sight, spaced
   according to the <a href="#planeSpacing"><b>planeSpacing</b></a> option.
 See also:
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
 </blockquote>
 <blockquote>
@@ -1420,6 +1422,8 @@ and/or above a specified maximum
 &ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 &ndash; limit the display to a zone around specified atoms,
 or make a new map with values of zero at grid points within or beyond the zone
 </ul>
@@ -2395,7 +2399,10 @@ limit the surface display to a zone within <b>range</b> <i>r</i>
 (default <b>3.0</b> &Aring;) of any atom in 
 <a href="atomspec.html"><i>atom-spec</i></a> and restrict the
 <a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. 
+to the box containing the zoned surface. The corresponding
+<a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">
+uses a <b>range</b> value six times the grid spacing of the map.
 The full extent of the map can be restored with
 <a href="#unzone"><b>volume unzone</b></a>.
 The <b>invert</b> option is not available with <b>newMap false</b>.
@@ -2580,5 +2587,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2020</address>
+February 2021</address>
 </body></html>

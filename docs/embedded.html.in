@@ -117,6 +117,12 @@ Linux only.
 <dd> The <b>flatten</b> function in <b>basictypes/latebind.py</b> is the basis for our <b>chimerax.core.utils.flattened</b> function.  The Python packages are not included.
 <br>
 License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
+ 
+<p>
+<dt><a href="https://ambermd.org" target="_blank">AmberTools</a>
+	<dd> Certain executables from the AmberTools package are included with ChimeraX in order to compute partial charges.  These executables are unmodified relative to their AmberTools versions, and are communicated with via their normal inputs and outputs.
+<br>
+License: Most of AmberTools is covered under the <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a>.
 
 </dl>
 

@@ -143,7 +143,7 @@ class Region:
                 self.region_browser._region_size_changed_cb(self)
 
     def contains(self, x, y):
-        from PySide2.QtCore import QPointF
+        from Qt.QtCore import QPointF
         for item in self.scene.items(QPointF(x, y)):
             if item in self._items:
                 return True
@@ -212,10 +212,10 @@ class Region:
         if not self._items:
             return
         brush = self._items[0].brush()
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         if rgba:
-            from PySide2.QtGui import QColor
-            brush.setColor(QColor(*rgba))
+            from Qt.QtGui import QColor
+            brush.setColor(QColor(*[int(x*255.0 + 0.5) for x in rgba]))
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
@@ -256,10 +256,10 @@ class Region:
 
     def _rect_kw(self):
         kw = {}
-        from PySide2.QtGui import QBrush, QPen, QColor
+        from Qt.QtGui import QBrush, QPen, QColor
         kw['pen'] = pen = QPen()
         kw['brush'] = brush = QBrush()
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         if self.interior_rgba is not None:
             brush.setColor(rgba_to_qcolor(self.interior_rgba))
             brush.setStyle(Qt.SolidPattern)
@@ -272,7 +272,12 @@ class Region:
             else:
                 pen.setStyle(Qt.SolidLine)
         else:
-            pen.setStyle(Qt.NoPen)
+            # no outline will not be filled so...
+            if self.interior_rgba is None:
+                pen.setStyle(Qt.NoPen)
+            else:
+                pen.setColor(rgba_to_qcolor(self.interior_rgba))
+                pen.setStyle(Qt.SolidLine)
         return kw
 
     def redraw(self):
@@ -805,12 +810,12 @@ class RegionBrowser:
             from chimerax.ui.open_save import OpenDialog
             dlg = OpenDialog(self.tool_window.ui_area, caption="Load Sequence Coloring File")
             dlg.setNameFilter("SCF files (*.scf *.seqsel)")
-            from PySide2.QtWidgets import QCheckBox
+            from Qt.QtWidgets import QCheckBox
             cbox = QCheckBox("Also color associated structures")
             sv = self.seq_canvas.sv
             settings = sv.settings
             cbox.setChecked(settings.scf_colors_structures)
-            from PySide2.QtWidgets import QHBoxLayout
+            from Qt.QtWidgets import QHBoxLayout
             layout = QHBoxLayout()
             layout.addWidget(cbox)
             dlg.custom_area.setLayout(layout)
@@ -949,7 +954,7 @@ class RegionBrowser:
     """
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
-            name_prefix="", select=False, assoc_with=None,
+            name_prefix="", select=False, assoc_with=None, cover_gaps=True,
             after="ChimeraX selection", rebuild_table=True,
             session_restore=False, sequence=None, **kw):
         if not name and not name_prefix:
@@ -963,7 +968,7 @@ class RegionBrowser:
         interior = get_rgba(fill)
         border = get_rgba(outline)
         region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
-                border_rgba=border, interior_rgba=interior, **kw)
+                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1
         elif isinstance(after, str):
@@ -1344,7 +1349,7 @@ class RegionBrowser:
         cofr(sel)
 
     def _key_press_cb(self, event):
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
             self.delete_region(self.selected())
             scene = self.seq_canvas.main_scene
@@ -1368,7 +1373,7 @@ class RegionBrowser:
                             hr.shown = False
 
     def _mouse_down_cb(self, event):
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         if event.button() == Qt.RightButton:
             """TODO
             if event.modifiers() & Qt.ShiftModifier:
@@ -1452,7 +1457,7 @@ class RegionBrowser:
                     self._after_id = None
         """
 
-        from PySide2.QtCore import Qt
+        from Qt.QtCore import Qt
         control_down = bool(event.modifiers() & Qt.ControlModifier)
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
@@ -1498,7 +1503,7 @@ class RegionBrowser:
                 lr_y += 1
                 if not prev_bbox:
                     create_line = self.seq_canvas.main_scene.addLine
-                    from PySide2.QtGui import QPen
+                    from Qt.QtGui import QPen
                     pen = QPen(Qt.DotLine)
                     drag_lines = []
                     drag_lines.append(create_line(ul_x, ul_y, ul_x, lr_y, pen))
@@ -1723,7 +1728,7 @@ class RegionBrowser:
         if sel_residues:
             from chimerax.atomic import concise_residue_spec
             from chimerax.core.commands import run
-            run(session, "sel " + concise_residue_spec(session, self.region_residues(region)))
+            run(session, "sel " + concise_residue_spec(session, sel_residues))
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
@@ -1840,5 +1845,5 @@ def get_rgba(color_info):
     return color_info
 
 def rgba_to_qcolor(rgba):
-    from PySide2.QtGui import QBrush, QPen, QColor
+    from Qt.QtGui import QBrush, QPen, QColor
     return QColor(*[int(255*chan + 0.5) for chan in rgba])

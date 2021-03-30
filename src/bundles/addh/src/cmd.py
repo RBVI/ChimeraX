@@ -423,7 +423,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
-    # ensure that N termini are protonated as N3+ (since Npl will fail)
+    # ensure that normal N termini are protonated as N3+ (since Npl will fail)
     from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
@@ -432,7 +432,9 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         # if residue wasn't templated, leave atom typing alone
         if Sequence.protein3to1(n.residue.name) == 'X':
             continue
-        if not (n.residue.name == "PRO" and n.num_bonds >= 2):
+        # if multiple heavy-atom bond partners then this is an unusual N terminus
+        # (e.g. FME in 3fil, or any proline)
+        if len([nb for nb in n.neighbors if nb.element.number > 1]) < 2:
             n.idatm_type = "N3+"
 
     coordinations = {}
@@ -1004,12 +1006,19 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     elif h_name[-1] == "'" and len(h_name) + (total_hydrogens-1) <= 4:
         while find_atom(h_name):
             h_name += "'"
+            if len(h_name) > 4:
+                for digit in range(10):
+                    h_name = h_name[:3] + str(digit)
+                    if not find_atom(h_name):
+                        break
+                else:
+                    raise ValueError("Too many hydrogens attached to %s" % atom)
     elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
         if atom.residue.polymer_type == atom.residue.PT_AMINO and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
-        h_digits = 4 - len(h_name)
+        h_digits = max(4 - len(h_name), 1)
         while find_atom("%s%s" % (h_name, to_h36(h_num, h_digits))):
             h_num += 1
         h_name = "%s%s" % (h_name, to_h36(h_num, h_digits))

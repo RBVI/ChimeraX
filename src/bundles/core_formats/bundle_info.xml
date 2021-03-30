@@ -50,7 +50,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="ChimeraX session" />
+    <Provider name="ChimeraX session" compression_okay="false" />
     <Provider name="X3D" />
   </Providers>
 

@@ -1,0 +1,75 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Surface Zone</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Surface Zone</h3>
+<p>
+<b>Surface Zone</b> limits the display of a 
+<a href="volumeviewer.html">volume data</a> (map) surface 
+to a zone around specified atoms or <a href="../markers.html">markers</a>.
+It is also implemented as the command
+<a href="../commands/surface.html#zone"><b>surface zone</b></a>
+(with more options than shown in this tool).
+See also: <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="colorzone.html"><b>Color Zone</b></a>,
+<a href="hidedust.html"><b>Hide Dust</b></a>,
+<a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">,
+<a href="../commands/volume.html#zone"><b>volume zone</b></a>
+</p><p>
+<b>Surface Zone</b> can be started 
+from the <b>Volume Data</b> section of the <b>Tools</b> menu.
+The tool window can be
+<a href="../window.html#panels">moved, resized, <i>etc.</i></a>
+</p><p>
+The surface to zone should be chosen from the list of available map models,
+and the atoms to use specified as <b>selected atoms</b> (the current
+<a href="../selection.html">selection</a>) or chosen from the list of 
+available atomic models. All atoms of a chosen model will be used, including
+ligand, solvent, <i>etc.</i>, even if they are not displayed. To use
+only the biopolymer portion of a model, either the remaining atoms should
+be deleted, or only those atoms <a href="../selection.html">selected</a>
+and designated as <b>selected atoms</b> instead.
+</p><p>
+Clicking <b>Zone</b> limits the display of the chosen surface
+to areas within a specified distance (<b>Radius</b>) of any of the atoms.
+Surfaces are composed of triangles; only triangles with all three
+vertices in the zone will be shown.
+</p><p>
+The <b>Radius</b> can be adjusted by moving the slider or by typing in 
+a new value. The slider is logarithmic to cover a wide range of values.
+There is no way to use different radii for different atoms.
+If the set of atoms is changed or an atom is moved relative to the surface,
+<b>Zone</b> must be clicked again to update the zone.
+</p><p>
+Clicking <b>No Zone</b> stops limiting surface display to the zone.
+</p><p>
+Clicking <b>Help</b> shows this page
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2021</address>
+</body></html>

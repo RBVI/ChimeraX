@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QFrame, QGridLayout
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QFrame, QGridLayout
+from Qt.QtCore import Qt
 from chimerax.core.errors import UserError
 
 class SaveOptionsWidget(QFrame):

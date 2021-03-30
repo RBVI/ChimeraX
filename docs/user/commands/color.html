@@ -45,7 +45,9 @@ different sets of items:
 &ndash; atomic models
 <li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
-<li><b>Coloring by Value</b>:
+<li><b>Coloring by Value</b>
+(see also the <a href="../tools/colorkey.html"><b>Color Key</b></a> tool
+or <a href="key.html"><b>key</b></a> command):
   <ul>
   <li><a href="#byattribute"><b>Attribute</b></a>
   &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
@@ -59,6 +61,8 @@ different sets of items:
   &ndash; surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
 <li><a href="#image"><b>Coloring from Image File</b></a>
@@ -66,12 +70,17 @@ or <a href="../markers.html">markers</a>
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
-<a href="coulombic.html"><b>coulombic</b></a>,
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="../tools/coloractions.html"><b>Color Actions</b></a>,
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
@@ -439,8 +448,9 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <b>color</b> &nbsp;<b>byattribute</b>
 &nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
@@ -454,6 +464,9 @@ Examples of coloring by <b>bfactor</b>, an attribute
 automatically read from mmCIF/PDB, are given below.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+See also the tutorial:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the
 <a href="../attributes.html#attrnames">attribute name</a>
@@ -472,6 +485,12 @@ can be set independently.
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
 with the <b>noValueColor</b> option.
+</p><p>
+When <b>color byattribute</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
@@ -543,6 +562,7 @@ to make the cap match the nearby atoms.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
@@ -550,6 +570,8 @@ to make the cap match the nearby atoms.
 <p>
 Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
 value applies to surfaces only, both molecular and nonmolecular.
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -560,19 +582,28 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> across the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently. 
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
-The <a href="coulombic.html"><b>coulombic</b></a> command
-colors molecular surfaces
+The <a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
+command colors molecular surfaces
 by Coulombic electrostatic potential without requiring an input map.
 See also: 
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img 
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
-<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>
 </p>
 <ul>
@@ -587,20 +618,19 @@ from each surface vertex, along its normal, to evaluate the data
 with default <b>offset</b> <b>1.4</b> &Aring;, 
 which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
-The rationale for looking outward is that the values at the centers 
-of any interacting atoms are more relevant than those at their surfaces.
-By default, a <a href="surface.html#surfdefs">molecular surface</a>
-shows where the surface of a spherical probe 
-of radius 1.4 &Aring; can lie, the
-<a href="surface.html#surfdefs">solvent-excluded surface</a>.
-An offset of 1.4 &Aring; approximates the 
+The rationale for looking outward is to show the values that any atoms
+binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+A molecular surface in ChimeraX is the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>
+where the surface of a spherical probe can lie. The default probe radius
+is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
-** However, an offset of 0.0 may be preferred for coloring
-<a href="surface.html#cap">surface caps</a>
-(from <a href="clip.html">clipping</a>),
-and a zero or negative offset may be appropriate
-for coloring the surface of one structure by the potential from another. **
+**However, an offset of 0.0 may be preferred for coloring
+the <a href="surface.html#cap">cap</a>
+of a <a href="clip.html">clipped</a> surface,
+and a zero or negative offset for coloring the surface of one structure
+by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
 with default <b>offset</b> <b>0.0</b> &Aring;.
@@ -643,6 +673,7 @@ Same as previous except use royal blue instead of blue:
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 <br>
@@ -652,12 +683,15 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
 both molecular and nonmolecular (such as volume isosurfaces).
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-distance mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -666,6 +700,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> across the full range).
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
@@ -712,6 +751,13 @@ Coloring by <b>zone</b> to match nearby atoms or
 <a href="../markers.html">markers</a> applies to surfaces only.
 The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png">
+uses a <b>distance</b> value six times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/colorzone.html"><b>Color Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
+</p><p>
 For coloring a <a href="surface.html">molecular surface</a>
 (and/or its <a href="surface.html#cap">caps</a> where sliced by
 <a href="clip.html">clipping</a>)
@@ -732,7 +778,7 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 </p><p>
 A map that has been colored by zone can be split accordingly with
-<a href="volume#splitbyzone"><b>volume splitbyzone</b></a>.
+<a href="volume.html#splitbyzone"><b>volume splitbyzone</b></a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 </p>
@@ -1069,5 +1115,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2020</address>
+March 2021</address>
 </body></html>
