@@ -267,6 +267,7 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure
+    from chimerax.core.attributes import MANAGER_NAME, type_attrs
     if len(attr_name) > 1 and attr_name[1] == ':':
         attr_level = attr_name[0]
         if attr_level not in "arm":
@@ -274,10 +275,9 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
         attr_name = attr_name[2:]
         class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
         if allowable_types:
-            allowable_attrs = session.attr_registration.attributes_returning(class_obj, allowable_types,
-                none_okay=True)
+            allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
+                class_obj, allowable_types, none_okay=True)
         else:
-            from chimerax.core.utils import type_attrs
             allowable_attrs = type_attrs(class_obj)
         if attr_name not in allowable_attrs:
             raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
@@ -285,10 +285,9 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
         # try to find the attribute, in the order Atom->Residue->Structure
         for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
             if allowable_types:
-                allowable_attrs = session.attr_registration.attributes_returning(
+                allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
                     class_obj, allowable_types, none_okay=True)
             else:
-                from chimerax.core.utils import type_attrs
                 allowable_attrs = type_attrs(class_obj)
             if attr_name in allowable_attrs:
                 break

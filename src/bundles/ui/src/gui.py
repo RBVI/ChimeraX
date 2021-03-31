@@ -1275,8 +1275,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         label_atoms_other_menu = label_atoms_menu.addMenu("Other")
         def fill_other_menu(menu, main_attrs, class_obj, sel_name, *, run=run, sel_or_all=sel_or_all):
             menu.clear()
+            from chimerax.core.attributes import MANAGER_NAME
             other_info = [(attr_name.replace('_', ' ').title(), attr_name)
-                for attr_name in [attr for attr in self.session.attr_registration.attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
+                for attr_name in [attr for attr in self.session.get_state_manager(MANAGER_NAME).attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
             other_info.sort()
             for menu_entry, attr_name in other_info:
                 if attr_name.startswith("num_") and attr_name != "num_alt_locs":

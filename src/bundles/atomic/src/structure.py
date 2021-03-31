@@ -146,22 +146,10 @@ class Structure(Model, StructureData):
             from chimerax.std_commands.lighting import lighting
             lighting(self.session, preset = 'full', **kw)
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        from .molobject import has_custom_attrs
-        return has_custom_attrs(Structure, self)
-
     def take_snapshot(self, session, flags):
-        from .molobject import get_custom_attrs
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'structure state': StructureData.save_state(self, session, flags),
-                'custom attrs': get_custom_attrs(Structure, self),
-                # put in dependency on custom-attribute manager so that
-                # such attributes are registered with the classes before the
-                # instances become available to other part of the session
-                # restore, which may access attributes with default values
-                'attr-reg manager': session.attr_registration}
+                'custom attrs': self.custom_attrs }
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         data['version'] = STRUCTURE_STATE_VERSION
@@ -188,8 +176,7 @@ class Structure(Model, StructureData):
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE | self._RING_CHANGE)
 
-        from .molobject import set_custom_attrs
-        set_custom_attrs(self, data)
+        self.set_custom_attrs(data)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -1280,11 +1267,10 @@ class AtomicStructure(Structure):
         return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
 
     def take_snapshot(self, session, flags):
-        from .molobject import get_custom_attrs
         data = {
             'AtomicStructure version': 2,
             'structure state': Structure.take_snapshot(self, session, flags),
-            'custom attrs': get_custom_attrs(AtomicStructure, self)
+            'custom attrs': self.custom_attrs
         }
         return data
 
@@ -1298,9 +1284,8 @@ class AtomicStructure(Structure):
         if data.get('AtomicStructure version', 1) == 1:
             Structure.set_state_from_snapshot(self, session, data)
         else:
-            from .molobject import set_custom_attrs
             Structure.set_state_from_snapshot(self, session, data['structure state'])
-            set_custom_attrs(self, data)
+            self.set_custom_attrs(data)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -2245,3 +2230,16 @@ def _register_hover_trigger(session):
             _residue_mouse_hover(pick, session.logger)
         session._residue_hover_handler = session.triggers.add_handler('mouse hover', res_hover)
 
+# custom Chain attrs should be registered in the StructureSeq base class
+from chimerax.core.attributes import register_class
+from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
+    Residue, Sequence, StructureSeq
+from .pbgroup import PseudobondGroup
+for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
+        Residue, Sequence, StructureSeq ]:
+    register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
+        getattr(reg_class, '_cython_property_return_info', []))
+# Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
+# necessary really due to the way instance attributes actually get restored)
+register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
+    if not isinstance(inst, AtomicStructure)], getattr(Structure, '_cython_property_return_info', []))
