@@ -209,12 +209,28 @@ push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
     strcpy(lrec.link.name[0], a1->name().c_str());
     strcpy(lrec.link.name[1], a2->name().c_str());
     lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
-    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
-    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    if (a1->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+        lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a1->residue()->name();
+        auto chain_id = a1->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[0].name, res_name.c_str(), 4);
+        lrec.link.res[0].chain_id = chain_id[1];
+    }
     lrec.link.res[0].seq_num = a1->residue()->number();
     lrec.link.res[0].i_code = a1->residue()->insertion_code();
-    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
-    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    if (a2->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+        lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a2->residue()->name();
+        auto chain_id = a2->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[1].name, res_name.c_str(), 4);
+        lrec.link.res[1].chain_id = chain_id[1];
+    }
     lrec.link.res[1].seq_num = a2->residue()->number();
     lrec.link.res[1].i_code = a2->residue()->insertion_code();
     lrec.link.sym[0] = lrec.link.sym[1] = 1555;
@@ -259,12 +275,28 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             // SSBOND
             PDB srec(PDB::SSBOND);
             srec.ssbond.ser_num = ssbond_serial++;
-            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
-            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            if (r1->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            } else {
+                auto res_name = r1->name();
+                auto chain_id = r1->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[0].name, res_name.c_str(), 4);
+                srec.ssbond.res[0].chain_id = chain_id[1];
+            }
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
-            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
-            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            if (r2->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r2->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r2->chain_id()[0];
+            } else {
+                auto res_name = r2->name();
+                auto chain_id = r2->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[1].name, res_name.c_str(), 4);
+                srec.ssbond.res[1].chain_id = chain_id[1];
+            }
             srec.ssbond.res[1].seq_num = r2->number();
             srec.ssbond.res[1].i_code = r2->insertion_code();
             srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
@@ -1300,9 +1332,17 @@ static Residue*
 pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
 {
     ResName rname = pdb_res.name;
+    auto orig_rname = rname;
     ChainID cid({pdb_res.chain_id});
     canonicalize_res_name(rname);
-    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    auto res = as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    if (res != nullptr || orig_rname.size() < 4)
+        return res;
+    // try two-letter chain ID
+    cid.insert(cid.begin(), orig_rname[3]);
+    orig_rname.pop_back();
+    canonicalize_res_name(orig_rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, orig_rname);
 }
 
 static Atom*
