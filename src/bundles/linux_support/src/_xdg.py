@@ -202,7 +202,6 @@ def make_desktop(session, info, localized_app_name={}):
     with open(info.desktop, mode='wt', encoding='utf-8') as f:
         desktop_group(f, "Desktop Entry")
         desktop_string(f, "Type", "Application")
-        desktop_string(f, "Version", info.version)
         desktop_string(f, "Encoding", "UTF-8")
         desktop_string(f, "Name", "%s %s %s" % (
                        info.app_author, info.app_name, info.version))
@@ -226,6 +225,7 @@ def make_desktop(session, info, localized_app_name={}):
         else:
             desktop_string(f, "Exec",
                            "%s -- %%F" % arg_quote(sys.executable))
+        desktop_boolean(f, "PrefersNonDefaultGPU", True)
     s = os.stat(info.desktop)
     os.chmod(info.desktop, s.st_mode | 0o555)  # make executable
 
@@ -416,7 +416,7 @@ def uninstall_mime_file(mimetypes, system):
 def generate(session, info=None, system=False):
     if not info:
         info = get_info(session, system)
-    from __main__ import localized_app_name
+    from ChimeraX_main import localized_app_name
     make_desktop(session, info, localized_app_name)
     make_mime_file(session, info.mime_file)
 
