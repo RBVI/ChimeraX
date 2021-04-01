@@ -25,6 +25,8 @@
 #include "destruct.h"
 #include "PBGroup.h"
 #include "Residue.h"
+#include "tmpl/residues.h"
+#include "tmpl/TAexcept.h"
 #include "tmpl/TemplateCache.h"
 
 #include <pyinstance/PythonInstance.instantiate.h>
@@ -202,6 +204,41 @@ Residue::find_atom(const AtomName& name) const
             return a;
     }
     return nullptr;
+}
+
+bool
+Residue::is_missing_heavy_template_atoms(bool no_template_okay) const
+{
+    bool chain_start = chain() != nullptr && chain()->residues()[0] == this;
+    bool chain_end = chain() != nullptr && chain()->residues()[chain()->residues().size()-1] == this;
+    auto tmpl_res = tmpl::find_template_residue(name(), chain_start, chain_end);
+    if (tmpl_res == nullptr) {
+        if (no_template_okay)
+            return false;
+        std::ostringstream os;
+        os << "No residue template found for " << name();
+        throw tmpl::TA_NoTemplate(os.str());
+    }
+    // pretty unsophicated check upcoming; check both have the same number of heavy atoms
+    // and then check they have the same elements.  No name or connectivity checking
+    std::map<int, int> res_heavys;
+    std::map<int, int> tmpl_heavys;
+    for (auto a: atoms()) {
+        auto atomic_num = a->element().number();
+        if (atomic_num > 1)
+            res_heavys[atomic_num] = res_heavys[atomic_num] + 1;
+    }
+    for (auto ta: tmpl_res->atoms()) {
+        auto atomic_num = ta->element().number();
+        if (atomic_num > 1)
+            tmpl_heavys[atomic_num] = tmpl_heavys[atomic_num] + 1;
+    }
+    if (res_heavys.size() != tmpl_heavys.size())
+        return true;
+    for (auto an_num: res_heavys)
+        if (tmpl_heavys[an_num.first] != an_num.second)
+            return true;
+    return false;
 }
 
 Atom*

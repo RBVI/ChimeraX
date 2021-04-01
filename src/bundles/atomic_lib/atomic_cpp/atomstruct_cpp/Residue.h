@@ -99,6 +99,7 @@ public:
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return ss_type() == SS_HELIX; }
+    bool  is_missing_heavy_template_atoms(bool no_template_okay=false) const;
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {

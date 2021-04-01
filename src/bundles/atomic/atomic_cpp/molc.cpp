@@ -2771,6 +2771,17 @@ extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
 }
 
+extern "C" EXPORT void residue_is_missing_heavy_template_atoms(void *residues, size_t n, npy_bool *is_missing)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_missing[i] = r[i]->is_missing_heavy_template_atoms(true);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
 {
     Residue **r = static_cast<Residue **>(residues);
