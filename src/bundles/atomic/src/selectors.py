@@ -40,7 +40,7 @@ def register_selectors(logger):
     reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
     reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
     reg("ribose", _ribose_selector, logger, desc="ribose")
-    reg("std-res-missing-heavies", _missing_heavies, logger, desc="missing heavy atoms")
+    reg("template-mismatch", _missing_heavies, logger, desc="missing heavy atoms")
 
 def _element_selector(symbol, models, results):
     from chimerax.atomic import Structure

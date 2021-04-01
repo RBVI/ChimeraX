@@ -255,7 +255,7 @@
     <ChimeraXClassifier>Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ribose :: ribose</ChimeraXClassifier>
-    <ChimeraXClassifier>Selector :: std-res-missing-heavies :: standard residues missing heavy atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: template-mismatch :: residues whose heavy atoms don't match the residue template</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>
