@@ -1138,6 +1138,8 @@ class Residues(Collection):
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_helices = is_helix
+    is_missing_heavy_template_atoms = cvec_property('residue_is_missing_heavy_template_atoms', npy_bool,
+    read_only = True, doc = '''Returns a numpy bool array whether each residue is missing heavy atoms relative to its template.  If no template, returns False.''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
     is_strands = is_strand
