@@ -38,9 +38,9 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
-	  read_pbonds registration remote_control rest_server \
-	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf segger segment seq_view sequences shape \
+	  read_pbonds registration remote_control render_by_attr rest_server \
+	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command \
+	  scheme_mgr sdf segger segment seq_view sequences shape \
 	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \

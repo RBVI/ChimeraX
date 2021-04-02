@@ -119,8 +119,11 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from .presets import run_preset
-        run_preset(session, name, mgr, **kw)
+        if mgr == session.presets:
+            from .presets import run_preset
+            run_preset(session, name, mgr, **kw)
+        else:
+            return {'atoms': Atom, 'residues': Residue, 'structures': AtomicStructure}[name]
 
     @staticmethod
     def finish(session, bundle_info):
