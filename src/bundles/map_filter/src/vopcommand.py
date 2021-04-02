@@ -693,6 +693,14 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     if len(set(vs)) > 1:
         sizes = ' and '.join([str(s) for s in vs])
         raise CommandError("Volume grid sizes don't match: %s" % sizes)
+    v0 = volumes[0]
+    for v in volumes[1:]:
+        if (not v.scene_position.same(v0.scene_position) or
+            not v.data.ijk_to_xyz_transform.same(v0.data.ijk_to_xyz_transform)):
+            raise CommandError('Map positions are not the same, %s and %s.'
+                               % (v.name_with_id(), v0.name_with_id()) +
+                               '  Use the "volume resample" command to make a copy of one map with the same grid as the other map.')
+        
     from .morph import morph_maps
     im = morph_maps(volumes, frames, start, play_step, play_direction, prange,
                     add_mode, constant_volume, scale_factors,
