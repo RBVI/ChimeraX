@@ -666,7 +666,7 @@ def register_meeting_command(cmd_name, logger):
             optional = [('meeting_name', StringArg),
                         ('id', StringArg),
                         ('host', StringArg)],
-            keyword = participant_kw + params_kw + name_server_kw,
+            keyword = participant_kw + params_kw + [('timeout', IntArg)] + name_server_kw,
             synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
@@ -1178,8 +1178,9 @@ class MessageStream:
         
         self._log = log
 
+        # Message Pack can only handle objects < 4 Gbytes in size.
         from msgpack import Unpacker
-        self._unpacker = Unpacker()
+        self._unpacker = Unpacker(max_buffer_size = 2**32-1)
 
         # If write buffer grows beyond this limit
         # optional messages will not be sent.
