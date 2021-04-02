@@ -550,6 +550,9 @@ def init(argv, event_loop=True):
     from chimerax.core.session import register_misc_commands
     register_misc_commands(sess)
 
+    from chimerax.core import attributes
+    attributes.RegAttrManager(sess)
+
     if opts.uninstall:
         return uninstall(sess)
 

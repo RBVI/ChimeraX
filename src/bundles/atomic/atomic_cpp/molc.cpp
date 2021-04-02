@@ -2771,6 +2771,17 @@ extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
 }
 
+extern "C" EXPORT void residue_is_missing_heavy_template_atoms(void *residues, size_t n, npy_bool *is_missing)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_missing[i] = r[i]->is_missing_heavy_template_atoms(true);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -5529,12 +5540,17 @@ GET_PYTHON_INSTANCES(structure, Structure)
 GET_PYTHON_INSTANCES(structureseq, StructureSeq)
 
 #include <pyinstance/PythonInstance.declare.h>
-extern "C" EXPORT PyObject *all_python_instances()
+extern "C" EXPORT PyObject *python_instances_of_class(PyObject* cls)
 {
     PyObject *obj_list = nullptr;
     try {
         obj_list = PyList_New(0);
         for (auto ptr_obj: pyinstance::_pyinstance_object_map) {
+            auto is_inst = PyObject_IsInstance(ptr_obj.second, cls);
+            if (is_inst < 0)
+                return nullptr;
+            if (!is_inst)
+                continue;
             if (PyList_Append(obj_list, ptr_obj.second) < 0)
                 return nullptr;
         }
