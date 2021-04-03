@@ -17,8 +17,11 @@ class MorphMapSlider(Slider):
         num_steps = int(.5 + (im.fmax - im.fmin)/im.fstep) if im.fstep != 0 else 25
         self._step_range = (0, num_steps)
         self._block_change = False  # For updating slider without updating morph
-        
-        title = 'Map morph %s' % interpolated_map.result.name_with_id()
+
+        id_sequence = ' to '.join('#%s' % v.id_string for v in im.volumes[:5])
+        if len(im.volumes) > 5:
+            id_sequence += ' to ...'
+        title = 'Map morph #%s (%s)' % (im.result.id_string, id_sequence)
         Slider.__init__(self, session, 'Map Morph', 'Map morph', title,
                         value_range = self._step_range,
                         pause_frames = pause_frames, pause_when_recording = True,
