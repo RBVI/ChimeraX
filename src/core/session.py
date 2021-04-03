@@ -1075,6 +1075,5 @@ def register_misc_commands(session):
         logger=session.logger
     )
 
-
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")

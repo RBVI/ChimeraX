@@ -65,6 +65,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         Atom* find_atom(const char*)
         char insertion_code()
         bool is_helix()
+        bool is_missing_heavy_template_atoms(bool) except +
         bool is_strand()
         string mmcif_chain_id()
         string name()
