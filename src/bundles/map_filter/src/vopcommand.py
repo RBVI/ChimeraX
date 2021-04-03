@@ -174,6 +174,7 @@ def register_volume_filtering_subcommands(logger):
                                     ('play_step', FloatArg),
                                     ('play_direction', IntArg),
                                     ('play_range', Float2Arg),
+                                    ('slider', BoolArg),
                                     ('add_mode', BoolArg),
                                     ('constant_volume', BoolArg),
                                     ('scale_factors', FloatsArg),
@@ -670,10 +671,10 @@ def volume_median(session, volumes, bin_size = (3,3,3), iterations = 1,
 # -----------------------------------------------------------------------------
 #
 def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
-             play_direction = 1, play_range = None, add_mode = False,
-             constant_volume = False, scale_factors = None,
-             hide_original_maps = True, interpolate_colors = True,
-             subregion = 'all', step = 1, model_id = None):
+                 play_direction = 1, play_range = None, slider = True,
+                 add_mode = False, constant_volume = False, scale_factors = None,
+                 hide_original_maps = True, interpolate_colors = True,
+                 subregion = 'all', step = 1, model_id = None):
     '''Linearly interpolate pointwise between maps.'''
     if len(volumes) < 2:
         raise CommandError('volume morph requires 2 or more volumes, got %d' % len(volumes))
@@ -705,6 +706,11 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     im = morph_maps(volumes, frames, start, play_step, play_direction, prange,
                     add_mode, constant_volume, scale_factors,
                     hide_original_maps, interpolate_colors, subregion, step, model_id)
+
+    if slider and session.ui.is_gui:
+        from .morph_gui import MorphMapSlider
+        MorphMapSlider(session, im)
+        
     return im
 
 # -----------------------------------------------------------------------------
