@@ -666,7 +666,7 @@ def register_meeting_command(cmd_name, logger):
             optional = [('meeting_name', StringArg),
                         ('id', StringArg),
                         ('host', StringArg)],
-            keyword = participant_kw + params_kw + name_server_kw,
+            keyword = participant_kw + params_kw + [('timeout', IntArg)] + name_server_kw,
             synopsis = 'Join a ChimeraX meeting')
         register('meeting', desc, meeting, logger=logger)
     elif cmd_name == 'meeting start':
@@ -1178,8 +1178,9 @@ class MessageStream:
         
         self._log = log
 
+        # Message Pack can only handle objects < 4 Gbytes in size.
         from msgpack import Unpacker
-        self._unpacker = Unpacker()
+        self._unpacker = Unpacker(max_buffer_size = 2**32-1)
 
         # If write buffer grows beyond this limit
         # optional messages will not be sent.
@@ -1538,7 +1539,8 @@ class VRTracking(PointerModels):
         self._vr_tracking_handler = t.add_handler('vr update', self._vr_tracking_cb)
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
-        self._last_room_to_scene = c.room_to_scene if c else None
+        from chimerax.geometry import Place
+        self._last_room_to_scene = c.room_to_scene if c else Place()
         self._name = None
         self._color = None
         self._new_face_image = None	# Path to image file
@@ -1639,6 +1641,10 @@ class VRTracking(PointerModels):
         if scene_moved:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
+            # TODO: When the first VR participant joins scene_moved is false
+            #       so the room to scene coordinates are unknown and the head and hand
+            #       positions won't be shown correctly until the VR joiner moves the scene.
+            #       Not great, but adequate.  It is tricky to do better.  Ticket #4438.
 
         # Report changes in VR GUI panel
         gu = self._gui_updates(c)
