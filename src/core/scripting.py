@@ -78,12 +78,32 @@ def open_python_script(session, stream, file_name, argv=None):
     """
     try:
         data = stream.read()
-        code = compile(data, file_name, 'exec')
+        code = compile(data, stream.name, 'exec')
         _exec_python(session, code, argv)
+    except Exception as e:
+        session.logger.error(_format_file_exception(stream.name))
+        from chimerax.core.errors import UserError
+        raise UserError('Error opening python file %s' % stream.name)
     finally:
         stream.close()
     return [], "executed %s" % file_name
 
+def _format_file_exception(file_path):
+    '''
+    Return formatted exception including only traceback frames
+    after the specified code file is reached.
+    '''
+    import sys
+    etype, value, tb = sys.exc_info()
+    import traceback
+    tb_entries = traceback.extract_tb(tb)
+    for i, entry in enumerate(tb_entries):
+        if entry.filename == file_path:
+            break
+    tb_length = len(tb_entries) - i
+    limit = None if tb_length == 0 else -tb_length
+    msg = ''.join(traceback.format_exception(etype, value, tb, limit = limit))
+    return msg
 
 def open_compiled_python_script(session, stream, file_name, argv=None):
     """Execute compiled Python script in a ChimeraX context
