@@ -811,10 +811,8 @@ def init(argv, event_loop=True):
             from chimerax.core.commands import StringArg
             try:
                 commands.run(sess, 'open %s' % StringArg.unparse(arg))
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
+                # Don't use session logger since exiting and gui log won't be seen.
                 import traceback
                 traceback.print_exc()
                 return os.EX_SOFTWARE
