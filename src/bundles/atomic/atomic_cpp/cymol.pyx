@@ -307,6 +307,14 @@ cdef class CyAtom:
         self.cpp_atom.set_draw_mode(<cydecl.DrawMode>dm)
 
     @property
+    def effective_coord(self):
+        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
+        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.effective_coord()
+        return array((crd[0], crd[1], crd[2]))
+
+    @property
     def element(self):
         "Supported API. :class:`Element` corresponding to the atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -464,14 +472,6 @@ cdef class CyAtom:
             self.cpp_atom.set_ribbon_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]))
         else:
             self.cpp_atom.clear_ribbon_coord()
-
-    @property
-    def effective_coord(self):
-        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
-        " and it has a ribbon coordinate, otherwise return the current coordinate."
-        if self._deleted: raise RuntimeError("Atom already deleted")
-        crd = self.cpp_atom.effective_coord()
-        return array((crd[0], crd[1], crd[2]))
 
     @property
     def scene_coord(self):
