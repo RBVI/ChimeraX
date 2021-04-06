@@ -361,6 +361,9 @@ def parse_arguments(argv):
 
 def init(argv, event_loop=True):
     import sys
+    # MacOS 10.12+ generates drop event for command-line argument before main()
+    # is even called; compensate
+    bad_drop_events = False
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -368,6 +371,11 @@ def init(argv, event_loop=True):
             paths.append('/usr/sbin')
             os.environ['PATH'] = ':'.join(paths)
         del paths
+        import platform
+        vers_string = platform.mac_ver()[0]
+        numeric_vers = [int(x) for x in vers_string.split('.')]
+        if numeric_vers[0] >= 10 and numeric_vers[1] >= 12:
+            bad_drop_events = True
 
     if sys.platform.startswith('linux'):
         # Workaround for #638:
@@ -391,6 +399,9 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
+    if len(argv) > 1 and argv[1].startswith('--'):
+        # MacOS doesn't generate these drop events for args after '--' flags
+        bad_drop_events = False
     opts, args = parse_arguments(argv)
     if not opts.devel:
         import warnings
@@ -821,7 +832,7 @@ def init(argv, event_loop=True):
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=args)
+        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
