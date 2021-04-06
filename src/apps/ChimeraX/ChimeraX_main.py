@@ -371,11 +371,8 @@ def init(argv, event_loop=True):
             paths.append('/usr/sbin')
             os.environ['PATH'] = ':'.join(paths)
         del paths
-        import platform
-        vers_string = platform.mac_ver()[0]
-        numeric_vers = [int(x) for x in vers_string.split('.')]
-        if numeric_vers[0] >= 10 and numeric_vers[1] >= 12:
-            bad_drop_events = True
+        # ChimeraX is only distributed for 10.13+, so don't need to check version
+        bad_drop_events = True
 
     if sys.platform.startswith('linux'):
         # Workaround for #638:
@@ -812,23 +809,31 @@ def init(argv, event_loop=True):
             try:
                 open_python_script(sess, open(arg, 'rb'), arg)
             except Exception:
-                # Allow GUI to start up despite errors;
-                # GUI errors handled by exception hook and displayed once event loop runs
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
                     return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    from traceback import print_exception
+                    print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
         else:
             from chimerax.core.commands import StringArg
             try:
                 commands.run(sess, 'open %s' % StringArg.unparse(arg))
             except Exception:
-                # Allow GUI to start up despite errors;
-                # GUI errors handled by exception hook and displayed once event loop runs
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
                     return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    from traceback import print_exception
+                    print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     # Open files dropped on application
     if opts.gui:
