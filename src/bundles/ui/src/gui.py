@@ -737,7 +737,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         ses = self.session
-        from Qt.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             self._stack.setCurrentWidget(self.rapid_access)

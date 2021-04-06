@@ -120,6 +120,8 @@ class Structure(Model, StructureData):
         return m
 
     def added_to_session(self, session):
+        if not self.scene_position.is_identity():
+            self._cpp_notify_position(self.scene_position)
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)

@@ -712,11 +712,11 @@ def init(argv, event_loop=True):
         for script in opts.scripts:
             try:
                 run(sess, 'runscript %s' % script)
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
             except Exception:
-                import traceback
-                traceback.print_exc()
+                # For GUI, exception hook will report error to log
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
             except SystemExit as e:
                 return e.code
 
@@ -800,24 +800,24 @@ def init(argv, event_loop=True):
             from chimerax.core.scripting import open_python_script
             try:
                 open_python_script(sess, open(arg, 'rb'), arg)
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                # GUI errors handled by exception hook and displayed once event loop runs
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
         else:
             from chimerax.core.commands import StringArg
             try:
                 commands.run(sess, 'open %s' % StringArg.unparse(arg))
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                # GUI errors handled by exception hook and displayed once event loop runs
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
 
     # Open files dropped on application
     if opts.gui:
