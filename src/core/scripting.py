@@ -54,6 +54,8 @@ def _exec_python(session, code, argv=None):
         orig_argv = sys.argv
         sys.argv = argv
     setattr(sandbox, 'session', session)
+    if hasattr(code, 'co_filename'):
+        setattr(sandbox, '__file__', code.co_filename)
     try:
         sys.modules[sandbox.__name__] = sandbox
         exec(code, sandbox.__dict__)
