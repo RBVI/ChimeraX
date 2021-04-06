@@ -65,6 +65,7 @@ or <a href="key.html"><b>key</b></a> command):
 <img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
+<li><a href="#single"><b>Removing Coloring by Value or Zone</b></a>
 <li><a href="#image"><b>Coloring from Image File</b></a>
 &ndash; paste an image from a file onto a surface; perform texture mapping
 </ul>
@@ -783,6 +784,25 @@ For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 </p>
 
+<a name="single"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3><b>Removing Coloring by Value or Zone</b></h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color</b> &nbsp;<b>single</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
+</blockquote>
+<p>
+The <b>color single</b> command 
+removes surface per-vertex coloring, returning a surface model
+to the single color it had before coloring by value
+(<a href="#map">map</a>, <a href="#distance">distance</a>,
+<a href="coulombic.html"><b>coulombic</b></a>, or
+<a href="mlp.html"><b>mlp</b></a>) or <a href="#zone">by zone</a>.
+</p>
+
 <a name="image"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
@@ -805,7 +825,9 @@ The <b>file</b> option specifies an image from a file to paste
 onto the surface (<a href="save.html#imgformats">image format</a> 
 indicated by the filename suffix), or <b>none</b>,
 <!-- needed before doing any other type of coloring -->
-which clears any previous image coloring. Omitting the <b>file</b> option 
+which clears any previous image coloring (since coloring by image
+does not work with <a href="undo.html">undo.html"></a>).
+Omitting the <b>file</b> option 
 keeps using the previously specified image, if any, for texture mapping.
 The <b>modulate</b> option indicates whether the image in the file should
 modulate rather than replace the current surface coloring (default <b>false</b>,
@@ -1115,5 +1137,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+April 2021</address>
 </body></html>
