@@ -28,12 +28,11 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>meeting</b> command shares a scene between
 two or more ChimeraX instances running on different computers.
-There is also a <a href="../tools/meeting.html"><b>Meeting</b></a>
-graphical interface to start and join meetings that is simpler to 
-use than the commands.
-
-Meeting allows multi-person
-<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX.
+Options for starting and joining a meeting are also implemented 
+in a <a href="../tools/meeting.html"><b>Meeting</b></a>
+graphical interface that is simpler to use than the command.
+<b>Meeting</b> allows conducting a multi-person
+<a href="../vr.html">virtual reality</a> (VR) session in ChimeraX.
 It can also be used without VR, but in that case, 
 a desktop screen-sharing program may be a more reliable alternative.
 Each participant is represented by a head-position image and 
@@ -108,7 +107,7 @@ increasing security that prevents joining a meeting without knowing its name.
 </p>
 <h3>Starting a Meeting</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>start</b>&nbsp;
 [&nbsp;<i>meeting-name</i>&nbsp;]
 [&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
@@ -213,7 +212,7 @@ This copying is done only when a person joins the meeting.
 </p>
 <h3>Joining a Meeting</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> (&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
 <b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 <b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
@@ -346,11 +345,13 @@ If this time is exceeded, an error message is given and the meeting
 will not be joined.
 </blockquote>
 
-<a name="settings">
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
 <h3>Changing or Reporting Saved Settings</h3>
-</a>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting settings</b> 
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
@@ -373,7 +374,7 @@ If no options are specified then current saved settings are reported.
 </p>
 <h3>Naming New Meeting Servers</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting access</b> [&nbsp;<i>access-method</i>&nbsp;]
 [&nbsp;<a href="#address"><b>address</b></a>&nbsp;&nbsp;<i>host</i>&nbsp;]
 [&nbsp;<a href="#accessPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
@@ -471,9 +472,9 @@ The initial default is <b>5</b> seconds.
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Leaving a meeting</h3>
+<h3>Leaving a Meeting</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>close</b>
 </blockquote>
 <p>
@@ -485,9 +486,9 @@ others can use it to exit the meeting individually.
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Sharing a new scene</h3>
+<h3>Sharing a Scene</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>send</b>
 </blockquote>
 <p>
@@ -502,9 +503,9 @@ the scene contains large data models.
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Reporting meeting status</h3>
+<h3>Reporting Meeting Status</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>info</b>
 </blockquote>
 <p>
@@ -516,9 +517,9 @@ active meeting.
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Removing an unused meeting name</h3>
+<h3>Removing an Unused Meeting Name</h3>
 <blockquote>
-<a href="usageconventions.html">Usage</a>:
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>unname</b> &nbsp;<i>meeting-name</i>
 </blockquote>
 <p>
