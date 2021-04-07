@@ -78,14 +78,14 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 </p>
 
 <ul>
-  <li><a href="#start">meeting start</a> - Start a new meeting.
-  <li><a href="#join">meeting &nbsp;<i>meeting-name</i>&nbsp;</a> - Join a meeting.
-  <li><a href="#close">meeting close</a> - Leave a meeting.
-  <li><a href="#info">meeting info</a> - Report information about the current meeting.
-  <li><a href="#settings">meeting settings</a> - Set name, face image, pointer color and other settings.
-  <li><a href="#access">meeting access</a> - Define a name for a new meeting server.
-  <li><a href="#send">meeting send</a> - Synchronize all participants.
-  <li><a href="#unname">meeting unname</a> - Remove a meeting name.
+  <li><a href="#start">meeting start</a> &ndash; start a new meeting
+  <li><a href="#join">meeting &nbsp;<i>meeting-name</i>&nbsp;</a> &ndash; join a meeting
+  <li><a href="#close">meeting close</a> &ndash; leave a meeting
+  <li><a href="#info">meeting info</a> &ndash; report information about the current meeting
+  <li><a href="#settings">meeting settings</a> &ndash; set name, face image, pointer color and other settings
+  <li><a href="#access">meeting access</a> &ndash; define a name for a new meeting server
+  <li><a href="#send">meeting send</a> &ndash; synchronize all participants
+  <li><a href="#unname">meeting unname</a> &ndash; remove a meeting name
 </ul>
 
 <table style="background-color:lightyellow; border:1px solid black;"><tr><td style="padding:8px">
@@ -731,12 +731,14 @@ as the meeting host, they can connect directly to the host computer
 without using the AWS virtual machine (for example, command:
 <b>meet 169.230.21.34</b>). Connections through the tunnel and from 
 within the firewall can both be made in the same meeting.
-  <li>In the above configuration the AWS administration account "ubuntu" was used.
+  <li>In the above configuration the AWS administration account 
+&ldquo;ubuntu&rdquo; was used.
 For better security it is worth making a separate account on the virtual machine
 to create the tunnels.  This is especially important if the private key
 will be shared to allow different people to initiate meetings using this proxy.
 The account can have no login shell to prevent using ssh to execute commands,
-only allowing tunnels to be created.  On Ubuntu an account named "tunnel"
+only allowing tunnels to be created. On Ubuntu,
+an account named &ldquo;tunnel&rdquo;
 can be made with the following commands starting from the ubuntu admin account.
 <pre>
   sudo adduser tunnel --disabled-password
@@ -844,20 +846,21 @@ use of the private name server for future meetings.
 
 <p>
 <b>Large meetings</b>.
-We have not tried meetings with more than 4 participants.  In principle meetings
-can have any number of participants but this needs testing, and likely some improvements
-to make larger meetings feasible.  Probably would need the ability for the host to prevent
-participants from moving or changing the models.
+We have not tried meetings with more than four participants. 
+In principle, meetings can have any number of participants,
+but this needs testing and likely some improvements
+to make larger meetings feasible. Probably would need the ability 
+for the host to prevent participants from moving or changing the models.
 </p>
 
 <p>
 <b>Reuse large data files</b>.
-It would be useful if large data files could be transfered just one time and then used
-for multiple meetings.  Currently all data is transfered at the start of each meeting
-which can be time consuming.
+It would be useful if large data files could be transferred just one time 
+and then used for multiple meetings. Currently all data is transferred 
+at the start of each meeting, which can be time-consuming.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+April 2021</address>
 </body></html>
