@@ -11,6 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# providers return this
+import abc
+class RenderAttrInfo(metaclass=abc.ABCMeta):
+    def __init__(self, session):
+        self.session = session
+
+    @abc.abstractproperty
+    def class_objects(self):
+        # Can be more than one class since the Render By Attr tool may want to combine classes
+        # together (e.g. Structure and AtomicStructure) for user interface purposes
+        pass
+
 from chimerax.core.toolshed import ProviderManager
 
 class RenderByAttrManager(ProviderManager):

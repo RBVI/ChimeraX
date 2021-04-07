@@ -11,6 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
+#--- public API ---
+
+from .manager import RenderAttrInfo
+
 #--- toolshed/session-init funcs ---
 
 from chimerax.core.toolshed import BundleAPI

@@ -123,7 +123,13 @@ class _AtomicBundleAPI(BundleAPI):
             from .presets import run_preset
             run_preset(session, name, mgr, **kw)
         else:
-            return {'atoms': Atom, 'residues': Residue, 'structures': AtomicStructure}[name]
+            class_objs = {'atoms': [Atom], 'residues': [Residue],
+                'structures': [AtomicStructure, Structure]}[name]
+            from chimerax.render_by_attr import RenderAttrInfo
+            class Info(RenderAttrInfo):
+                def class_objects(self, _class_objs=class_objs):
+                    return _class_objs
+            return Info(session)
 
     @staticmethod
     def finish(session, bundle_info):
