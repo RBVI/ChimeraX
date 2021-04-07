@@ -157,7 +157,7 @@ class GraphicsWindow(QWindow):
         
     def exposeEvent(self, event):
         self.view.redraw_needed = True
-            
+
 from Qt.QtWidgets import QLabel
 class Popup(QLabel):
 
