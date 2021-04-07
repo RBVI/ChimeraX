@@ -721,10 +721,16 @@ def init(argv, event_loop=True):
             try:
                 run(sess, 'runscript %s' % script)
             except Exception:
-                # For GUI, exception hook will report error to log
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    from traceback import print_exception
+                    print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
             except SystemExit as e:
                 return e.code
 
