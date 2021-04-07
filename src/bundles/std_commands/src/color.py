@@ -1313,15 +1313,11 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     session.undo.register(undo_state)
 
         
-def color_single(session, models = None, color = None):
+def color_single(session, models = None):
     '''
-    Color models a single color.
+    Turn off per-vertex coloring for specified models.
 
     models : list of models
-      Models to color.
-    color : (r,g,b,a) uint8 or None
-      Color to use, or if None then vertex colors are erased
-      and current model single color is used.
     '''
     from chimerax.core.undo import UndoState
     undo_state = UndoState('color single')
@@ -1332,20 +1328,12 @@ def color_single(session, models = None, color = None):
     # Save undo state before setting any model single colors
     # since setting may change child model colors, e.g. with Volume.
     for m in models:
-        if color is not None:
-            undo_state.add(m, 'color', m.color, color)
         if m.vertex_colors is not None:
             if m.auto_recolor_vertices is not None:
                 undo_state.add(m, 'auto_recolor_vertices', m.auto_recolor_vertices, None)
             undo_state.add(m, 'vertex_colors', m.vertex_colors, None)
-
-    # Set new colors
-    for m in models:
-        if color is not None:
-            m.single_color = color
-        else:
             m.vertex_colors = None
-            
+
     session.undo.register(undo_state)
     
 from chimerax.core.commands import StringArg
@@ -1442,7 +1430,6 @@ def register_command(logger):
     register('color zone', desc, color_zone, logger=logger)
 
     # color a single color
-    desc = CmdDesc(optional=[('models', ModelsArg),
-                             ('color', Color8Arg)],
-                   synopsis="color model a single color")
+    desc = CmdDesc(optional=[('models', ModelsArg)],
+                   synopsis="turn off model per-vertex coloring")
     register('color single', desc, color_single, logger=logger)

@@ -21,6 +21,13 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
 
     residues = _check_residues(residues)
 
+    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
+        from chimerax.ui.ask import ask
+        if ask(session, "Really swap side chains for %d residues?" % len(residues),
+                title="Confirm Swap") == "no":
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("Swap %d side chains cancelled" % len(residues))
+
     if type(criteria) == str:
         for c in criteria:
             if c not in "dchp":

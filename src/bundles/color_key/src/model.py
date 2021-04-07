@@ -309,7 +309,7 @@ class ColorKeyModel(Model):
 
     @property
     def single_color(self):
-        return None
+        return False
 
     @single_color.setter
     def single_color(self, val):
