@@ -501,6 +501,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
 
+        self._activated_window_index = 0
         self.set_hot_keys()
 
         # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
@@ -768,7 +769,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtCore import Qt
         sc = QShortcut(QKeySequence("Shift+Esc"), self, context=Qt.ApplicationShortcut)
         from chimerax.core.commands import run
-        sc.activated.connect(lambda *, run=run, ses=self.session: run(ses, "ui hideFloating toggle"))
+        sc.activated.connect(lambda run=run, ses=self.session: run(ses, "ui hideFloating toggle"))
+        sc = QShortcut(QKeySequence.NextChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(1))
+        sc = QShortcut(QKeySequence.PreviousChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(-1))
 
     def set_tool_shown(self, tool_instance, shown):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -882,6 +887,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if self.hide_tools and not as_floating:
             self.hide_tools = False
     _float_changed = _about_to_manage
+
+    def _activate_next_window(self, increment):
+        windows = [self]
+        if not self.settings_ui_widget.isHidden():
+            windows += [self.settings_ui_widget]
+        for tws in self.tool_instance_to_windows.values():
+            for tw in tws:
+                if tw.floating and tw.shown:
+                    windows.append(tw._dock_widget)
+        self._activated_window_index = (self._activated_window_index + increment) % len(windows)
+        from Qt.QtCore import Qt
+        windows[self._activated_window_index].activateWindow()
+        windows[self._activated_window_index].raise_()
 
     def _build_status(self):
         from .statusbar import _StatusBar
