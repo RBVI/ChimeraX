@@ -388,6 +388,7 @@ class Render:
 
         # Selection outlines
         self.outline = Outline(self)
+        self._last_background_color = (0,0,0,1)   # RGBA 0-1 float scale
 
         # Offscreen rendering. Used for 16-bit color depth.
         self.offscreen = Offscreen()
@@ -1119,6 +1120,7 @@ class Render:
         'Set the OpenGL clear color.'
         r, g, b, a = rgba
         GL.glClearColor(r, g, b, a)
+        self._last_background_color = tuple(rgba)
 
     def draw_background(self, depth=True):
         'Draw the background color and clear the depth buffer.'
@@ -1804,8 +1806,10 @@ class Outline:
         fb = r.current_framebuffer()
         mfb = self._mask_framebuffer()
         r.push_framebuffer(mfb)
+        last_bg = r._last_background_color
         r.set_background_color((0, 0, 0, 0))
         r.draw_background(depth = False)
+        r.set_background_color(last_bg)
         # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
         r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS
