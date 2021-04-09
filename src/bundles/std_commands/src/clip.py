@@ -73,7 +73,10 @@ def clip(session, near=None, far=None, front=None, back=None, slab=None,
             adjust_plane('back', -back, pos, normal, planes, v)
 
         warn_on_zero_spacing(session, near, far, front, back)
-        
+
+        from chimerax import surface
+        surface.update_clip_caps(session.main_view)
+
 def clip_off(session):
     '''
     Turn off all clip planes.

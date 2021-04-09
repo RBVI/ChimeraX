@@ -226,14 +226,16 @@ def bond_length(a1, geom, e2, *, a2_info=None):
 
 def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
     bond.structure.idatm_valid = False
-    if bond.rings(cross_residue=True):
-        if status:
-            status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
-        mid = sum([a.coord for a in bond.atoms]) / 2
-        factor = bond_length / bond.length
-        for a in bond.atoms:
-            a.coord = (a.coord - mid) * factor + mid
-        return
+    # use a simple test to avoid expensive cross-residue ring test in most cases
+    if len(bond.atoms[0].neighbors) > 1 and len(bond.atoms[1].neighbors) > 1:
+        if bond.rings(cross_residue=True):
+            if status:
+                status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
+            mid = sum([a.coord for a in bond.atoms]) / 2
+            factor = bond_length / bond.length
+            for a in bond.atoms:
+                a.coord = (a.coord - mid) * factor + mid
+            return
 
     smaller = bond.smaller_side
     bigger = bond.other_atom(smaller)
