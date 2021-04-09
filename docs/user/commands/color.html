@@ -745,6 +745,7 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -769,8 +770,9 @@ surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
 spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
-Vertices not within the cutoff of any of the atoms are assigned 
-the default color of the surface model (single-color mode).
+Vertices not within the cutoff of any of the atoms are assigned the
+<b>farColor</b> color, or if that option was not used,
+the single-color setting of the surface model.
 </p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
@@ -792,15 +794,17 @@ see <a href="segmentation.html"><b>segmentation</b></a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>single</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 </blockquote>
 <p>
-The <b>color single</b> command 
-removes surface per-vertex coloring, returning a surface model
-to the single color it had before coloring by value
-(<a href="#map">map</a>, <a href="#distance">distance</a>,
+The <b>color single</b> command removes surface per-vertex colors
+such as from coloring by value
+(<a href="#byattribute">attribute</a>, <a href="#map">map</a>, 
+<a href="#distance">distance</a>,
 <a href="coulombic.html"><b>coulombic</b></a>, or
-<a href="mlp.html"><b>mlp</b></a>) or <a href="#zone">by zone</a>.
+<a href="mlp.html"><b>mlp</b></a>), <a href="#zone">by zone</a>,
+or by the atomic patches in a <a href="surface.html">molecular surface</a>.
+The surface model is returned to its single-color setting.
 </p>
 
 <a name="image"></a>
@@ -826,12 +830,13 @@ onto the surface (<a href="save.html#imgformats">image format</a>
 indicated by the filename suffix), or <b>none</b>,
 <!-- needed before doing any other type of coloring -->
 which clears any previous image coloring (since coloring by image
-does not work with <a href="undo.html">undo.html"></a>).
+does not work with <a href="undo.html"><b>undo</b></a>).
 Omitting the <b>file</b> option 
 keeps using the previously specified image, if any, for texture mapping.
 The <b>modulate</b> option indicates whether the image in the file should
 modulate rather than replace the current surface coloring (default <b>false</b>,
-replace the current coloring).
+which changes the underlying surface color to white so that the resulting
+coloring will come from the image only).
 </p><p>
 An image is rectangular, with XY coordinates (0,0) at the lower left corner
 and (1,1) at the top right. 

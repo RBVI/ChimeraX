@@ -28,12 +28,11 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>meeting</b> command shares a scene between
 two or more ChimeraX instances running on different computers.
-There is also a <a href="../tools/meeting.html"><b>Meeting</b></a>
-graphical interface to start and join meetings that is simpler to 
-use than the commands.
-
-Meeting allows multi-person
-<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX.
+Options for starting and joining a meeting are also implemented 
+in a <a href="../tools/meeting.html"><b>Meeting</b></a>
+graphical interface that is simpler to use than the command.
+<b>Meeting</b> allows conducting a multi-person
+<a href="../vr.html">virtual reality</a> (VR) session in ChimeraX.
 It can also be used without VR, but in that case, 
 a desktop screen-sharing program may be a more reliable alternative.
 Each participant is represented by a head-position image and 
@@ -78,14 +77,19 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 </p>
 
 <ul>
-  <li><a href="#start">meeting start</a> - Start a new meeting.
-  <li><a href="#join">meeting &nbsp;<i>meeting-name</i>&nbsp;</a> - Join a meeting.
-  <li><a href="#close">meeting close</a> - Leave a meeting.
-  <li><a href="#info">meeting info</a> - Report information about the current meeting.
-  <li><a href="#settings">meeting settings</a> - Set name, face image, pointer color and other settings.
-  <li><a href="#access">meeting access</a> - Define a name for a new meeting server.
-  <li><a href="#send">meeting send</a> - Synchronize all participants.
-  <li><a href="#unname">meeting unname</a> - Remove a meeting name.
+  <li><a href="#start"><b>meeting start</b></a> &ndash; start a new meeting
+  <li><a href="#join"><b>meeting</b> &nbsp;<i>meeting-name</i>&nbsp;</a> 
+&ndash; join a meeting
+  <li><a href="#close"><b>meeting close</b></a> &ndash; leave a meeting
+  <li><a href="#info"><b>meeting info</b></a> 
+&ndash; report information about the current meeting
+  <li><a href="#settings"><b>meeting settings</b></a> 
+&ndash; set name, face image, pointer color and other settings
+  <li><a href="#access"><b>meeting access</b></a> 
+&ndash; define a name for a new meeting server
+  <li><a href="#send"><b>meeting send</b></a> 
+&ndash; synchronize all participants
+  <li><a href="#unname"><b>meeting unname</b></a> &ndash; remove a meeting name
 </ul>
 
 <table style="background-color:lightyellow; border:1px solid black;"><tr><td style="padding:8px">
@@ -102,15 +106,9 @@ increasing security that prevents joining a meeting without knowing its name.
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Starting a Meeting</h3>
-
-<p>
-A meeting is initiated with
-<b>meeting start</b> <i>meeting-name</i>,
-where the meeting name is a text identifier that participants will
-use to join the meeting. Meeting names are not case-sensitive.
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>start</b>&nbsp;
 [&nbsp;<i>meeting-name</i>&nbsp;]
 [&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
@@ -119,7 +117,13 @@ use to join the meeting. Meeting names are not case-sensitive.
 [&nbsp;<b>nameServer</b>&nbsp;&nbsp;<i>name-host</i>&nbsp;]
 [&nbsp;<b>nameServerPort</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-</h3>
+</blockquote>
+<p>
+A meeting is initiated with
+<b>meeting start</b> <i>meeting-name</i>,
+where the meeting name is a text identifier that participants will
+use to join the meeting. Meeting names are not case-sensitive.
+</p>
 
 <blockquote>
 <a name="name"></a>
@@ -207,7 +211,14 @@ This copying is done only when a person joins the meeting.
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Joining a Meeting</h3>
-
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> (&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
+<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+&nbsp;<i>additional-options</i>
+</blockquote>
 <p>
 Participants join the meeting by specifying its name.
 If a meeting is started without a <i>meeting-name</i>,
@@ -218,20 +229,10 @@ reported in the <a href="../tools/log.html"><b>Log</b></a> by the
 </p><p>
 Participants can specify a person <b>name</b> to identify themselves
 within the shared environment, a <b>faceImage</b> file,
-and a pointer-cone <b>color</b>. 
-These three settings are remembered whenever they are specified and the remembered
-settings can be reported or changed with the <b>meeting settings</b> command.
+and a pointer-cone <b>color</b>. These three settings are remembered 
+whenever they are specified, and the remembered settings can be reported or 
+changed with the <a href="#settings"><b>meeting settings</b></a> command.
 </p>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> 
-(&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
-<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
-<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
-<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
-&nbsp;<i>additional-options</i>
-</h3>
-
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
@@ -344,20 +345,21 @@ If this time is exceeded, an error message is given and the meeting
 will not be joined.
 </blockquote>
 
-<a name="settings">
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
 <h3>Changing or Reporting Saved Settings</h3>
-</a>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting settings</b> 
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting settings</b> 
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#faceImage"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
 [&nbsp;<a href="#access"><b>access</b></a>&nbsp;&nbsp;<i>access-method</i>&nbsp;]
 [&nbsp;<a href="#nameServer"><b>nameServer</b></a>&nbsp;&nbsp;<i>name-host</i>&nbsp;]
 [&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
-</h3>
-
+</blockquote>
 <p>
 The meeting settings command sets or reports the values of saved options.
 These option can also be specified when starting or joining a meeting and have
@@ -371,31 +373,9 @@ If no options are specified then current saved settings are reported.
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Naming New Meeting Servers</h3>
-
-<p>
-Example command naming a new server with given IP address, user account and password file:
-</p>
 <blockquote>
-<b>meeting access</b> "NIAID meeting server" <b>address</b> 52.0.161.5 <b>account</b> chimerax <b>key</b> /Users/goddard/ucsf/aws/niaid-chimerax-user.pem
-</blockquote>
-
-<p>
-The <b>meeting start</b> command <a href="#accessopt"><b>access</b></a> option specifies
-what server the meeting will use.
-Additional servers can be named with the
-<b>meeting access</b> command (using the options below)
-which associates a short name with a computer address, 
-a port number or port range, an authentication key, and a timeout value.
-The server and these settings used with the server are called an "access method".
-Access methods are remembered as <a href="../preferences.html#other">preferences</a>.
-Given without arguments, <b>meeting access</b> reports the existing access methods
-in the <a href="../tools/log.html"><b>Log</b></a>.
-To configure a computer to be a server see the <a href="#setupproxy">instructions</a> below.
-</p>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting access</b>
-[&nbsp;<i>access-method</i>&nbsp;]
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting access</b> [&nbsp;<i>access-method</i>&nbsp;]
 [&nbsp;<a href="#address"><b>address</b></a>&nbsp;&nbsp;<i>host</i>&nbsp;]
 [&nbsp;<a href="#accessPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
 [&nbsp;<a href="#account"><b>account</b></a>&nbsp;&nbsp;<i>username</i>&nbsp;]
@@ -403,7 +383,28 @@ To configure a computer to be a server see the <a href="#setupproxy">instruction
 [&nbsp;<a href="#portRange"><b>portRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
 [&nbsp;<a href="#proxyTimeout"><b>timeout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
 [&nbsp;<a href="#accessDelete"><b>delete</b></a>&nbsp;]
-</h3>
+</blockquote>
+<p>
+Example command naming a new server with given IP address, user account and password file:
+</p>
+<blockquote>
+<b>meeting access</b> "NIAID meeting server" <b>address</b> 52.0.161.5 <b>account</b> chimerax <b>key</b> /Users/goddard/ucsf/aws/niaid-chimerax-user.pem
+</blockquote>
+<p>
+The <b>meeting start</b> command 
+<a href="#accessopt"><b>access</b></a> option specifies
+what server the meeting will use. Additional servers can be named with the
+<b>meeting access</b> command (using the options below)
+which associates a short name with a computer address, 
+a port number or port range, an authentication key, and a timeout value.
+The server and these settings used with the server are called an 
+&ldquo;access method.&rdquo; Access methods are remembered as 
+<a href="../preferences.html#other">preferences</a>.
+Given without arguments, <b>meeting access</b> reports the existing 
+access methods in the <a href="../tools/log.html"><b>Log</b></a>.
+To configure a computer to be a server, 
+see the <a href="#setupproxy">instructions</a> below.
+</p>
 
 <blockquote>
 <a name="address"></a>
@@ -468,24 +469,28 @@ The initial default is <b>5</b> seconds.
 </blockquote>
 
 <a name="close"></a>
-<h3>Leaving a meeting</h3>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>close</b>
-</h3>
-
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Leaving a Meeting</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>close</b>
+</blockquote>
 <p>
 The host can end the meeting with <b>meeting close</b>, or
 others can use it to exit the meeting individually.
 </p>
 
 <a name="send"></a>
-<h3>Sharing a new scene</h3>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>send</b>
-</h3>
-
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Sharing a Scene</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>send</b>
+</blockquote>
 <p>
 If unshared changes have been made, a participant can share 
 his current scene with the others by using <b>meeting send</b>.
@@ -495,24 +500,28 @@ the scene contains large data models.
 </p>
 
 <a name="info"></a>
-<h3>Reporting meeting status</h3>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>info</b>
-</h3>
-
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Reporting Meeting Status</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>info</b>
+</blockquote>
 <p>
 The <b>meeting info</b> command reports information about the currently
 active meeting.
 </p>
 
 <a name="unname"></a>
-<h3>Removing an unused meeting name</h3>
-
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>unname</b> &nbsp;<i>meeting-name</i>
-</h3>
-
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Removing an Unused Meeting Name</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>unname</b> &nbsp;<i>meeting-name</i>
+</blockquote>
 <p>
 If the computer that started a meeting loses its network connection
 before the meeting is closed, the meeting name will not be removed 
@@ -731,12 +740,14 @@ as the meeting host, they can connect directly to the host computer
 without using the AWS virtual machine (for example, command:
 <b>meet 169.230.21.34</b>). Connections through the tunnel and from 
 within the firewall can both be made in the same meeting.
-  <li>In the above configuration the AWS administration account "ubuntu" was used.
+  <li>In the above configuration the AWS administration account 
+&ldquo;ubuntu&rdquo; was used.
 For better security it is worth making a separate account on the virtual machine
 to create the tunnels.  This is especially important if the private key
 will be shared to allow different people to initiate meetings using this proxy.
 The account can have no login shell to prevent using ssh to execute commands,
-only allowing tunnels to be created.  On Ubuntu an account named "tunnel"
+only allowing tunnels to be created. On Ubuntu,
+an account named &ldquo;tunnel&rdquo;
 can be made with the following commands starting from the ubuntu admin account.
 <pre>
   sudo adduser tunnel --disabled-password
@@ -844,20 +855,21 @@ use of the private name server for future meetings.
 
 <p>
 <b>Large meetings</b>.
-We have not tried meetings with more than 4 participants.  In principle meetings
-can have any number of participants but this needs testing, and likely some improvements
-to make larger meetings feasible.  Probably would need the ability for the host to prevent
-participants from moving or changing the models.
+We have not tried meetings with more than four participants. 
+In principle, meetings can have any number of participants,
+but this needs testing and likely some improvements
+to make larger meetings feasible. Probably would need the ability 
+for the host to prevent participants from moving or changing the models.
 </p>
 
 <p>
 <b>Reuse large data files</b>.
-It would be useful if large data files could be transfered just one time and then used
-for multiple meetings.  Currently all data is transfered at the start of each meeting
-which can be time consuming.
+It would be useful if large data files could be transferred just one time 
+and then used for multiple meetings. Currently all data is transferred 
+at the start of each meeting, which can be time-consuming.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+April 2021</address>
 </body></html>
