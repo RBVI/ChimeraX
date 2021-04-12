@@ -208,7 +208,7 @@ class MeetingTool(ToolInstance):
   # ---------------------------------------------------------------------------
   #
   def _command(self, start = False):
-    cmd = 'meeting start' if start else 'meeting'
+    cmd = 'meeting start' if start else 'meeting join'
     
     meeting_name = self._meeting_name.text().strip()
     if not meeting_name:

@@ -11,11 +11,11 @@
 
 # -----------------------------------------------------------------------------
 #
-def meeting(session, meeting_name = None,
-            name = None, color = None, face_image = None,
-            relay_commands = None, update_interval = None,
-            id = None, host = None, port = 52194, timeout = 5,
-            name_server = None, name_server_port = None):
+def meeting_join(session, meeting_name = None,
+                 name = None, color = None, face_image = None,
+                 relay_commands = None, update_interval = None,
+                 id = None, host = None, port = 52194, timeout = 5,
+                 name_server = None, name_server_port = None):
     '''
     Join a meeting where two or more ChimeraX instances show the same models
     and show each others' VR hands and face or mouse positions.
@@ -672,14 +672,15 @@ def register_meeting_command(cmd_name, logger):
         ('name_server_port', IntArg),
     ]
 
-    if cmd_name == 'meeting':
+    if cmd_name == 'meeting' or cmd_name == 'meeting join':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg),
                         ('id', StringArg),
                         ('host', StringArg)],
             keyword = participant_kw + params_kw + [('timeout', IntArg)] + name_server_kw,
             synopsis = 'Join a ChimeraX meeting')
-        register('meeting', desc, meeting, logger=logger)
+        register('meeting join', desc, meeting_join, logger=logger)
+        register('meeting', desc.copy(), meeting_join, logger=logger)
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
