@@ -77,7 +77,7 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 </p>
 
 <ul>
-  <li><a href="#start"><b>meeting start</b></a> &ndash; start a new meeting
+  <li><a href="#start"><b>meeting start</b> &nbsp;<i>meeting-name</i>&nbsp;</a> &ndash; start a new meeting
   <li><a href="#join"><b>meeting</b> &nbsp;<i>meeting-name</i>&nbsp;</a> 
 &ndash; join a meeting
   <li><a href="#close"><b>meeting close</b></a> &ndash; leave a meeting
@@ -85,7 +85,7 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 &ndash; report information about the current meeting
   <li><a href="#settings"><b>meeting settings</b></a> 
 &ndash; set name, face image, pointer color and other settings
-  <li><a href="#access"><b>meeting access</b></a> 
+  <li><a href="#server"><b>meeting server</b></a> 
 &ndash; define a name for a new meeting server
   <li><a href="#send"><b>meeting send</b></a> 
 &ndash; synchronize all participants
@@ -113,8 +113,8 @@ increasing security that prevents joining a meeting without knowing its name.
 [&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
-[&nbsp;<b>access</b></a>&nbsp;&nbsp;<i>access-method</i>&nbsp;]
-[&nbsp;<b>nameServer</b>&nbsp;&nbsp;<i>name-host</i>&nbsp;]
+[&nbsp;<b>server</b></a>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<b>nameServer</b>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
 [&nbsp;<b>nameServerPort</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
@@ -162,24 +162,24 @@ file interactively. The image pathname is remembered as a
 </blockquote>
 
 <blockquote>
-<a name="accessopt"></a>
-<b>access</b> &nbsp;<i>access-method</i>
+<a name="serveropt"></a>
+<b>server</b> &nbsp;<i>server-name</i>
 <br>
-The access method determines how participants connect to a meeting and is used
+The server determines how participants connect to a meeting and is used
 to get around firewalls that block access. The initial default method
 <b>chimeraxmeeting.net</b> has participants connect to a public server
 that forwards connections to the computer that started the meeting.
 The method <b>direct</b> has partipants directly connect to the
 computer that started the meeting but will fail if that computer
 cannot be reached. Additional methods can be defined using the 
-<a href="#access"><b>meeting access</b></a> command.
+<a href="#server"><b>meeting server</b></a> command.
 Using this option with <b>meeting start</b> or <b>meeting settings</b>
 sets the method as the user default in the
 <a href="../preferences.html#other">preferences</a>.
 </blockquote>
 <blockquote>
 <a name="nameServer"></a>
-<b>nameServer</b> &nbsp;<i>name-host</i>
+<b>nameServer</b> &nbsp;<i>hostname</i>
 <br>
 Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
@@ -284,9 +284,6 @@ meeting name, they will need to specify the port on the destination computer,
 unless it is the default port, <b>52194</b>.
 If a meeting name is used to join a meeting, this option is not used, 
 as the port will be looked up using the meeting name. 
-If a participant is connecting to a proxy server using the server name,
-the port should be the port on the proxy server for the meeting.
-That randomly chosen port is reported by the <b>meeting start</b> command.
 </blockquote>
 <blockquote>
 <b>id</b>&nbsp;&nbsp;<i>meeting-name</i>
@@ -317,7 +314,7 @@ VR headset and hand-controller positions to the other participants
 </blockquote>
 <blockquote>
 <a name="nameServer"></a>
-<b>nameServer</b> &nbsp;<i>name-host</i>
+<b>nameServer</b> &nbsp;<i>hostname</i>
 <br>
 Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
@@ -356,8 +353,8 @@ will not be joined.
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
 [&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
 [&nbsp;<a href="#faceImage"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
-[&nbsp;<a href="#access"><b>access</b></a>&nbsp;&nbsp;<i>access-method</i>&nbsp;]
-[&nbsp;<a href="#nameServer"><b>nameServer</b></a>&nbsp;&nbsp;<i>name-host</i>&nbsp;]
+[&nbsp;<a href="#server"><b>server</b></a>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<a href="#nameServer"><b>nameServer</b></a>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
 [&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
@@ -368,56 +365,54 @@ the same meanings as in the meeting <a href="#start">start</a> and
 If no options are specified then current saved settings are reported.
 </p>
 
-<a name="access"></a>
+<a name="server"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
 <h3>Naming New Meeting Servers</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>meeting access</b> [&nbsp;<i>access-method</i>&nbsp;]
+<b>meeting server</b> [&nbsp;<i>server-name</i>&nbsp;]
 [&nbsp;<a href="#address"><b>address</b></a>&nbsp;&nbsp;<i>host</i>&nbsp;]
-[&nbsp;<a href="#accessPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+[&nbsp;<a href="#serverPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
 [&nbsp;<a href="#account"><b>account</b></a>&nbsp;&nbsp;<i>username</i>&nbsp;]
 [&nbsp;<a href="#key"><b>key</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
 [&nbsp;<a href="#portRange"><b>portRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
-[&nbsp;<a href="#proxyTimeout"><b>timeout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
-[&nbsp;<a href="#accessDelete"><b>delete</b></a>&nbsp;]
+[&nbsp;<a href="#serverTimeout"><b>timeout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
+[&nbsp;<a href="#serverDelete"><b>delete</b></a>&nbsp;]
 </blockquote>
 <p>
-Example command naming a new server with given IP address, user account and password file:
+Example command that defines a name for a new server with given IP address, user account and password file:
 </p>
 <blockquote>
-<b>meeting access</b> "NIAID meeting server" <b>address</b> 52.0.161.5 <b>account</b> chimerax <b>key</b> /Users/goddard/ucsf/aws/niaid-chimerax-user.pem
+<b>meeting server</b> "NIAID meeting server" <b>address</b> 52.0.161.5 <b>account</b> chimerax <b>key</b> /Users/goddard/ucsf/aws/niaid-chimerax-user.pem
 </blockquote>
 <p>
-The <b>meeting start</b> command 
-<a href="#accessopt"><b>access</b></a> option specifies
-what server the meeting will use. Additional servers can be named with the
-<b>meeting access</b> command (using the options below)
-which associates a short name with a computer address, 
+The <b>meeting server</b> command defines a name for a new server
+that is shorthand for a computer address, 
 a port number or port range, an authentication key, and a timeout value.
-The server and these settings used with the server are called an 
-&ldquo;access method.&rdquo; Access methods are remembered as 
+When starting a meeting the server to use can be specified
+with the <b>meeting start</b> command <a href="#serveropt"><b>server</b></a> option.
+Server names with their settings are remembered as 
 <a href="../preferences.html#other">preferences</a>.
-Given without arguments, <b>meeting access</b> reports the existing 
-access methods in the <a href="../tools/log.html"><b>Log</b></a>.
+Given without arguments, <b>meeting server</b> reports the existing 
+server names in the <a href="../tools/log.html"><b>Log</b></a>.
 To configure a computer to be a server, 
-see the <a href="#setupproxy">instructions</a> below.
+see the <a href="#setupserver">instructions</a> below.
 </p>
 
 <blockquote>
 <a name="address"></a>
 <b>address</b> &nbsp;<i>host-address</i>
 <br>
-Host name or IP address of a publicly visible proxy computer to forward 
+Host name or IP address of a publicly visible server computer to forward 
 connections made by partipants to the computer that started the meeting.
 </blockquote>
 <blockquote>
-<a name="accessPort"></a>
+<a name="serverPort"></a>
 <b>port</b>&nbsp;&nbsp;<i>N</i>
 <br>
-The port number on the proxy computer that participants connect to 
+The port number on the server computer that participants connect to 
 (initial default <b>52194</b>).
 One port is used for receiving connections from all participants.
 If a tunnel is created because the <b>account</b> option has been specified,
@@ -430,20 +425,20 @@ served by the router.
 <a name="account"></a>
 <b>account</b> &nbsp;<i>username</i>
 <br>
-A user name of an account on the proxy computer for creating an ssh tunnel.
+A user name of an account on the server computer for creating an ssh tunnel.
 Specifying this option implies that an ssh tunnel will be created between
-the computer that starts the meeting and the proxy computer.
+the computer that starts the meeting and the server computer.
 </blockquote>
 <blockquote>
 <a name="key"></a>
 <b>key</b> &nbsp;<i>ssh-identity-file</i>
 <br>
 The ssh identity file (<i>e.g.</i>, <b>meeting-key-private.pem</b>)
-for the account on the proxy computer used to make an ssh tunnel.
+for the account on the server computer used to make an ssh tunnel.
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the pathname brings up a file browser window for choosing the
 file interactively.
-This identity file is the private key used to connect to the proxy using
+This identity file is the private key used to connect to the server using
 the <a href="https://man.openbsd.org/ssh">ssh <i>-i</i></a>
 option when creating the tunnel. The file must not
 have read permissions by others or ssh will consider it insecure and 
@@ -453,17 +448,17 @@ not accept it.
 <a name="portRange"></a>
 <b>portRange</b> &nbsp;<i>port-min,port-max</i>
 <br>
-The range of port numbers to use on the proxy computer.
+The range of port numbers to use on the server computer.
 A randomly chosen port in this range is chosen to create a tunnel.
 All participants connect to that port.
 The initial default range of <b>52194,52203</b> 
-allows up 10 simultaneous meetings to be handled by the proxy.
+allows up 10 simultaneous meetings to be handled by the server.
 </blockquote>
 <blockquote>
-<a name="proxyTimeout"></a>
+<a name="serverTimeout"></a>
 <b>timeout</b> &nbsp;<i>seconds</i>
 <br>
-The time to wait for creating the tunnel to the proxy.
+The time to wait for creating the tunnel to the server.
 If a connection is not made within this time the meeting will not be started.
 The initial default is <b>5</b> seconds.
 </blockquote>
@@ -540,8 +535,8 @@ name server, use <b>meeting unname</b> <i>meeting-name</i>.
 <b>Firewalls block connections.</b>
 Most organizations have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
-The <a href="#accessopt"><b>access</b></a> option allows participants to connect
-to a publicly visible proxy computer.
+The <a href="#serveropt"><b>server</b></a> option allows participants to connect
+to a publicly visible server computer.
 See <a href="#firewalls">getting around firewalls</a>.
 </p>
 
@@ -630,7 +625,7 @@ way to make both computers use the same orientation.
 <p>
 Most universities, colleges, institutions, companies and government labs 
 have firewalls that prevent incoming network connections.
-When joining a meeting that is not using a proxy server, 
+When joining a meeting that is not using a server, 
 ChimeraX attempts to connect
 to port 52194 on the computer that started the meeting, and shows a status
 message &ldquo;Waiting for scene data from meeting host.&rdquo;
@@ -644,11 +639,11 @@ If the connection is blocked, after 5 seconds
 Two ways to resolve the problem are to:
 </p>
 <ul>
-<li><a href="#useproxy">Use a proxy computer</a> outside the firewall;
-participants connect to the proxy machine and it forwards
+<li><a href="#useserver">Use a server computer</a> outside the firewall;
+participants connect to the server machine and it forwards
 connections through the firewall to the computer that started the meeting.
-This is enabled with the <a href="#accessopt"><b>access</b></a> option
-of the <b>meeting start</b> command, specifying a proxy server
+This is enabled with the <a href="#serveropt"><b>server</b></a> option
+of the <b>meeting start</b> command, specifying a server
 such as chimeraxmeeting.net (the default).
 <br>&ndash; OR &ndash;<br>
 <li><a href="#openport">Open a port in the firewall</a> that protects the computer 
@@ -658,37 +653,37 @@ that started the meeting to allow incoming connections.
 Details on each approach are given below.
 </p>
 
-<a name="useproxy"></a>
+<a name="useserver"></a>
 <h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
-Use a proxy server</h4>
+Use a server</h4>
 
 <p>
-By default the meeting start command uses a publicly visible proxy computer
+By default the meeting start command uses a publicly visible server computer
 chimeraxmeeting.net
 which forwards connections through the firewall to the host computer.
 This is controlled by the 
-<a href="#accessopt"><b>access</b></a> option, for example
-<b>meeting start alzheimers access chimeraxmeeting.net</b>.
+<a href="#serveropt"><b>server</b></a> option, for example
+<b>meeting start alzheimers server chimeraxmeeting.net</b>.
 The chimeraxmeeting.net server is provided by the ChimeraX development
 team and can handle up to 10 simultaneous meetings.
 </p>
 
 <p>
-Several problems may arise. The proxy server may be at capacity,
+Several problems may arise. The server may be at capacity,
 may be out of service, may introduce delays of seconds if participants
 are in distant parts of the world from the default server in California, USA.
 </p>
 
-<a name="setupproxy">
-<h4>Setting up one's own proxy server</h4>
+<a name="setupserver">
+<h4>Setting up one's own server</h4>
   
 <p>
-These problems can be mitigated by setting up and using one's own proxy server,
+These problems can be mitigated by setting up and using one's own server,
 for example, using Amazon Web Services (AWS). The AWS machine simply accepts
 connections and forwards them to the host computer behind the 
 institution firewall using an ssh tunnel.
 </p><p>
-Here is how to set up a proxy using an AWS virtual machine for ChimeraX meeting access.
+Here is how to set up a server using an AWS virtual machine for ChimeraX meetings.
 This could be done with any cloud virtual machine service since only ssh is required.
 </p>
 
@@ -710,10 +705,10 @@ and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
 This will allow other computers to connect to ssh tunnels.
 The normal use of ssh remote tunnels allows only the remote computer to use the tunnel,
 so this setting change is necessary.
-  <li>Create an access method that uses the proxy using the 
-<a href="#access"><b>meeting access</b></a> command
+  <li>Create an server name for the server using the 
+<a href="#server"><b>meeting server</b></a> command
 <blockquote>
-  <b>meeting access</b> myproxy <b>address</b> 54.215.157.17 <b>account</b> ubuntu <b>key</b> meeting-key-private.pem
+  <b>meeting server</b> myserver <b>address</b> 54.215.157.17 <b>account</b> ubuntu <b>key</b> meeting-key-private.pem
 </blockquote>
 The <a href="#key"><b>key</b></a> option specifies
 the public key encryption file <b>meeting-key-private.pem</b>
@@ -722,13 +717,13 @@ It allows ssh access to the virtual machine without typing a password.
 The &ldquo;ubuntu&rdquo; is the default administer account name on the AWS virtual machine.
 To use this to start a meeting
 <blockquote>
-  <b>meeting start</b> antibody309 <b>access</b> myproxy
+  <b>meeting start</b> antibody309 <b>server</b> myserver
 </blockquote>
 The meeting start command will create the tunnel using ssh by executing a command like
 <pre>
       ssh -N -i meeting-key-private.pem -R 52201:localhost:52194 ubuntu@54.215.157.17
 </pre>
-The access method and access option used to start the meeting will be remembered
+The server option used to start the meeting will be remembered
 as a preference so those need only be used one time.  Subsequent meetings can
 specify only the meeting name.
 Connections through the tunnel appear to come from the host machine.
@@ -744,7 +739,7 @@ within the firewall can both be made in the same meeting.
 &ldquo;ubuntu&rdquo; was used.
 For better security it is worth making a separate account on the virtual machine
 to create the tunnels.  This is especially important if the private key
-will be shared to allow different people to initiate meetings using this proxy.
+will be shared to allow different people to initiate meetings using this server.
 The account can have no login shell to prevent using ssh to execute commands,
 only allowing tunnels to be created. On Ubuntu,
 an account named &ldquo;tunnel&rdquo;
@@ -752,7 +747,7 @@ can be made with the following commands starting from the ubuntu admin account.
 <pre>
   sudo adduser tunnel --disabled-password
   sudo su - tunnel
-  ssh-keygen -t rsa -b 2048 -m PEM -C "ChimeraX meeting proxy" -f tunnel-key.pem
+  ssh-keygen -t rsa -b 2048 -m PEM -C "ChimeraX meeting server" -f tunnel-key.pem
   mkdir .ssh
   chmod go-rwx .ssh
   mv tunnel-key.pem.pub .ssh/authorized_keys
@@ -760,22 +755,22 @@ can be made with the following commands starting from the ubuntu admin account.
   exit
   sudo usermod -s /usr/sbin/nologin tunnel
 </pre>
-To define an access method using this safer tunnel account:
+To define a new server name using this safer tunnel account:
 <blockquote>
-  <b>meeting access</b> myproxy <b>address</b> 54.215.157.17 <b>account</b> tunnel <b>key</b> meeting-key-private.pem
+  <b>meeting server</b> myserver <b>address</b> 54.215.157.17 <b>account</b> tunnel <b>key</b> meeting-key-private.pem
 </blockquote>
-The access option used previously will be remembered so this proxy will be used when starting a meeting
+The server option used previously will be remembered so this server will be used when starting a meeting
 <blockquote>
   <b>meeting start antibody442</b>
 </blockquote>
 </ol>
 
 <a name="openport"></a>
-<a name="useproxy"></a>
+<a name="useserver"></a>
 <h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
 Open a firewall port</h4>
 <p>
-A less complex solution than a proxy is to change the firewall settings protecting
+A less complex solution than a server is to change the firewall settings protecting
 the computer that starts the meeting to allow incoming connections 
 on port 52194. Here are two examples of how that can be done:
 </p>
@@ -794,11 +789,11 @@ the home network:
 (<i>e.g.</i>, 192.168.0.2) &ndash; this is
 sometimes called a &ldquo;static lease&rdquo;
 <li>Set a port forwarding rule to forward port 52194 to that address
-<li>Define an access method that has participants connect to the router IP address
+<li>Define an server name that has participants connect to the router IP address
 and use it when starting a meeting, for example,
 <blockquote>
-  <b>meeting access</b> natrouter <b>address</b> 188.15.37.68 <b>port</b> 52194<br>
-  <b>meeting start</b> rotavirus <b>access</b> natrouter
+  <b>meeting server</b> natrouter <b>address</b> 188.15.37.68 <b>port</b> 52194<br>
+  <b>meeting start</b> rotavirus <b>server</b> natrouter
 </blockquote>
   
 </ol>
@@ -810,10 +805,10 @@ at the University of California San Francisco, I (Tom Goddard) put in a request
 with the Information Technology department to open port 52194
 on the campus firewall for connections to my desktop PC.
 They opened the port just for this one computer, limiting the security threats. 
-It took about 10 days before they processed the request. Use the direct access
-method to start a meeting:
+It took about 10 days before they processed the request. Use the "direct" server
+to start a meeting:
 <blockquote>
-  <b>meeting start</b> influenza <b>access</b> direct
+  <b>meeting start</b> influenza <b>server</b> direct
 </blockquote>
 Some institutions
 will not allow these exceptions due to institution security requirements.

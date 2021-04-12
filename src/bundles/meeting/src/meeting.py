@@ -92,7 +92,7 @@ def meeting(session, meeting_name = None,
 #
 def meeting_start(session, meeting_name = None,
                   name = None, color = None, face_image = None,
-                  access = None,
+                  server = None,
                   copy_scene = None,
                   relay_commands = None, update_interval = None,
                   name_server = None, name_server_port = None):
@@ -116,14 +116,12 @@ def meeting_start(session, meeting_name = None,
       Color of this participant's mouse pointer cone.
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction of this partipant.
-    access : string
+    server : string
       Name describing what computer participants will connect to to join the meeting.
-      Can be "direct" meaning that participants will connect directly to the computer
-      that started the meeting.  If that computer cannot be reached due to a firewall
-      can be "chimeraxmeeting.net" which will use a server that forwards connections
-      through the firewall.  Additional options for connecting can be defined with
-      the "meeting access" command, for example, to use an alternate forwarding server,
-      or to using forwarding through a NAT router.
+      The initial default is chimeraxmeeting.net.  If a different name is specified it
+      becomes the fault for future sessions.  The name can be "direct" meaning that
+      participants will connect directly to the computer that started the meeting.
+      Additional server names can be defined with the "meeting server" command.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting
       to other participants when they join the meeting.
@@ -131,7 +129,7 @@ def meeting_start(session, meeting_name = None,
       See the meeting command documentation for these options.
     '''
 
-    local_port = _access_point(session, 'direct')['port']
+    local_port = _server_properties(session, 'direct')['port']
     
     p = _start_meeting(session, local_port, copy_scene = copy_scene)
 
@@ -143,13 +141,13 @@ def meeting_start(session, meeting_name = None,
     if update_interval is not None:
         p.vr_tracker.update_interval = update_interval
 
-    access = _access_defaults(session, access)
-    tunnel = _create_ssh_tunnel(session, access, p, local_port)
+    server = _server_defaults(session, server)
+    tunnel = _create_ssh_tunnel(session, server, p, local_port)
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
     if meeting_name is not None:
         try:
-            RegisterMeetingName(meeting_name, name_server, name_server_port, p.hub, access)
+            RegisterMeetingName(meeting_name, name_server, name_server_port, p.hub, server)
         except BaseException:
             p.close()		# Close meeting if name server could not be reached.
             raise
@@ -175,17 +173,17 @@ use an older version because the old protocol is not compatible with the new one
     
 # -----------------------------------------------------------------------------
 #
-def _create_ssh_tunnel(session, access, participant, local_port):
-    if access is None:
+def _create_ssh_tunnel(session, server, participant, local_port):
+    if server is None:
         return None
 
-    ap = _access_point(session, access)
-    acct = ap.get('account')
+    sp = _server_properties(session, server)
+    acct = sp.get('account')
     if acct is None:
         return None
 
-    addr = ap.get('address')
-    key = ap.get('key')		# SSH authentication file private key.
+    addr = sp.get('address')
+    key = sp.get('key')		# SSH authentication file private key.
     if key:
         from os.path import isfile
         if not isfile(key):
@@ -200,8 +198,8 @@ def _create_ssh_tunnel(session, access, participant, local_port):
         from chimerax.core.errors import UserError
         raise UserError('meeting: No ssh key given for using server %s@%s' % (acct, addr))
 
-    port_range = ap.get('port_range', (52194, 52203))
-    timeout = ap.get('timeout', 5)
+    port_range = sp.get('port_range', (52194, 52203))
+    timeout = sp.get('timeout', 5)
     from .sshtunnel import SSHRemoteTunnel
     try:
         tunnel = SSHRemoteTunnel(acct, addr, key, port_range, local_port,
@@ -220,13 +218,13 @@ def _create_ssh_tunnel(session, access, participant, local_port):
 #
 def meeting_settings(session,
                      name = None, color = None, face_image = None,
-                     access = None, name_server = None, name_server_port = None):
+                     server = None, name_server = None, name_server_port = None):
     '''
     Display or set meeting settings that are remembered between sessions.
     With no options the current settings are reported.  Specifying options sets
     the saved value.
     '''
-    s = (('name',name), ('color',color), ('face_image',face_image), ('access', access),
+    s = (('name',name), ('color',color), ('face_image',face_image), ('server', server),
          ('name_server',name_server), ('name_server_port',name_server_port))
     values = [(k,v) for k,v in s if v is not None]
     settings = _meeting_settings(session)
@@ -241,7 +239,7 @@ def meeting_settings(session,
 
 # -----------------------------------------------------------------------------
 #
-def meeting_access(session, name = None, address = None, port = None,
+def meeting_server(session, name = None, address = None, port = None,
                    account = None, key = None, port_range = None, timeout = None,
                    delete = None):
     '''
@@ -271,14 +269,14 @@ def meeting_access(session, name = None, address = None, port = None,
     timeout : int
       Time to wait for a setting up a tunnel before giving up.
     delete : bool
-      Delete the access point name.
+      Delete the server name.
     '''
     settings = _meeting_settings(session)
     if delete:
-        ap = settings.access_points
-        if name and name in ap:
-            del ap[name]
-            settings.access_points = dict(ap)
+        sdict = settings.servers
+        if name and name in sdict:
+            del sdict[name]
+            settings.servers = dict(sdict)
             settings.save()
         return
     
@@ -288,7 +286,7 @@ def meeting_access(session, name = None, address = None, port = None,
     values = {k:v for k,v in s if v is not None}
     if len(values) == 0:
         lines = ['<pre>']
-        for n,vals in settings.access_points.items():
+        for n,vals in settings.servers.items():
             if n == name or name is None:
                 lines.append('<b>%s</b>' % n)
                 for attr,v in vals.items():
@@ -299,15 +297,15 @@ def meeting_access(session, name = None, address = None, port = None,
         session.logger.info(msg, is_html=True)
     elif name is None:
         from chimerax.core.errors import UserError
-        raise UserError('meeting access: Must specify an access method name.')
+        raise UserError('meeting server: Must specify a server name.')
     else:
         # Need to copy dictionary so settings realizes it has changed.
-        ap = dict(settings.access_points)
-        if name in ap:
-            ap[name].update(values)
+        sdict = dict(settings.servers)
+        if name in sdict:
+            sdict[name].update(values)
         else:
-            ap[name] = values
-        settings.access_points = ap
+            sdict[name] = values
+        settings.servers = sdict
         settings.save()
 
 # -----------------------------------------------------------------------------
@@ -325,7 +323,7 @@ def meeting_info(session):
 class RegisterMeetingName:
     '''Remember meeting name and clear it when meeting is closed.'''
 
-    def __init__(self, meeting_name, name_server, name_server_port, hub, access):
+    def __init__(self, meeting_name, name_server, name_server_port, hub, server):
 
         self._meeting_name = meeting_name
         self._name_server = name_server
@@ -333,7 +331,7 @@ class RegisterMeetingName:
         self._session = hub._session
 
         from chimerax.core.errors import UserError
-        host, port = self._meeting_address(hub, access)
+        host, port = self._meeting_address(hub, server)
         if host is None:
             raise UserError('meeting: Could not determine host address.')
         
@@ -360,15 +358,15 @@ class RegisterMeetingName:
     def name(self):
         return self._meeting_name
     
-    def _meeting_address(self, hub, access):
+    def _meeting_address(self, hub, server):
         proxy = hub._ssh_tunnel
         if proxy:
             host, port = proxy.host, proxy.remote_port
         else:
-            ap = _access_point(self._session, access)
-            if 'address' in ap:
-                host = ap.get('address')
-                port = ap.get('port', 52194)
+            sp = _server_properties(self._session, server)
+            if 'address' in sp:
+                host = sp.get('address')
+                port = sp.get('port', 52194)
             else:
                 addresses, port = hub.listening_addresses_and_port()
                 host = addresses[0] if addresses else None
@@ -539,35 +537,48 @@ def _meeting_settings(session):
                 'name': '',	# Name seen by other participants
                 'color': (0,255,0,255),	# Hand color seen by others
                 'face_image': None,	# Path to image file
-                'access': 'chimeraxmeeting.net',
-                'access_points': {'chimeraxmeeting.net': {'address':'chimeraxmeeting.net',
-                                                          'account':'tunnel',
-                                                          'port_range':(52194,52203),
-                                                          'timeout':5},
-                                  'direct': {'port':52194}},
+                'server': 'chimeraxmeeting.net',
+                'servers': {'chimeraxmeeting.net': {'address':'chimeraxmeeting.net',
+                                                    'account':'tunnel',
+                                                    'port_range':(52194,52203),
+                                                    'timeout':5},
+                            'direct': {'port':52194}},
                 'name_server': 'chimeraxmeeting.net',
                 'name_server_port': 51472,
+                'access': None,		# Obsolete.  Renamed to server.
+                'access_points': None,	# Obsolete.  Renamed to servers.
             }
         settings = _MeetingSettings(session, "meeting")
         session._meeting_settings = settings
+
+        # Rename obsolete 'access' and 'access_points' to 'server' and 'servers'.
+        if settings.access is not None:
+            settings.server = settings.access
+            settings.access = None
+            settings.save()
+        if settings.access_points is not None:
+            settings.servers = settings.access_points
+            settings.access_points = None
+            settings.save()
+
     return settings
 
 # -----------------------------------------------------------------------------
 #
-def _access_point(session, name):
+def _server_properties(session, name):
     settings = _meeting_settings(session)
-    return settings.access_points.get(name)
+    return settings.servers.get(name)
 
 # -----------------------------------------------------------------------------
 #
-def _access_defaults(session, access):
+def _server_defaults(session, server):
     settings = _meeting_settings(session)
-    if access is None:
-        access = settings.access
-    elif access != settings.access:
-        settings.access = access
+    if server is None:
+        server = settings.server
+    elif server != settings.server:
+        settings.server = server
         settings.save()
-    return access
+    return server
     
 # -----------------------------------------------------------------------------
 #
@@ -644,7 +655,7 @@ def register_meeting_command(cmd_name, logger):
     '''
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg, Int2Arg, DynamicEnum, NoArg
-    AccessArg = DynamicEnum(lambda s=logger.session: tuple(_meeting_settings(s).access_points.keys()))
+    ServerArg = DynamicEnum(lambda s=logger.session: tuple(_meeting_settings(s).servers.keys()))
 
     participant_kw = [
         ('name', StringArg),
@@ -672,16 +683,16 @@ def register_meeting_command(cmd_name, logger):
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
-            keyword = [('access', AccessArg),
+            keyword = [('server', ServerArg),
                        ('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
             synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
     elif cmd_name == 'meeting settings':
         desc = CmdDesc(
-            keyword = participant_kw + [('access', AccessArg)] + name_server_kw,
+            keyword = participant_kw + [('server', ServerArg)] + name_server_kw,
             synopsis = 'Report or set meeting default settings')
         register('meeting settings', desc, meeting_settings, logger=logger)
-    elif cmd_name == 'meeting access':
+    elif cmd_name == 'meeting server':
         desc = CmdDesc(
             optional = [('name', StringArg)],
             keyword = [('address', StringArg),
@@ -691,8 +702,8 @@ def register_meeting_command(cmd_name, logger):
                        ('port_range', Int2Arg),
                        ('timeout', IntArg),
                        ('delete', NoArg)],
-            synopsis = 'Report or define meeting access points')
-        register('meeting access', desc, meeting_access, logger=logger)
+            synopsis = 'Report or define meeting server names')
+        register('meeting server', desc, meeting_server, logger=logger)
     elif cmd_name == 'meeting info':
         desc = CmdDesc(synopsis = 'Report meeting info')
         register('meeting info', desc, meeting_info, logger=logger)

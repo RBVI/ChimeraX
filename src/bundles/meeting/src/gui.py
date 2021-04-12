@@ -146,20 +146,20 @@ class MeetingTool(ToolInstance):
     mlayout = QHBoxLayout(mf)
     mlayout.setContentsMargins(0,0,0,0)
     mlayout.setSpacing(8)
-    al = QLabel('Access', mf)
-    mlayout.addWidget(al)
-    self._access_button = ab = QPushButton(mf)
-    ab.setText(settings.access)
-    am = QMenu(mf)
-    for name in settings.access_points.keys():
-        am.addAction(name, lambda n=name: self._set_access_menu(n))
-    ab.setMenu(am)
-    mlayout.addWidget(ab)
+    sl = QLabel('Server', mf)
+    mlayout.addWidget(sl)
+    self._server_button = sb = QPushButton(mf)
+    sb.setText(settings.server)
+    sm = QMenu(mf)
+    for name in settings.servers.keys():
+        sm.addAction(name, lambda n=name: self._set_server_menu(n))
+    sb.setMenu(sm)
+    mlayout.addWidget(sb)
     mlayout.addStretch(1)
     layout.addWidget(mf)
 
-    msg = 'The access option specifies when creating a meeting how participants will connect.  Direct means participants connect directly to the computer that started the meeting.  If that computer is behind a firewall and cannot be reached by participants then a public computer chimeraxmeeting.net can forward connections to the computer that started the meeting.'
-    self._access_label = el = QLabel(msg, f)
+    msg = 'The server option is used when starting a meeting.  Direct means participants connect directly to the computer that started the meeting.  If that computer is behind a firewall and cannot be reached by participants then a public computer chimeraxmeeting.net can be used as the server.'
+    self._server_label = el = QLabel(msg, f)
     # Size hint does not update when window made narrower and word wrape enabled
     # causing wrong panel height.
     el.setWordWrap(True)
@@ -171,8 +171,8 @@ class MeetingTool(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
-  def _set_access_menu(self, name):
-    self._access_button.setText(name)
+  def _set_server_menu(self, name):
+    self._server_button.setText(name)
 
   # ---------------------------------------------------------------------------
   #
@@ -187,7 +187,7 @@ class MeetingTool(ToolInstance):
     for name, callback in (('Create', self._start_meeting),
                            ('Join', self._join_meeting),
                            ('Leave', self._leave_meeting),
-                           ('Access...', self._toggle_options),
+                           ('Server...', self._toggle_options),
                            ('Help', self._show_help)):
       b = QPushButton(name, f)
       b.clicked.connect(callback)
@@ -221,7 +221,7 @@ class MeetingTool(ToolInstance):
     from .meeting import _meeting_settings
     settings = _meeting_settings(self.session)
     opts = (self._partipant_options(settings) +
-            (self._access_options(settings) if start else []))
+            (self._server_options(settings) if start else []))
     if opts:
       cmd += ' ' + ' '.join(opts)
 
@@ -250,13 +250,13 @@ class MeetingTool(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
-  def _access_options(self, settings):
+  def _server_options(self, settings):
 
     opts = []
-    access = self._access_button.text()
-    if access != settings.access:
+    server = self._server_button.text()
+    if server != settings.server:
       from chimerax.core.commands import quote_if_necessary
-      opts.append('access %s' % quote_if_necessary(access))
+      opts.append('server %s' % quote_if_necessary(server))
     return opts
     
   # ---------------------------------------------------------------------------
