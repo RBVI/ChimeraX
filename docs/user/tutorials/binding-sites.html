@@ -656,51 +656,40 @@ width="220px">
 </td></tr>
 </table>
 <p>
-To color a <a href="../commands/surface.html#cap">surface cap</a> by the 
-<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
+This section requires ChimeraX version 1.2 (mid-April 2021) or newer.
+Although ChimeraX version 1.1 can also color a 
+<a href="../commands/surface.html#cap">surface cap</a> by the 
+<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP),
+it uses a more complicated approach.
+<!--
 in ChimeraX 1.1, it is necessary to first generate a map of the MLP as a
 <a href="../tools/volumeviewer.html">volume model</a>
 and then color the cap in a separate step.
+-->
 </p><p>
-For example, the protein in structure 
-<a href="https://www.rcsb.org/structure/1G74"
+The protein in structure <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
-interior pocket. The following commands open
-the structure as model #1, generate MLP map model #2, hide the map isosurfaces,
-turn on <a href="../commands/clip.html">clipping</a> to slice the structure, 
-and use the map values to color the planar surface cap #1.1.1 created 
-by clipping surface model #1.1.
-The cap coloring parameters are the same as used for the rest of the surface,
-except 30% transparent:
+interior pocket. 
+The following commands open the structure (model #1), show the
+<a href="../commands/surface.html">molecular surface</a> (model #1.1),
+and turn on <a href="../commands/clip.html">clipping</a> to slice the structure
+(creating a planar surface cap, model #1.1.1):
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 1g74">open 1g74</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp map true">mlp map true</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:hide #2">hide #2</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:surface">surface</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:clip">clip</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:wait 1">wait 1</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30">color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30</a></b>
 </blockquote>
 <p>
-The <b><a href="../commands/wait.html">wait</a> 1</b> command
-is only needed in the context of a
-<a href="../commands/usageconventions.html#cxc-files">command file</a>,
-to force drawing the graphics to create the surface cap
-before it is colored by the map values;
-it can be omitted if the commands are entered one by one,
-as by clicking the links above, or if the command file is executed
-in ChimeraX version 1.2 (4/12/2021) or newer.
+The model hierarchy can be viewed in the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 </p><p>
 Next, turn off clipping of the atomic model so that only the surface is clipped
 (<a href="../commands/clip.html#model">per-model clipping</a>),
 hide ribbons and atoms other than oleic acid, and color 
 the carbon atoms in oleic acid green:
-</p><p>
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:clip model #!1 off">clip model #!1 off</a></b>
@@ -710,33 +699,35 @@ the carbon atoms in oleic acid green:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color :ola & C green">color :ola & C green</a></b>
 </blockquote>
 <p>
-The image was made after translating and rotating the clipping plane
+The clipping plane can be translated and rotated
 interactively <a href="../commands/ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
 </p><p>
-In ChimeraX version 1.2 (2/17/2021) or newer,
-a simpler method can be used to color the cap without creating a map.
-In this method, the atoms to use in the calculation (here, all
+Color the molecular surface by
+<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP).
+The planar surface cap is not automatically colored 
+along with the outer surface, but can be colored with an additional command
+in which the atoms to use (here, all
 <a href="../commands/atomspec.html#builtin"><b>protein</b></a> atoms)
 are specified separately from the surface to color:
 </p>
 <blockquote> 
-<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp protein surf #1.1.1">mlp protein surf #1.1.1</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp protein surface #1.1.1">mlp protein surface #1.1.1</a></b>
 </blockquote>
 <p>
-Cap transparency can be set with another command, for example:
+The cap can be made transparent with another command, for example:
 </p>
 <blockquote> 
 <i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 30">transparency #1.1.1 30</a></b>
 </blockquote>
-<p>
-Analogously, to color by <a href="../commands/coulombic.html">Coulombic 
-electrostatic potential</a>
-(more about this in the <a href="#esp">next section</a>), 
-where the first command colors the outer surface and the second the cap:
+Analogously, to color the surface cap by 
+<a href="../commands/coulombic.html">Coulombic electrostatic potential</a>
+(more about this in the <a href="#esp">next section</a>): 
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
@@ -744,6 +735,9 @@ where the first command colors the outer surface and the second the cap:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein surf #1.1.1 offset 0">coulombic protein surf #1.1.1 offset 0</a></b>
 </blockquote>
 <p>
+The Coulombic coloring would need to be reapplied if the clipping plane were
+subsequently moved, however.
+</p><p>
 When finished with this structure, close the session:
 </p>
 <blockquote>
