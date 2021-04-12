@@ -656,21 +656,15 @@ width="220px">
 </td></tr>
 </table>
 <p>
-This section requires ChimeraX version 1.2 (mid-April 2021) or newer.
+This section requires ChimeraX version 1.2 (2/17/2021) or newer.
 Although ChimeraX version 1.1 can also color a 
-<a href="../commands/surface.html#cap">surface cap</a> by the 
-<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP),
-it uses a more complicated approach.
-<!--
-in ChimeraX 1.1, it is necessary to first generate a map of the MLP as a
-<a href="../tools/volumeviewer.html">volume model</a>
-and then color the cap in a separate step.
--->
+<a href="../commands/surface.html#cap">surface cap</a> by
+lipophilicity, it uses a more complicated approach.
 </p><p>
 The protein in structure <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
 interior pocket. 
-The following commands open the structure (model #1), show the
+The following commands open the structure (model #1), show its
 <a href="../commands/surface.html">molecular surface</a> (model #1.1),
 and turn on <a href="../commands/clip.html">clipping</a> to slice the structure
 (creating a planar surface cap, model #1.1.1):
@@ -735,8 +729,8 @@ Analogously, to color the surface cap by
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein surf #1.1.1 offset 0">coulombic protein surf #1.1.1 offset 0</a></b>
 </blockquote>
 <p>
-The Coulombic coloring would need to be reapplied if the clipping plane were
-subsequently moved, however.
+The Coulombic cap coloring would need to be reapplied if the clipping plane 
+were subsequently moved, however.
 </p><p>
 When finished with this structure, close the session:
 </p>
