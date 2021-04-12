@@ -687,13 +687,14 @@ except 30% transparent:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30">color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30</a></b>
 </blockquote>
 <p>
-The <b><a href="../commands/wait.html">wait</a></b> command
+The <b><a href="../commands/wait.html">wait</a> 1</b> command
 is only needed in the context of a
 <a href="../commands/usageconventions.html#cxc-files">command file</a>,
 to force drawing the graphics to create the surface cap
 before it is colored by the map values;
 it can be omitted if the commands are entered one by one,
-as by clicking the links above.
+as by clicking the links above, or if the command file is executed
+in ChimeraX version 1.2 (4/12/2021) or newer.
 </p><p>
 Next, turn off clipping of the atomic model so that only the surface is clipped
 (<a href="../commands/clip.html#model">per-model clipping</a>),
@@ -729,7 +730,7 @@ are specified separately from the surface to color:
 Cap transparency can be set with another command, for example:
 </p>
 <blockquote> 
-<i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 50">transparency #1.1.1 50</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 30">transparency #1.1.1 30</a></b>
 </blockquote>
 <p>
 Analogously, to color by <a href="../commands/coulombic.html">Coulombic 
@@ -912,5 +913,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2021</address>
+April 2021</address>
 </body></html>
