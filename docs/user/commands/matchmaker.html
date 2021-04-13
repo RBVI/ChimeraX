@@ -329,7 +329,7 @@ a secondary structure term (if protein), and gap penalties.
     similarity term will be given a weight of (1-<i>ssfract</i>). 
 </blockquote>
 <blockquote>
-  <a name="computeSs"><b>computeSs</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <a name="computeSS"><b>computeSS</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
     <br>
 When <a href="#ssFraction">secondary structure scoring</a> is used,
 whether to first identify helices and strands with the
@@ -339,16 +339,16 @@ This option may improve superposition results
 by generating consistent assignments, whereas pre-existing assignments
 may reflect the use of different criteria on different structures. 
 However, any pre-existing assignments will not be overwritten unless
-<a href="#keepComputedSs"><b>keepComputedSs</b></a> is set to <b>true</b>.
+<a href="#keepComputedSS"><b>keepComputedSS</b></a> is set to <b>true</b>.
 When <a href="#ssFraction">secondary structure scoring</a> is <b><i>not</i></b>
-used, <b>computeSs</b> is ignored and secondary structure assignments 
+used, <b>computeSS</b> is ignored and secondary structure assignments 
 are not computed.
 </blockquote>
 <blockquote>
-  <a name="keepComputedSs"><b>keepComputedSs</b></a> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <a name="keepComputedSS"><b>keepComputedSS</b></a> &nbsp;true&nbsp;|&nbsp;<b>false</b>
   <br>
 When secondary structure assignments are recomputed
-(<a href="#computeSs"><b>computeSs</b></a> <b>true</b>),
+(<a href="#computeSS"><b>computeSS</b></a> <b>true</b>),
 whether to overwrite any previous assignments with the newly computed ones.
 The default is <b>false</b>, meaning to use the new assignments only
 temporarily for superposition and to keep any secondary structure assignments
@@ -453,5 +453,5 @@ that existed before the <b>matchmaker</b> command was used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+April 2021</address>
 </body></html>
