@@ -873,15 +873,14 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
             added.bfactor = atom.bfactor
     return added_hs
 
-def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
-        alt_loc):
+def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info, alt_loc):
     global _serial, _metals
     nearby_metals = _metals.search(pos, _metal_dist) if _metal_dist > 0.0 else []
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
-        metal_pos = metal.coord
-        parent_pos = parent_atom.coord
+        metal_pos = metal.get_alt_loc_coord(alt_loc)
+        parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
     # determine added H color before actually adding it...
