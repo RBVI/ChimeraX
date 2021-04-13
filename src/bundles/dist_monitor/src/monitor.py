@@ -98,20 +98,21 @@ class DistancesMonitor(StateManager):
                 if mg.deleted:
                     self.remove_group(mg)
         for pb in changes.created_pseudobonds():
-            if pb in self._already_restored:
+            if pb in self._already_restored or pb.group in changes.created_pseudobond_groups():
                 continue
             if pb.group in self.monitored_groups:
                 self._update_distances(pseudobonds=[pb])
         self._already_restored.clear()
         if "position changed" in changes.structure_reasons() \
-        or "active_coordset changed" in changes.structure_reasons() \
         or len(changes.modified_coordsets()) > 0:
             self._update_distances()
+        if "active_coordset changed" in changes.structure_reasons():
+            self._update_distances(coordset_changed=True)
 
-    def _update_distances(self, pseudobonds=None):
+    def _update_distances(self, pseudobonds=None, *, coordset_changed=False):
         if pseudobonds is None:
             pseudobonds = [pb for mg in self.monitored_groups for pb in mg.pseudobonds]
-            set_color = False
+            set_color = coordset_changed
         else:
             set_color = True
         by_group = {}
@@ -120,6 +121,10 @@ class DistancesMonitor(StateManager):
 
         from chimerax.label.label3d import labels_model, PseudobondLabel
         for grp, pbs in by_group.items():
+            if coordset_changed:
+                lm = labels_model(grp, create=False)
+                if lm:
+                    lm.delete()
             lm = labels_model(grp, create=True)
             label_settings = { 'color': grp.color } if set_color else {}
             if self.distances_shown:
