@@ -9,6 +9,11 @@ APP_PIP_INSTALL = $(APP_PIP) install --upgrade-strategy only-if-needed --no-warn
 #    https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4129
 #
 ifeq ($(OS),Darwin)
-PIP_INSTALL	+= --no-binary lxml
 APP_PIP_INSTALL += --no-binary lxml
+endif
+
+# Windows PyOpenGL-accelerate 3.1.5 is missing numpy_formathandler
+# dynamic library so build it from source.
+ifeq ($(OS),Windows)
+APP_PIP_INSTALL += --no-binary PyOpenGL-accelerate
 endif

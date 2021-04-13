@@ -309,7 +309,7 @@ def info_atomattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of atom attribute names.
     '''
-    from chimerax.core.utils import type_attrs
+    from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Atom
     attrs = type_attrs(Atom)
     for a in attrs:
@@ -324,7 +324,7 @@ def info_bondattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of bond attribute names.
     '''
-    from chimerax.core.utils import type_attrs
+    from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Bond
     attrs = type_attrs(Bond)
     for a in attrs:
@@ -339,7 +339,7 @@ def info_resattr(session, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a list of residue attribute names.
     '''
-    from chimerax.core.utils import type_attrs
+    from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Residue
     attrs = type_attrs(Residue)
     for a in attrs:

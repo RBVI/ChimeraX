@@ -221,10 +221,11 @@ def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), m
     for surface in surfaces:
         blobstats = surface_blob_measurements(surface)
         centers = [bs['center'] for bs in blobstats]
-        scene_centers = surface.scene_position * centers
-        surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
-        _set_markers_frame_number(mset, surf_markers, surface)
-        markers.extend(surf_markers)
+        if len(centers) > 0:
+            scene_centers = surface.scene_position * centers
+            surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
+            _set_markers_frame_number(mset, surf_markers, surface)
+            markers.extend(surf_markers)
         if stats:
             lines.append('Surface %s #%s has %d visible blobs'
                          % (surface.name, surface.id_string, len(blobstats)))

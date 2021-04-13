@@ -219,7 +219,7 @@ class ModelPanel(ToolInstance):
                 if bg_color is not False:
                     from chimerax.ui.widgets import MultiColorButton
                     but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
-                    def set_single_color(rgba, m=model):
+                    def set_single_color(rgba, m=model, ses=self.session):
                         for cm in m.all_models():
                             cm.single_color = rgba
                     but.color_changed.connect(set_single_color)

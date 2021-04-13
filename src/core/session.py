@@ -665,6 +665,7 @@ class Session:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
         self.restore_options['clear log'] = clear_log
+        self.restore_options['error encountered'] = False
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -713,6 +714,7 @@ class Session:
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
                             % traceback.format_exc())
             self.reset()
+            self.restore_options['error encountered'] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
@@ -1072,7 +1074,6 @@ def register_misc_commands(session):
         _gen_exception,
         logger=session.logger
     )
-
 
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")

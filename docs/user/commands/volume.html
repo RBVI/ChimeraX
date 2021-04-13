@@ -1923,9 +1923,11 @@ See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 [&nbsp;<b>addMode</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hideOriginalMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>interpolateColors</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>slider</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-Morph between two or more maps.
+Morph between two or more maps. The morph can be played back with the
+<a href="#slider">slider</a> graphical interface.
 For a reasonable result, the input maps should have the same grids:
 dimensions, spacing, and numbers of points.
 Note <a href="#resample"><b>volume resample</b></a>
@@ -1936,7 +1938,7 @@ There is smooth interpolation between each adjacent pair of maps.
 <p>
 The morph display will proceed from <i>start-fraction</i> (default <b>0.0</b>)
 in steps of <i>increment</i> (default <b>0.04</b>) for <i>N</i> <b>frames</b>
-(default <b>25</b>).  By default (<b>playDirection 1</b>),
+(default <b>25</b>). By default (<b>playDirection 1</b>),
 the initial direction of play is from low to high fractions.
 If the number of frames and step increment are more than needed to reach
 the <b>playRange</b> bounds (default is the entire range: <b>0.0,1.0</b>),
@@ -1955,6 +1957,13 @@ only applies when the maps have the same number of
 <a href="#general">thresholds</a>
 (contour levels for surface/mesh display,
 coloring control nodes for image display).
+</p><p>
+<a name="slider"></a>
+The <b>slider</b> option (default <b>true</b>) shows a graphical interface
+for volume morph playback.
+The slider can be dragged or a frame number entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie.
 </p><p>
 The morph is created as a new map (volume) model. However, if the
 <a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
@@ -2587,5 +2596,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+April 2021</address>
 </body></html>

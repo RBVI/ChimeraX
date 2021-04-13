@@ -251,7 +251,9 @@ class UI(QApplication):
         from Qt.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
             from chimerax.core.toolshed import get_toolshed
-            if get_toolshed() is None:
+            if event.file() in self._bad_drop_events:
+                self._bad_drop_events.remove(event.file())
+            elif get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
@@ -262,7 +264,8 @@ class UI(QApplication):
 
     def open_pending_files(self, ignore_files = ()):
         # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
-        # on the command-line, but are code also opens those files, so ignore files we already processed.
+        # on the command-line, but our code also opens those files, so ignore files we already processed.
+        self._bad_drop_events = set(ignore_files)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
@@ -737,16 +740,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         ses = self.session
-        from Qt.QtCore import QEventLoop
         if show:
             icon = self._ra_shown_icon
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
             self._stack.setCurrentWidget(self.graphics_window.widget)
-        ses.update_loop.block_redraw()
-        ses.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
-        ses.update_loop.unblock_redraw()
 
         but = self._rapid_access_button
         but.setChecked(show)
@@ -1278,8 +1277,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         label_atoms_other_menu = label_atoms_menu.addMenu("Other")
         def fill_other_menu(menu, main_attrs, class_obj, sel_name, *, run=run, sel_or_all=sel_or_all):
             menu.clear()
+            from chimerax.core.attributes import MANAGER_NAME
             other_info = [(attr_name.replace('_', ' ').title(), attr_name)
-                for attr_name in [attr for attr in self.session.attr_registration.attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
+                for attr_name in [attr for attr in self.session.get_state_manager(MANAGER_NAME).attributes_returning(class_obj, (int, float, str), none_okay=True) if attr not in main_attrs]]
             other_info.sort()
             for menu_entry, attr_name in other_info:
                 if attr_name.startswith("num_") and attr_name != "num_alt_locs":

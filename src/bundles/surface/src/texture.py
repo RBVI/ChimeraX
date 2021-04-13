@@ -190,10 +190,10 @@ def _remove_texture(session, drawing):
     drawing.texture = None
 
 def register_color_image_command(logger):
-    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg, EnumOf, Or
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
-        keyword = [('file', OpenFileNameArg),
+        keyword = [('file', Or(EnumOf(['none']), OpenFileNameArg)),
                    ('coords', EnumOf(('sphere','pole','south','vertexcolors'))),
                    ('write_colors', SaveFileNameArg),
                    ('modulate', BoolArg)],

@@ -309,7 +309,7 @@ class ColorKeyModel(Model):
 
     @property
     def single_color(self):
-        return None
+        return False
 
     @single_color.setter
     def single_color(self, val):
@@ -731,9 +731,13 @@ class ColorKeyModel(Model):
             try:
                 local_numeric = locale.getlocale(locale.LC_NUMERIC)
             except locale.Error:
-                restore_locale = True
+                restore_locale = False
             try:
-                locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
+                try:
+                    locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
+                except locale.Error:
+                    # hope current locale works!
+                    pass
                 try:
                     values = [locale.atof('' if t is None else t) for t in texts]
                 except (ValueError, TypeError):

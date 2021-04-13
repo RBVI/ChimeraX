@@ -11,7 +11,7 @@ build wheel install app-install:	src/about.html $(DATAFILES)
 
 src/about.html:	src/about.html.in
 	sed -e '/===/d' \
-		-e 's,http:.*html,<a href="&">&</a>.,' \
+		-e 's,https:.*html,<a href="&">&</a>.,' \
 		$(TOP)/copyright.txt | \
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@ \

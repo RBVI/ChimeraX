@@ -699,7 +699,7 @@ class ZoomMouseMode(MouseMode):
     def zoom(self, delta_z, stereo_scaling = False):
         v = self.view
         c = v.camera
-        if stereo_scaling and c.name == 'stereo':
+        if stereo_scaling and hasattr(c, 'eye_separation_scene'):
             v.stereo_scaling(delta_z)
         if c.name == 'orthographic':
             c.field_width = max(c.field_width - delta_z, self.pixel_size())

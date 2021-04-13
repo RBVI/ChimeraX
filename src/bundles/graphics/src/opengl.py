@@ -50,6 +50,7 @@ class OpenGLContext:
         
         self.window = graphics_window
         self._screen = screen
+        self._context_thread = None
         self._color_bits = None		# None, 8, 12, 16
         self._depth_bits = 24
         self._framebuffer_color_bits = 8	# For offscreen framebuffers, 8 or 16
@@ -100,6 +101,8 @@ class OpenGLContext:
                 self._create_failed = True
                 raise
 
+        self._check_thread()
+        
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
             raise OpenGLError("Could not make graphics context current")
@@ -113,6 +116,9 @@ class OpenGLContext:
         if window is None:
             window = self.window
 
+        # Remember thread where context is valid
+        self._set_thread()
+        
         # Create context
         from Qt.QtGui import QOpenGLContext
         qc = QOpenGLContext()
@@ -189,6 +195,26 @@ class OpenGLContext:
                     'Your computer graphics driver a non-core profile (version %d.%d).\n'
                     % (major, minor) +
                     'Try updating your graphics driver.')
+
+    def _set_thread(self):
+        # Remember the thread context was created in.
+        # Can only use context in this thread, otherwise makeCurrent crashes.
+        ct = self._context_thread
+        import threading
+        t = threading.get_ident()
+        if ct is None:
+            self._context_thread = t
+        elif t != ct:
+            raise RuntimeError('Attempted to create OpenGLContext in wrong thread (%s, previous thread %s).'
+                               % (t, ct))
+
+    def _check_thread(self):
+        ct = self._context_thread
+        import threading
+        t = threading.get_ident()
+        if t != ct:
+            raise RuntimeError('Attempted to make OpenGL context current in wrong thread (%s, context thread %s).'
+                               % (t, ct))
         
     def done_current(self):
         '''Makes no context current.'''
@@ -388,6 +414,7 @@ class Render:
 
         # Selection outlines
         self.outline = Outline(self)
+        self._last_background_color = (0,0,0,1)   # RGBA 0-1 float scale
 
         # Offscreen rendering. Used for 16-bit color depth.
         self.offscreen = Offscreen()
@@ -1119,6 +1146,7 @@ class Render:
         'Set the OpenGL clear color.'
         r, g, b, a = rgba
         GL.glClearColor(r, g, b, a)
+        self._last_background_color = tuple(rgba)
 
     def draw_background(self, depth=True):
         'Draw the background color and clear the depth buffer.'
@@ -1804,8 +1832,10 @@ class Outline:
         fb = r.current_framebuffer()
         mfb = self._mask_framebuffer()
         r.push_framebuffer(mfb)
+        last_bg = r._last_background_color
         r.set_background_color((0, 0, 0, 0))
         r.draw_background(depth = False)
+        r.set_background_color(last_bg)
         # Use unlit all white color for drawing mask.
         # Outline code requires non-zero red component.
         r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS

@@ -307,6 +307,14 @@ cdef class CyAtom:
         self.cpp_atom.set_draw_mode(<cydecl.DrawMode>dm)
 
     @property
+    def effective_coord(self):
+        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
+        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.effective_coord()
+        return array((crd[0], crd[1], crd[2]))
+
+    @property
     def element(self):
         "Supported API. :class:`Element` corresponding to the atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -466,14 +474,6 @@ cdef class CyAtom:
             self.cpp_atom.clear_ribbon_coord()
 
     @property
-    def effective_coord(self):
-        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
-        " and it has a ribbon coordinate, otherwise return the current coordinate."
-        if self._deleted: raise RuntimeError("Atom already deleted")
-        crd = self.cpp_atom.effective_coord()
-        return array((crd[0], crd[1], crd[2]))
-
-    @property
     def scene_coord(self):
         "Supported API. Atom center coordinates in the global scene coordinate system."
         " This accounts for the :class:`Drawing` positions for the hierarchy "
@@ -574,19 +574,26 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.delete_alt_loc(ord(loc[0]))
 
-    def get_altloc_coord(self, loc):
-        "Supported API.  Like the 'coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
+    def get_alt_loc_coord(self, loc):
+        "Supported API.  Like the 'coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc.  Space character gets the"
+        " non-alt-loc coord."
         if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.coord
         if self.has_alt_loc(loc):
             crd = self.cpp_atom.coord(ord(loc[0]))
             return array((crd[0], crd[1], crd[2]))
-        raise ValueError("Atom %s has no altloc %s" % (self, loc))
+        raise ValueError("Atom %s has no alt loc %s" % (self, loc))
 
-    def get_altloc_scene_coord(self, loc):
-        "Supported API.  Like the 'scene_coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
-        return self.structure.scene_position * self.get_altloc_coord(loc)
+    def get_alt_loc_scene_coord(self, loc):
+        "Supported API.  Like the 'scene_coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc. Space character gets the"
+        " non-alt-loc scene coord."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.scene_coord
+        return self.structure.scene_position * self.get_alt_loc_coord(loc)
 
     def get_coordset_coord(self, cs_id):
         "Supported API.  Like the 'coord' property, but uses the given coordset ID"
@@ -626,12 +633,7 @@ cdef class CyAtom:
     def is_missing_heavy_template_neighbors(self, *, chain_start = False, chain_end = False,
             no_template_okay=False):
         if self._deleted: raise RuntimeError("Atom already deleted")
-        try:
-            return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
-        except RuntimeError as e:
-            if str(e).startswith("No residue template"):
-                return False
-            raise
+        return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
@@ -1543,6 +1545,7 @@ cdef class CyResidue:
         # since sending None will return None -- just the same as GLX or ALA will
         if chi_num < 1 or chi_num > 4:
             raise ValueError("Chi number not in the range 1-4")
+        if self._deleted: raise RuntimeError("Residue already deleted")
         std_name = self.standard_aa_name
         chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:
@@ -1558,6 +1561,7 @@ cdef class CyResidue:
         return chi
 
     def get_chi_atoms(self, std_type, chi_num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
         try:
             chi_atom_names = self.chi_info[std_type][chi_num-1]
         except (KeyError, IndexError):
@@ -1583,6 +1587,10 @@ cdef class CyResidue:
         if code == 'X' and self.polymer_type == self.PT_NONE:
             return non_polymeric_returns
         return code
+
+    def is_missing_heavy_template_atoms(self, *, no_template_okay=False):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.cpp_res.is_missing_heavy_template_atoms(no_template_okay)
 
     # Cython kind of has trouble with a C++ class variable that is a map of maps, and where the key
     # type of the nested map is a varidic template; so ideal_chirality is exposed via ctypes instead

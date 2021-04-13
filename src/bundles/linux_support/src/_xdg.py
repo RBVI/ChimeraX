@@ -42,8 +42,6 @@ import os
 import subprocess
 import sys
 
-verbose = False
-
 # From Desktop Entry Specification 1.0:
 #
 # The escape sequences \s, \n, \t, \r, and \\ are supported for values
@@ -195,14 +193,13 @@ def desktop_stringlist(f, tag, values):
     f.write("%s=%s;\n" % (tag, ';'.join(str_quote(v) for v in values)))
 
 
-def make_desktop(session, info, localized_app_name={}):
+def make_desktop(session, info, localized_app_name={}, verbose=False):
     if verbose:
         print("generating", info.desktop)
     mime_types = get_mime_types(session)
     with open(info.desktop, mode='wt', encoding='utf-8') as f:
         desktop_group(f, "Desktop Entry")
         desktop_string(f, "Type", "Application")
-        desktop_string(f, "Version", info.version)
         desktop_string(f, "Encoding", "UTF-8")
         desktop_string(f, "Name", "%s %s %s" % (
                        info.app_author, info.app_name, info.version))
@@ -220,17 +217,21 @@ def make_desktop(session, info, localized_app_name={}):
                            "Education", "Science", "Biology", "Chemistry",
                            "Graphics", "2DGraphics", "DataVisualization"])
         desktop_stringlist(f, "MimeType", mime_types)
-        desktop_string(f, "StartupWMClass", info.app_name)
+        # Don't set StartupWMClass because is shared with all releases
+        # and Gnome picks the last .desktop for showing the version of
+        # the running program, even if a different release.
+        # desktop_string(f, "StartupWMClass", info.app_name)
         if '=' in sys.executable:
             raise RuntimeError("warning: '=' found in path to ChimeraX")
         else:
             desktop_string(f, "Exec",
                            "%s -- %%F" % arg_quote(sys.executable))
+        desktop_boolean(f, "PrefersNonDefaultGPU", True)
     s = os.stat(info.desktop)
     os.chmod(info.desktop, s.st_mode | 0o555)  # make executable
 
 
-def make_mime_file(session, name):
+def make_mime_file(session, name, verbose=False):
     if verbose:
         print("generating", name)
     mi = MimeInfo(open(name, mode='wt', encoding='utf-8'))
@@ -249,7 +250,7 @@ def make_mime_file(session, name):
                         mi.glob(e)
 
 
-def install_icons(session, info):
+def install_icons(session, info, verbose=False):
     if verbose:
         print("installing icons")
 
@@ -331,7 +332,7 @@ def install_icons(session, info):
     """
 
 
-def install_desktop_menu(desktop, system):
+def install_desktop_menu(desktop, system, verbose=False):
     if verbose:
         print("installing desktop menu")
     cmd = [
@@ -346,7 +347,7 @@ def install_desktop_menu(desktop, system):
         print("Unable to install desktop menu: %s" % e, file=sys.stderr)
 
 
-def uninstall_desktop_menu(desktop, system):
+def uninstall_desktop_menu(desktop, system, verbose=False):
     if verbose:
         print("uninstalling desktop menu")
     cmd = [
@@ -361,7 +362,7 @@ def uninstall_desktop_menu(desktop, system):
         print("Unable to uninstall desktop menu: %s" % e, file=sys.stderr)
 
 
-def install_desktop_icon(desktop):
+def install_desktop_icon(desktop, verbose=False):
     # only works for current user
     if verbose:
         print("installing desktop icon")
@@ -372,7 +373,7 @@ def install_desktop_icon(desktop):
         print("Unable to install desktop icon: %s" % e, file=sys.stderr)
 
 
-def uninstall_desktop_icon(desktop):
+def uninstall_desktop_icon(desktop, verbose=False):
     # only works for current user
     if verbose:
         print("uninstalling desktop icon")
@@ -383,7 +384,7 @@ def uninstall_desktop_icon(desktop):
         print("Unable to uninstall desktop icon: %s" % e, file=sys.stderr)
 
 
-def install_mime_file(mimetypes, system):
+def install_mime_file(mimetypes, system, verbose=False):
     if verbose:
         print("installing MIME info")
     cmd = [
@@ -398,7 +399,7 @@ def install_mime_file(mimetypes, system):
         print("Unable to install mime types: %s" % e, file=sys.stderr)
 
 
-def uninstall_mime_file(mimetypes, system):
+def uninstall_mime_file(mimetypes, system, verbose=False):
     if verbose:
         print("uninstalling MIME info")
     cmd = [
@@ -413,35 +414,35 @@ def uninstall_mime_file(mimetypes, system):
         print("Unable to uninstall mime types: %s" % e, file=sys.stderr)
 
 
-def generate(session, info=None, system=False):
+def generate(session, info=None, system=False, verbose=False):
     if not info:
-        info = get_info(session, system)
-    from __main__ import localized_app_name
-    make_desktop(session, info, localized_app_name)
-    make_mime_file(session, info.mime_file)
+        info = get_info(session, system, verbose=verbose)
+    from ChimeraX_main import localized_app_name
+    make_desktop(session, info, localized_app_name, verbose=verbose)
+    make_mime_file(session, info.mime_file, verbose)
 
 
 def install(session, system=False, verbose=False):
-    info = get_info(session, system)
-    generate(session, info, system)
-    install_mime_file(info.mime_file, system)
-    install_icons(session, info)
-    install_desktop_menu(info.desktop, info.system)
+    info = get_info(session, system, verbose=verbose)
+    generate(session, info, system, verbose)
+    install_mime_file(info.mime_file, system, verbose)
+    install_icons(session, info, verbose)
+    install_desktop_menu(info.desktop, info.system, verbose)
     if not system:
-        install_desktop_icon(info.desktop)
+        install_desktop_icon(info.desktop, verbose=verbose)
 
 
 def uninstall(session, system=False, verbose=False):
-    info = get_info(session, system)
+    info = get_info(session, system, verbose=verbose)
     if os.path.exists(info.desktop):
         if not system:
-            uninstall_desktop_icon(info.desktop)
-        uninstall_desktop_menu(info.desktop, info.system)
+            uninstall_desktop_icon(info.desktop, verbose=verbose)
+        uninstall_desktop_menu(info.desktop, info.system, verbose)
         os.remove(info.desktop)
     # Don't uninstall icons because they might be
     # shared with other packages
     if os.path.exists(info.mime_file):
-        uninstall_mime_file(info.mime_file, system)
+        uninstall_mime_file(info.mime_file, system, verbose)
         os.remove(info.mime_file)
 
 
@@ -457,7 +458,7 @@ def get_mime_types(session):
     return mime_types
 
 
-def get_info(session, system, create=False):
+def get_info(session, system, create=False, verbose=False):
     class Info:
         pass
     info = Info()
