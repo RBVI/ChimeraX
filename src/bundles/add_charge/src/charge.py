@@ -572,7 +572,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
                 break
             if status:
                 status("(%s) %s" % (r.name, line.rstrip()))
-            session.logger.info("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True)
+            session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True, log=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
             raise ChargeError(ante_failure_msg)
