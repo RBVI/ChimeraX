@@ -37,8 +37,8 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``supercedes`` : str
-   Comma-separated list of superceded bundle names.
+4. ``supersedes`` : str
+   Comma-separated list of superseded bundle names.
 5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
@@ -376,16 +376,19 @@ class Toolshed:
                     need_check = True
                 else:
                     interval = settings.toolshed_update_interval
-                    last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
-                    delta = now - last_check
-                    max_delta = timedelta(days=1)
-                    if interval == "week":
-                        max_delta = timedelta(days=7)
-                    elif interval == "day":
+                    if interval == "never":
+                        need_check = False
+                    else:
+                        last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
+                        delta = now - last_check
                         max_delta = timedelta(days=1)
-                    elif interval == "month":
-                        max_delta = timedelta(days=30)
-                    need_check = delta > max_delta
+                        if interval == "week":
+                            max_delta = timedelta(days=7)
+                        elif interval == "day":
+                            max_delta = timedelta(days=1)
+                        elif interval == "month":
+                            max_delta = timedelta(days=30)
+                        need_check = delta > max_delta
             if need_check:
                 if ui is None or not ui.is_gui:
                     self.async_reload_available(logger)
@@ -668,7 +671,7 @@ class Toolshed:
         best_version = None
         for bi in container:
             if bi.name.casefold() not in lc_names:
-                for name in bi.supercedes:
+                for name in bi.supersedes:
                     if name.casefold() in lc_names:
                         break
                 else:
@@ -1102,8 +1105,8 @@ class BundleAPI:
         """Supported API. Called to create a manager in a bundle at startup.
 
         Must be defined if there is a ``Manager`` tag in the bundle,
-		unless that tag has an autostart="false" attribute, in which
-		case the bundle is in charge of creating the manager as needed.
+        unless that tag has an autostart="false" attribute, in which
+        case the bundle is in charge of creating the manager as needed.
         ``init_manager`` is called when bundles are first loaded.
         It is the responsibility of ``init_manager`` to make the manager
         locatable, e.g., assign as an attribute of `session`.
@@ -1373,12 +1376,16 @@ def get_toolshed():
 def get_help_directories():
     global _default_help_dirs
     if _default_help_dirs is None:
-        import os
-        from chimerax import app_data_dir, app_dirs
-        _default_help_dirs = [
-            os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
-            os.path.join(app_data_dir, 'docs')              # for builtin files
-        ]
+        import chimerax
+        if hasattr(chimerax, 'app_dirs'):
+            from chimerax import app_data_dir, app_dirs
+            import os
+            _default_help_dirs = [
+                os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
+                os.path.join(app_data_dir, 'docs')              # for builtin files
+            ]
+        else:
+            _default_help_dirs = []
     hd = _default_help_dirs[:]
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)

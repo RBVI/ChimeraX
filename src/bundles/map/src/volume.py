@@ -1397,7 +1397,8 @@ class Volume(Model):
   # that is a multiple of the step.  The end of the region is the largest index equal
   # or less than ijk_max[axis] that is a multiple of the step, unless that index is
   # less than the origin in which case the end equals the origin.  The returned
-  # size is always a multiple of step.
+  # size is always a multiple of step unless clamp is true and size would extend
+  # beyond grid size.
   #
   def step_aligned_region(self, region, clamp = True):
 
@@ -1413,17 +1414,20 @@ class Volume(Model):
         origin[a] -= ijk_step[a]
 
     end = [max(s*(i//s),o) for i,s,o in zip(ijk_max, ijk_step, origin)]
+    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
+
     if clamp:
       origin = [max(i,0) for i in origin]
-      end = [min(i,lim-1) for i,lim in zip(end, self.data.size)]
-    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
+      size = [(s if o+s <= lim else max(0,lim-o))
+              for o,s,lim in zip(origin, size, self.data.size)]
 
     return tuple(origin), tuple(size), tuple(ijk_step)
 
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
-  # The returned values are float32.
+  # The returned values are float32.  The returned outside array contains
+  # integer index value for points outside the volume.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',
@@ -2038,9 +2042,15 @@ class VolumeSurface(Surface):
   def set_color(self, color):
     if (color != self.color).any():
       Surface.set_color(self, color)
+      self._set_clip_cap_color(color)
       self.volume.call_change_callbacks('colors changed')
   color = property(get_color, set_color)
 
+  def _set_clip_cap_color(self, color):
+    for c in self.child_models():
+      if getattr(c, 'is_clip_cap'):
+        c.set_color(color)
+        
   def _get_colors(self):
     return Surface.get_colors(self)
   def _set_colors(self, colors):

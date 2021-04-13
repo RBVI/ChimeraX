@@ -1143,6 +1143,21 @@ extern "C" EXPORT void set_atom_ribbon_coord(void *atoms, size_t n, float64_t *x
     }
 }
 
+extern "C" EXPORT void atom_effective_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto c = a[i]->effective_coord();
+            *xyz++ = c[0];
+            *xyz++ = c[1];
+            *xyz++ = c[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
 {
     Atom *a = static_cast<Atom *>(atom);
@@ -2756,6 +2771,17 @@ extern "C" EXPORT void set_residue_is_helix(void *residues, size_t n, npy_bool *
     error_wrap_array_set(r, n, &Residue::set_is_helix, is_helix);
 }
 
+extern "C" EXPORT void residue_is_missing_heavy_template_atoms(void *residues, size_t n, npy_bool *is_missing)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            is_missing[i] = r[i]->is_missing_heavy_template_atoms(true);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_is_strand(void *residues, size_t n, npy_bool *is_strand)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -3059,12 +3085,12 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
     }
 }
 
-extern "C" EXPORT void residue_ribbon_clear_hide(void *residues, size_t n)
+extern "C" EXPORT void residue_clear_hide_bits(void *residues, size_t n, int32_t bit_mask, npy_bool atoms_only)
 {
     Residue **r = static_cast<Residue **>(residues);
     try {
-        for (size_t i = 0; i != n; ++i)
-            r[i]->ribbon_clear_hide();
+        for (size_t i = 0; i < n; ++i)
+            r[i]->clear_hide_bits(bit_mask, atoms_only);
     } catch (...) {
         molc_error();
     }
@@ -3595,35 +3621,45 @@ extern "C" EXPORT void change_tracker_clear(void *vct)
     }
 }
 
-extern "C" EXPORT void change_tracker_add_modified(void *vct, int class_num, void *modded,
-    const char *reason)
+extern "C" EXPORT void change_tracker_add_modified(int class_num, void *modded, const char *reason)
 {
-    ChangeTracker* ct = static_cast<ChangeTracker*>(vct);
     try {
         if (class_num == 0) {
             auto atomic_ptr = static_cast<Atom*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 1) {
             auto atomic_ptr = static_cast<Bond*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 2) {
             auto atomic_ptr = static_cast<Pseudobond*>(modded);
-            ct->add_modified(atomic_ptr->group()->structure(), atomic_ptr, reason);
+            auto mgr = atomic_ptr->group()->manager();
+            auto s_mgr = dynamic_cast<StructureManager*>(mgr);
+            Structure* s = (s_mgr == nullptr ? nullptr : s_mgr->structure());
+            mgr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 3) {
             auto atomic_ptr = static_cast<Residue*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 4) {
             auto atomic_ptr = static_cast<Chain*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            s->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 5) {
             auto atomic_ptr = static_cast<AtomicStructure*>(modded);
-            ct->add_modified(atomic_ptr, atomic_ptr, reason);
+            auto s = atomic_ptr;
+            atomic_ptr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 6) {
             auto atomic_ptr = static_cast<Proxy_PBGroup*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto mgr = atomic_ptr->manager();
+            auto s_mgr = dynamic_cast<StructureManager*>(mgr);
+            Structure* s = (s_mgr == nullptr ? nullptr : s_mgr->structure());
+            mgr->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else if (class_num == 7) {
             auto atomic_ptr = static_cast<CoordSet*>(modded);
-            ct->add_modified(atomic_ptr->structure(), atomic_ptr, reason);
+            auto s = atomic_ptr->structure();
+            s->change_tracker()->add_modified(s, atomic_ptr, reason);
         } else {
             throw std::invalid_argument("Bad class value to ChangeTracker.add_modified()");
         }
@@ -5504,12 +5540,17 @@ GET_PYTHON_INSTANCES(structure, Structure)
 GET_PYTHON_INSTANCES(structureseq, StructureSeq)
 
 #include <pyinstance/PythonInstance.declare.h>
-extern "C" EXPORT PyObject *all_python_instances()
+extern "C" EXPORT PyObject *python_instances_of_class(PyObject* cls)
 {
     PyObject *obj_list = nullptr;
     try {
         obj_list = PyList_New(0);
         for (auto ptr_obj: pyinstance::_pyinstance_object_map) {
+            auto is_inst = PyObject_IsInstance(ptr_obj.second, cls);
+            if (is_inst < 0)
+                return nullptr;
+            if (!is_inst)
+                continue;
             if (PyList_Append(obj_list, ptr_obj.second) < 0)
                 return nullptr;
         }

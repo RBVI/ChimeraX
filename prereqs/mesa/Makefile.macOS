@@ -1,0 +1,49 @@
+PREREQ_MAKE = 1
+TOP	= ../..
+include $(TOP)/mk/config.make
+
+#
+# This Makefile is builds libOSMesa.dylib on macOS.
+# It is only done when a new version is desired and the library is then included
+# by hand in the tar ball that is installed by prereqs/osmesa.
+#
+# Requires meson build system and llvm compiler tools.
+# These can be installed with homebrew on Mac:  brew install meson llvm
+#
+VERSION = 20.3.2
+DISTRIBUTION = mesa-$(VERSION).tar.xz
+SOURCE = $(tmpdir)/mesa-$(VERSION)
+
+CONFIG_OPTS = --prefix=$(build_prefix) \
+	    -Dc_std=c11 \
+	    -Dosmesa=gallium \
+	    -Dshared-glapi=false \
+	    -Dshared-llvm=false \
+	    -Dzstd=false \
+	    -Dglx=disabled \
+	    -Dgallium-drivers="swrast" \
+	    -Ddri-drivers= -Dplatforms=
+
+install: $(SOURCE)
+	cd $(SOURCE) && \
+		meson setup builddir $(CONFIG_OPTS) && \
+		ninja -C builddir && \
+		ninja install -C builddir
+		
+app-install:
+
+
+$(SOURCE): $(DISTRIBUTION)
+	tar xf $(DISTRIBUTION) -C $(tmpdir)
+
+$(DISTRIBUTION):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/mesa/$(DISTRIBUTION)
+
+upload_new_version:
+	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/mesa
+
+clean:
+	if [ -d $(SOURCE) ] ; then \
+		chmod -R +wX $(SOURCE) ; \
+		rm -rf $(SOURCE) ; \
+	fi

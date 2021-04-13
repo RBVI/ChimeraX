@@ -17,4 +17,4 @@ from .options import Option, BooleanOption, ColorOption, EnumOption, OptionalEnu
     HostPortOption, InputFolderOption, IntOption, OutputFolderOption, PasswordOption, RGBA8Option, \
     RGBAOption, OptionalRGBAOption, OptionalRGBAPairOption, OptionalRGBA8Option, OptionalRGBA8PairOption, \
     StringOption, StringIntOption, StringsOption, SymbolicEnumOption, OptionalSymbolicEnumOption, \
-    make_optional
+    OptionalColorOption, FontOption, make_optional

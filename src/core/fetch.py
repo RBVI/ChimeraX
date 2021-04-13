@@ -94,10 +94,14 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 # -----------------------------------------------------------------------------
 #
 def cache_directories():
-    from os import path
-    from chimerax import app_dirs
     if len(_cache_dirs) == 0:
-        cache_dir = path.join('~', 'Downloads', app_dirs.appname)
+        try:
+            from chimerax import app_dirs
+            app_name = app_dirs.appname
+        except ImportError:
+            app_name = 'ChimeraX'
+        from os import path
+        cache_dir = path.join('~', 'Downloads', app_name)
         cache_dir = path.expanduser(cache_dir)
         _cache_dirs.append(cache_dir)
     return _cache_dirs

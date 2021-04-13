@@ -94,10 +94,12 @@ public:
         return !bonds_between(other_res, true).empty();
     }
     int  count_atom(const AtomName&) const;
+    void  delete_alt_loc(char al);
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return ss_type() == SS_HELIX; }
+    bool  is_missing_heavy_template_atoms(bool no_template_okay=false) const;
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
@@ -176,6 +178,7 @@ public:
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
     bool  selected() const;  // True if any atom selected
+    void  clear_hide_bits(int bit_mask, bool atoms_only = false);  // clear atom and bond hide bits
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
     void  set_ribbon_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
@@ -424,21 +427,29 @@ Residue::set_ss_type(SSType sst)
 #include "Bond.h"
 
 namespace atomstruct {
-    
+
+
 inline void
 Residue::ribbon_clear_hide() {
+    clear_hide_bits(Atom::HIDE_RIBBON);
+}
+
+inline void
+Residue::clear_hide_bits(int mask, bool atoms_only) {
     for (auto atom: atoms()) {
-        atom->set_hide(atom->hide() & ~Atom::HIDE_RIBBON);
+        atom->clear_hide_bits(mask);
+        if (atoms_only)
+            continue;
         for (auto bond: atom->bonds())
-            bond->set_hide(bond->hide() & ~Atom::HIDE_RIBBON);
+            bond->clear_hide_bits(mask);
     }
 }
-    
+
 inline bool
 Residue::selected() const {
     for (auto atom: atoms())
-      if (atom->selected())
-	return true;
+        if (atom->selected())
+            return true;
     return false;
 }
 

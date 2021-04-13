@@ -51,7 +51,7 @@ class ShellUI(ToolInstance):
         self.shell.kernel_client = kernel_client
         IPythonKernel.user_ns = save_ns
 
-        from PySide2.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         layout.addWidget(self.shell)
         layout.setStretchFactor(self.shell, 1)

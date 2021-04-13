@@ -144,6 +144,8 @@ Surface display style (solid, mesh, or dot) can be adjusted with
   <ul>
   <li><a href="#cap"><b>surface cap</b></a>
   <li><a href="#dust"><b>surface dust</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
   <li><a href="#showall"><b>surface showall</b></a>
   <li><a href="#squaremesh"><b>surface squaremesh</b></a>
   <li><a href="#zone"><b>surface zone</b></a>
@@ -382,6 +384,8 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <li><a href="#cap"><b>surface cap</b></a>
 &ndash; adjust capping of <a href="clip.html">clipped</a> surfaces
 <li><a href="#dust"><b>surface dust</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
 &ndash; hide small blobs (disconnected parts)
 <li><a href="#showall"><b>surface showall</b></a>
 &ndash; show all mesh lines and surface triangles
@@ -433,10 +437,10 @@ See also:
 <b>surface undust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
-Hide smaller blobs (disconnected parts) of a surface, 
-such as to simplify the display of noisy density.
-Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
-will be hidden. The size units depend on the <b>metric</b>, which 
+Hide smaller blobs (disconnected parts) of a surface to simplify 
+the display of noisy density. 
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>) will be hidden.
+The size units depend on the <b>metric</b>, which 
 can be any of the following (enclosed in single or double quotation marks 
 if it includes spaces):
   <ul>
@@ -448,13 +452,20 @@ if it includes spaces):
   <li><b>volume</b> &ndash; enclosed volume
   <li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
   </ul>
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png">
+uses a <b>size</b> value ten times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/hidedust.html"><b>Hide Dust</b></a>, 
+includes a slider for adjusting the size limit.
+<p>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
 and blobs at or above the cutoff size will be displayed completely
 (although possibly still clipped) even if they had been hidden beforehand.
 The <b>update</b> option (default <b>true</b>) indicates
 whether to update automatically when the shape of the surface changes.
-<p>
+</p><p>
 The <b>surface undust</b> command turns off hiding smaller blobs,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#zone"><b>surface zone</b></a>.
@@ -519,6 +530,10 @@ when the shape of the surface changes.
 The <b>surface unzone</b> command turns off zoning,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#dust"><b>surface dust</b></a>.
+</p><p>
+The graphical implementation,
+<a href="../tools/surfacezone.html"><b>Surface Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
 See also: <a href="select.html#zone"><b>select zone</b></a>,
 <a href="volume.html#zone"><b>volume zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
@@ -556,5 +571,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+February 2021</address>
 </body></html>

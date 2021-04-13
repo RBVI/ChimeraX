@@ -1,0 +1,175 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: unitcell</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: unitcell</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>unitcell</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<a href="#symFromFile"><b>symFromFile</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#spacegroup"><b>spacegroup</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#ncs"><b>ncs</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#pack"><b>pack</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#outline2"><b>outline</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#origin"><b>origin</b></a>&nbsp;&nbsp;<i>f1,f2,f3</i>&nbsp;]
+[&nbsp;<a href="#cells"><b>cells</b></a>&nbsp;&nbsp;<i>N1,N2,N3</i>&nbsp;]
+[&nbsp;<a href="#offset"><b>offset</b></a>&nbsp;&nbsp;<i>M1,M2,M3</i>&nbsp;]
+</h3>
+<a name="info"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>unitcell info</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+</h3>
+<a name="outline"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>unitcell outline</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<a href="#origin"><b>origin</b></a>&nbsp;&nbsp;<i>f1,f2,f3</i>&nbsp;]
+[&nbsp;<b>close</b></a>&nbsp;]
+</h3>
+<a name="delete"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>unitcell delete</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<b>outline</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The <b>unitcell</b> command builds crystallographic unit cells
+using symmetry information from the input coordinate file
+(PDB or mmCIF, but not small-molecule CIF).
+It can regenerate the full unit cell, multiple unit cells,
+or only those parts defined by
+crystallographic symmetry or noncrystallographic symmetry.
+The corresponding tool is
+<a href="../tools/unitcell.html"><b>Unit Cell</b></a>; see
+<a href="../tools/unitcell.html#limitations">limitations</a>.
+See also:
+<a href="crystalcontacts.html"><b>crystalcontacts</b></a>,
+<a href="sym.html"><b>sym</b></a>
+</p><p>
+One or more atomic models can be 
+<a href="atomspec.html#hierarchy">specified</a>. Subcommands:.
+</p>
+<ul>
+<li><b>unitcell info</b>
+&ndash; report symmetry information in the 
+<a href="../tools/log.html"><b>Log</b></a>
+<li><b>unitcell outline</b>
+&ndash; show, shift to different <a href="#origin">origin</a>, 
+or close (remove) a white outline box of the unit cell
+<li><b>unitcell delete</b>
+&ndash; delete the additional copies and optionally the outline box
+(default <b>true</b>)
+</ul>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: unitcell</a>]
+</p>
+<h3>Options</h3>
+<p>
+Option descriptions are for PDB symmetry records, but the
+equivalent information from mmCIF is used in the same way.
+</p>
+<blockquote>
+<a name="symFromFile"></a>
+<b>symFromFile</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to apply crystallographic symmetry described by
+SMTRY1, SMTRY2, and SMTRY3 matrices in REMARK 290 lines of a PDB file
+(default <b>true</b>).
+</blockquote>
+<blockquote>
+<a name="spacegroup"></a>
+<b>spacegroup</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+For files without crystallographic symmetry matrices,
+whether to use the space group name in the CRYST1 record of a PDB file
+to look up the crystallographic symmetry (default <b>true</b>).
+Space group names are the full
+Hermann-Mauguin symbols, <i>e.g.</i>, P 1 21 1 rather than P 21
+(see <a href="https://en.wikipedia.org/wiki/List_of_space_groups"
+target="_blank">lists of names</a>).
+</blockquote>
+<blockquote>
+<a name="ncs"></a>
+<b>ncs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to apply noncrystallographic symmetry described by
+MTRIX1, MTRIX2, and MTRIX3 matrices in a PDB file (default <b>true</b>). 
+However, most MTRIX records describe how to transform one chain
+to match closely another chain that is already present
+in the PDB file, as indicated by a &ldquo;1&rdquo; in column 60;
+these MTRIX records are ignored.
+</blockquote>
+<blockquote>
+<a name="pack"></a>
+<b>pack</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to pack the structures so that their centers fall within
+one unit cell box (default <b>true</b>).
+</blockquote>
+<blockquote>
+<a name="outline2"></a>
+<b>outline</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to show a white outline box of the unit cell (default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="origin"></a>
+<b>origin</b>&nbsp;&nbsp;<i>f1,f2,f3</i>
+<br>
+Shift the unit cell along its axes, where <i>f1,f2,f3</i> are fractional 
+coordinates in unit cell lengths (default <b>0,0,0</b> meaning no shift).
+Values of a coordinate that differ by integer amounts are equivalent;
+<i>e.g.</i>, (0.3,0,0) is equivalent to (-0.7,0,0) and (4.3,0,0).
+Changing the origin may rearrange the copies and shift the outline (if present).
+The shift will occur in the direction that maintains the center
+of the original copy within the box.
+</blockquote>
+<blockquote>
+<a name="cells"></a>
+<b>cells</b>&nbsp;&nbsp;<i>N1,N2,N3</i>
+<br>
+Number of unit cells to generate along each of the unit cell axes,
+where <i>N1,N2,N3</i> are positive integers (default <b>1,1,1</b>
+meaning a single unit cell).
+</blockquote>
+<blockquote>
+<a name="offset"></a>
+<b>offset</b>&nbsp;&nbsp;<i>M1,M2,M3</i>
+<br>
+Placement of the unit cell or block of cells
+relative to the cell containing the original structure.
+<i>M1,M2,M3</i> are integers (default <b>0,0,0</b>), and when more than one 
+unit cell is generated, this is the position of the lower left front unit cell.
+For example, <b>cells 3,1,1</b> and <b>offset &ndash;1,0,0</b>
+would give a 3x1x1 block of cells with the original structure
+in the middle cell along the first axis.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2021</address>
+</body></html>

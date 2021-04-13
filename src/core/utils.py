@@ -131,15 +131,6 @@ def string_to_attr(string, *, prefix="", collapse=True):
         attr_name = "_" + attr_name
     return attr_name
 
-def type_attrs(t):
-    """Return known attribute names for the class/type 't'"""
-    from types import GetSetDescriptorType
-    attrs = [name for name in dir(t)
-        if name[0] != '_' and type(getattr(t, name)) in [property, GetSetDescriptorType]]
-    attrs.extend(t._attr_registration.reg_attr_info.keys())
-    attrs.sort()
-    return attrs
-
 class CustomSortString(str):
 
     def __new__(cls, str_val,  sort_val=None):

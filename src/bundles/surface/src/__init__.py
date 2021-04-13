@@ -75,6 +75,27 @@ class _SurfaceBundle(BundleAPI):
             check.register_command(logger)
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Hide Dust':
+            from . import dustgui
+            ti = dustgui.show_hide_dust_panel(session)
+        elif tool_name == 'Surface Zone':
+            from . import zonegui
+            ti = zonegui.show_surface_zone_panel(session)
+        elif tool_name == 'Color Zone':
+            from . import colorzonegui
+            ti = colorzonegui.show_color_zone_panel(session)
+        elif tool_name == 'Measure Volume and Area':
+            from . import areagui
+            ti = areagui.show_volume_area_panel(session)
+        elif tool_name == 'Surface Color':
+            from . import surfcolorgui
+            ti = surfcolorgui.show_surface_color_panel(session)
+        else:
+            ti = None
+        return ti
+
+    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         from .cap import ClipCap

@@ -433,7 +433,8 @@ class Session:
         Default view.
     """
 
-    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
+                 offscreen_rendering = False):
         self._snapshot_methods = {}     # For saving classes with no State base class.
         self._state_containers = {}     # stuff to save in sessions.
 
@@ -472,13 +473,16 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from chimerax.graphics.view import View
-        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
-                              trigger_set=self.triggers)
+        view = View(self.models.scene_root_model, window_size=(256, 256),
+                    trigger_set=self.triggers)
+        self.main_view = view
         try:
             from .core_settings import settings
             self.main_view.background_color = settings.background_color.rgba
         except ImportError:
             pass
+        if offscreen_rendering:
+            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
         self.selection = Selection(self)
@@ -661,6 +665,7 @@ class Session:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
         self.restore_options['clear log'] = clear_log
+        self.restore_options['error encountered'] = False
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -709,6 +714,7 @@ class Session:
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
                             % traceback.format_exc())
             self.reset()
+            self.restore_options['error encountered'] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
@@ -762,7 +768,14 @@ def standard_metadata(previous_metadata={}):
     https://www.w3.org/TR/html5/document-metadata.html.
     """
     from .fetch import html_user_agent
-    from chimerax import app_dirs
+
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        from chimerax import app_dirs
+        app_name = app_dirs.appname
+    else:
+        app_dirs = None
+        app_name = 'ChimeraX'
     from html import unescape
     import os
     import datetime
@@ -771,7 +784,7 @@ def standard_metadata(previous_metadata={}):
     metadata = {}
     if previous_metadata:
         metadata.update(previous_metadata)
-    generator = unescape(html_user_agent(app_dirs))
+    generator = unescape(html_user_agent(app_dirs)) if app_dirs else app_name
     generator += ", http://www.rbvi.ucsf.edu/chimerax/"
     metadata['generator'] = generator
     now = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -807,9 +820,9 @@ def standard_metadata(previous_metadata={}):
     metadata['dateCopyrighted'] = tmp
     # build information
     # version is in 'generator'
-    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
-    metadata['%s-date' % app_dirs.appname] = buildinfo.date
-    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
+    metadata['%s-commit' % app_name] = buildinfo.commit
+    metadata['%s-date' % app_name] = buildinfo.date
+    metadata['%s-branch' % app_name] = buildinfo.branch
     return metadata
 
 
@@ -1000,7 +1013,8 @@ def save_x3d(session, path, transparent_background=False):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(path, 'w', encoding='utf-8') as stream:
+    from chimerax import io
+    with io.open_output(path, 'utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, metadata, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
@@ -1060,7 +1074,6 @@ def register_misc_commands(session):
         _gen_exception,
         logger=session.logger
     )
-
 
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")

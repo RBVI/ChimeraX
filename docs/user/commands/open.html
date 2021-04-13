@@ -178,13 +178,7 @@ target="_blank">MDL Molfile/SDF</a></td>
 <td align="center">.mol, .sdf</td>
 <td align="center">atomic coordinates</td>
 </tr><tr>
-<td align="center">Schr&ouml;dinger Maestro
-<br><br>*requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxmaestro"
-target="_blank"><b>Maestro</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
-</td>
+<td align="center">Schr&ouml;dinger Maestro</td>
 <td align="center"><b>mae</b></td>
 <td align="center">.mae<br>.maegz</td>
 <td align="center" class="text">atomic coordinates
@@ -209,7 +203,8 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
 <br>(requires an already-open structure for topology, see the
-<a href="#structureModel"><b>structureModel</b></a> option)</td>
+<a href="#structureModel"><b>structureModel</b></a> option;
+see also the <a href="#coordsets"><b>coordsets</b></a> option)</td>
 </tr><tr>
 <td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
 target="_blank">Amber NetCDF</a> (binary)</td>
@@ -924,7 +919,9 @@ Whether to read the contours from an
 </blockquote>
 <blockquote>
 <a name="coordsets"></a>
+<a name="missingCoordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+[&nbsp;<b>missingCoordsets</b>&nbsp;&nbsp;fill&nbsp;|&nbsp;ignore&nbsp;|&nbsp;<b>renumber</b>&nbsp;]
 <br>
 Whether to open a multi-model file in mmCIF or PDB format as a
 <a href="../trajectories.html">trajectory</a> and show a
@@ -933,11 +930,39 @@ Only one frame (coordinate set) of a trajectory can be viewed at a time;
 different frames can be accessed or played back sequentially with the
 <a href="coordset.html"><b>coordset</b></a> command or
 the <a href="coordset.html#slider">slider interface</a>.
-By default, the multiple models in the file will be opened not as a
+By default (<b>coordsets false</b>), 
+the multiple models in the file will be opened not as a
 <a href="../trajectories.html">trajectory</a> but as
 separate submodels that can be shown/hidden/specified independently 
 (for example, using #1.1, #1.2, #1.3...) 
 or collectively (for example, using #1).
+<p>
+The <b>missingCoordsets</b></a> option indicates how
+to treat gaps in MODEL numbering when reading a PDB multi-model file
+as a <a href="../trajectories.html">trajectory</a>
+with <b>coordsets true</b>.
+In PDB format, MODEL records are typically numbered consecutively.
+The numbers from these records are used as the frame numbers of the 
+coordinate sets in the trajectory.
+When gaps in the numbering are detected, options are to:
+</p>
+<ul>
+<li><b>fill</b>
+&ndash; generate duplicate coordinate sets (additional trajectory frames) 
+to fill in the gaps
+<li><b>ignore</b> 
+&ndash; use the MODEL numbers without filling gaps
+<li><b>renumber</b> (default)
+&ndash; renumber the coordinate sets consecutively
+</ul>
+<p>
+For example, if the first coordinate set MODEL 1 is immediately
+followed in the file by another coordinate set MODEL 6,
+<b>fill</b> would create four additional copies of the first 
+coordinate set as frames 2-5,
+<b>ignore</b> would give trajectory frame 1 immediately followed by
+trajectory frame 6, and
+<b>renumber</b> would renumber the MODEL 6 coordinate set as trajectory frame 2.
 </blockquote>
 <blockquote>
 <a name="debug"></a>
@@ -1568,5 +1593,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+March 2021</address>
 </body></html>

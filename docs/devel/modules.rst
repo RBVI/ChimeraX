@@ -158,4 +158,6 @@ Volume Data
 
     bundles/map/src/map.rst
 
+    bundles/map_fit/src/fitmap.rst
+
     bundles/segment/src/segment.rst

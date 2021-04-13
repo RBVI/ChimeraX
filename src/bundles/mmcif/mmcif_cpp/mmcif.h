@@ -19,14 +19,20 @@
 #include <vector>
 
 #include <atomstruct/string_types.h>
+#include <atomstruct/Bond.h>
 
 namespace tmpl {
     class Residue;
 }
 
+namespace atomstruct {
+    class Bond;
+}
+
 namespace mmcif {
 
 using atomstruct::ResName;
+using atomstruct::Bond;
 
 PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger,
                              bool coordsets, bool atomic);
@@ -44,6 +50,10 @@ void        set_Python_locate_function(PyObject* function);
 PyObject*   extract_CIF_tables(const char* filename,
                                const std::vector<std::string> &categories,
                                bool all_data_blocks);
+
+PyObject*   quote_value(PyObject* value, int max_len=60);
+typedef std::vector<const Bond*> Bonds;
+void        non_standard_bonds(const Bond** bonds, size_t num_bonds, bool selected_only, bool displayed_only, Bonds& disulfide, Bonds& covalent);
 
 #ifndef WrapPy
 const tmpl::Residue*

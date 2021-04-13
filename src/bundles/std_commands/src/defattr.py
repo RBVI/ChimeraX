@@ -22,7 +22,7 @@ def cmd_defattr(session, structures, file_name, *, log=False):
     except SyntaxError as e:
         raise UserError(str(e))
 
-def defattr(session, data, *, log=False, restriction=None, file_name=None):
+def defattr(session, data, *, log=False, restriction=None, file_name=None, summary=True):
     """define attributes on objects
 
     Parameters
@@ -146,12 +146,13 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
         recipient = attr_info.get('recipient', control_defaults['recipient'])
         recip_class, instance_fetch = recipient_info[recipient]
         seen_types = set()
+        is_builtin_attr = True
         try:
-            pre_existing_attr = getattr(recip_class, attr_name)
+            builtin_attr = getattr(recip_class, attr_name)
         except AttributeError:
-            pass
+            is_builtin_attr = False
         else:
-            if callable(pre_existing_attr):
+            if callable(builtin_attr):
                 raise ValueError("%s is a method of the %s class and cannot be redefined"
                     % (attr_name, recip_class.__name__))
             if attr_name[0].isupper():
@@ -242,7 +243,7 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
                 if value is not None or none_handling == "None":
                     setattr(match, attr_name, value)
                 elif hasattr(match, attr_name):
-                    if pre_existing_attr:
+                    if is_builtin_attr:
                         raise RuntimeError("Cannot remove builtin attribute %s from class %s"
                             % (attr_name, recip_class.__name__))
                     else:
@@ -260,11 +261,13 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None):
         recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
             can_return_none=can_return_none)
 
-        session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
-            num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
+        if summary:
+            session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
+                num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Structure
+    from chimerax.core.attributes import MANAGER_NAME, type_attrs
     if len(attr_name) > 1 and attr_name[1] == ':':
         attr_level = attr_name[0]
         if attr_level not in "arm":
@@ -272,10 +275,9 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
         attr_name = attr_name[2:]
         class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
         if allowable_types:
-            allowable_attrs = session.attr_registration.attributes_returning(class_obj, allowable_types,
-                none_okay=True)
+            allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
+                class_obj, allowable_types, none_okay=True)
         else:
-            from chimerax.core.utils import type_attrs
             allowable_attrs = type_attrs(class_obj)
         if attr_name not in allowable_attrs:
             raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
@@ -283,10 +285,9 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
         # try to find the attribute, in the order Atom->Residue->Structure
         for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
             if allowable_types:
-                allowable_attrs = session.attr_registration.attributes_returning(
+                allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
                     class_obj, allowable_types, none_okay=True)
             else:
-                from chimerax.core.utils import type_attrs
                 allowable_attrs = type_attrs(class_obj)
             if attr_name in allowable_attrs:
                 break

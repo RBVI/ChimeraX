@@ -59,12 +59,32 @@ ARRAYS_IMEX PyObject *array_python_source(const Reference_Counted_Array::Untyped
 extern "C" {
 
 // float [] value
+//
+// Example usage:
+//
+// float origin[3];
+// const char *kwlist[] = {"origin", NULL};
+// if (!PyArg_ParseTupleAndKeywords(args, keywds,
+//                                  const_cast<char *>("O&"), (char **)kwlist,
+//			            parse_float_3_array, &origin[0])
+//     return NULL;
+//  
 ARRAYS_IMEX int parse_float_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_float_4_array(PyObject *arg, void *f4);
 ARRAYS_IMEX int parse_float_3x3_array(PyObject *arg, void *f3x3);
 ARRAYS_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
 
 // FArray value
+//
+// Example usage:
+//
+// FArray vertices;
+// const char *kwlist[] = {"vertices", NULL};
+// if (!PyArg_ParseTupleAndKeywords(args, keywds,
+//                                  const_cast<char *>("O&"), (char **)kwlist,
+//			            parse_float_n3_array, &vertices)
+//     return NULL;
+//  
 ARRAYS_IMEX int parse_float_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_float_n_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_float_n2_array(PyObject *arg, void *farray);
@@ -97,6 +117,14 @@ ARRAYS_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
 ARRAYS_IMEX int parse_int_3_array(PyObject *arg, void *i3);
 
 // IArray value
+//
+// IArray vertices;
+// const char *kwlist[] = {"triangles", NULL};
+// if (!PyArg_ParseTupleAndKeywords(args, keywds,
+//                                  const_cast<char *>("O&"), (char **)kwlist,
+//			            parse_int_n3_array, &triangles)
+//     return NULL;
+//
 ARRAYS_IMEX int parse_int_n_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_int_n2_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_int_n3_array(PyObject *arg, void *iarray);

@@ -15,11 +15,18 @@ from chimerax.core.errors import UserError
 
 default_criteria = "dchp"
 def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
-    density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, rot_lib=None, log=True,
+    density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=True, rot_lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
     ''' Command to swap amino acid side chains '''
 
     residues = _check_residues(residues)
+
+    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
+        from chimerax.ui.ask import ask
+        if ask(session, "Really swap side chains for %d residues?" % len(residues),
+                title="Confirm Swap") == "no":
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("Swap %d side chains cancelled" % len(residues))
 
     if type(criteria) == str:
         for c in criteria:

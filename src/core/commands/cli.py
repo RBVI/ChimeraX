@@ -1098,7 +1098,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
     if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
-        from PySide2.QtWidgets import QFileDialog
+        from Qt.QtWidgets import QFileDialog
         dlg = QFileDialog()
         dlg.setAcceptMode(accept_mode)
         if name_filter is not None:
@@ -1132,7 +1132,7 @@ class OpenFileNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PySide2.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
         else:
             accept_mode = dialog_mode = None
@@ -1153,7 +1153,7 @@ class OpenFileNamesArg(Annotation):
     def parse(cls, text, session):
         # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
         if session.ui.is_gui:
-            from PySide2.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
         else:
             accept_mode = dialog_mode = None
@@ -1175,7 +1175,7 @@ class SaveFileNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PySide2.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
         else:
             accept_mode = dialog_mode = None
@@ -1191,7 +1191,7 @@ class OpenFolderNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PySide2.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
@@ -1207,7 +1207,7 @@ class SaveFolderNameArg(FileNameArg):
     @classmethod
     def parse(cls, text, session):
         if session.ui.is_gui:
-            from PySide2.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
@@ -2930,7 +2930,12 @@ class Command:
 def command_trigger(session, log, cmd_text):
     if session is not None and log:
         session.triggers.activate_trigger("command started", cmd_text)
-    yield
+    try:
+        yield
+    except Exception:
+        if session is not None and log:
+            session.triggers.activate_trigger("command failed", cmd_text)
+        raise
     if session is not None and log:
         session.triggers.activate_trigger("command finished", cmd_text)
 

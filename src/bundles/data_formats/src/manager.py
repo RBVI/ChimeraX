@@ -110,7 +110,7 @@ class FormatsManager(ProviderManager):
             Returns None if there is no such format.
         """
         from chimerax.save_command import NoSaverError
-        return self._format_from_suffix(self.session.save_command.save_info,
+        return self._format_from_suffix(self.session.save_command.provider_info,
             NoSaverError, suffix)
 
     def save_format_from_file_name(self, file_name):

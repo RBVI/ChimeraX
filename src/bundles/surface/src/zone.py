@@ -102,6 +102,12 @@ class ZoneMask(State):
 
 # -----------------------------------------------------------------------------
 #
+def zoning(surface):
+    zm = surface.auto_remask_triangles
+    return zm if isinstance(zm, ZoneMask) else None
+
+# -----------------------------------------------------------------------------
+#
 def surface_unzone(surface):
     surface.auto_remask_triangles = None
     surface.triangle_mask = None

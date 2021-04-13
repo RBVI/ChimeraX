@@ -211,7 +211,7 @@ only the highest is responsive to clicks.
 
 <table class="clRight">
 <tr><td><img class="outline" src="uniprot-features.png"
-alt="cah1_human sequence features" width="380px"></td></tr>
+alt="cah1_human sequence features" width="400px"></td></tr>
 </table>
 <a name="uniprot"></a>
 <p><a href="#regions" class="nounder"><b>&larr;</b></a>
@@ -229,22 +229,29 @@ from the <a href="#context">context menu</a>.
 Choosing a feature type on the left side of the dialog shows the regions
 for all features of that type; if multiple features of that type are
 listed on the right, clicking (choosing) any one shows just
-the region for the individual feature.
+the region for the individual feature. 
+Feature listings may include links to evidence code descriptions in the
+<a href="https://evidenceontology.org/" target="_blank">Evidence & Conclusion
+Ontology</a> and/or sequence variant entries in 
+<a href="https://www.ncbi.nlm.nih.gov/snp/" target="_blank">dbSNP</a>.  
 </p><p>
 The border and interior colors of the currently shown feature region(s)
 can be changed by clicking the color wells and using the system color editor,
 and checkboxes allow leaving either the border or the interior uncolored.
-The automatically assigned colors may vary between different instances 
+The initially assigned colors may vary between different instances 
 of opening the same data.
 </p><p>
 If a structure is <a href="#association">associated</a> with the sequence, 
-the corresponding structure residues are reported in the lower right
-area of the features dialog.
-For example, the figure shows all <b>metal ion-binding site</b>
-regions in UniProt sequence <a href="https://www.uniprot.org/uniprot/P00915"
+the corresponding structure residues are listed in the lower right area 
+of the dialog. 
+For example, the figure shows all <b>metal ion-binding site</b> regions in
+UniProt sequence <a href="https://www.uniprot.org/uniprot/P00915"
 target="_blank">cah1_human</a>, corresponding to residues
 64,67,94,96,119, and 200 in chain A of the associated structure, PDB
 <a href="http://www.rcsb.org/structure/1BZM" target="_blank">1bzm</a>.
+A checkbox option allows automatically 
+<a href="../selection.html">selecting</a> the associated structure residues
+(if any) as features are chosen.
 </p>
 
 <a name="association"></a>
@@ -254,7 +261,7 @@ target="_blank">cah1_human</a>, corresponding to residues
 <h3>Sequence-Structure Association</h3>
 <p>
 A sequence that arose from a structure's chain information
-is automatically associated with that chain, 
+is automatically associated with that chain,
 with <a href="#regions">regions</a> for protein
 <font style="background:rgb(255,255,204);
 border:solid goldenrod 1px;padding:1px 3px">
@@ -263,7 +270,7 @@ border:solid goldenrod 1px;padding:1px 3px">
 border:solid rgb(168,191,191) 1px;padding:1px 3px">
 <b>structure&nbsp;strands</b></font>.
 Such sequences are closed when their structure chains are deleted or closed,
-and they are not automatically associated with other structures.
+and they are not automatically associated with other structure chains.
 </p><p>
 When sequences and structures are opened independently,
 a structure chain will be associated automatically with a sequence 
@@ -304,7 +311,7 @@ In the sequence window, <a href="#regions">regions</a> may be created to show
 <b>missing&nbsp;residues</b></font>
 according to the association.
 If a mismatch or missing residue only occurs in a subset of multiple
-associated structures, a 
+associated chains, a 
 <font style="background:pink;padding:1px 3px">
 pink box</font> or 
 <font style="border:solid rgb(190,190,190) 1px;padding:1px 3px">
@@ -622,5 +629,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2020</address>
+January 2021</address>
 </body></html>

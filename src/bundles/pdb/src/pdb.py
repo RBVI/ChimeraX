@@ -18,20 +18,68 @@ pdb: PDB format support
 Read Protein DataBank (PDB) files.
 """
 
-def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, atomic=True,
-             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False):
+def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
+             max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
+             missing_coordsets="renumber"):
+    """Read PDB data from a file or stream and return a list of models and status information.
 
-    path = stream.name if hasattr(stream, 'name') else None
+    ``stream`` is either a string a string with a file system path to a PDB file, or an open input
+    stream to PDB data.
 
+    ``file_name`` is the name to give to the resulting model(s).  Typically only needed if the input
+    is an anonymous stream or the input file name wouldn't be a good model name.
+
+    ``auto_style`` is passed through to the :py:class:`~chimerax.atomic.structure.Structure`
+    or :py:class:`~chimerax.atomic.structure.AtomicStructure` constructor.
+
+    ``coordsets`` controls whether a multi-MODEL PDB is opened as a list of structures or as
+    a single structure with multiple coordinate sets.
+
+    ``atomic`` controls whether AtomicStructure or Structure is used as the class for the structure.
+    The latter should be used for PDB files that don't actually contain atomic data per se, like SAX
+    "PDB" files or coarse-grain models.
+
+    ``max_models`` limits the number of models this routine can return.
+
+    ``log_info`` is passed through to the :py:class:`~chimerax.atomic.structure.Structure`
+    or :py:class:`~chimerax.atomic.structure.AtomicStructure` constructor.
+
+    ``combine_sym_atoms`` controls whether otherwise identical atoms with no bonds that are also very
+    close together in space should be combined into a single atom.
+
+    ``segid_chains`` controls whether the chain ID should come from the normal chain ID columns or from
+    the "segment ID" columns.
+
+    ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
+    MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
+    of the preceding coord set), 'skip' (don't fill in; use MODEL number as is for coordset ID), and
+    'compact' (don't fill in and use the next available coordset ID).
+    """
+
+    if isinstance(stream, str):
+        path = stream
+        stream = open(stream, 'r')
+    else:
+        path = stream.name if hasattr(stream, 'name') else None
+
+    if file_name is None:
+        if path:
+            from os.path import basename
+            file_name = basename(path)
+        else:
+            file_name = 'structure'
+            
     from . import _pdbio
     try:
-        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains)
+        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic, segid_chains,
+            ['fill', 'ignore', 'renumber'].index(missing_coordsets))
     except ValueError as e:
         if 'non-ASCII' in str(e):
             from chimerax.core.errors import UserError
             raise UserError(str(e))
         raise
-    stream.close()
+    finally:
+        stream.close()
 
     if atomic:
         from chimerax.atomic.structure import AtomicStructure as StructureClass
@@ -81,6 +129,34 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
 def save_pdb(session, output, *, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36",
         polymeric_res_names = None):
+    """Write PDB data to a file.
+
+    ``output`` is a file system path to a writable location.  It can contain the strings "[NAME]"
+    and/or "[ID]", which will be replaced with the model's name/id, respectively.
+
+    ``models`` is a list of models to output.  If not specified, all structure models will be output.
+
+    ``selected_only`` controls whether only currently selected atoms should be output.
+
+    ``displayed_only`` controls whether only currently displayed atoms should be output.
+
+    ``all_coordsets`` controls whether or not, for a multi-coordset model, all coordsets should be
+    written out (using MODEL records) or just the current coordinate set.
+
+    ``pqr`` controls whether ATOM/HETATM records will be written out in non-standard PQR format or not.
+
+    ``rel_model`` if given, is a model that the output coordinates should be written "relative to", i.e.
+    whatever then inverse of ``relmodel``'s current transformation is, apply that to the atomic coordinates
+    before outputting them.
+
+    ``serial_numbering`` controls how serial numbers are output when they would exceed PDB column limits.
+    "h36" means to use Hybrid-36 numbering.  "amber" means to steal a column from the "ATOM   " record and
+    not correct them in other types of records (e.g. CONECT).
+
+    ``polymeric_res_names`` is a list of residue names that should be considered "standard" as far as the
+    the output of ATOM vs. HETATM goes.  If not specified, the residue names that the RCSB considers
+    standard will be used.
+    """
     from chimerax.core.errors import UserError
     if models is None:
         models = session.models

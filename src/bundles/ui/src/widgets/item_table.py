@@ -11,11 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PySide2.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
-from PySide2.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
-# PySide2 has no QVariant; None can be used in place of an invalid QVariant
-# from PySide2.QtCore import QVariant
-from PySide2.QtGui import QFontDatabase, QBrush, QColor
+from Qt.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
+from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
+# Qt has no QVariant; None can be used in place of an invalid QVariant
+# from Qt.QtCore import QVariant
+from Qt.QtGui import QFontDatabase, QBrush, QColor
 
 class QCxTableModel(QAbstractTableModel):
     def __init__(self, item_table, **kw):
@@ -195,10 +195,10 @@ class ItemTable(QTableView):
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
-            from PySide2.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
+            from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
-                from PySide2.QtCore import Qt
+                from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
                 self._col_checkbox_layout = QGridLayout()
@@ -207,7 +207,7 @@ class ItemTable(QTableView):
                 main_layout.addLayout(self._col_checkbox_layout)
                 self._col_checkboxes = []
                 if column_control_info[-1]:
-                    from PySide2.QtWidgets import QDialogButtonBox as qbbox
+                    from Qt.QtWidgets import QDialogButtonBox as qbbox
                     buttons_widget = QWidget()
                     main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()

@@ -223,9 +223,9 @@ ExtractTemplate::parse_chem_comp()
     // TODO: parse "all" columns of chem_comp table and save in TmplMolecule's
     // metadata for extraction when opening a CCD file as an atomic structure
     ResName name;
-    ResName modres;
+    string  modres;
     string  description;
-    char    code = '\0';
+    string  code;
     bool    ambiguous = false;
     type.clear();
 
@@ -244,17 +244,17 @@ ExtractTemplate::parse_chem_comp()
             [&] (const char* start, const char* end) {
                 description = string(start, end - start);
             });
-        pv.emplace_back(get_column("three_letter_code"),
+        pv.emplace_back(get_column("mon_nstd_parent_comp_id"),
             [&] (const char* start, const char* end) {
-                modres = ResName(start, end - start);
+                modres = string(start, end - start);
                 if (modres == "?" || modres == ".")
-                    modres = "";
+                    modres.clear();
             });
         pv.emplace_back(get_column("one_letter_code"),
-            [&] (const char* start) {
-                code = *start;
-                if (code == '.' || code == '?')
-                    code = '\0';
+            [&] (const char* start, const char* end) {
+                code = string(start, end - start);
+                if (code == "." || code == "?")
+                    code.clear();
             });
         pv.emplace_back(get_column("pdbx_ambiguous_flag"),
             [&] (const char* start) {
@@ -280,38 +280,41 @@ ExtractTemplate::parse_chem_comp()
     residue->description(description);
     residue->pdbx_ambiguous = ambiguous;
     all_residues.push_back(residue);
-    if (!code || (!is_peptide && !is_nucleotide))
+    if (!is_peptide && !is_nucleotide)
         return;
     if (is_peptide)
         residue->polymer_type(PolymerType::PT_AMINO);
-    else if (is_nucleotide)
+    else
         residue->polymer_type(PolymerType::PT_NUCLEIC);
-    if (!modres.empty()) {
-        char old_code;
-        if (is_peptide) {
-            if (modres == "UNK")
-                return;  // sequence code picks what unknown residues should be
-            old_code = Sequence::protein3to1(modres);
-        } else { // if (is_nucleotide)
-            if (modres == "N" || modres == "DN")
-                return;  // sequence code picks what unknown residues should be
-            old_code = Sequence::nucleic3to1(modres);
-        }
-        if (old_code != 'X' && old_code != code)
-            std::cerr << "Not changing " << modres <<
-                " sequence abbreviation (old: " << old_code << ", new: " <<
-                code << ")\n";
-        else
-            Sequence::assign_rname3to1(name, code, is_peptide);
+    char old_code;
+    if (is_peptide)
+        old_code = Sequence::protein3to1(name);
+    else
+        old_code = Sequence::nucleic3to1(name);
+    if (code.size() == 1) {
+        ; // FALL THROUGH
     } else {
-        if (is_peptide) {
-            if (Sequence::protein3to1(name) == 'X')
-                Sequence::assign_rname3to1(name, code, true);
-        } else if (is_nucleotide) {
-            if (Sequence::nucleic3to1(name) == 'X')
-                Sequence::assign_rname3to1(name, code, false);
+        if (code.size() > 1 || modres.find(',') != string::npos) {
+            code = 'X';
+        } else if (!modres.empty()) {
+            if (is_peptide)
+                code = Sequence::protein3to1(modres);
+            else
+                code = Sequence::nucleic3to1(modres);
+        } else if (code.empty()) {
+            return;  // let sequence code pick what unknown residues should be
         }
     }
+    if (old_code == 'X')
+        Sequence::assign_rname3to1(name, code[0], is_peptide);
+    else if (old_code != '?' && old_code != code[0])
+        // ChimeraX uses ? for N, DN, and UNK
+        // while CCD uses N, N, and X, respectively.
+        // So don't warn about those.
+        // TODO: log this somehow
+        std::cerr << "Not changing " << name <<
+            "'s sequence abbreviation (existing: " << old_code << ", new: " <<
+            code << ")\n";
 }
 
 void

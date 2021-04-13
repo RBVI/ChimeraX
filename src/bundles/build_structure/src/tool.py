@@ -14,10 +14,10 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.commands import run
-from PySide2.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
-from PySide2.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from PySide2.QtWidgets import QButtonGroup, QAbstractButton
-from PySide2.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
+from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+from Qt.QtWidgets import QButtonGroup, QAbstractButton
+from Qt.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
 
@@ -190,6 +190,7 @@ class BuildStructureTool(ToolInstance):
         checkbox_layout.addWidget(color, alignment=Qt.AlignLeft)
 
         res_group = QGroupBox("Residue Name")
+        self._prev_mod_res = None
         layout.addWidget(res_group, alignment=Qt.AlignCenter)
         group_layout = QGridLayout()
         group_layout.setContentsMargins(0,0,0,0)
@@ -325,17 +326,19 @@ class BuildStructureTool(ToolInstance):
         if not self.ms_element_color.isChecked():
             cmd += " colorByElement false"
 
+        self._prev_mod_res = None
         if self.ms_res_mod.isChecked():
             res_name = self.ms_mod_edit.text().strip()
             if not res_name:
                 raise UserError("Must provided modified residue name")
             if res_name != a.residue.name:
                 cmd += " resName " + res_name
+            self._prev_mod_res = a.residue
         elif self.ms_res_new.isChecked():
             res_name = self.ms_res_new_name.text().strip()
             if not res_name:
                 raise UserError("Must provided new residue name")
-            cmd += " resNewOnly true resName " + res_name
+            cmd += " newRes true resName " + res_name
 
         run(self.session, cmd)
 
@@ -372,7 +375,8 @@ class BuildStructureTool(ToolInstance):
         self._ms_update_atom_name(a)
         from .mod import unknown_res_name
         res_name = unknown_res_name(a.residue)
-        self.ms_mod_edit.setText(res_name)
+        if self._prev_mod_res != a.residue:
+            self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
 
     def _ms_update_atom_name(self, a=None):

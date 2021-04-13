@@ -16,6 +16,7 @@ from chimerax.core.settings import Settings
 class UI_Settings(Settings):
 
     EXPLICIT_SAVE = {
+        'auto_float_tools': False,
         'autostart': [
             'Log', 'Model Panel', 'Command Line Interface',
             'Toolbar',

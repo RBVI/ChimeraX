@@ -15,7 +15,7 @@
 from . import _debug
 
 _CACHE_FILE = "available.json"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 
 class AvailableBundleCache(list):
@@ -36,7 +36,6 @@ class AvailableBundleCache(list):
         from urllib.parse import urljoin, urlencode
         params = [
             ("uuid", self.uuid()),
-            ("app_version", app_dirs.version),
             ("format_version", FORMAT_VERSION),
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
@@ -49,7 +48,6 @@ class AvailableBundleCache(list):
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])
-        data.insert(0, ['format_version', FORMAT_VERSION])
         import os
         if self.cache_dir is not None:
             with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
@@ -84,7 +82,7 @@ class AvailableBundleCache(list):
                 elif d[0] == 'toolshed_url':
                     self.toolshed_url = d[1]
             else:
-                b = _build_bundle(d)
+                b = _build_bundle(d, self.format_version)
                 if not b:
                     continue
                 if self._installable(b, my_version):
@@ -123,7 +121,7 @@ def has_cache_file(cache_dir):
     return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
 
 
-def _build_bundle(d):
+def _build_bundle(d, format_version=1):
     # "d" is a dictionary with (some of) the following keys:
     #    bundle_name: name of bundle (with "_", not "-")
     #    toolshed_name: name of toolshed name for bundle (version-independent)
@@ -162,9 +160,12 @@ def _build_bundle(d):
     _set_value(kw, bundle_d, "categories")
     _set_value(kw, bundle_d, "session_versions", _parse_session_versions)
     _set_value(kw, bundle_d, "api_package_name")
-    _set_value(kw, bundle_d, "supercedes")
+    _set_value(kw, bundle_d, "supersedes")
     _set_value(kw, bundle_d, "custom_init", lambda v: v == "true")
     bi = BundleInfo(installed=False, **kw)
+
+    if format_version >= 2:
+        bi.release_file = d.get('release_file', None)
 
     #
     # Squirrel away requirements information
