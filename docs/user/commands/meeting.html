@@ -50,7 +50,7 @@ Examples:
 <blockquote>
 <b>meeting start nanobody</b><br>
 &nbsp;&nbsp;&nbsp;&ndash; start a meeting named <i>nanobody</i><br>
-<b>meeting nanobody</b><br>
+<b>meeting join nanobody</b><br>
 &nbsp;&nbsp;&nbsp;&ndash; join a meeting named <i>nanobody</i><br>
 <b>meeting close</b><br>
 &nbsp;&nbsp;&nbsp;&ndash; leave the current meeting
@@ -58,7 +58,7 @@ Examples:
 
 <p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
-<a href="#start">copy</a>
+<a href="#copyScene">copy</a>
 a session from the ChimeraX instance that initiates the meeting 
 to each person who joins the meeting.
 This copying is done only when a person joins the meeting. 
@@ -123,8 +123,14 @@ A meeting is initiated with
 <b>meeting start</b> <i>meeting-name</i>,
 where the meeting name is a text identifier that participants will
 use to join the meeting. Meeting names are not case-sensitive.
+The initiator (and each person who <a href="#join">joins</a>)
+can specify a <b>name</b> for identification within the shared 
+environment, a pointer-cone <b>color</b>, and a <b>faceImage</b> file.
+These three settings are remembered
+whenever they are specified, and the remembered settings can be reported or 
+changed with the <a href="#settings"><b>meeting settings</b></a> command.
+Full list of options:
 </p>
-
 <blockquote>
 <a name="name"></a>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
@@ -199,6 +205,7 @@ The name server port is remembered as a
 (initial default <b>51472</b>).
 </blockquote>
 <blockquote>
+<a name="copyScene"></a>
 <b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to copy the session from the starting instance
@@ -214,9 +221,9 @@ This copying is done only when a person joins the meeting.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting join</b> (&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
-<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
-<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
-<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
 &nbsp;<i>additional-options</i>
 </blockquote>
 <p>
@@ -225,13 +232,12 @@ If a meeting is started without a <i>meeting-name</i>,
 participants join it by specifying the host name or IP address
 (<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>)
 reported in the <a href="../tools/log.html"><b>Log</b></a> by the
-<b>meeting start</b> command.
-</p><p>
-Participants can specify a person <b>name</b> to identify themselves
-within the shared environment, a <b>faceImage</b> file,
-and a pointer-cone <b>color</b>. These three settings are remembered 
-whenever they are specified, and the remembered settings can be reported or 
-changed with the <a href="#settings"><b>meeting settings</b></a> command.
+<a href="#start"><b>meeting start</b></a> command.
+A participant's <b>name</b>, pointer-cone <b>color</b>, and <b>faceImage</b> 
+settings are remembered whenever they are specified,
+and the remembered settings can be reported or changed with the 
+<a href="#settings"><b>meeting settings</b></a> command.
+Full list of options:
 </p>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
@@ -358,11 +364,13 @@ will not be joined.
 [&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
-The meeting settings command sets or reports the values of saved options.
-These option can also be specified when starting or joining a meeting and have
-the same meanings as in the meeting <a href="#start">start</a> and
-<a href="#join">join</a> commands.
-If no options are specified then current saved settings are reported.
+The <b>meeting settings</b> command sets or reports the values of options
+that are saved as <a href="../preferences.html#other">preferences</a>.
+These options can also be specified with 
+<a href="#start"><b>meeting start</b></a> or 
+<a href="#join"><b>meeting join</b></a> and have the same meanings
+as described above for those commands.
+If no options are specified, the currently saved settings are reported.
 </p>
 
 <a name="server"></a>
@@ -392,7 +400,8 @@ The <b>meeting server</b> command defines a name for a new server
 that is shorthand for a computer address, 
 a port number or port range, an authentication key, and a timeout value.
 When starting a meeting the server to use can be specified
-with the <b>meeting start</b> command <a href="#serveropt"><b>server</b></a> option.
+with the <a href="#start"><b>meeting start</b></a>
+command <a href="#serveropt"><b>server</b></a> option.
 Server names with their settings are remembered as 
 <a href="../preferences.html#other">preferences</a>.
 Given without arguments, <b>meeting server</b> reports the existing 
