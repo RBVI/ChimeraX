@@ -321,9 +321,16 @@ cdef class CyAtom:
         return self.cpp_atom.element().py_instance(True)
 
     @element.setter
-    def element(self, Element e):
+    def element(self, val):
         "Supported API. set atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
+        cdef Element e
+        if type(val) == Element:
+            e = val
+        elif type(val) in (int, str):
+            e = Element.get_element(val)
+        else:
+            raise ValueError("Cannot set Element from %s" % repr(val))
         self.cpp_atom.set_element(dereference(e.cpp_element))
 
     @property
@@ -574,19 +581,26 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.delete_alt_loc(ord(loc[0]))
 
-    def get_altloc_coord(self, loc):
-        "Supported API.  Like the 'coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
+    def get_alt_loc_coord(self, loc):
+        "Supported API.  Like the 'coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc.  Space character gets the"
+        " non-alt-loc coord."
         if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.coord
         if self.has_alt_loc(loc):
             crd = self.cpp_atom.coord(ord(loc[0]))
             return array((crd[0], crd[1], crd[2]))
-        raise ValueError("Atom %s has no altloc %s" % (self, loc))
+        raise ValueError("Atom %s has no alt loc %s" % (self, loc))
 
-    def get_altloc_scene_coord(self, loc):
-        "Supported API.  Like the 'scene_coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
-        return self.structure.scene_position * self.get_altloc_coord(loc)
+    def get_alt_loc_scene_coord(self, loc):
+        "Supported API.  Like the 'scene_coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc. Space character gets the"
+        " non-alt-loc scene coord."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.scene_coord
+        return self.structure.scene_position * self.get_alt_loc_coord(loc)
 
     def get_coordset_coord(self, cs_id):
         "Supported API.  Like the 'coord' property, but uses the given coordset ID"

@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .charge import estimate_net_charge, ChargeError, add_charges
+from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
 from .cmd import ChargeMethodArg
 
 from chimerax.core.toolshed import BundleAPI

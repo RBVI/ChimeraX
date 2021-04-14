@@ -14,15 +14,20 @@
 class ChargeError(RuntimeError):
     pass
 
+from chimerax.atomic.struct_edit import standardizable_residues
+default_standardized = list(standardizable_residues)[:]
+default_standardized.remove("MSE")
+
 def add_charges(session, residues=None, *, method="am1-bcc", phosphorylation=None, query_user=True,
-        status=None):
+        status=None, standardize_residues=default_standardized):
     uncharged_res_types = add_standard_charges(session, residues, status=status, query_user=query_user,
-        phosphorylation=phosphorylation)
+        phosphorylation=phosphorylation, standardize_residues=standardize_residues)
     for res_list in uncharged_res_types.values():
         add_nonstandard_res_charges(session, res_list, estimate_net_charge(res_list[0].atoms),
             method=method, status=status)
 
-def add_standard_charges(session, residues=None, *, status=None, phosphorylation=None, query_user=True):
+def add_standard_charges(session, residues=None, *, status=None, phosphorylation=None, query_user=True,
+        standardize_residues=default_standardized):
     """add AMBER charges to well-known residues
 
        'residues' restricts the addition to the specified residues
@@ -33,6 +38,13 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
        state changed to correspond to AMBER charge files (3' phosphorylated, 5' not).  A value of None
        means that the user will be queried if possible [treated as True if not possible], though if
        'query_user' is False, the user will not be queried.
+
+       'standardize_residues' controls how residues that were modified to assist in crystallization
+       are treated.  If True, the are changed to their normal counterparts (e.g. MSE->MET).  If
+       False, they are left as is, which means that they will be treated as non-standard (except for
+       MSE which gets special treatment due to its commonality) which also means that the charge
+       calculation will likely fail since these residues contain bromine or selenium.
+       'standardize_residues' can also be a list of residue names to standardize.
 
        The return value is a dictionary  which details the residues that did not receive charges
        [key: residue type, value: list of residues].
@@ -46,6 +58,15 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
     elif not isinstance(residues, Residues):
         residues = Residues(residues)
     structures = residues.unique_structures
+
+    if standardize_residues:
+        if status:
+            status("Standardizing residues")
+        from chimerax.atomic.struct_edit import standardize_residues as sr
+        if standardize_residues is True:
+            sr(session, residues)
+        else:
+            sr(session, residues, res_types=standardize_residues)
 
     import os.path
     attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
