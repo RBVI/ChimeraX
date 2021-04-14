@@ -52,6 +52,7 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
     if atom.num_bonds == 1:
         neighbor = atom.neighbors[0]
         new_length = bond_length(atom, geometry, neighbor.element, a2_info=(neighbor, num_bonds))
+        from chimerax.atomic.struct_edit import set_bond_length
         set_bond_length(atom.bonds[0], new_length, move_smaller_side=True)
 
     if num_bonds == atom.num_bonds:
@@ -223,37 +224,6 @@ def bond_length(a1, geom, e2, *, a2_info=None):
     elif geom == 4 or nb_geom == 4:
         return base_len
     return 0.92 * base_len
-
-def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
-    bond.structure.idatm_valid = False
-    # use a simple test to avoid expensive cross-residue ring test in most cases
-    if len(bond.atoms[0].neighbors) > 1 and len(bond.atoms[1].neighbors) > 1:
-        if bond.rings(cross_residue=True):
-            if status:
-                status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
-            mid = sum([a.coord for a in bond.atoms]) / 2
-            factor = bond_length / bond.length
-            for a in bond.atoms:
-                a.coord = (a.coord - mid) * factor + mid
-            return
-
-    smaller = bond.smaller_side
-    bigger = bond.other_atom(smaller)
-    if move_smaller_side:
-        moving = smaller
-        fixed = bigger
-    else:
-        moving = bigger
-        fixed = smaller
-    mp = moving.coord
-    fp = fixed.coord
-    v1 = mp - fp
-    from numpy.linalg import norm
-    v1_len = norm(v1)
-    v1 *= bond_length / v1_len
-    delta = v1 - (mp - fp)
-    moving_atoms = bond.side_atoms(moving)
-    moving_atoms.coords = moving_atoms.coords + delta
 
 def default_changed_name(a, element_name):
     if a.element.name == element_name:
