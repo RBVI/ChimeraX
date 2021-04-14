@@ -442,8 +442,9 @@ class FloatOption(NumericOption):
        of the slider if using a slider."""
 
     def get_value(self):
-        val = self._float_widget.value()
-        return val
+        if self._float_widget.special_value_shown():
+            self.set_value(self.default)
+        return self._float_widget.value()
 
     def set_value(self, value):
         self._float_widget.set_text("")
@@ -588,6 +589,8 @@ class IntOption(NumericOption):
        and after the entry widget on the right side of the form"""
 
     def get_value(self):
+        if self._spin_box.specialValueText() != "":
+            self.set_value(self.default)
         return self._spin_box.value()
 
     def set_value(self, value):
@@ -954,6 +957,10 @@ class FloatSlider(QWidget):
         fract = (float_val - self._minimum) / (self._maximum - self._minimum)
         self._slider.setValue(int(5000 * fract + 0.5))
 
+    def special_value_shown(self):
+        # effectively always False, unlike a SpinBox, the option's value is always accurate
+        return False
+
     def value(self):
         return self._int_val_to_float(self._slider.value())
 
@@ -1013,6 +1020,9 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             self.setValue(self.minimum())
             self.blockSignals(False)
             self.setSpecialValueText(text)
+
+        def special_value_shown(self):
+            return self.specialValueText() != ""
 
         def validate(self, text, pos):
             suffix_index = len(text)
