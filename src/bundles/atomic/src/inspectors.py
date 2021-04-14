@@ -22,13 +22,16 @@ def item_options(session, name, **kw):
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondRadiusOption, BondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
-            ResidueChi3Option, ResidueChi4Option, ResidueHelixOption, ResidueOmegaOption, ResiduePhiOption,
-            ResiduePsiOption, ResidueSSIDOption, ResidueStrandOption]],
+            ResidueChi3Option, ResidueChi4Option, ResidueFilledRingOption, ResidueOmegaOption,
+            ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
+            ResidueRibbonShownOption, ResidueRingColorOption, ResidueSSIDOption, ResidueSSTypeOption,
+            ResidueThinRingsOption]],
     }[name]
 
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
     SymbolicEnumOption
 from chimerax.core.colors import color_name
+from . import Atom, Element, Residue
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
@@ -39,7 +42,6 @@ class AtomColorOption(ColorOption):
     def command_format(self):
         return "color %%s %s atoms" % color_name(self.value)
 
-from . import Atom, Element
 idatm_entries = list(Atom.idatm_info_map.keys()) + [nm for nm in Element.names if len(nm) < 3]
 class AtomIdatmTypeOption(EnumOption):
     values = sorted(idatm_entries)
@@ -129,7 +131,7 @@ class BondShownOption(BooleanOption):
 
 class ResidueChi1Option(FloatOption):
     attr_name = "chi1"
-    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
     @property
@@ -143,7 +145,7 @@ class ResidueChi1Option(FloatOption):
 
 class ResidueChi2Option(FloatOption):
     attr_name = "chi2"
-    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle"
+    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
     @property
@@ -157,7 +159,7 @@ class ResidueChi2Option(FloatOption):
 
 class ResidueChi3Option(FloatOption):
     attr_name = "chi3"
-    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle"
+    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
     @property
@@ -171,7 +173,7 @@ class ResidueChi3Option(FloatOption):
 
 class ResidueChi4Option(FloatOption):
     attr_name = "chi4"
-    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle"
+    balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
     @property
@@ -185,7 +187,7 @@ class ResidueChi4Option(FloatOption):
 
 class ResidueOmegaOption(FloatOption):
     attr_name = "omega"
-    balloon = "Backbone \N{GREEK SMALL LETTER OMEGA} angle"
+    balloon = "Backbone \N{GREEK SMALL LETTER OMEGA} (omega) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER OMEGA} angle"
     @property
@@ -199,7 +201,7 @@ class ResidueOmegaOption(FloatOption):
 
 class ResiduePhiOption(FloatOption):
     attr_name = "phi"
-    balloon = "Backbone \N{GREEK SMALL LETTER PHI} angle"
+    balloon = "Backbone \N{GREEK SMALL LETTER PHI} (phi) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER PHI} angle"
     @property
@@ -213,7 +215,7 @@ class ResiduePhiOption(FloatOption):
 
 class ResiduePsiOption(FloatOption):
     attr_name = "psi"
-    balloon = "Backbone \N{GREEK SMALL LETTER PSI} angle"
+    balloon = "Backbone \N{GREEK SMALL LETTER PSI} (psi) angle"
     default = 0.0
     name = "\N{GREEK SMALL LETTER PSI} angle"
     @property
@@ -224,6 +226,50 @@ class ResiduePsiOption(FloatOption):
         if 'step' not in kw:
             kw['step'] = 1.0
         super().__init__(*args, **kw)
+
+class ResidueFilledRingOption(BooleanOption):
+    attr_name = "ring_display"
+    balloon = "Whether to depict rings as filled/solid"
+    default = False
+    name = "Fill rings"
+    @property
+    def command_format(self):
+        return "setattr %%s r ring_display %s" % str(self.value).lower()
+
+class ResidueRibbonColorOption(ColorOption):
+    attr_name = "ribbon_color"
+    default = "white"
+    name = "Ribbon color"
+    @property
+    def command_format(self):
+        return "color %%s %s target r" % color_name(self.value)
+
+class ResidueRibbonHidesBackboneOption(BooleanOption):
+    attr_name = "ribbon_hide_backbone"
+    balloon = "Whether showing a ribbon depiction automatically hides backbone atoms.\n" \
+        "Even with this off, the backbone atoms themselves may still need to be 'shown' to appear."
+    default = True
+    name = "Ribbon hides backbone"
+    @property
+    def command_format(self):
+        return "setattr %%s r ribbon_hide_backbone %s" % str(self.value).lower()
+
+class ResidueRibbonShownOption(BooleanOption):
+    attr_name = "ribbon_display"
+    default = False
+    name = "Show ribbon"
+    @property
+    def command_format(self):
+        return "cartoon%s %%s" % ("" if self.value else " hide")
+
+class ResidueRingColorOption(ColorOption):
+    attr_name = "ring_color"
+    balloon = "The fill color of a filled ring"
+    default = "white"
+    name = "Ring fill color"
+    @property
+    def command_format(self):
+        return "color %%s %s target f" % color_name(self.value)
 
 class ResidueSSIDOption(IntOption):
     attr_name = "ss_id"
@@ -239,12 +285,21 @@ class ResidueSSIDOption(IntOption):
         super().__init__(*args, min=1, **kw)
 
 class ResidueSSTypeOption(SymbolicEnumOption):
-    values = (0, 1, 2)
-    labels = ("sphere", "ball", "stick")
+    values = (Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND)
+    labels = ("coil", "helix", "strand")
     attr_name = "ss_type"
     default = 0.0
     name = "Secondary structure type"
     @property
     def command_format(self):
         return "setattr %%s r ss_type %s" % self.labels[self.value]
+
+class ResidueThinRingsOption(BooleanOption):
+    attr_name = "thin_rings"
+    balloon = "Whether to depict filled rings as thin or fat"
+    default = False
+    name = "Thin filled rings"
+    @property
+    def command_format(self):
+        return "setattr %%s r thin_rings %s" % str(self.value).lower()
 
