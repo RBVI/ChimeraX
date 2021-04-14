@@ -261,3 +261,105 @@ def gen_atom_name(element, residue):
             break
         n += 1
     return name
+
+def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
+    bond.structure.idatm_valid = False
+    # use a simple test to avoid expensive cross-residue ring test in most cases
+    if len(bond.atoms[0].neighbors) > 1 and len(bond.atoms[1].neighbors) > 1:
+        if bond.rings(cross_residue=True):
+            if status:
+                status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
+            mid = sum([a.coord for a in bond.atoms]) / 2
+            factor = bond_length / bond.length
+            for a in bond.atoms:
+                a.coord = (a.coord - mid) * factor + mid
+            return
+
+    smaller = bond.smaller_side
+    bigger = bond.other_atom(smaller)
+    if move_smaller_side:
+        moving = smaller
+        fixed = bigger
+    else:
+        moving = bigger
+        fixed = smaller
+    mp = moving.coord
+    fp = fixed.coord
+    v1 = mp - fp
+    from numpy.linalg import norm
+    v1_len = norm(v1)
+    v1 *= bond_length / v1_len
+    delta = v1 - (mp - fp)
+    moving_atoms = bond.side_atoms(moving)
+    moving_atoms.coords = moving_atoms.coords + delta
+
+standardizable_residues = ["MSE", "5BU", "UMS", "CSL"]
+
+def standardize_residues(session, residues, *, res_types=standardizable_residues, verbose=True):
+    from . import Residues
+    if not isinstance(residues, Residues):
+        residues = Residues(residues)
+    for res_type in res_types:
+        target_residues = residues.filter(residues.names == res_type)
+        if not target_residues:
+            continue
+        results = {}
+        exec('func = standardize_%s' % res_type, globals(), results)
+        func = results['func']
+        for r in target_residues:
+            func(session, r, verbose=verbose)
+
+def standardize_CSL(session, r, *, verbose=True):
+    _mutate_sugar_Se(session, r)
+    if verbose:
+        session.logger.info("Residue %s changed to C" % r)
+    r.name = "C"
+
+def standardize_5BU(session, r, *, verbose=True):
+    for a in r.atoms:
+        if a.element == "Br":
+            r.structure.delete_atom(a)
+            break
+    if verbose:
+        session.logger.info("Residue %s changed to U" % r)
+    r.name = "U"
+
+def standardize_MSE(session, r, *, verbose=True):
+    for a in r.atoms:
+        if a.element != "Se":
+            continue
+        a.element = "S"
+        a.name = "SD"
+        a.idatm_type = "S3"
+        for nb, b in zip(a.neighbors, a.bonds):
+            if nb.name == "CE":
+                set_bond_length(b, 1.78, status=session.logger.status)
+            elif nb.name == "CG":
+                set_bond_length(b, 1.81, status=session.logger.status)
+    if verbose:
+        session.logger.info("Residue %s changed to MET" % r)
+    r.name = "MET"
+
+def standardize_UMS(session, r, *, verbose=True):
+    _mutate_sugar_Se(session, r)
+    if verbose:
+        session.logger.info("Residue %s changed to U" % r)
+    r.name = "U"
+
+def _mutate_sugar_Se(session, r):
+    for a in r.atoms:
+        if a.name == "CA'":
+            for nb in a.neighbors:
+                if nb.element == 1:
+                    r.structure.delete_atom(nb)
+            r.structure.delete_atom(a)
+            break
+    for a in r.atoms:
+        if a.element != "Se":
+            continue
+        a.element = "O"
+        a.name = "O2'"
+        a.idatm_type = "O3"
+        for nb, b in zip(a.neighbors, a.bonds):
+            if nb.name == "C2'":
+                set_bond_length(b, 1.43, status=session.logger.status)

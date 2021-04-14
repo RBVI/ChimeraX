@@ -181,6 +181,12 @@ class VolumeColor(State):
 
     # -------------------------------------------------------------------------
     #
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_recolor_vertices == self._auto_recolor
+
+    # -------------------------------------------------------------------------
+    #
     def set_colormap(self, palette, range, per_pixel = False):
         r = self.value_range() if _use_full_range(range, palette) else range
         self.colormap = _colormap_with_range(palette, r)

@@ -321,9 +321,16 @@ cdef class CyAtom:
         return self.cpp_atom.element().py_instance(True)
 
     @element.setter
-    def element(self, Element e):
+    def element(self, val):
         "Supported API. set atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
+        cdef Element e
+        if type(val) == Element:
+            e = val
+        elif type(val) in (int, str):
+            e = Element.get_element(val)
+        else:
+            raise ValueError("Cannot set Element from %s" % repr(val))
         self.cpp_atom.set_element(dereference(e.cpp_element))
 
     @property

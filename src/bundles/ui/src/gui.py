@@ -470,6 +470,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
         self._hide_tools = False
+        self._hide_floating_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
@@ -499,6 +500,9 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
+
+        self._activated_window_index = 0
+        self.set_hot_keys()
 
         # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
         # so withdrawn in favor of just "maximized" for now
@@ -675,6 +679,40 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setEnabled(True)
 
     @property
+    def hide_floating_tools(self):
+        return self._hide_floating_tools
+
+    @hide_floating_tools.setter
+    def hide_floating_tools(self, ht):
+        if ht == self._hide_floating_tools:
+            return
+
+        # need to set _hide_floating_tools attr first, since it will be checked in 
+        # subsequent calls
+        self._hide_floating_tools = ht
+        if ht == True:
+            self._hide_floating_tools_shown_states = states = {}
+            settings_dw = self.settings_ui_widget
+            self._pref_dialog_state = not settings_dw.isHidden() and settings_dw.isFloating()
+            if self._pref_dialog_state:
+                settings_dw.hide()
+            for tool_windows in self.tool_instance_to_windows.values():
+                for tw in tool_windows:
+                    if not tw.floating:
+                        continue
+                    state = tw.shown
+                    states[tw] = state
+                    if state:
+                        tw._mw_set_shown(False)
+        else:
+            for tw, state in self._hide_floating_tools_shown_states.items():
+                if state:
+                    tw._mw_set_shown(True)
+            self._hide_floating_tools_shown_states.clear()
+            if self._pref_dialog_state:
+                self.settings_ui_widget.show()
+
+    @property
     def hide_tools(self):
         return self._hide_tools
 
@@ -724,6 +762,18 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tw._mw_set_shown(False)
                 tw._destroy()
             del self.tool_instance_to_windows[tool_instance]
+
+    def set_hot_keys(self):
+        from Qt.QtWidgets import QShortcut
+        from Qt.QtGui import QKeySequence
+        from Qt.QtCore import Qt
+        sc = QShortcut(QKeySequence("Shift+Esc"), self, context=Qt.ApplicationShortcut)
+        from chimerax.core.commands import run
+        sc.activated.connect(lambda run=run, ses=self.session: run(ses, "ui hideFloating toggle"))
+        sc = QShortcut(QKeySequence.NextChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(1))
+        sc = QShortcut(QKeySequence.PreviousChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(-1))
 
     def set_tool_shown(self, tool_instance, shown):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
@@ -837,6 +887,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if self.hide_tools and not as_floating:
             self.hide_tools = False
     _float_changed = _about_to_manage
+
+    def _activate_next_window(self, increment):
+        windows = [self]
+        if not self.settings_ui_widget.isHidden():
+            windows += [self.settings_ui_widget]
+        for tws in self.tool_instance_to_windows.values():
+            for tw in tws:
+                if tw.floating and tw.shown:
+                    windows.append(tw._dock_widget)
+        self._activated_window_index = (self._activated_window_index + increment) % len(windows)
+        from Qt.QtCore import Qt
+        windows[self._activated_window_index].activateWindow()
+        windows[self._activated_window_index].raise_()
 
     def _build_status(self):
         from .statusbar import _StatusBar
