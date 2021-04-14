@@ -30,7 +30,7 @@ def add_hydrogens(atom, *args, **kw):
 
 def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, total_hydrogens,
         idatm_type, invert, coordinations):
-    from .cmd import new_hydrogen, find_nearest, roomiest, find_rotamer_nearest, add_altloc_hyds
+    from .cmd import find_nearest, roomiest, find_rotamer_nearest, add_altloc_hyds
     from .util import bond_with_H_length
     away = away2 = planar = None
     geom = bonding_info.geometry

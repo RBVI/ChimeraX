@@ -288,8 +288,8 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
             if (r2->chain_id().size() < 2) {
-                strncpy(srec.ssbond.res[0].name, r2->name().c_str(), 3);
-                srec.ssbond.res[0].chain_id = r2->chain_id()[0];
+                strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+                srec.ssbond.res[1].chain_id = r2->chain_id()[0];
             } else {
                 auto res_name = r2->name();
                 auto chain_id = r2->chain_id();
@@ -2120,9 +2120,9 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
             }
         }
         write_conect(os, s, rev_asn, written, polymeric_res_names);
-        p.set_type(PDB::END);
-        os << p << "\n";
     }
+    p.set_type(PDB::END);
+    os << p << "\n";
 }
 
 static const char*
