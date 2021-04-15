@@ -2048,7 +2048,7 @@ class VolumeSurface(Surface):
 
   def _set_clip_cap_color(self, color):
     for c in self.child_models():
-      if getattr(c, 'is_clip_cap'):
+      if getattr(c, 'is_clip_cap', False):
         c.set_color(color)
         
   def _get_colors(self):
