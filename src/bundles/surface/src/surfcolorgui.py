@@ -371,6 +371,8 @@ class SurfaceColorGUI(ToolInstance):
             self._axis_entry.value = '%.5g %.5g %.5g' % tuple(sc.axis)
         if method_name in self._offset_methods:
             self._surface_offset.value = sc.offset
+        if method_name in self._volume_methods:
+            self._map.value = sc.volume
 
     # ---------------------------------------------------------------------------
     #
