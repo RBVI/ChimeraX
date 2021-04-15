@@ -81,6 +81,11 @@
     <Provider category="Initial Styles" name="Space-Filling (single color)"
               order="4"/>
   </Providers>
+  <Providers manager="items inspection">
+	<Provider name="atoms"/>
+	<Provider name="bonds"/>
+	<Provider name="residues"/>
+  </Providers>
 
   <Classifiers>
     ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
