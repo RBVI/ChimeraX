@@ -134,7 +134,13 @@ class GeometryColor(State):
         if auto_recolor:
             from .updaters import add_updater_for_session_saving
             add_updater_for_session_saving(surface.session, self)
-        
+
+    # -------------------------------------------------------------------------
+    #
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_recolor_vertices == self.set_vertex_colors
+    
     # -------------------------------------------------------------------------
     #
     def set_colormap(self, palette, range):

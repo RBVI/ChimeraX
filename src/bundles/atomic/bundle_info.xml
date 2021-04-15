@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.13"
+<BundleInfo name="ChimeraX-Atomic" version="1.15"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -59,6 +59,7 @@
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-ItemsInspection" version="~=1.0"/>
     <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
     <Dependency name="ChimeraX-Nucleotides" version="~=2.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
@@ -80,6 +81,11 @@
               order="3"/>
     <Provider category="Initial Styles" name="Space-Filling (single color)"
               order="4"/>
+  </Providers>
+  <Providers manager="items inspection">
+	<Provider name="atoms"/>
+	<Provider name="bonds"/>
+	<Provider name="residues"/>
   </Providers>
 
   <Classifiers>

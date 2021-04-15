@@ -11,18 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
-from .cmd import ChargeMethodArg
-
 from chimerax.core.toolshed import BundleAPI
 
-class AddCharge_API(BundleAPI):
+class _SelInspectorBundleAPI(BundleAPI):
 
-    """
     @staticmethod
-    def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(command_name, logger)
-    """
+    def start_tool(session, tool_name):
+        from .tool import SelInspector
+        return SelInspector(session, tool_name)
 
-bundle_api = AddCharge_API()
+bundle_api = _SelInspectorBundleAPI()
