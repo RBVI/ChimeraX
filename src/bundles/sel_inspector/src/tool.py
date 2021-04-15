@@ -49,6 +49,15 @@ class SelInspector(ToolInstance):
         layout.addLayout(self.options_layout)
         self.options_container = None
 
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.rejected.connect(self.delete)
+        from chimerax.core.commands import run
+        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
         from chimerax.dist_monitor.cmd import group_triggers
         self.handlers = [
             session.items_inspection.triggers.add_handler("inspection items changed", self._new_items),

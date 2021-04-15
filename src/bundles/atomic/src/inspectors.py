@@ -275,14 +275,11 @@ class ResidueSSIDOption(IntOption):
     attr_name = "ss_id"
     balloon = "Secondary structures elements that are to be depicted as continuous\n" \
         "should have the same secondary structure ID number."
-    default = 1
+    default = -1
     name = "Secondary structure ID #"
     @property
     def command_format(self):
         return "setattr %%s r ss_id %d" % self.value
-
-    def __init__(self, *args, **kw):
-        super().__init__(*args, min=1, **kw)
 
 class ResidueSSTypeOption(SymbolicEnumOption):
     values = (Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND)
