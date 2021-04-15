@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-RotamerLibMgr" version="2.0" package="chimerax.rotamers"
+<BundleInfo name="ChimeraX-ItemsInspection" version="1.0" package="chimerax.items_inspection"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -8,21 +8,22 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Manage rotamer libraries</Synopsis>
-  <Description>Manager for rotamer libraries (provided by other bundles)</Description>
+  <Synopsis>Inspection of attributes of a set of items</Synopsis>
+  <Description>Infrastructure for generic inspection of a set of items (attributes/values)</Description>
 
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
-    <Category name="Structure Editing"/>
+    <Category name="General Controls"/>
   </Categories>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Managers>
-    <Manager name="rotamers"/>
+    <Manager name="items inspection" uiOnly="true"/>
   </Managers>
 
   <Classifiers>
