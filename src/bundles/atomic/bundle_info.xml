@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.15"
+<BundleInfo name="ChimeraX-Atomic" version="1.16"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -54,7 +54,7 @@
 
   <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.1"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>

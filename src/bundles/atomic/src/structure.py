@@ -231,7 +231,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -245,13 +245,13 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals
