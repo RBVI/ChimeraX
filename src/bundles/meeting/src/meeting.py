@@ -888,6 +888,8 @@ class MeetingParticipant:
     def _restore_session(self, session_bytes):
         size = len(session_bytes)/2**20
         ses = self._session
+        ses.logger.status('Received scene data (%.1f Mbytes) from meeting host'
+                          % size)
         from lz4.frame import decompress
         sbytes = decompress(session_bytes)
         from io import BytesIO
