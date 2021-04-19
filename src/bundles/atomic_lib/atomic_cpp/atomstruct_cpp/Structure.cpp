@@ -1966,6 +1966,7 @@ Structure::set_active_coord_set(CoordSet *cs)
         if (active_coord_set_change_notify()) {
             set_gc_shape();
             set_gc_ribbon();
+            set_gc_ring();
             change_tracker()->add_modified(this, this, ChangeTracker::REASON_ACTIVE_COORD_SET);
             change_tracker()->add_modified(this, this, ChangeTracker::REASON_SCENE_COORD);
         }
