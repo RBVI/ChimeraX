@@ -251,9 +251,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         from . import structure
         if self._global_group:
             # Use scene coordinates since atoms may belong to different models.
-            p = self.position
-            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
-            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+            p = self.parent
+            if p and not p.scene_position.is_identity():
+                ps = p.scene_position
+                sxyz1, sxyz2 = ps*mxyz1, ps*mxyz2               
+            else:
+                sxyz1, sxyz2 = mxyz1, mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, sxyz1, sxyz2, scene_coordinates = True)
         else:
             b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None
