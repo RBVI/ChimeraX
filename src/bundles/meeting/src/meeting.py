@@ -801,7 +801,6 @@ class MeetingParticipant:
                                    self._session.logger, connection_timeout = timeout)
         self._message_stream = msg_stream
         socket.connectToHost(host, port)
-        # TODO: Need to wait for socket to switch to ConnectedState, will emit connected signal.
         socket.connected.connect(self._connected)
 
     def _connected(self):
@@ -889,6 +888,8 @@ class MeetingParticipant:
     def _restore_session(self, session_bytes):
         size = len(session_bytes)/2**20
         ses = self._session
+        ses.logger.status('Received scene data (%.1f Mbytes) from meeting host'
+                          % size)
         from lz4.frame import decompress
         sbytes = decompress(session_bytes)
         from io import BytesIO
@@ -953,15 +954,18 @@ class MeetingParticipant:
 
     @property
     def vr_tracker(self):
-        self._initiate_tracking()
+        self._initiate_tracking(send_messages = False)
         return self._vr_tracker
     
-    def _initiate_tracking(self):
+    def _initiate_tracking(self, send_messages = True):
         if not self._trackers:
             s = self._session
             self._mouse_tracker = mt = MouseTracking(s, self)
             self._vr_tracker = vrt = VRTracking(s, self)
             self._trackers = [mt, vrt]
+        if send_messages:
+            for t in self._trackers:
+                t.send_messages(True)
 
     def _message_received(self, msg, msg_stream):
         if 'session' in msg:
@@ -1521,19 +1525,28 @@ class MouseTracking(PointerModels):
         PointerModels.__init__(self, session)
         self._participant = participant		# MeetingParticipant instance
 
-        t = session.triggers
-        self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
-        self._last_camera_position = None
-        self._camera_move_handler = t.add_handler('new frame', self._camera_move_cb)
-
-    def delete(self):
-        t = self._session.triggers
-        t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
-        t.remove_handler(self._camera_move_handler)
+        self._last_camera_position = None
         self._camera_move_handler = None
 
+    def delete(self):
+        self.send_messages(False)
         PointerModels.delete(self)
+
+    def send_messages(self, send):
+        hh,hc = self._mouse_hover_handler, self._camera_move_handler
+        if hh is None and send:
+            t = self._session.triggers
+            self._mouse_hover_handler = t.add_handler('mouse hover',
+                                                      self._mouse_hover_cb)
+            self._camera_move_handler = t.add_handler('new frame',
+                                                      self._camera_move_cb)
+        elif hh and not send:
+            t = self._session.triggers
+            t.remove_handler(hh)
+            t.remove_handler(hc)
+            self._mouse_hover_handler = None
+            self._camera_move_handler = None
 
     def update_model(self, msg):
         if 'mouse' in msg:
@@ -1617,8 +1630,7 @@ class VRTracking(PointerModels):
         self._participant = participant		# MeetingParticipant instance
         self._sync_coords = sync_coords
 
-        t = session.triggers
-        self._vr_tracking_handler = t.add_handler('vr update', self._vr_tracking_cb)
+        self._vr_tracking_handler = None
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
         from chimerax.geometry import Place
@@ -1631,12 +1643,20 @@ class VRTracking(PointerModels):
         self._gui_state = {'shown':False, 'size':(0,0), 'room position':None, 'image':None}
 
     def delete(self):
-        t = self._session.triggers
-        t.remove_handler(self._vr_tracking_handler)
-        self._vr_tracking_handler = None
-
+        self.send_messages(False)
         PointerModels.delete(self)
 
+    def send_messages(self, send):
+        h = self._vr_tracking_handler
+        if h is None and send:
+            t = self._session.triggers
+            h = t.add_handler('vr update', self._vr_tracking_cb)
+            self._vr_tracking_handler = h
+        elif h and not send:
+            t = self._session.triggers
+            t.remove_handler(h)
+            self._vr_tracking_handler = None
+        
     @property
     def last_room_to_scene(self):
         return self._last_room_to_scene
