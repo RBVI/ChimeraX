@@ -218,11 +218,24 @@ class ModelPanel(ToolInstance):
                 self._items.append(item)
                 if bg_color is not False:
                     from chimerax.ui.widgets import MultiColorButton
-                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
-                    def set_model_color(rgba, m=model, ses=self.session):
-                        for cm in m.all_models():
-                            cm.model_color = rgba
+                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16), pause_delay=0.5)
+                    def set_model_color(rgba, m=model, ses=self.session, but=but):
+                        from chimerax.core.models import Surface
+                        from chimerax.atomic import Structure
+                        if isinstance(m, (Structure, Surface)):
+                            target_string = ""
+                        else:
+                            target_string = " models"
+                        from chimerax.core.commands import run
+                        from chimerax.core.colors import color_name
+                        cmd = "color #%s %s%s" % (m.id_string, color_name(rgba), target_string)
+                        run(ses, cmd, log=False)
+                        but.delayed_cmd_text = cmd
                     but.color_changed.connect(set_model_color)
+                    def log_delayed_cmd(*args, but=but, ses=self.session):
+                        from chimerax.core.commands import Command
+                        Command(ses).run(but.delayed_cmd_text, log_only=True)
+                    but.color_pause.connect(log_delayed_cmd)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
                 

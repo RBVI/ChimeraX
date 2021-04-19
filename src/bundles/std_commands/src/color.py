@@ -18,12 +18,13 @@ _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
 DEFAULT_TARGETS = 'acsbpf'
-ALL_TARGETS = 'acrsbpfl'
+ALL_TARGETS = 'acrsbmpfl'
 WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
     'surfaces': 's',
     'bonds': 'b',
+    'models': 'm',
     'pseudobonds': 'p',
     'rings': 'f',
     'labels': 'l',
@@ -57,13 +58,13 @@ def color(session, objects, color=None, what=None, target=None,
       Which objects to color.
     color : Color
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
-    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels' or None
+    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels', 'models' or None
       What to color. Everything is colored if option is not specified.
-    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f'
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f', 'm'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      b = bonds, p = pseudobonds, f = (filled) rings
-      Everything except labels is colored if no target is specified.
+      b = bonds, p = pseudobonds, f = (filled) rings, m = models
+      Everything except labels and models is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     halfbond : bool
@@ -170,6 +171,12 @@ def color(session, objects, color=None, what=None, target=None,
             nl = _set_label_colors(session, objects, color, opacity, undo_state=undo_state)
             if nl > 0:
                 items.append('%d labels' % nl)
+    
+    if 'm' in target:
+        if color not in _SpecialColors:
+            _set_model_colors(session, objects.models, color, opacity, undo_state)
+            items.append('%d models' % len(objects.models))
+
     if not items:
         items.append('nothing')
 
@@ -362,7 +369,7 @@ def _set_model_colors(session, model_list, color, opacity, undo_state):
         c = color.uint8x4()
         if not opacity is None:
             c[3] = opacity
-        elif not m.model_color is None:
+        elif not m.model_color is None and not m.model_color is False:
             c[3] = m.model_color[3]
         m.model_color = c
         if undo_state:
@@ -1339,9 +1346,10 @@ def color_single(session, models = None):
 from chimerax.core.commands import StringArg
 class TargetArg(StringArg):
     """String containing characters indicating what to color:
-    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds, f = (filled) rings
+    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds, f = (filled) rings,
+    m = models
     """
-    name = "characters from 'abcfprs'"
+    name = "characters from 'abcfmprs'"
 
     @staticmethod
     def parse(text, session):
