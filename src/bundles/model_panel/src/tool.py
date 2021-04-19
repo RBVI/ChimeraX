@@ -220,8 +220,15 @@ class ModelPanel(ToolInstance):
                     from chimerax.ui.widgets import MultiColorButton
                     but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
                     def set_model_color(rgba, m=model, ses=self.session):
-                        for cm in m.all_models():
-                            cm.model_color = rgba
+                        from chimerax.core.models import Surface
+                        from chimerax.atomic import Structure
+                        if isinstance(m, (Structure, Surface)):
+                            target_string = ""
+                        else:
+                            target_string = " models"
+                        from chimerax.core.commands import run
+                        from chimerax.core.colors import color_name
+                        run(ses, "color #%s %s%s" % (m.id_string, color_name(rgba), target_string))
                     but.color_changed.connect(set_model_color)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
