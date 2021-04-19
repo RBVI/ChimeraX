@@ -1158,6 +1158,21 @@ extern "C" EXPORT void atom_effective_coord(void *atoms, size_t n, float64_t *xy
     }
 }
 
+extern "C" EXPORT void atom_effective_scene_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto c = a[i]->effective_scene_coord();
+            *xyz++ = c[0];
+            *xyz++ = c[1];
+            *xyz++ = c[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
 {
     Atom *a = static_cast<Atom *>(atom);
