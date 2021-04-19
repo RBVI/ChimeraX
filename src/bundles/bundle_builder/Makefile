@@ -47,7 +47,8 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
+	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
+	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/python-only

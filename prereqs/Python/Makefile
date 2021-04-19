@@ -162,9 +162,9 @@ ifeq ($(OS),Windows)
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
+	ln -s -f $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
+	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
+	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
