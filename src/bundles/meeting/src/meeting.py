@@ -766,6 +766,7 @@ class MeetingParticipant:
         if start_hub:
             self._hub = h = MeetingHub(session, self)
             self._message_stream = MessageStreamLocal(h._message_received)
+            self._initiate_tracking()
         
         # Exit cleanly
         self._app_quit_handler = session.triggers.add_handler('app quit', self._app_quit)
