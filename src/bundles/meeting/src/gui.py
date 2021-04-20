@@ -135,39 +135,28 @@ class MeetingTool(ToolInstance):
   #
   def _create_options_gui(self, parent, settings):
 
-    from chimerax.ui.widgets import CollapsiblePanel
+    from chimerax.ui.widgets import CollapsiblePanel, EntriesRow
     p = CollapsiblePanel(parent, title = None, margins = (10,0,10,0))
     f = p.content_area
     layout = f.layout()
 
-    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QMenu
+    # Server menu
+    menu_values = tuple(settings.servers.keys())
+    sm = EntriesRow(f, 'Start meeting using server', menu_values)
+    self._server_button = sb = sm.values[0]
+    sb.value = settings.server
+    stip = '<p>The chimeraxmeeting.net server is available to everyone but can only handle ten simultaneous meetings.  If the participants can directly connect to the host of the meeting without being blocked by a firewall then "direct" can be used which makes the host\'s computer act as the server.</p>'
+    sm.labels[0].setToolTip(stip)
 
-    mf = QFrame(f)
-    mlayout = QHBoxLayout(mf)
-    mlayout.setContentsMargins(0,0,0,0)
-    mlayout.setSpacing(8)
-    sl = QLabel('Start meeting using server', mf)
-    msg = '<p>The chimeraxmeeting.net server is available to everyone but can only handle ten simultaneous meetings.  If the participants can directly connect to the host of the meeting without being blocked by a firewall then "direct" can be used which makes the host\'s computer act as the server.</p>'
-    sl.setToolTip(msg)
-    mlayout.addWidget(sl)
-    self._server_button = sb = QPushButton(mf)
-    sb.setText(settings.server)
-    sm = QMenu(mf)
-    for name in settings.servers.keys():
-        sm.addAction(name, lambda n=name: self._set_server_menu(n))
-    sb.setMenu(sm)
-    mlayout.addWidget(sb)
-    mlayout.addStretch(1)
-    layout.addWidget(mf)
-
+    # Join with ssh option
+    js = EntriesRow(f, 'Join meeting using ssh', False)
+    self._join_with_ssh = js.values[0]
+    jtip = '<p>Firewalls can block ChimeraX joining a meeting via a direct connection to the server.  Using ssh may avoid being blocked.</p>'
+    js.labels[0].setToolTip(jtip)
+    
     layout.addStretch(1)
     
     return p
-
-  # ---------------------------------------------------------------------------
-  #
-  def _set_server_menu(self, name):
-    self._server_button.setText(name)
 
   # ---------------------------------------------------------------------------
   #
@@ -182,7 +171,7 @@ class MeetingTool(ToolInstance):
     for name, callback in (('Create', self._start_meeting),
                            ('Join', self._join_meeting),
                            ('Leave', self._leave_meeting),
-                           ('Server...', self._toggle_options),
+                           ('Options...', self._toggle_options),
                            ('Help', self._show_help)):
       b = QPushButton(name, f)
       b.clicked.connect(callback)
@@ -241,6 +230,9 @@ class MeetingTool(ToolInstance):
     if face_image is not None and face_image != settings.face_image:
       opts.append('faceImage %s' % quote_if_necessary(face_image))
 
+    if self._join_with_ssh.value:
+      opts.append('ssh true')
+
     return opts
 
   # ---------------------------------------------------------------------------
@@ -248,7 +240,7 @@ class MeetingTool(ToolInstance):
   def _server_options(self, settings):
 
     opts = []
-    server = self._server_button.text()
+    server = self._server_button.value
     if server != settings.server:
       from chimerax.core.commands import quote_if_necessary
       opts.append('server %s' % quote_if_necessary(server))
