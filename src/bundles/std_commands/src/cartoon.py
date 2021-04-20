@@ -94,8 +94,9 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
 def _get_structures(session, structures):
     if structures is None or structures is True:
         # True is the NoArg case
-        from chimerax.atomic import all_structures
-        structures = all_structures(session)
+        from chimerax.atomic import all_atomic_structures, AtomicStructures
+        structures = AtomicStructures(all_atomic_structures(session))
+        
     return structures
 
 
