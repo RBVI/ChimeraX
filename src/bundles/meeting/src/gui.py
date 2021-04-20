@@ -66,7 +66,7 @@ class MeetingTool(ToolInstance):
         
     f = QFrame(parent)
     layout = QHBoxLayout(f)
-    layout.setContentsMargins(0,0,0,0)
+    layout.setContentsMargins(10,0,0,0)
     layout.setSpacing(8)
 
     mnl = QLabel('Meeting name', f)
@@ -136,7 +136,7 @@ class MeetingTool(ToolInstance):
   def _create_options_gui(self, parent, settings):
 
     from chimerax.ui.widgets import CollapsiblePanel
-    p = CollapsiblePanel(parent, title = None, margins = (30,0,30,10))
+    p = CollapsiblePanel(parent, title = None, margins = (10,0,10,0))
     f = p.content_area
     layout = f.layout()
 
@@ -146,7 +146,9 @@ class MeetingTool(ToolInstance):
     mlayout = QHBoxLayout(mf)
     mlayout.setContentsMargins(0,0,0,0)
     mlayout.setSpacing(8)
-    sl = QLabel('Server', mf)
+    sl = QLabel('Start meeting using server', mf)
+    msg = '<p>The chimeraxmeeting.net server is available to everyone but can only handle ten simultaneous meetings.  If the participants can directly connect to the host of the meeting without being blocked by a firewall then "direct" can be used which makes the host\'s computer act as the server.</p>'
+    sl.setToolTip(msg)
     mlayout.addWidget(sl)
     self._server_button = sb = QPushButton(mf)
     sb.setText(settings.server)
@@ -157,13 +159,6 @@ class MeetingTool(ToolInstance):
     mlayout.addWidget(sb)
     mlayout.addStretch(1)
     layout.addWidget(mf)
-
-    msg = 'The server option is used when starting a meeting.  Direct means participants connect directly to the computer that started the meeting.  If that computer is behind a firewall and cannot be reached by participants then a public computer chimeraxmeeting.net can be used as the server.'
-    self._server_label = el = QLabel(msg, f)
-    # Size hint does not update when window made narrower and word wrape enabled
-    # causing wrong panel height.
-    el.setWordWrap(True)
-    layout.addWidget(el)
 
     layout.addStretch(1)
     
