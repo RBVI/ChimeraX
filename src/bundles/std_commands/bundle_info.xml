@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.4"
+<BundleInfo name="ChimeraX-StdCommands" version="1.5"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -53,6 +53,7 @@
     <ChimeraXClassifier>Command :: alias delete :: General Controls :: remove command alias</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~alias :: General Controls :: remove command alias</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: align :: Structure Comparison :: superimpose specific parts of structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: altlocs :: Structure Editing :: change/remove alternate atom locations</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: angle :: Structure Analysis :: Report or set angle between atoms/objects</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: camera :: Viewing Controls :: change "camera" parametrs of main viewing window</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: cartoon :: Depiction :: show stylized representation of structure</ChimeraXClassifier>

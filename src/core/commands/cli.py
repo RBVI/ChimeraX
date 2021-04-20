@@ -234,14 +234,15 @@ def commas(text_seq, conjunction='or'):
     return text
 
 
-def plural_form(seq, word, plural=None):
+def plural_form(things, word, plural=None):
     """Return plural of word based on length of sequence
 
-    :param seq: a sequence of objects
+    :param things: a sequence of objects or an integer
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    if len(seq) == 1:
+    count = things if isinstance(things, int) else len(things)
+    if count == 1:
         return word
     if plural is None:
         return plural_of(word)
