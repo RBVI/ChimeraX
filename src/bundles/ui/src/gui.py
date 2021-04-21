@@ -476,7 +476,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._set_label_height_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
-            lambda *, s=self: setattr(s, '_presets_menu_needs_update', True))
+            lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
         self._is_quitting = False
         self._color_dialog = None
 
