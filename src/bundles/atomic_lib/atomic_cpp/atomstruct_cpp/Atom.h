@@ -150,6 +150,7 @@ public:
     float  bfactor() const;
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
+    void  clean_alt_locs();
     void  clear_aniso_u();
     void  clear_ribbon_coord();
     bool  connects_to(const Atom* other) const {

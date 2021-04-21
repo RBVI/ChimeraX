@@ -1515,6 +1515,11 @@ cdef class CyResidue:
         between = self.cpp_res.bonds_between(<cydecl.Residue*>other_res.cpp_res)
         return Bonds(numpy.array([<ptr_type>b for b in between], dtype=numpy.uintp))
 
+    def clean_alt_locs(self):
+        "Change the current alt locs in this residue to 'regular' locations and delete all alt locs"
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.clean_alt_locs()
+
     def connects_to(self, CyResidue other_res):
         "Supported API. Return True if this residue is connected by at least one bond "
         " (not pseudobond) to other_res"
