@@ -790,7 +790,10 @@ def init(argv, event_loop=True):
             has_install = 'install' in sys.argv
             has_uninstall = 'uninstall' in sys.argv
             if has_install or has_uninstall:
-                per_user = '--user' in sys.argv
+                # TODO: --user is not given for uninstalls, so see
+                # where the packages were installed to determine if
+                # per_user should be true
+                per_user = has_uninstall or '--user' in sys.argv
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
             # Do not remove scripts anymore since we may be installing
