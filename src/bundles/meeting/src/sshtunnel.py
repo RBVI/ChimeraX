@@ -11,17 +11,22 @@
 
 # -----------------------------------------------------------------------------
 #
-class SSHRemoteTunnel:
+class SSHTunnel:
     '''
-    Run ssh to set up a tunnel to a remote host.
+    Run ssh to set up a tunnel to or from a remote host.
     If the connection fails or times out raise an error.
-    Randomly chosen ports in the port range are tried until an available one
-    is found.  If all are unavailable an exception is raised.
+    When creating a tunnel to the remote host a randomly chosen
+    port in the remote host port range is used.  When creating a tunnel from
+    the remote host randomly chosen ports in the port range on the remote host
+    are tried until an available one is found.  If all are unavailable an exception
+    is raised.
     '''
-    def __init__(self, account, address, key_path, remote_port_range, local_port, log = None,
-                 connection_timeout = 5, exit_check_interval = 1.0, closed_callback = None):
-        self.host = address
+    def __init__(self, local_port, account, address, key_path, remote_port_range, from_remote = True,
+                 connection_timeout = 5, exit_check_interval = 1.0, closed_callback = None,
+                 log = None):
         self.local_port = local_port
+        self.host = address
+        self._from_remote = from_remote
         self._log = log
         self._closed_callback = closed_callback
 
@@ -59,30 +64,33 @@ class SSHRemoteTunnel:
         
         from chimerax.core.errors import UserError
         for remote_port in ports:
-            self._log.status('Checking if port %d available on proxy server %s'
-                             % (remote_port, self.host))
+            if self._from_remote:
+                msg = 'Checking if port %d available on server %s' % (remote_port, self.host)
+            else:
+                msg = 'Connecting with ssh to server %s port %d' % (self.host, remote_port)
+            self._log.status(msg)
             p = self._run_ssh(account, address, key_path,
                               remote_port, local_port, connection_timeout)
             if p is None:
-                raise UserError('meeting: failed creating tunnel to proxy')
+                raise UserError('meeting: failed creating tunnel to server')
             exit_message = self._tunnel_created(p, connection_timeout)
             if exit_message is None:
-                self._log.status('Created tunnel to proxy %s' % self.host)
+                self._log.status('Created tunnel to server %s' % self.host)
                 return p, remote_port
             if 'timed out' in exit_message:
                 self._log.warning(exit_message)
-                raise UserError('meeting: Connection to proxy server %s@%s timed out'
+                raise UserError('meeting: Connection to server %s@%s timed out'
                                 % (account, address))
             elif 'Connection closed' in exit_message:
                 self._log.warning(exit_message)
-                raise UserError('meeting: Connection to proxy server %s@%s closed'
+                raise UserError('meeting: Connection to server %s@%s closed'
                                 % (account, address) +
                                 ', possibly an authentication problem.')
             elif 'failed for listen port' in exit_message:
                 continue
 
         self._log.warning(exit_message)
-        raise UserError('meeting: No remote ports (%d - %d) available for ssh tunnel to proxy %s@%s'
+        raise UserError('meeting: No remote ports (%d - %d) available for ssh tunnel to server %s@%s'
                         % (remote_port_range[0], remote_port_range[1], account, address))
 
     # -----------------------------------------------------------------------------
@@ -102,6 +110,11 @@ class SSHRemoteTunnel:
             ssh_exe = 'ssh'
             startupinfo = None
 
+        if self._from_remote:
+            tunnel_opt = ['-R', '%d:localhost:%d' % (remote_port,local_port)]	# Remote port forwarding
+        else:
+            tunnel_opt = ['-L', '%d:localhost:%d' % (local_port,remote_port)]	# Local port forwarding
+            
         command = [
             ssh_exe,
             '-N',					# Do not execute remote command
@@ -110,7 +123,7 @@ class SSHRemoteTunnel:
             '-o', 'ExitOnForwardFailure=yes',		# If remote port in use already exit instead of warn
             '-o', 'ConnectTimeout=%d' % connection_timeout, # Fail faster than 75 second TCP timeout if can't connect
             '-o', 'StrictHostKeyChecking=no',		# Don't ask about host authenticity on first connection
-            '-R', '%d:localhost:%d' % (remote_port,local_port),	# Remote port forwarding
+        ] + tunnel_opt + [        
             '%s@%s' % (account, address),	# Remote machine
         ]
 
@@ -118,7 +131,7 @@ class SSHRemoteTunnel:
         try:
             p = Popen(command, stdout=PIPE, stderr=PIPE, startupinfo=startupinfo)
         except Exception as e:
-            msg = ('meeting: failed creating tunnel to proxy "%s"\n%s'
+            msg = ('meeting: failed creating tunnel to server "%s"\n%s'
                    % (str(command), str(e)))
             self._log.warning(msg)
             p = None

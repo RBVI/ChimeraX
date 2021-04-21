@@ -406,7 +406,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_single_color(self):
+  def _get_model_color(self):
     from chimerax.core.colors import rgba_to_rgba8
     if self.surface_shown:
       surfs = self.surfaces
@@ -422,10 +422,10 @@ class Volume(Model):
     if drgba:
       return rgba_to_rgba8(drgba)
     return None
-  def _set_single_color(self, color):
+  def _set_model_color(self, color):
     from chimerax.core.colors import rgba8_to_rgba
     self.set_color(rgba8_to_rgba(color))
-  single_color = property(_get_single_color, _set_single_color)
+  model_color = property(_get_model_color, _set_model_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -1904,7 +1904,7 @@ class VolumeImage(Image3d):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_single_color(self):
+  def _get_model_color(self):
     '''Return average color.'''
     v = self._volume
     colors = v.image_colors
@@ -1914,14 +1914,14 @@ class VolumeImage(Image3d):
     else:
       c = array([int(r*255) for r in mean(colors, axis=0)], uint8)
     return c
-  def _set_single_color(self, color):
+  def _set_model_color(self, color):
     v = self._volume
     rgba = [[r/255 for r in color]] * len(v.image_levels)
     if rgba != v.image_colors:
       v.image_colors = rgba
       self._update_colormap()
       v.call_change_callbacks('colors changed')
-  single_color = property(_get_single_color, _set_single_color)
+  model_color = property(_get_model_color, _set_model_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -2048,7 +2048,7 @@ class VolumeSurface(Surface):
 
   def _set_clip_cap_color(self, color):
     for c in self.child_models():
-      if getattr(c, 'is_clip_cap'):
+      if getattr(c, 'is_clip_cap', False):
         c.set_color(color)
         
   def _get_colors(self):
@@ -3962,7 +3962,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         grids = []
         for v in vlist:
           g = v.grid_data(region, step, mask_zone)
-          color = v.single_color
+          color = v.model_color
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)

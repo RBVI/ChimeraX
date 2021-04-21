@@ -161,6 +161,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
         graphics_changes()->set_gc_shape();
         if (in_ribbon())
             graphics_changes()->set_gc_ribbon();
+        graphics_changes()->set_gc_ring();
     } else {
         //cs->_coords[_coord_index] = coord;
         cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
@@ -168,6 +169,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
             graphics_changes()->set_gc_shape();
             if (in_ribbon())
                 graphics_changes()->set_gc_ribbon();
+            graphics_changes()->set_gc_ring();
             change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
             if (structure()->active_coord_set() == cs)
                 structure()->change_tracker()->add_modified(structure(), structure(),
@@ -1116,6 +1118,13 @@ Coord
 Atom::scene_coord() const
 {
     return mat_mul(structure()->position(), coord());
+
+}
+
+Coord
+Atom::effective_scene_coord() const
+{
+    return mat_mul(structure()->position(), effective_coord());
 
 }
 

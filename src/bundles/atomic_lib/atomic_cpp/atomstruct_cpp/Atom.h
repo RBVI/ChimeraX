@@ -199,6 +199,7 @@ public:
     Residue *  residue() const { return _residue; }
     const Coord *ribbon_coord() const { return _ribbon_coord; }
     Coord  effective_coord() const;
+    Coord  effective_scene_coord() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
     Coord  scene_coord() const;

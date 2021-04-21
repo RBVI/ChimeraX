@@ -19,7 +19,7 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.13.1"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.13,>=1.13.1"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Hbonds" version="~=2.0"/>

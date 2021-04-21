@@ -302,6 +302,16 @@ To avoid ambiguity, that first argument can be omitted, and the <b>id</b>
 option used instead to ensure interpreting the value as a meeting name.
 </blockquote>
 <blockquote>
+<b>ssh</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use ssh to connect to the meeting server.  This can sometimes
+avoid being blocked by firewalls, for instance, when the joining computer
+is behind a firewall that does not allow outgoing connections to unknown ports
+using unknown protocols.  To use this option the meeting must either use server
+chimeraxmeeting.net, or if a different server is used the joiner must have the
+ssh key for that server specified with the <a href="#server">meeting server</a> command.
+</blockquote>
+<blockquote>
 <a name="relayCommands"></a>
 <b>relayCommands</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>

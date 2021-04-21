@@ -70,7 +70,8 @@ class EntriesRow:
 
         from .color_button import ColorButton
         from Qt.QtWidgets import QLabel, QPushButton
-        values = []
+        self.values = values = []
+        self.labels = labels = []
         for a in args:
             if isinstance(a, str):
                 if a == '':
@@ -83,6 +84,7 @@ class EntriesRow:
                         a = a[:-1]
                     l = QLabel(a, f)
                     layout.addWidget(l)
+                    labels.append(l)
                     if newline:
                         # String ends in newline so make new row.
                         layout.addStretch(1)
@@ -132,8 +134,6 @@ class EntriesRow:
                 values.append(cb)
 
         layout.addStretch(1)    # Extra space at end
-
-        self.values = values
 
 def radio_buttons(*check_boxes):
     for cb in check_boxes:
