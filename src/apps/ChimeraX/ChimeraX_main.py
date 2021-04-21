@@ -717,8 +717,8 @@ def init(argv, event_loop=True):
                     return os.EX_SOFTWARE
                 # Allow GUI to start up despite errors;
                 if sess.debug:
-                    from traceback import print_exception
-                    print_exc(file=sys.__stderr__)
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
                 else:
                     sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
@@ -728,7 +728,6 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
-        from chimerax.core import errors
         for script in opts.scripts:
             try:
                 run(sess, 'runscript %s' % script)
@@ -739,8 +738,8 @@ def init(argv, event_loop=True):
                     return os.EX_SOFTWARE
                 # Allow GUI to start up despite errors;
                 if sess.debug:
-                    from traceback import print_exception
-                    print_exc(file=sys.__stderr__)
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
                 else:
                     sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
             except SystemExit as e:
@@ -819,7 +818,7 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimerax.core import errors, commands
+    from chimerax.core import commands
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -836,8 +835,8 @@ def init(argv, event_loop=True):
                     return os.EX_SOFTWARE
                 # Allow GUI to start up despite errors;
                 if sess.debug:
-                    from traceback import print_exception
-                    print_exc(file=sys.__stderr__)
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
                 else:
                     sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
         else:
@@ -851,8 +850,8 @@ def init(argv, event_loop=True):
                     return os.EX_SOFTWARE
                 # Allow GUI to start up despite errors;
                 if sess.debug:
-                    from traceback import print_exception
-                    print_exc(file=sys.__stderr__)
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
                 else:
                     sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
