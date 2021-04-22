@@ -555,6 +555,8 @@ class HelpUI(ToolInstance):
     def update_back_forward(self, w=None):
         if w is None:
             w = self.tabs.currentWidget()
+            if w is None:
+                return
         history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
