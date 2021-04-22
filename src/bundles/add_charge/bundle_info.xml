@@ -32,7 +32,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: addcharge :: Structure Editing :: Add charges</ChimeraXClassifier>
+    <!-- <ChimeraXClassifier>Command :: addcharge :: Structure Editing :: Add charges</ChimeraXClassifier> -->
   </Classifiers>
 
 </BundleInfo>
