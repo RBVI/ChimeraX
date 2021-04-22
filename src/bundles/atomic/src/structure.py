@@ -1866,7 +1866,18 @@ def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
     bshown = bonds.showns
     bs = bonds.filter(bshown)
     a1, a2 = bs.atoms
-    cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords) if scene_coordinates else (a1.coords, a2.coords)
+    from .molarray import Pseudobonds
+    if isinstance(bonds, Pseudobonds):
+        # End positions may be projected onto ribbons.
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.pb_scene_coords, a2.pb_scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.pb_coords, a2.pb_coords)
+    else:
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.coords, a2.coords)
     r = bs.radii
 
     # Check for atom sphere intercept

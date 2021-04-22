@@ -631,6 +631,13 @@ class Atoms(Collection):
         Return the atom's ribbon_coord if the residue is displayed as a ribbon and
         has a ribbon coordinate, otherwise return the current coordinate.
         ''')
+    pb_coords = effective_coords
+    effective_scene_coords = cvec_property('atom_effective_scene_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate in scene coordinate system.
+        ''')
+    pb_scene_coords = effective_scene_coords
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
@@ -800,20 +807,6 @@ class Atoms(Collection):
                        ret=ctypes.py_object)
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
-
-    @property
-    def pb_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_coord
-        return v
-
-    @property
-    def pb_scene_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_scene_coord
-        return v
 
     @classmethod
     def session_restore_pointers(cls, session, data):
