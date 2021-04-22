@@ -165,7 +165,7 @@ def register_command(logger):
             ('map', BoolArg),
             ('palette', ColormapArg),
             ('range', ColormapRangeArg),
-            ('disp_dep', BoolArg),
+            ('dist_dep', BoolArg),
             ('dielectric', FloatArg),
             ('charge_method', ChargeMethodArg),
             ('key', BoolArg),
