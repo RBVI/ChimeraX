@@ -1219,6 +1219,37 @@ class Chain(StructureSeq):
     def atomspec(self):
         return self.string(style="command")
 
+    @property
+    def entity(self):
+        class EntityTester:
+            def __init__(self, chain):
+                self.chain = chain
+
+            def __eq__(self, chain_spec):
+                return self.chain.characters in self._get_test_set(chain_spec)
+
+            def __ne__(self, chain_spec):
+                return self.chain.characters not in self._get_test_set(chain_spec)
+
+            def lower(self, *args, **kw):
+                # needed to fool attribute-testing code
+                return self
+
+            def _get_test_set(self, chain_spec):
+                from chimerax.atomic import UniqueChainsArg
+                from chimerax.core.commands import AnnotationError
+                from chimerax.core.errors import UserError
+                try:
+                    chains, text, rest = UniqueChainsArg.parse(chain_spec, self.chain.structure.session)
+                except AnnotationError:
+                    raise UserError("Cannot parse chain specifier '%s' for entity attribute test"
+                        % chain_spec)
+                if rest:
+                    raise UserError("Extraneous text after chain specifer in entity attribute test")
+                return set([chain.characters for chain in chains])
+
+        return EntityTester(self)
+
     def extend(self, chars):
         # disallow extend
         raise AssertionError("extend() called on Chain object")

@@ -316,14 +316,6 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
                 session.logger.info("Could not determine GAFF type for atom %s" % a)
         return
 
-    electrons = net_charge
-    for a in r0.atoms:
-        electrons += a.element.number
-    if electrons % 2 == 1 and method == "am1-bcc":
-        # cannot compute charges for radical species with AM1-BCC
-        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
-            " for radical species using AM1-BCC method" % (r0.name, electrons - net_charge, net_charge))
-
     # detect tautomers by checking bonds
     varieties = {}
     for r in residues:
@@ -508,8 +500,10 @@ def _nonstd_charge(session, residues, net_charge, method, status):
         atom_names.add(a.name)
 
     # add the intraresidue bonds and remember the interresidue ones
+    electrons = 0
     nearby = set()
     for a in r_atoms:
+        electrons += a.element.number
         na = atom_map[a]
         for nb in a.neighbors:
             if nb.residue != r:
@@ -541,7 +535,15 @@ def _nonstd_charge(session, residues, net_charge, method, status):
                     nearby.add(nbnb)
                 else:
                     extras.update(_methylate(na, nbnb, atom_names))
+    for ea in extras:
+        electrons += ea.element.number
     total_net_charge = net_charge + estimate_net_charge(extras)
+
+    if (electrons + total_net_charge) % 2 == 1 and method == "am1-bcc":
+        # cannot compute charges for radical species with AM1-BCC
+        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
+            " for radical species using AM1-BCC method" % (r0.name, electrons, total_net_charge))
+
 
     from contextlib import contextmanager
     @contextmanager
