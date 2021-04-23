@@ -107,7 +107,15 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None, ke
                         offset = 0, transparency = None, gradient = False, caps_only = False,
                         auto_update = True, undo_name = 'color map by value', undo_state = None):
 
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No surface models specified for coloring by map value')
+
     surfs = [s for s in surfaces if s.vertices is not None]
+    if len(surfs) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Only empty surface models specified for coloring by map value')
+    
     cs_class = GradientColor if gradient else VolumeColor
 
     if undo_state is None:
