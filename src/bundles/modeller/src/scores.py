@@ -82,7 +82,8 @@ class ModellerScoringJob(Job):
             ("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
         ]
         from chimerax.webservices.post_form import post_multipart
-        submission = post_multipart(modeller_host, "/modeval/job", fields, accept_type="application/xml")
+        submission = post_multipart(modeller_host, "/modeval/job", fields, ssl=True,
+            accept_type="application/xml")
         from xml.dom.minidom import parseString
         sub_dom = parseString(submission)
         top = sub_dom.getElementsByTagName('saliweb')[0]
