@@ -177,6 +177,7 @@ class Changes:
 
 def selected_atoms(session=None):
     global _full_sel, _ordered_sel
+    check_for_changes(session)
     from .molarray import Atoms
     return _ordered_sel if _ordered_sel is not None else (_full_sel if _full_sel is not None else Atoms())
 
