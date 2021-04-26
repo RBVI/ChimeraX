@@ -150,6 +150,7 @@ public:
     float  bfactor() const;
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
+    void  clean_alt_locs();
     void  clear_aniso_u();
     void  clear_ribbon_coord();
     bool  connects_to(const Atom* other) const {
@@ -199,6 +200,7 @@ public:
     Residue *  residue() const { return _residue; }
     const Coord *ribbon_coord() const { return _ribbon_coord; }
     Coord  effective_coord() const;
+    Coord  effective_scene_coord() const;
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
     Coord  scene_coord() const;

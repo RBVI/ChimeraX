@@ -86,13 +86,13 @@ class MapSeries(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_single_color(self):
+  def _get_model_color(self):
     v = self.first_map()
-    return v.single_color if v else None
-  def _set_single_color(self, color):
+    return v.model_color if v else None
+  def _set_model_color(self, color):
     for m in self.maps:
-      m.single_color = color
-  single_color = property(_get_single_color, _set_single_color)
+      m.model_color = color
+  model_color = property(_get_model_color, _set_model_color)
 
   # ---------------------------------------------------------------------------
   #

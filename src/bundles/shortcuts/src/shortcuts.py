@@ -1010,7 +1010,7 @@ def color_by_bfactor(atoms):
            % (len(atoms), t1-t0, len(atoms)/(t1-t0)))
 
 def color_one_color(m):
-    m.single_color()
+    m.model_color()
 
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)

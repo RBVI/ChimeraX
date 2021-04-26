@@ -422,7 +422,7 @@ class Render:
         # Blending textures for multichannel image rendering.
         self.blend = BlendTextures(self)
         
-        self.single_color = (1, 1, 1, 1)
+        self.model_color = (1, 1, 1, 1)
         self._colormap_texture_unit = 4
 
         # Depth texture rendering parameters
@@ -677,7 +677,7 @@ class Render:
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if not self.SHADER_VERTEX_COLORS & c:
-            self.set_single_color()
+            self.set_model_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
         if self.SHADER_STEREO_360 & c:
@@ -978,16 +978,16 @@ class Render:
         return (n + (f-n)*lp.depth_cue_start,
                 n + (f-n)*lp.depth_cue_end)
 
-    def set_single_color(self, color=None):
+    def set_model_color(self, color=None):
         '''
         Set the OpenGL shader color for shader single color mode.
         '''
         if color is not None:
-            self.single_color = color
+            self.model_color = color
         p = self.current_shader_program
         if p is not None:
             if not ((self.SHADER_VERTEX_COLORS | self.SHADER_ALL_WHITE) & p.capabilities):
-                p.set_rgba("color", self.single_color)
+                p.set_rgba("color", self.model_color)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
@@ -1922,7 +1922,7 @@ class BlendTextures:
         else:
             tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_2D | r.SHADER_BLEND_COLORMAP)
             r.set_colormap(colormap, colormap_range, texture)
-        r.set_single_color(modulation_color)
+        r.set_model_color(modulation_color)
         tw.draw()
         
     def blend3d(self, texture, modulation_color, dest_tex, colormap = None, colormap_range = None):
@@ -1934,7 +1934,7 @@ class BlendTextures:
             tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_3D | r.SHADER_BLEND_COLORMAP)
             r.set_colormap(colormap, colormap_range, texture)
         p = r.current_shader_program
-        r.set_single_color(modulation_color)
+        r.set_model_color(modulation_color)
         linear = texture.linear_interpolation
         texture.set_linear_interpolation(False)  # Use nearest pixel texture lookup for speed.
         n = texture.size[2]

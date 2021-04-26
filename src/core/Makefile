@@ -38,7 +38,7 @@ datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-BUNDLE_VERSION = 1.2
+BUNDLE_VERSION = 1.3
 BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 GENSRCS = buildinfo.py
@@ -48,25 +48,17 @@ DATA = colorbrewer.json
 
 all: $(PYOBJS)
 
-install: dir all
+install reinstall: dir all
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
 
-# newer versions of pip won't install over the same version number (which depends on the last commit
-# number), so to install something that hasn't been committed...
-reinstall: dir all
-	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
-	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app-reinstall ;\
-	fi
-
 app-install: wheel
-	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
-
-app-reinstall: wheel
-	$(APP_BOOTSTRAP_PIP) install -U --force-reinstall --no-deps $(WHEEL)
+	# newer versions of pip won't install over the same version number (which depends on the last commit
+	# number), so to install something that hasn't been committed, uninstall first.
+	$(APP_BOOTSTRAP_PIP) uninstall --yes $(WHL_BNDL_NAME)
+	$(APP_BOOTSTRAP_PIP) install $(WHEEL)
 
 .PHONY: wheel
 wheel: setup.py
