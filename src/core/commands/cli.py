@@ -2850,6 +2850,8 @@ class Command:
                     if not log_only:
                         if ci.can_return_json:
                             kw_args['return_json'] = return_json
+                        if self._ci.self_logging:
+                            kw_args['log'] = log
                         result = ci.function(session, **kw_args)
                         results.append(result)
                 else:
