@@ -60,6 +60,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         vector[Bond*] bonds_between(Residue*)
         Chain* chain()
         string chain_id()
+        void clean_alt_locs()
         bool connects_to(Residue*)
         void delete_alt_loc(char) except +
         Atom* find_atom(const char*)

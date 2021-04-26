@@ -124,6 +124,37 @@ Atom::bfactor() const
 }
 
 void
+Atom::clean_alt_locs()
+{
+    if (_alt_loc == ' ')
+        return;
+    auto alt_aniso_u = aniso_u();
+    if (alt_aniso_u == nullptr) {
+        if (_aniso_u != nullptr) {
+            delete _aniso_u;
+            _aniso_u = nullptr;
+        }
+    } else {
+        if (_aniso_u == nullptr) {
+            _aniso_u = new std::vector<float>(6);
+        }
+        (*_aniso_u)[0] = (*alt_aniso_u)[0];
+        (*_aniso_u)[1] = (*alt_aniso_u)[1];
+        (*_aniso_u)[2] = (*alt_aniso_u)[2];
+        (*_aniso_u)[3] = (*alt_aniso_u)[3];
+        (*_aniso_u)[4] = (*alt_aniso_u)[4];
+        (*_aniso_u)[5] = (*alt_aniso_u)[5];
+    }
+    structure()->active_coord_set()->set_bfactor(this, bfactor());
+    _coordset_set_coord(coord(), structure()->active_coord_set(), false);
+    structure()->active_coord_set()->set_occupancy(this, occupancy());
+    _serial_number = serial_number();
+
+    _alt_loc = ' ';
+    _alt_loc_map.clear();
+}
+
+void
 Atom::clear_aniso_u()
 {
     if (_alt_loc != ' ') {
