@@ -118,6 +118,7 @@ class SelInspector(ToolInstance):
         run(self.session, opt.command_format % "sel")
 
     def _sel_changed(self, *args, **kw):
+        print("selection changed")
         sel_strings = []
         for item_type in self.item_types:
             sel_items = self.session.selection.items(item_type)

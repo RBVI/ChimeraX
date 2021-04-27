@@ -21,6 +21,8 @@ def item_options(session, name, **kw):
             AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondRadiusOption, BondShownOption]],
+        'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [BondColorOption, BondHalfBondOption,
+            BondRadiusOption, BondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
             ResidueChi3Option, ResidueChi4Option, ResidueFilledRingOption, ResidueOmegaOption,
             ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
