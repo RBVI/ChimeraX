@@ -205,7 +205,8 @@ def main():
     elif build == 'candidate':
         # release build
         version = version.base_version
-        rpm_release = f"0.{version_date}"
+        # rpm_release = f"0.{version_date}"
+        rpm_release = 1
 
     # rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
     # print('full_version:', repr(full_version))
