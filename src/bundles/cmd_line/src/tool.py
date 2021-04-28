@@ -55,6 +55,10 @@ class CommandLine(ToolInstance):
                 text = event.mimeData().text()
                 if text.startswith("file://"):
                     text = text[7:]
+                    import sys
+                    if sys.platform.startswith("win") and text.startswith('/'):
+                        # Windows seems to provide /C:/...
+                        text = text[1:]
                 from chimerax.core.commands import StringArg
                 self.lineEdit().insert(StringArg.unparse(text))
                 event.acceptProposedAction()
