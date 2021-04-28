@@ -55,7 +55,8 @@ class CommandLine(ToolInstance):
                 text = event.mimeData().text()
                 if text.startswith("file://"):
                     text = text[7:]
-                self.lineEdit().insert(text)
+                from chimerax.core.commands import StringArg
+                self.lineEdit().insert(StringArg.unparse(text))
                 event.acceptProposedAction()
 
             def focusInEvent(self, event):
