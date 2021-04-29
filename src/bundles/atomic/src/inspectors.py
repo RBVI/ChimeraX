@@ -80,15 +80,15 @@ class AtomShownOption(BooleanOption):
         return "%s %%s atoms" % ("show" if self.value else "hide")
 
 class AtomStyleOption(SymbolicEnumOption):
-    values = (0, 1, 2)
-    labels = ("sphere", "ball", "stick")
+    values = (1, 0, 2)
+    labels = ("ball", "sphere", "stick")
     attr_name = "draw_mode"
     balloon = "Atom/bond display style"
     default = 0
     name = "Style"
     @property
     def command_format(self):
-        return "style %%s %s" % self.labels[self.value]
+        return "style %%s %s" % self.labels[self.values.index(self.value)]
 
 class BaseBondColorOption(ColorOption):
     def __init_subclass__(cls, **kwargs):
