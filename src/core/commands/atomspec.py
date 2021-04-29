@@ -981,14 +981,16 @@ class _Invert:
             models = session.models.list(**kw)
         with maximum_stack():
             results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
-        add_implied_bonds(results)
+        if not self._atomspec._add_implied_hack:
+            add_implied_bonds(results)
         results.invert(session, models)
         return results
 
     def find_matches(self, session, models, results, ordered):
         with maximum_stack():
             self._atomspec.find_matches(session, models, results, ordered)
-        add_implied_bonds(results)
+        if not self._atomspec._add_implied_hack:
+            add_implied_bonds(results)
         results.invert(session, models)
         return results
 
@@ -1001,6 +1003,10 @@ class AtomSpec:
     When evaluated, the model elements that match the specifier
     are returned.
     """
+    # _add_implied_hack used so that the "explicit-sel" selector
+    # can suppress the addition of implicit bonds
+    _add_implied_hack = False
+
     def __init__(self, operator, left_spec, right_spec):
         self._operator = operator
         self._left_spec = left_spec
@@ -1051,15 +1057,19 @@ class AtomSpec:
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms)
-            add_implied_bonds(left_results)
+            if not self._add_implied_hack:
+                add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms)
-            add_implied_bonds(right_results)
+            if not self._add_implied_hack:
+                add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        add_implied_bonds(results)
+        if not self._add_implied_hack:
+            add_implied_bonds(results)
+        self.__class__._add_implied_hack = False
         return results
 
     def find_matches(self, session, models, results, ordered):

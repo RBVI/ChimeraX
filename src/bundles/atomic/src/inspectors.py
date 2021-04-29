@@ -115,7 +115,7 @@ class BaseBondHalfBondOption(BooleanOption):
     name = "Halfbond mode"
     @property
     def command_format(self):
-        return "color %%s & pbonds halfbond %s" % str(self.value).lower()
+        return "setattr %%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BaseBondLengthOption(FloatOption):
     def __init_subclass__(cls, **kwargs):

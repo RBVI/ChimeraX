@@ -860,6 +860,10 @@ class Bonds(Collection):
     set with such an array (or equivalent sequence), or with a
     single boolean value.
     '''
+    lengths = cvec_property('bond_length', float32, read_only = True)
+    '''
+    Returns a :mod:`numpy` array of bond lengths. Read only.
+    '''
     radii = cvec_property('bond_radius', float32)
     '''
     Returns a :mod:`numpy` array of bond radii (half thicknesses).

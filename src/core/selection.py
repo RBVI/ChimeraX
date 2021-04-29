@@ -24,6 +24,10 @@ class Selection:
         # Maybe it should be moved up to Model level somehow?
         self._trigger_fire_needed = False
 
+        from .commands import register_selector
+        register_selector("explicit-sel", _explicitly_selected, sess.logger,
+            desc="the exact current selection -- no implicit selection of bonds between selected atoms")
+
     def models(self, all_selected=False):
         if all_selected:
             return [m for m in self._all_models if m.get_selected(include_children=True, fully=True)]
@@ -228,3 +232,19 @@ class ModelSelectionPromotion(SelectionPromotion):
         m = self.model
         m.selected = False	# This may clear child drawing selections.
         m.selected_positions = self._prev_selected
+
+def _explicitly_selected(session, models, results):
+    """Like 'sel', but don't add implicit bonds"""
+    sel_models = set(session.selection.models())
+    for m in models:
+        if m in sel_models:
+            results.add_model(m)
+    from chimerax.atomic import Atoms, Bonds, Pseudobonds
+    for atoms in session.selection.items('atoms'):
+        results.add_atoms(atoms)
+    for bonds in session.selection.items('bonds'):
+        results.add_bonds(bonds)
+    for pbonds in session.selection.items('pseudobonds'):
+        results.add_pseudobonds(pbonds)
+    from .commands.atomspec import AtomSpec
+    AtomSpec._add_implied_hack = True

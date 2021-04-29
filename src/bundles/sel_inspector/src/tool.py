@@ -48,6 +48,9 @@ class SelInspector(ToolInstance):
         self.options_layout = QVBoxLayout()
         layout.addLayout(self.options_layout)
         self.options_container = None
+        self.no_sel_label = QLabel()
+        self.options_layout.addWidget(self.no_sel_label)
+        self.no_sel_label.hide()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
@@ -119,10 +122,9 @@ class SelInspector(ToolInstance):
 
     def _option_cb(self, opt):
         from chimerax.core.commands import run
-        run(self.session, opt.command_format % "sel")
+        run(self.session, opt.command_format % "explicit-sel")
 
     def _sel_changed(self, *args, **kw):
-        print("selection changed")
         sel_strings = []
         for item_type in self.item_types:
             sel_items = self.session.selection.items(item_type)
@@ -149,7 +151,12 @@ class SelInspector(ToolInstance):
                 sel_items = self.session.selection.items(item_type)
                 break
         if not sel_items:
+            self.options_container.hide()
+            self.no_sel_label.setText("(no %s selected)" % button_text.lower())
+            self.no_sel_label.show()
             return
+        self.no_sel_label.hide()
+        self.options_container.show()
         from chimerax.atomic import Collection
         if [isinstance(x, Collection) for x in sel_items].count(True) == len(sel_items):
             from  chimerax.atomic import concatenate
