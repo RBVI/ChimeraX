@@ -51,7 +51,10 @@ def color_electrostatic(session, surfaces, map, palette = None, range = None, ke
     Color surfaces using an interpolated electrostatic potential map value
     at each surface vertex with values mapped to colors by a color palette.
     '''
-    
+
+    if range is None and (palette is None or not palette.values_specified):
+        range = (-10,10)
+        
     _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
