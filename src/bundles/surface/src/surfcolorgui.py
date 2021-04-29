@@ -238,6 +238,8 @@ class SurfaceColorGUI(ToolInstance):
         self._axis_widget.setVisible(method in self._axis_methods)
         if self._options_panel.shown:
             self._options_panel.resize_panel()
+        if method == 'electrostatic potential' and not self._colors.has_values():
+            self._colors.set_value_range(-10,10)
 
     # ---------------------------------------------------------------------------
     #
@@ -646,6 +648,13 @@ class PaletteWidget:
     def clear_values(self):
         for v in self._values:
             v.setText('')
+
+    def set_value_range(self, min_value, max_value):
+        n = self.color_count
+        step = (max_value - min_value) / (n-1) if n > 1 else 1
+        for i,v in enumerate(self._values):
+            value = min_value + i * step
+            v.setText('%.4g' % value)
         
 # -----------------------------------------------------------------------------
 #

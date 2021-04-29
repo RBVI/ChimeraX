@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 
 class SelInspector(ToolInstance):
 
-    #help = "help:user/tools/distances.html"
+    help = "help:user/tools/inspector.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -54,8 +54,7 @@ class SelInspector(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         from chimerax.dist_monitor.cmd import group_triggers
@@ -87,7 +86,11 @@ class SelInspector(ToolInstance):
             handler.remove()
         self.current_item_handlers = []
         from chimerax.ui.options import OptionsPanel
-        container = self.options_container = OptionsPanel()
+        class SizedOptionsPanel(OptionsPanel):
+            def sizeHint(self):
+                from Qt.QtCore import QSize
+                return QSize(300, 200)
+        container = self.options_container = SizedOptionsPanel()
         self.options_layout.addWidget(container)
         for option, trigger_info in self.session.items_inspection.item_info(self.button_mapping[cur_text]):
             opt = option(None, None, self._option_cb)
@@ -119,6 +122,7 @@ class SelInspector(ToolInstance):
         run(self.session, opt.command_format % "sel")
 
     def _sel_changed(self, *args, **kw):
+        print("selection changed")
         sel_strings = []
         for item_type in self.item_types:
             sel_items = self.session.selection.items(item_type)

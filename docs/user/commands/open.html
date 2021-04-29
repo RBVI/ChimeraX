@@ -979,11 +979,52 @@ Whether to fetch ensembles associated with an IHM dataset
 (default <b>false</b>, as these can be quite large).
 </blockquote>
 <blockquote>
+<a name="forEachFile"></a>
+<b>forEachFile</b>&nbsp;&nbsp;<i>input-files</i>
+<br>
+The <b>forEachFile</b> option allows processing multiple data files
+iteratively with the same
+<a href="usageconventions.html#cxc-files">ChimeraX command file</a>
+without having to open the command file over and over.
+The data files over which to iterate are specified in a single pathname 
+using wild cards or globbing, and would typically contain
+<a href="#volume">maps</a> or <a href="#atomic">atomic structures</a>.
+For example:
+<blockquote>
+<b>open myscript.cxc foreach ~/data/*.cif</b>
+</blockquote>
+...would open the first data file, run the script, open the next data file,
+run the script, <i>etc.</i>
+Any existing models are closed before each data file is opened.
+For saving input-specific output files, 
+&ldquo;$file&rdquo; can be used within the command file 
+to indicate the base name of each data file.
+For example, the following command would save 1a0m.png for input file 1a0m.pdb,
+2gbp.png for input file 2gbp.pdb, <i>etc.</i>:
+<blockquote>
+<b>save $file.png</b>
+</blockquote>
+Output files will be placed in the same directory as the data files
+unless the file-saving command gives a different pathname.
+</blockquote>
+<blockquote>
 <a name="height"></a>
 <b>height</b>&nbsp;&nbsp;<i>h</i>
 <br>
 Height in physical units of distance (&Aring;) for the
 <a href="#photo">photo</a> (single image) being opened.
+</blockquote>
+<blockquote>
+<a name="log"></a>
+<b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+When opening a 
+<a href="usageconventions.html#cxc-files">ChimeraX command file</a>,
+whether to echo each command within the file to the 
+<a href="../tools/log.html"><b>Log</b></a>
+as it is executed (default <b>true</b>).
+If <b>false</b>, although the commands themselves will not be logged,
+any informational outputs they generate will still appear there.
 </blockquote>
 <blockquote>
 <a name="logInfo"></a>
@@ -1593,5 +1634,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+April 2021</address>
 </body></html>
