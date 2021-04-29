@@ -86,7 +86,11 @@ class SelInspector(ToolInstance):
             handler.remove()
         self.current_item_handlers = []
         from chimerax.ui.options import OptionsPanel
-        container = self.options_container = OptionsPanel()
+        class SizedOptionsPanel(OptionsPanel):
+            def sizeHint(self):
+                from Qt.QtCore import QSize
+                return QSize(300, 200)
+        container = self.options_container = SizedOptionsPanel()
         self.options_layout.addWidget(container)
         for option, trigger_info in self.session.items_inspection.item_info(self.button_mapping[cur_text]):
             opt = option(None, None, self._option_cb)
