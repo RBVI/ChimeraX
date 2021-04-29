@@ -1408,6 +1408,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "cofr " + ("frontCenter" if ses.selection.empty() else "sel")))
 
+        actions_menu.addSeparator()
+
+        action = QAction("Inspect", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *, run=run, ses=self.session:
+            run(ses, "ui tool show 'Selection Inspector'"))
+
     def color_by_editor(self, *args):
         if not self._color_dialog:
             from Qt.QtWidgets import QColorDialog
