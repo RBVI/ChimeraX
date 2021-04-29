@@ -289,7 +289,10 @@ class NumericOption(Option):
             if max_val == min_val:
                 self.value = max_val
             else:
-                self.show_text("%g \N{LEFT RIGHT ARROW} %g" % (min_val, max_val))
+                decimal_places = getattr(self, 'decimal_places', None)
+                decimal_format = "%g" if not decimal_places else "%%.%df" % decimal_places
+                self.show_text((decimal_format + " \N{LEFT RIGHT ARROW} " + decimal_format)
+                    % (min_val, max_val))
 
     @abstractmethod
     def show_text(self, text):
@@ -462,6 +465,7 @@ class FloatOption(NumericOption):
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
             decimal_places=3, step=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         if (not left_text and not right_text) or as_slider:
@@ -506,6 +510,7 @@ class FloatEnumOption(EnumBase):
 
     def _make_widget(self, min=None, max=None, float_label=None, enum_label=None,
             decimal_places=3, step=None, display_value=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         self._enum = EnumBase._make_widget(self, display_value=display_value, **kw)

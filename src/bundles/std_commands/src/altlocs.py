@@ -87,10 +87,10 @@ def altlocs_clean(session, residues=None):
 
     from chimerax.core.commands import plural_form, commas
     if num_cleaned == 0:
-        session.logger.info("No alterate locations in %d %s" % (len(residues),
+        session.logger.info("No alternate locations in %d %s" % (len(residues),
             plural_form(len(residues), "residue")))
     else:
-        session.logger.info("Removed alterate locations from %d %s" % (num_cleaned,
+        session.logger.info("Removed alternate locations from %d %s" % (num_cleaned,
             plural_form(num_cleaned, "residue")))
 
 def altlocs_list(session, residues=None):
@@ -123,7 +123,7 @@ def altlocs_list(session, residues=None):
 
     from chimerax.core.commands import plural_form, commas
     if no_alt_locs:
-        session.logger.info("%d %s %s no alterate locations" % (no_alt_locs,
+        session.logger.info("%d %s %s no alternate locations" % (no_alt_locs,
             plural_form(no_alt_locs, "residue"), plural_form(no_alt_locs, "has", plural="have")))
 
     for r, r_locs in alt_locs:
