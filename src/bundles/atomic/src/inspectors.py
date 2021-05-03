@@ -160,7 +160,8 @@ class BaseBondShownOption(BooleanOption):
     name = "Shown"
     @property
     def command_format(self):
-        return "%s %%s %sbonds" % (("show" if self.value else "hide"), self.prefix)
+        # have to use setattr because "show" will also display flanking atoms if needed
+        return "setattr %%s %s display %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BondColorOption(BaseBondColorOption):
     pass
