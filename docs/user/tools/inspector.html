@@ -29,21 +29,25 @@ The <b>Selection Inspector</b> lists certain
 <a href="../attributes.html">attributes</a>
 of the currently <a href="../selection.html">selected</a> items and allows
 their values to be changed. 
-It can be opened from the <b>General</b> section of the <b>Tools</b> menu
-and manipulated like other panels (<a href="../window.html#panels">more...</a>).
-<!--
 It can be opened:
 <ul>
-<li>with <b>Actions... Inspect</b> in the menu
-<li>by clicking the magnifying glass icon <img src="inspecticon.png"> in the
-<a href="chimerawindow.html#statusline">status line</a>
+<li>by clicking the magnifying-glass icon
+<img class="icon" src="toolbar-icons/magnifying-glass.png">
+in the <a href="toolbar.html#home"><b>Home</b></a> tab of the 
+<a href="toolbar.html"><b>Toolbar</b></a>
+<li>by choosing <b>Inspect</b> from the <a href="../menu.html#actions">
+<b>Actions</b> menu</a>
+<li>from the <b>General</b> section of the <b>Tools</b> menu
+<!--
 <li>by choosing <b>Inspect</b> from the context menu obtained by
 double-<a href="selection.html#pickselect">picking</a>
 an atom, bond, or pseudobond (that is, doubleclicking with the button
 assigned to <a href="selection.html#pickselect">picking</a>)
-</ul>
 -->
+</ul>
 <p>
+The <b>Selection Inspector</b> dialog can be manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
 In the dialog, the balloon help for each setting shows
 the corresponding <a href="../attributes.html#attrnames">attribute name</a>,
 as needed for use in attribute-specific commands such as 
@@ -56,6 +60,7 @@ value</a>.
 <ul>
 <li><a href="#atoms"><b>Atoms</b></a>
 <li><a href="#bonds"><b>Bonds</b></a>
+<li><a href="#pseudobonds"><b>Pseudobonds</b></a>
 <li><a href="#residues"><b>Residues</b></a>
 </ul>
 
@@ -80,8 +85,8 @@ see also <a href="../commands/size.html"><b>size</b></a>
 see <a href="../hierarchy.html">display hierarchy</a>
 <li><b>Style</b> &ndash; <a href="../commands/style.html">atom style</a>
  <ul>
- <li><b>sphere</b>
  <li><b>ball</b>
+ <li><b>sphere</b>
  <li><b>stick</b>
  </ul>
 </ul>
@@ -93,16 +98,39 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <b>Bonds</b>
 <ul>
 <li><b>Color</b> 
-&ndash; bond color, only visible when the bond is colored independently of 
-atoms (halfbond mode turned off) 
+&ndash; bond color, only visible when the bond is colored 
+independently of atoms (halfbond mode turned off) 
 <li><b>Halfbond mode</b> &ndash; whether bond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
 each half of the bond takes on the color of the atom on that end of the bond;
 turning this mode off shows the bond's own color setting, above
+<li><b>Length</b> &ndash; length in &Aring;
+(shown in gray; cannot be changed)
 <li><b>Radius</b> &ndash; radius in &Aring; used in 
 <a href="../commands/style.html">stick style</a>;
 see also <a href="../commands/size.html"><b>size</b></a>
 <li><b>Shown</b> &ndash; whether display is enabled at the bond level,
+see <a href="../hierarchy.html">display hierarchy</a>
+</ul>
+
+<a name="pseudobonds"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Pseudobonds</b>
+<ul>
+<li><b>Color</b> 
+&ndash; bond color, only visible when the pseudobond is colored 
+independently of atoms (halfbond mode turned off) 
+<li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
+<a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
+each half of the bond takes on the color of the atom on that end of the bond;
+turning this mode off shows the bond's own color setting, above
+<li><b>Length</b> &ndash; length in &Aring;
+(shown in gray; cannot be changed)
+<li><b>Radius</b> &ndash; radius in &Aring;;
+see also <a href="../commands/size.html"><b>size</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the pseudobond level,
 see <a href="../hierarchy.html">display hierarchy</a>
 </ul>
 
@@ -148,5 +176,5 @@ see also <a href="../commands/style.html"><b>style</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+May 2021</address>
 </body></html>
