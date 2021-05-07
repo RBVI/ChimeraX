@@ -41,7 +41,8 @@ by alphabetical order of the alternate location ID.
 See also:
 <a href="swapaa.html"><b>swapaa</b></a>,
 <a href="torsion.html"><b>torsion</b></a>,
-<a href="build.html"><b>build</b></a>
+<a href="build.html"><b>build</b></a>,
+<a href="../attributes.html">attributes</a>
 <ul>
 <li><a href="#list"><b>altlocs list</b></a>
 &ndash; list alternate locations and report which is being used
@@ -60,7 +61,11 @@ In the <a href="../tools/log.html"><b>Log</b></a>,
 report any alternate locations of the 
 <a href="atomspec.html">specified</a> residues,
 and for each residue with alternate locations, 
-which location is being used.
+which location is being used. For example, to list all
+residues in chain A that have alternate locations:
+<blockquote>
+<b>altlocs list /A</b>
+</blockquote>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -74,6 +79,10 @@ Even if only part of a residue is specified (<i>e.g.</i>, a single atom),
 the same alternate location will be used for any other atoms in that residue
 and any contiguous (through-bond) set of atoms for which the same
 alternate location identifier is available, including atoms in other residues.
+For example, to use alternate location C of residue 171 in chain A: 
+<blockquote>
+<b>altlocs change C /A:171</b>
+</blockquote>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -83,7 +92,15 @@ alternate location identifier is available, including atoms in other residues.
 <blockquote>
 Delete all but the currently used alternate location
 for the <a href="atomspec.html">specified</a> residues
-and remove their alternate location IDs.
+and remove their alternate location IDs. Examples:
+<blockquote>
+<b>altlocs clean /A:171</b>
+<br>
+<b>altlocs clean /A</b>
+<br>
+<b>altlocs clean</b>
+</blockquote>
+The last example deletes all unused alternate locations.
 </blockquote>
 
 <hr>
