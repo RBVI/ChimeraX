@@ -340,7 +340,7 @@ class Log(ToolInstance, HtmlLog):
             #
             # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
             # a space character), so only try to compact if "<br>" or "<div" is in msg
-            if "<br>" in msg or "<div" in msg:
+            if ("<br>" in msg and not msg.replace("<br>", " ").isspace()) or "<div" in msg:
                 compaction_start_text = "[Repeated "
                 compaction_end_text = " time(s)]"
                 compaction_start = None
