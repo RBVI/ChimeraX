@@ -109,8 +109,22 @@ Residue::add_atom(Atom* a)
         auto i2 = res_map[a2->residue()];
         if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
             pbg->delete_pseudobond(pb);
-            pbg->new_pseudobond(a1, a);
-            pbg->new_pseudobond(a, a2);
+            // add the "shorter" one first, so that the residue gets placed on the correct side of a gap
+            int d1, d2;
+            if (i1 < my_index) {
+                d1 = number() - a1->residue()->number();
+                d2 = a2->residue()->number() - number();
+            } else {
+                d1 = a1->residue()->number() - number();
+                d2 = number() - a1->residue()->number();
+            }
+            if (d1 <= d2) {
+                pbg->new_pseudobond(a1, a);
+                pbg->new_pseudobond(a, a2);
+            } else {
+                pbg->new_pseudobond(a, a2);
+                pbg->new_pseudobond(a1, a);
+            }
             break;
         }
     }
