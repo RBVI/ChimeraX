@@ -211,7 +211,7 @@ class ResidueChi2Option(FloatOption):
     attr_name = "chi2"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi2 %g" % self.value
@@ -225,7 +225,7 @@ class ResidueChi3Option(FloatOption):
     attr_name = "chi3"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi3 %g" % self.value
@@ -239,7 +239,7 @@ class ResidueChi4Option(FloatOption):
     attr_name = "chi4"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi4 %g" % self.value
