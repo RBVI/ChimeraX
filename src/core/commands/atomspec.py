@@ -118,16 +118,16 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError("incomplete quoted text")
         end = m.end()
+        consumed = text[start:end]
         if text[end - 1].isspace():
             end -= 1
-        if text[start] == '=':
+        if text[1] == '=':
             add_implied = False
             start += 1
         else:
             add_implied = True
         # Quoted argument is consumed on success
         # Text after quote is unused
-        consumed = text[start:end]
         rest = text[end:]
         # Convert quote contents to string
         from .cli import unescape_with_index_map
