@@ -193,7 +193,15 @@ class PBondRadiusOption(BaseBondRadiusOption):
 class PBondShownOption(BaseBondShownOption):
     pass
 
-class ResidueChi1Option(FloatOption):
+class AngleOption(FloatOption):
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 1
+        if 'step' not in kw:
+            kw['step'] = 5.0
+        super().__init__(*args, **kw)
+
+class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
     default = 0.0
@@ -202,12 +210,7 @@ class ResidueChi1Option(FloatOption):
     def command_format(self):
         return "setattr %%s r chi1 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi2Option(FloatOption):
+class ResidueChi2Option(AngleOption):
     attr_name = "chi2"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
@@ -216,12 +219,7 @@ class ResidueChi2Option(FloatOption):
     def command_format(self):
         return "setattr %%s r chi2 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi3Option(FloatOption):
+class ResidueChi3Option(AngleOption):
     attr_name = "chi3"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
@@ -230,12 +228,7 @@ class ResidueChi3Option(FloatOption):
     def command_format(self):
         return "setattr %%s r chi3 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi4Option(FloatOption):
+class ResidueChi4Option(AngleOption):
     attr_name = "chi4"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
@@ -244,12 +237,7 @@ class ResidueChi4Option(FloatOption):
     def command_format(self):
         return "setattr %%s r chi4 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueOmegaOption(FloatOption):
+class ResidueOmegaOption(AngleOption):
     attr_name = "omega"
     balloon = "Backbone \N{GREEK SMALL LETTER OMEGA} (omega) angle"
     default = 0.0
@@ -258,12 +246,7 @@ class ResidueOmegaOption(FloatOption):
     def command_format(self):
         return "setattr %%s r omega %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePhiOption(FloatOption):
+class ResiduePhiOption(AngleOption):
     attr_name = "phi"
     balloon = "Backbone \N{GREEK SMALL LETTER PHI} (phi) angle"
     default = 0.0
@@ -272,12 +255,7 @@ class ResiduePhiOption(FloatOption):
     def command_format(self):
         return "setattr %%s r phi %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePsiOption(FloatOption):
+class ResiduePsiOption(AngleOption):
     attr_name = "psi"
     balloon = "Backbone \N{GREEK SMALL LETTER PSI} (psi) angle"
     default = 0.0
@@ -285,11 +263,6 @@ class ResiduePsiOption(FloatOption):
     @property
     def command_format(self):
         return "setattr %%s r psi %g" % self.value
-
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
