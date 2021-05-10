@@ -17,8 +17,8 @@ def item_options(session, name, **kw):
         return (option, (triggers, "changes", lambda changes, *, attr=option.attr_name, rt=reason_type:
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
-        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomIdatmTypeOption, AtomRadiusOption,
-            AtomShownOption, AtomStyleOption]],
+        'atoms': [make_tuple(opt, "atom") for opt in [AtomBFactorOption, AtomColorOption,
+            AtomIdatmTypeOption, AtomOccupancyOption, AtomRadiusOption, AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
@@ -34,6 +34,21 @@ from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOpt
     SymbolicEnumOption
 from chimerax.core.colors import color_name
 from . import Atom, Element, Residue
+
+class AtomBFactorOption(FloatOption):
+    attr_name = "bfactor"
+    balloon = "Atomic temperature factor"
+    default = 1.0
+    name = "B-factor"
+    @property
+    def command_format(self):
+        return "size %%s bfactor %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        super().__init__(*args, **kw)
+        self.enabled = False
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
@@ -56,6 +71,21 @@ class AtomIdatmTypeOption(EnumOption):
         return "setattr %%s a idatmType %s" % self.value
 
     def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
+class AtomOccupancyOption(FloatOption):
+    attr_name = "occupancy"
+    balloon = "Fraction of time that atom is in this location"
+    default = 1.0
+    name = "Occupancy"
+    @property
+    def command_format(self):
+        return "size %%s occupancy %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
         super().__init__(*args, **kw)
         self.enabled = False
 
