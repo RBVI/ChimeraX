@@ -101,7 +101,7 @@ class BaseBondColorOption(ColorOption):
 
     @property
     def command_format(self):
-        return "color %%s %s %sbonds" % (color_name(self.value), self.prefix)
+        return "color =%%s %s %sbonds" % (color_name(self.value), self.prefix)
 
 class BaseBondHalfBondOption(BooleanOption):
     def __init_subclass__(cls, **kwargs):
@@ -115,7 +115,7 @@ class BaseBondHalfBondOption(BooleanOption):
     name = "Halfbond mode"
     @property
     def command_format(self):
-        return "setattr %%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
+        return "setattr =%%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BaseBondLengthOption(FloatOption):
     def __init_subclass__(cls, **kwargs):
@@ -143,7 +143,7 @@ class BaseBondRadiusOption(FloatOption):
     name = "Radius"
     @property
     def command_format(self):
-        return "size %%s %s %g" % (("pseudobondRadius" if self.prefix == "pseudo" else "stickRadius"),
+        return "size =%%s %s %g" % (("pseudobondRadius" if self.prefix == "pseudo" else "stickRadius"),
             self.value)
 
     def __init__(self, *args, **kw):
@@ -161,7 +161,7 @@ class BaseBondShownOption(BooleanOption):
     @property
     def command_format(self):
         # have to use setattr because "show" will also display flanking atoms if needed
-        return "setattr %%s %s display %s" % ("p" if self.prefix else "b", str(self.value).lower())
+        return "setattr =%%s %s display %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BondColorOption(BaseBondColorOption):
     pass

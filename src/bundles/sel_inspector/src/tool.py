@@ -122,7 +122,7 @@ class SelInspector(ToolInstance):
 
     def _option_cb(self, opt):
         from chimerax.core.commands import run
-        run(self.session, opt.command_format % "explicit-sel")
+        run(self.session, opt.command_format % "sel")
 
     def _sel_changed(self, *args, **kw):
         sel_strings = []

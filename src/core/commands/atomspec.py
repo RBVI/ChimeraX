@@ -120,6 +120,11 @@ class AtomSpecArg(Annotation):
         end = m.end()
         if text[end - 1].isspace():
             end -= 1
+        if text[start] == '=':
+            add_implied = False
+            start += 1
+        else:
+            add_implied = True
         # Quoted argument is consumed on success
         # Text after quote is unused
         consumed = text[start:end]
@@ -130,7 +135,7 @@ class AtomSpecArg(Annotation):
         # Create parser and parse converted token
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
             with maximum_stack():
@@ -159,13 +164,21 @@ class AtomSpecArg(Annotation):
         # Try to parse the entire line.
         # If we get nothing, then raise AnnotationError.
         # Otherwise, consume what we can use and call it a success.
+        if text.startswith('='):
+            parse_text = text[1:]
+            add_implied = False
+            text_offset = 1
+        else:
+            parse_text = text
+            add_implied = True
+            text_offset = 0
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
             with maximum_stack():
-                ast = parser.parse(text, "atom_specifier", semantics=semantics)
+                ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
@@ -180,7 +193,7 @@ class AtomSpecArg(Annotation):
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
-        if end < len(text) and _terminator.match(text[end]) is None:
+        if end < len(parse_text) and _terminator.match(parse_text[end]) is None:
             # We got an error in the middle of a string (no whitespace or
             # semicolon).  We check if there IS whitespace between the
             # start of the string and the error location.  If so, we
@@ -188,20 +201,20 @@ class AtomSpecArg(Annotation):
             # and leave the rest as unconsumed input.
             blank = end
             while blank > 0:
-                if text[blank].isspace():
+                if parse_text[blank].isspace():
                     break
                 else:
                     blank -= 1
             if blank == 0:
                 # No whitespace found
                 from .cli import AnnotationError
-                raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+                raise AnnotationError('only initial part "%s" of atom specifier valid'
+                    % text[:end+text_offset])
             else:
-                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank],
-                                                             session)
-                return ast, used, rem + text[blank:]
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank+text_offset], session)
+                return ast, used, rem + text[blank+text_offset:]
         # Consume what we used and return the remainder
-        return ast, text[:end], text[end:]
+        return ast, text[:end+text_offset], text[end+text_offset:]
 
 
 #
@@ -211,12 +224,13 @@ class AtomSpecArg(Annotation):
 
 class _AtomSpecSemantics:
     """Semantics class to convert basic ASTs into AtomSpec instances."""
-    def __init__(self, session):
+    def __init__(self, session, *, add_implied=True):
         self._session = session
+        self._add_implied = add_implied
 
     def atom_specifier(self, ast):
         # print("atom_specifier", ast)
-        atom_spec = AtomSpec(ast.operator, ast.left, ast.right)
+        atom_spec = AtomSpec(ast.operator, ast.left, ast.right, add_implied=self._add_implied)
         try:
             atom_spec.parseinfo = ast.parseinfo
         except AttributeError:
@@ -981,7 +995,7 @@ class _Invert:
             models = session.models.list(**kw)
         with maximum_stack():
             results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
-        if not self._atomspec._add_implied_hack:
+        if self._atomspec._add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -989,7 +1003,7 @@ class _Invert:
     def find_matches(self, session, models, results, ordered):
         with maximum_stack():
             self._atomspec.find_matches(session, models, results, ordered)
-        if not self._atomspec._add_implied_hack:
+        if self._atomspec._add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -1003,14 +1017,12 @@ class AtomSpec:
     When evaluated, the model elements that match the specifier
     are returned.
     """
-    # _add_implied_hack used so that the "explicit-sel" selector
-    # can suppress the addition of implicit bonds
-    _add_implied_hack = False
 
-    def __init__(self, operator, left_spec, right_spec):
+    def __init__(self, operator, left_spec, right_spec, *, add_implied=True):
         self._operator = operator
         self._left_spec = left_spec
         self._right_spec = right_spec
+        self._add_implied = add_implied
 
     def __str__(self):
         if self._operator is None:
@@ -1057,19 +1069,18 @@ class AtomSpec:
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms)
-            if not self._add_implied_hack:
+            if self._add_implied:
                 add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms)
-            if not self._add_implied_hack:
+            if self._add_implied:
                 add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        if not self._add_implied_hack:
+        if self._add_implied:
             add_implied_bonds(results)
-        self.__class__._add_implied_hack = False
         return results
 
     def find_matches(self, session, models, results, ordered):
