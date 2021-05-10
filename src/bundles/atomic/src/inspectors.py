@@ -353,7 +353,7 @@ class ResidueSSTypeOption(SymbolicEnumOption):
     name = "Secondary structure type"
     @property
     def command_format(self):
-        return "setattr %%s r ss_type %s" % self.labels[self.value]
+        return "setattr %%s r ss_type %d" % self.value
 
 class ResidueThinRingsOption(BooleanOption):
     attr_name = "thin_rings"
