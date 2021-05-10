@@ -418,7 +418,8 @@ find_missing_structure_bonds(Structure *as)
         auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
             AS_PBManager::GRP_NORMAL);
         for (auto lb: long_bonds) {
-            pbg->new_pseudobond(lb->atoms());
+            // the new "smart" missing-structure code will automatically make the pseudobond across
+            // the gap when the bond is deleted, so no need to explictly make a (duplicate) one
             as->delete_bond(lb);
         }
     }

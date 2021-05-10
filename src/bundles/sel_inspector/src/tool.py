@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 
 class SelInspector(ToolInstance):
 
-    #help = "help:user/tools/distances.html"
+    help = "help:user/tools/inspector.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -48,14 +48,16 @@ class SelInspector(ToolInstance):
         self.options_layout = QVBoxLayout()
         layout.addLayout(self.options_layout)
         self.options_container = None
+        self.no_sel_label = QLabel()
+        self.options_layout.addWidget(self.no_sel_label)
+        self.no_sel_label.hide()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         from chimerax.dist_monitor.cmd import group_triggers
@@ -87,7 +89,11 @@ class SelInspector(ToolInstance):
             handler.remove()
         self.current_item_handlers = []
         from chimerax.ui.options import OptionsPanel
-        container = self.options_container = OptionsPanel()
+        class SizedOptionsPanel(OptionsPanel):
+            def sizeHint(self):
+                from Qt.QtCore import QSize
+                return QSize(300, 200)
+        container = self.options_container = SizedOptionsPanel()
         self.options_layout.addWidget(container)
         for option, trigger_info in self.session.items_inspection.item_info(self.button_mapping[cur_text]):
             opt = option(None, None, self._option_cb)
@@ -145,7 +151,12 @@ class SelInspector(ToolInstance):
                 sel_items = self.session.selection.items(item_type)
                 break
         if not sel_items:
+            self.options_container.hide()
+            self.no_sel_label.setText("(no %s selected)" % button_text.lower())
+            self.no_sel_label.show()
             return
+        self.no_sel_label.hide()
+        self.options_container.show()
         from chimerax.atomic import Collection
         if [isinstance(x, Collection) for x in sel_items].count(True) == len(sel_items):
             from  chimerax.atomic import concatenate

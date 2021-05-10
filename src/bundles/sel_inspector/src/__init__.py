@@ -20,4 +20,9 @@ class _SelInspectorBundleAPI(BundleAPI):
         from .tool import SelInspector
         return SelInspector(session, tool_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.core.commands import run
+        run(session, "ui tool show 'Selection Inspector'")
+
 bundle_api = _SelInspectorBundleAPI()

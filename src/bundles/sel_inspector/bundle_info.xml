@@ -11,6 +11,10 @@
   <Synopsis>Inspect contents of selection</Synopsis>
   <Description>Inspect/change attributes of current selection</Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
     <Category name="General Controls"/>
@@ -22,6 +26,11 @@
     <Dependency name="ChimeraX-UI" version="~=1.8"/>
     <Dependency name="ChimeraX-ItemsInspection" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="toolbar">
+    <Provider tab="Extras" section="Selection" hidden="true" name="selection inspector"
+      display_name="Inspect" icon="magnifying-glass.png" description="Inspect current selection"/>
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->

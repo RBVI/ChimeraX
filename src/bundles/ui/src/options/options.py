@@ -126,7 +126,7 @@ class Option(metaclass=ABCMeta):
 
     def values_for_items(self, items):
         """Supported API.  Convenience function to get values for the 'attr_name' attribute from the
-           given items.  Used by display_for_itmes() and by subclasses overriding display_for_items().
+           given items.  Used by display_for_items() and by subclasses overriding display_for_items().
         """
         if not items:
             return []
@@ -286,10 +286,13 @@ class NumericOption(Option):
         else:
             min_val = min(num_vals)
             max_val = max(num_vals)
-            if max_val == min_val:
+            if ("%g" % max_val) == ("%g" % min_val):
                 self.value = max_val
             else:
-                self.show_text("%g \N{LEFT RIGHT ARROW} %g" % (min_val, max_val))
+                decimal_places = getattr(self, 'decimal_places', None)
+                decimal_format = "%g" if not decimal_places else "%%.%df" % decimal_places
+                self.show_text((decimal_format + " \N{LEFT RIGHT ARROW} " + decimal_format)
+                    % (min_val, max_val))
 
     @abstractmethod
     def show_text(self, text):
@@ -462,6 +465,7 @@ class FloatOption(NumericOption):
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
             decimal_places=3, step=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         if (not left_text and not right_text) or as_slider:
@@ -506,6 +510,7 @@ class FloatEnumOption(EnumBase):
 
     def _make_widget(self, min=None, max=None, float_label=None, enum_label=None,
             decimal_places=3, step=None, display_value=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         self._enum = EnumBase._make_widget(self, display_value=display_value, **kw)
@@ -1025,6 +1030,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             return self.specialValueText() != ""
 
         def validate(self, text, pos):
+            self.setSpecialValueText("")
             suffix_index = len(text)
             while suffix_index > 0 and not text[suffix_index-1].isdigit():
                 suffix_index -= 1

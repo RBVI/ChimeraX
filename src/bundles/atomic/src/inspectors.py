@@ -20,7 +20,9 @@ def item_options(session, name, **kw):
         'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomIdatmTypeOption, AtomRadiusOption,
             AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
-            BondRadiusOption, BondShownOption]],
+            BondLengthOption, BondRadiusOption, BondShownOption]],
+        'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
+            PBondLengthOption, PBondRadiusOption, PBondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
             ResidueChi3Option, ResidueChi4Option, ResidueFilledRingOption, ResidueOmegaOption,
             ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
@@ -78,56 +80,118 @@ class AtomShownOption(BooleanOption):
         return "%s %%s atoms" % ("show" if self.value else "hide")
 
 class AtomStyleOption(SymbolicEnumOption):
-    values = (0, 1, 2)
-    labels = ("sphere", "ball", "stick")
+    values = (1, 0, 2)
+    labels = ("ball", "sphere", "stick")
     attr_name = "draw_mode"
     balloon = "Atom/bond display style"
     default = 0
     name = "Style"
     @property
     def command_format(self):
-        return "style %%s %s" % self.labels[self.value]
+        return "style %%s %s" % self.labels[self.values.index(self.value)]
 
-class BondColorOption(ColorOption):
+class BaseBondColorOption(ColorOption):
+    def __init_subclass__(cls, **kwargs):
+        cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
+        cls.balloon = "If not in half bond mode, the color of the %sbond" % (cls.prefix)
+
     attr_name = "color"
-    balloon = "If not in half bond mode, the color of the bond"
     default = "white"
     name = "Color"
+
     @property
     def command_format(self):
-        return "color %%s %s bonds" % color_name(self.value)
+        return "color =%%s %s %sbonds" % (color_name(self.value), self.prefix)
 
-class BondHalfBondOption(BooleanOption):
+class BaseBondHalfBondOption(BooleanOption):
+    def __init_subclass__(cls, **kwargs):
+        cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
+        cls.balloon = "If true, each half of the %sbond is colored the same as the neighboring atom.\n" \
+            "Otherwise, the %sbond uses its own color attribute for the whole %sbond." % (cls.prefix,
+            cls.prefix, cls.prefix)
+
     attr_name = "halfbond"
     default = True
     name = "Halfbond mode"
-    balloon = "If true, each half of the bond is colored the same as the neighboring atom.\n" \
-        "Otherwise, the bond uses its own color attribute for the whole bond."
     @property
     def command_format(self):
-        return "color %%s halfbond %s" % str(self.value).lower()
+        return "setattr =%%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
-class BondRadiusOption(FloatOption):
+class BaseBondLengthOption(FloatOption):
+    def __init_subclass__(cls, **kwargs):
+        cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
+        cls.balloon = "The length of the %sbond, in angstroms" % (cls.prefix)
+
+    attr_name = "length"
+    default = 0.0
+    name = "Length"
+    @property
+    def command_format(self):
+        raise ValueError("Cannot set %sbond length" % self.prefix)
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
+class BaseBondRadiusOption(FloatOption):
+    def __init_subclass__(cls, **kwargs):
+        cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
+        cls.balloon = "%sbond radius" % cls.prefix
+
     attr_name = "radius"
-    balloon = "Bond radius"
     default = 0.2
     name = "Radius"
     @property
     def command_format(self):
-        return "size %%s stickRadius %g" % self.value
+        return "size =%%s %s %g" % (("pseudobondRadius" if self.prefix == "pseudo" else "stickRadius"),
+            self.value)
 
     def __init__(self, *args, **kw):
         super().__init__(*args, min='positive', **kw)
 
-class BondShownOption(BooleanOption):
+class BaseBondShownOption(BooleanOption):
+    def __init_subclass__(cls, **kwargs):
+        cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
+        cls.balloon = "If true, the %sbond is shown if both its neighboring atoms are shown.\n" \
+            "If false, the %sbond is not shown." % (cls.prefix, cls.prefix)
+
     attr_name = "display"
-    balloon = "If true, the bond is shown if both its neighboring atoms are shown.\n" \
-        "If false, the bond is not shown."
     default = True
     name = "Shown"
     @property
     def command_format(self):
-        return "%s %%s bonds" % ("show" if self.value else "hide")
+        # have to use setattr because "show" will also display flanking atoms if needed
+        return "setattr =%%s %s display %s" % ("p" if self.prefix else "b", str(self.value).lower())
+
+class BondColorOption(BaseBondColorOption):
+    pass
+
+class BondHalfBondOption(BaseBondHalfBondOption):
+    pass
+
+class BondLengthOption(BaseBondLengthOption):
+    pass
+
+class BondRadiusOption(BaseBondRadiusOption):
+    pass
+
+class BondShownOption(BaseBondShownOption):
+    pass
+
+class PBondColorOption(BaseBondColorOption):
+    pass
+
+class PBondHalfBondOption(BaseBondHalfBondOption):
+    pass
+
+class PBondLengthOption(BaseBondLengthOption):
+    pass
+
+class PBondRadiusOption(BaseBondRadiusOption):
+    pass
+
+class PBondShownOption(BaseBondShownOption):
+    pass
 
 class ResidueChi1Option(FloatOption):
     attr_name = "chi1"
@@ -147,7 +211,7 @@ class ResidueChi2Option(FloatOption):
     attr_name = "chi2"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi2 %g" % self.value
@@ -161,7 +225,7 @@ class ResidueChi3Option(FloatOption):
     attr_name = "chi3"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi3 %g" % self.value
@@ -175,7 +239,7 @@ class ResidueChi4Option(FloatOption):
     attr_name = "chi4"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi4 %g" % self.value
@@ -289,7 +353,7 @@ class ResidueSSTypeOption(SymbolicEnumOption):
     name = "Secondary structure type"
     @property
     def command_format(self):
-        return "setattr %%s r ss_type %s" % self.labels[self.value]
+        return "setattr %%s r ss_type %d" % self.value
 
 class ResidueThinRingsOption(BooleanOption):
     attr_name = "thin_rings"
