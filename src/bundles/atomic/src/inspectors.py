@@ -17,8 +17,8 @@ def item_options(session, name, **kw):
         return (option, (triggers, "changes", lambda changes, *, attr=option.attr_name, rt=reason_type:
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
-        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomIdatmTypeOption, AtomRadiusOption,
-            AtomShownOption, AtomStyleOption]],
+        'atoms': [make_tuple(opt, "atom") for opt in [AtomBFactorOption, AtomColorOption,
+            AtomIdatmTypeOption, AtomOccupancyOption, AtomRadiusOption, AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
@@ -34,6 +34,21 @@ from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOpt
     SymbolicEnumOption
 from chimerax.core.colors import color_name
 from . import Atom, Element, Residue
+
+class AtomBFactorOption(FloatOption):
+    attr_name = "bfactor"
+    balloon = "Atomic temperature factor"
+    default = 1.0
+    name = "B-factor"
+    @property
+    def command_format(self):
+        return "size %%s bfactor %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        super().__init__(*args, **kw)
+        self.enabled = False
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
@@ -56,6 +71,21 @@ class AtomIdatmTypeOption(EnumOption):
         return "setattr %%s a idatmType %s" % self.value
 
     def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
+class AtomOccupancyOption(FloatOption):
+    attr_name = "occupancy"
+    balloon = "Fraction of time that atom is in this location"
+    default = 1.0
+    name = "Occupancy"
+    @property
+    def command_format(self):
+        return "size %%s occupancy %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
         super().__init__(*args, **kw)
         self.enabled = False
 
@@ -101,7 +131,7 @@ class BaseBondColorOption(ColorOption):
 
     @property
     def command_format(self):
-        return "color %%s %s %sbonds" % (color_name(self.value), self.prefix)
+        return "color =%%s %s %sbonds" % (color_name(self.value), self.prefix)
 
 class BaseBondHalfBondOption(BooleanOption):
     def __init_subclass__(cls, **kwargs):
@@ -115,7 +145,7 @@ class BaseBondHalfBondOption(BooleanOption):
     name = "Halfbond mode"
     @property
     def command_format(self):
-        return "setattr %%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
+        return "setattr =%%s %s halfbond %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BaseBondLengthOption(FloatOption):
     def __init_subclass__(cls, **kwargs):
@@ -143,7 +173,7 @@ class BaseBondRadiusOption(FloatOption):
     name = "Radius"
     @property
     def command_format(self):
-        return "size %%s %s %g" % (("pseudobondRadius" if self.prefix == "pseudo" else "stickRadius"),
+        return "size =%%s %s %g" % (("pseudobondRadius" if self.prefix == "pseudo" else "stickRadius"),
             self.value)
 
     def __init__(self, *args, **kw):
@@ -160,7 +190,8 @@ class BaseBondShownOption(BooleanOption):
     name = "Shown"
     @property
     def command_format(self):
-        return "%s %%s %sbonds" % (("show" if self.value else "hide"), self.prefix)
+        # have to use setattr because "show" will also display flanking atoms if needed
+        return "setattr =%%s %s display %s" % ("p" if self.prefix else "b", str(self.value).lower())
 
 class BondColorOption(BaseBondColorOption):
     pass
@@ -192,7 +223,15 @@ class PBondRadiusOption(BaseBondRadiusOption):
 class PBondShownOption(BaseBondShownOption):
     pass
 
-class ResidueChi1Option(FloatOption):
+class AngleOption(FloatOption):
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 1
+        if 'step' not in kw:
+            kw['step'] = 5.0
+        super().__init__(*args, **kw)
+
+class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
     default = 0.0
@@ -201,54 +240,34 @@ class ResidueChi1Option(FloatOption):
     def command_format(self):
         return "setattr %%s r chi1 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi2Option(FloatOption):
+class ResidueChi2Option(AngleOption):
     attr_name = "chi2"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi2 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi3Option(FloatOption):
+class ResidueChi3Option(AngleOption):
     attr_name = "chi3"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi3 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi4Option(FloatOption):
+class ResidueChi4Option(AngleOption):
     attr_name = "chi4"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle"
     @property
     def command_format(self):
         return "setattr %%s r chi4 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueOmegaOption(FloatOption):
+class ResidueOmegaOption(AngleOption):
     attr_name = "omega"
     balloon = "Backbone \N{GREEK SMALL LETTER OMEGA} (omega) angle"
     default = 0.0
@@ -257,12 +276,7 @@ class ResidueOmegaOption(FloatOption):
     def command_format(self):
         return "setattr %%s r omega %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePhiOption(FloatOption):
+class ResiduePhiOption(AngleOption):
     attr_name = "phi"
     balloon = "Backbone \N{GREEK SMALL LETTER PHI} (phi) angle"
     default = 0.0
@@ -271,12 +285,7 @@ class ResiduePhiOption(FloatOption):
     def command_format(self):
         return "setattr %%s r phi %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePsiOption(FloatOption):
+class ResiduePsiOption(AngleOption):
     attr_name = "psi"
     balloon = "Backbone \N{GREEK SMALL LETTER PSI} (psi) angle"
     default = 0.0
@@ -284,11 +293,6 @@ class ResiduePsiOption(FloatOption):
     @property
     def command_format(self):
         return "setattr %%s r psi %g" % self.value
-
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
@@ -352,7 +356,7 @@ class ResidueSSTypeOption(SymbolicEnumOption):
     name = "Secondary structure type"
     @property
     def command_format(self):
-        return "setattr %%s r ss_type %s" % self.labels[self.value]
+        return "setattr %%s r ss_type %d" % self.value
 
 class ResidueThinRingsOption(BooleanOption):
     attr_name = "thin_rings"

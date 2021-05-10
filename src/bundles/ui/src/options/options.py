@@ -126,7 +126,7 @@ class Option(metaclass=ABCMeta):
 
     def values_for_items(self, items):
         """Supported API.  Convenience function to get values for the 'attr_name' attribute from the
-           given items.  Used by display_for_itmes() and by subclasses overriding display_for_items().
+           given items.  Used by display_for_items() and by subclasses overriding display_for_items().
         """
         if not items:
             return []
@@ -286,7 +286,7 @@ class NumericOption(Option):
         else:
             min_val = min(num_vals)
             max_val = max(num_vals)
-            if max_val == min_val:
+            if ("%g" % max_val) == ("%g" % min_val):
                 self.value = max_val
             else:
                 decimal_places = getattr(self, 'decimal_places', None)
@@ -1030,6 +1030,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             return self.specialValueText() != ""
 
         def validate(self, text, pos):
+            self.setSpecialValueText("")
             suffix_index = len(text)
             while suffix_index > 0 and not text[suffix_index-1].isdigit():
                 suffix_index -= 1

@@ -248,7 +248,6 @@ def ui_tool_show(session, tool_name, _show=True):
             from chimerax.core.errors import UserError
             raise UserError('Multiple installed tools found: %s' %
                             commas((repr(t[1]) for t in tools), 'and'))
-        return
 
     from chimerax.core.errors import UserError
     # DEBUG:

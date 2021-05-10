@@ -55,6 +55,7 @@ class ItemsUpdater:
 
     def destroy(self):
         self._delete_handlers()
+        self._destroyed = True
 
     def hideEvent(self, event):
         self._delete_handlers()
@@ -136,6 +137,8 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         self.itemSelectionChanged.emit()
 
     def _items_change(self, *args):
+        if self.__dict__.get('_destroyed', False):
+            return
         del_recursion = False
         if not hasattr(self, '_recursion'):
             self._recursion = True
@@ -301,6 +304,8 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             self.value_changed.emit()
 
     def _items_change(self, *args):
+        if self.__dict__.get('_destroyed', False):
+            return
         del_recursion = False
         if not hasattr(self, '_recursion'):
             self._recursion = True

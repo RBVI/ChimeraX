@@ -472,9 +472,7 @@ class ChainListsWidget(QWidget):
             for widgets in self.__chain_list_mapping.values():
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
-                    # don't explicitly delete with .deleteLater() or somesuch, since the widget
-                    # itself may respond to this trigger if it's a model closure.  Let Python
-                    # reference counting "naturally" delete it
+                    widget.destroy()
             self.__show_widget(self.__empty_label)
             self.value_changed.emit()
             return
@@ -504,7 +502,7 @@ class ChainListsWidget(QWidget):
             next_mapping[chain] = (label, chain_list)
         for widgets in self.__chain_list_mapping.values():
             for widget in widgets:
-                widget.deleteLater()
+                widget.destroy()
         self.__chain_list_mapping = next_mapping
         self.__container_layout.takeAt(0)
         self.__container_layout.addLayout(next_layout)
