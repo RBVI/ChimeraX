@@ -86,6 +86,10 @@ class OpenGLContext:
     @property
     def _qopengl_context(self):
         return self._contexts.get(self._mode)
+
+    @property
+    def created(self):
+        return self._qopengl_context is not None
     
     def make_current(self, window = None):
         '''Make the OpenGL context active.'''
@@ -435,7 +439,10 @@ class Render:
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
     def delete(self):
-        self.make_current()
+        if self._opengl_context._deleted:
+            raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
+        elif self._opengl_context.created:
+            self.make_current()
         
         fb = self._default_framebuffer
         if fb:
