@@ -33,7 +33,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
-	  markers mask match_maker md_crds \
+	  markers mask match_align match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command \
