@@ -360,11 +360,13 @@ class ResidueSSTypeOption(SymbolicEnumOption):
     def command_format(self):
         return "setattr %%s r ss_type %d" % self.value
 
-class ResidueThinRingsOption(BooleanOption):
+class ResidueThinRingsOption(SymbolicEnumOption):
+    values = (False, True)
+    labels = ("thick", "thin")
     attr_name = "thin_rings"
     balloon = "Whether to depict filled rings as thin or fat"
     default = False
-    name = "Thin filled rings"
+    name = "Ring fill style"
     @property
     def command_format(self):
         return "setattr %%s r thin_rings %s" % str(self.value).lower()
