@@ -126,7 +126,12 @@ class OpenGLContext:
         # Create context
         from Qt.QtGui import QOpenGLContext
         qc = QOpenGLContext()
-        qc.setScreen(self._screen)
+
+        # Use screen window is on if it has been mapped.
+        screen = window.screen()
+        if screen is None:
+            self._screen
+        qc.setScreen(screen)
 
         if self._share_context:
             qc.setShareContext(self._share_context)
