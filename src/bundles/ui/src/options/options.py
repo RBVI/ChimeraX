@@ -445,8 +445,6 @@ class FloatOption(NumericOption):
        of the slider if using a slider."""
 
     def get_value(self):
-        if self._float_widget.special_value_shown():
-            self.set_value(self.default)
         return self._float_widget.value()
 
     def set_value(self, value):
@@ -467,7 +465,10 @@ class FloatOption(NumericOption):
             decimal_places=3, step=None, as_slider=False, **kw):
         self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
-        self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        if as_slider:
+            self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        else:
+            self._float_widget.editingFinished.connect(lambda *, s=self: s.make_callback())
         if (not left_text and not right_text) or as_slider:
             if left_text:
                 self._float_widget.set_left_text(left_text)
@@ -594,8 +595,6 @@ class IntOption(NumericOption):
        and after the entry widget on the right side of the form"""
 
     def get_value(self):
-        if self._spin_box.specialValueText() != "":
-            self.set_value(self.default)
         return self._spin_box.value()
 
     def set_value(self, value):
@@ -617,7 +616,7 @@ class IntOption(NumericOption):
 
     def _make_widget(self, min=None, max=None, left_text=None, right_text=None, **kw):
         self._spin_box = _make_int_spinbox(min, max, **kw)
-        self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        self._spin_box.editingFinished.connect(lambda *, s=self: s.make_callback())
         if not left_text and not right_text:
             self.widget = self._spin_box
             return
@@ -1029,26 +1028,9 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         def special_value_shown(self):
             return self.specialValueText() != ""
 
-        def validate(self, text, pos):
-            self.setSpecialValueText("")
-            suffix_index = len(text)
-            while suffix_index > 0 and not text[suffix_index-1].isdigit():
-                suffix_index -= 1
-            if suffix_index == 0:
-                return super().validate(text, pos)
-            numeric_text = text[:suffix_index]
-            suffix = text[suffix_index:]
-            try:
-                fval = float(numeric_text)
-            except ValueError:
-                return super().validate(text, pos)
-            # drop trailing decimal zeros if possible until input is valid
-            from Qt.QtGui import QValidator
-            while super().validate("%s%s" % (numeric_text, suffix), pos)[0] == QValidator.Invalid:
-                if len(numeric_text) < 2 or numeric_text[-1] != '0':
-                    return super().validate(text, pos)
-                numeric_text = numeric_text[:-1]
-            return super().validate("%s%s" % (numeric_text, suffix), pos)
+        def stepBy(self, *args, **kw):
+            super().stepBy(*args, **kw)
+            self.editingFinished.emit()
 
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
@@ -1070,6 +1052,10 @@ def _make_int_spinbox(min, max, **kw):
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
+
+        def stepBy(self, *args, **kw):
+            super().stepBy(*args, **kw)
+            self.editingFinished.emit()
 
     spin_box = NoScrollSpinBox(**kw)
     default_minimum = -(2**31)
