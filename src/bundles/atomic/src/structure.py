@@ -1806,6 +1806,20 @@ class PickedAtom(Pick):
     def description(self):
         return str(self.atom)
     def specifier(self):
+        # have to do something fancy for the rare case of duplicate atom specs [#4617]
+        residues = self.atom.structure.residues
+        same_numbers = residues.numbers == self.atom.residue.number
+        import numpy
+        if numpy.count_nonzero(same_numbers) > 1:
+            same_chains = residues.chain_ids == self.atom.residue.chain_id
+            same = numpy.logical_and(same_numbers, same_chains)
+            if numpy.count_nonzero(same) > 1:
+                same_inserts = residues.insertion_codes == self.atom.residue.insertion_code
+                same = numpy.logical_and(same, same_inserts)
+                if numpy.count_nonzero(same) > 1:
+                    # Well, I could go off and see if the other residue(s) contain an atom
+                    # with the same name, but at this point I'm going to be lazy...
+                    return '@@serial_number=%d' % self.atom.serial_number
         return self.atom.string(style='command')
     @property
     def residue(self):

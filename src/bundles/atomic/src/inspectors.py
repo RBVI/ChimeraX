@@ -17,8 +17,8 @@ def item_options(session, name, **kw):
         return (option, (triggers, "changes", lambda changes, *, attr=option.attr_name, rt=reason_type:
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
-        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomIdatmTypeOption, AtomRadiusOption,
-            AtomShownOption, AtomStyleOption]],
+        'atoms': [make_tuple(opt, "atom") for opt in [AtomBFactorOption, AtomColorOption,
+            AtomIdatmTypeOption, AtomOccupancyOption, AtomRadiusOption, AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
@@ -33,7 +33,23 @@ def item_options(session, name, **kw):
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
     SymbolicEnumOption
 from chimerax.core.colors import color_name
+from chimerax.core.utils import CustomSortString
 from . import Atom, Element, Residue
+
+class AtomBFactorOption(FloatOption):
+    attr_name = "bfactor"
+    balloon = "Atomic temperature factor"
+    default = 1.0
+    name = "B-factor"
+    @property
+    def command_format(self):
+        return "size %%s bfactor %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        super().__init__(*args, **kw)
+        self.enabled = False
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
@@ -56,6 +72,21 @@ class AtomIdatmTypeOption(EnumOption):
         return "setattr %%s a idatmType %s" % self.value
 
     def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
+class AtomOccupancyOption(FloatOption):
+    attr_name = "occupancy"
+    balloon = "Fraction of time that atom is in this location"
+    default = 1.0
+    name = "Occupancy"
+    @property
+    def command_format(self):
+        return "size %%s occupancy %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
         super().__init__(*args, **kw)
         self.enabled = False
 
@@ -193,103 +224,76 @@ class PBondRadiusOption(BaseBondRadiusOption):
 class PBondShownOption(BaseBondShownOption):
     pass
 
-class ResidueChi1Option(FloatOption):
+class AngleOption(FloatOption):
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 1
+        if 'step' not in kw:
+            kw['step'] = 5.0
+        super().__init__(*args, **kw)
+
+class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} angle", 4)
     @property
     def command_format(self):
         return "setattr %%s r chi1 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi2Option(FloatOption):
+class ResidueChi2Option(AngleOption):
     attr_name = "chi2"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} (chi2) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT TWO} angle", 5)
     @property
     def command_format(self):
         return "setattr %%s r chi2 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi3Option(FloatOption):
+class ResidueChi3Option(AngleOption):
     attr_name = "chi3"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} (chi3) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT THREE} angle", 6)
     @property
     def command_format(self):
         return "setattr %%s r chi3 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueChi4Option(FloatOption):
+class ResidueChi4Option(AngleOption):
     attr_name = "chi4"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} (chi4) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT FOUR} angle", 7)
     @property
     def command_format(self):
         return "setattr %%s r chi4 %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResidueOmegaOption(FloatOption):
+class ResidueOmegaOption(AngleOption):
     attr_name = "omega"
     balloon = "Backbone \N{GREEK SMALL LETTER OMEGA} (omega) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER OMEGA} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER OMEGA} angle", 3)
     @property
     def command_format(self):
         return "setattr %%s r omega %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePhiOption(FloatOption):
+class ResiduePhiOption(AngleOption):
     attr_name = "phi"
     balloon = "Backbone \N{GREEK SMALL LETTER PHI} (phi) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER PHI} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER PHI} angle", 1)
     @property
     def command_format(self):
         return "setattr %%s r phi %g" % self.value
 
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
-
-class ResiduePsiOption(FloatOption):
+class ResiduePsiOption(AngleOption):
     attr_name = "psi"
     balloon = "Backbone \N{GREEK SMALL LETTER PSI} (psi) angle"
     default = 0.0
-    name = "\N{GREEK SMALL LETTER PSI} angle"
+    name = CustomSortString("\N{GREEK SMALL LETTER PSI} angle", 2)
     @property
     def command_format(self):
         return "setattr %%s r psi %g" % self.value
-
-    def __init__(self, *args, **kw):
-        if 'step' not in kw:
-            kw['step'] = 1.0
-        super().__init__(*args, **kw)
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
@@ -303,17 +307,17 @@ class ResidueFilledRingOption(BooleanOption):
 class ResidueRibbonColorOption(ColorOption):
     attr_name = "ribbon_color"
     default = "white"
-    name = "Ribbon color"
+    name = "Cartoon color"
     @property
     def command_format(self):
         return "color %%s %s target r" % color_name(self.value)
 
 class ResidueRibbonHidesBackboneOption(BooleanOption):
     attr_name = "ribbon_hide_backbone"
-    balloon = "Whether showing a ribbon depiction automatically hides backbone atoms.\n" \
+    balloon = "Whether showing a cartoon depiction automatically hides backbone atoms.\n" \
         "Even with this off, the backbone atoms themselves may still need to be 'shown' to appear."
     default = True
-    name = "Ribbon hides backbone"
+    name = "Cartoon hides backbone"
     @property
     def command_format(self):
         return "setattr %%s r ribbon_hide_backbone %s" % str(self.value).lower()
@@ -321,7 +325,7 @@ class ResidueRibbonHidesBackboneOption(BooleanOption):
 class ResidueRibbonShownOption(BooleanOption):
     attr_name = "ribbon_display"
     default = False
-    name = "Show ribbon"
+    name = "Show cartoon"
     @property
     def command_format(self):
         return "cartoon%s %%s" % ("" if self.value else " hide")
@@ -338,9 +342,10 @@ class ResidueRingColorOption(ColorOption):
 class ResidueSSIDOption(IntOption):
     attr_name = "ss_id"
     balloon = "Secondary structures elements that are to be depicted as continuous\n" \
-        "should have the same secondary structure ID number."
+        "should have the same secondary structure ID number. Typically coil is\n" \
+        "assigned a value of 0 and non-protein residues -1."
     default = -1
-    name = "Secondary structure ID #"
+    name = "Secondary structure ID"
     @property
     def command_format(self):
         return "setattr %%s r ss_id %d" % self.value

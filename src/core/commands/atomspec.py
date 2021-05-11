@@ -250,7 +250,7 @@ class _AtomSpecSemantics:
         elif ast.atomspec is not None:
             return ast.atomspec
         elif ast.tilde is not None:
-            return _Invert(ast.tilde)
+            return _Invert(ast.tilde, add_implied=self._add_implied)
         elif ast.selector is not None:
             return _Term(ast.selector)
         else:
@@ -984,8 +984,9 @@ class _Term:
 
 class _Invert:
     """A "not" (~) term in an atom specifier."""
-    def __init__(self, atomspec):
+    def __init__(self, atomspec, *, add_implied=True):
         self._atomspec = atomspec
+        self._add_implied = add_implied
 
     def __str__(self):
         return "~%s" % str(self._atomspec)
@@ -995,7 +996,7 @@ class _Invert:
             models = session.models.list(**kw)
         with maximum_stack():
             results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
-        if self._atomspec._add_implied:
+        if self._add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -1003,7 +1004,7 @@ class _Invert:
     def find_matches(self, session, models, results, ordered):
         with maximum_stack():
             self._atomspec.find_matches(session, models, results, ordered)
-        if self._atomspec._add_implied:
+        if self._add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results

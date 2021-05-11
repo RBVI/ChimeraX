@@ -48,7 +48,11 @@ class SelInspector(ToolInstance):
         self.options_layout = QVBoxLayout()
         layout.addLayout(self.options_layout)
         self.options_container = None
-        self.no_sel_label = QLabel()
+        class SizedLabel(QLabel):
+            def sizeHint(self):
+                from Qt.QtCore import QSize
+                return QSize(300, 200)
+        self.no_sel_label = SizedLabel()
         self.options_layout.addWidget(self.no_sel_label)
         self.no_sel_label.hide()
 
