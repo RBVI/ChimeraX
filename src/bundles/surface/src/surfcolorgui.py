@@ -423,6 +423,7 @@ class SurfaceColorGUI(ToolInstance):
             map = self._map.value
             if map is None:
                 self.warn('No map chosen for coloring')
+                return
             cmd = ('color %s %s map #%s palette %s'
                    % (subcmd, surf_spec, map.id_string, palette))
             if method in self._offset_methods:
