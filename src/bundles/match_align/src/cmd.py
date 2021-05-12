@@ -14,19 +14,25 @@
 from .settings import defaults
 
 def make_alignment(chains, dist_cutoff=defaults["dist_cutoff"], column_criteria=defaults["column_criteria"],
-        gap_char=defaults["gap_char"]
+        gap_char=defaults["gap_char"], circular=defaults['circular'], min_stretch=defaults['min_stretch'],
+        iteration_limit=defaults['iteration_limit'], show_alignment=True, ref_chain=None):
     pass
 
 def register_command(cmd_name, logger):
-    from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg
-    from chimerax.atomic import UniqueChainsArg
-    #from chimerax import sim_matrices
+    from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
+        BoolArg, Or, NoneArg, NonNegativeIntArg, PositiveIntArg
+    from chimerax.atomic import UniqueChainsArg, ChainArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         keyword = [
-            ('column_criteria', EnumOf(['any', 'all']))
-            ('dist_cutoff', NonNegativeFloatArg)
-            ('gap_char', CharacterArg)
+            ('circular', BoolArg),
+            ('column_criteria', EnumOf(['any', 'all'])),
+            ('dist_cutoff', NonNegativeFloatArg),
+            ('gap_char', CharacterArg),
+            ('iteration_limit', Or(NonNegativeIntArg, NoneArg)),
+            ('min_stretch', PositiveIntArg),
+            ('ref_chain', ChainArg),
+            ('show_alignment', BoolArg),
         ],
         synopsis = 'Create sequence alignment from structural superposition'
     )

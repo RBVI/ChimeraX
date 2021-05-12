@@ -12,9 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 defaults = {
+    'circular': False,
     'column_criteria': "any",
     'dist_cutoff': 5.0,
     'gap_char': '.',
+    'iteration_limit': None,
+    'min_stretch': 3,
 }
 
 from  chimerax.core.settings import Settings
