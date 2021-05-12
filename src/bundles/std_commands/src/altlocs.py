@@ -133,18 +133,8 @@ def altlocs_list(session, residues=None):
             commas(sorted(r_locs), conjunction="and"), commas(used, conjunction="and")))
 
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, AnnotationError, StringArg, Or
+    from chimerax.core.commands import register, CmdDesc, AnnotationError, StringArg, Or, CharacterArg
     from chimerax.atomic import ResiduesArg
-
-    class CharacterArg(StringArg):
-        name = "a single character"
-
-        @staticmethod
-        def parse(text, session):
-            token, log_token, rest = StringArg.parse(text, session)
-            if len(token) != 1:
-                raise AnnotationError("Alternate location must be a single character")
-            return token, log_token, rest
 
     desc = CmdDesc(required=[('alt_loc', CharacterArg)],
         optional = [('residues', ResiduesArg)],
