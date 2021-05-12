@@ -272,7 +272,7 @@ def _name_completion(sorted_dict, prefix, all_possible=False):
     num_names = len(sorted_dict)
     i = sorted_dict.bisect_left(prefix)
     if i >= num_names:
-        return None
+        return [] if all_possible else None
     all_names = sorted_dict.keys()
     if not all_possible:
         name = all_names[i]

@@ -1029,6 +1029,17 @@ class StringArg(Annotation):
         return quote_if_necessary(value)
 
 
+class CharacterArg(StringArg):
+    name = "a single character"
+
+    @staticmethod
+    def parse(text, session):
+        token, log_token, rest = StringArg.parse(text, session)
+        if len(token) != 1:
+            raise AnnotationError("must be a single character")
+        return token, log_token, rest
+
+
 class PasswordArg(StringArg):
     """Annotation for a password (should not be echoed to log)"""
     name = "a password"

@@ -45,7 +45,9 @@ class _StatusBarOpenGL:
         self.widget = None
         self._window = None
 
-        for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
+        # Make sure to delete opengl context last since drawings and renderer
+        # will try to delete opengl resources.
+        for attr in ('_drawing', '_drawing2', '_renderer', '_opengl_context'):
             v = getattr(self, attr)
             if v is not None:
                 v.delete()
