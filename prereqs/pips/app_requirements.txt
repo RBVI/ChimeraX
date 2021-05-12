@@ -36,7 +36,7 @@ Pillow==8.2.0
 pkginfo==1.7.0
 psutil==5.8.0
 pycollada==0.7.1
-pydicom==2.0.0
+pydicom==2.1.2
 # PyOpenGL handled in app_pyopengl_requirements.txt
 #PyOpenGL==3.1.5
 #PyOpenGL-accelerate==3.1.5
