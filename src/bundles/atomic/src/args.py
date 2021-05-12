@@ -35,8 +35,7 @@ class AtomArg(AtomsArg):
     def parse(cls, text, session):
         atoms, used, rest = super().parse(text, session)
         if len(atoms) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError("Must specify exactly one atom (specified %d)" % len(atoms))
+            raise AnnotationError("must specify exactly one atom (specified %d)" % len(atoms))
         return atoms[0], used, rest
 
 
@@ -50,7 +49,6 @@ class ElementArg(StringArg):
         from . import Element
         e = Element.get_element(element_name)
         if e.number == 0:
-            from chimerax.core.commands import AnnotationError
             raise AnnotationError("'%s' is not an atomic symbol" % element_name)
         return e, used, rest
 
@@ -87,6 +85,18 @@ class UniqueChainsArg(AtomSpecArg):
         chains = aspec.evaluate(session).atoms.residues.unique_chains
         chains.spec = str(aspec)
         return chains, text, rest
+
+
+class ChainArg(UniqueChainsArg):
+    """Parse command chains specifier"""
+    name = "a chains specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        chains, text, rest = super().parse(text, session)
+        if len(chains) != 1:
+            raise AnnotationError("must specify exactly one chain")
+        return chains[0], text, rest
 
 
 class StructuresArg(AtomSpecArg):
@@ -161,8 +171,7 @@ class BondArg(BondsArg):
     def parse(cls, text, session):
         bonds, used, rest = super().parse(text, session)
         if len(bonds) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
+            raise AnnotationError("must specify exactly one bond (specified %d)" % len(bonds))
         return bonds[0], used, rest
 
 class StructureArg(ModelArg):
@@ -175,8 +184,7 @@ class StructureArg(ModelArg):
         from . import Structure
         models = [s for s in m.all_models() if isinstance(s, Structure)]
         if len(models) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError('Must specify 1 structure, got %d for "%s"' % (len(models), text))
+            raise AnnotationError('must specify 1 structure, got %d for "%s"' % (len(models), text))
         return models[0], text, rest
 
 
