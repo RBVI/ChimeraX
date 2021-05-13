@@ -1012,6 +1012,13 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                     val = -step
             return val
 
+        def event(self, event):
+            ret = super().event(event)
+            if event.type() in [event.KeyPress, event.KeyRelease]:
+                event.accept()
+                return True
+            return ret
+
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
             if event.type() == event.Wheel and source is self:
@@ -1046,6 +1053,13 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 def _make_int_spinbox(min, max, **kw):
     from Qt.QtWidgets import QSpinBox
     class NoScrollSpinBox(QSpinBox):
+        def event(self, event):
+            ret = super().event(event)
+            if event.type() in [event.KeyPress, event.KeyRelease]:
+                event.accept()
+                return True
+            return ret
+
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
             if event.type() == event.Wheel and source is self:
