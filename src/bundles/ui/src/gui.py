@@ -2882,6 +2882,8 @@ class InitWindowSizeOption(Option):
         dw = QDesktopWidget()
         screen_geom = self.session.ui.primaryScreen().availableGeometry()
         screen_width, screen_height = screen_geom.width(), screen_geom.height()
+        if not screen_width or not screen_height:
+            return
         self.current_fixed_size_label.setText(
             "Current: %d wide, %d high" % (window_width, window_height))
         self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
