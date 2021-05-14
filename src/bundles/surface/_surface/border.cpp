@@ -82,14 +82,14 @@ void calculate_border(float plane_normal[3], float plane_offset,
 static void side_of_plane(float plane_normal[3], float plane_offset,
 			  const FArray &varray, std::vector<float> &side)
 {
-  int n = varray.size(0);
+  int64_t n = varray.size(0);
   side.assign(n, 0.0);
   FArray cvarray = varray.contiguous_array();
   float *v = cvarray.values();
   float nx = plane_normal[0], ny = plane_normal[1], nz = plane_normal[2];
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int k3 = 3 * k;
+      int64_t k3 = 3 * k;
       side[k] = nx * v[k3] + ny * v[k3+1] + nz * v[k3+2] - plane_offset;
     }
 }
@@ -101,12 +101,12 @@ static void calculate_plane_edges(const IArray &tarray,
 				  const std::vector<float> &side,
 				  Edge_Map &edges)
 {
-  int m = tarray.size(0);
+  int64_t m = tarray.size(0);
   IArray ctarray = tarray.contiguous_array();
   int *t = ctarray.values();
-  for (int k = 0 ; k < m ; ++k)
+  for (int64_t k = 0 ; k < m ; ++k)
     {
-      int k3 = 3 * k;
+      int64_t k3 = 3 * k;
       int i0 = t[k3], i1 = t[k3+1], i2 = t[k3+2];
       if (i0 == i1 || i0 == i2 || i1 == i2)
 	// Ignore degenerate triangles to avoid more than 2 triangles sharing an edge.

@@ -68,9 +68,21 @@ class ResiduesArg(AtomSpecArg):
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
         evaled = aspec.evaluate(session)
-        from .molarray import concatenate, Atoms
+        from .molarray import concatenate, Atoms, Residues
         atoms = concatenate((evaled.atoms,) + evaled.bonds.atoms, Atoms)
         residues = atoms.residues.unique()
+        if aspec.outermost_inversion:
+            # the outermost operator was '~', so weed out partially-selected residues
+            explicit = aspec.evaluate(session, add_implied=False)
+            unselected = residues.atoms - explicit.atoms
+            residues = residues - unselected.residues.unique()
+            # trickier to screen out partial bond selection, go residue by residue...
+            remaining = []
+            for r in residues:
+                res_bonds = r.atoms.intra_bonds
+                if len(res_bonds & explicit.bonds) == len(res_bonds):
+                    remaining.append(r)
+            residues = Residues(remaining)
         residues.spec = str(aspec)
         return residues, text, rest
 
@@ -83,6 +95,19 @@ class UniqueChainsArg(AtomSpecArg):
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
         chains = aspec.evaluate(session).atoms.residues.unique_chains
+        if aspec.outermost_inversion:
+            # the outermost operator was '~', so weed out partially-selected residues
+            explicit = aspec.evaluate(session, add_implied=False)
+            remaining = []
+            for chain in chains:
+                chain_atoms = chain.existing_residues.atoms
+                if len(chain_atoms) != len(chain_atoms & explicit.atoms):
+                    continue
+                chain_bonds = chain_atoms.intra_bonds
+                if len(chain_bonds & explicit.bonds) == len(chain_bonds):
+                    remaining.append(chain)
+            from .molarray import Chains
+            chains = Chains(remaining)
         chains.spec = str(aspec)
         return chains, text, rest
 
@@ -99,6 +124,11 @@ class ChainArg(UniqueChainsArg):
         return chains[0], text, rest
 
 
+def fully_selected(session, aspec, mols):
+    explicit = aspec.evaluate(session, add_implied=False)
+    return [m for m in mols
+        if m.num_atoms == len(explicit.atoms & m.atoms) and m.num_bonds == len(explicit.bonds & m.bonds)]
+
 class StructuresArg(AtomSpecArg):
     """Parse command structures specifier"""
     name = "a structures specifier"
@@ -109,6 +139,8 @@ class StructuresArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         from . import Structure
         mols = [m for m in models if isinstance(m, Structure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
         return mols, text, rest
 
 
@@ -122,6 +154,8 @@ class AtomicStructuresArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         from . import AtomicStructure, AtomicStructures
         mols = [m for m in models if isinstance(m, AtomicStructure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
         return AtomicStructures(mols), text, rest
 
 
