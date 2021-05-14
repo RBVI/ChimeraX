@@ -209,8 +209,11 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compr
             os.remove(filename)
         if logger:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
-        if isinstance(err, URLError) and isinstance(err.reason, TimeoutError):
+        import socket
+        if isinstance(err, URLError) and isinstance(err.reason, (TimeoutError, socket.timeout)):
             _timeout_cache[hostname] = time.time()
+            raise UserError(f'{hostname} failed to respond')
+        if isinstance(err, socket.timeout):
             raise UserError(f'{hostname} failed to respond')
         raise
 
