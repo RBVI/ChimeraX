@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel",
-                  "fromatoms", "random"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "byidentity", "bynucleotide",
+        "bymodel", "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
@@ -57,7 +57,7 @@ def color(session, objects, color=None, what=None, target=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "byidentity", "bynucleotide", "bymodel".
     what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels', 'models' or None
       What to color. Everything is colored if option is not specified.
     target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f', 'm'
@@ -192,7 +192,7 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         from chimerax.atomic.colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c = atoms.colors.copy()
         sc,amask = polymer_colors(atoms.residues)
@@ -274,7 +274,7 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c,rmask = polymer_colors(residues)
         c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
@@ -318,7 +318,7 @@ def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ring_colors", residues.ring_colors, c)
         residues.ring_colors = c
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c,rmask = polymer_colors(residues)
         c[rmask, 3] = residues.ring_colors[rmask, 3] if opacity is None else opacity

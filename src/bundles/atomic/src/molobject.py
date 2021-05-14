@@ -1220,8 +1220,9 @@ class Chain(StructureSeq):
         return self.string(style="command")
 
     @property
-    def entity(self):
-        class EntityTester:
+    def identity(self):
+        """'Fake' attribute to allow for //identity="/A" tests"""
+        class IdentityTester:
             def __init__(self, chain):
                 self.chain = chain
 
@@ -1242,13 +1243,13 @@ class Chain(StructureSeq):
                 try:
                     chains, text, rest = UniqueChainsArg.parse(chain_spec, self.chain.structure.session)
                 except AnnotationError:
-                    raise UserError("Cannot parse chain specifier '%s' for entity attribute test"
+                    raise UserError("Cannot parse chain specifier '%s' for identity attribute test"
                         % chain_spec)
                 if rest:
-                    raise UserError("Extraneous text after chain specifer in entity attribute test")
+                    raise UserError("Extraneous text after chain specifer in identity attribute test")
                 return set([chain.characters for chain in chains])
 
-        return EntityTester(self)
+        return IdentityTester(self)
 
     def extend(self, chars):
         # disallow extend

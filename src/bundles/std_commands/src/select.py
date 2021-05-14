@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def select(session, objects=None, polymer=None, residues=False, minimum_length=None, maximum_length=None,
+def select(session, objects=None, residues=False, minimum_length=None, maximum_length=None,
         sequence=None):
     '''Select specified objects.
 
@@ -22,9 +22,6 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
       If no objects are specified then everything is selected.
     residues : bool
       Extend atoms that are selected to containing residues if true (default false).
-    polymer : Atoms
-      Reduce the selection to include only atoms belonging to chains having a sequence that is the
-      same as one of the sequences specified by the polymer option.
     minimum_length : float or None
       Exclude pseudobonds shorter than the specified length.  If this option is specified
       all non-pseudobond objects are also excluded.
@@ -45,9 +42,6 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
         objects = _filter_pseudobonds_by_length(objects, minimum_length, maximum_length)
         clear_selection(session, undo_state)
         modify_selection(objects, 'add', undo_state, full_residues = residues)
-
-        if polymer is not None:
-            polymer_selection(polymer, session, undo_state)
     else:
         clear_selection(session, undo_state)
         objects = _select_sequence(objects, sequence)
@@ -133,26 +127,6 @@ def select_intersect(session, objects=None, residues=False):
     intersect_selection(objects, session, undo_state, full_residues = residues)
     session.undo.register(undo_state)
     report_selection(session)
-    
-def polymer_selection(seq_atoms, session, undo_state):
-    '''
-    Reduce the current selected atoms to include only those that belong to a chain
-    having the same sequence string as one of seq_atoms.
-    '''
-    s = session.selection
-    atoms_list = s.items('atoms')
-    s.clear()
-    if atoms_list:
-        sseqs, sseq_ids = seq_atoms.residues.unique_sequences
-        sset = set(sseqs)
-        sset.discard('')	# Don't include non-polymers.
-        for atoms in atoms_list:
-            seqs, seq_ids = atoms.residues.unique_sequences
-            from numpy import array, bool
-            smask = array([(seq in sset) for seq in seqs], bool)
-            satoms = atoms.filter(smask[seq_ids])
-            undo_state.add(satoms, "selected", satoms.selected, True)
-            satoms.selected = True
     
 def select_up(session):
     '''Extend the current selection up one level.'''
@@ -282,7 +256,6 @@ def register_command(logger):
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('objects', ObjectsArg)],
                    keyword=[('residues', BoolArg),
-                            ('polymer', AtomsArg),
                             ('minimum_length', FloatArg),
                             ('maximum_length', FloatArg),
                             ('sequence', StringArg)],

@@ -137,7 +137,7 @@ def fetch_pdb_info(session, entry_chain_list):
     from urllib.request import urlopen, Request
     from urllib.error import URLError, HTTPError
     try:
-        req = Request("http://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
+        req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
              "Content-Type": "application/graphql"
         })
         f = urlopen(req)
