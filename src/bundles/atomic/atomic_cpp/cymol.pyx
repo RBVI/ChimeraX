@@ -960,6 +960,14 @@ cdef class CyResidue:
     # properties...
 
     @property
+    def alt_locs(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        alt_locs = set()
+        for a in self.atoms:
+            alt_locs.update(a.alt_locs)
+        return alt_locs
+
+    @property
     def atoms(self):
         "Supported API. :class:`.Atoms` collection containing all atoms of the residue."
         from .molarray import Atoms
@@ -971,6 +979,7 @@ cdef class CyResidue:
 
     @property
     def atomspec(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
         return self.string(style="command")
 
     @property
