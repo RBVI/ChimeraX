@@ -963,9 +963,9 @@ cdef class CyResidue:
     def alt_loc(self):
         if self._deleted: raise RuntimeError("Residue already deleted")
         for a in self.atoms:
-            if a.alt_loc:
+            if a.alt_loc != ' ':
                 return a.alt_loc
-        return ''
+        return ' '
 
     @property
     def alt_locs(self):
