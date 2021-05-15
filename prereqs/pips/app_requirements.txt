@@ -11,13 +11,13 @@ grako==3.16.5
 html2text==2020.1.16
 ihm==0.20
 imagecodecs==2021.4.28
-ipykernel==5.3.4
+ipykernel==5.5.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==7.18.1
+ipython==7.23.1
 # the version of jedi that works with ipython
-jedi==0.17.2
-jupyter-client==6.1.7
+jedi==0.18.0
+jupyter-client==6.1.12
 # see ../lineprofiler
 #line_profiler==3.0.2
 lxml==4.6.3
@@ -42,7 +42,7 @@ pydicom==2.1.2
 #PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.1
 #PySide2==5.15.2
-qtconsole==4.7.7
+qtconsole==5.1.0
 requests==2.25.1
 scipy==1.6.3
 six==1.16.0
