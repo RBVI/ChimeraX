@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-from Qt.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QButtonGroup, QRadioButton
+from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 
@@ -35,10 +35,9 @@ class AltlocExplorerTool(ToolInstance):
         self._structure_button = button = ASMB(session)
         button.value_changed.connect(self._structure_change)
         layout.addWidget(button)
-        self._no_structure_label = QLabel("No atomic models open")
+        self._no_structure_label = QLabel("No atomic model chosen")
         layout.addWidget(self._no_structure_label)
-        self._structure_layout = None
-        self._structure_change()
+        self._structure_widget = None
         #TODO: react to alt loc changes/additions/subtractions
         """
         from .model import get_model
@@ -248,37 +247,43 @@ class AltlocExplorerTool(ToolInstance):
         self.key = None
         super().delete()
 
-    def _make_structure_layout(self, structure):
+    def _make_structure_widget(self, structure):
+        widget = QWidget()
         layout = QGridLayout()
+        layout.setSpacing(2)
+        widget.setLayout(layout)
         from itertools import count
         rows = count()
         for r in structure.residues:
             if not r.alt_locs:
                 continue
             row = next(rows)
-            layout.addWidget(QLabel(str(r)), row, 0)
+            layout.addWidget(QLabel(str(r)+"  "), row, 0, alignment=Qt.AlignRight)
             button_group = QButtonGroup()
-            layout.addWidget(button_group, row, 1)
+            but_layout = QHBoxLayout()
+            layout.addLayout(but_layout, row, 1, alignment=Qt.AlignLeft)
             for alt_loc in sorted(list(r.alt_locs)):
                 but = QRadioButton(alt_loc)
                 but.setChecked(r.alt_loc == alt_loc)
                 button_group.addButton(but)
+                but_layout.addWidget(but, alignment=Qt.AlignCenter)
 
         if next(rows) == 0:
             layout.addWidget(QLabel("No alternate locations in this structure"), 0, 0)
-        return layout
+        return widget
 
     def _structure_change(self):
-        if self._structure_layout:
-            self._layout.removeLayout(self._structure_layout)
-            self._structure_layout.destroy()
+        if self._structure_widget:
+            self._layout.removeWidget(self._structure_widget)
+            self._structure_widget.hide()
+            self._structure_widget.destroy()
 
         structure = self._structure_button.value
         if structure:
             self._no_structure_label.hide()
-            self._structure_layout = self._make_structure_layout(structure)
-            self._layout.addLayout(self._structure_layout)
+            self._structure_widget = self._make_structure_widget(structure)
+            self._layout.addWidget(self._structure_widget)
         else:
             self._no_structure_label.show()
-            self._structure_layout = None
+            self._structure_widget = None
 
