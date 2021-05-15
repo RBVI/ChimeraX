@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-from Qt.QtWidgets import QVBoxLayout, QGridLayout, QLabel
+from Qt.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QButtonGroup, QRadioButton
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 
@@ -250,12 +250,22 @@ class AltlocExplorerTool(ToolInstance):
 
     def _make_structure_layout(self, structure):
         layout = QGridLayout()
+        from itertools import count
+        rows = count()
         for r in structure.residues:
-            #TODO: need a Residue function to return available alt locs
-            if max(r.atoms.num_alt_locs) < 2:
+            if not r.alt_locs:
                 continue
-            
-        if not layout.children():
+            row = next(rows)
+            layout.addWidget(QLabel(str(r)), row, 0)
+            button_group = QButtonGroup()
+            layout.addWidget(button_group, row, 1)
+            for alt_loc in sorted(list(r.alt_locs)):
+                but = QRadioButton(alt_loc)
+                but.setChecked(r.alt_loc == alt_loc)
+                button_group.addButton(but)
+
+        if next(rows) == 0:
+            layout.addWidget(QLabel("No alternate locations in this structure"), 0, 0)
         return layout
 
     def _structure_change(self):
