@@ -21,6 +21,16 @@ from chimerax.graphics import Drawing, Pick
 # (maximum) session version number.
 STRUCTURE_STATE_VERSION = 1
 
+# Auto-styling tunables
+MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
+MULTI_SHADOW = 16               # lighting defaults to 64, so a 4x reduction
+SMALL_THRESHOLD = 200_000       # not a small polymer if more than threshold atoms
+MEDIUM_THRESHOLD = 1_000_000    # not a medium polymer if more than threshold atoms
+MIN_RIBBON_THRESHOLD = 10       # skip ribbons if less than threshold ribbonable residues
+MAX_RIBBON_THRESHOLD = 5000     # skip ribbons if more than threshold ribbonable residues
+SLAB_THRESHOLD = 100            # skip slab nucleotide styling if more than threshold residues
+LADDER_THRESHOLD = 2000         # skip ladder nucleotide styling if more than threshold residues
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -144,7 +154,7 @@ class Structure(Model, StructureData):
     def apply_auto_styling(self, set_lighting = False, style=None):
         # most auto-styling only makes sense for atomic structures
         if set_lighting:
-            kw = {} if self.num_atoms >= 300000 else {'multi_shadow': 16}
+            kw = {} if self.num_atoms >= MULTI_SHADOW_THRESHOLD else {'multi_shadow': MULTI_SHADOW}
             from chimerax.std_commands.lighting import lighting
             lighting(self.session, preset = 'full', **kw)
 
@@ -1156,9 +1166,9 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
                 style = "small polymer"
-            elif self.num_chains < 250:
+            elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
             else:
                 style = "large polymer"
@@ -1183,7 +1193,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if len(ribbonable) > 10:
+            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1199,9 +1209,9 @@ class AtomicStructure(Structure):
                 display |= nucleic
                 if nucleic:
                     from chimerax.nucleotides.cmd import nucleotides
-                    if len(nucleic) < 100:
+                    if len(nucleic) <= SLAB_THRESHOLD:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
-                    else:
+                    elif len(nucleic) <= LADDER_THRESHOLD:
                         nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
@@ -1219,8 +1229,8 @@ class AtomicStructure(Structure):
                 ribbonable.ribbon_displays = True
         elif style == "medium polymer":
             lighting = {'preset': 'full'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
             from .colors import chain_colors, element_colors
             residues = self.residues
             residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
@@ -1235,8 +1245,8 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = {'preset': 'soft'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
 
         # correct the styling of per-structure pseudobond bond groups
         for cat, pbg in self.pbg_map.items():
