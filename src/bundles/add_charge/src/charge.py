@@ -542,7 +542,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     if (electrons + total_net_charge) % 2 == 1 and method == "am1-bcc":
         # cannot compute charges for radical species with AM1-BCC
         raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
-            " for radical species using AM1-BCC method" % (r0.name, electrons, total_net_charge))
+            " for radical species using AM1-BCC method" % (r.name, electrons, total_net_charge))
 
 
     from contextlib import contextmanager
