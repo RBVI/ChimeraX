@@ -53,8 +53,7 @@ class MorphMapSlider(Slider):
             
     def _models_closed_cb(self, name, models):
         im = self._interpolated_map
-        if im.result in models:
-            close = True
+        close = (im.result in models)
         for v in im.volumes:
             if v in models:
                 close = True
