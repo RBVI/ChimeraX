@@ -114,8 +114,8 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
             for clip_surface in [cs for cs in target_surface.child_models()
                     if getattr(cs, 'is_clip_cap', False)]:
                 clip_surface.auto_recolor_vertices = lambda *args, ses=session, s=clip_surface, \
-                    offset=offset, charged_atoms=charged_atoms, dist_dep=dist_dep, dielectric=dielectric, \
-                    cmap=cmap, f=color_vertices: f(ses, s, offset, charged_atoms, dist_dep, dielectric,
+                    charged_atoms=charged_atoms, dist_dep=dist_dep, dielectric=dielectric, \
+                    cmap=cmap, f=color_vertices: f(ses, s, 0.0, charged_atoms, dist_dep, dielectric,
                     cmap, log=False)
             color_vertices(session, target_surface, offset, charged_atoms, dist_dep, dielectric, cmap,
                 undo_info=(undo_owners, undo_old_vals, undo_new_vals))
