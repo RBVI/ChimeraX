@@ -942,10 +942,13 @@ def draw_tube(nd, residue, name, params):
 
     description = '%s ribose' % residue
 
+    atoms = residue.atoms
+    atoms = atoms.filter(atoms.is_riboses)
+
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
-    shapes.append(AtomicShapeInfo(va, na, ta, color, None, description))
+    shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     va, na, ta = get_sphere(radius, ep0)
-    shapes.append(AtomicShapeInfo(va, na, ta, color, None, description))
+    shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     return shapes
 
 
