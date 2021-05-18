@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def morph(session, structures, frames = 20, wrap = False, rate = 'linear', method = 'corkscrew',
+def morph(session, structures, frames = 50, wrap = False, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
           hide_models = True, play = True, slider = True, color_segments = False, color_core = None):
     '''
