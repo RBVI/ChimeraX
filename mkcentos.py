@@ -33,8 +33,8 @@ app_name = "ChimeraX"
 CHIMERAX_INSTALL = f"{os.getcwd()}/{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
-INST_DIR = f"/opt/{app_author}/{app_name}"
-# INST_DIR = "/usr/libexec/{app_author}-{app_name}""
+# INST_DIR = f"/opt/{app_author}/{app_name}"
+INST_DIR = f"/usr/libexec/{app_author}-{app_name}"
 
 CENTOS_DEPENDENCIES = {
     "7": {
@@ -189,7 +189,7 @@ def main():
     version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
-    bin_path = f"/usr/bin/{app_name.lower()}"  # were the symlink is place on default path
+    bin_path = f"/usr/bin/{app_name.lower()}"  # were the symlink is placed on default path
     if build == 'daily':
         # daily build, version is date
         version = version_date
@@ -311,6 +311,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             Group: Applications/Science
             # Suggests: ocl-icd
             Requires: {depends}
+            Prefix: /usr
 
             %description
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
@@ -368,13 +369,13 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
 
             %post
             echo "Install desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-install system true'
+            $RPM_INSTALL_PREFIX/bin/{app_name.lower()} --exit --nogui --silent --cmd 'linux xdg-install system true'
             echo "Precompiling Python packages"
-            ({bin_path} -m compileall {pkg_root} || exit 0)
+            ($RPM_INSTALL_PREFIX/bin/{app_name.lower()} -m compileall $RPM_INSTALL_PREFIX || exit 0)
 
             %preun
             echo "Deregister desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
+            $RPM_INSTALL_PREFIX/bin/{app_name.lower()} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
             echo "Remove Python cache files"
             find {pkg_root} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
             """), file=f)
