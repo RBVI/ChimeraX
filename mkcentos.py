@@ -33,8 +33,11 @@ app_name = "ChimeraX"
 CHIMERAX_INSTALL = f"{os.getcwd()}/{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
-INST_DIR = f"/opt/{app_author}/{app_name}"
-# INST_DIR = "/usr/libexec/{app_author}-{app_name}""
+PREFIX = "/usr"
+if PREFIX == "/opt":
+    APP_DIR = f"{app_author}/{app_name}"
+else:
+    APP_DIR = f"libexec/{app_author}-{app_name}"
 
 CENTOS_DEPENDENCIES = {
     "7": {
@@ -189,14 +192,14 @@ def main():
     version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
-    bin_path = f"/usr/bin/{app_name.lower()}"  # were the symlink is place on default path
+    bin_name = f"{app_name.lower()}"
     if build == 'daily':
         # daily build, version is date
         version = version_date
-        global INST_DIR
-        INST_DIR += "-daily"
+        global APP_DIR
+        APP_DIR += "-daily"
         pkg_name += "-daily"
-        bin_path += "-daily"
+        bin_name += "-daily"
         rpm_release = 1
     elif build == 'release':
         # release build
@@ -207,6 +210,7 @@ def main():
         version = version.base_version
         # rpm_release = f"0.{version_date}"
         rpm_release = 1
+    bin_path = f"{PREFIX}/bin/{bin_name}"  # were the symlink is placed on default path
 
     # rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
     # print('full_version:', repr(full_version))
@@ -276,12 +280,12 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
     else:
         deps = []
     depends = ', '.join(deps)
-    pkg_root = f'{INST_DIR}'
+    pkg_root = f'{PREFIX}/{APP_DIR}'
     bin_name = os.path.basename(bin_path)
     relpath = os.path.relpath(f'{pkg_root}/bin', os.path.dirname(bin_path))
-    man_dir = '/usr/share/man/man1'
+    man_dir = f'{PREFIX}/share/man/man1'
     man_path = f'{man_dir}/{bin_name}.1'
-    doc_dir = f'/usr/share/doc/{pkg_name}-{version}'
+    doc_dir = f'{PREFIX}/share/doc/{pkg_name}-{version}'
     with open(f"{rpmbuild_dir}/SPECS/{pkg_name}.spec", 'w') as f:
         #    %{{!?__debug_package:\
         #    /usr/lib/rpm/redhat/brp-strip %{{__strip}} \
@@ -311,6 +315,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             Group: Applications/Science
             # Suggests: ocl-icd
             Requires: {depends}
+            Prefix: {PREFIX}
 
             %description
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
@@ -344,7 +349,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             http://www.rbvi.ucsf.edu/chimerax
 
             Copyrights for embedded code are given in the documentation
-            in {INST_DIR}/share/docs/embeded.html
+            in {PREFIX}/{APP_DIR}/share/docs/embeded.html
 
             The computer code and documentation that comprises UCSF ChimeraX is protected
             by copyrights held by The Regents of the University of California ("The Regents")
@@ -367,16 +372,18 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             {doc_dir}
 
             %post
+            test -n "$RPM_INSTALL_PREFIX" || exit 1
             echo "Install desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-install system true'
+            $RPM_INSTALL_PREFIX/bin/{bin_name} --exit --nogui --silent --cmd 'linux xdg-install system true'
             echo "Precompiling Python packages"
-            ({bin_path} -m compileall {pkg_root} || exit 0)
+            ($RPM_INSTALL_PREFIX/bin/{bin_name} -m compileall $RPM_INSTALL_PREFIX/{APP_DIR} || exit 0)
 
             %preun
+            test -n "$RPM_INSTALL_PREFIX" || exit 1
             echo "Deregister desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
+            $RPM_INSTALL_PREFIX/bin/{bin_name} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
             echo "Remove Python cache files"
-            find {pkg_root} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
+            find $RPM_INSTALL_PREFIX/{APP_DIR} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
             """), file=f)
 
         # Icon: .gif or .xpm!
