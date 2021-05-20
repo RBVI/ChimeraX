@@ -390,6 +390,9 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <li><a href="#showall"><b>surface showall</b></a>
 &ndash; show all mesh lines and surface triangles
 except as hidden by <a href="clip.html">clipping</a>
+<li><a href="#splitbycolor"><b>surface splitbycolor</b></a>
+&ndash; split a surface into a separate model for each color of the 
+original surface
 <li><a href="#squaremesh"><b>surface squaremesh</b></a>
 &ndash; hide diagonal mesh lines
 <li><a href="#zone"><b>surface zone</b></a>
@@ -482,6 +485,22 @@ Show all mesh lines and triangles in the specified surface(s)
 except where hidden by <a href="clip.html">clipping</a>.
 </blockquote>
 
+<a name="splitbycolor"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface splitbycolor</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+<blockquote>
+Create a new surface model with separate submodels for the different colors
+of the original surface, named <b>piece 1</b>, <b>piece 2</b>, <i>etc</i>.
+Only triangles with all three vertices the same color are included in 
+the piece for that color; boundary triangles with vertices of differing
+colors are put into a submodel named <b>multicolor</b>.
+The original surface model is left unchanged.
+Creating separate models allows measuring the surface area associated with
+each color using <a href="measure.html#area"><b>measure area</b></a> or 
+<a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>.
+</blockquote>
+
 <a name="squaremesh"></a>
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface squaremesh</b>
@@ -571,5 +590,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+May 2021</address>
 </body></html>
