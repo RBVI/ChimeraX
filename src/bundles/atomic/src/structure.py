@@ -2255,4 +2255,5 @@ for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, Pseudobond
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
-    if not isinstance(inst, AtomicStructure)], getattr(Structure, '_cython_property_return_info', []))
+    if not isinstance(inst, AtomicStructure)],
+    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})
