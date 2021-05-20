@@ -98,3 +98,62 @@ def register_measure_mapstats_command(logger):
 def show_map_stats(session):
     from chimerax.shortcuts.shortcuts import run_on_maps
     run_on_maps('measure mapstats %s')(session)
+
+# -----------------------------------------------------------------------------
+# Interpolate map values at atom positions and assign an atom attribute.
+#
+def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
+
+    # Get atom positions in volume coordinate system.
+    points = atoms.scene_coords
+    map.position.inverse().transform_points(points, in_place = True)
+
+    # outside is list of indices for atoms outside map bounds
+    values, outside = map.interpolated_values(points, out_of_bounds_list = True)
+
+    # Register atom attribute.
+    if len(outside) < len(atoms):
+        from chimerax.atomic import Atom
+        Atom.register_attr(session, attribute, 'map values', attr_type = float)
+        print ('register attribute', attribute)
+
+    # Set atom attribute values
+    for a, v in zip(atoms, values):
+        setattr(a, attribute, v)
+
+    # Log status message
+    if len(outside) == 0:
+        msg = ('Interpolated map %s values at %d atom positions,'
+               ' min %.4g, max %.4g, mean %.4g, SD %.4g' %
+               (map.name_with_id(), len(atoms), values.min(), values.max(),
+                values.mean(), values.std()))
+    elif len(outside) < len(atoms):
+        from numpy import ones, uint8
+        inside = ones((len(atoms),), uint8)
+        inside[outside] = 0
+        v = values[inside]
+        msg = ('Interpolated map %s values at %d atom positions (%d outside map bounds),'
+               ' min %.4g, max %.4g, mean %.4g, SD %.4g' %
+               (map.name_with_id(), len(atoms)-len(outside), len(outside),
+                v.min(), v.max(), v.mean(), v.std()))
+    else:
+        msg = 'All %d atoms oustide map %s bounds' % (len(atoms), map.name_with_id())
+    session.logger.status(msg, log=True)
+
+    return values, outside
+
+# -----------------------------------------------------------------------------
+#
+def register_measure_mapvalues_command(logger):
+
+    from chimerax.core.commands import CmdDesc, register, StringArg
+    from .mapargs import MapArg
+    from chimerax.atomic import AtomsArg
+    desc = CmdDesc(
+        required = [('map', MapArg)],
+        keyword = [('atoms', AtomsArg),
+                   ('attribute', StringArg)],
+        required_arguments = ['atoms'],
+        synopsis = 'Report map statistics'
+    )
+    register('measure mapvalues', desc, measure_map_values, logger=logger)

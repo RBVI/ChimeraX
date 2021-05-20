@@ -93,6 +93,9 @@ class _MapBundle(BundleAPI):
         elif command_name == 'measure mapstats':
             from . import measure
             measure.register_measure_mapstats_command(logger)
+        elif command_name == 'measure mapvalues':
+            from . import measure
+            measure.register_measure_mapvalues_command(logger)
         elif command_name == 'segmentation':
             map.register_segmentation_command(logger)
 
