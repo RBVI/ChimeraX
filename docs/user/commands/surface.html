@@ -490,14 +490,15 @@ except where hidden by <a href="clip.html">clipping</a>.
 <b>surface splitbycolor</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
-Create a new surface model with separate submodels for the different colors
+Create a new model containing separate surface models for the different colors
 of the original surface, named <b>piece 1</b>, <b>piece 2</b>, <i>etc</i>.
-Only triangles with all three vertices the same color are included in 
-the piece for that color; boundary triangles with vertices of differing
-colors are put into a submodel named <b>multicolor</b>.
+Only triangles with all three vertices having the same color are included in 
+the surface model for that color; 
+boundary triangles with vertices of differing colors are put into 
+another surface model named <b>multicolor</b>.
 The original surface model is left unchanged.
-Creating separate models allows measuring the surface area associated with
-each color using <a href="measure.html#area"><b>measure area</b></a> or 
+Creating the pieces as separate models allows measuring their surface areas
+using <a href="measure.html#area"><b>measure area</b></a> or 
 <a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>.
 </blockquote>
 
