@@ -50,9 +50,18 @@ def determine_element_from_mass(mass, *, consider_hydrogens=True):
     return Element.get_element(nearest[0])
 
 def read_psf(session, path, file_name, *, auto_style=True, coords=None):
-    from chimerax.core.errors import UserError
+    from chimerax.core.errors import UserError, CancelOperation
+    import os
     if coords is None:
-        raise UserError("'coords' keyword with coordinate-file argument must be supplied")
+        if session.ui.is_gui and not session.in_script:
+            from Qt.QtWidgets import QFileDialog
+            coords, types = QFileDialog.getOpenFileName(caption="Specify coordinates file for PSF",
+                directory=os.path.dirname(path))
+            if not coords:
+                raise CancelOperation("No coordinates file specified for PSF")
+            session.logger.info("Coordinates file: %s" % coords)
+        else:
+            raise UserError("'coords' keyword with coordinate-file argument must be supplied")
     from chimerax.data_formats import NoFormatError
     try:
         data_fmt = session.data_formats.open_format_from_file_name(coords)
@@ -66,7 +75,6 @@ def read_psf(session, path, file_name, *, auto_style=True, coords=None):
     except Exception as e:
         raise UserError("Problem reading/processing PSF file '%s': %s" % (path, e))
 
-    import os
     s = AtomicStructure(session, name=os.path.basename(file_name), auto_style=auto_style)
     try:
         from chimerax.atomic.struct_edit import add_atom, add_bond
