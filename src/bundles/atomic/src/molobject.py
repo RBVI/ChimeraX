@@ -1458,6 +1458,14 @@ class StructureData:
         p = f(self._c_pointer)
         return p
 
+    def bonded_groups(self, *, consider_missing_structure=True):
+        '''Find bonded groups of atoms.  Returns a list of Atoms collections'''
+        f = c_function('structure_bonded_groups', args = (ctypes.c_void_p, ctypes.c_bool),
+            ret = ctypes.py_object)
+        from .molarray import Atoms
+        import numpy
+        return [Atoms(numpy.array(x, numpy.uintp)) for x in f(self._c_pointer, consider_missing_structure)]
+
     def chain_trace_atoms(self):
         '''
         Find pairs of atoms that should be connected in a chain trace.
