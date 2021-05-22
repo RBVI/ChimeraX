@@ -304,6 +304,9 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
 
 def _can_install(bi):
     """Check if bundle can be installed (i.e., not in use)."""
+    # A custom init means it's currently in use
+    if bi.custom_init:
+        return False
     # A bundle can be installed if its own package is not in use
     # and does not pull in any dependent bundle that is in use.
     if not bi.imported():
