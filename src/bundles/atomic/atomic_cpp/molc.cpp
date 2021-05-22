@@ -3751,6 +3751,7 @@ extern "C" EXPORT void sequence_characters(void *seqs, size_t n, pyobject_t *cha
                 *ptr++ = c;
             *ptr = '\0';
             chars[i] = unicode_from_string(str);
+            delete[] str;
         }
     } catch (...) {
         molc_error();
