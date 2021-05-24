@@ -152,7 +152,9 @@ class SeqCanvas:
         self.font = tkFont.Font(parent,
             (self.sv.prefs[FONT_NAME], self.sv.prefs[FONT_SIZE]))
         """
-        from Qt.QtGui import QFont, QFontMetrics
+        from Qt.QtGui import QFont, QFontMetrics, QFontDatabase
+        #fdb = QFontDatabase()
+        #self.font = fdb.systemFont(fdb.FixedFont)
         self.font = QFont("Helvetica")
         self.emphasis_font = QFont(self.font)
         self.emphasis_font.setBold(True)
