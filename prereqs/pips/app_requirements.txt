@@ -10,7 +10,7 @@ filelock==3.0.12
 grako==3.16.5
 html2text==2020.1.16
 ihm==0.20
-imagecodecs==2021.4.28
+imagecodecs==2021.5.20
 ipykernel==5.5.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
@@ -46,7 +46,7 @@ qtconsole==5.1.0
 requests==2.25.1
 scipy==1.6.3
 six==1.16.0
-sortedcontainers==2.3.0
+sortedcontainers==2.4.0
 suds-jurko==0.6
 tables==3.6.1
 tifffile==2021.4.8
