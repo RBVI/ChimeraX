@@ -986,10 +986,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtWidgets import QAction
         from Qt.QtGui import QKeySequence
         from Qt.QtCore import Qt
+        from chimerax.core.commands import run
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
+        cd_action = QAction("Set &Working Folder...", self)
+        cd_action.setToolTip("Set default folder for commands/tools to use when opening/saving files")
+        cd_action.triggered.connect(lambda *, run=run, sess=session: run(sess, "cd browse"))
+        file_menu.addAction(cd_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda *, s=self, sess=session: s.file_close_cb(sess))
@@ -1064,7 +1069,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             help_action.setToolTip(tooltip)
             cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
             def cb(*, ses=session, cmd=cmd):
-                from chimerax.core.commands import run
                 run(ses, cmd)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)

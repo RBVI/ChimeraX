@@ -46,7 +46,7 @@ qtconsole==5.1.0
 requests==2.25.1
 scipy==1.6.3
 six==1.16.0
-sortedcontainers==2.3.0
+sortedcontainers==2.4.0
 suds-jurko==0.6
 tables==3.6.1
 tifffile==2021.4.8
