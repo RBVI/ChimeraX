@@ -93,6 +93,7 @@ The command <b>open formats</b> command lists the possible formats and
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
+<li><a href="#trajtop">Trajectory Topology</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#segmentation">Segmentations</a>
 <li><a href="#object">Other 3D Objects</a>
@@ -204,32 +205,58 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
-<br>(requires an already-open structure for topology, see the
-<a href="#structureModel"><b>structureModel</b></a> option;
+<br>(also requires trajectory topology, either from being opened at the same
+time as a <a href="#trajtop">PSF</a> file, or from an already-open atomic model
+given with the <a href="#structureModel"><b>structureModel</b></a> option;
 see also the <a href="#coordsets"><b>coordsets</b></a> option)</td>
 </tr><tr>
 <td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
 target="_blank">Amber NetCDF</a> (binary)</td>
 <td align="center"><b>amber</b></td>
 <td align="center">.nc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center">DCD coordinates (binary)</td>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates
+<br>(DCD support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#xtc"
 target="_blank">Gromacs compressed coordinates</a></td>
 <td align="center"><b>xtc</b></td>
 <td align="center">.xtc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#trr"
 target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="trajtop"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Trajectory Topology</b>
+<br>(also requires a <a href="#trajectory">trajectory coordinate file</a>
+given with the <a href="#coords"><b>coords</b></a> option)</td>
+</tr><tr>
+<td align="center">PSF (protein structure file;
+<a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html"
+target="_blank">X-PLOR-style topology</a>)</td>
+<td align="center"><b>psf</b></td>
+<td align="center">.psf</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+topology 
+<br>(PSF support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 <!--
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -918,6 +945,19 @@ allowing them to follow their parent models.
 <br>
 Whether to read the contours from an
 <a href="../formats/imod.html">IMOD segmentation file</a>.
+</blockquote>
+<blockquote>
+<a name="coords"></a>
+<b>coords</b> &nbsp;<i>trajectory-coordinate-file</i>&nbsp;
+<br>
+Specify the corresponding <a href="#trajectory">trajectory coordinate file</a>
+required to open a PSF <a href="#trajtop">trajectory topology file</a>.
+Any of the <a href="#trajectory">trajectory coordinate formats</a> may be used.
+The <i>trajectory-coordinate-file</i> is specified by pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+Omitting this option also raises a file browser window
+for specifying the file interactively.
 </blockquote>
 <blockquote>
 <a name="coordsets"></a>
@@ -1636,5 +1676,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+May 2021</address>
 </body></html>
