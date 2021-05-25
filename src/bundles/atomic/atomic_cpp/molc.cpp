@@ -3751,6 +3751,7 @@ extern "C" EXPORT void sequence_characters(void *seqs, size_t n, pyobject_t *cha
                 *ptr++ = c;
             *ptr = '\0';
             chars[i] = unicode_from_string(str);
+            delete[] str;
         }
     } catch (...) {
         molc_error();
@@ -4436,6 +4437,31 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
 {
     Structure **s = static_cast<Structure **>(structures);
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
+}
+
+extern "C" EXPORT PyObject* structure_bonded_groups(void *structure, bool consider_missing_structure)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<std::vector<Atom*>> groups;
+    try {
+        s->bonded_groups(&groups, consider_missing_structure);
+        PyObject* grps_list = PyList_New(groups.size());
+        if (grps_list == nullptr)
+            throw std::bad_alloc();
+        int grps_i = 0;
+        for (auto grp: groups) {
+            PyObject* grp_list = PyList_New(grp.size());
+            PyList_SET_ITEM(grps_list, grps_i++, grp_list);
+            int grp_i = 0;
+            for (auto atom: grp) {
+                PyList_SET_ITEM(grp_list, grp_i++, PyLong_FromVoidPtr(atom));
+            }
+        }
+        return grps_list;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
 }
 
 extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_chains, PyObject *py_chain_ids, bool non_polymeric)
