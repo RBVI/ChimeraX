@@ -8,13 +8,14 @@ VERSION = 20
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-ifeq ($(OS),Linux)
-USE_PREBUILT=false
+USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
+ifeq ($(OS),Linux)
+# CentOS uses "CentOS Linux", hence the second awk in the following line
+LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
+LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
+AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 else
-USE_PREBUILT=false
-UPLOAD_PREBUILT=true
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
 ifeq ($(OS),Darwin)
 AMBERTOOLS_FLIBS_PREBUILT = ambertools-flibs-$(VERSION)-$(OS).tar.bz2
@@ -59,6 +60,7 @@ ifeq ($(USE_PREBUILT),true)
 install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
+	-mkdir -p $(AMBERBIN_DST_HOME)
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)

@@ -423,7 +423,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
-    # ensure that N termini are protonated as N3+ (since Npl will fail)
+    # ensure that normal N termini are protonated as N3+ (since Npl will fail)
     from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
@@ -432,7 +432,9 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         # if residue wasn't templated, leave atom typing alone
         if Sequence.protein3to1(n.residue.name) == 'X':
             continue
-        if not (n.residue.name == "PRO" and n.num_bonds >= 2):
+        # if multiple heavy-atom bond partners then this is an unusual N terminus
+        # (e.g. FME in 3fil, or any proline)
+        if len([nb for nb in n.neighbors if nb.element.number > 1]) < 2:
             n.idatm_type = "N3+"
 
     coordinations = {}
@@ -871,15 +873,14 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
             added.bfactor = atom.bfactor
     return added_hs
 
-def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info,
-        alt_loc):
+def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info, alt_loc):
     global _serial, _metals
     nearby_metals = _metals.search(pos, _metal_dist) if _metal_dist > 0.0 else []
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
-        metal_pos = metal.coord
-        parent_pos = parent_atom.coord
+        metal_pos = metal.get_alt_loc_coord(alt_loc)
+        parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
     # determine added H color before actually adding it...

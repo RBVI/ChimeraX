@@ -25,6 +25,8 @@
 #include "destruct.h"
 #include "PBGroup.h"
 #include "Residue.h"
+#include "tmpl/residues.h"
+#include "tmpl/TAexcept.h"
 #include "tmpl/TemplateCache.h"
 
 #include <pyinstance/PythonInstance.instantiate.h>
@@ -107,8 +109,22 @@ Residue::add_atom(Atom* a)
         auto i2 = res_map[a2->residue()];
         if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
             pbg->delete_pseudobond(pb);
-            pbg->new_pseudobond(a1, a);
-            pbg->new_pseudobond(a, a2);
+            // add the "shorter" one first, so that the residue gets placed on the correct side of a gap
+            int d1, d2;
+            if (i1 < my_index) {
+                d1 = number() - a1->residue()->number();
+                d2 = a2->residue()->number() - number();
+            } else {
+                d1 = a1->residue()->number() - number();
+                d2 = number() - a1->residue()->number();
+            }
+            if (d1 <= d2) {
+                pbg->new_pseudobond(a1, a);
+                pbg->new_pseudobond(a, a2);
+            } else {
+                pbg->new_pseudobond(a, a2);
+                pbg->new_pseudobond(a1, a);
+            }
             break;
         }
     }
@@ -153,6 +169,45 @@ Residue::count_atom(const AtomName& name) const
     return count;
 }
 
+void
+Residue::delete_alt_loc(char alt_loc)
+{
+    if (alt_loc == ' ')
+        throw std::invalid_argument("Residue.delete_alt_loc(): cannot delete the ' ' alt loc");
+    std::set<Residue *> nb_res;
+    bool have_alt_loc = false;
+    bool some_multiple = false;
+    for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
+        Atom *a = *ai;
+        if (a->has_alt_loc(alt_loc)) {
+            have_alt_loc = true;
+            for (auto nb: a->neighbors()) {
+                if (nb->residue() != this && nb->alt_locs() == a->alt_locs())
+                    nb_res.insert(nb->residue());
+            }
+            a->delete_alt_loc(alt_loc);
+            if (!a->_alt_loc_map.empty())
+                some_multiple = true;
+        }
+    }
+    if (!have_alt_loc) {
+        std::stringstream msg;
+        msg << "delete_alt_loc(): residue " << str()
+            << " does not have an alt loc '" << alt_loc << "'";
+        throw std::invalid_argument(msg.str().c_str());
+    }
+    for (auto nri = nb_res.begin(); nri != nb_res.end(); ++nri) {
+        (*nri)->delete_alt_loc(alt_loc);
+    }
+    if (alt_loc == _alt_loc) {
+        if (some_multiple) {
+            auto best_alt_locs = structure()->best_alt_locs();
+            set_alt_loc(best_alt_locs[this]);
+        } else
+            _alt_loc = ' ';
+    }
+}
+
 Atom *
 Residue::find_atom(const AtomName& name) const
 {
@@ -163,6 +218,41 @@ Residue::find_atom(const AtomName& name) const
             return a;
     }
     return nullptr;
+}
+
+bool
+Residue::is_missing_heavy_template_atoms(bool no_template_okay) const
+{
+    bool chain_start = chain() != nullptr && chain()->residues()[0] == this;
+    bool chain_end = chain() != nullptr && chain()->residues()[chain()->residues().size()-1] == this;
+    auto tmpl_res = tmpl::find_template_residue(name(), chain_start, chain_end);
+    if (tmpl_res == nullptr) {
+        if (no_template_okay)
+            return false;
+        std::ostringstream os;
+        os << "No residue template found for " << name();
+        throw tmpl::TA_NoTemplate(os.str());
+    }
+    // pretty unsophicated check upcoming; check both have the same number of heavy atoms
+    // and then check they have the same elements.  No name or connectivity checking
+    std::map<int, int> res_heavys;
+    std::map<int, int> tmpl_heavys;
+    for (auto a: atoms()) {
+        auto atomic_num = a->element().number();
+        if (atomic_num > 1)
+            res_heavys[atomic_num] = res_heavys[atomic_num] + 1;
+    }
+    for (auto ta: tmpl_res->atoms()) {
+        auto atomic_num = ta->element().number();
+        if (atomic_num > 1)
+            tmpl_heavys[atomic_num] = tmpl_heavys[atomic_num] + 1;
+    }
+    if (res_heavys.size() != tmpl_heavys.size())
+        return true;
+    for (auto an_num: res_heavys)
+        if (tmpl_heavys[an_num.first] != an_num.second)
+            return true;
+    return false;
 }
 
 Atom*

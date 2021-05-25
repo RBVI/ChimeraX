@@ -283,7 +283,7 @@ for b in standard_bases.values():
     # insure that y_axis is perpendicular to z_axis
     # (should be zero already)
     y_axis[2] = 0.0
-    normalize_vector(y_axis)
+    y_axis = normalize_vector(y_axis)
     x_axis = numpy.cross(y_axis, z_axis)
     xf = Place(matrix=(
         (x_axis[0], y_axis[0], z_axis[0], 0.0),
@@ -762,12 +762,11 @@ def get_ring(r, base_ring):
 
 
 def draw_slab(nd, residue, name, params):
-    shapes = []
     standard = standard_bases[name]
     ring_atom_names = standard["ring atom names"]
     atoms = get_ring(residue, ring_atom_names)
     if not atoms:
-        return shapes
+        return []
     plane = Plane([a.coord for a in atoms])
     info = find_dimensions(params.dimensions)
     tag = standard['tag']
@@ -777,13 +776,16 @@ def draw_slab(nd, residue, name, params):
 
     pts = [plane.nearest(a.coord) for a in atoms[0:2]]
     y_axis = pts[0] - pts[1]
-    normalize_vector(y_axis)
+    y_axis = normalize_vector(y_axis)
     x_axis = numpy.cross(y_axis, plane.normal)
     xf = Place(matrix=(
         (x_axis[0], y_axis[0], plane.normal[0], origin[0]),
         (x_axis[1], y_axis[1], plane.normal[1], origin[1]),
         (x_axis[2], y_axis[2], plane.normal[2], origin[2]))
     )
+    det = xf.determinant()
+    if not numpy.isfinite(det) or abs(det - 1) > 1e-4:
+        return []
     xf = xf * standard["correction factor"]
 
     color = residue.ring_color
@@ -822,7 +824,7 @@ def draw_slab(nd, residue, name, params):
     description = '%s %s' % (residue, tag)
     xf2.transform_points(va, in_place=True)
     xf2.transform_normals(na, in_place=True, is_rotation=pure_rotation)
-    shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
+    shapes = [AtomicShapeInfo(va, na, ta, color, atoms, description)]
 
     if not params.orient:
         return shapes
@@ -940,10 +942,13 @@ def draw_tube(nd, residue, name, params):
 
     description = '%s ribose' % residue
 
+    atoms = residue.atoms
+    atoms = atoms.filter(atoms.is_riboses)
+
     va, na, ta = get_cylinder(radius, ep0, ep1, bottom=False)
-    shapes.append(AtomicShapeInfo(va, na, ta, color, None, description))
+    shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     va, na, ta = get_sphere(radius, ep0)
-    shapes.append(AtomicShapeInfo(va, na, ta, color, None, description))
+    shapes.append(AtomicShapeInfo(va, na, ta, color, atoms, description))
     return shapes
 
 

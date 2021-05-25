@@ -232,16 +232,16 @@ class Model(State, Drawing):
 
     # Drawing._set_scene_position calls _set_positions, so don't need to override
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         return self.color if self.vertex_colors is None else None
 
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.color = color
         self.vertex_colors = None
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
     '''
-    Getting the single color may give the dominant color.
-    Setting the single color will set the model to that color.
+    Getting the model color may give the dominant color.
+    Setting the model color will set the model to that color.
     Color values are rgba uint8 arrays.
     '''
 

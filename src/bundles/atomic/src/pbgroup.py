@@ -167,16 +167,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     # since we're a Model, we already have a 'session' attr, so don't need property
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         pbonds = self.pseudobonds
         from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
         return self.color
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.pseudobonds.colors = color
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
@@ -251,9 +251,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         from . import structure
         if self._global_group:
             # Use scene coordinates since atoms may belong to different models.
-            p = self.position
-            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
-            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+            p = self.parent
+            if p and not p.scene_position.is_identity():
+                ps = p.scene_position
+                sxyz1, sxyz2 = ps*mxyz1, ps*mxyz2               
+            else:
+                sxyz1, sxyz2 = mxyz1, mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, sxyz1, sxyz2, scene_coordinates = True)
         else:
             b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None
@@ -285,21 +289,14 @@ class PseudobondGroup(PseudobondGroupData, Model):
         p = PickedPseudobonds(bonds)
         return [p]
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        from .molobject import has_custom_attrs
-        return has_custom_attrs(PseudobondGroup, self)
-
     def take_snapshot(self, session, flags):
-        from .molobject import get_custom_attrs
         data = {
             'version': 1,
             'category': self.name,
             'dashes': self._dashes,
             'model state': Model.take_snapshot(self, session, flags),
             'structure': self.structure,
-            'custom attrs': get_custom_attrs(PseudobondGroup, self),
+            'custom attrs': self.custom_attrs,
         }
         if self._global_group:
             # Make the global manager restore before we do
@@ -316,8 +313,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if 'model state' in data:
             Model.set_state_from_snapshot(grp, session, data['model state'])
         grp._dashes = data['dashes']
-        from .molobject import set_custom_attrs
-        set_custom_attrs(grp, data)
+        grp.set_custom_attrs(data)
         return grp
 
 # -----------------------------------------------------------------------------

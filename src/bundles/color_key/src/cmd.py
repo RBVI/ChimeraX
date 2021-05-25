@@ -37,7 +37,7 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     if key is None:
         key = get_model(session)
     if pos is not None:
-        key.position = pos
+        key.pos = pos
     if size is not None:
         key.size = size
     if font_size is not None:
@@ -79,8 +79,8 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
     if tick_thickness is not None:
         key.tick_thickness = tick_thickness
     if pos is not None or size is not None:
-        if key.position[0] < 0 or key.position[1] < 0 or (key.position[0] + key.size[0]) > 1 \
-        or (key.position[1] + key.size[1]) > 1:
+        if key.pos[0] < 0 or key.pos[1] < 0 \
+        or (key.pos[0] + key.size[0]) > 1 or (key.pos[1] + key.size[1]) > 1:
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
         key.rgbas_and_labels = rgbas_and_labels

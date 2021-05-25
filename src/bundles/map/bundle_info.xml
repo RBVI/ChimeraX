@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Map" version="1.0.2"
+<BundleInfo name="ChimeraX-Map" version="1.1"
 	    package="chimerax.map"
 	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -44,7 +44,7 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
@@ -109,6 +109,7 @@
     <ChimeraXClassifier>Command :: vop :: Volume data :: filter volume data</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure mapvalues :: Volume data :: Intepolate map at atom positions</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Map Coordinates :: Volume Data :: Adjust density map coordinates</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Map Statistics :: Volume Data :: Report map minimum, maximum, mean, standard deviation, and root mean square</ChimeraXClassifier>

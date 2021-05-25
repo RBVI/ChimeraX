@@ -13,7 +13,7 @@
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
 from chimerax.atomic import Atom, idatm, Ring
-from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
+from .cmd import find_nearest, roomiest, _tree_dist, vdw_radius, \
                 find_rotamer_nearest, h_rad, add_altloc_hyds
 from .util import bond_with_H_length, N_H
 from chimerax.geometry import distance_squared, angle, dihedral, distance, normalize_vector
@@ -665,9 +665,10 @@ def add_hydrogens(session, atom_list, *args):
                 if not is_acc:
                     protonate.append(pos)
             # ... and the "roomiest" remaining positions.
-            rooms = roomiest(remaining, a, _room_dist, bonding_info)
             needed = hyds_to_position - len(protonate)
-            protonate.extend(rooms[:needed])
+            if needed:
+                rooms = roomiest(remaining, a, _room_dist, bonding_info)
+                protonate.extend(rooms[:needed])
             altloc_hpos_info.append((alt_loc, a.occupancy, protonate))
         # then the least sterically challenged...
         _attach_hydrogens(a, altloc_hpos_info, bonding_info)

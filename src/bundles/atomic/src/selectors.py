@@ -40,6 +40,7 @@ def register_selectors(logger):
     reg("sidechain", _sidechain_selector, logger, desc="side-chain atoms")
     reg("sideonly", _sideonly_selector, logger, desc="side-chain atoms")
     reg("ribose", _ribose_selector, logger, desc="ribose")
+    reg("template-mismatch", _missing_heavies, logger, desc="missing heavy atoms")
 
 def _element_selector(symbol, models, results):
     from chimerax.atomic import Structure
@@ -172,6 +173,15 @@ def _ribose_selector(session, models, results):
         for m in ribose.unique_structures:
             results.add_model(m)
         results.add_atoms(ribose, bonds=True)
+
+def _missing_heavies(session, models, results):
+    from chimerax.atomic import Structure, structure_residues
+    residues = structure_residues([m for m in models if isinstance(m, Structure)])
+    missing = residues.filter(residues.is_missing_heavy_template_atoms)
+    if missing:
+        for m in missing.unique_structures:
+            results.add_model(m)
+        results.add_atoms(missing.atoms, bonds=True)
 
 _chains_menu_needs_update = False
 _chains_menu_name = "&Chains"

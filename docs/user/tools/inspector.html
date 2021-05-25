@@ -1,0 +1,197 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Selection Inspector</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Selection Inspector</h3>
+<p>
+The <b>Selection Inspector</b> lists certain
+<a href="../attributes.html">attributes</a>
+of the currently <a href="../selection.html">selected</a> items and allows
+their values to be changed. 
+It can be opened:
+<ul>
+<li>by clicking the magnifying-glass icon
+<img class="icon" src="toolbar-icons/magnifying-glass.png">
+in the <a href="toolbar.html#home"><b>Home</b></a> tab of the 
+<a href="toolbar.html"><b>Toolbar</b></a>
+<li>by choosing <b>Inspect</b> from the <a href="../menu.html#actions">
+<b>Actions</b> menu</a>
+<li>from the <b>General</b> section of the <b>Tools</b> menu
+<!--
+<li>by choosing <b>Inspect</b> from the context menu obtained by
+double-<a href="selection.html#pickselect">picking</a>
+an atom, bond, or pseudobond (that is, doubleclicking with the button
+assigned to <a href="selection.html#pickselect">picking</a>)
+-->
+</ul>
+<p>
+The <b>Selection Inspector</b> dialog can be manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+In the dialog, the balloon help for each setting shows
+the corresponding <a href="../attributes.html#attrnames">attribute name</a>,
+as needed for use in attribute-specific commands such as 
+<a href="../commands/setattr.html"><b>setattr</b></a> and
+<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>,
+as well as for general command-line
+<a href="../commands/atomspec.html#attributes">specification by attribute
+value</a>.
+</p>
+<ul>
+<li><a href="#atoms"><b>Atoms</b></a>
+<li><a href="#bonds"><b>Bonds</b></a>
+<li><a href="#pseudobonds"><b>Pseudobonds</b></a>
+<li><a href="#residues"><b>Residues</b></a>
+</ul>
+
+<a name="atoms"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Atoms</b>
+<ul>
+<li><b>B-factor</b> 
+&ndash; atomic B-factor, initially read from the input coordinate file
+(shown in gray; cannot be changed in this tool, but see
+<a href="../formats/defattr.html">attribute assignment files</a> and
+<a href="../commands/setattr.html"><b>setattr</b></a>)
+<li><b>Color</b> 
+&ndash; atom color
+(the color well can be clicked to adjust the color interactively)
+<li><b>IDATM type</b> 
+&ndash; <a href="../atomtypes.html">atom type</a>
+(shown in gray; cannot be changed in this tool, but see
+<a href="../formats/defattr.html">attribute assignment files</a>,
+<a href="../commands/setattr.html"><b>setattr</b></a>,
+and <a href="buildstructure.html"><b>Build Structure</b></a>)
+<li><b>Occupancy</b> 
+&ndash; atomic occupancy value, initially read from the input coordinate file
+(shown in gray; cannot be changed in this tool, but see
+<a href="../formats/defattr.html">attribute assignment files</a> and
+<a href="../commands/setattr.html"><b>setattr</b></a>)
+<li><b>Radius</b> &ndash; radius in &Aring; used in
+<a href="../commands/style.html">sphere style</a>
+(and scaled down in <a href="../commands/style.html">ball style</a>),
+initially set to an approximate <a href="../radii.html">VDW radius</a>;
+see also <a href="../commands/size.html"><b>size</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the atom level,
+see <a href="../hierarchy.html">display hierarchy</a>
+<li><b>Style</b> &ndash; <a href="../commands/style.html">atom style</a>
+ <ul>
+ <li><b>ball</b>
+ <li><b>sphere</b>
+ <li><b>stick</b>
+ </ul>
+</ul>
+
+<a name="bonds"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Bonds</b>
+<ul>
+<li><b>Color</b> 
+&ndash; bond color, only visible when the bond is colored 
+independently of atoms (halfbond mode turned off) 
+<li><b>Halfbond mode</b> &ndash; whether bond coloring is in
+<a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
+each half of the bond takes on the color of the atom on that end of the bond;
+turning this mode off shows the bond's own color setting, above
+<li><b>Length</b> &ndash; length in &Aring;
+(shown in gray; cannot be changed in this tool, but see
+<a href="buildstructure.html"><b>Build Structure</b></a>)
+<li><b>Radius</b> &ndash; radius in &Aring; used in 
+<a href="../commands/style.html">stick style</a>;
+see also <a href="../commands/size.html"><b>size</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the bond level,
+see <a href="../hierarchy.html">display hierarchy</a>
+</ul>
+
+<a name="pseudobonds"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Pseudobonds</b>
+<ul>
+<li><b>Color</b> 
+&ndash; bond color, only visible when the pseudobond is colored 
+independently of atoms (halfbond mode turned off) 
+<li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
+<a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
+each half of the bond takes on the color of the atom on that end of the bond;
+turning this mode off shows the bond's own color setting, above
+<li><b>Length</b> &ndash; length in &Aring;
+(shown in gray; cannot be changed)
+<li><b>Radius</b> &ndash; radius in &Aring;;
+see also <a href="../commands/size.html"><b>size</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the pseudobond level,
+see <a href="../hierarchy.html">display hierarchy</a>
+</ul>
+
+<a name="residues"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Residues</b>
+<ul>
+<li><b>Cartoon color</b> 
+&ndash; color of the residue's cartoon segment, if any
+<li><b>Cartoon hides backbone</b>
+&ndash; whether showing the residue's cartoon segment hides its backbone atoms
+(<a href="../commands/cartoon.html#suppress">details...</a>)
+<li><b>Fill rings</b>
+&ndash; whether to fill any rings in the residue;
+see also <a href="../commands/style.html"><b>style</b></a>
+<li><b>Ring fill color</b> 
+&ndash; color of the residue's ring fill, if any
+<li><b>Ring fill style</b> 
+&ndash; see also <a href="../commands/style.html"><b>style</b></a>
+  <ul>
+  <li><b>thick</b>
+  <li><b>thin</b>
+  </ul>
+<li><b>Secondary structure ID</b> 
+&ndash; secondary structure ID number
+(<a href="../attributes.html#ss_id">details...</a>)
+<li><b>Secondary structure type</b>
+&ndash; secondary structure type of peptide/protein residues
+  <ul>
+  <li><b>coil</b>
+  <li><b>helix</b>
+  <li><b>strand</b>
+  </ul>
+<li><b>Show cartoon</b>
+&ndash; whether to show the residue's cartoon segment, if any
+<li><b>&phi; angle</b> &ndash; amino acid residue &phi; angle, if applicable
+<li><b>&psi; angle</b> &ndash; amino acid residue &psi; angle, if applicable
+<li><b>&omega; angle</b> &ndash; amino acid residue &omega; angle, if applicable
+<li><b>&chi;1 angle</b> &ndash; amino acid residue &chi;1 angle, if applicable
+<li><b>&chi;2 angle</b> &ndash; amino acid residue &chi;2 angle, if applicable
+<li><b>&chi;3 angle</b> &ndash; amino acid residue &chi;3 angle, if applicable
+<li><b>&chi;4 angle</b> &ndash; amino acid residue &chi;4 angle, if applicable
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2021</address>
+</body></html>

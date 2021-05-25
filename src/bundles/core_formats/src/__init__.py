@@ -34,12 +34,15 @@ class _SessionAPI(BundleAPI):
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.scripting import open_command_script
-                        return open_command_script(session, data, file_name)
+                        return open_command_script(session, data, file_name, **kw)
 
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg
-                        return { 'resize_window': BoolArg }
+                        from chimerax.core.commands import BoolArg, StringArg, RepeatOf
+                        return {
+                            'log': BoolArg,
+                            'for_each_file': RepeatOf(StringArg),
+                        }
 
             elif name == "Python":
                 class Info(OpenerInfo):

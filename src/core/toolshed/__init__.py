@@ -557,19 +557,31 @@ class Toolshed:
         logger.status(status_msg)
 
     def _bundle_names_and_refs(self, bundles):
+        from packaging.version import Version
         bundle_names = set()
         bundle_refs = []
-        for b in bundles:
-            bname = b[0]
+        version_info = {}
+        for name, version in bundles:
+            versions = version_info.setdefault(name, [])
+            versions.append(Version(version))
+
+        for name in version_info:
+            bname = name
+            all_versions = version_info[name]
+            all_versions.sort()
             if bname.startswith('ChimeraX-'):
                 bname = bname[len('ChimeraX-'):]
             if bname in bundle_names:
                 continue
             bundle_names.add(bname)
+            if len(all_versions) == 1:
+                versions = f' version {all_versions[0]}'
+            else:
+                versions = f' versions {all_versions[0]} &ndash; {all_versions[-1]}'
             # TODO: what are the app store rules for toolshed names?
-            toolshed_name = b[0].casefold().replace('-', '')
-            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a>' % (
-                    toolshed_name, bname
+            toolshed_name = name.casefold().replace('-', '')
+            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a> %s' % (
+                    toolshed_name, bname, versions
             )
             bundle_refs.append(ref)
         return bundle_names, bundle_refs

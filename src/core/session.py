@@ -45,6 +45,8 @@ ALIAS_STATE_VERSION = 1
 # List of type objects that are in bundle "builtins"
 BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int, float, list, range, set, slice, str, tuple))
 
+DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
+
 
 class _UniqueName:
     # uids are (class_name, ordinal).
@@ -337,7 +339,6 @@ class _RestoreManager:
                 else:
                     out_of_date_bundles.append((bundle_name, bundle_version, bi))
         if need_core_version is not None:
-            DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
             session.logger.info(
                 f'<blockquote>Get a new version of ChimeraX from <a href="{DOWNLOAD_URL}">'
                 f'{DOWNLOAD_URL}</a>.</blockquote>',
@@ -434,7 +435,7 @@ class Session:
     """
 
     def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
-                 offscreen_rendering = False):
+                 offscreen_rendering=False):
         self._snapshot_methods = {}     # For saving classes with no State base class.
         self._state_containers = {}     # stuff to save in sessions.
 
@@ -615,7 +616,7 @@ class Session:
             self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, path=None, resize_window=None, restore_camera=True,
-                clear_log = True, metadata_only=False):
+                clear_log=True, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -628,9 +629,13 @@ class Session:
         else:
             raise RuntimeError('Could not peek at first byte of session file.')
         if use_pickle:
-            version = serialize.pickle_deserialize(stream)
+            try:
+                version = serialize.pickle_deserialize(stream)
+            except Exception:
+                # pickle.UnpickingError is a subclass of Exception
+                version = 0
             if version != 1:
-                raise UserError('not a ChimeraX session file')
+                raise UserError('either not a ChimeraX session file, or needs a newer version of ChimeraX to restore')
             raise UserError("session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
@@ -665,6 +670,7 @@ class Session:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
         self.restore_options['clear log'] = clear_log
+        self.restore_options['error encountered'] = False
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -713,6 +719,7 @@ class Session:
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
                             % traceback.format_exc())
             self.reset()
+            self.restore_options['error encountered'] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
@@ -832,7 +839,6 @@ def save(session, path, version=3, compress='lz4', include_maps=False):
     Tests saving 3j3z show lz4 is as fast as uncompressed and 4x smaller file size,
     and gzip is 2.5 times slower with 7x smaller file size.
     """
-    my_open = None
     if hasattr(path, 'write'):
         # called via export, it's really a stream
         output = path
@@ -847,6 +853,7 @@ def save(session, path, version=3, compress='lz4', include_maps=False):
             open_func = SaveBinaryFile
         elif compress == 'gzip':
             from .safesave import SaveFile
+
             def gzip_open(path):
                 import gzip
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
@@ -854,6 +861,7 @@ def save(session, path, version=3, compress='lz4', include_maps=False):
             open_func = gzip_open
         elif compress == 'lz4':
             from .safesave import SaveFile
+
             def lz4_open(path):
                 import lz4.frame
                 f = SaveFile(path, open=lambda path: lz4.frame.open(path, 'wb'))
@@ -1011,7 +1019,8 @@ def save_x3d(session, path, transparent_background=False):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(path, 'w', encoding='utf-8') as stream:
+    from chimerax import io
+    with io.open_output(path, 'utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, metadata, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3

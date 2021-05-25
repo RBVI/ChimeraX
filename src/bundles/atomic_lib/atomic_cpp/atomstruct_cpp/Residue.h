@@ -93,11 +93,14 @@ public:
     bool  connects_to(const Residue* other_res) const {
         return !bonds_between(other_res, true).empty();
     }
+    void  clean_alt_locs();
     int  count_atom(const AtomName&) const;
+    void  delete_alt_loc(char al);
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
     bool  is_helix() const { return ss_type() == SS_HELIX; }
+    bool  is_missing_heavy_template_atoms(bool no_template_okay=false) const;
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
@@ -199,13 +202,17 @@ public:
 
 }  // namespace atomstruct
 
-#include "Structure.h"
+#include "Atom.h"
 #include "Chain.h"
+#include "Structure.h"
 
 namespace atomstruct {
 
 inline ChangeTracker*
 Residue::change_tracker() const { return structure()->change_tracker(); }
+
+inline void
+Residue::clean_alt_locs() { for (auto a: atoms()) a->clean_alt_locs(); }
 
 inline const std::set<AtomName>*
 Residue::backbone_atom_names(BackboneExtent bbe) const

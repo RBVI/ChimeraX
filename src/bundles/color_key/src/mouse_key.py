@@ -31,7 +31,7 @@ class ColorKeyMouseMode(MouseMode):
         pos, size = self._key_position_size(event)
         from .model import get_model
         key = get_model(self.session)
-        key.position = pos
+        key.pos = pos
         if size is not None:
             key.size = size
 
@@ -77,7 +77,7 @@ class ColorKeyMouseMode(MouseMode):
         key = get_model(self.session)
         if key_exists:
             # check for grab; see if in middle thrid of long side...
-            x1, y1 = key.position
+            x1, y1 = key.pos
             x2, y2 = x1 + key.size[0], y1 + key.size[1]
             if abs(x2 - x1) < abs(y2 - y1):
                 long_axis = 1
@@ -99,10 +99,10 @@ class ColorKeyMouseMode(MouseMode):
             and o1 < self.window_mouse_down[1-long_axis] < o2:
                 # grab
                 self.grab = True
-                self.grab_key_pos = key.position
+                self.grab_key_pos = key.pos
                 return
         self.grab = False
-        key.position = self.window_mouse_down
+        key.pos = self.window_mouse_down
         key.size = [1 / ws for ws in self.session.main_view.window_size]
         self.session.logger.status("Grab middle of key to reposition", color="blue")
 

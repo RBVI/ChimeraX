@@ -173,6 +173,8 @@ def show_view(session, v2, frames=None):
     v2.remove_deleted_models()
     _InterpolateViews(v1, v2, frames, session)
 
+    from chimerax import surface
+    surface.update_clip_caps(v)
 
 def view_list(session):
     """Print the named camera views in the log.
@@ -474,7 +476,10 @@ def view_matrix(session, camera=None, models=None, coordinate_system=None):
 def report_positions(session):
     c = session.main_view.camera
     lines = ['camera position: %s' % _position_string(c.position)]
-    mlist = session.models.list()
+
+    # List models belonging to the scene, excluding overlay models
+    # that don't use the position matrix such as 2D labels and color keys.
+    mlist = session.models.scene_root_model.all_models()[1:]
     if mlist:
         lines.append('model positions: %s\n' % model_positions_string(mlist))
     session.logger.info('\n'.join(lines))

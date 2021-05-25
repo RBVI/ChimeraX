@@ -109,6 +109,23 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+{
+    if (res->chain_id().size() == 2) {
+        std::string adjusted_name;
+        int num_spaces = res->name().size() - 3;
+        if (num_spaces > 0)
+            adjusted_name.insert(0, num_spaces, ' ');
+        adjusted_name.append(res->name());
+        adjusted_name.append(1, res->chain_id()[0]);
+        strcpy(out_rn, adjusted_name.c_str());
+        *out_cid = res->chain_id()[1];
+    } else {
+        strcpy(out_rn, res->name().c_str());
+        *out_cid = res->chain_id()[0];
+    }
+}
+
 static void
 push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, int helix_num)
 {
@@ -119,12 +136,10 @@ push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, 
 
     hrec.helix.ser_num = helix_num;
     sprintf(hrec.helix.helix_id, "%3d", helix_num);
-    strncpy(hrec.helix.init.name, start->name().c_str(), 3);
-    hrec.helix.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, hrec.helix.init.name, &hrec.helix.init.chain_id);
     hrec.helix.init.seq_num = start->number();
     hrec.helix.init.i_code = start->insertion_code();
-    strncpy(hrec.helix.end.name, end->name().c_str(), 3);
-    hrec.helix.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, hrec.helix.end.name, &hrec.helix.end.chain_id);
     hrec.helix.end.seq_num = end->number();
     hrec.helix.end.i_code = end->insertion_code();
     hrec.helix.helix_class = 1;
@@ -144,12 +159,10 @@ push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, i
     srec.sheet.strand = sheet_num;
     sprintf(srec.sheet.sheet_id, "%3d", sheet_num);
     srec.sheet.num_strands = 1;
-    strncpy(srec.sheet.init.name, start->name().c_str(), 3);
-    srec.sheet.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, srec.sheet.init.name, &srec.sheet.init.chain_id);
     srec.sheet.init.seq_num = start->number();
     srec.sheet.init.i_code = start->insertion_code();
-    strncpy(srec.sheet.end.name, end->name().c_str(), 3);
-    srec.sheet.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, srec.sheet.end.name, &srec.sheet.end.chain_id);
     srec.sheet.end.seq_num = end->number();
     srec.sheet.end.i_code = end->insertion_code();
     srec.sheet.sense = 0;
@@ -196,12 +209,28 @@ push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
     strcpy(lrec.link.name[0], a1->name().c_str());
     strcpy(lrec.link.name[1], a2->name().c_str());
     lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
-    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
-    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    if (a1->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+        lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a1->residue()->name();
+        auto chain_id = a1->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[0].name, res_name.c_str(), 4);
+        lrec.link.res[0].chain_id = chain_id[1];
+    }
     lrec.link.res[0].seq_num = a1->residue()->number();
     lrec.link.res[0].i_code = a1->residue()->insertion_code();
-    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
-    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    if (a2->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+        lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a2->residue()->name();
+        auto chain_id = a2->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[1].name, res_name.c_str(), 4);
+        lrec.link.res[1].chain_id = chain_id[1];
+    }
     lrec.link.res[1].seq_num = a2->residue()->number();
     lrec.link.res[1].i_code = a2->residue()->insertion_code();
     lrec.link.sym[0] = lrec.link.sym[1] = 1555;
@@ -246,12 +275,28 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             // SSBOND
             PDB srec(PDB::SSBOND);
             srec.ssbond.ser_num = ssbond_serial++;
-            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
-            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            if (r1->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            } else {
+                auto res_name = r1->name();
+                auto chain_id = r1->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[0].name, res_name.c_str(), 4);
+                srec.ssbond.res[0].chain_id = chain_id[1];
+            }
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
-            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
-            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            if (r2->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+                srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            } else {
+                auto res_name = r2->name();
+                auto chain_id = r2->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[1].name, res_name.c_str(), 4);
+                srec.ssbond.res[1].chain_id = chain_id[1];
+            }
             srec.ssbond.res[1].seq_num = r2->number();
             srec.ssbond.res[1].i_code = r2->insertion_code();
             srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
@@ -448,7 +493,8 @@ public:
     }
 };
 
-void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let)
+void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let,
+    bool *two_let_chains)
 {
     for (auto r: chain_residues) {
         auto name = r->name();
@@ -458,6 +504,8 @@ void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char seco
         cid.insert(0, 1, second_chain_id_let);
         r->set_chain_id(cid);
     }
+    if (second_chain_id_let != '\0')
+        *two_let_chains = true;
 }
 
 #define MCS_FILL 0
@@ -481,7 +529,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
     std::set<MolResId> *mod_res, bool *reached_end, PyObject *py_logger, bool explode, bool *eof,
-    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets)
+    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets, bool *two_let_chains)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -500,8 +548,8 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     ChainID  seqres_cur_chain;
     int         seqres_cur_count;
     bool        dup_MODEL_numbers = false;
-    bool        second_chain_let_okay = true;
     std::vector<Residue*> chain_residues;
+    bool        second_chain_let_okay = true;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -509,6 +557,7 @@ start_t = clock();
 
     *reached_end = false;
     *eof = true;
+    *two_let_chains = false;
     PDB::reset_state();
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -659,7 +708,7 @@ start_t = end_t;
             recent_TER = true;
             break_hets = false;
             if (second_chain_let_okay)
-                correct_chain_ids(chain_residues, second_chain_id_let);
+                correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
             second_chain_let_okay = true;
             second_chain_id_let = '\0';
             chain_residues.clear();
@@ -781,7 +830,7 @@ start_t = end_t;
                 }
                 if (start_connect) {
                     if (second_chain_let_okay)
-                        correct_chain_ids(chain_residues, second_chain_id_let);
+                        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
                     second_chain_let_okay = true;
                     second_chain_id_let = '\0';
                     chain_residues.clear();
@@ -1063,7 +1112,7 @@ start_t = clock();
     }
     as->pdb_version = record.pdb_input_version();
     if (second_chain_let_okay)
-        correct_chain_ids(chain_residues, second_chain_id_let);
+        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
 
     if (redo_elements) {
         char test_name[3];
@@ -1133,7 +1182,7 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 static void
-assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger)
+assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger, bool two_let_chains)
 {
     std::vector<std::pair<Structure::Residues::const_iterator,
         Structure::Residues::const_iterator> > strand_ranges;
@@ -1157,6 +1206,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         auto chain_id = ChainID({init->chain_id});
         ResName name = init->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *init_res = as->find_residue(chain_id, init->seq_num,
             init->i_code, name);
         if (init_res == nullptr) {
@@ -1166,6 +1219,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         chain_id = ChainID({end->chain_id});
         name = end->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *end_res = as->find_residue(chain_id, end->seq_num,
             end->i_code, name);
         if (end_res == nullptr) {
@@ -1275,9 +1332,17 @@ static Residue*
 pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
 {
     ResName rname = pdb_res.name;
+    auto orig_rname = rname;
     ChainID cid({pdb_res.chain_id});
     canonicalize_res_name(rname);
-    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    auto res = as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    if (res != nullptr || orig_rname.size() < 4)
+        return res;
+    // try two-letter chain ID
+    cid.insert(cid.begin(), orig_rname[3]);
+    orig_rname.pop_back();
+    canonicalize_res_name(orig_rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, orig_rname);
 }
 
 static Atom*
@@ -1358,7 +1423,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, boo
     int missing_coordsets)
 {
     std::vector<Structure *> file_structs;
-    bool reached_end;
+    bool reached_end, two_letter_chains;
     std::unordered_map<Structure *, std::vector<Residue *> > start_res_map, end_res_map;
     std::unordered_map<Structure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
@@ -1441,7 +1506,7 @@ start_t = clock();
         std::set<Residue*> het_res;
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as], &start_res_map[as],
             &end_res_map[as], &ss_map[as], &conect_map[as], &link_map[as], &mod_res_map[as], &reached_end,
-            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets);
+            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets, &two_letter_chains);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1548,7 +1613,7 @@ start_t = end_t;
                 }
             }
 
-            assign_secondary_structure(fs, ss_map[fs], py_logger);
+            assign_secondary_structure(fs, ss_map[fs], py_logger, two_letter_chains);
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
@@ -1614,23 +1679,6 @@ aniso_u_to_int(Real aniso_u_val)
 {
     return static_cast<int>(aniso_u_val < 0.0 ?
         10000.0 * aniso_u_val - 0.5 : 10000.0 * aniso_u_val + 0.5);
-}
-
-void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
-{
-    if (res->chain_id().size() == 2) {
-        std::string adjusted_name;
-        int num_spaces = res->name().size() - 3;
-        if (num_spaces > 0)
-            adjusted_name.insert(0, num_spaces, ' ');
-        adjusted_name.append(res->name());
-        adjusted_name.append(1, res->chain_id()[0]);
-        strcpy(out_rn, adjusted_name.c_str());
-        *out_cid = res->chain_id()[1];
-    } else {
-        strcpy(out_rn, res->name().c_str());
-        *out_cid = res->chain_id()[0];
-    }
 }
 
 static void
@@ -2072,9 +2120,9 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
             }
         }
         write_conect(os, s, rev_asn, written, polymeric_res_names);
-        p.set_type(PDB::END);
-        os << p << "\n";
     }
+    p.set_type(PDB::END);
+    os << p << "\n";
 }
 
 static const char*
@@ -2220,8 +2268,20 @@ write_pdb_file(PyObject *, PyObject *args)
             return nullptr;
         }
         const char* path = PyBytes_AS_STRING(fs_path);
+#ifdef _WIN32
+        auto wpath = PyUnicode_AsWideCharString(py_output, nullptr);
+        if (wpath == nullptr) {
+            std::stringstream err_msg;
+            err_msg << "Unable to convert file name '" << path << "'to Windows format string";
+            PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+            return nullptr;
+        }
+        out_stream = new StreamDispatcher(new std::ofstream(wpath));
+        PyMem_Free(wpath);
+#else
         out_stream = new StreamDispatcher(new std::ofstream(path));
         Py_XDECREF(fs_path);
+#endif
         if (!out_stream->good()) {
             std::stringstream err_msg;
             err_msg << "Unable to open file '" << path << "' for writing";

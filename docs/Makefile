@@ -28,7 +28,7 @@ ifndef UBUNTU_DIST
 EXTRA_EMBEDDED = ffmpeg
 endif
 
-SRCS = $(wildcard *.html) license.html embedded.html licenses
+SRCS = $(wildcard *.html) license.html embedded.html licenses videos
 IMAGES = $(wildcard *.png)
 
 # All needed subdirectories must be set by now.

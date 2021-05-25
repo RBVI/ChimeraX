@@ -14,15 +14,16 @@
 from .compression import handle_compression, get_compression_type
 
 def open_input(source, encoding=None, *, compression=None):
-    """
+    """Supported API.
     Open possibly compressed input for reading.
 
     *source* can be path or a stream.  If a stream, it is simply returned.
-    If *encoding* is 'None', open as binary.
+    *encoding* is the same as for Python's builtin 'open' command, so None means binary and *typically*
+    'utf-8' is used for text.
     If *compression* is None, whether to use compression and what type will be determined off the file name.
 
     Also, if *source* is a string that begins with "http:" or "https:", then it is interpreted as an URL.
-    The encoding of the data returned by the URL is attempted to be determined by examining
+    Determining the encoding of the data returned by the URL is attempted by examining
     Content-Encoding and/or Content-Type headers, but if those are missing then *encoding* is used
     instead (binary if *encoding* is None).
     """
@@ -55,11 +56,12 @@ def open_input(source, encoding=None, *, compression=None):
     return open(fs_source, mode, encoding=encoding)
 
 def open_output(output, encoding=None, *, append=False, compression=None):
-    """
+    """Supported API.
     Open output for (possibly compressed) writing.
 
     *output* can be path or a stream.  If a stream, it is simply returned.
-    If *encoding* is 'None', open as binary.
+    *encoding* is the same as for Python's builtin 'open' command, so None means binary and *typically*
+    'utf-8' is used for text.
     If *compression* is None, whether to use compression and what type will be determined off the file name.
     """
     if _is_stream(output):

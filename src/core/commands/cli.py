@@ -234,14 +234,15 @@ def commas(text_seq, conjunction='or'):
     return text
 
 
-def plural_form(seq, word, plural=None):
+def plural_form(things, word, plural=None):
     """Return plural of word based on length of sequence
 
-    :param seq: a sequence of objects
+    :param things: a sequence of objects or an integer
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    if len(seq) == 1:
+    count = things if isinstance(things, int) else len(things)
+    if count == 1:
         return word
     if plural is None:
         return plural_of(word)
@@ -1028,6 +1029,17 @@ class StringArg(Annotation):
         return quote_if_necessary(value)
 
 
+class CharacterArg(StringArg):
+    name = "a single character"
+
+    @staticmethod
+    def parse(text, session):
+        token, log_token, rest = StringArg.parse(text, session)
+        if len(token) != 1:
+            raise AnnotationError("must be a single character")
+        return token, log_token, rest
+
+
 class PasswordArg(StringArg):
     """Annotation for a password (should not be echoed to log)"""
     name = "a password"
@@ -1253,26 +1265,14 @@ class TopModelsArg(AtomSpecArg):
         return concise_model_spec(session, tmodels)
 
 
-total_calls = 0
-total_parse = 0
-total_evaluate = 0
-
-
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
 
     @classmethod
     def parse(cls, text, session):
-        global total_calls, total_parse, total_evaluate
-        from time import time
-        t0 = time()
         aspec, text, rest = super().parse(text, session)
-        t1 = time()
         objects = aspec.evaluate(session)
-        total_evaluate += time() - t1
-        total_calls += 1
-        total_parse += t1-t0
         objects.spec = str(aspec)
         return objects, text, rest
 
@@ -2849,6 +2849,8 @@ class Command:
                     if not log_only:
                         if ci.can_return_json:
                             kw_args['return_json'] = return_json
+                        if self._ci.self_logging:
+                            kw_args['log'] = log
                         result = ci.function(session, **kw_args)
                         results.append(result)
                 else:

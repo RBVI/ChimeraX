@@ -111,6 +111,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
         raise UserError("Could not determine type of value '%s'" % attr_value)
 
     from chimerax.atomic.molarray import Collection
+    from chimerax.core.attributes import MANAGER_NAME
     if isinstance(items, Collection):
         from chimerax.core.commands import plural_of
         attr_names = plural_of(attr_name)
@@ -121,7 +122,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
             # Since 'create' is more to prevent accidental attribute creation due to typos than
             # to strictly enforce typing (especially since int and float "conflict") check
             # existence first and only create if non-existent
-            if not session.attr_registration.has_attribute(items.object_class, attr_name):
+            if not session.get_state_manager(MANAGER_NAME).has_attribute(items.object_class, attr_name):
                 if create:
                     register_attr(session, items.object_class, attr_name, type(value))
                 else:
@@ -132,7 +133,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
             session.change_tracker.add_modified(items, attr_name + " changed")
     else:
         class_ = list(items)[0].__class__
-        from chimerax.core.utils import type_attrs
+        from chimerax.core.attributes import type_attrs
         if attr_name not in type_attrs(class_):
             if create:
                 register_attr(session, class_, attr_name, type(value))
@@ -142,7 +143,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
         # only need to add to change tracker if attribute isn't builtin
         if isinstance(item, tuple(session.change_tracker.tracked_classes)) \
-        and session.attr_registration.has_attribute(class_, attr_name):
+        and session.get_state_manager(MANAGER_NAME).has_attribute(class_, attr_name):
             session.change_tracker.add_modified(items, attr_name + " changed")
 
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
@@ -154,7 +155,7 @@ def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
 
 def register_attr(session, class_obj, attr_name, attr_type):
     if hasattr(class_obj, 'register_attr'):
-        from chimerax.atomic.attr_registration import RegistrationConflict
+        from chimerax.core.attributes import RegistrationConflict
         try:
             class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
         except RegistrationConflict as e:

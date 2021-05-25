@@ -51,8 +51,9 @@ PyObject*   extract_CIF_tables(const char* filename,
                                const std::vector<std::string> &categories,
                                bool all_data_blocks);
 
+PyObject*   quote_value(PyObject* value, int max_len=60);
 typedef std::vector<const Bond*> Bonds;
-void        non_standard_bonds(const Bond** bonds, size_t num_bonds, Bonds& disulfide, Bonds& covalent);
+void        non_standard_bonds(const Bond** bonds, size_t num_bonds, bool selected_only, bool displayed_only, Bonds& disulfide, Bonds& covalent);
 
 #ifndef WrapPy
 const tmpl::Residue*

@@ -51,6 +51,9 @@ defaults = {
             "ChimeraX-Shortcuts:la",  # soft
             "ChimeraX-Shortcuts:lf",  # full
         ]),
+        ("Selection", [
+            "ChimeraX-SelInspector:selection inspector",  # inspect selection
+        ]),
     ],
 }
 

@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 21.0.1
-WHEEL_VERSION = 0.36.0
-SETUPTOOLS_VERSION = 50.3.2
+PIP_VERSION = 21.1.1
+WHEEL_VERSION = 0.36.2
+SETUPTOOLS_VERSION = 57.0.0
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -162,9 +162,9 @@ ifeq ($(OS),Windows)
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
+	ln -s -f $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
+	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
+	ln -s -f -F $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \

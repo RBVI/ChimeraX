@@ -281,17 +281,19 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "numeric_label_spacing")
 
     @property
-    def position(self):
+    def pos(self):
+        # was named 'position', but conflicts with Model.position
         return self._position
 
-    @position.setter
-    def position(self, llxy):
+    @pos.setter
+    def pos(self, llxy):
+        # was named 'position', but conflicts with Model.position
         if llxy == self._position:
             return
         self._position = llxy
         self.needs_update = True
         self.redraw_needed()
-        self.triggers.activate_trigger("key changed", "position")
+        self.triggers.activate_trigger("key changed", "pos")
 
     @property
     def rgbas_and_labels(self):
@@ -306,11 +308,11 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
-    def single_color(self):
-        return None
+    def model_color(self):
+        return False
 
-    @single_color.setter
-    def single_color(self, val):
+    @model_color.setter
+    def model_color(self, val):
         pass
 
     @property
@@ -729,9 +731,13 @@ class ColorKeyModel(Model):
             try:
                 local_numeric = locale.getlocale(locale.LC_NUMERIC)
             except locale.Error:
-                restore_locale = True
+                restore_locale = False
             try:
-                locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
+                try:
+                    locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
+                except locale.Error:
+                    # hope current locale works!
+                    pass
                 try:
                     values = [locale.atof('' if t is None else t) for t in texts]
                 except (ValueError, TypeError):

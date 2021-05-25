@@ -338,7 +338,7 @@ class BuildStructureTool(ToolInstance):
             res_name = self.ms_res_new_name.text().strip()
             if not res_name:
                 raise UserError("Must provided new residue name")
-            cmd += " resNewOnly true resName " + res_name
+            cmd += " newRes true resName " + res_name
 
         run(self.session, cmd)
 

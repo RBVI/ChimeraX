@@ -93,6 +93,7 @@ The command <b>open formats</b> command lists the possible formats and
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
+<li><a href="#trajtop">Trajectory Topology</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#segmentation">Segmentations</a>
 <li><a href="#object">Other 3D Objects</a>
@@ -121,7 +122,8 @@ target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center">.pdb, .pdb1<br>.ent, .pqr
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations;
-if PQR, sets atomic <a href="../radii.html">radius</a></td>
+if PQR, sets atomic <a href="../radii.html">radius</a>;
+see also <a href="altlocs.html">alternate locations</a></td>
 </tr><tr>
 <td align="center"><a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
 target="_blank">PDBx/mmCIF</a></td>
@@ -131,7 +133,8 @@ target="_blank">PDBx/mmCIF</a></td>
 <br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>,
 <a href="hbonds.html#related">H-bonds from mmCIF</a>,
 <br><a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
-target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
+target="_blank">ChimeraX Fast mmCIF Guidelines</a>;
+see also <a href="altlocs.html">alternate locations</a>)</td>
 </tr><tr>
 <td align="center" class="text"><a href="https://mmtf.rcsb.org/"
 target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
@@ -202,32 +205,58 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
-<br>(requires an already-open structure for topology, see the
-<a href="#structureModel"><b>structureModel</b></a> option;
+<br>(also requires trajectory topology, either from being opened at the same
+time as a <a href="#trajtop">PSF</a> file, or from an already-open atomic model
+given with the <a href="#structureModel"><b>structureModel</b></a> option;
 see also the <a href="#coordsets"><b>coordsets</b></a> option)</td>
 </tr><tr>
 <td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
 target="_blank">Amber NetCDF</a> (binary)</td>
 <td align="center"><b>amber</b></td>
 <td align="center">.nc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center">DCD coordinates (binary)</td>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates
+<br>(DCD support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#xtc"
 target="_blank">Gromacs compressed coordinates</a></td>
 <td align="center"><b>xtc</b></td>
 <td align="center">.xtc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#trr"
 target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="trajtop"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Trajectory Topology</b>
+<br>(also requires a <a href="#trajectory">trajectory coordinate file</a>
+given with the <a href="#coords"><b>coords</b></a> option)</td>
+</tr><tr>
+<td align="center">PSF (protein structure file;
+<a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html"
+target="_blank">X-PLOR-style topology</a>)</td>
+<td align="center"><b>psf</b></td>
+<td align="center">.psf</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+topology 
+<br>(PSF support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 <!--
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -918,6 +947,19 @@ Whether to read the contours from an
 <a href="../formats/imod.html">IMOD segmentation file</a>.
 </blockquote>
 <blockquote>
+<a name="coords"></a>
+<b>coords</b> &nbsp;<i>trajectory-coordinate-file</i>&nbsp;
+<br>
+Specify the corresponding <a href="#trajectory">trajectory coordinate file</a>
+required to open a PSF <a href="#trajtop">trajectory topology file</a>.
+Any of the <a href="#trajectory">trajectory coordinate formats</a> may be used.
+The <i>trajectory-coordinate-file</i> is specified by pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+Omitting this option also raises a file browser window
+for specifying the file interactively.
+</blockquote>
+<blockquote>
 <a name="coordsets"></a>
 <a name="missingCoordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -979,11 +1021,52 @@ Whether to fetch ensembles associated with an IHM dataset
 (default <b>false</b>, as these can be quite large).
 </blockquote>
 <blockquote>
+<a name="forEachFile"></a>
+<b>forEachFile</b>&nbsp;&nbsp;<i>input-files</i>
+<br>
+The <b>forEachFile</b> option allows processing multiple data files
+iteratively with the same
+<a href="usageconventions.html#cxc-files">ChimeraX command file</a>
+without having to open the command file over and over.
+The data files over which to iterate are specified in a single pathname 
+using wild cards or globbing, and would typically contain
+<a href="#volume">maps</a> or <a href="#atomic">atomic structures</a>.
+For example:
+<blockquote>
+<b>open myscript.cxc foreach ~/data/*.cif</b>
+</blockquote>
+...would open the first data file, run the script, open the next data file,
+run the script, <i>etc.</i>
+Any existing models are closed before each data file is opened.
+For saving input-specific output files, 
+&ldquo;$file&rdquo; can be used within the command file 
+to indicate the base name of each data file.
+For example, the following command would save 1a0m.png for input file 1a0m.pdb,
+2gbp.png for input file 2gbp.pdb, <i>etc.</i>:
+<blockquote>
+<b>save $file.png</b>
+</blockquote>
+Output files will be placed in the same directory as the data files
+unless the file-saving command gives a different pathname.
+</blockquote>
+<blockquote>
 <a name="height"></a>
 <b>height</b>&nbsp;&nbsp;<i>h</i>
 <br>
 Height in physical units of distance (&Aring;) for the
 <a href="#photo">photo</a> (single image) being opened.
+</blockquote>
+<blockquote>
+<a name="log"></a>
+<b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+When opening a 
+<a href="usageconventions.html#cxc-files">ChimeraX command file</a>,
+whether to echo each command within the file to the 
+<a href="../tools/log.html"><b>Log</b></a>
+as it is executed (default <b>true</b>).
+If <b>false</b>, although the commands themselves will not be logged,
+any informational outputs they generate will still appear there.
 </blockquote>
 <blockquote>
 <a name="logInfo"></a>
@@ -1593,5 +1676,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+May 2021</address>
 </body></html>

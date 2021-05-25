@@ -57,6 +57,31 @@ and in the rarer case they are needed for nonstandard residues, calculated
 by <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>
 according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
+However, before the charge assignment, certain modified nucleic acid residues 
+will be mutated automatically to their unmodified counterparts as follows:
+<ul>
+<li><b>bromo-UMP (5BU) to UMP (U)</b> &ndash;
+5-bromouridine-5'-monophosphate (PDB chemical component
+<a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>)
+to RNA residue uridine-5'-monophosphate (U)
+by deleting the bromine atom
+<li> <b>methylselenyl-dUMP (UMS) to UMP (U)</b> &ndash;
+2'-methylselenyl-2'-deoxyuridine-5'-phosphate (PDB chemical component
+<a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>)
+to RNA residue uridine-5'-monophosphate (U)
+by replacing the methylselenyl moiety with an oxygen atom named O2'
+and adjusting the bond length to 1.430 &Aring;
+<li> <b>methylselenyl-dCMP (CSL) to CMP (C)</b> &ndash;
+2'-methylselenyl-2'-deoxycytidine-5'-phosphate (PDB chemical component
+<a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>)
+to RNA residue cytidine-5'-monophosphate (C)
+by replacing the methylselenyl moiety with an oxygen atom named O2'
+and adjusting the bond length to 1.430 &Aring;
+</ul>
+<p>
+Selenomethionine residues (MSE) are simply assigned the charges for the 
+standard residue methionine (MET) without being mutated.
+</p>
 </blockquote>
 <!-- and a <a href="#volume">grid</a> of the values can be generated -->
 See also: 
@@ -250,5 +275,5 @@ the atoms in every direction (default <b>5.0</b> &Aring;).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+April 2021</address>
 </body></html>

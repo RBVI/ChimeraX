@@ -438,4 +438,22 @@ StructurePBGroup::session_save_setup() const
     }
 }
 
+void
+CS_PBGroup::set_color(const Rgba& rgba) {
+    _color = rgba;
+    for (auto cs: _structure->coord_sets())
+        for (auto pb: pseudobonds(cs))
+            pb->set_color(rgba);
+    track_change(ChangeTracker::REASON_COLOR);
+}
+
+void
+CS_PBGroup::set_radius(float r) {
+    _radius = r;
+    for (auto cs: _structure->coord_sets())
+        for (auto pb: pseudobonds(cs))
+            pb->set_radius(r);
+    track_change(ChangeTracker::REASON_RADIUS);
+}
+
 }  // namespace atomstruct

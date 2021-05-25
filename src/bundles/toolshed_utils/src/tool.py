@@ -42,7 +42,7 @@ class UpdateTool(ToolInstance):
 
     def __init__(self, session, tool_name, dialog_type=None):
         if dialog_type is None:
-            dialog_type = DialogType.ALL_AVAILABLE
+            dialog_type = DialogType.UPDATES_ONLY
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)

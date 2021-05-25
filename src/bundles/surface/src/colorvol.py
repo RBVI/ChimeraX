@@ -51,7 +51,10 @@ def color_electrostatic(session, surfaces, map, palette = None, range = None, ke
     Color surfaces using an interpolated electrostatic potential map value
     at each surface vertex with values mapped to colors by a color palette.
     '''
-    
+
+    if range is None and (palette is None or not palette.values_specified):
+        range = (-10,10)
+        
     _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
@@ -107,7 +110,15 @@ def _color_by_map_value(session, surfaces, map, palette = None, range = None, ke
                         offset = 0, transparency = None, gradient = False, caps_only = False,
                         auto_update = True, undo_name = 'color map by value', undo_state = None):
 
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No surface models specified for coloring by map value')
+
     surfs = [s for s in surfaces if s.vertices is not None]
+    if len(surfs) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Only empty surface models specified for coloring by map value')
+    
     cs_class = GradientColor if gradient else VolumeColor
 
     if undo_state is None:
@@ -178,6 +189,12 @@ class VolumeColor(State):
         if auto_recolor:
             from .updaters import add_updater_for_session_saving
             add_updater_for_session_saving(surface.session, self)
+
+    # -------------------------------------------------------------------------
+    #
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_recolor_vertices == self._auto_recolor
 
     # -------------------------------------------------------------------------
     #

@@ -361,6 +361,9 @@ def parse_arguments(argv):
 
 def init(argv, event_loop=True):
     import sys
+    # MacOS 10.12+ generates drop event for command-line argument before main()
+    # is even called; compensate
+    bad_drop_events = False
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -368,6 +371,8 @@ def init(argv, event_loop=True):
             paths.append('/usr/sbin')
             os.environ['PATH'] = ':'.join(paths)
         del paths
+        # ChimeraX is only distributed for 10.13+, so don't need to check version
+        bad_drop_events = True
 
     if sys.platform.startswith('linux'):
         # Workaround for #638:
@@ -391,6 +396,9 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
+    if len(argv) > 1 and argv[1].startswith('--'):
+        # MacOS doesn't generate these drop events for args after '--' flags
+        bad_drop_events = False
     opts, args = parse_arguments(argv)
     if not opts.devel:
         import warnings
@@ -550,6 +558,9 @@ def init(argv, event_loop=True):
     from chimerax.core.session import register_misc_commands
     register_misc_commands(sess)
 
+    from chimerax.core import attributes
+    attributes.RegAttrManager(sess)
+
     if opts.uninstall:
         return uninstall(sess)
 
@@ -697,7 +708,19 @@ def init(argv, event_loop=True):
                 print(msg, flush=True)
         from chimerax.core.commands import run
         for cmd in opts.commands:
-            run(sess, cmd)
+            try:
+                run(sess, cmd)
+            except Exception:
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     if opts.scripts:
         if not opts.silent:
@@ -705,15 +728,20 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
-        from chimerax.core import errors
         for script in opts.scripts:
             try:
                 run(sess, 'runscript %s' % script)
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
             except Exception:
-                import traceback
-                traceback.print_exc()
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
             except SystemExit as e:
                 return e.code
 
@@ -762,7 +790,10 @@ def init(argv, event_loop=True):
             has_install = 'install' in sys.argv
             has_uninstall = 'uninstall' in sys.argv
             if has_install or has_uninstall:
-                per_user = '--user' in sys.argv
+                # TODO: --user is not given for uninstalls, so see
+                # where the packages were installed to determine if
+                # per_user should be true
+                per_user = has_uninstall or '--user' in sys.argv
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
             # Do not remove scripts anymore since we may be installing
@@ -787,7 +818,7 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimerax.core import errors, commands
+    from chimerax.core import commands
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -797,28 +828,36 @@ def init(argv, event_loop=True):
             from chimerax.core.scripting import open_python_script
             try:
                 open_python_script(sess, open(arg, 'rb'), arg)
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
         else:
             from chimerax.core.commands import StringArg
             try:
                 commands.run(sess, 'open %s' % StringArg.unparse(arg))
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=args)
+        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application

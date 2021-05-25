@@ -31,7 +31,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces io label list_info log looking_glass maestro \
+	  interfaces items_inspection io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -40,7 +40,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf segger segment seq_view sequences shape \
+	  sdf sel_inspector segger segment seq_view sequences shape \
 	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \

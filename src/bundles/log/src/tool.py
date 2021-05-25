@@ -336,7 +336,43 @@ class Log(ToolInstance, HtmlLog):
             elif level == self.LEVEL_WARNING:
                 msg = '<p style="color:darkorange">' + msg + '</p>'
 
-            self.page_source += msg
+            # compact repeated output, e.g. ISOLDE's 'stepto' command
+            #
+            # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
+            # a space character), so only try to compact if "<br>" or "<div" is in msg
+            if ("<br>" in msg and not msg.replace("<br>", " ").isspace()) or "<div" in msg:
+                compaction_start_text = "[Repeated "
+                compaction_end_text = " time(s)]"
+                compaction_start = None
+                if self.page_source.endswith(compaction_end_text):
+                    # possibly already compacting some output
+                    try:
+                        bracket_start = self.page_source.rindex(compaction_start_text)
+                    except ValueError:
+                        pass
+                    else:
+                        if self.page_source[bracket_start:].startswith(compaction_start_text):
+                            try:
+                                compaction_number = int(self.page_source[
+                                    bracket_start+len(compaction_start_text):-len(compaction_end_text)])
+                            except ValueError:
+                                pass
+                            else:
+                                compaction_start = bracket_start
+                if compaction_start is None:
+                    test_text = self.page_source
+                else:
+                    test_text = self.page_source[:compaction_start]
+                if test_text.endswith(msg):
+                    if compaction_start is None:
+                        self.page_source += compaction_start_text + "1" + compaction_end_text
+                    else:
+                        self.page_source = self.page_source[:compaction_start] + "%s%d%s" % (
+                            compaction_start_text, compaction_number+1, compaction_end_text)
+                else:
+                    self.page_source += msg
+            else:
+                self.page_source += msg
         self.show_page_source()
         return True
 
@@ -465,24 +501,32 @@ class Log(ToolInstance, HtmlLog):
             contents = html.tostring(tmp)
         prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
         if self.settings.session_restore_clears and session.restore_options['clear log']:
-            # "retain" version info
-            class FakeLogger:
-                def __init__(self):
-                    self.msgs = []
-                def info(self, msg):
-                    self.msgs.append(msg)
-            fl = FakeLogger()
-            from chimerax.core.logger import log_version
-            log_version(fl)
-            version = "<br>".join(fl.msgs)
+            def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
+                if session.restore_options['error encountered']:
+                    # if the session did't restore successfully, don't clear the log
+                    self.page_source += prev_ses_html
+                else:
+                    # "retain" version info
+                    class FakeLogger:
+                        def __init__(self):
+                            self.msgs = []
+                        def info(self, msg):
+                            self.msgs.append(msg)
+                    fl = FakeLogger()
+                    from chimerax.core.logger import log_version
+                    log_version(fl)
+                    version = "<br>".join(fl.msgs)
 
-            # look for the command that restored the session and include it
-            index = self.page_source.rfind('<div class="cxcmd">')
-            if index == -1:
-                retain = version
-            else:
-                retain = version + '<br>' + self.page_source[index:]
-            self.page_source = retain + prev_ses_html
+                    # look for the command that restored the session and include it
+                    index = self.page_source.rfind('<div class="cxcmd">')
+                    if index == -1:
+                        retain = version
+                    else:
+                        retain = version + '<br>' + self.page_source[index:]
+                    self.page_source = retain + prev_ses_html
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            session.triggers.add_handler('end restore session', clear_log_unless_error)
         else:
             self.page_source += prev_ses_html
         #self.show_page_source()

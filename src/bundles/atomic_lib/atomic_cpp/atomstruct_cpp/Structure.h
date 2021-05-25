@@ -187,7 +187,8 @@ protected:
         _chains->emplace_back(chain);
         return chain;
     }
-    void  _per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
+    void  _per_residue_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore,
+        Rings* rings = nullptr) const;
     void  _per_structure_rings(unsigned int all_size_threshold, std::set<const Residue *>* ignore) const;
     void  remove_chain(Chain* chain) {
         _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
@@ -203,6 +204,8 @@ protected:
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
     }
+    void  _temporary_per_residue_rings(Rings& rings, unsigned int all_size_threshold,
+        std::set<const Residue *>* ignore) const;
 
 public:
     Structure(PyObject* logger = nullptr);

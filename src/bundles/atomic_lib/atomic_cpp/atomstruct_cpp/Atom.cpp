@@ -124,6 +124,37 @@ Atom::bfactor() const
 }
 
 void
+Atom::clean_alt_locs()
+{
+    if (_alt_loc == ' ')
+        return;
+    auto alt_aniso_u = aniso_u();
+    if (alt_aniso_u == nullptr) {
+        if (_aniso_u != nullptr) {
+            delete _aniso_u;
+            _aniso_u = nullptr;
+        }
+    } else {
+        if (_aniso_u == nullptr) {
+            _aniso_u = new std::vector<float>(6);
+        }
+        (*_aniso_u)[0] = (*alt_aniso_u)[0];
+        (*_aniso_u)[1] = (*alt_aniso_u)[1];
+        (*_aniso_u)[2] = (*alt_aniso_u)[2];
+        (*_aniso_u)[3] = (*alt_aniso_u)[3];
+        (*_aniso_u)[4] = (*alt_aniso_u)[4];
+        (*_aniso_u)[5] = (*alt_aniso_u)[5];
+    }
+    structure()->active_coord_set()->set_bfactor(this, bfactor());
+    _coordset_set_coord(coord(), structure()->active_coord_set(), false);
+    structure()->active_coord_set()->set_occupancy(this, occupancy());
+    _serial_number = serial_number();
+
+    _alt_loc = ' ';
+    _alt_loc_map.clear();
+}
+
+void
 Atom::clear_aniso_u()
 {
     if (_alt_loc != ' ') {
@@ -161,6 +192,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
         graphics_changes()->set_gc_shape();
         if (in_ribbon())
             graphics_changes()->set_gc_ribbon();
+        graphics_changes()->set_gc_ring();
     } else {
         //cs->_coords[_coord_index] = coord;
         cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
@@ -168,6 +200,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
             graphics_changes()->set_gc_shape();
             if (in_ribbon())
                 graphics_changes()->set_gc_ribbon();
+            graphics_changes()->set_gc_ring();
             change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
             if (structure()->active_coord_set() == cs)
                 structure()->change_tracker()->add_modified(structure(), structure(),
@@ -325,10 +358,11 @@ Atom::default_radius() const
                 return 1.88f;
             if (bonds().size() < 3) // implied hydrogen
                 return 1.76f;
-            for (auto nb: neighbors()) {
-                if (nb->element().number() == 1)
-                    return 1.76f;
-            }
+            if (structure()->num_hyds() > 0)
+                for (auto nb: neighbors()) {
+                    if (nb->element().number() == 1)
+                        return 1.76f;
+                }
             return 1.61f;
         
         case 7: // nitrogen
@@ -840,6 +874,31 @@ Atom::default_radius() const
     return rad;
 }
 
+void
+Atom::delete_alt_loc(char al)
+{
+    // doesn't do any real consistency checking; use Residue::delete_alt_loc for that
+    if (al == ' ')
+        throw std::invalid_argument("Atom.delete_alt_loc(): cannot delete the ' ' alt loc");
+    auto al_i = _alt_loc_map.find(al);
+    if (al_i == _alt_loc_map.end()) {
+        std::stringstream msg;
+        msg << "delete_alt_loc(): atom " << name() << " in residue "
+            << residue()->str() << " does not have an alt loc '" << al << "'";
+        throw std::invalid_argument(msg.str().c_str());
+    }
+    _alt_loc_map.erase(al_i);
+    if (al == _alt_loc) {
+        if (_alt_loc_map.empty()) {
+            _alt_loc = ' ';
+        } else {
+            _alt_loc = (*_alt_loc_map.begin()).first;
+        }
+        if (structure()->alt_loc_change_notify())
+            graphics_changes()->set_gc_shape();
+    }
+}
+
 Atom::IdatmInfoMap _idatm_map = {
     { "Car", { Atom::Planar, 3, "aromatic carbon" } },
     { "C3", { Atom::Tetrahedral, 4, "sp3-hybridized carbon" } },
@@ -1090,6 +1149,13 @@ Coord
 Atom::scene_coord() const
 {
     return mat_mul(structure()->position(), coord());
+
+}
+
+Coord
+Atom::effective_scene_coord() const
+{
+    return mat_mul(structure()->position(), effective_coord());
 
 }
 

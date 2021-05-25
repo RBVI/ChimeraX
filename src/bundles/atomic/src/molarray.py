@@ -631,6 +631,13 @@ class Atoms(Collection):
         Return the atom's ribbon_coord if the residue is displayed as a ribbon and
         has a ribbon coordinate, otherwise return the current coordinate.
         ''')
+    pb_coords = effective_coords
+    effective_scene_coords = cvec_property('atom_effective_scene_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate in scene coordinate system.
+        ''')
+    pb_scene_coords = effective_scene_coords
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
@@ -801,20 +808,6 @@ class Atoms(Collection):
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
 
-    @property
-    def pb_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_coord
-        return v
-
-    @property
-    def pb_scene_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_scene_coord
-        return v
-
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data
@@ -866,6 +859,10 @@ class Bonds(Collection):
     Returns a :mod:`numpy` array of boolean values.  Can be
     set with such an array (or equivalent sequence), or with a
     single boolean value.
+    '''
+    lengths = cvec_property('bond_length', float32, read_only = True)
+    '''
+    Returns a :mod:`numpy` array of bond lengths. Read only.
     '''
     radii = cvec_property('bond_radius', float32)
     '''
@@ -1138,6 +1135,8 @@ class Residues(Collection):
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_helices = is_helix
+    is_missing_heavy_template_atoms = cvec_property('residue_is_missing_heavy_template_atoms', npy_bool,
+    read_only = True, doc = '''Returns a numpy bool array whether each residue is missing heavy atoms relative to its template.  If no template, returns False.''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
     is_strands = is_strand
@@ -1213,6 +1212,69 @@ class Residues(Collection):
         '''Delete the C++ Residue objects'''
         c_function('residue_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
+    @property
+    def chi1s(self):
+        return [r.chi1 for r in self]
+
+    @chi1s.setter
+    def chi1s(self, chi1):
+        for r in self:
+            r.chi1 = chi1
+
+    @property
+    def chi2s(self):
+        return [r.chi2 for r in self]
+
+    @chi2s.setter
+    def chi2s(self, chi2):
+        for r in self:
+            r.chi2 = chi2
+
+    @property
+    def chi3s(self):
+        return [r.chi3 for r in self]
+
+    @chi3s.setter
+    def chi3s(self, chi3):
+        for r in self:
+            r.chi3 = chi3
+
+    @property
+    def chi4s(self):
+        return [r.chi4 for r in self]
+
+    @chi4s.setter
+    def chi4s(self, chi4):
+        for r in self:
+            r.chi4 = chi4
+
+    @property
+    def omegas(self):
+        return [r.omega for r in self]
+
+    @omegas.setter
+    def omegas(self, omega):
+        for r in self:
+            r.omega = omega
+
+    @property
+    def phis(self):
+        return [r.phi for r in self]
+
+    @phis.setter
+    def phis(self, phi):
+        for r in self:
+            r.phi = phi
+
+    @property
+    def psis(self):
+        return [r.psi for r in self]
+
+    @psis.setter
+    def psis(self, psi):
+        for r in self:
+            r.psi = psi
 
     @property
     def unique_structures(self):

@@ -219,11 +219,11 @@ class MarkerMouseMode(MouseMode):
     def delete_marker_or_link(self, event):
         m, l = self.picked_marker_or_link(event)
         if m:
+            _log_marker_delete(m)
             if m.structure.num_atoms == 1:
                 # TODO: Leaving an empty structure causes errors
                 self.session.models.close([m.structure])
             else:
-                _log_marker_delete(m)
                 m.delete()
         elif l:
             _log_link_delete(l)

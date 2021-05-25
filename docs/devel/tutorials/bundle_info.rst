@@ -866,11 +866,18 @@ The other possible `Provider`_ attributes are:
 - **Infrequently-Used** Attributes
 
     *compression_okay*
-        If the data you are writing out is *already* compressed and therefore it would probably
-        be bad to compress it again (likely slower with no space savings), specifying
-        *compression_okay* as "false" will prevent the ``save`` command from allowing this
-        format to be automatically compressed (which happens when the output file name also has
-        a compression suffix, *e.g.* "my_structure.pdb.gz").
+        *compression_okay* controls whether your format will be able to save directly as a compressed
+        file as implied by the user adding an additional compression suffix (*e.g.* ".gz") to
+        your file name.  There are two main reasons that you would change *compression_okay*
+        from its default value of "true" to "false":
+
+            1. For whatever reason your bundle cannot use
+            :py:meth:`~chimerax.io.io.open_output` to open the file, which
+            is the routine that handles the automatic compression.  This frequently happens for bundles
+            where compiled code opens the file and cannot handle being passed a Python stream.
+
+            2. If the data you are writing out is *already* compressed and therefore it would probably
+            be bad to compress it again (likely slower with no space savings).
 
     *is_default*
         If your data format has suffixes that are the same as another format's suffixes, *is_default*

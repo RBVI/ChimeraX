@@ -77,6 +77,10 @@ class Interpolated_Map:
     if self.interpolate_colors:
       interpolate_colors(f1, v1, f2, v2, v)
 
+    fccb = self.f_changed_cb
+    if fccb:
+      fccb(self.f)
+
     return True
 
   # ---------------------------------------------------------------------------
@@ -120,8 +124,9 @@ class Interpolated_Map:
   #
   def stop_playing(self):
 
-    self.session.triggers.remove_handler(self.play_handler)
-    self.play_handler = None
+    if self.play_handler:
+      self.session.triggers.remove_handler(self.play_handler)
+      self.play_handler = None
     if self.recording:
       self.finish_recording()
 
@@ -150,11 +155,9 @@ class Interpolated_Map:
     elif next_f <= fmin:
       next_f = fmin
       self.step_direction = 1
+
     if not self.interpolate(next_f):
       self.stop_playing()       # Volume closed.
-    fccb = self.f_changed_cb
-    if fccb:
-      fccb(self.f)
 
   # ---------------------------------------------------------------------------
   #

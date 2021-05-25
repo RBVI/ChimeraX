@@ -47,7 +47,12 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
         session.logger.warning("The following %s, which may result in inaccurate electrostatics:<br>%s"
             % (msg_text, missing_text), is_html=True)
 
+    from chimerax.atomic.struct_edit import standardize_residues
+    from chimerax.add_charge import add_charges, default_standardized
     for struct, struct_residues in by_structure.items():
+        # need to standardize residues before any structure copy occurs, so do it ourselves here
+        # and prevent add_charge from doing it
+        standardize_residues(session, struct_residues, res_types=default_standardized)
         if copy_needed[struct]:
             session.logger.status("Copying %s" % struct, secondary=True)
             charged_struct = struct.copy(name="copy of " + struct.name)
@@ -81,9 +86,9 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
             charged_residues = struct_residues
 
         # assign charges
-        from chimerax.add_charge import add_charges
         try:
-            add_charges(session, charged_residues, method=charge_method, status=status)
+            add_charges(session, charged_residues, method=charge_method, status=status,
+                standardize_residues=False)
         except BaseException:
             if copy_needed[struct]:
                 charged_struct.delete()
