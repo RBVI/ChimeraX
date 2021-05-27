@@ -57,11 +57,13 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     from chimerax.core.errors import LimitationError, UserError
 
     alignment, seq, region_info = targets
-    if not alignment.associations:
-        raise UserError("No chains/structures associated with sequence %s" % seq.name)
     model_chains = set(seq.match_maps.keys())
+    if not model_chains:
+        raise UserError("No chains/structures associated with sequence %s" % seq.name)
     if chains:
         model_chains = [chain for chain in chains if chain in model_chains]
+    if not model_chains:
+        raise UserError("Specified chains not associated with sequence %s" % seq.name)
     by_structure = {}
     for chain in model_chains:
         by_structure.setdefault(chain.structure, []).append(chain)
