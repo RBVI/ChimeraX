@@ -115,11 +115,12 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
     if len(outside) < len(atoms):
         from chimerax.atomic import Atom
         Atom.register_attr(session, attribute, 'map values', attr_type = float)
-        print ('register attribute', attribute)
 
     # Set atom attribute values
-    for a, v in zip(atoms, values):
-        setattr(a, attribute, v)
+    outset = set(outside)
+    for i, (a,v) in enumerate(zip(atoms, values)):
+        if i not in outset:
+            setattr(a, attribute, v)
 
     # Log status message
     if len(outside) == 0:
