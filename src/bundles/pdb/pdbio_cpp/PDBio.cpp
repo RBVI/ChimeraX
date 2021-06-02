@@ -568,6 +568,8 @@ cum_preloop_t += end_t - start_t;
 start_t = clock();
 #endif
         std::pair<const char *, PyObject *> read_vals = (*read_func)(input);
+        if (PyErr_Occurred() != nullptr)
+            return nullptr;
         const char *char_line = read_vals.first;
         if (char_line[0] == '\0') {
             Py_XDECREF(read_vals.second);
@@ -1401,6 +1403,8 @@ read_no_fileno(void *py_file)
 {
     const char *line;
     PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
+    if (PyErr_Occurred() != nullptr)
+        return std::pair<const char*, PyObject *>(line, Py_None);
     if (PyBytes_Check(py_line)) {
         line = PyBytes_AS_STRING(py_line);
     } else {
