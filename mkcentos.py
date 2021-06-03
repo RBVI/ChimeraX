@@ -295,6 +295,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
         #    }} \
         #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}}
         print(textwrap.dedent(f"""\
+            %define _build_id_links none
             %define __spec_install_post %{{nil}}
             %define debug_package %{{nil}}
             # %%define __os_install_post\
