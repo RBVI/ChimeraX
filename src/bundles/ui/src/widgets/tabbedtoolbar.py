@@ -24,7 +24,7 @@ from Qt.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
 )
-from Qt.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
+from Qt.QtGui import QPainter, QIcon, QColor, QPixmap
 
 _debug = False   # DEBUG
 
@@ -51,16 +51,18 @@ def split_title(title):
 class _ButtonInfo:
 
     __slots__ = (
-        "title", "callback", "icon", "description", "group", "vr_mode", "highlight_icon"
+        "title", "callback", "icon", "description", "group", "vr_mode", "highlight_icon",
+        "enabled"
     )
 
-    def __init__(self, title, callback, icon, description, group, vr_mode):
+    def __init__(self, title, callback, icon, description, group, vr_mode, enabled):
         self.title = title
         self.callback = callback
         self.icon = icon
         self.description = description
         self.group = group
         self.vr_mode = vr_mode
+        self.enabled = enabled
         self.highlight_icon = None
 
 
@@ -87,11 +89,11 @@ class _Section(QWidgetAction):
         else:
             self.compact_height = 2
 
-    def add_button(self, title, callback, icon, description, group, vr_mode):
+    def add_button(self, title, callback, icon, description, group, vr_mode, enabled):
         if group and self.compact:
             raise ValueError("Can not use grouped buttons in a compact section")
         index = len(self._buttons)
-        button_info = _ButtonInfo(title, callback, icon, description, group, vr_mode)
+        button_info = _ButtonInfo(title, callback, icon, description, group, vr_mode, enabled)
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
@@ -141,6 +143,8 @@ class _Section(QWidgetAction):
             action.setToolTip(button_info.description)
         if button_info.callback is not None:
             action.triggered.connect(button_info.callback)
+        if not button_info.enabled:
+            action.setEnabled(False)
         actions = self._actions.setdefault(orig_title, [])
         actions.append(action)
         if group_follow:
@@ -283,6 +287,7 @@ class _Section(QWidgetAction):
             sizes.sort(key=lambda s: s.width())
             pm = icon.pixmap(icon.actualSize(sizes[-1]))
 #            with QPainter(pm) as p:
+            p = None
             try:
                 p = QPainter(pm)
                 p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
@@ -300,7 +305,8 @@ class _Section(QWidgetAction):
                     adj = pen_width / 2
                     p.drawRect(r.adjusted(adj, adj, -adj, -adj))
             finally:
-                p.end()
+                if p:
+                    p.end()
         button_info.highlight_icon = QIcon(pm)
         if redo:
             self._redo_layout()
@@ -323,6 +329,18 @@ class _Section(QWidgetAction):
             print("REDO:", button_info.title)
             self.add_button_highlight(button_info.title, redo=False)
         self._redo_layout()
+
+    def set_enabled(self, enabled, title, redo=True):
+        for button_info in self._buttons:
+            if button_info.title == title:
+                break
+        else:
+            raise ValueError(f"Didn't find button '{title}'")
+        if button_info.enabled == enabled:
+            return
+        button_info.enabled = enabled
+        if redo:
+            self._redo_layout()
 
 
 class TabbedToolbar(QTabWidget):
@@ -365,9 +383,11 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title)
         section.set_compact(on_off)
 
-    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, *, group=None, vr_mode=None):
+    def add_button(self, tab_title, section_title, button_title, callback, icon=None, description=None, *, group=None, vr_mode=None, enabled=True):
+        if isinstance(enabled, str):
+            enabled = enabled not in ('False', 'false', '0', 'off')
         section = self._get_section(tab_title, section_title)
-        section.add_button(button_title, callback, icon, description, group, vr_mode)
+        section.add_button(button_title, callback, icon, description, group, vr_mode, enabled)
 
     def show_tab(self, tab_title):
         """Make given tab the current tab"""
@@ -434,15 +454,21 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
-        self._hide_toolbar_rollover(tab_title) # Work around ChimeraX bug #3152
+        self._hide_toolbar_rollover(tab_title)  # Work around ChimeraX bug #3152
         section.add_button_highlight(button_title, redo=redo)
 
     def remove_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
-        self._hide_toolbar_rollover(tab_title) # Work around ChimeraX bug #3152
+        self._hide_toolbar_rollover(tab_title)  # Work around ChimeraX bug #3152
         section.remove_button_highlight(button_title, redo=redo)
+
+    def set_enabled(self, enabled, tab_title, section_title, button_title):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            raise ValueError(f"Didn't find section '{section_title}' in tab '{tab_title}'")
+        section.set_enabled(enabled, button_title)
 
     def _hide_toolbar_rollover(self, tab_title):
         # Hack to hide toolbar rollover menu if it is shown.
