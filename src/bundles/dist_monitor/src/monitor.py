@@ -104,7 +104,7 @@ class DistancesMonitor(StateManager):
             pbg = pb.group
             if pbg in self.monitored_groups:
                 if pbg.group_type == pbg.GROUP_TYPE_COORD_SET and pbg.structure \
-                and pbg.structure.num_coord_sets > 1:
+                and pbg.structure.num_coordsets > 1:
                     if pbg not in existing_pbs:
                         existing_pbs[pbg] = set(pbg.pseudobonds)
                     if pb not in existing_pbs[pbg]:
