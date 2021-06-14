@@ -20,7 +20,7 @@ TODO
 
 import tinyarray, numpy
 from chimerax.geometry import normalize_vector as normalize
-from chimerax.geometry import norm, cross_product, Plane, look_at, rotation, z_align
+from chimerax.geometry import norm, cross_product, Plane, look_at, rotation, z_align, angle
 sqlength = lambda v: numpy.sum(v*v)
 
 from math import pi, sin, cos
@@ -151,7 +151,7 @@ def tetra_pos(bondee, bonded, bond_len, toward=None, away=None, toward2=None, aw
     if len(cur_bonded) == 1:
         # add at 109.5 degree angle
         coplanar = toward or away
-        if coplanar:
+        if coplanar and angle(bondee, cur_bonded[0], coplanar) not in (0, 180):
             coplanar = [coplanar]
         else:
             coplanar = None
