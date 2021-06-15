@@ -1041,7 +1041,8 @@ class BundleAPI:
         functionality, and then calls the command function.
         On subsequent uses of the command, ChimeraX will
         call the command function directly instead of calling
-        this method.
+        this method. The API version for this method is defined
+        by the :code:`api_version` class variable and defaults to 0.
 
         Parameters
         ----------
@@ -1049,7 +1050,7 @@ class BundleAPI:
         command_info : :py:class:`CommandInfo` instance.
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-            Version 1 of the API pass in information for both
+            Version 1 of the API passes in information for both
             the command to be registered and the bundle where
             it was defined.
 
