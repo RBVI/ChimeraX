@@ -146,9 +146,13 @@ residue number, and atom name. The lack of a specifier is interpreted
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
 </p><p>
-Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+Specifying a set of atoms also specifies any <b><i>bonds</i></b> and
 <a href="../pseudobonds.html"><b><i>pseudobonds</i></b></a>
-between pairs of atoms in the set.
+between pairs of atoms in the set, unless the first character in the
+entire specification is an equals symbol (<b>=</b>).
+Starting the specification with <b>=</b> prevents implicitly 
+including bonds and pseudobonds
+when only their endpoint atoms have been specified explicitly. 
 A <a href="../pseudobonds.html">pseudobond model</a>
 can also be specified directly by its own model number
 (not necessarily within the atomic-model hierarchy).
@@ -387,6 +391,12 @@ as in the <a href="../menu.html#select"><b>Select</b> menu</a>
 as in the <a href="../menu.html#select"><b>Select</b> menu</a>, except
 in lowercase and with hyphens instead of spaces in multiword names 
 (for example, <b>aromatic-ring</b>)
+<li><b>template-mismatch</b> &ndash; standard biopolymer residues and
+a few other commonly encountered residue types (water and peptide-capping
+groups) that differ from their respective templates in the number of atoms 
+of any element other than hydrogen; such a difference usually indicates missing 
+atoms (<i>e.g.</i>, a truncated sidechain), but occasionally extra ones
+(<i>e.g.</i>, a 5' nucleic acid residue with a phosphate group)
 <li><b>sel</b> &ndash; the current <a href="../selection.html">selection</a>
 <li><b>sel-residues</b> &ndash; residues with any
 <a href="../selection.html">selected</a> atoms
@@ -573,6 +583,14 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 &ndash; atoms that are not displayed
 <blockquote>
+<b>@@num_alt_locs&gt;1</b>
+</blockquote>
+&ndash; atoms with <a href="altlocs.html">alternate locations</a>
+<blockquote>
+<b>~@@charge</b>
+</blockquote>
+&ndash; atoms not assigned a charge
+<blockquote>
 <b>@ca & @@bfactor>40</b>
 </blockquote>
 &ndash; atoms named CA with B-factor values over 40
@@ -612,6 +630,10 @@ being blue, and <i>vice versa</i>
 <b>::num_atoms>=10</b>
 </blockquote>
 &ndash; residues with 10 or more atoms
+<blockquote>
+<b>//identity="#1/A,B"</b>
+</blockquote>
+&ndash; chains with sequences the same as either chain A or chain B in model 1
 <blockquote>
 <b>##name="2gbp map 5"</b>
 </blockquote>
@@ -749,5 +771,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+May 2021</address>
 </body></html> 

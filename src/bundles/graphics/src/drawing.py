@@ -790,7 +790,7 @@ class Drawing:
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
-            r.set_single_color([c / 255.0 for c in self._colors[0]])
+            r.set_model_color([c / 255.0 for c in self._colors[0]])
 
         t = self.texture
         if t is not None:

@@ -78,6 +78,7 @@ class Model(State, Drawing):
         self.triggers  = TriggerSet()
         self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
+        self.opened_data_format = None # for use by 'open' command
 
     def cpp_del_model(self):
         '''Called by the C++ layer to request that the model be deleted'''
@@ -232,16 +233,16 @@ class Model(State, Drawing):
 
     # Drawing._set_scene_position calls _set_positions, so don't need to override
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         return self.color if self.vertex_colors is None else None
 
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.color = color
         self.vertex_colors = None
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
     '''
-    Getting the single color may give the dominant color.
-    Setting the single color will set the model to that color.
+    Getting the model color may give the dominant color.
+    Setting the model color will set the model to that color.
     Color values are rgba uint8 arrays.
     '''
 
@@ -331,6 +332,7 @@ class Model(State, Drawing):
             'allow_clipping': self.allow_clipping,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
+            'opened_data_format': self.opened_data_format,
             'version': MODEL_STATE_VERSION,
         }
         if hasattr(self, 'clip_cap'):
@@ -378,7 +380,10 @@ class Model(State, Drawing):
             from chimerax.graphics.gsession import DrawingState
             DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
             self.SESSION_SAVE_DRAWING = True
-            
+
+        if 'opened_data_format' in data:
+            self.opened_data_format = data['opened_data_format']
+
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
@@ -486,7 +491,6 @@ class Surface(Model):
     '''
     pass
 
-    
 from .state import StateManager
 class Models(StateManager):
     '''

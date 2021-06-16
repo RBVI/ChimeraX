@@ -34,7 +34,8 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>matchmaker</b> (or <b>mmaker</b>) command
 superimposes protein or nucleic acid structures by first creating 
-a pairwise sequence alignment, then fitting the aligned residue pairs.
+a pairwise sequence alignment, then fitting the aligned residue pairs
+using <a href="#matchatom">one atom per residue</a>.
 It is the command-line implementation of the
 <a href="../tools/matchmaker.html"><b>Matchmaker</b></a> tool.
 </p><p>
@@ -47,6 +48,16 @@ amino acid residues and C4' in nucleic acid residues.
 If a nucleic acid residue lacks a C4' atom 
 (some lower-resolution structures are P traces), 
 its P atom will be paired with the P atom of the aligned residue.
+To use a different set of atoms, including those not in biopolymer chains, 
+see the <a href="align.html"><b>align</b></a> command instead.
+See also:
+<a href="rmsd.html"><b>rmsd</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="morph.html"><b>morph</b></a>,
+<a href="view.html"><b>view</b></a>,
+<a href="dssp.html"><b>dssp</b></a>,
+<a href="measure.html#rotation"><b>measure rotation</b></a>,
+<a href="save.html#pdb"><b>save</b> PDB</a>
 </p><p>
 The method was originally implemented in Chimera, as described in:
 </p>
@@ -57,20 +68,6 @@ Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
 <i>BMC Bioinformatics.</i> 2006 Jul 12;7:339.
 </blockquote>
 <p>
-Note: if it is already known which residue numbers in one structure
-should be paired with which residue numbers in the other,
-another possibility is to use the <a href="align.html"><b>align</b></a>
-command, which executes more quickly
-because it does not include a sequence alignment step.
-See also:
-<a href="rmsd.html"><b>rmsd</b></a>,
-<a href="fitmap.html"><b>fitmap</b></a>,
-<a href="morph.html"><b>morph</b></a>,
-<a href="view.html"><b>view</b></a>,
-<a href="dssp.html"><b>dssp</b></a>,
-<a href="measure.html#rotation"><b>measure rotation</b></a>,
-<a href="save.html#pdb"><b>save</b> PDB</a>
-</p><p>
 The structure to match (<i>matchstruct</i>) 
 and a reference structure (<i>refstruct</i>) must be
 <a href="atomspec.html">specified</a>.
@@ -329,7 +326,7 @@ a secondary structure term (if protein), and gap penalties.
     similarity term will be given a weight of (1-<i>ssfract</i>). 
 </blockquote>
 <blockquote>
-  <a name="computeSs"><b>computeSs</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <a name="computeSS"><b>computeSS</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
     <br>
 When <a href="#ssFraction">secondary structure scoring</a> is used,
 whether to first identify helices and strands with the
@@ -339,16 +336,16 @@ This option may improve superposition results
 by generating consistent assignments, whereas pre-existing assignments
 may reflect the use of different criteria on different structures. 
 However, any pre-existing assignments will not be overwritten unless
-<a href="#keepComputedSs"><b>keepComputedSs</b></a> is set to <b>true</b>.
+<a href="#keepComputedSS"><b>keepComputedSS</b></a> is set to <b>true</b>.
 When <a href="#ssFraction">secondary structure scoring</a> is <b><i>not</i></b>
-used, <b>computeSs</b> is ignored and secondary structure assignments 
+used, <b>computeSS</b> is ignored and secondary structure assignments 
 are not computed.
 </blockquote>
 <blockquote>
-  <a name="keepComputedSs"><b>keepComputedSs</b></a> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <a name="keepComputedSS"><b>keepComputedSS</b></a> &nbsp;true&nbsp;|&nbsp;<b>false</b>
   <br>
 When secondary structure assignments are recomputed
-(<a href="#computeSs"><b>computeSs</b></a> <b>true</b>),
+(<a href="#computeSS"><b>computeSS</b></a> <b>true</b>),
 whether to overwrite any previous assignments with the newly computed ones.
 The default is <b>false</b>, meaning to use the new assignments only
 temporarily for superposition and to keep any secondary structure assignments
@@ -453,5 +450,5 @@ that existed before the <b>matchmaker</b> command was used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+May 2021</address>
 </body></html>

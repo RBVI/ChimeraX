@@ -31,7 +31,7 @@ PYTHON_EXE = $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
 BUNDLE_NAME = ChimeraX-ToolshedUtils
-BUNDLE_VERSION = 1.1
+BUNDLE_VERSION = 1.2
 PKG_NAME = chimerax.toolshed_utils
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
@@ -47,7 +47,8 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
+	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
+	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/python-only

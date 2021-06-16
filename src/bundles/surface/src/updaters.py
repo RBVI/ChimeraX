@@ -16,7 +16,7 @@ class SurfaceUpdaters(State):
         self._updaters.add(updater)
         
     def take_snapshot(self, session, flags):
-        updaters = tuple(u for u in self._updaters if not _updater_closed(u))
+        updaters = tuple(u for u in self._updaters if _updater_active(u))
         data = {'updaters': updaters,
                 'version': 1}
         return data
@@ -33,12 +33,15 @@ class SurfaceUpdaters(State):
 
 # -----------------------------------------------------------------------------
 #
-def _updater_closed(u):
-    if hasattr(u, 'surface') and (u.surface is None or u.surface.deleted):
-        return True
+def _updater_active(u):
+    if hasattr(u, 'surface'):
+        if u.surface is None or u.surface.deleted:
+            return False
     if hasattr(u, 'closed') and u.closed():
-        return True
-    return False
+        return False
+    if hasattr(u, 'active') and not u.active():
+        return False   # Some other coloring replaced this one.
+    return True
         
 # -----------------------------------------------------------------------------
 #

@@ -151,7 +151,7 @@ link, but briefly:
 3. If there are fetch-specific keyword arguments that the ``open`` command should
    handle, then a :py:meth:`fetch_args` property should be implemented, which
    returns a dictionary mapping **Python** keyword names to :ref:`Annotation <Type Annotations>`
-   subclasses.  Such keywords will be passed to your :py:meth:`open` method,
+   subclasses.  Such keywords will be passed to your :py:meth:`fetch` method,
    along with format-specific keywords.
    Note that format-specific keywords are known from the :py:meth:`open_args` property
    of the bundle that opens the data's format, and should *not* be included in the

@@ -22,6 +22,7 @@ cofr
 color
 colour
 color green
+debug expectfail color ylbu
 color #1 pale green atoms trans .5 half true
 color name tpurple 60,0,80,50
 color name tgreen rgba(0%, 80%, 40%, 0.5)

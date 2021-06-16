@@ -167,16 +167,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     # since we're a Model, we already have a 'session' attr, so don't need property
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         pbonds = self.pseudobonds
         from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
         return self.color
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.pseudobonds.colors = color
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
@@ -251,9 +251,13 @@ class PseudobondGroup(PseudobondGroupData, Model):
         from . import structure
         if self._global_group:
             # Use scene coordinates since atoms may belong to different models.
-            p = self.position
-            sxyz1, sxyz2 = p * mxyz1, p * mxyz2
-            b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2, scene_coordinates = True)
+            p = self.parent
+            if p and not p.scene_position.is_identity():
+                ps = p.scene_position
+                sxyz1, sxyz2 = ps*mxyz1, ps*mxyz2               
+            else:
+                sxyz1, sxyz2 = mxyz1, mxyz2
+            b,f = structure._bond_intercept(self.pseudobonds, sxyz1, sxyz2, scene_coordinates = True)
         else:
             b,f = structure._bond_intercept(self.pseudobonds, mxyz1, mxyz2)
         p = structure.PickedPseudobond(b,f) if b else None

@@ -217,7 +217,10 @@ def make_desktop(session, info, localized_app_name={}, verbose=False):
                            "Education", "Science", "Biology", "Chemistry",
                            "Graphics", "2DGraphics", "DataVisualization"])
         desktop_stringlist(f, "MimeType", mime_types)
-        desktop_string(f, "StartupWMClass", info.app_name)
+        # Don't set StartupWMClass because is shared with all releases
+        # and Gnome picks the last .desktop for showing the version of
+        # the running program, even if a different release.
+        # desktop_string(f, "StartupWMClass", info.app_name)
         if '=' in sys.executable:
             raise RuntimeError("warning: '=' found in path to ChimeraX")
         else:
@@ -273,7 +276,8 @@ def install_icons(session, info, verbose=False):
         except OSError as e:
             print("Unable to install %sx%s icon: %s" % (size, size, e), file=sys.stderr)
     # scalable application icon
-    if os.path.exists('/usr/share/icons/hicolor/scalable'):
+    is_root = os.getuid() == 0
+    if info.system == is_root and os.path.exists('/usr/share/icons/hicolor/scalable'):
         path = '%s/%s-icon.svg' % (image_dir, info.app_name)
         if info.system:
             p2 = '/usr/share/icons/hicolor/scalable'

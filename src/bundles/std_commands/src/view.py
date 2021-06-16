@@ -173,6 +173,8 @@ def show_view(session, v2, frames=None):
     v2.remove_deleted_models()
     _InterpolateViews(v1, v2, frames, session)
 
+    from chimerax import surface
+    surface.update_clip_caps(v)
 
 def view_list(session):
     """Print the named camera views in the log.

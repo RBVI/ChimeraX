@@ -210,6 +210,8 @@ public:
     void  session_save(int** , float**) const;
     void  session_save_setup() const;
     mutable std::unordered_map<const Pseudobond*, size_t>  *session_save_pbs;
+    void  set_color(const Rgba& rgba);
+    void  set_radius(float r);
 };
 
 // Need a proxy class that can be contained/returned by the pseudobond

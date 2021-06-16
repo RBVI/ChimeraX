@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-IHM" version="1.0"
+<BundleInfo name="ChimeraX-IHM" version="1.1"
 	    package="chimerax.ihm"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>

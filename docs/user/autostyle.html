@@ -40,12 +40,12 @@ drawing ribbons for a very large number of models.
 Automatic styling can be circumvented
 by using the <a href="commands/open.html"><b>open</b></a> command
 with <a href="commands/open.html#options"><b>autoStyle false</b></a>.
-See also: <a href="commands/colortables.html#autocolors">initial colors</a>,
+See also: <a href="commands/colortables.html">color schemes</a>,
 <a href="markers.html">markers and links</a>,
 <a href="menu.html#presets">presets</a>,
 <a href="modelinfo.html">model information</a>
 </p>
-Automatic styling rules:
+Automatic styling rules, where the first applicable category is used:
 <ul>
 <li><b>0 chains</b>:
 all atoms shown as <a href="commands/style.html">sticks</a>,
@@ -53,28 +53,34 @@ coloring <a href="commands/colortables.html#autocolors">by model</a> for carbons
 and <a href="commands/colortables.html#element">by element</a> for heteroatoms,
 <a href="commands/lighting.html">simple lighting</a>
 <br><br>
-<li><b>1-4 chains</b>: <a href="commands/cartoon.html">cartoons</a>,
+<li><b>1-4 chains and <200,000 atoms</b>: 
 coloring <a href="commands/colortables.html#autocolors">by model</a>,
 <a href="commands/lighting.html">simple lighting</a>,
-monatomic <a href="commands/atomspec.html#surfcats">ions</a>
-as <a href="commands/style.html">spheres</a>,
 atoms as <a href="commands/style.html">sticks</a>
 with <a href="commands/colortables.html#element">heteroatom</a> coloring
-(hydrogens on carbons hidden) for:
+<p>
+If there are 10-4999 biopolymer residues, they are shown as
+<a href="commands/cartoon.html">cartoons</a> and atoms are 
+hidden, except for:
+</p>
   <ul>
   <li><a href="commands/atomspec.html#surfcats">ligand</a> residues
   <li>residues within 3.6 &Aring; of
-  <a href="commands/atomspec.html#surfcats">ligand</a>
-  or <a href="commands/atomspec.html#surfcats">ions</a>
+  <a href="commands/atomspec.html#surfcats">ions</a> (metals only) or
+  <a href="commands/atomspec.html#surfcats">ligand</a>,
+  with the ions shown as <a href="commands/style.html">spheres</a>
   </ul>
+<p>
+Any hydrogens on carbons, however, are kept hidden.
+</p><p>
 Nucleotide sidechains are 
 colored by <a href="commands/colortables.html#residue">base type</a> and
 shown as <a href="commands/nucleotides.html#tube">tube/slab</a> 
-in models with &lt;100 nucleic acid residues,
+in models with &le;100 nucleic acid residues,
 <a href="commands/nucleotides.html#ladder">ladder</a>
-in those with 100+ nucleic acid residues.
+in those with 101-2000 nucleic acid residues.
 <br><br>
-<li><b>5-249 chains</b>: 
+<li><b>5-249 chains and/or 200,001-999,999 atoms</b>: 
 all atoms as <a href="commands/style.html">spheres</a> (space-filling)
 except sticks for <a href="commands/atomspec.html#surfcats">ligand</a> 
 and balls for <a href="commands/atomspec.html#surfcats">solvent</a>,
@@ -82,7 +88,7 @@ coloring <a href="commands/colortables.html#autocolors">by chain</a>,
 <a href="commands/lighting.html">full lighting</a>
 (except if &ge; 300,000 atoms, ambient shadows from 16 instead of 64 directions)
 <br><br>
-<li><b>250+ chains</b>:
+<li><b>250+ chains and/or 1,000,000+ atoms</b>:
 all atoms as <a href="commands/style.html">spheres</a> (space-filling),
 coloring <a href="commands/colortables.html#autocolors">by model</a>,
 <a href="commands/lighting.html">soft lighting</a>
@@ -91,5 +97,5 @@ coloring <a href="commands/colortables.html#autocolors">by model</a>,
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2019</address>
+June 2021</address>
 </body></html>

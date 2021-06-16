@@ -35,6 +35,9 @@ def check_for_changes(session):
             # in changes['Atom'].created, so need this
             _update_sel_info(session)
             session.selection.trigger_fire_needed = True
+        elif 'selected changed' in global_changes['Bond'].reasons \
+        or 'selected changed' in global_changes['Pseudobond'].reasons:
+            session.selection.trigger_fire_needed = True
         from . import get_triggers
         global_triggers = get_triggers()
         global_triggers.activate_trigger("changes", Changes(global_changes))
@@ -177,6 +180,7 @@ class Changes:
 
 def selected_atoms(session=None):
     global _full_sel, _ordered_sel
+    check_for_changes(session)
     from .molarray import Atoms
     return _ordered_sel if _ordered_sel is not None else (_full_sel if _full_sel is not None else Atoms())
 

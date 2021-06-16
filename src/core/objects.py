@@ -185,7 +185,12 @@ class Objects:
 
     @property
     def residues(self):
-        return self.atoms.unique_residues
+        # have to account for bond-only selections and that cross-residue bonds don't select either residue
+        atoms1, atoms2 = self.bonds.atoms
+        same_res = atoms1.residues.pointers == atoms2.residues.pointers
+        from chimerax.atomic import concatenate, Residues
+        return concatenate([atoms1.residues.filter(same_res), self.atoms.residues], Residues,
+            remove_duplicates=True)
 
     @property
     def num_residues(self):

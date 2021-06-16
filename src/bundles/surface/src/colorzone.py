@@ -362,7 +362,7 @@ def split_zones_by_color(volume, points, point_colors, radius):
   # Record colors.
   for color, m in ctable.items():
     grids[m].zone_color = color
-  grids[0].zone_color = volume.surfaces[0].rgba	# Outside zone color same as original map.
+  grids[0].zone_color = volume.surfaces[0].color	# Outside zone color same as original map.
   
   return grids
 

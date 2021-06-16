@@ -308,11 +308,11 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
-    def single_color(self):
-        return None
+    def model_color(self):
+        return False
 
-    @single_color.setter
-    def single_color(self, val):
+    @model_color.setter
+    def model_color(self, val):
         pass
 
     @property

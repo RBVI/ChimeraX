@@ -117,16 +117,22 @@ substitutes the corresponding pathname text.
 <h3>ChimeraX Command Files</h3>
 <p>
 ChimeraX command files (scripts) are plain text files 
-containing the same commands as entered into the
+containing the same commands as could be entered into the
 <a href="../tools/cli.html"><b>Command Line Interface</b></a>.
 The filename suffix <b>.cxc</b> is used for this type of file.
-Opening a ChimeraX command file in ChimeraX executes the commands.
+Opening a ChimeraX command file in ChimeraX executes the commands
+(and echoes them to the <a href="../tools/log.html"><b>Log</b></a>
+unless the script was opened with <a href="open.html#log"><b>log false</b></a>).
+To process multiple data files iteratively with the same command file,
+see the <a href="open.html"><b>open</b></a> command option
+<a href="open.html#forEachFile"><b>forEachFile</b></a>.
+</p><p>
 For command file examples, see 
 the ChimeraX <a href="https://www.rbvi.ucsf.edu/chimerax/features.html"
 target="_blank">feature highlights</a> and 
 <a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html"
 target="_blank">example images</a>.
-See also: <a href="open.html"><b>open</b></a>,
+See also:
 <a href="../preferences.html#startup"><b>Startup</b> preferences</a>,
 <a href="../movies.html">making movies</a>
 </p>
@@ -175,5 +181,5 @@ to overlap or run concurrently.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+April 2021</address>
 </body></html>

@@ -233,13 +233,9 @@ class ColorZoneGUI(ToolInstance):
         if v is None:
             return
 
-        for s in v.surfaces:
-            s.vertex_colors = None
-
-        # TODO: Should be a command to restore single color.
-        #cmd = 'color single #%s' % v.id_string
-        #from chimerax.core.commands import run
-        #run(self.session, cmd)
+        cmd = 'color single #%s' % v.id_string
+        from chimerax.core.commands import run
+        run(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #

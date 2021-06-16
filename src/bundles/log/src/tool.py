@@ -336,7 +336,43 @@ class Log(ToolInstance, HtmlLog):
             elif level == self.LEVEL_WARNING:
                 msg = '<p style="color:darkorange">' + msg + '</p>'
 
-            self.page_source += msg
+            # compact repeated output, e.g. ISOLDE's 'stepto' command
+            #
+            # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
+            # a space character), so only try to compact if "<br>" or "<div" is in msg
+            if ("<br>" in msg and not msg.replace("<br>", " ").isspace()) or "<div" in msg:
+                compaction_start_text = "[Repeated "
+                compaction_end_text = " time(s)]"
+                compaction_start = None
+                if self.page_source.endswith(compaction_end_text):
+                    # possibly already compacting some output
+                    try:
+                        bracket_start = self.page_source.rindex(compaction_start_text)
+                    except ValueError:
+                        pass
+                    else:
+                        if self.page_source[bracket_start:].startswith(compaction_start_text):
+                            try:
+                                compaction_number = int(self.page_source[
+                                    bracket_start+len(compaction_start_text):-len(compaction_end_text)])
+                            except ValueError:
+                                pass
+                            else:
+                                compaction_start = bracket_start
+                if compaction_start is None:
+                    test_text = self.page_source
+                else:
+                    test_text = self.page_source[:compaction_start]
+                if test_text.endswith(msg):
+                    if compaction_start is None:
+                        self.page_source += compaction_start_text + "1" + compaction_end_text
+                    else:
+                        self.page_source = self.page_source[:compaction_start] + "%s%d%s" % (
+                            compaction_start_text, compaction_number+1, compaction_end_text)
+                else:
+                    self.page_source += msg
+            else:
+                self.page_source += msg
         self.show_page_source()
         return True
 

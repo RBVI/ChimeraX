@@ -187,10 +187,13 @@ class StatusLogger:
             self._follow_timer2 = None
 
     def status(self, msg, color="black", log=False, secondary=False,
-               blank_after=None, follow_with="", follow_time=20, follow_log=None):
+               blank_after=None, follow_with="", follow_time=20, follow_log=None, is_html=False):
         """Supported API. Show status."""
         if log:
-            self.session.logger.info(msg)
+            self.session.logger.info(msg, is_html=is_html)
+
+        if is_html:
+            msg = html_to_plain(msg)
 
         for l in self._prioritized_logs():
             if l.status(msg, color, secondary) and getattr(l, "excludes_other_logs", True):

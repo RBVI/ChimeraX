@@ -238,6 +238,8 @@ class SurfaceColorGUI(ToolInstance):
         self._axis_widget.setVisible(method in self._axis_methods)
         if self._options_panel.shown:
             self._options_panel.resize_panel()
+        if method == 'electrostatic potential' and not self._colors.has_values():
+            self._colors.set_value_range(-10,10)
 
     # ---------------------------------------------------------------------------
     #
@@ -371,6 +373,8 @@ class SurfaceColorGUI(ToolInstance):
             self._axis_entry.value = '%.5g %.5g %.5g' % tuple(sc.axis)
         if method_name in self._offset_methods:
             self._surface_offset.value = sc.offset
+        if method_name in self._volume_methods:
+            self._map.value = sc.volume
 
     # ---------------------------------------------------------------------------
     #
@@ -419,6 +423,7 @@ class SurfaceColorGUI(ToolInstance):
             map = self._map.value
             if map is None:
                 self.warn('No map chosen for coloring')
+                return
             cmd = ('color %s %s map #%s palette %s'
                    % (subcmd, surf_spec, map.id_string, palette))
             if method in self._offset_methods:
@@ -644,6 +649,13 @@ class PaletteWidget:
     def clear_values(self):
         for v in self._values:
             v.setText('')
+
+    def set_value_range(self, min_value, max_value):
+        n = self.color_count
+        step = (max_value - min_value) / (n-1) if n > 1 else 1
+        for i,v in enumerate(self._values):
+            value = min_value + i * step
+            v.setText('%.4g' % value)
         
 # -----------------------------------------------------------------------------
 #

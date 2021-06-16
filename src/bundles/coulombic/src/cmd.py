@@ -111,30 +111,14 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
             data = [(surf_atoms, srf)]
         session.logger.status("Computing electrostatics", secondary=True)
         for charged_atoms, target_surface in data:
-            undo_owners.append(target_surface)
-            undo_old_vals.append(target_surface.vertex_colors)
-            if target_surface.normals is None:
-                session.logger.warning("Surface %s has no vertex normals set, using distance from surface"
-                    " of 0 instead of %g" % (target_surface, offset))
-                target_points = target_surface.vertices
-            else:
-                target_points = target_surface.vertices + offset * target_surface.normals
-            import numpy, os
-            # Make sure _esp can runtime link shared library libarrays.
-            from chimerax import arrays ; arrays.load_libarrays()
-            from ._esp import potential_at_points
-            cpu_count = os.cpu_count()
-            vertex_values = potential_at_points(
-                target_surface.scene_position.transform_points(target_points), charged_atoms.scene_coords,
-                numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
-                1 if cpu_count is None else cpu_count)
-            rgba = cmap.interpolated_rgba(vertex_values)
-            from numpy import uint8, amin, mean, amax
-            rgba8 = (255*rgba).astype(uint8)
-            target_surface.vertex_colors = rgba8
-            undo_new_vals.append(rgba8)
-            session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
-                % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
+            for clip_surface in [cs for cs in target_surface.child_models()
+                    if getattr(cs, 'is_clip_cap', False)]:
+                clip_surface.auto_recolor_vertices = lambda *args, ses=session, s=clip_surface, \
+                    charged_atoms=charged_atoms, dist_dep=dist_dep, dielectric=dielectric, \
+                    cmap=cmap, f=color_vertices: f(ses, s, 0.0, charged_atoms, dist_dep, dielectric,
+                    cmap, log=False)
+            color_vertices(session, target_surface, offset, charged_atoms, dist_dep, dielectric, cmap,
+                undo_info=(undo_owners, undo_old_vals, undo_new_vals))
     undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
     if key:
@@ -144,6 +128,40 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     session.logger.status("", secondary=True)
     session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
 
+def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric, cmap, *, log=True,
+        undo_info=None):
+    if surface.vertices is None:
+        return
+    if undo_info:
+        undo_owners, undo_old_vals, undo_new_vals = undo_info
+        undo_owners.append(surface)
+        undo_old_vals.append(surface.vertex_colors)
+    if surface.normals is None:
+        if log:
+            session.logger.warning("Surface %s has no vertex normals set, using distance from surface of 0"
+                " instead of %g" % (surface, offset))
+        target_points = surface.vertices
+    else:
+        target_points = surface.vertices + offset * surface.normals
+    arv = surface.auto_recolor_vertices
+    import numpy, os
+    # Make sure _esp can runtime link shared library libarrays.
+    from chimerax import arrays ; arrays.load_libarrays()
+    from ._esp import potential_at_points
+    cpu_count = os.cpu_count()
+    vertex_values = potential_at_points(surface.scene_position.transform_points(target_points),
+        charged_atoms.scene_coords, numpy.array([a.charge for a in charged_atoms], dtype=numpy.double),
+        dist_dep, dielectric, 1 if cpu_count is None else cpu_count)
+    rgba = cmap.interpolated_rgba(vertex_values)
+    from numpy import uint8, amin, mean, amax
+    rgba8 = (255*rgba).astype(uint8)
+    surface.vertex_colors = rgba8
+    if undo_info:
+        undo_new_vals.append(rgba8)
+    surface.auto_recolor_vertices = arv
+    if log:
+        session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
+            % (surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
 """
 def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):
     data, bounds = calculate_map(target_surface, charged_atoms, spacing, offset + padding)
@@ -165,7 +183,7 @@ def register_command(logger):
             ('map', BoolArg),
             ('palette', ColormapArg),
             ('range', ColormapRangeArg),
-            ('disp_dep', BoolArg),
+            ('dist_dep', BoolArg),
             ('dielectric', FloatArg),
             ('charge_method', ChargeMethodArg),
             ('key', BoolArg),

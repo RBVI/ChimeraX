@@ -61,7 +61,11 @@ target="_blank">Coloring by Sequence Conservation</a>,
 <a href="/chimerax/data/delta-opioid-jan2020/binding.html"
 target="_blank">Delta-Opioid Receptor</a>,
 <a href="https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html#/"
-target="_blank">Structure Analysis and Comparison</a>
+target="_blank">Structure Analysis and Comparison</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/electrostatics-apr2021/crm1.html" target="_blank">Coloring CRM1 by Electrostatic Potential</a>
+</p><p>
+** ChimeraX 1.2 (production release May 2021) or newer should be used 
+to follow this tutorial. **
 </p>
 
 <a name="opening"></a>
@@ -656,50 +660,31 @@ width="220px">
 </td></tr>
 </table>
 <p>
-To color a <a href="../commands/surface.html#cap">surface cap</a> by the 
-<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP)
-in ChimeraX 1.1, it is necessary to first generate a map of the MLP as a
-<a href="../tools/volumeviewer.html">volume model</a>
-and then color the cap in a separate step.
+This section requires ChimeraX production release 1.2 or newer.
 </p><p>
-For example, the protein in structure 
-<a href="https://www.rcsb.org/structure/1G74"
+The protein in structure <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
-interior pocket. The following commands open
-the structure as model #1, generate MLP map model #2, hide the map isosurfaces,
-turn on <a href="../commands/clip.html">clipping</a> to slice the structure, 
-and use the map values to color the planar surface cap #1.1.1 created 
-by clipping surface model #1.1.
-The cap coloring parameters are the same as used for the rest of the surface,
-except 30% transparent:
+interior pocket. 
+The following commands open the structure (model #1), show its
+<a href="../commands/surface.html">molecular surface</a> (model #1.1),
+and turn on <a href="../commands/clip.html">clipping</a> to slice the structure
+(creating a planar surface cap, model #1.1.1):
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 1g74">open 1g74</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp map true">mlp map true</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:hide #2">hide #2</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:surface">surface</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:clip">clip</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:wait 1">wait 1</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30">color sample #1.1.1 map #2 palette lipophilicity range -20,20 transparency 30</a></b>
 </blockquote>
 <p>
-The <b><a href="../commands/wait.html">wait</a></b> command
-is only needed in the context of a
-<a href="../commands/usageconventions.html#cxc-files">command file</a>,
-to force drawing the graphics to create the surface cap
-before it is colored by the map values;
-it can be omitted if the commands are entered one by one,
-as by clicking the links above.
+The model hierarchy can be viewed in the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 </p><p>
 Next, turn off clipping of the atomic model so that only the surface is clipped
 (<a href="../commands/clip.html#model">per-model clipping</a>),
 hide ribbons and atoms other than oleic acid, and color 
 the carbon atoms in oleic acid green:
-</p><p>
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:clip model #!1 off">clip model #!1 off</a></b>
@@ -709,33 +694,35 @@ the carbon atoms in oleic acid green:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color :ola & C green">color :ola & C green</a></b>
 </blockquote>
 <p>
-The image was made after translating and rotating the clipping plane
+The clipping plane can be translated and rotated
 interactively <a href="../commands/ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
 </p><p>
-In ChimeraX version 1.2 (2/17/2021) or newer,
-a simpler method can be used to color the cap without creating a map.
-In this method, the atoms to use in the calculation (here, all
+Color the molecular surface by
+<a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP).
+The planar surface cap is not automatically colored 
+along with the outer surface, but can be colored with an additional command
+in which the atoms to use (here, all
 <a href="../commands/atomspec.html#builtin"><b>protein</b></a> atoms)
 are specified separately from the surface to color:
 </p>
 <blockquote> 
-<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp protein surf #1.1.1">mlp protein surf #1.1.1</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:mlp protein surface #1.1.1">mlp protein surface #1.1.1</a></b>
 </blockquote>
 <p>
-Cap transparency can be set with another command, for example:
+The cap can be made transparent with another command, for example:
 </p>
 <blockquote> 
-<i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 50">transparency #1.1.1 50</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:transparency #1.1.1 30">transparency #1.1.1 30</a></b>
 </blockquote>
-<p>
-Analogously, to color by <a href="../commands/coulombic.html">Coulombic 
-electrostatic potential</a>
-(more about this in the <a href="#esp">next section</a>), 
-where the first command colors the outer surface and the second the cap:
+Analogously, to color the surface cap by 
+<a href="../commands/coulombic.html">Coulombic electrostatic potential</a>
+(more about electrostatic potential in the <a href="#esp">next section</a>): 
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
@@ -743,6 +730,10 @@ where the first command colors the outer surface and the second the cap:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein surf #1.1.1 offset 0">coulombic protein surf #1.1.1 offset 0</a></b>
 </blockquote>
 <p>
+The Coulombic cap coloring would need to be reapplied if the clipping plane 
+were subsequently moved, however (unless you are using ChimeraX 1.3 from
+5/16/2021 or newer).
+</p><p>
 When finished with this structure, close the session:
 </p>
 <blockquote>
@@ -753,6 +744,8 @@ When finished with this structure, close the session:
 <h3><a href="#top" class="nounder">&larr;</a>
 Surface Coloring by Electrostatic Potential</h3>
 <p>
+This section requires ChimeraX production release 1.2 or newer.
+</p><p>
 Coloring a protein surface by electrostatic potential (ESP)
 may help to identify binding sites for charged or polar molecules.
 Regions of positive potential are complementary to negative charges,
@@ -760,10 +753,9 @@ whereas regions of negative potential complement positive charges.
 </p><p>
 ESP is calculated from atomic coordinates and partial charges.
 ChimeraX can calculate a simple 
-<a href="../commands/coulombic.html">Coulombic ESP</a> on the fly 
-for chains containing only standard residues, or it can read in 
-an ESP map file calculated with another program, such as APBS.
-This tutorial uses the simple method, as it does not require
+<a href="../commands/coulombic.html">Coulombic ESP</a> on the fly,
+or it can read in an ESP map file calculated with another program, such as APBS.
+This tutorial uses the first (simple) method, as it does not require
 a separate calculation.
 </p><p>
 Open an assembly of
@@ -889,8 +881,7 @@ or shadows
 <img class="iconbar" src="../tools/shortcut-icons/flat.png">
 </ul>
 <p>
-In ChimeraX version 1.2 (2/26/2021) or newer,
-you can also try adding a color key and associated label, for example:
+You can also try adding a color key and associated label, for example:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08">key red:-10 white:0 blue:10 pos .65,.08</a></b>
@@ -903,6 +894,8 @@ What positions and sizes of the
 <a href="../commands/2dlabels.html">2D label</a>
 will look good in an image depend on the current size and aspect ratio of the 
 graphics window and on how the image is laid out.
+There is also a <a href="../tools/colorkey.html"><b>Color Key</b></a>
+graphical interface.
 </p><p>
 To quit from ChimeraX, just close its main window or use a command:
 </p>
@@ -912,5 +905,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2021</address>
+June 2021</address>
 </body></html>

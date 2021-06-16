@@ -122,6 +122,9 @@ class _AtomicBundleAPI(BundleAPI):
         if mgr == session.presets:
             from .presets import run_preset
             run_preset(session, name, mgr, **kw)
+        elif mgr.name == "items inspection":
+            from .inspectors import item_options
+            return item_options(session, name, **kw)
         else:
             class_objs = {'atoms': [Atom], 'residues': [Residue],
                 'structures': [AtomicStructure, Structure]}[name]

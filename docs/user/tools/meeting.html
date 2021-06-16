@@ -51,13 +51,14 @@ settings for ChimeraX meetings, a subset of those available via the
 </p>
 <h3>Dialog Settings and Buttons</h3>
 <p>
-<b>Meeting</b> can be started
-from the <b>General</b> section of the <b>Tools</b> menu
+The <b>Meeting</b> dialog can be opened
+from the <b>General</b> section of the 
+<b>Tools</b> menu and manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
 Settings other than meeting name are remembered as
 <a href="../preferences.html#other">preferences</a>. 
 The current settings can be reported with the
-<a href="../commands/meeting.html"><b>meeting settings</b></a> command.
+<a href="../commands/meeting.html#settings"><b>meeting settings</b></a> command.
 </p>
 <ul>
 <li><b>Meeting name</b>
@@ -84,18 +85,27 @@ style="display:inline-block; vertical-align:middle"><tr>
 &ndash; join an existing ChimeraX meeting with the specified meeting name
 <li><b>Leave</b>
 &ndash; exit the meeting
-<li><b>Access...</b> show the access setting used when creating a new meeting, not used for joining a meeting:
+<li><b>Options...</b>
+&ndash; show additional meeting starting and joining options.
   <ul>
-  <li><b>chimeraxmeeting.net</b> (initial default)
-  &ndash; use this publicly available computer to forward connections
-  to the computer that started the meeting (needed when the latter cannot
-  be reached by participants because it is behind a firewall)
-  <li><b>direct</b> 
-  &ndash; connect directly to the computer that started the meeting
-  <li>To add a new private meeting server to this menu see the
-  <a href="../commands/meeting.html#access-options">meeting access</a> command.
-  To setup a new meeting server see <a href="../commands/meeting.html#setupproxy">instructions</a>
-  in the meeting command documentation.
+  <li><b>Start meeting using server</b>.
+    Initial default <b>chimeraxmeeting.net</b>
+    is a publicly available computer that forwards connections
+    to the computer that started the meeting (needed when the latter cannot
+    be reached by participants because it is behind a firewall).
+    Server <b>direct</b> connects directly to the computer that started the meeting.
+    To add a new private meeting server to this menu, see the
+    <a href="../commands/meeting.html#server"><b>meeting server</b></a> command. 
+    See also the <a href="../commands/meeting.html#setupserver">instructions</a>
+    for setting up a new meeting server.
+  <li><b>Join meeting using ssh</b>.
+    When joining a meeting ssh can be used to help get through an outgoing firewall
+    around the joiner's computer that limits outgoing connections on unknown ports with
+    unknown protocols, or firewalls around the server that limit incoming connections.
+    To use ssh with a server other than <b>chimeraxmeeting.net</b> requires that the joiner
+    have the ssh key for the server defined with the
+    <a href="../commands/meeting.html#server">meeting server</a> command.
+    Default is not to use ssh.
   </ul>
 <li><b>Help</b>
 &ndash; show documentation in the 
@@ -104,5 +114,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2020</address>
+April 2021</address>
 </body></html>

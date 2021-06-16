@@ -59,7 +59,6 @@ the <a href="../menu.html#select"><b>Select</b> menu</a>
 <b>select</b>&nbsp;&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 [&nbsp;<b>residues</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>sequence</b>&nbsp;&nbsp;<a href="../findseq.html#pattern"><i>pattern</i></a>&nbsp;]
-[&nbsp;<b>polymer</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 The top-level <b>select</b> command replaces any previous selection
@@ -81,18 +80,9 @@ which can be an exact sequence of one-letter codes, or contain ambiguity codes
 or regular expressions (<a href="../findseq.html#pattern">details...</a>). 
 Case is not important, as lowercase letters will be uppercased 
 automatically for comparison. If the <b>sequence</b> option is used, 
-other keyword options are ignored.
-</p><p>
-The <b>polymer</b> option restricts the result to only the biopolymer chains 
-with the same sequences as the chains in 
-<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-(the same macromolecular entities). Example:
+other keyword options are ignored. See also the <b>identity</b>
+<a href="../attributes.html#chain">chain attribute</a>.
 </p>
-<blockquote>
-<b>select #2 polymer #1/a</b>
-</blockquote>
-&ndash; select biopolymer chains in model 2 that have the same sequence
-as chain A of model 1
 
 <a name="modify"></a>
 <p class="nav">
@@ -196,5 +186,5 @@ non-atomic model types.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2019</address>
+May 2021</address>
 </body></html>

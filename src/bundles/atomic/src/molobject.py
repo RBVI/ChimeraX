@@ -117,6 +117,8 @@ class Bond(State):
     halfbond = c_property('bond_halfbond', npy_bool, doc = "Supported API. Whether to "
         "color the each half of the bond nearest an end atom to match that atom color, "
         "or use a single color and the bond color attribute.  Boolean value.")
+    in_cycle = c_property('bond_in_cycle', npy_bool, read_only = True,
+        doc = "Supported API. Is the bond in a cycles of bonds?  Boolean value.")
     radius = c_property('bond_radius', float32,
         doc = "Displayed cylinder radius for the bond.")
     hide = c_property('bond_hide', int32, doc = "Supported API. Whether bond is hidden "
@@ -1219,6 +1221,38 @@ class Chain(StructureSeq):
     def atomspec(self):
         return self.string(style="command")
 
+    @property
+    def identity(self):
+        """'Fake' attribute to allow for //identity="/A" tests"""
+        class IdentityTester:
+            def __init__(self, chain):
+                self.chain = chain
+
+            def __eq__(self, chain_spec):
+                return self.chain.characters in self._get_test_set(chain_spec)
+
+            def __ne__(self, chain_spec):
+                return self.chain.characters not in self._get_test_set(chain_spec)
+
+            def lower(self, *args, **kw):
+                # needed to fool attribute-testing code
+                return self
+
+            def _get_test_set(self, chain_spec):
+                from chimerax.atomic import UniqueChainsArg
+                from chimerax.core.commands import AnnotationError
+                from chimerax.core.errors import UserError
+                try:
+                    chains, text, rest = UniqueChainsArg.parse(chain_spec, self.chain.structure.session)
+                except AnnotationError:
+                    raise UserError("Cannot parse chain specifier '%s' for identity attribute test"
+                        % chain_spec)
+                if rest:
+                    raise UserError("Extraneous text after chain specifer in identity attribute test")
+                return set([chain.characters for chain in chains])
+
+        return IdentityTester(self)
+
     def extend(self, chars):
         # disallow extend
         raise AssertionError("extend() called on Chain object")
@@ -1425,6 +1459,14 @@ class StructureData:
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)
         return p
+
+    def bonded_groups(self, *, consider_missing_structure=True):
+        '''Find bonded groups of atoms.  Returns a list of Atoms collections'''
+        f = c_function('structure_bonded_groups', args = (ctypes.c_void_p, ctypes.c_bool),
+            ret = ctypes.py_object)
+        from .molarray import Atoms
+        import numpy
+        return [Atoms(numpy.array(x, numpy.uintp)) for x in f(self._c_pointer, consider_missing_structure)]
 
     def chain_trace_atoms(self):
         '''

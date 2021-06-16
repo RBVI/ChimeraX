@@ -66,7 +66,7 @@ class MeetingTool(ToolInstance):
         
     f = QFrame(parent)
     layout = QHBoxLayout(f)
-    layout.setContentsMargins(0,0,0,0)
+    layout.setContentsMargins(10,0,0,0)
     layout.setSpacing(8)
 
     mnl = QLabel('Meeting name', f)
@@ -135,44 +135,28 @@ class MeetingTool(ToolInstance):
   #
   def _create_options_gui(self, parent, settings):
 
-    from chimerax.ui.widgets import CollapsiblePanel
-    p = CollapsiblePanel(parent, title = None, margins = (30,0,30,10))
+    from chimerax.ui.widgets import CollapsiblePanel, EntriesRow
+    p = CollapsiblePanel(parent, title = None, margins = (10,0,10,0))
     f = p.content_area
     layout = f.layout()
 
-    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QMenu
+    # Server menu
+    menu_values = tuple(settings.servers.keys())
+    sm = EntriesRow(f, 'Start meeting using server', menu_values)
+    self._server_button = sb = sm.values[0]
+    sb.value = settings.server
+    stip = '<p>The chimeraxmeeting.net server is available to everyone but can only handle ten simultaneous meetings.  If the participants can directly connect to the host of the meeting without being blocked by a firewall then "direct" can be used which makes the host\'s computer act as the server.</p>'
+    sm.labels[0].setToolTip(stip)
 
-    mf = QFrame(f)
-    mlayout = QHBoxLayout(mf)
-    mlayout.setContentsMargins(0,0,0,0)
-    mlayout.setSpacing(8)
-    al = QLabel('Access', mf)
-    mlayout.addWidget(al)
-    self._access_button = ab = QPushButton(mf)
-    ab.setText(settings.access)
-    am = QMenu(mf)
-    for name in settings.access_points.keys():
-        am.addAction(name, lambda n=name: self._set_access_menu(n))
-    ab.setMenu(am)
-    mlayout.addWidget(ab)
-    mlayout.addStretch(1)
-    layout.addWidget(mf)
-
-    msg = 'The access option specifies when creating a meeting how participants will connect.  Direct means participants connect directly to the computer that started the meeting.  If that computer is behind a firewall and cannot be reached by participants then a public computer chimeraxmeeting.net can forward connections to the computer that started the meeting.'
-    self._access_label = el = QLabel(msg, f)
-    # Size hint does not update when window made narrower and word wrape enabled
-    # causing wrong panel height.
-    el.setWordWrap(True)
-    layout.addWidget(el)
-
+    # Join with ssh option
+    js = EntriesRow(f, 'Join meeting using ssh', False)
+    self._join_with_ssh = js.values[0]
+    jtip = '<p>Firewalls can block ChimeraX joining a meeting via a direct connection to the server.  Using ssh may avoid being blocked.</p>'
+    js.labels[0].setToolTip(jtip)
+    
     layout.addStretch(1)
     
     return p
-
-  # ---------------------------------------------------------------------------
-  #
-  def _set_access_menu(self, name):
-    self._access_button.setText(name)
 
   # ---------------------------------------------------------------------------
   #
@@ -187,7 +171,7 @@ class MeetingTool(ToolInstance):
     for name, callback in (('Create', self._start_meeting),
                            ('Join', self._join_meeting),
                            ('Leave', self._leave_meeting),
-                           ('Access...', self._toggle_options),
+                           ('Options...', self._toggle_options),
                            ('Help', self._show_help)):
       b = QPushButton(name, f)
       b.clicked.connect(callback)
@@ -208,7 +192,7 @@ class MeetingTool(ToolInstance):
   # ---------------------------------------------------------------------------
   #
   def _command(self, start = False):
-    cmd = 'meeting start' if start else 'meeting'
+    cmd = 'meeting start' if start else 'meeting join'
     
     meeting_name = self._meeting_name.text().strip()
     if not meeting_name:
@@ -221,7 +205,7 @@ class MeetingTool(ToolInstance):
     from .meeting import _meeting_settings
     settings = _meeting_settings(self.session)
     opts = (self._partipant_options(settings) +
-            (self._access_options(settings) if start else []))
+            (self._server_options(settings) if start else []))
     if opts:
       cmd += ' ' + ' '.join(opts)
 
@@ -246,17 +230,20 @@ class MeetingTool(ToolInstance):
     if face_image is not None and face_image != settings.face_image:
       opts.append('faceImage %s' % quote_if_necessary(face_image))
 
+    if self._join_with_ssh.value:
+      opts.append('ssh true')
+
     return opts
 
   # ---------------------------------------------------------------------------
   #
-  def _access_options(self, settings):
+  def _server_options(self, settings):
 
     opts = []
-    access = self._access_button.text()
-    if access != settings.access:
+    server = self._server_button.value
+    if server != settings.server:
       from chimerax.core.commands import quote_if_necessary
-      opts.append('access %s' % quote_if_necessary(access))
+      opts.append('server %s' % quote_if_necessary(server))
     return opts
     
   # ---------------------------------------------------------------------------

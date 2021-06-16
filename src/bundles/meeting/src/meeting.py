@@ -11,11 +11,11 @@
 
 # -----------------------------------------------------------------------------
 #
-def meeting(session, meeting_name = None,
-            name = None, color = None, face_image = None,
-            relay_commands = None, update_interval = None,
-            id = None, host = None, port = 52194, timeout = 5,
-            name_server = None, name_server_port = None):
+def meeting_join(session, meeting_name = None,
+                 name = None, color = None, face_image = None,
+                 relay_commands = None, update_interval = None,
+                 id = None, host = None, port = 52194, timeout = 5, ssh = False,
+                 name_server = None, name_server_port = None):
     '''
     Join a meeting where two or more ChimeraX instances show the same models
     and show each others' VR hands and face or mouse positions.
@@ -42,15 +42,19 @@ def meeting(session, meeting_name = None,
       How often VR hand and head model positions are sent for this ChimeraX instance in frames.
       Value of 1 updates every frame.  Default 1.
     host : string
-      This option is an alternative to specifying meeting_name.
-      The value will be interpreted as a host name or IP address of the machine
-      that started the meeting or a proxy server, for example, "descartes.cgl.ucsf.edu",
-      "169.230.21.39", or "chimeraxmeeting.net".
+      To join a meeting that was created without a name the host option is used
+      to specify the host name or IP address of the machine that started the meeting,
+      for example, "descartes.cgl.ucsf.edu" or "169.230.21.39".
     port : int
-      Port number used by ChimeraX that started the meeting.
-      Can be omitted in which case default port 52194 is used.
+      To join a meeting that was created without a name the port option is used
+      to specify the port to connect to on the machine that started the meeting.
+      Default 52194.
     timeout : float
       Time to wait for connection before giving up in seconds.  Default 5.
+    ssh : bool
+      Whether to connect using an ssh tunnel to the server.  Default False.
+      This nay allow makng a connection if a firewall blocks the direct
+      outgoing TCP connection without ssh.
     id : string
       This option is an alternative to specifying meeting_name.
       The value will only be interpreted as a text name and not an IP address or host name.
@@ -68,14 +72,15 @@ def meeting(session, meeting_name = None,
             id = meeting_name
 
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
-    if id is not None:
+    if id is not None and host is None:
         host, port = _lookup_meeting_name(id, name_server, name_server_port)
         
     if host is None:
         from chimerax.core.errors import UserError
         raise UserError('Must specify meeting name, or host or id options')
     
-    p = _join_meeting(session, host, port, timeout = timeout, meeting_name = meeting_name)
+    p = _join_meeting(session, host, port, timeout = timeout, meeting_name = meeting_name,
+                      use_ssh = ssh)
 
     mname = '"%s"' % id if id else ''
     session.logger.info('Joining meeting%s at %s port %d' % (mname, host, port))
@@ -92,7 +97,7 @@ def meeting(session, meeting_name = None,
 #
 def meeting_start(session, meeting_name = None,
                   name = None, color = None, face_image = None,
-                  access = None,
+                  server = None,
                   copy_scene = None,
                   relay_commands = None, update_interval = None,
                   name_server = None, name_server_port = None):
@@ -108,7 +113,7 @@ def meeting_start(session, meeting_name = None,
       Name of the meeting that participants use to join the meeting.  If omitted then participants
       need to specify the host address to join the meeting.  The host address will be logged after
       the meeting start command and is typically the IP address of the computer or its domain name.
-      Meeting names are case insensitive.Meeting names should not include "." or ":" characters
+      Meeting names are case insensitive.  Meeting names should not include "." or ":" characters
       since those are used to distinguish host names from meeting names.
     name : string
       Name to identify this participant on remote machines.
@@ -116,14 +121,12 @@ def meeting_start(session, meeting_name = None,
       Color of this participant's mouse pointer cone.
     face_image : string
       Path to PNG or JPG image file for image to use for VR face depiction of this partipant.
-    access : string
+    server : string
       Name describing what computer participants will connect to to join the meeting.
-      Can be "direct" meaning that participants will connect directly to the computer
-      that started the meeting.  If that computer cannot be reached due to a firewall
-      can be "chimeraxmeeting.net" which will use a server that forwards connections
-      through the firewall.  Additional options for connecting can be defined with
-      the "meeting access" command, for example, to use an alternate forwarding server,
-      or to using forwarding through a NAT router.
+      The initial default is chimeraxmeeting.net.  If a different name is specified it
+      becomes the default for future sessions.  The name can be "direct" meaning that
+      participants will connect directly to the computer that started the meeting.
+      Additional server names can be defined with the "meeting server" command.
     copy_scene : bool
       Whether to copy the open models from the ChimeraX that started the meeting
       to other participants when they join the meeting.
@@ -131,31 +134,29 @@ def meeting_start(session, meeting_name = None,
       See the meeting command documentation for these options.
     '''
 
-    local_port = _access_point(session, 'direct')['port']
+    local_port = _server_properties(session, 'direct')['port']
     
-    p = _start_meeting(session, local_port, copy_scene = copy_scene)
+    participant, hub = _start_meeting(session, local_port, copy_scene = copy_scene)
 
-    _set_appearance(session, p, name, color, face_image)
+    _set_appearance(session, participant, name, color, face_image)
 
     if relay_commands is not None:
-        p.send_and_receive_commands(relay_commands)
+        participant.send_and_receive_commands(relay_commands)
 
     if update_interval is not None:
-        p.vr_tracker.update_interval = update_interval
+        participant.vr_tracker.update_interval = update_interval
 
-    access = _access_defaults(session, access)
-    tunnel = _create_ssh_tunnel(session, access, p, local_port)
+    # Create tunnel from server to hub
+    server = _server_defaults(session, server)
+    tunnel = _create_tunnel_to_hub(session, server, local_port, hub)
 
+    # Register meeting name with the name server
     name_server, name_server_port = _name_server_defaults(session, name_server, name_server_port)
     if meeting_name is not None:
-        try:
-            RegisterMeetingName(meeting_name, name_server, name_server_port, p.hub, access)
-        except BaseException:
-            p.close()		# Close meeting if name server could not be reached.
-            raise
+        hub.register_meeting_name(meeting_name, server, name_server, name_server_port)
 
     # Log meeting info
-    addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else p.hub.listening_addresses_and_port()
+    addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
     _report_protocol(session.logger)
 
@@ -172,47 +173,55 @@ use an older version because the old protocol is not compatible with the new one
 </p>
 '''
     log.info(msg, is_html = True)
+
+# -----------------------------------------------------------------------------
+#
+def _create_tunnel_to_hub(session, server, local_port, hub):
+    if server is None:
+        return None
+
+    sprops = _server_properties(session, server)
+    try:
+        tunnel = _create_ssh_tunnel(sprops, local_port, session.logger, hub.close)
+    except BaseException:
+        hub.close()		# Close meeting if tunnel to server fails.
+        raise
+    if tunnel is not None:
+        hub._ssh_tunnel = tunnel
+
+    return tunnel
     
 # -----------------------------------------------------------------------------
 #
-def _create_ssh_tunnel(session, access, participant, local_port):
-    if access is None:
-        return None
-
-    ap = _access_point(session, access)
-    acct = ap.get('account')
+def _create_ssh_tunnel(server_properties, local_port, log, close_callback, to_port = None):
+    sp = server_properties
+    acct = sp.get('account')
     if acct is None:
         return None
 
-    addr = ap.get('address')
-    key = ap.get('key')		# SSH authentication file private key.
+    addr = sp.get('address')
+    key = sp.get('key')		# SSH authentication file private key.
     if key:
         from os.path import isfile
         if not isfile(key):
-            participant.close()
             from chimerax.core.errors import UserError
             raise UserError('meeting: SSH key file "%s" for %s@%s not found'
                             % (key, acct, addr))
     elif addr == 'chimeraxmeeting.net' and acct == 'tunnel':
         key = _default_proxy_key_file()
     else:
-        participant.close()
         from chimerax.core.errors import UserError
         raise UserError('meeting: No ssh key given for using server %s@%s' % (acct, addr))
 
-    port_range = ap.get('port_range', (52194, 52203))
-    timeout = ap.get('timeout', 5)
-    from .sshtunnel import SSHRemoteTunnel
-    try:
-        tunnel = SSHRemoteTunnel(acct, addr, key, port_range, local_port,
-                                 connection_timeout = timeout,
-                                 closed_callback = participant.close,
-                                 log = session.logger)
-    except BaseException:
-        participant.close()		# Could not create tunnel, close meeting.
-        raise
-
-    participant.hub._ssh_tunnel = tunnel
+    from_remote = (to_port is None)
+    port_range = sp.get('port_range', (52194, 52203)) if from_remote else (to_port,to_port)
+    timeout = sp.get('timeout', 5)
+    from .sshtunnel import SSHTunnel
+    tunnel = SSHTunnel(local_port, acct, addr, key, port_range,
+                       from_remote = from_remote,
+                       connection_timeout = timeout,
+                       closed_callback = close_callback,
+                       log = log)
 
     return tunnel
 
@@ -220,13 +229,13 @@ def _create_ssh_tunnel(session, access, participant, local_port):
 #
 def meeting_settings(session,
                      name = None, color = None, face_image = None,
-                     access = None, name_server = None, name_server_port = None):
+                     server = None, name_server = None, name_server_port = None):
     '''
     Display or set meeting settings that are remembered between sessions.
     With no options the current settings are reported.  Specifying options sets
     the saved value.
     '''
-    s = (('name',name), ('color',color), ('face_image',face_image), ('access', access),
+    s = (('name',name), ('color',color), ('face_image',face_image), ('server', server),
          ('name_server',name_server), ('name_server_port',name_server_port))
     values = [(k,v) for k,v in s if v is not None]
     settings = _meeting_settings(session)
@@ -241,7 +250,7 @@ def meeting_settings(session,
 
 # -----------------------------------------------------------------------------
 #
-def meeting_access(session, name = None, address = None, port = None,
+def meeting_server(session, name = None, address = None, port = None,
                    account = None, key = None, port_range = None, timeout = None,
                    delete = None):
     '''
@@ -271,14 +280,14 @@ def meeting_access(session, name = None, address = None, port = None,
     timeout : int
       Time to wait for a setting up a tunnel before giving up.
     delete : bool
-      Delete the access point name.
+      Delete the server name.
     '''
     settings = _meeting_settings(session)
     if delete:
-        ap = settings.access_points
-        if name and name in ap:
-            del ap[name]
-            settings.access_points = dict(ap)
+        sdict = settings.servers
+        if name and name in sdict:
+            del sdict[name]
+            settings.servers = dict(sdict)
             settings.save()
         return
     
@@ -288,7 +297,7 @@ def meeting_access(session, name = None, address = None, port = None,
     values = {k:v for k,v in s if v is not None}
     if len(values) == 0:
         lines = ['<pre>']
-        for n,vals in settings.access_points.items():
+        for n,vals in settings.servers.items():
             if n == name or name is None:
                 lines.append('<b>%s</b>' % n)
                 for attr,v in vals.items():
@@ -299,15 +308,15 @@ def meeting_access(session, name = None, address = None, port = None,
         session.logger.info(msg, is_html=True)
     elif name is None:
         from chimerax.core.errors import UserError
-        raise UserError('meeting access: Must specify an access method name.')
+        raise UserError('meeting server: Must specify a server name.')
     else:
         # Need to copy dictionary so settings realizes it has changed.
-        ap = dict(settings.access_points)
-        if name in ap:
-            ap[name].update(values)
+        sdict = dict(settings.servers)
+        if name in sdict:
+            sdict[name].update(values)
         else:
-            ap[name] = values
-        settings.access_points = ap
+            sdict[name] = values
+        settings.servers = sdict
         settings.save()
 
 # -----------------------------------------------------------------------------
@@ -325,15 +334,14 @@ def meeting_info(session):
 class RegisterMeetingName:
     '''Remember meeting name and clear it when meeting is closed.'''
 
-    def __init__(self, meeting_name, name_server, name_server_port, hub, access):
+    def __init__(self, meeting_name, name_server, name_server_port, host, port, log):
 
         self._meeting_name = meeting_name
         self._name_server = name_server
         self._name_server_port = name_server_port
-        self._session = hub._session
+        self._log = log
 
         from chimerax.core.errors import UserError
-        host, port = self._meeting_address(hub, access)
         if host is None:
             raise UserError('meeting: Could not determine host address.')
         
@@ -354,25 +362,9 @@ class RegisterMeetingName:
         if not success:
             raise UserError('meeting: Meeting name "%s" already in use' % meeting_name)
 
-        hub._registered_meeting_name = self
-
     @property
     def name(self):
         return self._meeting_name
-    
-    def _meeting_address(self, hub, access):
-        proxy = hub._ssh_tunnel
-        if proxy:
-            host, port = proxy.host, proxy.remote_port
-        else:
-            ap = _access_point(self._session, access)
-            if 'address' in ap:
-                host = ap.get('address')
-                port = ap.get('port', 52194)
-            else:
-                addresses, port = hub.listening_addresses_and_port()
-                host = addresses[0] if addresses else None
-        return host, port
     
     def close(self):
         '''Remove meeting id from name server.'''
@@ -389,7 +381,7 @@ class RegisterMeetingName:
         else:
             msg = ('meeting close: Failed to remove meeting id "%s" from name server %s port %d'
                    % (self._meeting_name, self._name_server, self._name_server_port))
-            self._session.logger.warning(msg)
+            self._log.warning(msg)
 
 # -----------------------------------------------------------------------------
 #
@@ -426,7 +418,7 @@ def _start_meeting(session, port, copy_scene):
     h = p.hub
     h.copy_scene(copy_scene)
     h.listen(port)
-    return p
+    return p, h
 
 # -----------------------------------------------------------------------------
 #
@@ -442,14 +434,14 @@ def _default_proxy_key_file():
 
 # -----------------------------------------------------------------------------
 #
-def _join_meeting(session, host, port, timeout = None, meeting_name = None):
+def _join_meeting(session, host, port, timeout = None, meeting_name = None, use_ssh = False):
     p = _meeting_participant(session, create = True, meeting_name = meeting_name)
     if p.connected:
         from chimerax.core.errors import UserError
         raise UserError('To join another meeting you must exit'
                         ' the meeting you are currently in using'
                         ' command "meeting close"')
-    p.connect(host, port, timeout = timeout)
+    p.connect(host, port, timeout = timeout, use_ssh = use_ssh)
     return p
 
 # -----------------------------------------------------------------------------
@@ -539,35 +531,57 @@ def _meeting_settings(session):
                 'name': '',	# Name seen by other participants
                 'color': (0,255,0,255),	# Hand color seen by others
                 'face_image': None,	# Path to image file
-                'access': 'chimeraxmeeting.net',
-                'access_points': {'chimeraxmeeting.net': {'address':'chimeraxmeeting.net',
-                                                          'account':'tunnel',
-                                                          'port_range':(52194,52203),
-                                                          'timeout':5},
-                                  'direct': {'port':52194}},
+                'server': 'chimeraxmeeting.net',
+                'servers': {'chimeraxmeeting.net': {'address':'chimeraxmeeting.net',
+                                                    'account':'tunnel',
+                                                    'port_range':(52194,52203),
+                                                    'timeout':5},
+                            'direct': {'port':52194}},
                 'name_server': 'chimeraxmeeting.net',
                 'name_server_port': 51472,
+                'access': None,		# Obsolete.  Renamed to server.
+                'access_points': None,	# Obsolete.  Renamed to servers.
             }
         settings = _MeetingSettings(session, "meeting")
         session._meeting_settings = settings
+
+        # Rename obsolete 'access' and 'access_points' to 'server' and 'servers'.
+        if settings.access is not None:
+            settings.server = settings.access
+            settings.access = None
+            settings.save()
+        if settings.access_points is not None:
+            settings.servers = settings.access_points
+            settings.access_points = None
+            settings.save()
+
     return settings
 
 # -----------------------------------------------------------------------------
 #
-def _access_point(session, name):
+def _server_properties(session, name):
     settings = _meeting_settings(session)
-    return settings.access_points.get(name)
-
+    return settings.servers.get(name)
+    
 # -----------------------------------------------------------------------------
 #
-def _access_defaults(session, access):
+def _server_properties_for_host(session, host):
     settings = _meeting_settings(session)
-    if access is None:
-        access = settings.access
-    elif access != settings.access:
-        settings.access = access
+    for props in settings.servers.values():
+        if props.get('address') == host:
+            return props
+    return None
+    
+# -----------------------------------------------------------------------------
+#
+def _server_defaults(session, server):
+    settings = _meeting_settings(session)
+    if server is None:
+        server = settings.server
+    elif server != settings.server:
+        settings.server = server
         settings.save()
-    return access
+    return server
     
 # -----------------------------------------------------------------------------
 #
@@ -644,7 +658,7 @@ def register_meeting_command(cmd_name, logger):
     '''
     from chimerax.core.commands import CmdDesc, register, create_alias
     from chimerax.core.commands import StringArg, IntArg, Color8TupleArg, OpenFileNameArg, BoolArg, Int2Arg, DynamicEnum, NoArg
-    AccessArg = DynamicEnum(lambda s=logger.session: tuple(_meeting_settings(s).access_points.keys()))
+    ServerArg = DynamicEnum(lambda s=logger.session: tuple(_meeting_settings(s).servers.keys()))
 
     participant_kw = [
         ('name', StringArg),
@@ -661,27 +675,30 @@ def register_meeting_command(cmd_name, logger):
         ('name_server_port', IntArg),
     ]
 
-    if cmd_name == 'meeting':
+    if cmd_name == 'meeting' or cmd_name == 'meeting join':
         desc = CmdDesc(
-            optional = [('meeting_name', StringArg),
-                        ('id', StringArg),
-                        ('host', StringArg)],
-            keyword = participant_kw + params_kw + name_server_kw,
+            optional = [('meeting_name', StringArg)],
+            keyword = (participant_kw +
+                       [('id', StringArg), ('host', StringArg), ('ssh', BoolArg)] +
+                       params_kw +
+                       [('timeout', IntArg)] +
+                       name_server_kw),
             synopsis = 'Join a ChimeraX meeting')
-        register('meeting', desc, meeting, logger=logger)
+        register('meeting join', desc, meeting_join, logger=logger)
+        register('meeting', desc.copy(), meeting_join, logger=logger)
     elif cmd_name == 'meeting start':
         desc = CmdDesc(
             optional = [('meeting_name', StringArg)],
-            keyword = [('access', AccessArg),
+            keyword = [('server', ServerArg),
                        ('copy_scene', BoolArg)] + participant_kw + params_kw + name_server_kw,
             synopsis = 'Create a ChimeraX meeting')
         register('meeting start', desc, meeting_start, logger=logger)
     elif cmd_name == 'meeting settings':
         desc = CmdDesc(
-            keyword = participant_kw + [('access', AccessArg)] + name_server_kw,
+            keyword = participant_kw + [('server', ServerArg)] + name_server_kw,
             synopsis = 'Report or set meeting default settings')
         register('meeting settings', desc, meeting_settings, logger=logger)
-    elif cmd_name == 'meeting access':
+    elif cmd_name == 'meeting server':
         desc = CmdDesc(
             optional = [('name', StringArg)],
             keyword = [('address', StringArg),
@@ -691,8 +708,8 @@ def register_meeting_command(cmd_name, logger):
                        ('port_range', Int2Arg),
                        ('timeout', IntArg),
                        ('delete', NoArg)],
-            synopsis = 'Report or define meeting access points')
-        register('meeting access', desc, meeting_access, logger=logger)
+            synopsis = 'Report or define meeting server names')
+        register('meeting server', desc, meeting_server, logger=logger)
     elif cmd_name == 'meeting info':
         desc = CmdDesc(synopsis = 'Report meeting info')
         register('meeting info', desc, meeting_info, logger=logger)
@@ -726,11 +743,12 @@ def _meeting_participant(session, create = False, start_hub = False, meeting_nam
 class MeetingParticipant:
     def __init__(self, session, start_hub = False, meeting_name = None):
         self._version = 1		# Message protocol version
+        self._closed = False
         self._meeting_name = meeting_name  # Used for authentication
         self._session = session
         self._name = 'Remote'
-        self._color = (0,255,0,255)
-	# Tracking model color
+        self._color = (0,255,0,255)	# Tracking model color
+        self._ssh_tunnel = None
         self._message_stream = None	# MessageStream for communicating with hub
         self._hub = None		# MeetingHub if we are hosting the meeting
         self._trackers = []
@@ -748,6 +766,7 @@ class MeetingParticipant:
         if start_hub:
             self._hub = h = MeetingHub(session, self)
             self._message_stream = MessageStreamLocal(h._message_received)
+            self._initiate_tracking()
         
         # Exit cleanly
         self._app_quit_handler = session.triggers.add_handler('app quit', self._app_quit)
@@ -768,16 +787,24 @@ class MeetingParticipant:
     def connected(self):
         return self._message_stream is not None
     
-    def connect(self, host, port, timeout = None):
+    def connect(self, host, port, timeout = None, use_ssh = False):
         if self._hub:
             raise RuntimeError('Cannot join a meeting when currently hosting a meeting.')
+
+        if use_ssh:
+            local_port = port
+            self._ssh_tunnel = self._create_ssh_tunnel_to_join(local_port, host, port)
+            host = 'localhost'
+
         from Qt.QtNetwork import QTcpSocket
         socket = QTcpSocket()
         msg_stream = MessageStream(socket, self._message_received, self._disconnected,
                                    self._session.logger, connection_timeout = timeout)
         self._message_stream = msg_stream
         socket.connectToHost(host, port)
+        socket.connected.connect(self._connected)
 
+    def _connected(self):
         mname = '' if self._meeting_name is None else self._meeting_name
         msg = {'join': mname, 'version': self._version}
         self._send_message(msg)
@@ -786,6 +813,15 @@ class MeetingParticipant:
 
         self._session.logger.status('Waiting for scene data from meeting host')
 
+    def _create_ssh_tunnel_to_join(self, local_port, host, port):
+        sprops = _server_properties_for_host(self._session, host)
+        if sprops is None:
+            from chimerax.core.errors import UserError
+            raise UserError("meeting: Don't have ssh key to connect to server %s" % host)
+        tunnel = _create_ssh_tunnel(sprops, local_port, self._session.logger,
+                                    self.close, to_port = port)
+        return tunnel
+    
     @property
     def hub(self):
         return self._hub
@@ -795,6 +831,10 @@ class MeetingParticipant:
         return self._message_stream is None
     
     def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        
         self.send_and_receive_commands(False)
         
         self._close_trackers()
@@ -804,8 +844,15 @@ class MeetingParticipant:
             msg_stream.close()
             self._message_stream = None
 
-        if self._hub:
-            self._hub.close()
+        # Close ssh tunnel
+        t = self._ssh_tunnel
+        if t is not None:
+            t.close()
+            self._ssh_tunnel = None
+
+        h = self._hub
+        if h:
+            h.close()
             self._hub = None
 
         aqh = self._app_quit_handler
@@ -842,6 +889,8 @@ class MeetingParticipant:
     def _restore_session(self, session_bytes):
         size = len(session_bytes)/2**20
         ses = self._session
+        ses.logger.status('Received scene data (%.1f Mbytes) from meeting host'
+                          % size)
         from lz4.frame import decompress
         sbytes = decompress(session_bytes)
         from io import BytesIO
@@ -906,15 +955,18 @@ class MeetingParticipant:
 
     @property
     def vr_tracker(self):
-        self._initiate_tracking()
+        self._initiate_tracking(send_messages = False)
         return self._vr_tracker
     
-    def _initiate_tracking(self):
+    def _initiate_tracking(self, send_messages = True):
         if not self._trackers:
             s = self._session
             self._mouse_tracker = mt = MouseTracking(s, self)
             self._vr_tracker = vrt = VRTracking(s, self)
             self._trackers = [mt, vrt]
+        if send_messages:
+            for t in self._trackers:
+                t.send_messages(True)
 
     def _message_received(self, msg, msg_stream):
         if 'session' in msg:
@@ -961,6 +1013,7 @@ def _optional_message(msg):
 class MeetingHub:
     def __init__(self, session, host_participant):
         self._session = session
+        self._closed = False
         self._server = None		# QTcpServer listens for connections
         msg_stream = MessageStreamLocal(host_participant._message_received)
         self._connections = [msg_stream] # List of MessageStream for each participant
@@ -973,6 +1026,10 @@ class MeetingHub:
         self._debug = True		# Write error messages for refused connections.
 
     def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        
         for msg_stream in tuple(self._connections):
             msg_stream.close()
         self._connections = []
@@ -981,12 +1038,13 @@ class MeetingHub:
             msg_stream.close()
         self._pending_connections.clear()
         
-        self._server.close()
+        self._server.close()	# Close QTcpServer
         self._server = None
 
+        self._host.close()	# Close Participant
         self._host = None
 
-        # Close ssh tunnel to proxy
+        # Close ssh tunnel
         t = self._ssh_tunnel
         if t is not None:
             t.close()
@@ -1059,6 +1117,29 @@ class MeetingHub:
                         a.append(ha)
         return a
     
+    def meeting_host_and_port(self, server):
+        tunnel = self._ssh_tunnel
+        if tunnel:
+            host, port = tunnel.host, tunnel.remote_port
+        else:
+            sp = _server_properties(self._session, server)
+            if 'address' in sp:
+                host = sp.get('address')
+                port = sp.get('port', 52194)
+            else:
+                addresses, port = self.listening_addresses_and_port()
+                host = addresses[0] if addresses else None
+        return host, port
+
+    def register_meeting_name(self, meeting_name, server, name_server, name_server_port):
+        host, port = self.meeting_host_and_port(server)
+        try:
+            self._registered_meeting_name = RegisterMeetingName(meeting_name, name_server, name_server_port,
+                                                                host, port, self._session.logger)
+        except BaseException:
+            self._host.close()		# Close meeting if name server could not be reached.
+            raise
+    
     def copy_scene(self, copy):
         self._copy_scene = copy
         
@@ -1066,9 +1147,15 @@ class MeetingHub:
         s = self._server
         while s.hasPendingConnections():
             socket = s.nextPendingConnection()
+            # TODO: Unclear from docs whether this socket is guaranteed to be in the ConnectedState
+            #  or whether we have to check and possibly wait for it to reach that state.
             msg_stream = MessageStream(socket, self._message_received,
                                        self._disconnected, self._session.logger)
             self._pending_connections.add(msg_stream)
+            if self._debug:
+                self._session.logger.info('Connection from %s port %d established,' % msg_stream.host_and_port() +
+                                          ' waiting for join message')
+
 
     def _handle_join_message(self, msg, msg_stream):
         if msg_stream not in self._pending_connections:
@@ -1178,8 +1265,9 @@ class MessageStream:
         
         self._log = log
 
+        # Message Pack can only handle objects < 4 Gbytes in size.
         from msgpack import Unpacker
-        self._unpacker = Unpacker()
+        self._unpacker = Unpacker(max_buffer_size = 2**32-1)
 
         # If write buffer grows beyond this limit
         # optional messages will not be sent.
@@ -1438,19 +1526,28 @@ class MouseTracking(PointerModels):
         PointerModels.__init__(self, session)
         self._participant = participant		# MeetingParticipant instance
 
-        t = session.triggers
-        self._mouse_hover_handler = t.add_handler('mouse hover', self._mouse_hover_cb)
-        self._last_camera_position = None
-        self._camera_move_handler = t.add_handler('new frame', self._camera_move_cb)
-
-    def delete(self):
-        t = self._session.triggers
-        t.remove_handler(self._mouse_hover_handler)
         self._mouse_hover_handler = None
-        t.remove_handler(self._camera_move_handler)
+        self._last_camera_position = None
         self._camera_move_handler = None
 
+    def delete(self):
+        self.send_messages(False)
         PointerModels.delete(self)
+
+    def send_messages(self, send):
+        hh,hc = self._mouse_hover_handler, self._camera_move_handler
+        if hh is None and send:
+            t = self._session.triggers
+            self._mouse_hover_handler = t.add_handler('mouse hover',
+                                                      self._mouse_hover_cb)
+            self._camera_move_handler = t.add_handler('new frame',
+                                                      self._camera_move_cb)
+        elif hh and not send:
+            t = self._session.triggers
+            t.remove_handler(hh)
+            t.remove_handler(hc)
+            self._mouse_hover_handler = None
+            self._camera_move_handler = None
 
     def update_model(self, msg):
         if 'mouse' in msg:
@@ -1534,11 +1631,11 @@ class VRTracking(PointerModels):
         self._participant = participant		# MeetingParticipant instance
         self._sync_coords = sync_coords
 
-        t = session.triggers
-        self._vr_tracking_handler = t.add_handler('vr update', self._vr_tracking_cb)
+        self._vr_tracking_handler = None
         self._update_interval = update_interval	# Send vr position every N frames.
         self._last_vr_camera = c = _vr_camera(self._session)
-        self._last_room_to_scene = c.room_to_scene if c else None
+        from chimerax.geometry import Place
+        self._last_room_to_scene = c.room_to_scene if c else Place()
         self._name = None
         self._color = None
         self._new_face_image = None	# Path to image file
@@ -1547,12 +1644,20 @@ class VRTracking(PointerModels):
         self._gui_state = {'shown':False, 'size':(0,0), 'room position':None, 'image':None}
 
     def delete(self):
-        t = self._session.triggers
-        t.remove_handler(self._vr_tracking_handler)
-        self._vr_tracking_handler = None
-
+        self.send_messages(False)
         PointerModels.delete(self)
 
+    def send_messages(self, send):
+        h = self._vr_tracking_handler
+        if h is None and send:
+            t = self._session.triggers
+            h = t.add_handler('vr update', self._vr_tracking_cb)
+            self._vr_tracking_handler = h
+        elif h and not send:
+            t = self._session.triggers
+            t.remove_handler(h)
+            self._vr_tracking_handler = None
+        
     @property
     def last_room_to_scene(self):
         return self._last_room_to_scene
@@ -1639,6 +1744,10 @@ class VRTracking(PointerModels):
         if scene_moved:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
+            # TODO: When the first VR participant joins scene_moved is false
+            #       so the room to scene coordinates are unknown and the head and hand
+            #       positions won't be shown correctly until the VR joiner moves the scene.
+            #       Not great, but adequate.  It is tricky to do better.  Ticket #4438.
 
         # Report changes in VR GUI panel
         gu = self._gui_updates(c)

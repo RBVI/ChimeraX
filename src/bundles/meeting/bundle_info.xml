@@ -28,12 +28,13 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Meeting :: General :: Multi-person sessions</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: meeting :: General :: Join a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting start :: General :: Create a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting join :: General :: Join a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting :: General :: Same as meeting join</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting close :: General :: Close a ChimeraX meeting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting info :: General :: Report ChimeraX meeting info</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting settings :: General :: Report or set meeting default settings</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: meeting access :: General :: Report or define meeting access points</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: meeting close :: General :: Close a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting server :: General :: Report or define meeting server names</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting unname :: General :: Deregister a meeting name</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting send :: General :: Copy my scene to all other meeting participants</ChimeraXClassifier>
   </Classifiers>

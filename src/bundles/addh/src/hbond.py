@@ -13,7 +13,7 @@
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
 from chimerax.atomic import Atom, idatm, Ring
-from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
+from .cmd import find_nearest, roomiest, _tree_dist, vdw_radius, \
                 find_rotamer_nearest, h_rad, add_altloc_hyds
 from .util import bond_with_H_length, N_H
 from chimerax.geometry import distance_squared, angle, dihedral, distance, normalize_vector

@@ -1453,7 +1453,7 @@ ExtractMolecule::parse_atom_site()
                 auto tr = find_template_residue(residue_name);
                 if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
                     // only save polymer residues
-                    if (missing_position) {
+                    if (position == INT_MAX) {
                         if (!missing_seq_id_warning) {
                             logger::warning(_logger, "Unable to infer polymer connectivity due to "
                                             "unspecified label_seq_id for residue \"",

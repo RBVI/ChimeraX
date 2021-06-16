@@ -288,8 +288,8 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
             if (r2->chain_id().size() < 2) {
-                strncpy(srec.ssbond.res[0].name, r2->name().c_str(), 3);
-                srec.ssbond.res[0].chain_id = r2->chain_id()[0];
+                strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+                srec.ssbond.res[1].chain_id = r2->chain_id()[0];
             } else {
                 auto res_name = r2->name();
                 auto chain_id = r2->chain_id();
@@ -568,6 +568,8 @@ cum_preloop_t += end_t - start_t;
 start_t = clock();
 #endif
         std::pair<const char *, PyObject *> read_vals = (*read_func)(input);
+        if (PyErr_Occurred() != nullptr)
+            return nullptr;
         const char *char_line = read_vals.first;
         if (char_line[0] == '\0') {
             Py_XDECREF(read_vals.second);
@@ -1401,6 +1403,8 @@ read_no_fileno(void *py_file)
 {
     const char *line;
     PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
+    if (PyErr_Occurred() != nullptr)
+        return std::pair<const char*, PyObject *>(line, Py_None);
     if (PyBytes_Check(py_line)) {
         line = PyBytes_AS_STRING(py_line);
     } else {
@@ -2120,9 +2124,9 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
             }
         }
         write_conect(os, s, rev_asn, written, polymeric_res_names);
-        p.set_type(PDB::END);
-        os << p << "\n";
     }
+    p.set_type(PDB::END);
+    os << p << "\n";
 }
 
 static const char*
@@ -2268,8 +2272,20 @@ write_pdb_file(PyObject *, PyObject *args)
             return nullptr;
         }
         const char* path = PyBytes_AS_STRING(fs_path);
+#ifdef _WIN32
+        auto wpath = PyUnicode_AsWideCharString(py_output, nullptr);
+        if (wpath == nullptr) {
+            std::stringstream err_msg;
+            err_msg << "Unable to convert file name '" << path << "'to Windows format string";
+            PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+            return nullptr;
+        }
+        out_stream = new StreamDispatcher(new std::ofstream(wpath));
+        PyMem_Free(wpath);
+#else
         out_stream = new StreamDispatcher(new std::ofstream(path));
         Py_XDECREF(fs_path);
+#endif
         if (!out_stream->good()) {
             std::stringstream err_msg;
             err_msg << "Unable to open file '" << path << "' for writing";

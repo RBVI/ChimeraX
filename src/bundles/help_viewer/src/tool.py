@@ -396,20 +396,24 @@ class HelpUI(ToolInstance):
             self.session.logger.info("Bundle saved as %s" % filename)
             return
         prefix = _install_or_upgrade(filename, self.session).decode()
+        reinstall = False
+        action = "Install"
         if prefix in ("Downgrade", "Upgrade"):
+            action = prefix
             prefix += " to"
         elif prefix == "Installed":
-            prefix = "Reinstall"
+            action = prefix = "Reinstall"
+            reinstall = True
         how = ask(self.session,
                   f"{prefix} {wh.name} {wh.version} (file {filename})?",
-                  ["install", "cancel"],
+                  [action, "cancel"],
                   title="Toolshed")
         if how == "cancel":
             self.session.logger.info("Bundle installation canceled")
             return
         self.session.toolshed.install_bundle(filename,
                                              self.session.logger,
-                                             per_user=True,
+                                             per_user=True, reinstall=reinstall,
                                              session=self.session)
         self.reload_toolshed_tabs()
 
@@ -555,6 +559,8 @@ class HelpUI(ToolInstance):
     def update_back_forward(self, w=None):
         if w is None:
             w = self.tabs.currentWidget()
+            if w is None:
+                return
         history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())

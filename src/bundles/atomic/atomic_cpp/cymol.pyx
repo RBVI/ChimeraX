@@ -307,15 +307,30 @@ cdef class CyAtom:
         self.cpp_atom.set_draw_mode(<cydecl.DrawMode>dm)
 
     @property
+    def effective_coord(self):
+        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
+        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.effective_coord()
+        return array((crd[0], crd[1], crd[2]))
+
+    @property
     def element(self):
         "Supported API. :class:`Element` corresponding to the atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.element().py_instance(True)
 
     @element.setter
-    def element(self, Element e):
+    def element(self, val):
         "Supported API. set atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
+        cdef Element e
+        if type(val) == Element:
+            e = val
+        elif type(val) in (int, str):
+            e = Element.get_element(val)
+        else:
+            raise ValueError("Cannot set Element from %s" % repr(val))
         self.cpp_atom.set_element(dereference(e.cpp_element))
 
     @property
@@ -466,14 +481,6 @@ cdef class CyAtom:
             self.cpp_atom.clear_ribbon_coord()
 
     @property
-    def effective_coord(self):
-        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
-        " and it has a ribbon coordinate, otherwise return the current coordinate."
-        if self._deleted: raise RuntimeError("Atom already deleted")
-        crd = self.cpp_atom.effective_coord()
-        return array((crd[0], crd[1], crd[2]))
-
-    @property
     def scene_coord(self):
         "Supported API. Atom center coordinates in the global scene coordinate system."
         " This accounts for the :class:`Drawing` positions for the hierarchy "
@@ -574,19 +581,26 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.delete_alt_loc(ord(loc[0]))
 
-    def get_altloc_coord(self, loc):
-        "Supported API.  Like the 'coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
+    def get_alt_loc_coord(self, loc):
+        "Supported API.  Like the 'coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc.  Space character gets the"
+        " non-alt-loc coord."
         if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.coord
         if self.has_alt_loc(loc):
             crd = self.cpp_atom.coord(ord(loc[0]))
             return array((crd[0], crd[1], crd[2]))
-        raise ValueError("Atom %s has no altloc %s" % (self, loc))
+        raise ValueError("Atom %s has no alt loc %s" % (self, loc))
 
-    def get_altloc_scene_coord(self, loc):
-        "Supported API.  Like the 'scene_coord' property, but uses the given altloc"
-        " (character) rather than the current altloc."
-        return self.structure.scene_position * self.get_altloc_coord(loc)
+    def get_alt_loc_scene_coord(self, loc):
+        "Supported API.  Like the 'scene_coord' property, but uses the given alt loc"
+        " (character) rather than the current alt loc. Space character gets the"
+        " non-alt-loc scene coord."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.scene_coord
+        return self.structure.scene_position * self.get_alt_loc_coord(loc)
 
     def get_coordset_coord(self, cs_id):
         "Supported API.  Like the 'coord' property, but uses the given coordset ID"
@@ -946,6 +960,22 @@ cdef class CyResidue:
     # properties...
 
     @property
+    def alt_loc(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        for a in self.atoms:
+            if a.alt_loc != ' ':
+                return a.alt_loc
+        return ' '
+
+    @property
+    def alt_locs(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        alt_locs = set()
+        for a in self.atoms:
+            alt_locs.update(a.alt_locs)
+        return alt_locs
+
+    @property
     def atoms(self):
         "Supported API. :class:`.Atoms` collection containing all atoms of the residue."
         from .molarray import Atoms
@@ -957,6 +987,7 @@ cdef class CyResidue:
 
     @property
     def atomspec(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
         return self.string(style="command")
 
     @property
@@ -1500,6 +1531,11 @@ cdef class CyResidue:
         if self._deleted: raise RuntimeError("Residue already deleted")
         between = self.cpp_res.bonds_between(<cydecl.Residue*>other_res.cpp_res)
         return Bonds(numpy.array([<ptr_type>b for b in between], dtype=numpy.uintp))
+
+    def clean_alt_locs(self):
+        "Change the current alt locs in this residue to 'regular' locations and delete all alt locs"
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.clean_alt_locs()
 
     def connects_to(self, CyResidue other_res):
         "Supported API. Return True if this residue is connected by at least one bond "

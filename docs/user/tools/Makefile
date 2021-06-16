@@ -40,7 +40,8 @@ MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
-		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png
+		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png \
+		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.png
 TICONDIR = $(DOCDIR)/toolbar-icons
 NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.png
 NICONDIR = $(DOCDIR)/nuc-icons

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Label" version="1.0"
+<BundleInfo name="ChimeraX-Label" version="1.1"
 	    package="chimerax.label"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -19,7 +19,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>

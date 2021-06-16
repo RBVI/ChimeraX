@@ -14,15 +14,20 @@
 class ChargeError(RuntimeError):
     pass
 
+from chimerax.atomic.struct_edit import standardizable_residues
+default_standardized = list(standardizable_residues)[:]
+default_standardized.remove("MSE")
+
 def add_charges(session, residues=None, *, method="am1-bcc", phosphorylation=None, query_user=True,
-        status=None):
+        status=None, standardize_residues=default_standardized):
     uncharged_res_types = add_standard_charges(session, residues, status=status, query_user=query_user,
-        phosphorylation=phosphorylation)
+        phosphorylation=phosphorylation, standardize_residues=standardize_residues)
     for res_list in uncharged_res_types.values():
         add_nonstandard_res_charges(session, res_list, estimate_net_charge(res_list[0].atoms),
             method=method, status=status)
 
-def add_standard_charges(session, residues=None, *, status=None, phosphorylation=None, query_user=True):
+def add_standard_charges(session, residues=None, *, status=None, phosphorylation=None, query_user=True,
+        standardize_residues=default_standardized):
     """add AMBER charges to well-known residues
 
        'residues' restricts the addition to the specified residues
@@ -33,6 +38,13 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
        state changed to correspond to AMBER charge files (3' phosphorylated, 5' not).  A value of None
        means that the user will be queried if possible [treated as True if not possible], though if
        'query_user' is False, the user will not be queried.
+
+       'standardize_residues' controls how residues that were modified to assist in crystallization
+       are treated.  If True, the are changed to their normal counterparts (e.g. MSE->MET).  If
+       False, they are left as is, which means that they will be treated as non-standard (except for
+       MSE which gets special treatment due to its commonality) which also means that the charge
+       calculation will likely fail since these residues contain bromine or selenium.
+       'standardize_residues' can also be a list of residue names to standardize.
 
        The return value is a dictionary  which details the residues that did not receive charges
        [key: residue type, value: list of residues].
@@ -46,6 +58,15 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
     elif not isinstance(residues, Residues):
         residues = Residues(residues)
     structures = residues.unique_structures
+
+    if standardize_residues:
+        if status:
+            status("Standardizing residues")
+        from chimerax.atomic.struct_edit import standardize_residues as sr
+        if standardize_residues is True:
+            sr(session, residues)
+        else:
+            sr(session, residues, res_types=standardize_residues)
 
     import os.path
     attr_file = os.path.join(os.path.split(__file__)[0], "amber_name.defattr")
@@ -295,14 +316,6 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
                 session.logger.info("Could not determine GAFF type for atom %s" % a)
         return
 
-    electrons = net_charge
-    for a in r0.atoms:
-        electrons += a.element.number
-    if electrons % 2 == 1 and method == "am1-bcc":
-        # cannot compute charges for radical species with AM1-BCC
-        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
-            " for radical species using AM1-BCC method" % (r0.name, electrons - net_charge, net_charge))
-
     # detect tautomers by checking bonds
     varieties = {}
     for r in residues:
@@ -440,23 +453,13 @@ def _ng_charge(atom):
     ng_pluses = [a for a in c2.neighbors if a.idatm_type == "Ng+"]
     if len(ng_pluses) == 2:
         return 1
-    heavys = 0
-    for nb in atom.neighbors:
-        if nb.element.number > 1:
-            heavys += 1
-    if heavys > 1:
-        return 0
-    countable = 0
-    for ngp in ng_pluses:
-        heavys = 0
-        for nb in ngp.neighbors:
-            if nb.element.number > 1:
-                heavys += 1
-        if heavys < 2:
-            countable += 1
-    if countable > 1:
+    # the below is more resilient to modified groups (e.g. 2MR) than the previous method
+    b = atom.bonds[atom.neighbors.index(nb)]
+    try:
+        return int(b.smaller_side == nb)
+    except ValueError:
+        # bond is in a cycle
         return 1
-    return 2
 
 def _n2_charge(atom):
     # needed in order to get nitrite ions correct
@@ -487,8 +490,10 @@ def _nonstd_charge(session, residues, net_charge, method, status):
         atom_names.add(a.name)
 
     # add the intraresidue bonds and remember the interresidue ones
+    electrons = 0
     nearby = set()
     for a in r_atoms:
+        electrons += a.element.number
         na = atom_map[a]
         for nb in a.neighbors:
             if nb.residue != r:
@@ -520,7 +525,15 @@ def _nonstd_charge(session, residues, net_charge, method, status):
                     nearby.add(nbnb)
                 else:
                     extras.update(_methylate(na, nbnb, atom_names))
+    for ea in extras:
+        electrons += ea.element.number
     total_net_charge = net_charge + estimate_net_charge(extras)
+
+    if (electrons + total_net_charge) % 2 == 1 and method == "am1-bcc":
+        # cannot compute charges for radical species with AM1-BCC
+        raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
+            " for radical species using AM1-BCC method" % (r.name, electrons, total_net_charge))
+
 
     from contextlib import contextmanager
     @contextmanager
@@ -572,7 +585,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
                 break
             if status:
                 status("(%s) %s" % (r.name, line.rstrip()))
-            session.logger.info("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True)
+            session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True, log=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
             raise ChargeError(ante_failure_msg)

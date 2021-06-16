@@ -124,6 +124,37 @@ Atom::bfactor() const
 }
 
 void
+Atom::clean_alt_locs()
+{
+    if (_alt_loc == ' ')
+        return;
+    auto alt_aniso_u = aniso_u();
+    if (alt_aniso_u == nullptr) {
+        if (_aniso_u != nullptr) {
+            delete _aniso_u;
+            _aniso_u = nullptr;
+        }
+    } else {
+        if (_aniso_u == nullptr) {
+            _aniso_u = new std::vector<float>(6);
+        }
+        (*_aniso_u)[0] = (*alt_aniso_u)[0];
+        (*_aniso_u)[1] = (*alt_aniso_u)[1];
+        (*_aniso_u)[2] = (*alt_aniso_u)[2];
+        (*_aniso_u)[3] = (*alt_aniso_u)[3];
+        (*_aniso_u)[4] = (*alt_aniso_u)[4];
+        (*_aniso_u)[5] = (*alt_aniso_u)[5];
+    }
+    structure()->active_coord_set()->set_bfactor(this, bfactor());
+    _coordset_set_coord(coord(), structure()->active_coord_set(), false);
+    structure()->active_coord_set()->set_occupancy(this, occupancy());
+    _serial_number = serial_number();
+
+    _alt_loc = ' ';
+    _alt_loc_map.clear();
+}
+
+void
 Atom::clear_aniso_u()
 {
     if (_alt_loc != ' ') {
@@ -161,6 +192,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
         graphics_changes()->set_gc_shape();
         if (in_ribbon())
             graphics_changes()->set_gc_ribbon();
+        graphics_changes()->set_gc_ring();
     } else {
         //cs->_coords[_coord_index] = coord;
         cs->_coords[_coord_index].set_xyz(coord[0], coord[1], coord[2]);
@@ -168,6 +200,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
             graphics_changes()->set_gc_shape();
             if (in_ribbon())
                 graphics_changes()->set_gc_ribbon();
+            graphics_changes()->set_gc_ring();
             change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
             if (structure()->active_coord_set() == cs)
                 structure()->change_tracker()->add_modified(structure(), structure(),
@@ -1035,8 +1068,9 @@ Atom::is_missing_heavy_template_neighbors(bool chain_start, bool chain_end, bool
         if (nb->element().number() > 1 && nb->residue() == residue())
             ++heavys;
     for (auto tnb: tmpl_atom->neighbors())
-        if (tnb->element().number() > 1 && tnb->element().number() != 15)
-            // okay for nucleic phosphorus to be missing
+        if (tnb->element().number() > 1
+        && !(tnb->element().number() == 15 && tmpl_atom->name() != "OP1" && tmpl_atom->name() != "OP2"))
+            // okay for nucleic phosphorus to be missing (but not to OP1/2!)
             ++tmpl_heavys;
     return heavys < tmpl_heavys;
 }
@@ -1116,6 +1150,13 @@ Coord
 Atom::scene_coord() const
 {
     return mat_mul(structure()->position(), coord());
+
+}
+
+Coord
+Atom::effective_scene_coord() const
+{
+    return mat_mul(structure()->position(), effective_coord());
 
 }
 

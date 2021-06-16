@@ -68,12 +68,14 @@ UBUNTU_DEPENDENCIES = {
         "libpangocairo-1.0-0": "1.38.1",
         "libpulse-mainloop-glib0": "8.0",
         "libpulse0": "8.0",
+        "libsqlite3-0": "3.11.0",
         "libssl1.0.0": "1.0.2g",
         "libstdc++6": "5.4.0",
         "libx11-6": "1.6.3",
         "libx11-xcb1": "1.6.3",
         "libxcb-glx0": "1.11.1",
         "libxcb-xfixes0": "1.11.1",
+        "libxcb-xinerama0": "1.11.1",
         "libxcb1": "1.11.1",
         "libxcomposite1": "0.4.4",
         "libxcursor1": "1.1.14",
@@ -120,12 +122,14 @@ UBUNTU_DEPENDENCIES = {
         "libpangocairo-1.0-0": "1.40.14",
         "libpulse-mainloop-glib0": "11.1",
         "libpulse0": "11.1",
+        "libsqlite3-0": "3.22.0",
         "libssl1.1": "1.1.0g",
         "libstdc++6": "8-20180414",
         "libx11-6": "1.6.4",
         "libx11-xcb1": "1.6.4",
         "libxcb-glx0": "1.13",
         "libxcb-xfixes0": "1.13",
+        "libxcb-xinerama0": "1.13",
         "libxcb1": "1.13",
         "libxcomposite1": "0.4.4",
         "libxcursor1": "1.1.15",
@@ -176,6 +180,7 @@ UBUNTU_DEPENDENCIES = {
        "libpangocairo-1.0-0": "1.44.7",
        "libpulse-mainloop-glib0": "13.99.1",
        "libpulse0": "13.99.1",
+       "libsqlite3-0": "3.31.1",
        "libssl1.1": "1.1.1f",
        "libstdc++6": "10-20200411",
        "libtinfo6": "6.2",
@@ -187,6 +192,7 @@ UBUNTU_DEPENDENCIES = {
        "libx11-6": "1.6.9",
        "libx11-xcb1": "1.6.9",
        "libxcb-glx0": "1.14",
+       "libxcb-xinerama0": "1.14",
        "libxcb1": "1.14",
        "libxcomposite1": "0.4.5",
        "libxcursor1": "1.2.0",
@@ -246,8 +252,9 @@ def main():
         # release build
         version = version.base_version
     else:
-        # candiate build
-        version = f"{version.base_version}+rc{version_date}"
+        # candidate build
+        # version = f"{version.base_version}+rc{version_date}"
+        version = version.base_version
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-UI" version="1.7.2"
+<BundleInfo name="ChimeraX-UI" version="1.10"
 	    package="chimerax.ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -25,6 +25,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
+    <Dependency name="ChimeraX-SelInspector" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

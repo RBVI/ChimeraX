@@ -21,6 +21,16 @@ from chimerax.graphics import Drawing, Pick
 # (maximum) session version number.
 STRUCTURE_STATE_VERSION = 1
 
+# Auto-styling tunables
+MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
+MULTI_SHADOW = 16               # lighting defaults to 64, so a 4x reduction
+SMALL_THRESHOLD = 200_000       # not a small polymer if more than threshold atoms
+MEDIUM_THRESHOLD = 1_000_000    # not a medium polymer if more than threshold atoms
+MIN_RIBBON_THRESHOLD = 10       # skip ribbons if less than threshold ribbonable residues
+MAX_RIBBON_THRESHOLD = 5000     # skip ribbons if more than threshold ribbonable residues
+SLAB_THRESHOLD = 100            # skip slab nucleotide styling if more than threshold residues
+LADDER_THRESHOLD = 2000         # skip ladder nucleotide styling if more than threshold residues
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -120,6 +130,8 @@ class Structure(Model, StructureData):
         return m
 
     def added_to_session(self, session):
+        if not self.scene_position.is_identity():
+            self._cpp_notify_position(self.scene_position)
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
@@ -142,7 +154,7 @@ class Structure(Model, StructureData):
     def apply_auto_styling(self, set_lighting = False, style=None):
         # most auto-styling only makes sense for atomic structures
         if set_lighting:
-            kw = {} if self.num_atoms >= 300000 else {'multi_shadow': 16}
+            kw = {} if self.num_atoms >= MULTI_SHADOW_THRESHOLD else {'multi_shadow': MULTI_SHADOW}
             from chimerax.std_commands.lighting import lighting
             lighting(self.session, preset = 'full', **kw)
 
@@ -229,7 +241,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -243,13 +255,13 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals
@@ -692,18 +704,19 @@ class Structure(Model, StructureData):
         elif itype == 'residues':
             from .molarray import concatenate, Atoms
             atoms, bonds = self.atoms, self.bonds
-            sel_atoms = []
+            sel_residues = []
             if atoms.num_selected > 0:
-                sel_atoms.append(atoms.filter(atoms.selected))
+                sel_residues.append(atoms.filter(atoms.selected).residues)
             if bonds.num_selected > 0:
                 sel_bonds = bonds.filter(bonds.selected)
-                import numpy
                 atoms1, atoms2 = sel_bonds.atoms
-                is_intra = numpy.equal(atoms1.residues, atoms2.residues)
-                sel_atoms.extend(sel_bonds.filter(is_intra).atoms)
-            if sel_atoms:
-                from . import concatenate
-                return [concatenate(sel_atoms, remove_duplicates=True).unique_residues]
+                is_intra = atoms1.residues.pointers == atoms2.residues.pointers
+                same_res = atoms1.residues.filter(is_intra)
+                if same_res:
+                    sel_residues.append(same_res)
+            if sel_residues:
+                from . import concatenate, Residues
+                return [concatenate(sel_residues, Residues, remove_duplicates=True).unique()]
         return []
 
     def clear_selection(self):
@@ -1154,9 +1167,9 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
                 style = "small polymer"
-            elif self.num_chains < 250:
+            elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
             else:
                 style = "large polymer"
@@ -1181,7 +1194,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if len(ribbonable) > 10:
+            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1197,9 +1210,9 @@ class AtomicStructure(Structure):
                 display |= nucleic
                 if nucleic:
                     from chimerax.nucleotides.cmd import nucleotides
-                    if len(nucleic) < 100:
+                    if len(nucleic) <= SLAB_THRESHOLD:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
-                    else:
+                    elif len(nucleic) <= LADDER_THRESHOLD:
                         nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
@@ -1217,8 +1230,8 @@ class AtomicStructure(Structure):
                 ribbonable.ribbon_displays = True
         elif style == "medium polymer":
             lighting = {'preset': 'full'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
             from .colors import chain_colors, element_colors
             residues = self.residues
             residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
@@ -1233,8 +1246,8 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = {'preset': 'soft'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
 
         # correct the styling of per-structure pseudobond bond groups
         for cat, pbg in self.pbg_map.items():
@@ -1804,6 +1817,20 @@ class PickedAtom(Pick):
     def description(self):
         return str(self.atom)
     def specifier(self):
+        # have to do something fancy for the rare case of duplicate atom specs [#4617]
+        residues = self.atom.structure.residues
+        same_numbers = residues.numbers == self.atom.residue.number
+        import numpy
+        if numpy.count_nonzero(same_numbers) > 1:
+            same_chains = residues.chain_ids == self.atom.residue.chain_id
+            same = numpy.logical_and(same_numbers, same_chains)
+            if numpy.count_nonzero(same) > 1:
+                same_inserts = residues.insertion_codes == self.atom.residue.insertion_code
+                same = numpy.logical_and(same, same_inserts)
+                if numpy.count_nonzero(same) > 1:
+                    # Well, I could go off and see if the other residue(s) contain an atom
+                    # with the same name, but at this point I'm going to be lazy...
+                    return '@@serial_number=%d' % self.atom.serial_number
         return self.atom.string(style='command')
     @property
     def residue(self):
@@ -1864,7 +1891,18 @@ def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
     bshown = bonds.showns
     bs = bonds.filter(bshown)
     a1, a2 = bs.atoms
-    cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords) if scene_coordinates else (a1.coords, a2.coords)
+    from .molarray import Pseudobonds
+    if isinstance(bonds, Pseudobonds):
+        # End positions may be projected onto ribbons.
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.pb_scene_coords, a2.pb_scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.pb_coords, a2.pb_coords)
+    else:
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.coords, a2.coords)
     r = bs.radii
 
     # Check for atom sphere intercept
@@ -2242,4 +2280,5 @@ for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, Pseudobond
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
-    if not isinstance(inst, AtomicStructure)], getattr(Structure, '_cython_property_return_info', []))
+    if not isinstance(inst, AtomicStructure)],
+    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})
