@@ -103,7 +103,7 @@ class FileHistory:
         self.session.triggers.activate_trigger('file history changed', self._files)
             
     def quit_cb(self):
-        if self._save_files and session.ui.is_gui:
+        if self._save_files and self.session.ui.is_gui:
             self.save_history()
 
     def load_history(self):
