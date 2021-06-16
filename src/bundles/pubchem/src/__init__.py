@@ -20,9 +20,15 @@ class _PubChemAPI(BundleAPI):
         if mgr == session.open_command:
             from chimerax.open_command import FetcherInfo
             class PubchemFetcherInfo(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                def fetch(self, session, ident, format_name, ignore_cache, *, res_name=None, **kw):
                     from . import pubchem
-                    return pubchem.fetch_pubchem(session, ident, ignore_cache=ignore_cache, **kw)
+                    return pubchem.fetch_pubchem(session, ident, ignore_cache=ignore_cache,
+                        res_name=res_name, **kw)
+
+                @property
+                def fetch_args(self):
+                    from chimerax.core.commands import StringArg
+                    return { 'res_name': StringArg }
             return PubchemFetcherInfo()
         else:
             from .build_ui import PubChemProvider
