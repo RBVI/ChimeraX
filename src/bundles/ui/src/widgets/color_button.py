@@ -116,7 +116,9 @@ class ColorButton(QPushButton):
 
     def changeEvent(self, event):
         if event.type() == event.EnabledChange:
-            if self.isEnabled():
+            if self._color is None:
+                color = [127, 127, 127]
+            elif self.isEnabled():
                 color = self._color
             else:
                 color = [int((c + 218)/2) for c in self._color]

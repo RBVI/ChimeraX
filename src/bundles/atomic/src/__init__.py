@@ -126,12 +126,15 @@ class _AtomicBundleAPI(BundleAPI):
             from .inspectors import item_options
             return item_options(session, name, **kw)
         else:
-            class_objs = {'atoms': [Atom], 'residues': [Residue],
-                'structures': [AtomicStructure, Structure]}[name]
+            class_obj = {'atoms': Atom, 'residues': Residue, 'structures': Structure }[name]
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
-                def class_objects(self, _class_objs=class_objs):
-                    return _class_objs
+                _class_obj = class_obj
+                @property
+                def class_object(self):
+                    return self._class_obj
+                def model_filter(self, model):
+                    return isinstance(model, Structure)
             return Info(session)
 
     @staticmethod

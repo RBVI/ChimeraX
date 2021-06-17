@@ -170,7 +170,7 @@ class MarkedHistogram(QWidget):
         self._data_widgets = QStackedWidget()
         data_frame_layout.addWidget(self._data_widgets)
 
-        # Crate the histogram widget
+        # Create the histogram widget
         self._hist_scene = QGraphicsScene()
         self._hist_bars = self._hist_scene.createItemGroup([])
         self._hist_view = QGraphicsView(self._hist_scene)
@@ -200,11 +200,11 @@ class MarkedHistogram(QWidget):
             min_max_layout = QHBoxLayout()
             if min_label:
                 self._min_label = QLabel()
-                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft & Qt.AlignTop)
+                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft | Qt.AlignTop)
 
             if max_label:
                 self._max_label = QLabel()
-                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight & Qt.AlignTop)
+                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight | Qt.AlignTop)
             overall_layout.addLayout(min_max_layout)
         else:
             self._range_label = QLabel()
