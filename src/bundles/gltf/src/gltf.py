@@ -410,11 +410,7 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
         for pva,pna,pvc,pta in geom:
             attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
             if pna is not None:
-                # TODO: Ribbon normals were normalized, bug #829.  Normalize to work around.
-                from numpy import sqrt, newaxis
-                lengths = sqrt((pna*pna).sum(axis=1))
-                pnna = pna / lengths[..., newaxis]
-                attr['NORMAL'] = b.add_array(pnna)
+                attr['NORMAL'] = b.add_array(pna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
             if not preserve_transparency:
