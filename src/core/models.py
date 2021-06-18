@@ -78,6 +78,7 @@ class Model(State, Drawing):
         self.triggers  = TriggerSet()
         self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
+        self.opened_data_format = None # for use by 'open' command
 
     def cpp_del_model(self):
         '''Called by the C++ layer to request that the model be deleted'''
@@ -331,6 +332,7 @@ class Model(State, Drawing):
             'allow_clipping': self.allow_clipping,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
+            'opened_data_format': self.opened_data_format,
             'version': MODEL_STATE_VERSION,
         }
         if hasattr(self, 'clip_cap'):
@@ -378,7 +380,10 @@ class Model(State, Drawing):
             from chimerax.graphics.gsession import DrawingState
             DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
             self.SESSION_SAVE_DRAWING = True
-            
+
+        if 'opened_data_format' in data:
+            self.opened_data_format = data['opened_data_format']
+
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
@@ -486,7 +491,6 @@ class Surface(Model):
     '''
     pass
 
-    
 from .state import StateManager
 class Models(StateManager):
     '''

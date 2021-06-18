@@ -29,9 +29,13 @@ This is summarized briefly in :ref:`data format`, :ref:`open command`, and
 :ref:`save command`, and in more detail in the :doc:`tutorials/tutorial_read_format`,
 :doc:`tutorials/tutorial_save_format`, and :doc:`tutorials/tutorial_fetch` tutorials.
 
-.. note::
-
-    Trigger documentation might go here.
+Bundles may want to be able to react to various kinds of events, such as new models
+being opened, or the graphics window background coloring changing.  When such events
+occur, a "trigger" will be fired, and functions that have been registered with the
+trigger will be executed and given data related to the trigger.  The nuts and bolts of
+how to register for a trigger is described in :doc:`core/triggerset`.  Information
+about where widely-used triggers can be found, their names, and what data they provide
+can be found in :doc:`well_known_triggers`.
 
 Modules
 -------

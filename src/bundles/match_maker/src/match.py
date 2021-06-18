@@ -495,16 +495,18 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 alignment.auto_associate = True
                 for hdr in alignment.headers:
                     hdr.shown = hdr.ident == "rmsd"
+            residues1 = s1.residues
+            residues2 = s2.residues
             for i in range(len(s1)):
                 if s1[i] == "." or s2[i] == ".":
                     continue
-                ref_res = s1.residues[s1.gapped_to_ungapped(i)]
-                match_res = s2.residues[s2.gapped_to_ungapped(i)]
+                ref_res = residues1[s1.gapped_to_ungapped(i)]
                 if not ref_res:
                     continue
                 ref_atom = ref_res.principal_atom
                 if not ref_atom:
                     continue
+                match_res = residues2[s2.gapped_to_ungapped(i)]
                 if not match_res:
                     continue
                 match_atom = match_res.principal_atom

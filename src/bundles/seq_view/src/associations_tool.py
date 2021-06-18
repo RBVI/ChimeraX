@@ -20,12 +20,18 @@ class AssociationsTool:
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
-        from Qt.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
         layout = QHBoxLayout()
         from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(sv.session, autoselect='single')
         self.chain_list.value_changed.connect(self._chain_changed)
         layout.addWidget(self.chain_list)
+
+        menu_layout = QVBoxLayout()
+        layout.addLayout(menu_layout)
+
+        self.pick_a_chain = QLabel("Choose one or more\nchains from the left")
+        menu_layout.addWidget(self.pick_a_chain)
 
         from chimerax.seqalign.widgets import AlignSeqMenuButton
         not_associated_text = "Not associated"
@@ -44,7 +50,7 @@ class AssociationsTool:
         self.assoc_button = AllowMultiASMB(sv.alignment, no_value_button_text=not_associated_text,
             no_value_menu_text="(none)", special_items=[self.best_assoc_label])
         self.assoc_button.value_changed.connect(self._seq_changed)
-        layout.addWidget(self.assoc_button)
+        menu_layout.addWidget(self.assoc_button)
 
         tool_window.ui_area.setLayout(layout)
 
@@ -70,14 +76,19 @@ class AssociationsTool:
         chains = self.chain_list.value
         if len(chains) == 0:
             self.assoc_button.value = None
+            show_button = False
         elif len(chains) == 1:
             self.assoc_button.value = self.sv.alignment.associations.get(chains[0], None)
+            show_button = True
         else:
             values = set([self.sv.alignment.associations.get(chain, None) for chain in chains])
             if len(values) == 1:
                 self.assoc_button.value = values.pop()
             else:
                 self.assoc_button.setText(self.multiseq_text)
+            show_button = True
+        self.assoc_button.setHidden(not show_button)
+        self.pick_a_chain.setHidden(show_button)
         self.assoc_button.blockSignals(False)
 
     def _seq_changed(self):

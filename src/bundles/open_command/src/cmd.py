@@ -398,10 +398,15 @@ def file_format(session, file_name, format_name):
 
 def collated_open(session, database_name, data, data_format, main_opener, log_errors,
         func, func_args, func_kw):
+    def remember_data_format(func=func, data_format=data_format, func_args=func_args, func_kw=func_kw):
+        models, status = func(*func_args, **func_kw)
+        for m in models:
+            m.opened_data_format = data_format
+        return models, status
     is_script = data_format.category == session.data_formats.CAT_SCRIPT
     if is_script:
         with session.in_script:
-            return func(*func_args, **func_kw)
+            return remember_data_format()
     from chimerax.core.logger import Collator
     if database_name:
         description = "Summary of feedback from opening %s fetched from %s" % (data, database_name)
@@ -418,8 +423,8 @@ def collated_open(session, database_name, data, data_format, main_opener, log_er
         description = "Summary of feedback from opening %s" % opened_text
     if main_opener and data_format.category != session.data_formats.CAT_SESSION:
         with Collator(session.logger, description, log_errors):
-            return func(*func_args, **func_kw)
-    return func(*func_args, **func_kw)
+            return remember_data_format()
+    return remember_data_format()
 
 class FileInfo:
     def __init__(self, session, file_name, format_name):

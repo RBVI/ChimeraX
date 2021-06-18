@@ -593,7 +593,7 @@ def _remove_nuc_drawing(nuc, mol):
 
 
 _AtomReasons = frozenset(['coord changed', 'display changed'])
-_ResidueReasons = frozenset(['ring color changed', 'ribbon_display changed'])
+_ResidueReasons = frozenset(['ring_color changed', 'ribbon_display changed'])
 
 
 def _rebuild_molecule(trigger_name, mol):

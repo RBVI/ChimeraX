@@ -1598,6 +1598,12 @@ extern "C" EXPORT void bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
     error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::halfbond, halfb);
 }
 
+extern "C" EXPORT void bond_in_cycle(void *bonds, size_t n, npy_bool *cycle)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::in_cycle, cycle);
+}
+
 extern "C" EXPORT void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
 {
     Bond **b = static_cast<Bond **>(bonds);
