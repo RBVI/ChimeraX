@@ -394,8 +394,12 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
         if pos.is_identity():
             geom = [(va,na,vc,ta)]
         elif len(pos) > 1:
-            # TODO: Need instance colors to take account of parent instances.
             ic = d.get_colors(displayed_only = True)
+            if len(ic) < len(pos):
+                # Have parent with instances so duplicate colors
+                n = len(pos) // len(ic)
+                from numpy import concatenate
+                ic = concatenate([ic]*n)
             geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
         else:
             p0 = pos[0]
