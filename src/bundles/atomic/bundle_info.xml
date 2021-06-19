@@ -86,6 +86,7 @@
 	<Provider name="bonds"/>
 	<Provider name="pseudobonds"/>
 	<Provider name="residues"/>
+	<Provider name="structures" ui_name="atomic models"/>
   </Providers>
 
   <Classifiers>

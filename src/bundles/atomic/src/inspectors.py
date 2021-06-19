@@ -28,13 +28,16 @@ def item_options(session, name, **kw):
             ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
             ResidueRibbonShownOption, ResidueRingColorOption, ResidueSSIDOption, ResidueSSTypeOption,
             ResidueThinRingsOption]],
+        'structures': [make_tuple(opt, "structure") for opt in [StructureBallScaleOption,
+            StructureRibbonTetherOpacityOption, StructureRibbonTetherScaleOption,
+            StructureRibbonTetherShapeOption, StructureRibbonTetherSidesOption]],
     }[name]
 
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
     SymbolicEnumOption
 from chimerax.core.colors import color_name
 from chimerax.core.utils import CustomSortString
-from . import Atom, Element, Residue
+from . import Atom, Element, Residue, Structure
 
 class AtomBFactorOption(FloatOption):
     attr_name = "bfactor"
@@ -371,3 +374,72 @@ class ResidueThinRingsOption(SymbolicEnumOption):
     def command_format(self):
         return "setattr %%s r thin_rings %s" % str(self.value).lower()
 
+class StructureBallScaleOption(FloatOption):
+    attr_name = "ball_scale"
+    balloon = "Fraction of atom radius to use for ball depiction in ball-and-stick"
+    default = 0.25
+    name = "Ball scale"
+    @property
+    def command_format(self):
+        return "size %%s ballScale %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .01
+        super().__init__(*args, **kw)
+
+class StructureRibbonTetherOpacityOption(FloatOption):
+    attr_name = "ribbon_tether_opacity"
+    balloon = "How opaque (non-transparent) the cartoon tether is"
+    default = 0.5
+    name = "Cartoon tether opacity"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s opacity %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .05
+        super().__init__(*args, **kw)
+
+class StructureRibbonTetherScaleOption(FloatOption):
+    attr_name = "ribbon_tether_scale"
+    balloon = "Size of tether base radius relative to\nthe display radius of the corresponding α-carbon"
+    default = 1.0
+    name = "Cartoon tether scale"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s scale %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .05
+        super().__init__(*args, **kw)
+
+class StructureRibbonTetherShapeOption(SymbolicEnumOption):
+    values = (Structure.TETHER_CONE, Structure.TETHER_REVERSE_CONE, Structure.TETHER_CYLINDER)
+    labels = ("cone", "steeple", "cylinder")
+    attr_name = "ribbon_tether_shape"
+    default = Structure.TETHER_CONE
+    name = "Cartoon tether shape"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s shape %s" % self.labels[self.value]
+
+class StructureRibbonTetherSidesOption(IntOption):
+    attr_name = "ribbon_tether_sides"
+    balloon = "Number of planar facets used to draw a tether"
+    default = 4
+    name = "Cartoon tether sides"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s sides %d" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min=3, max=10, **kw)
