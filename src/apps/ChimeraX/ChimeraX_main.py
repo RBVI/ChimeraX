@@ -470,7 +470,7 @@ def init(argv, event_loop=True):
         is_root = os.getuid() == 0
         if is_root:
             # ensure toolshed cache is not written
-            os.environ['HOME'] = "/non/existent/directory"
+            os.environ['HOME'] = "/do/not/run/as/root"
 
     if sys.platform.startswith('win'):
         if 'HOME' in os.environ:
