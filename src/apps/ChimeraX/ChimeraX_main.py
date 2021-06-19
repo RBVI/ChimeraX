@@ -8,7 +8,7 @@
 import sys
 import os
 
-__version__ = "0.1.0a0"     # version of this file -- PEP 440 compatible
+__version__ = "0.2.0a0"     # version of this file -- PEP 440 compatible
 
 app_name = "ChimeraX"
 app_author = "UCSF"
@@ -158,6 +158,7 @@ def _parse_python_args(argv, usage):
         yield None, argv[cur_index:]
 
     args = []
+    version = 0
     try:
         for opt, optarg in next_arg(argv):
             if opt is None:
@@ -182,14 +183,18 @@ def _parse_python_args(argv, usage):
                 opts.debug = True
                 opts.devel = True
                 opts.silent = False
-            elif opt == "-v":
-                opts.silent = False
             elif opt == "-V":
-                opts.version = 0
+                version += 1
     except RuntimeError as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
+    if version:
+        if version > 1:
+            print('Python', sys.version)
+        else:
+            print('Python', sys.version.split(' ', 1)[0])
+        raise SystemExit(0)
     return opts, args
 
 
@@ -229,6 +234,8 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.color = opt[2] == 'c'
         elif opt in ("--lineprofile", "--nolineprofile"):
             opts.line_profile = opt[2] == 'l'
+            if opts.line_profile:
+                opts.get_available_bundles = False
         elif opt == "--listioformats":
             opts.list_io_formats = True
         elif opt in ("--offscreen", "--nooffscreen"):
@@ -245,19 +252,20 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.commands.append(optarg)
         elif opt == "--script":
             opts.scripts.append(optarg)
+            opts.get_available_bundles = False
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
+            if not opts.load_tools:
+                opts.get_available_bundles = False
         elif opt == "--uninstall":
             opts.uninstall = True
         elif opt == "--safemode":
             opts.safe_mode = True
             opts.load_tools = False
         elif opt in ("--usedefaults", "--nousedefaults"):
-            opts.load_tools = opt[2] == 'u'
+            print(f"warning: {opt} is not supported yet", file=sys.stderr)
         elif opt == "--version":
             opts.version += 1
-        elif opt == "--qtscalefactor":
-            os.environ["QT_SCALE_FACTOR"] = optarg
         elif opt == "--toolshed":
             opts.toolshed = optarg
         else:
