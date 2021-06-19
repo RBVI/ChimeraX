@@ -419,12 +419,16 @@ def init(argv, event_loop=True):
     if not opts.line_profile:
         builtins.__dict__['line_profile'] = lambda x: x
     else:
-        # write profile results on exit
-        import atexit
-        import line_profiler
-        prof = line_profiler.LineProfiler()
-        builtins.__dict__['line_profile'] = prof
-        atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+        try:
+            import line_profiler
+            prof = line_profiler.LineProfiler()
+            builtins.__dict__['line_profile'] = prof
+            # write profile results on exit
+            import atexit
+            atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+        else:
+            print("warning: line_profiler is not available", file=sys.stderr)
+            builtins.__dict__['line_profile'] = lambda x: x
 
     from chimerax.core.utils import initialize_ssl_cert_dir
     initialize_ssl_cert_dir()

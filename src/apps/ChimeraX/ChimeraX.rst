@@ -226,6 +226,7 @@ Line Profiling
 
     Line profiling is based on `Robert Kern's <https://github.com/rkern>`_
     `line_profiler <https://github.com/rkern/line_profiler>`_ package.
+    Support is restricted to platforms that have binaries in pypi.org (just Linux for now).
     Differences from the conventional setup are given in parenthesizes.
 
     There are five parts to profiling:
