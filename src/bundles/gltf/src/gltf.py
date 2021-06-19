@@ -66,14 +66,25 @@ def read_gltf(session, filename, name):
     scenes, nodes = scene_and_node_models(j['scenes'], j['nodes'], name, session)
 
     # Make a Drawing for each mesh.
+    colors = material_colors(j.get('materials'))
     ba = buffer_arrays(j['accessors'], j['bufferViews'], bin_chunk)
-    mesh_drawings = meshes_as_models(session, j['meshes'], ba)
+    mesh_drawings = meshes_as_models(session, j['meshes'], colors, ba)
 
     # Add mesh drawings to node models.
+    already_used = set()
     for nm in nodes:
         if hasattr(nm, 'gltf_mesh'):
-            for d in mesh_drawings[nm.gltf_mesh]:
-                nm.add_drawing(d)
+            md = mesh_drawings[nm.gltf_mesh]
+            if len(md) == 1:
+                # Don't make a child model for a mesh if there is just one child.
+                copy_model(md[0], nm)
+            else:
+                for d in md:
+                    if d in already_used:
+                        # Copy drawing if instance is a child of more than one node
+                        d = copy_model(d)
+                    already_used.add(d)
+                    nm.add_drawing(d)
 
     return scenes, ('Opened glTF file containing %d scenes, %d nodes, %d meshes'
                     % (len(scenes), len(nodes), len(j['meshes'])))
@@ -146,15 +157,29 @@ def scene_and_node_models(scenes, nodes, file_name, session):
         sm.add([nmodels[ni] for ni in sm.gltf_nodes])
 
     # Add child nodes to parent nodes.
+    already_used = set()
+    copies = []
     for nm in nmodels:
         if hasattr(nm, 'gltf_child_nodes'):
-            nm.add([nmodels[ni] for ni in nm.gltf_child_nodes])
+            cmodels = []
+            for ni in nm.gltf_child_nodes:
+                c = nmodels[ni]
+                if c in already_used:
+                    # If a node is a child of multiple nodes copy it.
+                    gltf_mesh = getattr(c, 'gltf_mesh', None)
+                    c = copy_model(c)
+                    if gltf_mesh is not None:
+                        c.gltf_mesh = gltf_mesh
+                    copies.append(c)
+                already_used.add(c)
+                cmodels.append(c)
+            nm.add(cmodels)
 
-    return smodels, nmodels
+    return smodels, nmodels + copies
 
 # -----------------------------------------------------------------------------
 #
-def meshes_as_models(session, meshes, buf_arrays):
+def meshes_as_models(session, meshes, material_colors, buf_arrays):
 
     mesh_models = []
     ba = buf_arrays
@@ -189,12 +214,26 @@ def meshes_as_models(session, meshes, buf_arrays):
             else:
                 vc = None
             pd = Surface('p%d' % pi, session)
+            if 'material' in p:
+                pd.color = material_colors[p['material']]
             set_geometry(pd, va, na, vc, ta)
             pdlist.append(pd)
         mesh_models.append(pdlist)
 
     return mesh_models
-                    
+
+# -----------------------------------------------------------------------------
+#
+def copy_model(model, to_model = None):
+    if to_model is None:
+        to_model = gltfModel(model.name, model.session)
+        to_model.positions = model.positions
+    c = to_model
+    c.set_geometry(model.vertices, model.normals, model.triangles)
+    c.color = model.color
+    c.vertex_colors = model.vertex_colors
+    return c
+
 # -----------------------------------------------------------------------------
 #
 def read_chunks(input):
@@ -254,6 +293,22 @@ def set_geometry(model, va, na, vc, ta):
 
 # -----------------------------------------------------------------------------
 #
+def material_colors(materials):
+    if materials is None:
+        return []
+    colors = []
+    from chimerax.core.colors import rgba_to_rgba8
+    for material in materials:
+        pbr = material.get('pbrMetallicRoughness')
+        if pbr and 'baseColorFactor' in pbr:
+            color = rgba_to_rgba8(pbr['baseColorFactor'])
+        else:
+            color = (255,255,255,255)
+        colors.append(color)
+    return colors
+            
+# -----------------------------------------------------------------------------
+#
 def colors_to_uint8(vc):
     from numpy import empty, uint8, float32
     nc,ni = len(vc), vc.shape[1]
@@ -278,42 +333,49 @@ def colors_to_uint8(vc):
 #
 def write_gltf(session, filename, models = None,
                center = None, size = None, short_vertex_indices = False,
-               float_colors = False, preserve_transparency = True):
+               float_colors = False, preserve_transparency = True,
+               instancing = False):
     if models is None:
         models = session.models.list()
 
     drawings = all_visible_drawings(models)
+
+    buffers = Buffers()
+    materials = Materials()
+    nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
+                                     short_vertex_indices,
+                                     float_colors, preserve_transparency,
+                                     instancing)
+    
+    if center is not None or size is not None:
+        from chimerax.geometry import union_bounds
+        bounds = union_bounds(m.bounds() for m in models if m.is_visible)
+        if bounds is not None:
+            # Place positioning node above top-level nodes.
+            cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
+            nodes.append(cs_node)
+
+    encode_gltf(nodes, buffers, meshes, materials, filename)
+
+# -----------------------------------------------------------------------------
+#
+def encode_gltf(nodes, buffers, meshes, materials, filename):
     
     # Write 80 character comment.
     from chimerax.core import version
     app_ver  = 'UCSF ChimeraX %s' % version
-
-    b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors,
-                                     preserve_transparency)
-    node_index = {d:di for di,d in enumerate(drawings)}
-    shown_models = [m for m in models if m in node_index]
-    child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
-    top_models = [m for m in shown_models if node_index[m] not in child_nodes]
-    top_nodes = [node_index[m] for m in top_models]
     
-    if center is not None or size is not None:
-        from chimerax.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in top_models)
-        tnodes = [nodes[ni] for ni in top_nodes]
-        # Apply matrix to only top-level nodes
-        center_and_size(tnodes, bounds, center, size)
-        
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
-        'scenes': [{'nodes':top_nodes}],
+        'scenes': [{'nodes':top_nodes(nodes)}],
         'nodes': nodes,
         'meshes': meshes,
-        'accessors': b.accessors,
-        'bufferViews': b.buffer_views,
-        'buffers':[{'byteLength': b.nbytes}],
+        'accessors': buffers.accessors,
+        'materials': materials.material_specs,
+        'bufferViews': buffers.buffer_views,
+        'buffers':[{'byteLength': buffers.nbytes}],
     }
-    
+
     import json
     json_text = json.dumps(h).encode('utf-8')
     nj = len(json_text)
@@ -325,7 +387,7 @@ def write_gltf(session, filename, models = None,
     ctype = b'JSON'
     json_chunk = b''.join((clen, ctype, json_text))
 
-    binc = b.chunk_bytes()
+    binc = buffers.chunk_bytes()
     blen = to_bytes(len(binc), uint32)
     btype = b'BIN\x00'
     bin_chunk = b''.join((blen, btype, binc))
@@ -338,6 +400,14 @@ def write_gltf(session, filename, models = None,
     for b in (magic, version, length, json_chunk, bin_chunk):
         file.write(b)
     file.close()
+
+# -----------------------------------------------------------------------------
+#
+def top_nodes(nodes):
+    # List all top level nodes as scenes.
+    child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
+    top = [i for i,node in enumerate(nodes) if i not in child_nodes]
+    return top
 
 # -----------------------------------------------------------------------------
 # Collect all drawings including descendants of specified models, excluding
@@ -372,61 +442,168 @@ def any_triangles_shown(d, drawings, ts):
     return ts[d]
 
 # -----------------------------------------------------------------------------
+# Expand drawing instances into nodes and meshes.
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False,
-                     preserve_transparency = True):
-    nodes = []
+def nodes_and_meshes(drawings, buffers, materials, short_vertex_indices = False,
+                     float_colors = False, preserve_transparency = True,
+                     leaf_instancing = True):
+
+    # Create tree of nodes with children and matrices set.
+    nodes, drawing_nodes = node_tree(drawings, leaf_instancing)
+
+    # Create meshes for nodes.
     meshes = []
-    b = buffers
-    drawing_index = {d:di for di,d in enumerate(drawings)}
-    from numpy import float32, uint32, uint16
-    for d in drawings:
-        dn = {'name':d.name}
-        cn = [drawing_index[c] for c in d.child_drawings() if c in drawing_index]
-        if cn:
-            dn['children'] = cn
-        nodes.append(dn)
+    for d, dnodes in drawing_nodes.items():
         va, na, vc, ta = d.vertices, d.normals, d.vertex_colors, d.masked_triangles
         if va is None or ta is None or len(ta) == 0:
             continue
-        dn['mesh'] = len(meshes)
-        pos = d.get_scene_positions(displayed_only = True)
-        if pos.is_identity():
-            geom = [(va,na,vc,ta)]
-        elif len(pos) > 1:
-            ic = d.get_colors(displayed_only = True)
-            if len(ic) < len(pos):
-                # Have parent with instances so duplicate colors
-                n = len(pos) // len(ic)
-                from numpy import concatenate
-                ic = concatenate([ic]*n)
-            geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
+
+        if not leaf_instancing:
+            positions = d.get_positions(displayed_only = True)
+            if not positions.is_identity():
+                instance_colors = d.get_colors(displayed_only = True)
+                va,na,vc,ta = combine_instance_geometry(va, na, vc, ta,
+                                                        positions, instance_colors)
+
+        single_colors = [n['single_color'] for n in dnodes]
+        prims = primitives_from_geometry(va, na, vc, ta, single_colors,
+                                         buffers, materials, short_vertex_indices,
+                                         float_colors, preserve_transparency)
+        for node,prim in zip(dnodes, prims):
+            node['mesh'] = len(meshes)
+            meshes.append({'primitives': prim})
+
+    for node in nodes:
+        del node['single_color']
+
+    return nodes, meshes
+
+# -----------------------------------------------------------------------------
+# The GLTF 2.0 spec requires that a node cannot be the child of more than one
+# other node.  So the child nodes for drawing instances need to be duplicated.
+#
+def node_tree(drawings, leaf_instancing):
+    
+    # Find top level drawings.
+    child_drawings = []
+    for d in drawings:
+        child_drawings.extend(d.child_drawings())
+    child_set = set(child_drawings)
+    top_drawings = [d for d in drawings if not d in child_set]
+
+    # Create the node hierarchy expanding instances into nodes.
+    nodes = []		# All nodes.
+    drawing_nodes = {}	# Maps drawing to list of nodes that are copies of that drawing.
+    drawing_set = set(drawings)
+    for drawing in top_drawings:
+        create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing)
+
+    return nodes, drawing_nodes
+
+# -----------------------------------------------------------------------------
+# Create node hierarchy starting at drawing, adding new nodes to nodes list
+# and to the drawing_nodes mapping that records all the node copies for each
+# drawing.
+#
+def create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing):
+    dn = {'name': drawing.name,
+          'single_color': drawing.color}
+    dni = len(nodes)
+    nodes.append(dn)
+
+    children = [c for c in drawing.child_drawings() if c.display and c in drawing_set]
+
+    positions = drawing.get_positions(displayed_only = True)
+    if len(positions) == 1:
+        inodes = gnodes = [dn]
+        if not positions.is_identity():
+            dn['matrix'] = gltf_transform(positions[0])
+    elif leaf_instancing or children:
+        ic = drawing.get_colors(displayed_only = True)
+        inodes = [{'name': '%s %d' % (drawing.name, i+1),
+                   'matrix': gltf_transform(p),
+                   'single_color': ic[i]}
+                  for i,p in enumerate(positions)]
+        ni = len(nodes)
+        nodes.extend(inodes)
+        dn['children'] = list(range(ni,ni+len(inodes)))
+        gnodes = inodes if leaf_instancing else [dn]
+    else:
+        # Copying leaf node geometry so don't make child nodes.
+        gnodes = [dn]
+        
+    if drawing not in drawing_nodes:
+        drawing_nodes[drawing] = []
+    drawing_nodes[drawing].extend(gnodes)
+
+    if children:
+        for node in inodes:
+            node['children'] = [create_node(c, drawing_set, nodes, drawing_nodes, leaf_instancing)
+                                for c in children]
+
+    return dni
+
+# -----------------------------------------------------------------------------
+#
+def primitives_from_geometry(vertices, normals, vertex_colors, triangles, instance_colors,
+                             buffers, materials, short_vertex_indices,
+                             float_colors, preserve_transparency):
+
+    geom = [(vertices, normals, vertex_colors, triangles)]
+    if short_vertex_indices:
+        geom = limit_vertex_count(geom)
+
+    geom_bufs = geometry_buffers(geom, buffers, short_vertex_indices,
+                                 float_colors, preserve_transparency)
+
+    prims = [geometry_primitives(geom_bufs, color, materials, preserve_transparency)
+             for color in instance_colors]
+
+    return prims
+
+# -----------------------------------------------------------------------------
+#
+def geometry_buffers(geom, buffers, short_vertex_indices,
+                     float_colors, preserve_transparency):
+    geom_bufs = []
+    b = buffers
+    from numpy import float32, uint32, uint16
+    for pva,pna,pvc,pta in geom:
+        pi = b.add_array(pva.astype(float32, copy=False), bounds=True)
+        ni = b.add_array(pna) if pna is not None else None
+        if pvc is None:
+            ci = None
         else:
-            p0 = pos[0]
-            geom = [(p0*va, p0.transform_vectors(na), vc, ta)]
-        if short_vertex_indices:
-            geom = limit_vertex_count(geom)
-        prims = []
-        for pva,pna,pvc,pta in geom:
-            attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
-            if pna is not None:
-                attr['NORMAL'] = b.add_array(pna)
-            if pvc is None:
-                pvc = single_vertex_color(len(pva), d.color)
             if not preserve_transparency:
                 pvc = pvc[:,:3]
             if float_colors:
                 pvc = pvc.astype(float32)
                 pvc /= 255
-            attr['COLOR_0'] = b.add_array(pvc, normalized = not float_colors)
-            etype = uint16 if short_vertex_indices else uint32
-            ne = len(pta)
-            ea = pta.astype(etype, copy=False).reshape((3*ne,))
-            elem = b.add_array(ea)
-            prims.append({'attributes': attr, 'indices':elem})
-        meshes.append({'primitives': prims})
+            ci = b.add_array(pvc, normalized = not float_colors)
+        etype = uint16 if short_vertex_indices else uint32
+        ne = len(pta)
+        ea = pta.astype(etype, copy=False).reshape((3*ne,))
+        ti = b.add_array(ea)
+        geom_bufs.append((pi,ni,ci,ti))
 
-    return nodes, meshes
+    return geom_bufs
+
+# -----------------------------------------------------------------------------
+#
+def geometry_primitives(geom_bufs, color, materials, preserve_transparency):
+    prims = []
+    for vi,ni,ci,ti in geom_bufs:
+        attr = {'POSITION': vi}
+        prim = {'attributes': attr,
+                'indices': ti}
+        if ni is not None:
+            attr['NORMAL'] = ni
+        if ci is None:
+            prim['material'] = materials.single_color(color, preserve_transparency)
+        else:
+            attr['COLOR_0'] = ci
+        prims.append(prim)
+    return prims
 
 # -----------------------------------------------------------------------------
 # Split triangle geometry so vertex arrays are of specified maximum size.
@@ -522,6 +699,30 @@ class Buffers:
 
 # -----------------------------------------------------------------------------
 #
+class Materials:
+    def __init__(self):
+        self._colors = {}	# color 255 tuple -> index
+        self._color_specs = []
+        
+    def single_color(self, color, preserve_transparency = True):
+        r,g,b,a = color
+        if not preserve_transparency:
+            a = 255
+        c = (r,g,b,a)
+        ci = self._colors.get(c, None)
+        if ci is None:
+            self._colors[c] = ci = len(self._color_specs)
+            self._color_specs.append(c)
+        return ci
+
+    @property
+    def material_specs(self):
+        from chimerax.core.colors import rgba8_to_rgba
+        return [{'pbrMetallicRoughness': {'baseColorFactor': rgba8_to_rgba(rgba)}}
+                 for rgba in self._color_specs]
+
+# -----------------------------------------------------------------------------
+#
 def center_and_size(nodes, bounds, center, size):
 
     if bounds is None:
@@ -538,8 +739,19 @@ def center_and_size(nodes, bounds, center, size):
               0,0,f,0,
               tx,ty,tz,1]
     
-    for n in nodes:
-           n['matrix'] = matrix
+    cs_node = {'name': 'centering',
+               'children': nodes,
+               'matrix': matrix}
+    return cs_node
+
+# -----------------------------------------------------------------------------
+#
+def gltf_transform(place):
+    (m00,m01,m02,m03),(m10,m11,m12,m13),(m20,m21,m22,m23) = place.matrix
+    return [m00,m10,m20,0,
+            m01,m11,m21,0,
+            m02,m12,m22,0,
+            m03,m13,m23,1]
 
 # -----------------------------------------------------------------------------
 #
