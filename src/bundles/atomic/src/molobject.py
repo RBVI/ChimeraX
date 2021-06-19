@@ -117,6 +117,8 @@ class Bond(State):
     halfbond = c_property('bond_halfbond', npy_bool, doc = "Supported API. Whether to "
         "color the each half of the bond nearest an end atom to match that atom color, "
         "or use a single color and the bond color attribute.  Boolean value.")
+    in_cycle = c_property('bond_in_cycle', npy_bool, read_only = True,
+        doc = "Supported API. Is the bond in a cycles of bonds?  Boolean value.")
     radius = c_property('bond_radius', float32,
         doc = "Displayed cylinder radius for the bond.")
     hide = c_property('bond_hide', int32, doc = "Supported API. Whether bond is hidden "

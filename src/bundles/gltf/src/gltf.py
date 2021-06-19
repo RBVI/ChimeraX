@@ -394,8 +394,12 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
         if pos.is_identity():
             geom = [(va,na,vc,ta)]
         elif len(pos) > 1:
-            # TODO: Need instance colors to take account of parent instances.
             ic = d.get_colors(displayed_only = True)
+            if len(ic) < len(pos):
+                # Have parent with instances so duplicate colors
+                n = len(pos) // len(ic)
+                from numpy import concatenate
+                ic = concatenate([ic]*n)
             geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
         else:
             p0 = pos[0]
@@ -406,11 +410,7 @@ def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colo
         for pva,pna,pvc,pta in geom:
             attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
             if pna is not None:
-                # TODO: Ribbon normals were normalized, bug #829.  Normalize to work around.
-                from numpy import sqrt, newaxis
-                lengths = sqrt((pna*pna).sum(axis=1))
-                pnna = pna / lengths[..., newaxis]
-                attr['NORMAL'] = b.add_array(pnna)
+                attr['NORMAL'] = b.add_array(pna)
             if pvc is None:
                 pvc = single_vertex_color(len(pva), d.color)
             if not preserve_transparency:

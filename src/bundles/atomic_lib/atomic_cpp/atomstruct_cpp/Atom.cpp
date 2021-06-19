@@ -1068,8 +1068,9 @@ Atom::is_missing_heavy_template_neighbors(bool chain_start, bool chain_end, bool
         if (nb->element().number() > 1 && nb->residue() == residue())
             ++heavys;
     for (auto tnb: tmpl_atom->neighbors())
-        if (tnb->element().number() > 1 && tnb->element().number() != 15)
-            // okay for nucleic phosphorus to be missing
+        if (tnb->element().number() > 1
+        && !(tnb->element().number() == 15 && tmpl_atom->name() != "OP1" && tmpl_atom->name() != "OP2"))
+            // okay for nucleic phosphorus to be missing (but not to OP1/2!)
             ++tmpl_heavys;
     return heavys < tmpl_heavys;
 }
