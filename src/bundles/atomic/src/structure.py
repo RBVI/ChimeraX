@@ -77,8 +77,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED
+        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
+        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -445,6 +446,12 @@ class Structure(Model, StructureData):
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
 
+    def _notify_display_change(self, trig_name, model):
+        if model != self:
+            return
+        # ensure that "display changed" trigger fires
+        StructureData.display.fset(self, self.display)
+
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
         bd = self._bonds_drawing
@@ -702,7 +709,7 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         elif itype == 'residues':
-            from .molarray import concatenate, Atoms
+            from . import concatenate, Atoms
             atoms, bonds = self.atoms, self.bonds
             sel_residues = []
             if atoms.num_selected > 0:
@@ -717,6 +724,8 @@ class Structure(Model, StructureData):
             if sel_residues:
                 from . import concatenate, Residues
                 return [concatenate(sel_residues, Residues, remove_duplicates=True).unique()]
+        elif itype == 'structures':
+            return [[self]] if self.selected else []
         return []
 
     def clear_selection(self):

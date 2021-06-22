@@ -120,7 +120,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices imex lineprofiler openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools cxservices imex openmm pips PyQt Python qtshim
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -189,8 +189,8 @@ cxservices.install: pips.install
 cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-lineprofiler.install: pips.install
-lineprofiler.app-install: pips.app-install
+#lineprofiler.install: pips.install
+#lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
 openmm.app-install: Python.app-install pips.app-install

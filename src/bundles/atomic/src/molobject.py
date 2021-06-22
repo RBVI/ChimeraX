@@ -1374,6 +1374,9 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    display = c_property('structure_display', npy_bool, doc =
+        "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
+        "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
     idatm_valid = c_property('structure_idatm_valid', npy_bool,
         doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,

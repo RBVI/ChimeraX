@@ -18,6 +18,7 @@ class ItemsInspection(ProviderManager):
     def __init__(self, session):
         self.session = session
         self._item_info = {}
+        self._ui_names = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("inspection items changed")
@@ -33,7 +34,7 @@ class ItemsInspection(ProviderManager):
             info = self._item_info[item_type] = info.run_provider(self.session, item_type, self)
         return info[:]
 
-    def add_provider(self, bundle_info, name, **kw):
+    def add_provider(self, bundle_info, name, *, ui_name=None, **kw):
         """ The provider's run_provider method should return a list of 2-tuples.  The first member of each
             tuple should be a chimerax.ui.options class that can be instantiated to inspect a property of
             the item type.  The resulting instance should have a "command_format" attribute that is a
@@ -56,8 +57,15 @@ class ItemsInspection(ProviderManager):
             option constructor, the option needs to have its 'default' class attribute set in the
             class definition (unless a default of None is acceptable, which is what is provided to
             the constructor).
+
+            If an item wants to present a different name in user interfaces than 'name', then ui_name
+            should be specified in its Provider tag.
         """
         self._item_info[name] = bundle_info
+        self._ui_names[name] = name if ui_name is None else ui_name
 
     def end_providers(self):
         self.triggers.activate_trigger("inspection items changed", self)
+
+    def ui_name(self, item_type):
+        return self._ui_names[item_type]
