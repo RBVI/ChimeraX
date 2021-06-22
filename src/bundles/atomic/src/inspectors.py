@@ -29,8 +29,8 @@ def item_options(session, name, **kw):
             ResidueRibbonShownOption, ResidueRingColorOption, ResidueSSIDOption, ResidueSSTypeOption,
             ResidueThinRingsOption]],
         'structures': [make_tuple(opt, "structure") for opt in [StructureBallScaleOption,
-            StructureRibbonTetherOpacityOption, StructureRibbonTetherScaleOption,
-            StructureRibbonTetherShapeOption, StructureRibbonTetherSidesOption]],
+            StructureHelixModeOption, StructureRibbonTetherOpacityOption, StructureRibbonTetherScaleOption,
+            StructureRibbonTetherShapeOption, StructureRibbonTetherSidesOption, StructureShownOption]],
     }[name]
 
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
@@ -443,3 +443,27 @@ class StructureRibbonTetherSidesOption(IntOption):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, min=3, max=10, **kw)
+
+class StructureShownOption(BooleanOption):
+    attr_name = "display"
+    default = True
+    name = "Shown"
+    @property
+    def command_format(self):
+        return "%s %%s models" % ("show" if self.value else "hide")
+
+class StructureHelixModeOption(SymbolicEnumOption):
+    values = (Structure.RIBBON_MODE_DEFAULT, Structure.RIBBON_MODE_ARC, Structure.RIBBON_MODE_WRAP)
+    labels = ("default", "tube", "wrap")
+    attr_name = "ribbon_mode_helix"
+    balloon = "How peptide helices are depicted in cartoons.  If 'default', depicted as\n" \
+        "a ribbon whose flat surface faces outward from the local curvature of the\n" \
+        "peptide chain.  If 'tube', as a cylinder that follows the overall curvature\n" \
+        "of the helix path.  If 'wrap', similar to 'default' except following the same\n" \
+        "curved path as 'tube'."
+    default = Structure.RIBBON_MODE_DEFAULT
+    name = "Cartoon helix style"
+    @property
+    def command_format(self):
+        return "cartoon style %%s modeHelix %s" % self.labels[self.values.index(self.value)]
+

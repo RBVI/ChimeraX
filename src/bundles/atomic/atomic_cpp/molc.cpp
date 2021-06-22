@@ -4445,6 +4445,12 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void set_structure_display(void *structures, size_t n, npy_bool *display)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_display, display);
+}
+
 extern "C" EXPORT PyObject* structure_bonded_groups(void *structure, bool consider_missing_structure)
 {
     Structure *s = static_cast<Structure *>(structure);
@@ -4778,6 +4784,12 @@ extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_boo
 {
     Structure **s = static_cast<Structure **>(structures);
     error_wrap_array_get(s, n, &Structure::ss_assigned, ss_assigned);
+}
+
+extern "C" EXPORT void structure_display(void *structures, size_t n, npy_bool *display)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::display, display);
 }
 
 extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)
