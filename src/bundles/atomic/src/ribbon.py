@@ -729,6 +729,12 @@ class TethersDrawing(Drawing):
             # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
             from chimerax.surface import cone_geometry
             va, na, ta = cone_geometry(nc=tether_sides, caps=False, points_up=False)
+            # Instancing stretches the cone along its axis and distorts the normal
+            # vectors which makes the cone too opaque.  So use cylinder normals
+            # to mitigate the problem.  Bug #4797.
+            na[:,2] = 0
+            from chimerax.geometry import normalize_vectors
+            normalize_vectors(na)
         self.set_geometry(va, na, ta)
 
     def update_tethers(self, structure):
