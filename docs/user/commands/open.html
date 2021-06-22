@@ -1268,6 +1268,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<a href="#resName"><b>resName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -1308,6 +1309,14 @@ even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
 details in ticket #3515
 RCSB says that in 2021 all will be mmCIF and as one model per assembly
 -->
+</p><p>
+<a name="resName"></a>
+The <b>resName</b> option applies only to <a href="#pubchem">PubChem3D</a>
+and <a href="#smiles">SMILES</a> fetches;
+it assigns a residue name to the compound (default UNL).
+For compatibility with other programs and PDB format,
+three-character residue names consisting of uppercase letters 
+and possibly numbers are recommended. 
 </p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
@@ -1428,11 +1437,11 @@ Chimera instructions</a> for available identifiers
 </td>
 <td align="center"><b>cellpack</b></td>
 </tr><tr>
-<td align="center">
-<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
 target="_blank">PubChem3D</a></td>
 <td align="center"><b>pubchem</b></td>
-<td align="center">modeled atomic coordinates specified by
+<td align="center"><a name="pubchem"></a>
+modeled atomic coordinates specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID); 
 <br>available for most but not all entries in PubChem Compound
@@ -1443,7 +1452,8 @@ compound identifier (CID);
 </tr><tr>
 <td align="center">SMILES &rarr; 3D translator</td>
 <td align="center"><b>smiles</b></td>
-<td align="center">modeled atomic coordinates specified by
+<td align="center"><a name="smiles"></a>
+modeled atomic coordinates specified by
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string, generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
