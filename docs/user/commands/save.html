@@ -60,7 +60,9 @@ The file type is specified with either the
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
 </p><p>
-Sessions, images, and scenes include all contents, but map and atomic coordinate
+<a name="models"></a>
+Sessions, images, and scenes (most formats) include all contents, 
+but atomic coordinate, <a href="#map">map</a>, and <a href="#gltf">GLTF</a>
 saving can be limited to specific models with the <b>models</b> option.
 The <b>models</b> keyword can be omitted if
 <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -936,11 +938,13 @@ Example:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b>&nbsp;&nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
+[&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Several options apply only to saving
@@ -975,8 +979,26 @@ Whether to use floating-point color values.
 <br>
 Whether to include any transparency of the objects. 
 </blockquote>
+<blockquote>
+<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use instancing for atoms and bonds (and a few other types
+of items at the lowest level of the drawing hierarchy).
+Instancing can significantly reduce file size, but conversely,
+it increases the number of GLTF nodes, which may slow down
+rendering or other downstream processing of the file (<i>e.g.</i>,
+by other programs) for structures with many thousands of atoms.
+If false (default), all the atoms of model are combined into a single node,
+but each includes its own geometry or triangulation information,
+making the file large. If <b>instancing</b> is true, 
+then each atom is made into a separate node,
+but they all share a single copy of the triangulation, making the 
+file smaller. The meaning for bonds is analogous to that for atoms.
+Instancing is always used for <a href="sym.html#copies">graphical clones</a>
+created with <a href="sym.html"><b>sym</b></a> regardless of this option.
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+June 2021</address>
 </body></html>
