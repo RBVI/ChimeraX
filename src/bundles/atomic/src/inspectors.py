@@ -21,6 +21,8 @@ def item_options(session, name, **kw):
             AtomIdatmTypeOption, AtomOccupancyOption, AtomRadiusOption, AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
+        'pseudobond groups': [make_tuple(opt, "pseudobond_group") for opt in [PBGColorOption,
+            PBGDashesOption, PBGHalfBondOption, PBGRadiusOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
             PBondLengthOption, PBondRadiusOption, PBondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
@@ -36,8 +38,11 @@ def item_options(session, name, **kw):
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
     SymbolicEnumOption
 from chimerax.core.colors import color_name
+from chimerax.core.commands import StringArg
 from chimerax.core.utils import CustomSortString
 from . import Atom, Element, Residue, Structure
+
+color_arg = lambda x: StringArg.unparse(color_name(x))
 
 class AtomBFactorOption(FloatOption):
     attr_name = "bfactor"
@@ -61,7 +66,7 @@ class AtomColorOption(ColorOption):
     name = "Color"
     @property
     def command_format(self):
-        return "color %%s %s atoms" % color_name(self.value)
+        return "color %%s %s atoms" % color_arg(self.value)
 
 idatm_entries = list(Atom.idatm_info_map.keys()) + [nm for nm in Element.names if len(nm) < 3]
 class AtomIdatmTypeOption(EnumOption):
@@ -135,7 +140,7 @@ class BaseBondColorOption(ColorOption):
 
     @property
     def command_format(self):
-        return "color =%%s %s %sbonds" % (color_name(self.value), self.prefix)
+        return "color =%%s %s %sbonds" % (color_arg(self.value), self.prefix)
 
 class BaseBondHalfBondOption(BooleanOption):
     def __init_subclass__(cls, **kwargs):
@@ -235,6 +240,51 @@ class AngleOption(FloatOption):
             kw['step'] = 5.0
         super().__init__(*args, **kw)
 
+class PBGColorOption(ColorOption):
+    attr_name = "color"
+    balloon = "Pseudobond model color.  Setting it will set all member pseudobonds\n" \
+        "to that color, and newly created pseudobonds will be that color."
+    default = "gold"
+    name = "Color"
+    @property
+    def command_format(self):
+        return "setattr %%s g color %s" % color_arg(self.value)
+
+class PBGDashesOption(IntOption):
+    attr_name = "dashes"
+    balloon = "Number of dashes per pseudobond.  Zero gives a solid stick.\n" \
+        "Currently odd values are rounded down to the next even value."
+    default = 9
+    name = "Dashes"
+    @property
+    def command_format(self):
+        return "style %%s dashes %d" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min=0, **kw)
+
+class PBGHalfBondOption(BooleanOption):
+    balloon = "If true, each half of the pseudobonds are colored the same as their neighboring atoms.\n" \
+            "Otherwise, the pseudobonds use their own color attribute for the whole pseudobond."
+    attr_name = "halfbond"
+    default = True
+    name = "Halfbond mode"
+    @property
+    def command_format(self):
+        return "setattr %%s g halfbond %s" % str(self.value).lower()
+
+class PBGRadiusOption(FloatOption):
+    attr_name = "radius"
+    balloon = "Pseudobond radius"
+    default = 1.4
+    name = "Radius"
+    @property
+    def command_format(self):
+        return "setattr %%s g radius %g" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min='positive', **kw)
+
 class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
@@ -313,7 +363,7 @@ class ResidueRibbonColorOption(ColorOption):
     name = "Cartoon color"
     @property
     def command_format(self):
-        return "color %%s %s target r" % color_name(self.value)
+        return "color %%s %s target r" % color_arg(self.value)
 
 class ResidueRibbonHidesBackboneOption(BooleanOption):
     attr_name = "ribbon_hide_backbone"
@@ -340,7 +390,7 @@ class ResidueRingColorOption(ColorOption):
     name = "Ring fill color"
     @property
     def command_format(self):
-        return "color %%s %s target f" % color_name(self.value)
+        return "color %%s %s target f" % color_arg(self.value)
 
 class ResidueSSIDOption(IntOption):
     attr_name = "ss_id"

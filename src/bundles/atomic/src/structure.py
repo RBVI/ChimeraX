@@ -2285,9 +2285,9 @@ from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
-        {attr_name: types for attr_name, types in getattr(reg_class, '_cython_property_return_info', [])})
+        {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
     if not isinstance(inst, AtomicStructure)],
-    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})
+    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

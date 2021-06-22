@@ -1425,6 +1425,17 @@ class PseudobondGroupDatas(Collection):
         Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
                             PseudobondGroupDatas)
 
+    colors = cvec_property('pseudobond_group_color', uint8, 4,
+        doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
+        "with such an array (or equivalent sequence), or with a single RGBA value.")
+    halfbonds = cvec_property('pseudobond_group_halfbond', npy_bool)
+    '''
+    Controls whether the pseudobonds should be colored in "halfbond"
+    mode, *i.e.* each half colored the same as its endpoint atom.
+    Returns a :mod:`numpy` array of boolean values.  Can be
+    set with such an array (or equivalent sequence), or with a
+    single boolean value.
+    '''
     pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                                 astype = _pseudobonds, read_only = True, per_object = False)
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
@@ -1432,6 +1443,9 @@ class PseudobondGroupDatas(Collection):
     '''A numpy string array of categories of each group.'''
     num_pseudobonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
+    radii = cvec_property('pseudobond_group_radius', float32,
+        doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
+        "sequence), or with a single floating-point number.")
 
 # -----------------------------------------------------------------------------
 #
@@ -1442,6 +1456,15 @@ class PseudobondGroups(PseudobondGroupDatas):
     def __init__(self, pbg_pointers):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+
+    @property
+    def dashes(self):
+        return array([pbg.dashes for pbg in self])
+
+    @dashes.setter
+    def dashes(self, n):
+        for pbg in self:
+            pbg.dashes = n
 
     @classmethod
     def session_restore_pointers(cls, session, data):
