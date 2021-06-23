@@ -437,6 +437,24 @@ class StructureDatas(Collection):
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
 
+    @property
+    def autochains(self):
+        return array([s.autochain for s in self])
+    
+    @autochains.setter
+    def autochains(self, ac):
+        for s in self:
+            s.autochain = ac
+
+    @property
+    def names(self):
+        return array([s.name for s in self])
+
+    @names.setter
+    def names(self, nm):
+        for s in self:
+            s.name = nm
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -1465,6 +1483,10 @@ class PseudobondGroups(PseudobondGroupDatas):
     def dashes(self, n):
         for pbg in self:
             pbg.dashes = n
+
+    @property
+    def names(self):
+        return array([pbg.name for pbg in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
