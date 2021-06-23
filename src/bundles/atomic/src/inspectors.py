@@ -22,7 +22,7 @@ def item_options(session, name, **kw):
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
         'pseudobond groups': [make_tuple(opt, "pseudobond_group") for opt in [PBGColorOption,
-            PBGDashesOption, PBGHalfBondOption, PBGRadiusOption]],
+            PBGDashesOption, PBGHalfBondOption, PBGNameOption, PBGRadiusOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
             PBondLengthOption, PBondRadiusOption, PBondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
@@ -30,13 +30,12 @@ def item_options(session, name, **kw):
             ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
             ResidueRibbonShownOption, ResidueRingColorOption, ResidueSSIDOption, ResidueSSTypeOption,
             ResidueThinRingsOption]],
-        'structures': [make_tuple(opt, "structure") for opt in [StructureBallScaleOption,
-            StructureHelixModeOption, StructureRibbonTetherOpacityOption, StructureRibbonTetherScaleOption,
-            StructureRibbonTetherShapeOption, StructureRibbonTetherSidesOption, StructureShownOption]],
+        'structures': [make_tuple(opt, "structure") for opt in [StructureAutochainOption,
+            StructureBallScaleOption, StructureNameOption, StructureShownOption]],
     }[name]
 
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
-    SymbolicEnumOption
+    SymbolicEnumOption, StringOption
 from chimerax.core.colors import color_name
 from chimerax.core.commands import StringArg
 from chimerax.core.utils import CustomSortString
@@ -46,7 +45,6 @@ color_arg = lambda x: StringArg.unparse(color_name(x))
 
 class AtomBFactorOption(FloatOption):
     attr_name = "bfactor"
-    balloon = "Atomic temperature factor"
     default = 1.0
     name = "B-factor"
     @property
@@ -61,7 +59,6 @@ class AtomBFactorOption(FloatOption):
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
-    balloon = "Atom color"
     default = "white"
     name = "Color"
     @property
@@ -72,7 +69,6 @@ idatm_entries = list(Atom.idatm_info_map.keys()) + [nm for nm in Element.names i
 class AtomIdatmTypeOption(EnumOption):
     values = sorted(idatm_entries)
     attr_name = "idatm_type"
-    balloon = "IDATM type"
     default = "C3"
     name = "IDATM type"
     @property
@@ -85,7 +81,6 @@ class AtomIdatmTypeOption(EnumOption):
 
 class AtomOccupancyOption(FloatOption):
     attr_name = "occupancy"
-    balloon = "Fraction of time that atom is in this location"
     default = 1.0
     name = "Occupancy"
     @property
@@ -100,7 +95,6 @@ class AtomOccupancyOption(FloatOption):
 
 class AtomRadiusOption(FloatOption):
     attr_name = "radius"
-    balloon = "Atomic radius"
     default = 1.4
     name = "Radius"
     @property
@@ -122,7 +116,6 @@ class AtomStyleOption(SymbolicEnumOption):
     values = (1, 0, 2)
     labels = ("ball", "sphere", "stick")
     attr_name = "draw_mode"
-    balloon = "Atom/bond display style"
     default = 0
     name = "Style"
     @property
@@ -132,7 +125,7 @@ class AtomStyleOption(SymbolicEnumOption):
 class BaseBondColorOption(ColorOption):
     def __init_subclass__(cls, **kwargs):
         cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
-        cls.balloon = "If not in half bond mode, the color of the %sbond" % (cls.prefix)
+        cls.balloon = "If not in halfbond mode, the color of the %sbond" % (cls.prefix)
 
     attr_name = "color"
     default = "white"
@@ -175,9 +168,9 @@ class BaseBondLengthOption(FloatOption):
 class BaseBondRadiusOption(FloatOption):
     def __init_subclass__(cls, **kwargs):
         cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
-        cls.balloon = "%sbond radius" % cls.prefix
 
     attr_name = "radius"
+    balloon = "stick radius"
     default = 0.2
     name = "Radius"
     @property
@@ -273,6 +266,18 @@ class PBGHalfBondOption(BooleanOption):
     def command_format(self):
         return "setattr %%s g halfbond %s" % str(self.value).lower()
 
+class PBGNameOption(StringOption):
+    attr_name = "name"
+    default = "unknown"
+    name = "Name"
+    @property
+    def command_format(self):
+        return "setattr %%s g name %s" % StringArg.unparse(self.value)
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
 class PBGRadiusOption(FloatOption):
     attr_name = "radius"
     balloon = "Pseudobond radius"
@@ -350,7 +355,7 @@ class ResiduePsiOption(AngleOption):
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
-    balloon = "Whether to depict rings as filled/solid"
+    balloon = "Whether ring fill should be thick or thin"
     default = False
     name = "Fill rings"
     @property
@@ -424,9 +429,18 @@ class ResidueThinRingsOption(SymbolicEnumOption):
     def command_format(self):
         return "setattr %%s r thin_rings %s" % str(self.value).lower()
 
+class StructureAutochainOption(BooleanOption):
+    attr_name = "autochain"
+    balloon = "Fraction of atomic radius to use in ball-and-stick style"
+    default = True
+    name = "Autochain"
+    @property
+    def command_format(self):
+        return "setattr %%s structures autochain %s" % str(self.value).lower()
+
 class StructureBallScaleOption(FloatOption):
     attr_name = "ball_scale"
-    balloon = "Fraction of atom radius to use for ball depiction in ball-and-stick"
+    balloon = "Fraction of atomic radius to use in ball-and-stick style"
     default = 0.25
     name = "Ball scale"
     @property
@@ -439,6 +453,14 @@ class StructureBallScaleOption(FloatOption):
         if 'step' not in kw:
             kw['step'] = .01
         super().__init__(*args, **kw)
+
+class StructureNameOption(StringOption):
+    attr_name = "name"
+    default = "unknown"
+    name = "Name"
+    @property
+    def command_format(self):
+        return "setattr %%s structures name %s" % StringArg.unparse(self.value)
 
 class StructureRibbonTetherOpacityOption(FloatOption):
     attr_name = "ribbon_tether_opacity"
