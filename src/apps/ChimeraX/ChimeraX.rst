@@ -7,9 +7,11 @@ ChimeraX Startup
 The ChimeraX application runs on Microsoft Windows, Apple Mac OS X,
 and Linux.
 
-For the developer,
-command line arguments are used to access functionality that is accessible
-by the user.
+By default, ChimeraX does an asynchronous network query
+of the ChimeraX Toolshed for available bundles at startup once a week.
+The interval can be changed in the Toolshed settings.
+The Toolshed query is implicitly turned off when certain command line arguments are given
+as noted below.
 
 Command Line Arguments
 ======================
@@ -19,31 +21,29 @@ various options followed by data files.
 The data files are specified with same syntax as the filename argument
 of Models' :py:func:`~chimerax.core.models.Models.open`.
 
-Command Line Options
---------------------
+Command line options can start with either a single dash or a double dash
+and may not be mixed.
 
-In particular, the follow command line arguments are useful:
+Single Dash Commmand Line Options
+---------------------------------
+
+All of the Python single dash command line options are recognized.
+The presence of any single dash argument turns off querying the Toolshed at startup.
+Most are ignored except for the following:
 
 ``-c command``
     Only recognized if it is the first argument.
-    Act like the Python interpreter and run the command
+    Act like the Python interpreter and run the Python command
     with the rest of the arguments in :py:obj:`sys.argv`.
     Implies ``--nogui`` and ``--silent``.
     This is done after ChimeraX has started up, so a ChimeraX session
     is available in the global variable ``session``.
 
-``--cmd command``
+``-d``
+    Turn on debugging.
 
-    Run the ChimeraX command at startup after starting tools.
-
-``--debug``
-    Turn on debugging code.  Accessing within ChimeraX with ``session.debug``.
-
-``--lineprofile``
-    Turn on line profiling.  See `Line Profiling`_ for details.
-
-``--listioformats``
-    Show all recognized file suffixes and if they can be opened or saved.
+``-h``
+    Show command line help.
 
 ``-m module``
     Only recognized if it is the first argument.
@@ -54,6 +54,50 @@ In particular, the follow command line arguments are useful:
     is available in the global variable ``session``.
     The module name is ``__main__`` instead of a sandbox name that
     is used for normal :py:mod:`~chimerax.core.scripting`.
+
+``-u``
+    Force the stdout and stderr streams to be unbuffered.
+
+``-V``
+    Prints the internal Python version and exits.
+
+
+Double Dash Command Line Options
+--------------------------------
+
+The follow command line arguments are recognized:
+
+``--cmd command``
+
+    Run the ChimeraX command at startup after starting tools.
+
+``--color``
+    Turn on colored text in nogui mode (default).
+
+``--nocolor``
+    Turn off colored text in nogui mode.
+
+``--debug``
+    Turn on debugging code.  Accessing within ChimeraX with ``session.debug``.
+
+``--devel``
+    Turn on development mode.  Currently, just enables Python deprecation warnings.
+
+``--exit``
+    Exit immediately after processing command line arguments.
+    Turns off querying the Toolshed at startup.
+
+``--noexit``
+    Do not exit after processing command line arguments (default).
+    Turns off querying the Toolshed at startup (not default).
+
+``--lineprofile``
+    Turn on line profiling.  See `Line Profiling`_ for details.
+    Turns off querying the Toolshed at startup.
+
+``--listioformats``
+    Show all recognized file suffixes and if they can be opened or saved.
+    Turns off querying the Toolshed at startup.
     
 ``--nogui``
     Turn off the gui.  Access with ChimeraX with ``session.ui.is_gui``.
@@ -65,10 +109,19 @@ In particular, the follow command line arguments are useful:
     Do not autostart any tools at startup.
 
 ``--offscreen``
-    Run without a gui but allow rendering images that can be saved to
-    files.  This uses OSMesa for rendering which will not make use of
-    a GPU so rendering can be slow. But it can run on a server without
-    a display.
+    Run without a gui but allow rendering images that can be saved to files,
+    *i.e.*, implies ``--nogui``.
+    This uses OSMesa for rendering which will not make use of
+    a GPU, so rendering can be slow.
+    But it can run on a server without a display.
+
+``--safemode``
+    Don't run bundle custom initialization code nor load any tools.
+
+``--script python-script``
+    Run Python script at startup.
+    If they Python script has any specific arguments,
+    they should be quoted along with the script name.
     
 ``--silent``
     Don't output startup splash text and otherwise refrain from being
@@ -78,12 +131,25 @@ In particular, the follow command line arguments are useful:
 
     Start the named tool during ChimeraX startup after the autostart tools.
 
+``--tools``
+    Run ChimeraX tools at startup (default).
+
+``--notools``
+    Don't run ChimeraX tools at startup.
+
+``--toolshed URL``
+    Set the URL to use for the toolshed.
+    The special name **preview** is recognized for using a preview of
+    the next revision of the toolshed (currently only available internally).
+
 ``--uninstall``
     If needed, deregister any icons or mime types,
     then remove as much of the installation directory as possible.
+    Intended for use by system App Store or package manager.
 
 ``--usedefaults``
     Ignore user settings and use default settings.
+    Not implemented yet.
 
 ``--version``
     Print out current version.
@@ -160,6 +226,7 @@ Line Profiling
 
     Line profiling is based on `Robert Kern's <https://github.com/rkern>`_
     `line_profiler <https://github.com/rkern/line_profiler>`_ package.
+    Support is restricted to platforms that have binaries in pypi.org (just Linux for now).
     Differences from the conventional setup are given in parenthesizes.
 
     There are five parts to profiling:

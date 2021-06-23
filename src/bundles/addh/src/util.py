@@ -137,7 +137,7 @@ def guess_termini(seq):
     fake_N = []
     fake_C = []
     fake_5p = []
-    if chain.polymer_type == Residue.PT_AMINO:
+    if seq.polymer_type == Residue.PT_AMINO:
         residues = seq.residues
         existing_residues = seq.existing_residues
         n_term = residues[0]

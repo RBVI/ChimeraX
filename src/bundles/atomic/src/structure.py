@@ -77,8 +77,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED
+        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
+        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -445,6 +446,12 @@ class Structure(Model, StructureData):
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
 
+    def _notify_display_change(self, trig_name, model):
+        if model != self:
+            return
+        # ensure that "display changed" trigger fires
+        StructureData.display.fset(self, self.display)
+
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
         bd = self._bonds_drawing
@@ -702,7 +709,7 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         elif itype == 'residues':
-            from .molarray import concatenate, Atoms
+            from . import concatenate, Atoms
             atoms, bonds = self.atoms, self.bonds
             sel_residues = []
             if atoms.num_selected > 0:
@@ -717,6 +724,8 @@ class Structure(Model, StructureData):
             if sel_residues:
                 from . import concatenate, Residues
                 return [concatenate(sel_residues, Residues, remove_duplicates=True).unique()]
+        elif itype == 'structures':
+            return [[self]] if self.selected else []
         return []
 
     def clear_selection(self):
@@ -2276,9 +2285,9 @@ from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
-        {attr_name: types for attr_name, types in getattr(reg_class, '_cython_property_return_info', [])})
+        {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
     if not isinstance(inst, AtomicStructure)],
-    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})
+    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

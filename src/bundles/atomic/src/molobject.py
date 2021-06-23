@@ -40,7 +40,7 @@ class Atom(CyAtom, State):
     # So that attr-registration API can provide return-type info; provide that data here
     # [because Cython properties use immutable getset_descriptor slots, and the final address of a
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
-    _cython_property_return_info = [
+    _attr_reg_info = [
         ('alt_loc', (str,)), ('bfactor', (float,)), ('display', (bool,)), ('idatm_type', (str,)),
         ('is_side_connector', (bool,)), ('is_side_chain', (bool,)), ('is_side_only', (bool,)),
         ('name', (str,)), ('num_alt_locs', (int,)), ('num_bonds', (int,)), ('num_explicit_bonds', (int,)),
@@ -588,7 +588,7 @@ class Residue(CyResidue, State):
     # So that attr-registration API can provide return-type info; provide that data here
     # [because Cython properties use immutable getset_descriptor slots, and the final address of a
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
-    _cython_property_return_info = [
+    _attr_reg_info = [
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
@@ -1374,6 +1374,9 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    display = c_property('structure_display', npy_bool, doc =
+        "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
+        "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
     idatm_valid = c_property('structure_idatm_valid', npy_bool,
         doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,

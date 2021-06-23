@@ -114,14 +114,30 @@ class SelInspector(ToolInstance):
         self.button_mapping = {}
         self.item_menu.clear()
         self.item_types = self.session.items_inspection.item_types
-        self.item_types.sort(key=lambda x: x.lower())
-        for item_type in self.item_types:
-            menu_text = item_type.capitalize() if item_type.islower() else item_type
+        self.item_info = button_info = [(self.session.items_inspection.ui_name(item_type), item_type)
+            for item_type in self.item_types]
+        button_info.sort(key=lambda x: x[0].lower())
+        for button_text, item_type in button_info:
+            menu_text = button_text.capitalize() if button_text.islower() else button_text
             self.item_menu.addAction(menu_text)
             self.button_mapping[menu_text] = item_type
         if not cur_text and not self.item_menu.isEmpty():
-            first_action = self.item_menu.actions()[0]
-            self.chooser.setText(first_action.text())
+            if self.session.selection.empty():
+                if "atoms" in self.item_types:
+                    chooser_type = "atoms"
+                else:
+                    chooser_type = self.button_mapping[self.item_menu.actions()[0].text()]
+            else:
+                for item_type in ("atoms", "pseudobonds", "bonds"):
+                    if item_type in self.item_types and self.session.selection.items(item_type):
+                        chooser_type = item_type
+                        break
+                else:
+                    chooser_type = self.button_mapping[self.item_menu.actions()[0].text()]
+            for menu_text, item_type in self.button_mapping.items():
+                if item_type == chooser_type:
+                    self.chooser.setText(menu_text)
+                    break
             self._menu_cb()
 
     def _option_cb(self, opt):
@@ -130,13 +146,13 @@ class SelInspector(ToolInstance):
 
     def _sel_changed(self, *args, **kw):
         sel_strings = []
-        for item_type in self.item_types:
+        for ui_name, item_type in self.item_info:
             sel_items = self.session.selection.items(item_type)
             if not sel_items:
                 continue
             num = sum([len(x) for x in sel_items])
             sel_strings.append("%d %s"
-                % (num, item_type if num != 1 or item_type[-1] != 's' else item_type[:-1]))
+                % (num, ui_name if num != 1 or ui_name[-1] != 's' else ui_name[:-1]))
         if sel_strings:
             description = "\n".join(sel_strings)
         elif self.session.selection.empty():
