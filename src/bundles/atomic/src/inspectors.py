@@ -49,13 +49,14 @@ class AtomBFactorOption(FloatOption):
     name = "B-factor"
     @property
     def command_format(self):
-        return "size %%s bfactor %g" % self.value
+        return "setattr %%s a bfactor %g" % self.value
 
     def __init__(self, *args, **kw):
         if 'decimal_places' not in kw:
             kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = 0.5
         super().__init__(*args, **kw)
-        self.enabled = False
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
@@ -85,13 +86,14 @@ class AtomOccupancyOption(FloatOption):
     name = "Occupancy"
     @property
     def command_format(self):
-        return "size %%s occupancy %g" % self.value
+        return "setattr %%s a occupancy %g" % self.value
 
     def __init__(self, *args, **kw):
         if 'decimal_places' not in kw:
             kw['decimal_places'] = 2
-        super().__init__(*args, **kw)
-        self.enabled = False
+        if 'step' not in kw:
+            kw['step'] = 0.1
+        super().__init__(*args, min=0.0, max=1.0, **kw)
 
 class AtomRadiusOption(FloatOption):
     attr_name = "radius"
