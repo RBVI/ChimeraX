@@ -845,16 +845,16 @@ class Toolshed:
             failed.append(bi)
         done.add(bi)
 
-    def _init_single_manager(self, mgr, mgr_name):
+    def _init_single_manager(self, mgr):
         if self._available_bundle_info:
             all_bundles = self._installed_bundle_info + self._available_bundle_info
         else:
             all_bundles = self._installed_bundle_info
-        self._manager_instances[mgr_name] = mgr
+        self._manager_instances[mgr.name] = mgr
         for pbi in all_bundles:
             for name, kw in pbi.providers.items():
                 p_mgr, pvdr = name.split('/', 1)
-                if p_mgr == mgr_name:
+                if p_mgr == mgr.name:
                     mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()
 
@@ -974,8 +974,9 @@ class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles"""
 
     def __init__(self, manager_name):
+        self.name = manager_name
         ts = get_toolshed()
-        ts._init_single_manager(self, manager_name)
+        ts._init_single_manager(self)
 
     @abc.abstractmethod
     def add_provider(self, bundle_info, provider_name, **kw):
@@ -1041,7 +1042,8 @@ class BundleAPI:
         functionality, and then calls the command function.
         On subsequent uses of the command, ChimeraX will
         call the command function directly instead of calling
-        this method.
+        this method. The API version for this method is defined
+        by the :code:`api_version` class variable and defaults to 0.
 
         Parameters
         ----------
@@ -1049,7 +1051,7 @@ class BundleAPI:
         command_info : :py:class:`CommandInfo` instance.
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-            Version 1 of the API pass in information for both
+            Version 1 of the API passes in information for both
             the command to be registered and the bundle where
             it was defined.
 

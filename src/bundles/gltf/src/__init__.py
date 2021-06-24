@@ -50,6 +50,8 @@ class _gltfBundle(BundleAPI):
                         'models': ModelsArg,
                         'preserve_transparency': BoolArg,
                         'short_vertex_indices': BoolArg,
+                        'texture_colors': BoolArg,
+                        'instancing': BoolArg,
                         'size': FloatArg,
                     }
                     

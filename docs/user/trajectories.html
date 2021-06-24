@@ -43,19 +43,34 @@ If <a href="commands/surface.html">molecular surface</a> calculations
 make playback slow, it may be necessary to use the surface option
 <a href="commands/surface.html#options"><b>update false</b></a>.
 </p><p>
-A multi-model file in mmCIF or PDB format can be opened as a trajectory
-by using the command <a href="commands/open.html"><b>open</b></a> with
+Atomic trajectories can be created by 
+<a href="commands/morph.html">morphing</a> or by opening files
+from other programs. Details for opening files depend on the file format:
+</p>
+<ul>
+<li>A multi-model file in mmCIF or PDB format can be opened as a trajectory
+by using the command <a href="commands/open.html#local"><b>open</b></a> with
 <b>coordsets true</b> (default <b>false</b>).
-A trajectory can also be read from any of several 
-<a href="commands/open.html#trajectory">trajectory formats</a>
-or created with the <a href="commands/morph.html"><b>morph</b></a> command.
-Reading a trajectory from one of the
-<a href="commands/open.html#trajectory">trajectory formats</a>
-requires <i>first</i> opening a structure (<i>e.g.</i> from a PDB file) 
-containing the same set of atoms as the trajectory, and then 
-specifying that existing model in the trajectory-opening command 
-(<a href="commands/open.html#structureModel">details...</a>).
-This additional model is needed to provide the topology.
+<li>A trajectory can be read from any of several 
+<a href="commands/open.html#trajectory">trajectory coordinate formats</a>
+by <i>first</i> opening a structure (<i>e.g.</i> from a PDB file) 
+containing the same set of atoms as the trajectory, and then opening the
+the coordinate file by using <a href="commands/open.html#local"><b>open</b></a> 
+with the <a href="commands/open.html#structureModel"><b>structureModel</b></a>
+option to specify the already-open atomic structure.
+The structure is needed to supply the topology, or bonding pattern,
+as it is not included in the coordinate file.
+<li>If a PSF
+<a href="commands/open.html#trajtop">trajectory topology file</a> is
+available, however, it can be opened using the menu (<b>File... Open</b>) 
+and the user will be prompted to open the corresponding
+<a href="commands/open.html#trajtop">trajectory coordinate file</a>.
+A PSF file can also be opened by using
+<a href="commands/open.html#local"><b>open</b></a> command with the
+the <a href="commands/open.html#coords"><b>coords</b></a> option to specify 
+the <a href="commands/open.html#trajtop">trajectory coordinate file</a>.
+</ul>
+<p>
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="commands/info.html"><b>info</b></a>.
 See also:

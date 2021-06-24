@@ -442,7 +442,9 @@ class BundleInfo:
 
     def imported(self):
         import sys
-        return self.package_name in sys.modules
+        # modules = ('.'.join(p) for p in self.packages)
+        modules = (p[0] for p in self.packages if len(p) == 1)
+        return any(m in sys.modules for m in modules)
 
     def get_class(self, class_name, logger):
         """Supported API. Return bundle's class with given name."""

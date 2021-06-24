@@ -93,6 +93,7 @@ The command <b>open formats</b> command lists the possible formats and
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
 <li><a href="#trajectory">Trajectory Coordinates</a>
+<li><a href="#trajtop">Trajectory Topology</a>
 <li><a href="#volume">Volume Data and Related</a>
 <li><a href="#segmentation">Segmentations</a>
 <li><a href="#object">Other 3D Objects</a>
@@ -204,32 +205,58 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
-<br>(requires an already-open structure for topology, see the
-<a href="#structureModel"><b>structureModel</b></a> option;
+<br>(also requires trajectory topology, either from being opened at the same
+time as a <a href="#trajtop">PSF</a> file, or from an already-open atomic model
+given with the <a href="#structureModel"><b>structureModel</b></a> option;
 see also the <a href="#coordsets"><b>coordsets</b></a> option)</td>
 </tr><tr>
 <td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
 target="_blank">Amber NetCDF</a> (binary)</td>
 <td align="center"><b>amber</b></td>
 <td align="center">.nc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center">DCD coordinates (binary)</td>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates
+<br>(DCD support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#xtc"
 target="_blank">Gromacs compressed coordinates</a></td>
 <td align="center"><b>xtc</b></td>
 <td align="center">.xtc</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
 </tr><tr>
 <td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#trr"
 target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
-<td align="center">atomic <a href="../trajectories.html">trajectory</a></td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+coordinates</td>
+</tr><tr>
+<td colspan=4 align="center" style="background-color:#eaeaea">
+<a name="trajtop"></a>
+<a href="#formats" class="nounder"><b>&larr;</b></a>
+<b>Trajectory Topology</b>
+<br>(also requires a <a href="#trajectory">trajectory coordinate file</a>
+given with the <a href="#coords"><b>coords</b></a> option)</td>
+</tr><tr>
+<td align="center">PSF (protein structure file;
+<a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html"
+target="_blank">X-PLOR-style topology</a>)</td>
+<td align="center"><b>psf</b></td>
+<td align="center">.psf</td>
+<td align="center">atomic <a href="../trajectories.html">trajectory</a>
+topology 
+<br>(PSF support courtesy of
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
+target="_blank">MDTools</a>)</td>
 <!--
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -920,6 +947,19 @@ Whether to read the contours from an
 <a href="../formats/imod.html">IMOD segmentation file</a>.
 </blockquote>
 <blockquote>
+<a name="coords"></a>
+<b>coords</b> &nbsp;<i>trajectory-coordinate-file</i>&nbsp;
+<br>
+Specify the corresponding <a href="#trajectory">trajectory coordinate file</a>
+required to open a PSF <a href="#trajtop">trajectory topology file</a>.
+Any of the <a href="#trajectory">trajectory coordinate formats</a> may be used.
+The <i>trajectory-coordinate-file</i> is specified by pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+Omitting this option also raises a file browser window
+for specifying the file interactively.
+</blockquote>
+<blockquote>
 <a name="coordsets"></a>
 <a name="missingCoordsets"></a>
 <b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -1228,6 +1268,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#maxAssemblies"><b>maxAssemblies</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<a href="#resName"><b>resName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 </blockquote>
 <p>
@@ -1268,6 +1309,14 @@ even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
 details in ticket #3515
 RCSB says that in 2021 all will be mmCIF and as one model per assembly
 -->
+</p><p>
+<a name="resName"></a>
+The <b>resName</b> option applies only to <a href="#pubchem">PubChem3D</a>
+and <a href="#smiles">SMILES</a> fetches;
+it assigns a residue name to the compound (default UNL).
+For compatibility with other programs and PDB format,
+three-character residue names consisting of uppercase letters 
+and possibly numbers are recommended. 
 </p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
@@ -1377,18 +1426,22 @@ accession code PDBDEV_00000001 can be opened with command:
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
-<td align="center"><b>cellpack</b></td>
+<td align="center"><b>cellPACK</b></td>
 <td align="center">hierarchical model;
 <br>
+<!--
+only the model with identifier <b>HIV-1_0.1.6</b> is available currently
+-->
 see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
-Chimera instructions</a> for available identifiers</td>
+Chimera instructions</a> for available identifiers
+</td>
 <td align="center"><b>cellpack</b></td>
 </tr><tr>
-<td align="center">
-<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
 target="_blank">PubChem3D</a></td>
 <td align="center"><b>pubchem</b></td>
-<td align="center">modeled atomic coordinates specified by
+<td align="center"><a name="pubchem"></a>
+modeled atomic coordinates specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID); 
 <br>available for most but not all entries in PubChem Compound
@@ -1399,7 +1452,8 @@ compound identifier (CID);
 </tr><tr>
 <td align="center">SMILES &rarr; 3D translator</td>
 <td align="center"><b>smiles</b></td>
-<td align="center">modeled atomic coordinates specified by
+<td align="center"><a name="smiles"></a>
+modeled atomic coordinates specified by
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string, generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
@@ -1636,5 +1690,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+June 2021</address>
 </body></html>

@@ -55,6 +55,10 @@ color the surface accordingly
 <li><a href="#mapstats"><b>mapstats</b></a>
 &ndash; report <a href="../tools/volumeviewer.html">volume data</a> 
 min, max, mean, SD, and RMSD values
+<li><a href="#mapvalues"><b>mapvalues</b></a>
+&ndash; calculate <a href="../tools/volumeviewer.html">volume data</a>
+values at atom positions and assign them as an atom
+<a href="../attributes.html">attribute</a>
 <li><a href="#motion"><b>motion</b></a>
 &ndash; show changes in surface position by drawing lines
 <li><a href="#rotation"><b>rotation</b></a>
@@ -88,6 +92,7 @@ such as with <a href="surface.html#dust"><b>surface dust</b></a>
 or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
 See also: <a href="#sasa"><b>measure sasa</b></a>,
+<a href="surface.html#splitbycolor"><b>surface splitbycolor</b></a>,
 <a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
 </blockquote>
 
@@ -367,6 +372,25 @@ The default is to use the current subregion (if cropped) and current step size
 of each specified map. This command is also implemented as
 <a href="../tools/mapstats.html"><b>Map Statistics</b></a> in the
 <b>Volume Data</b> section of the <b>Tools</b> menu.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="mapvalues"><b>measure mapvalues</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>volume-spec</i></a>&nbsp;
+<b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>attribute</b> &nbsp;<i>attribute-name</i>&nbsp;]
+<blockquote>
+Calculate <a href="../tools/volumeviewer.html">volume data</a> (map)
+values at atom positions and assign them as an atom
+<a href="../attributes.html">attribute</a>.
+The <i>attribute-name</i> should be enclosed in quotation marks 
+if it contains spaces; if no name is supplied, <b>mapvalue</b> will be used.
+Atoms that fall outside the map bounds are not assigned values.
+Assigning an attribute allows coloring the atoms by value
+with <a href="color.html#byattribute"><b>color byattribute</b></a>,
+specifying them by value <a href="atomspec.html#attributes">in the 
+command line</a>, <i>etc.</i>
+The new attribute is saved in <a href="save.html#session">session</a> files.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -656,5 +680,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+May 2021</address>
 </body></html>

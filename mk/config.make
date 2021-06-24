@@ -32,7 +32,7 @@ all:
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.8
-PYTHON_PATCH_VERSION = 8
+PYTHON_PATCH_VERSION = 10
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
 PYTHON_ABI = 

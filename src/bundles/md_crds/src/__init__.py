@@ -21,7 +21,16 @@ class _MDCrdsBundleAPI(BundleAPI):
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
-            if name == "gro":
+            if name == "psf":
+                class MDInfo(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from .read_psf import read_psf
+                        return read_psf(session, data, file_name, **kw)
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import BoolArg, OpenFileNameArg
+                        return { 'auto_style': BoolArg, 'coords': OpenFileNameArg }
+            elif name == "gro":
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from .read_gro import read_gro

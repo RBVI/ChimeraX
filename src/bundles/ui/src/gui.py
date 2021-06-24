@@ -222,7 +222,7 @@ class UI(QApplication):
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
-        mw.rapid_access_shown = True
+
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
         from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
@@ -805,6 +805,14 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
 
+    def showEvent(self, event):
+        QMainWindow.showEvent(self, event)
+        if not hasattr(self, '_already_shown'):
+            self._already_shown = True
+            # Work around startup crash on Windows that appears to happen when
+            # rapid access is shown too early, a likely Qt bug.  ChimeraX ticket #4698.
+            self.rapid_access_shown = True
+            
     def resizeEvent(self, event):
         QMainWindow.resizeEvent(self, event)
         size = event.size()
@@ -986,10 +994,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtWidgets import QAction
         from Qt.QtGui import QKeySequence
         from Qt.QtCore import Qt
+        from chimerax.core.commands import run
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
+        cd_action = QAction("Set &Working Folder...", self)
+        cd_action.setToolTip("Set default folder for commands/tools to use when opening/saving files")
+        cd_action.triggered.connect(lambda *, run=run, sess=session: run(sess, "cd browse"))
+        file_menu.addAction(cd_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda *, s=self, sess=session: s.file_close_cb(sess))
@@ -1064,7 +1077,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             help_action.setToolTip(tooltip)
             cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
             def cb(*, ses=session, cmd=cmd):
-                from chimerax.core.commands import run
                 run(ses, cmd)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
@@ -2952,6 +2964,8 @@ class InitWindowSizeOption(Option):
         dw = QDesktopWidget()
         screen_geom = self.session.ui.primaryScreen().availableGeometry()
         screen_width, screen_height = screen_geom.width(), screen_geom.height()
+        if not screen_width or not screen_height:
+            return
         self.current_fixed_size_label.setText(
             "Current: %d wide, %d high" % (window_width, window_height))
         self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (

@@ -453,23 +453,13 @@ def _ng_charge(atom):
     ng_pluses = [a for a in c2.neighbors if a.idatm_type == "Ng+"]
     if len(ng_pluses) == 2:
         return 1
-    heavys = 0
-    for nb in atom.neighbors:
-        if nb.element.number > 1:
-            heavys += 1
-    if heavys > 1:
-        return 0
-    countable = 0
-    for ngp in ng_pluses:
-        heavys = 0
-        for nb in ngp.neighbors:
-            if nb.element.number > 1:
-                heavys += 1
-        if heavys < 2:
-            countable += 1
-    if countable > 1:
+    # the below is more resilient to modified groups (e.g. 2MR) than the previous method
+    b = atom.bonds[atom.neighbors.index(nb)]
+    try:
+        return int(b.smaller_side == nb)
+    except ValueError:
+        # bond is in a cycle
         return 1
-    return 2
 
 def _n2_charge(atom):
     # needed in order to get nitrite ions correct
@@ -542,7 +532,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     if (electrons + total_net_charge) % 2 == 1 and method == "am1-bcc":
         # cannot compute charges for radical species with AM1-BCC
         raise ChargeError("%s: number of electrons (%d) + formal charge (%+d) is odd; cannot compute charges"
-            " for radical species using AM1-BCC method" % (r0.name, electrons, total_net_charge))
+            " for radical species using AM1-BCC method" % (r.name, electrons, total_net_charge))
 
 
     from contextlib import contextmanager

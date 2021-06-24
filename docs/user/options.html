@@ -26,10 +26,11 @@ class="clRight" title="User Guide Index"/></a>
 The following options are available when ChimeraX is invoked
 from the system command line.
 Arguments containing spaces should be enclosed in quotation marks, and
-<a href="startup.html#inputfiles">input files</a> can be given after the options. 
-Not all options are listed here; see the 
-<a href="devel/index.html">ChimeraX Programming Manual</a>
-for additional options that may be relevant to developers.
+<a href="startup.html#inputfiles">input files</a> can be given after the 
+options. Not all options are listed here; see the 
+<a href="../devel/index.html">ChimeraX Programming Manual</a> for the
+<a href="../devel/apps/ChimeraX/ChimeraX.html">full list of options</a>,
+including several that may be relevant to developers.
 </p><p>
 Some of the options give information about ChimeraX without starting it:
 </p>
@@ -63,22 +64,10 @@ Run the specified <a href="index.html#commands">ChimeraX command</a>
 after starting tools.  See also: <a href="#script"><b>--script</b></a>
 </blockquote>
 <blockquote>
-<b>--debug</b>
-<br>
-Activate debugging mode.
-</blockquote>
-<blockquote>
 <b>--exit</b>
 <br>
 Exit ChimeraX after executing the rest of the command 
 (applying other options and reading input); do not access the Toolshed.
-</blockquote>
-<blockquote>
-<a name="lineprofile"></a>
-<b>--lineprofile</b>
-<br>
-Create a &ldquo;ChimeraX.lprof&rdquo; file in the current directory
-for <a href="#profiling">line profiling</a>.
 </blockquote>
 <blockquote>
 <a name="nocolor"></a>
@@ -113,13 +102,13 @@ Do not autostart any tools.
 <a name="offscreen"></a>
 <b>--offscreen</b>
 <br>
-Create a buffer for offscreen rendering in <a href="#nogui">nogui mode</a>.
+Use <a href="#nogui">nogui mode</a> and create a buffer for offscreen rendering.
 This option enables &ldquo;headless&rdquo; mode, allowing
 ChimeraX to render and save images and movies when it has no window,
 <i>e.g.</i>, on a server where no desktop windowing system is available.
 It is currently supported only on Linux and uses OSMesa, 
 a software rendering library included in Linux ChimeraX.
-Offscreen mode cannot use a graphics card or hardware-accelerated rendering 
+It cannot use a graphics card or hardware-accelerated rendering 
 because OpenGL does not support rendering without a window.
 </blockquote>
 <blockquote>
@@ -128,11 +117,6 @@ because OpenGL does not support rendering without a window.
 <br>
 Run the specified python script with any associated arguments
 after starting tools.  See also: <a href="#cmd"><b>--cmd</b></a>
-</blockquote>
-<blockquote>
-<b>--silent</b>
-<br>
-Skip the splash screen and otherwise refrain from being verbose.
 </blockquote>
 <blockquote>
 <a name="start"></a>
@@ -160,49 +144,15 @@ See also: <a href="commands/toolshed.html#url"><b>toolshed url</b></a>
 </blockquote>
 -->
 <blockquote>
-<b>--uninstall</b>
-<br>
-Deregister any icons or mime types, and then
-remove as much of the installation directory as possible.
-</blockquote>
-<blockquote>
+<!-- ticket #4796 -->
+<font color="brown">Not yet implemented:<br>
 <b>--usedefaults</b>
 <br>
 Ignore user settings and use factory defaults.
+</font>
 </blockquote>
-
-<a name="profiling"></a>
-<p class="nav">
-[<a href="#top">back to top: System Command-Line Options</a>]
-</p>
-<h3>Line Profiling</h3>
-<p>
-Line profiling is based on Robert Kern's
-<a href="https://github.com/rkern/line_profiler" 
-target="_blank">line_profiler</a> package.
-There are five parts to profiling;
-differences from the conventional setup are given in parentheses:
-</p>
-<ol>
-<li>Decorate functions that you wish to profile with the
-&ldquo;@line_profile&rdquo; decorator
-(instead of the conventional &ldquo;@profile&rdquo;)
-and install them. This decorator is a no-op if ChimeraX is not profiled.
-<li>Run ChimeraX with the <a href="#lineprofile"><b>--lineprofile</b></a> option
-(instead of using &ldquo;kernprof&rdquo;)
-to generate a &ldquo;ChimeraX.lprof&rdquo; file in the current directory.
-<li>Get profiling results by running ChimeraX with the system 
-command-line option &ldquo;-m line_profiler ChimeraX.lprof&rdquo;
-(not described above)
-<li>Analyze the results, possibly edit your code, and return to step 1.
-<li>Remove the function decorators before committing your changes.
-</ol>
-<p>
-See the <a href="devel/index.html">ChimeraX Programming Manual</a>
-for more details.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2020</address>
+June 2021</address>
 </body></html>

@@ -277,17 +277,20 @@ See also: <a href="colortables.html#autocolors">initial colors</a>
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
-If a color is specified but no levels, the color applies to all existing 
+If one color is specified but no levels, the color applies to all existing 
 levels and becomes the default color for the volume model.  
 If levels are given but no color, the model's current default color is used 
-for the levels, and all old levels are removed.  
+for the levels, and all old levels are removed. 
 If one color and one or more levels are given, that color applies to all 
-levels but does not become the default color.  Otherwise,
-if multiple levels and colors are given, there must be an equal number of each.
+levels but does not become the default color. Otherwise,
+if multiple colors are specified, there must be either be an equal number 
+of levels specified in the command, or no level specifications but an
+equal number of pre-existing levels.
 Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
-is significant. 
+is significant. If multiple colors are specified for multiple pre-existing
+levels, they are paired in order of increasing level value.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
@@ -303,7 +306,7 @@ is significant.
   <ul class="circle">
   <li>For <b>surface</b> and <b>mesh</b> displays, transparency
   is the fraction of light transmitted from behind the surface or a
-  line of mesh (default <b>0.0</b>).  By default,
+  line of mesh (default <b>0.0</b>). By default,
   these objects are dimmed as they are made more transparent
   (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -2596,5 +2599,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+June 2021</address>
 </body></html>

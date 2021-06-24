@@ -148,30 +148,17 @@ def _precision_values(values, precision):
     # should only happen if values very close to ints
     return "%d", [int(v+0.5) for v in values]
 
-def show_key(session, color_map, *, show_tool=True, show_all_values=False, precision=3):
+def show_key(session, color_map, *, show_tool=True, precision=3):
     """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
     from chimerax.core.colors import color_name, rgba_to_rgba8
     palette = palette_name(color_map.colors)
     v_fmt, values = _precision_values(color_map.data_values, precision)
-    # if it's a 3-value map symmetric around zero, don't bother labeling zero
-    if show_all_values or len(values) != 3 or values[1] != 0 \
-    or values[0] != -values[2]:
-        # not a symmetric 3-value map
-        if palette is None:
-            key_arg = ' '.join([StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(c)), dv))
-                for c, dv in zip(color_map.colors, values)])
-        else:
-            key_arg = "%s %s" % (StringArg.unparse(palette), " ".join([(':' + v_fmt) % dv for dv in values]))
+    if palette is None:
+        key_arg = ' '.join([StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(c)), dv))
+            for c, dv in zip(color_map.colors, values)])
     else:
-        # symmetric 3-value map
-        if palette is None:
-            key_arg = StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(color_map.colors[0])),
-                values[0])) + ' ' + StringArg.unparse("%s:" % color_name(rgba_to_rgba8(
-                color_map.colors[1]))) + ' ' + StringArg.unparse(("%s:" + v_fmt) % (color_name(rgba_to_rgba8(
-                color_map.colors[2])), values[2]))
-        else:
-            key_arg = ("%s :" + v_fmt +" : :" + v_fmt) % (StringArg.unparse(palette), values[0], values[2])
+        key_arg = "%s %s" % (StringArg.unparse(palette), " ".join([(':' + v_fmt) % dv for dv in values]))
     run(session, "key " + key_arg)
     if show_tool and session.ui.is_gui and not session.in_script:
         run(session,"ui tool show 'Color Key'")

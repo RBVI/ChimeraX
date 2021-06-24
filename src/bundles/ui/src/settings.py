@@ -26,7 +26,7 @@ class UI_Settings(Settings):
         'initial_window_size': ("last used", None),
         'tool_positions': {'toolbars': {}, 'windows': {}},
         'undockable': [
-            'Help Viewer',
+            'Help Viewer', "Color Key",
         ],
     }
 

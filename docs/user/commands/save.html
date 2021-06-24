@@ -60,7 +60,9 @@ The file type is specified with either the
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
 </p><p>
-Sessions, images, and scenes include all contents, but map and atomic coordinate
+<a name="models"></a>
+Sessions, images, and scenes (most formats) include all contents, 
+but atomic coordinate, <a href="#map">map</a>, and <a href="#gltf">GLTF</a>
 saving can be limited to specific models with the <b>models</b> option.
 The <b>models</b> keyword can be omitted if
 <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -456,7 +458,8 @@ Various <a href="#mapformats">formats</a> are available for saving maps
 MRC files written by ChimeraX are in the MRC 2000 format.
 Older MRC-reading programs or programs expecting CCP4 format will read such 
 files successfully but may not align the data correctly with other data sets.
-See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>
+See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>,
+<a href="#afterfitting">saving maps after fitting</a>
 </p><p>
 Only the <a name="chimap">Chimera map</a> (<b>cmap</b>) format 
 can accommodate multiple data sets in a single file, 
@@ -616,6 +619,38 @@ can be an integer in the range 1-9 (default <b>5</b>).
 Whether to shuffle the data prior to <a href="#compress">compression</a>
 (default <b>true</b>), which sometimes produces a smaller file.
 </blockquote>
+
+<a name="afterfitting"></a>
+<h4><a href="#map" class="nounder"><b>&larr;</b></a>
+Saving Maps after Fitting</h4>
+<p>
+Simply saving a map to a file after
+<a href="../tools/fitmap.html">fitting</a>
+will not save its new position, because the map file formats
+do not include rotation information.
+One way to save the new position is to save a
+<a href="#session">ChimeraX session file</a>, which preserves
+the translations and orientations of all models.
+However, if data files are needed for use in another program:
+<ul>
+<li>When a map has been fit to an atomic structure,
+<a href="#pdb">save the PDB file</a> relative to the map
+rather than <i>vice versa</i>.
+<li>When a map has been fit to another map, a new map can be created
+in the new orientation by <a href="volume.html#resample">resampling</a>
+the map that was fit, on the grid of the map to which it was fit.
+The new, resampled map can be saved as described <a href="#map">above</a>.
+(Even if the map was not fit to another map, however,
+a separate zero-valued map to serve as a grid for resampling
+can be created with <a href="volume.html#new"><b>volume new</b></a>.)
+</ul>
+If the goal is to save a map repositioned with translation only
+(not rotation), the map origin can be changed 
+with the <a href="volume.html#dimensions"><b>volume</b></a> command
+<b>origin</b> option before saving.
+However, not all programs will use the origin specified in the map file,
+so it may still be necessary to resample as described above.
+</p>
 
 <a name="pdb"></a>
 <p class="nav">
@@ -936,11 +971,13 @@ Example:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b>&nbsp;&nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
+[&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Several options apply only to saving
@@ -975,8 +1012,26 @@ Whether to use floating-point color values.
 <br>
 Whether to include any transparency of the objects. 
 </blockquote>
+<blockquote>
+<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use instancing for atoms and bonds (and a few other types
+of items at the lowest level of the drawing hierarchy).
+Instancing can significantly reduce file size, but conversely,
+it increases the number of GLTF nodes, which may slow down
+rendering or other downstream processing of the file (<i>e.g.</i>,
+by other programs) for structures with many thousands of atoms.
+If false (default), all the atoms of model are combined into a single node,
+but each includes its own geometry or triangulation information,
+making the file large. If <b>instancing</b> is true, 
+then each atom is made into a separate node,
+but they all share a single copy of the triangulation, making the 
+file smaller. The meaning for bonds is analogous to that for atoms.
+Instancing is always used for <a href="sym.html#copies">graphical clones</a>
+created with <a href="sym.html"><b>sym</b></a> regardless of this option.
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+June 2021</address>
 </body></html>
