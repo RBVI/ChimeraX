@@ -125,10 +125,11 @@ def texture_coordinates(drawing, geometry = 'sphere'):
         uv[:,1] = r*sin(phi) + 0.5
     return uv
 
-def _set_vertex_color_texture_coordinates(session, drawings, max_width = 1024):
+def _set_vertex_color_texture_coordinates(session, drawings):
     # Number the unique colors
-    color_num = {}
-    dcolor_nums = {}
+    color_list = []	# List of colors for palette texture.
+    color_num = {}	# Map color to color number
+    dcolor_nums = {}	# Map drawing to list of vertex color numbers
     for d in drawings:
         vc = d.get_vertex_colors(create = True)
         color_nums = dcolor_nums[d] = []
@@ -136,27 +137,15 @@ def _set_vertex_color_texture_coordinates(session, drawings, max_width = 1024):
             tc = tuple(c)
             if tc not in color_num:
                 color_num[tc] = len(color_num)
+                color_list.append(tc)
             color_nums.append(color_num[tc])
 
-    # Make list of colors for palette texture.
-    color_list = list(color_num.keys())
-    color_list.sort(key = lambda c: color_num[c])
-
     # Make grid of colors
-    nc = len(color_list)
-    w = min(max_width, nc)
-    h = (nc+w-1) // w
-    from numpy import empty, float32, uint8, array
-    uvn = empty((nc,2), float32)
-    rgba = empty((h,w,4), uint8)
-    for n in range(nc):
-        r,c = n // w, n % w
-        uvn[n,0] = (c + 0.5) / w	# x image coord
-        uvn[n,1] = (r + 0.5) / h	# y image coord
-        rgba[r,c,:] = color_list[n]
+    rgba, uvn = _color_grid(color_list)
     
     # Set texture coordinates
     opaque = (rgba[:,:,3] == 255).all()
+    from numpy import array, uint8, float32, empty
     white = array((255,255,255,255),uint8)
     for d in drawings:
         vc = d.get_vertex_colors(create = True)
@@ -170,10 +159,26 @@ def _set_vertex_color_texture_coordinates(session, drawings, max_width = 1024):
     
     return rgba
 
+def _color_grid(color_list, max_width = 1024):
+    nc = len(color_list)
+    w = min(max_width, nc)
+    h = (nc+w-1) // w
+    from numpy import empty, float32, uint8
+    uvn = empty((nc,2), float32)
+    rgba = empty((h,w,4), uint8)
+    for n in range(nc):
+        r,c = n // w, n % w
+        uvn[n,0] = (c + 0.5) / w	# x image coord
+        uvn[n,1] = (r + 0.5) / h	# y image coord
+        rgba[r,c,:] = color_list[n]
+    return rgba, uvn
+
 def _set_texture(session, drawing, rgba, modulate = True):
     _remove_texture(session, drawing)
     from chimerax.graphics import Texture
     t = Texture(rgba)
+    # TODO: testing gltf export
+    t.image_array = rgba
     t.linear_interpolation = False
     drawing.texture = t
     drawing.opaque_texture = (rgba[:,:,3] == 255).all()
@@ -188,6 +193,33 @@ def _remove_texture(session, drawing):
     session.main_view.render.make_current()
     drawing.texture.delete_texture()
     drawing.texture = None
+
+def has_single_color_triangles(triangles, vertex_colors):
+    tcolors = vertex_colors[triangles[:,0],:]
+    d = triangles.shape[1]
+    for a in range(1,d):
+        if not (vertex_colors[triangles[:,a],:] == tcolors).all():
+            return False
+    return True
+
+def vertex_colors_to_texture(vertex_colors):
+    color_list, color_nums = _vertex_color_numbers(vertex_colors)
+    rgba, uvn = _color_grid(color_list)
+    tex_coords = uvn[color_nums,:]
+    return tex_coords, rgba
+
+def _vertex_color_numbers(vertex_colors):
+    color_list = []	# List of colors for palette texture.
+    color_num = {}	# Map color to color number
+    color_nums = []
+    for c in vertex_colors:
+        tc = tuple(c)
+        if tc not in color_num:
+            color_num[tc] = len(color_num)
+            color_list.append(tc)
+        color_nums.append(color_num[tc])
+
+    return color_list, color_nums
 
 def register_color_image_command(logger):
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg, EnumOf, Or
