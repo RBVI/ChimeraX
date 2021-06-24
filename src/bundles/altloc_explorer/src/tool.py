@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
+from Qt.QtWidgets import QPushButton, QScrollArea
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 
@@ -38,251 +39,84 @@ class AltlocExplorerTool(ToolInstance):
         self._no_structure_label = QLabel("No atomic model chosen")
         layout.addWidget(self._no_structure_label)
         self._structure_widget = None
+        self._changes_handler = None
+        self._button_lookup = {}
         #TODO: react to alt loc changes/additions/subtractions
-        """
-        from .model import get_model
-        self.key = key = get_model(session)
-        self.handlers = [
-            key.triggers.add_handler('key closed', self._key_closed),
-            key.triggers.add_handler('key changed', self._key_changed),
-        ]
-        self.colors_layout = QVBoxLayout()
-        num_layout = QHBoxLayout()
-        self.colors_layout.addLayout(num_layout)
-        num_layout.addWidget(QLabel("Number of colors/labels:"), alignment=Qt.AlignRight)
-        self.num_colors = QSpinBox()
-        self.num_colors.setMinimum(2)
-        self.num_colors.valueChanged.connect(self._colors_changed)
-        num_layout.addWidget(self.num_colors, alignment=Qt.AlignLeft)
-        layout.addLayout(self.colors_layout)
-        self.wells = []
-        self.labels = []
-        self.wl_scroller = QScrollArea()
-        self.wl_widget = QWidget()
-        self.wl_layout = QGridLayout()
-        self.wl_layout.setContentsMargins(1,1,1,1)
-        self.wl_layout.setSpacing(2)
-        self.wl_widget.setLayout(self.wl_layout)
-        self.colors_layout.addWidget(self.wl_widget)
-
-        reverse_layout = QHBoxLayout()
-        reverse_layout.setSpacing(2)
-        reverse_layout.addStretch(1)
-        rev_but = QPushButton("Reverse")
-        rev_but.clicked.connect(self._reverse_data)
-        reverse_layout.addWidget(rev_but, alignment=Qt.AlignRight)
-        reverse_layout.addWidget(QLabel("the above"), alignment=Qt.AlignLeft)
-        reverse_layout.addStretch(1)
-        self.blend_colors_box = QCheckBox("Blend colors")
-        self.blend_colors_box.setChecked(key.color_treatment == key.CT_BLENDED)
-        self.blend_colors_box.clicked.connect(self._color_treatment_changed)
-        reverse_layout.addWidget(self.blend_colors_box)
-        reverse_layout.addStretch(1)
-        layout.addLayout(reverse_layout)
-
-        palette_layout = QHBoxLayout()
-        palette_layout.setSpacing(2)
-        palette_layout.setContentsMargins(1,1,1,1)
-        palette_layout.addStretch(1)
-        self.palette_button = QPushButton("Apply")
-        self.palette_button.clicked.connect(self._apply_palette)
-        palette_layout.addWidget(self.palette_button, alignment=Qt.AlignRight)
-        palette_layout.addWidget(QLabel("palette"))
-        self.palette_menu_button = QPushButton()
-        self.palette_menu = QMenu()
-        self.palette_menu.triggered.connect(lambda act, *, mbut=self.palette_menu_button,
-            abut=self.palette_button: (mbut.setText(act.text()),abut.setEnabled(True)))
-        self.palette_menu_button.setMenu(self.palette_menu)
-        palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft)
-        palette_layout.addStretch(1)
-        layout.addLayout(palette_layout)
-        self._update_colors_layout() # which also updates palette menu
-
-        global _mouse_mode
-        if _mouse_mode is None:
-            from .mouse_key import ColorKeyMouseMode
-            _mouse_mode = ColorKeyMouseMode(session)
-            session.ui.mouse_modes.add_mode(_mouse_mode)
-        self.handlers.append(_mouse_mode.triggers.add_handler('drag finished', self._drag_finished))
-
-        class ScreenFloatSpinBox(QDoubleSpinBox):
-            def __init__(self, *args, minimum=0.0, maximum=1.0, **kw):
-                super().__init__(*args, **kw)
-                self.setDecimals(5)
-                self.setMinimum(minimum)
-                self.setMaximum(maximum)
-                self.setSingleStep(0.01)
-
-        position_layout = QHBoxLayout()
-        position_layout.addStretch(1)
-        pos_label = QLabel("Position: x")
-        pos_label.setToolTip("Position of lower left corner of the colored part of the key")
-        position_layout.addWidget(pos_label, alignment=Qt.AlignRight)
-        self.pos_x_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
-        self.pos_x_box.setValue(self.key.pos[0])
-        self.pos_x_box.valueChanged.connect(self._new_key_position)
-        position_layout.addWidget(self.pos_x_box)
-        position_layout.addWidget(QLabel(" y"))
-        self.pos_y_box = ScreenFloatSpinBox(minimum=-1.0, maximum=2.0)
-        self.pos_y_box.setValue(self.key.pos[1])
-        self.pos_y_box.valueChanged.connect(self._new_key_position)
-        position_layout.addWidget(self.pos_y_box, alignment=Qt.AlignLeft)
-        position_layout.addStretch(1)
-        layout.addLayout(position_layout)
-
-        size_layout = QHBoxLayout()
-        size_layout.addStretch(1)
-        pos_label = QLabel("Size: width")
-        pos_label.setToolTip("Size of the colored part of they key, from 0-1 (fraction of screen size)")
-        size_layout.addWidget(pos_label, alignment=Qt.AlignRight)
-        self.size_w_box = ScreenFloatSpinBox()
-        self.size_w_box.setValue(self.key.size[0])
-        self.size_w_box.valueChanged.connect(self._new_key_size)
-        size_layout.addWidget(self.size_w_box)
-        size_layout.addWidget(QLabel(" height"))
-        self.size_h_box = ScreenFloatSpinBox()
-        self.size_h_box.setValue(self.key.size[1])
-        self.size_h_box.valueChanged.connect(self._new_key_size)
-        size_layout.addWidget(self.size_h_box, alignment=Qt.AlignLeft)
-        size_layout.addStretch(1)
-        layout.addLayout(size_layout)
-
-        mouse_layout = QHBoxLayout()
-        mouse_layout.addStretch(1)
-        self.mouse_on_button = QCheckBox("Adjust key with")
-        self.mouse_on_button.setChecked(True)
-        self.mouse_on_button.clicked.connect(self._mouse_on_changed)
-        mouse_layout.addWidget(self.mouse_on_button, alignment=Qt.AlignRight)
-        self.mouse_button_button = QPushButton("left")
-        menu = QMenu()
-        for but in ["left", "middle", "right"]:
-            menu.addAction(but)
-        menu.triggered.connect(self._mouse_button_changed)
-        self.mouse_button_button.setMenu(menu)
-        mouse_layout.addWidget(self.mouse_button_button)
-        mouse_layout.addWidget(QLabel("mouse button"), alignment=Qt.AlignLeft)
-        self._mouse_on_changed(True)
-        mouse_layout.addStretch(1)
-        layout.addLayout(mouse_layout)
-
-        from chimerax.ui.options import CategorizedOptionsPanel, EnumOption, OptionalColorOption, \
-            FloatOption, IntOption, BooleanOption, FontOption
-        class LabelSideOption(EnumOption):
-            values = self.key.label_sides
-        class AutoColorOption(OptionalColorOption):
-            def get_value(self):
-                val = super().get_value()
-                if val is None:
-                    return auto_color_strings[0]
-                return val
-            def set_value(self, val):
-                if val in auto_color_strings:
-                    val = None
-                super().set_value(val)
-        class LabelJustificationOption(EnumOption):
-            values = self.key.justifications
-        class NumLabelSpacingOption(EnumOption):
-            values = self.key.numeric_label_spacings
-        options_data = [
-            ("Labels", [
-                ("Color", 'label_rgba', AutoColorOption),
-                ('Font size', 'font_size', (IntOption, {'min': 1})),
-                ('Font', 'font', FontOption),
-                ('Bold', 'bold', BooleanOption),
-                ('Italic', 'italic', BooleanOption),
-                ("Numeric spacing", 'numeric_label_spacing', NumLabelSpacingOption),
-                ("Side", 'label_side', LabelSideOption),
-                ("Justification", 'justification', LabelJustificationOption),
-                ('Offset', 'label_offset', (FloatOption, {'decimal_places': 1, 'step': 1})),
-                ]),
-            ("Border", [
-                ("Show border", 'border', BooleanOption),
-                ("Color", 'border_rgba', AutoColorOption),
-                ('Width', 'border_width', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
-                ]),
-            ("Tick Marks", [
-                ("Show tick marks", 'ticks', BooleanOption),
-                ('Length', 'tick_length', (FloatOption, {'decimal_places': 1, 'step': 2, 'min': 0})),
-                ('Width', 'tick_thickness', (FloatOption, {'decimal_places': 1, 'step': 1, 'min': 0})),
-            ]),
-        ]
-        scrolling = { x[0]: False for x in options_data }
-        scrolling = { }
-        self._options = {}
-        options = CategorizedOptionsPanel(option_sorting=False, category_scrolled=scrolling)
-        for cat, opt_info in options_data:
-            for label, attr_name, opt_class in opt_info:
-                if isinstance(opt_class, tuple):
-                    opt_class, kw = opt_class
-                else:
-                    kw = {}
-                opt = opt_class(label, getattr(self.key, attr_name), self._opt_cb, attr_name=attr_name, **kw)
-                self._options[attr_name] = opt
-                options.add_option(cat, opt)
-        layout.addWidget(options)
-
-        from Qt.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Close | qbbox.Help)
-        bbox.rejected.connect(self.delete)
-        delete_button = bbox.addButton("Delete/Close", qbbox.DestructiveRole)
-        delete_button.clicked.connect(self._delete_key)
-        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        layout.addWidget(bbox)
-        """
 
         tw.manage(placement='side')
 
     def delete(self):
-        if self._mouse_handler:
-            button = self.mouse_button_button.text()
-            if self._prev_mouse_mode:
-                new_mode = self._prev_mouse_mode.name
-            else:
-                new_mode = 'none'
-            self._self_mm_change = True
-            run(self.session, "ui mousemode %s %s" % (button, StringArg.unparse(new_mode)))
-            self._self_mm_change = False
-        for handler in self.handlers:
-            handler.remove()
-        self.key = None
+        self._changes_handler.remove()
         super().delete()
 
+    def _atomic_changes(self, trig_name, trig_data):
+        if "alt_loc changed" in trig_data.atom_reasons():
+            for r, but_map in self._button_lookup.items():
+                r_al = r.alt_loc
+                for al, but in but_map.items():
+                    if but.isChecked() and al != r_al:
+                        but.setChecked(False)
+                    elif not but.isChecked() and al == r_al:
+                        but.setChecked(True)
+
     def _make_structure_widget(self, structure):
+        scroll_area = QScrollArea()
         widget = QWidget()
         layout = QGridLayout()
         layout.setSpacing(2)
         widget.setLayout(layout)
         from itertools import count
         rows = count()
-        for r in structure.residues:
-            if not r.alt_locs:
-                continue
+        from chimerax.core.commands import run
+        self._button_groups = []
+        alt_loc_rs = [r for r in structure.residues if r.alt_locs]
+        col_offset = 0
+        for r in alt_loc_rs:
             row = next(rows)
-            layout.addWidget(QLabel(str(r)+"  "), row, 0, alignment=Qt.AlignRight)
+            button = QPushButton(r.string(omit_structure=True))
+            button.clicked.connect(lambda *args, ses=self.session, run=run, spec=r.atomspec:
+                run(ses, "view " + spec))
+            layout.addWidget(button, row, 0 + col_offset, alignment=Qt.AlignRight)
             button_group = QButtonGroup()
+            self._button_groups.append(button_group)
             but_layout = QHBoxLayout()
-            layout.addLayout(but_layout, row, 1, alignment=Qt.AlignLeft)
+            layout.addLayout(but_layout, row, 1 + col_offset, alignment=Qt.AlignLeft)
             for alt_loc in sorted(list(r.alt_locs)):
                 but = QRadioButton(alt_loc)
+                self._button_lookup.setdefault(r, {})[alt_loc] = but
                 but.setChecked(r.alt_loc == alt_loc)
+                but.clicked.connect(lambda *args, ses=self.session, run=run, spec=r.atomspec, loc=alt_loc:
+                    run(ses, "altlocs change %s %s" % (loc, spec)))
                 button_group.addButton(but)
                 but_layout.addWidget(but, alignment=Qt.AlignCenter)
+            if row < len(alt_loc_rs)-1 and row >= int(len(alt_loc_rs)/2):
+                layout.setColumnStretch(2+col_offset, 1)
+                layout.setColumnMinimumWidth(2+col_offset, 5)
+                col_offset += 3
+                rows = count()
 
-        if next(rows) == 0:
+        if not alt_loc_rs:
             layout.addWidget(QLabel("No alternate locations in this structure"), 0, 0)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
 
     def _structure_change(self):
         if self._structure_widget:
             self._layout.removeWidget(self._structure_widget)
             self._structure_widget.hide()
             self._structure_widget.destroy()
+            self._button_groups.clear()
+            self._changes_handler.remove()
+            self._changes_handler = None
+            self._button_lookup.clear()
 
         structure = self._structure_button.value
         if structure:
             self._no_structure_label.hide()
             self._structure_widget = self._make_structure_widget(structure)
-            self._layout.addWidget(self._structure_widget)
+            self._layout.addWidget(self._structure_widget, alignment=Qt.AlignCenter)
+            from chimerax.atomic import get_triggers
+            self._changes_handler = get_triggers().add_handler('changes', self._atomic_changes)
         else:
             self._no_structure_label.show()
             self._structure_widget = None
