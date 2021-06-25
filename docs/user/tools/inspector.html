@@ -28,8 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 The <b>Selection Inspector</b> lists certain
 <a href="../attributes.html">attributes</a>
 of the currently <a href="../selection.html">selected</a> items and allows
-their values to be changed. 
-It can be opened:
+their values to be changed. It can be opened:
 <ul>
 <li>by clicking the magnifying-glass icon
 <img class="icon" src="toolbar-icons/magnifying-glass.png">
@@ -55,13 +54,35 @@ as needed for use in attribute-specific commands such as
 <a href="../commands/color.html#byattribute"><b>color byattribute</b></a>,
 as well as for general command-line
 <a href="../commands/atomspec.html#attributes">specification by attribute
-value</a>.
+value</a>. Alternative ways to change attribute values are with
+<a href="../formats/defattr.html">attribute assignment files</a> or
+<a href="../commands/setattr.html"><b>setattr</b></a>.
 </p>
 <ul>
+<li><a href="#atomic-models"><b>Atomic models</b></a>
 <li><a href="#atoms"><b>Atoms</b></a>
 <li><a href="#bonds"><b>Bonds</b></a>
+<li><a href="#pb-models"><b>Pseudobond models</b></a>
 <li><a href="#pseudobonds"><b>Pseudobonds</b></a>
 <li><a href="#residues"><b>Residues</b></a>
+</ul>
+
+<a name="atomic-models"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Atomic Models</b>
+<ul>
+<li><b>Autochain</b> &ndash; whether &ldquo;chain trace&rdquo;
+<a href="../pseudobonds.html">pseudobonds</a>
+should be added between consecutively bonded residues when the covalent bonds
+are hidden (<i>e.g.</i>, when &alpha;-carbons are the only backbone atoms shown)
+<li><b>Ball scale</b> &ndash; fraction of atom radius to use in 
+<a href="../commands/style.html">ball style</a>
+<li><b>Name</b> &ndash; model name as shown in the
+<a href="modelpanel.html"><b>Model Panel</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the model level,
+see <a href="../hierarchy.html">display hierarchy</a>
 </ul>
 
 <a name="atoms"></a>
@@ -72,9 +93,6 @@ value</a>.
 <ul>
 <li><b>B-factor</b> 
 &ndash; atomic B-factor, initially read from the input coordinate file
-(shown in gray; cannot be changed in this tool, but see
-<a href="../formats/defattr.html">attribute assignment files</a> and
-<a href="../commands/setattr.html"><b>setattr</b></a>)
 <li><b>Color</b> 
 &ndash; atom color
 (the color well can be clicked to adjust the color interactively)
@@ -86,9 +104,6 @@ value</a>.
 and <a href="buildstructure.html"><b>Build Structure</b></a>)
 <li><b>Occupancy</b> 
 &ndash; atomic occupancy value, initially read from the input coordinate file
-(shown in gray; cannot be changed in this tool, but see
-<a href="../formats/defattr.html">attribute assignment files</a> and
-<a href="../commands/setattr.html"><b>setattr</b></a>)
 <li><b>Radius</b> &ndash; radius in &Aring; used in
 <a href="../commands/style.html">sphere style</a>
 (and scaled down in <a href="../commands/style.html">ball style</a>),
@@ -96,7 +111,7 @@ initially set to an approximate <a href="../radii.html">VDW radius</a>;
 see also <a href="../commands/size.html"><b>size</b></a>
 <li><b>Shown</b> &ndash; whether display is enabled at the atom level,
 see <a href="../hierarchy.html">display hierarchy</a>
-<li><b>Style</b> &ndash; <a href="../commands/style.html">atom style</a>
+<li><b>Style</b> &ndash; atom <a href="../commands/style.html">display style</a>
  <ul>
  <li><b>ball</b>
  <li><b>sphere</b>
@@ -111,12 +126,12 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <b>Bonds</b>
 <ul>
 <li><b>Color</b> 
-&ndash; bond color, only visible when the bond is colored 
+&ndash; color, only visible when the bond is colored 
 independently of atoms (halfbond mode turned off) 
 <li><b>Halfbond mode</b> &ndash; whether bond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
 each half of the bond takes on the color of the atom on that end of the bond;
-turning this mode off shows the bond's own color setting, above
+turning this mode off shows the bond's own color setting, above.
 <li><b>Length</b> &ndash; length in &Aring;
 (shown in gray; cannot be changed in this tool, but see
 <a href="buildstructure.html"><b>Build Structure</b></a>)
@@ -127,6 +142,37 @@ see also <a href="../commands/size.html"><b>size</b></a>
 see <a href="../hierarchy.html">display hierarchy</a>
 </ul>
 
+<a name="pb-models"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection Inspector</a>]
+</p>
+<b>Pseudobond Models</b>
+<ul>
+<li><b>Color</b> 
+&ndash; color, only visible when the
+<a href="../pseudobonds.html">pseudobond</a>
+is colored independently of atoms (halfbond mode turned off); 
+adjusting the color sets it for all pseudobonds currently in the model and
+makes it the default for any pseudobonds subsequently added to the model.
+<li><b>Dashes</b> &ndash; number of dashes in a pseudobond,
+with 0 indicating solid sticks. Odd numbers are rounded down
+to give an even number of dashes. See also:
+<a href="../commands/style.html"><b>style</b></a>
+<li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
+<a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that
+each half of the bond takes on the color of the atom on that end of the bond;
+changing the option applies to all pseudobonds currently in the model and
+sets the default for any pseudobonds subsequently added to the model.
+<li><b>Name</b> &ndash; model name as shown in the
+<a href="modelpanel.html"><b>Model Panel</b></a>
+<li><b>Radius</b> &ndash; radius in &Aring;;
+entering a value uses it for all pseudobonds currently in the model and
+makes it the default for any pseudobonds subsequently added to the model.
+See also: <a href="../commands/size.html"><b>size</b></a>
+<li><b>Shown</b> &ndash; whether display is enabled at the model level,
+see <a href="../hierarchy.html">display hierarchy</a>
+</ul>
+
 <a name="pseudobonds"></a>
 <p class="nav">
 [<a href="#top">back to top: Selection Inspector</a>]
@@ -134,12 +180,13 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <b>Pseudobonds</b>
 <ul>
 <li><b>Color</b> 
-&ndash; bond color, only visible when the pseudobond is colored 
+&ndash; color, only visible when the 
+<a href="../pseudobonds.html">pseudobond</a> is colored 
 independently of atoms (halfbond mode turned off) 
 <li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
 each half of the bond takes on the color of the atom on that end of the bond;
-turning this mode off shows the bond's own color setting, above
+turning this mode off shows the bond's own color setting, above.
 <li><b>Length</b> &ndash; length in &Aring;
 (shown in gray; cannot be changed)
 <li><b>Radius</b> &ndash; radius in &Aring;;
@@ -193,5 +240,5 @@ see also <a href="../commands/style.html"><b>style</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2021</address>
+June 2021</address>
 </body></html>
