@@ -22,7 +22,7 @@ def item_options(session, name, **kw):
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
         'pseudobond groups': [make_tuple(opt, "pseudobond_group") for opt in [PBGColorOption,
-            PBGDashesOption, PBGHalfBondOption, PBGNameOption, PBGRadiusOption]],
+            PBGDashesOption, PBGHalfBondOption, PBGNameOption, PBGRadiusOption, PBGShownOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
             PBondLengthOption, PBondRadiusOption, PBondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
@@ -292,6 +292,14 @@ class PBGRadiusOption(FloatOption):
     def __init__(self, *args, **kw):
         super().__init__(*args, min='positive', **kw)
 
+class PBGShownOption(BooleanOption):
+    attr_name = "display"
+    default = True
+    name = "Shown"
+    @property
+    def command_format(self):
+        return "setattr %%s g display %s" % str(self.value).lower()
+
 class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
     balloon = "Side chain \N{GREEK SMALL LETTER CHI}\N{SUBSCRIPT ONE} (chi1) angle"
@@ -524,7 +532,7 @@ class StructureShownOption(BooleanOption):
     name = "Shown"
     @property
     def command_format(self):
-        return "%s %%s models" % ("show" if self.value else "hide")
+        return "setattr %%s struct display %s" % str(self.value).lower()
 
 class StructureHelixModeOption(SymbolicEnumOption):
     values = (Structure.RIBBON_MODE_DEFAULT, Structure.RIBBON_MODE_ARC, Structure.RIBBON_MODE_WRAP)
