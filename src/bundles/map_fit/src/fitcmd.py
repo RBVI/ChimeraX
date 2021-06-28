@@ -265,7 +265,6 @@ def show_fit_list(flist, show, session):
     session.logger.info('Found %d fits. List window not yet implemented.' % len(flist))
     if show and flist:
         flist[0].place_models(session)
-    return
     from . import fitlist
     d = fitlist.show_fit_list_dialog(session)
     d.add_fits(flist)
