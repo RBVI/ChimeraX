@@ -465,6 +465,16 @@ class AtomicStructures(StructureDatas):
         from . import AtomicStructure
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
 
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         return array([s._c_pointer.value for s in data], dtype=cptr)
@@ -1465,6 +1475,17 @@ class PseudobondGroupDatas(Collection):
         doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
         "sequence), or with a single floating-point number.")
 
+    # 'displays' being defined as property only so that setattr (used by selection inspector)
+    # knows that it exists.  Not defining as a vector property since we actually want to go
+    # through Model.display
+    @property
+    def displays(self):
+        return array([pbg.display for pbg in self])
+    @displays.setter
+    def displays(self, d):
+        for pbg in self:
+            pbg.display = d
+
 # -----------------------------------------------------------------------------
 #
 class PseudobondGroups(PseudobondGroupDatas):
@@ -1522,6 +1543,17 @@ class Structures(StructureDatas):
     def __init__(self, mol_pointers):
         from . import Structure
         Collection.__init__(self, mol_pointers, Structure, Structures)
+
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
+
 
     @classmethod
     def session_restore_pointers(cls, session, data):

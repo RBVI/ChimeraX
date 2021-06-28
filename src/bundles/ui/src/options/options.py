@@ -461,14 +461,22 @@ class FloatOption(NumericOption):
     def show_text(self, text):
         self._float_widget.set_text(text)
 
+    def _possible_callback(self):
+        if self._value_has_changed:
+            self._value_has_changed = False
+            self.make_callback()
+
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
             decimal_places=3, step=None, as_slider=False, **kw):
         self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
+        self._value_has_changed = False
         if as_slider:
             self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         else:
-            self._float_widget.editingFinished.connect(lambda *, s=self: s.make_callback())
+            self._float_widget.valueChanged.connect(lambda val, s=self:
+                setattr(s, '_value_has_changed', True))
+            self._float_widget.editingFinished.connect(lambda *, s=self: s._possible_callback())
         if (not left_text and not right_text) or as_slider:
             if left_text:
                 self._float_widget.set_left_text(left_text)
@@ -614,9 +622,16 @@ class IntOption(NumericOption):
         self._spin_box.blockSignals(False)
         self._spin_box.setSpecialValueText(text)
 
+    def _possible_callback(self):
+        if self._value_has_changed:
+            self._value_has_changed = False
+            self.make_callback()
+
     def _make_widget(self, min=None, max=None, left_text=None, right_text=None, **kw):
         self._spin_box = _make_int_spinbox(min, max, **kw)
-        self._spin_box.editingFinished.connect(lambda *, s=self: s.make_callback())
+        self._value_has_changed = False
+        self._spin_box.valueChanged.connect(lambda val, s=self: setattr(s, '_value_has_changed', True))
+        self._spin_box.editingFinished.connect(lambda *, s=self: s._possible_callback())
         if not left_text and not right_text:
             self.widget = self._spin_box
             return
