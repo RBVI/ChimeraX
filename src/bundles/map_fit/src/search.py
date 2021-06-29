@@ -183,17 +183,16 @@ class Fit:
     #
     def place_copies(self):
 
-        from chimera import Molecule, openModels as om
-        from Molecule import copy_molecule
-
-        mxf_list = [(m,xf) for m,xf in self.model_xforms()
-                    if isinstance(m, Molecule)]
-        copies = [copy_molecule(m) for m, xf in mxf_list]
+        from chimerax.atomic import Structure
+        mpos_list = [(m,position) for m,position in self.model_transforms()
+                    if isinstance(m, Structure)]
+        copies = [m.copy() for m, position in mpos_list]
         if copies:
-            om.add(copies)
+            session = copies[0].session
+            session.models.add(copies)
 
-        for c, (m,xf) in zip(copies, mxf_list):
-            c.openState.xform = xf
+        for c, (m,pos) in zip(copies, mpos_list):
+            c.position = pos
 
         return copies
 
@@ -300,10 +299,10 @@ def fit_order(f):
 #
 def move_models(models, transforms, base_model, frames, session):
 
-    if not hasattr(session, move_table):
-        session.move_table = {}            # Map motion handlers for animating moves to fit positions
+    if not hasattr(session, '_move_table'):
+        session._move_table = {}            # Map motion handlers for animating moves to fit positions
 
-    move_table = session.move_table
+    move_table = session._move_table
     add = (len(move_table) == 0)
     if base_model.was_deleted:
         return
@@ -320,16 +319,16 @@ def move_models(models, transforms, base_model, frames, session):
 #
 def move_step(move_table, session):
 
-    mt = session.move_table
+    mt = session._move_table
     for m, (rxf, base_model, frames) in tuple(mt.items()):
         if m.was_deleted or base_model.was_deleted:
             del mt[m]
             continue
         tf = base_model.position * rxf
-        b = m.bounds(positions = False)
+        b = m.bounds()
         if b:
-            c = .5 * (b[0] + b[1])
-            m.set_place(m.position.interpolate(tf, c, 1.0/frames))
+            c = .5 * (b.xyz_min + b.xyz_max)
+            m.position = m.position.interpolate(tf, c, 1.0/frames)
             if frames <= 1:
                 del mt[m]
             else:

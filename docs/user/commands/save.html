@@ -976,6 +976,7 @@ Example:
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
@@ -1006,6 +1007,16 @@ Whether vertex indices in the exported file must fit within 16 bits
 <b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to use floating-point color values.
+</blockquote>
+<blockquote>
+<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to write texture colors instead of vertex colors. 
+This works for parts of the scene (atoms, bonds, ribbons, <i>etc.</i>)
+in which each triangle has a single color, but not
+where the vertices of a triangle may have different colors, 
+as in surfaces colored by map value or distance.
+<!-- details in #4808 -->
 </blockquote>
 <blockquote>
 <b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
