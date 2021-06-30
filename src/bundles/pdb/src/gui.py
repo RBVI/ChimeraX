@@ -28,7 +28,7 @@ class SaveOptionsWidget(QFrame):
         layout.setContentsMargins(2, 0, 0, 0)
         layout.setSpacing(5)
 
-        from chimerax.atomic import Structure
+        from chimerax.atomic import Structure, PseudobondGroup
         from chimerax.ui import shrink_font
         show_tip = len([m for m in session.models if isinstance(m, Structure)]) > 1
         if show_tip:
@@ -65,10 +65,11 @@ class SaveOptionsWidget(QFrame):
         self.selected_only = QCheckBox('Save selected atoms only')
         options_layout.addWidget(self.selected_only, alignment=Qt.AlignLeft)
 
-        self.simple_rel_models = len(self.structure_list.value) < 2
+        self.simple_rel_models = len([m for m in session.models if not isinstance(m, PseudobondGroup)]) < 2
         if self.simple_rel_models:
             self.rel_models = QCheckBox('Use untransformed coordinates')
             options_layout.addWidget(self.rel_models, alignment=Qt.AlignLeft)
+            self.rel_models.setChecked(True)
         else:
             rel_layout = QHBoxLayout()
             options_layout.addLayout(rel_layout)
@@ -76,8 +77,9 @@ class SaveOptionsWidget(QFrame):
             rel_layout.addWidget(self.rel_models, alignment=Qt.AlignLeft)
             from chimerax.ui.widgets import ModelMenuButton
             self.rel_model_menu = ModelMenuButton(session)
+            self.rel_model_menu.value_changed.connect(lambda *args, rm=self.rel_models: rm.setChecked(True))
             rel_layout.addWidget(self.rel_model_menu, alignment=Qt.AlignLeft)
-        self.rel_models.setChecked(True)
+            self.rel_models.setChecked(False)
 
         large_layout = QHBoxLayout()
         options_layout.addLayout(large_layout)
