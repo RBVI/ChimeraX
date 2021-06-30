@@ -996,7 +996,7 @@ class StructureSeq(Sequence):
         return self.residues < other.residues
 
     chain_id = c_property('sseq_chain_id', string)
-    '''Chain identifier. Limited to 4 characters. Read only string.'''
+    '''Chain identifier. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
         "Supported API. A string representing the contents of the sequence. Read only.")
