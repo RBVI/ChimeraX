@@ -19,7 +19,7 @@ from chimerax.core.commands import run
 
 class AltlocExplorerTool(ToolInstance):
 
-    #help = "help:user/tools/colorkey.html"
+    help = "help:user/tools/altlocexplorer.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -41,7 +41,7 @@ class AltlocExplorerTool(ToolInstance):
         self._structure_widget = None
         self._changes_handler = None
         self._button_lookup = {}
-        #TODO: react to alt loc changes/additions/subtractions
+        #TODO: react to alt loc additions/subtractions
 
         tw.manage(placement='side')
 
@@ -75,7 +75,7 @@ class AltlocExplorerTool(ToolInstance):
             row = next(rows)
             button = QPushButton(r.string(omit_structure=True))
             button.clicked.connect(lambda *args, ses=self.session, run=run, spec=r.atomspec:
-                run(ses, "view " + spec))
+                run(ses, "show %s; view %s" % (spec, spec)))
             layout.addWidget(button, row, 0 + col_offset, alignment=Qt.AlignRight)
             button_group = QButtonGroup()
             self._button_groups.append(button_group)
