@@ -75,7 +75,7 @@ class AltlocExplorerTool(ToolInstance):
             row = next(rows)
             button = QPushButton(r.string(omit_structure=True))
             button.clicked.connect(lambda *args, ses=self.session, run=run, spec=r.atomspec:
-                run(ses, "view " + spec))
+                run(ses, "show %s; view %s" % (spec, spec)))
             layout.addWidget(button, row, 0 + col_offset, alignment=Qt.AlignRight)
             button_group = QButtonGroup()
             self._button_groups.append(button_group)
