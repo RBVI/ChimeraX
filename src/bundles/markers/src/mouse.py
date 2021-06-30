@@ -452,7 +452,7 @@ def _mouse_marker_settings(session, attr = None):
     if not hasattr(session, '_marker_settings'):
         session._marker_settings = {
             'molecule': None,
-            'next_marker_num': 1,
+            'next_marker_num': None,
             'marker_chain_id': 'M',
             'marker color': (255,255,0,255),	# yellow
             'marker radius': 1.0,
@@ -483,12 +483,13 @@ def _mouse_place_marker(session, center, link_to_selected = False,
     m = _mouse_markerset(session)
     ms = _mouse_marker_settings(session)
     mcenter = m.scene_position.inverse() * center
-    a = m.create_marker(mcenter, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    marker_num = ms['next_marker_num']
+    a = m.create_marker(mcenter, ms['marker color'], ms['marker radius'], marker_num)
     if on_model:
         _set_marker_frame_number(a, on_model)
     if log:
         _log_place_marker(m, center, ms['marker color'], ms['marker radius'])
-    ms['next_marker_num'] += 1
+    ms['next_marker_num'] = (a.residue.number+1) if marker_num is None else (marker_num+1)
     session.logger.status('Placed marker')
     if link_to_selected:
         from chimerax.atomic import selected_atoms
