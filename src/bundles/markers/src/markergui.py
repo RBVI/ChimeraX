@@ -21,6 +21,8 @@ from chimerax.core.tools import ToolInstance
 class MarkerModeSettings(ToolInstance):
     SESSION_ENDURING = True
 
+    help = 'help:user/tools/markerplacement.html'
+
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
