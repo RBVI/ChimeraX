@@ -574,6 +574,7 @@ class RibbonsDrawing(Drawing):
         self._triangle_ranges = None
         self._triangle_ranges_sorted = None	# Sorted ranges for first_intercept() calc
         self._residues = None			# Residues used with _triangle_ranges
+        self._residues_count = 0		# For detecting deleted residues
         
     def clear(self):
         self.set_geometry(None, None, None)
@@ -592,6 +593,7 @@ class RibbonsDrawing(Drawing):
 
     def set_triangle_ranges(self, residues, triangle_ranges):
         self._residues = residues
+        self._residues_count = len(residues)	# For detecting deleted residues
         self._triangle_ranges = triangle_ranges
         self._triangle_ranges_sorted = None
         
@@ -673,6 +675,8 @@ class RibbonsDrawing(Drawing):
         p = super().first_intercept(mxyz1, mxyz2)
         if p is None or (hasattr(p, 'drawing') and p.drawing() is not self):
             return None
+        if len(self._residues) < self._residues_count:
+            return None		# Some residues have been deleted.
         tranges = self._triangle_ranges
         if self._triangle_ranges_sorted is None:
             # Sort by triangle start for bisect_right() search
@@ -683,7 +687,8 @@ class RibbonsDrawing(Drawing):
         from bisect import bisect_right
         n = bisect_right(self._triangle_ranges_sorted, p.triangle_number)
         if n > 0:
-            r = self._residues[tranges[n-1][0]]
+            ri = tranges[n-1,0]
+            r = self._residues[ri]
             from .structure import PickedResidue
             return PickedResidue(r, p.distance)
         return None
