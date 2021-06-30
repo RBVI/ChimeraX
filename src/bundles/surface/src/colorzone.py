@@ -69,9 +69,13 @@ def color_surface(surf, points, point_colors, distance, far_color = None):
     from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
-    from numpy import empty, uint8
-    rgba = empty((len(varray),4), uint8)
-    rgba[:,:] = (surf.color if far_color is None else far_color)
+    if far_color == 'keep':
+        rgba = surf.get_vertex_colors(create = True)
+    else:
+        from numpy import empty, uint8
+        rgba = empty((len(varray),4), uint8)
+        rgba[:,:] = (surf.color if far_color is None else far_color)
+        
     for k in range(len(i1)):
         rgba[i1[k],:] = point_colors[n1[k]]
         

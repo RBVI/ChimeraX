@@ -1296,9 +1296,10 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
       used then the surface is not changed.
     bond_point_spacing : float
       Include points along bonds between the given atoms at this spacing.
-    far_color : Color or None
-      Color surface points beyond the distance range this color.  If None then distance
-      points are given the current surface single color.
+    far_color : Color or 'keep' or None
+      Color surface points beyond the distance range this color.  If None then far
+      points are given the current surface single color.  If 'keep' then far points
+      keep their current color.  Default is None.
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
@@ -1306,7 +1307,8 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
-    fcolor = far_color.uint8x4() if far_color is not None else None
+    from chimerax.core.colors import Color
+    fcolor = far_color.uint8x4() if isinstance(far_color, Color) else far_color
     from chimerax.core.undo import UndoState
     undo_state = UndoState('color zone')
     for s in surfaces:
@@ -1430,7 +1432,7 @@ def register_command(logger):
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
                             ('bond_point_spacing', FloatArg),
-                            ('far_color', ColorArg),
+                            ('far_color', Or(EnumOf(['keep']), ColorArg)),
                             ('update', BoolArg),
                        ],
                    required_arguments = ['near'],
