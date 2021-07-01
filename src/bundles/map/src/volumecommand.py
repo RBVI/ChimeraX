@@ -115,13 +115,19 @@ def register_volume_command(logger):
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
+    # Register volume settings command
     vsettings_desc = CmdDesc(optional = [('volumes', MapsArg)],
                              synopsis = 'report volume display settings')
     register('volume settings', vsettings_desc, volume_settings, logger=logger)
 
+    # Register volume channels command
+    from . import channels
+    channels.register_volume_channels_command(logger)
+    
     # Register volume subcommands for filtering operations.
     from chimerax import map_filter
     map_filter.register_volume_filtering_subcommands(logger)
+
     
 # -----------------------------------------------------------------------------
 #
