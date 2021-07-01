@@ -30,6 +30,7 @@ class MarkerSet(Structure):
             rnums = self.residues.numbers
             id = 1 if len(rnums) == 0 else (rnums.max() + 1)
         r = self.new_residue('mark', chain_id, id)
+        a.serial_number = id
         r.add_atom(a)
         return a
 
