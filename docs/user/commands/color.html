@@ -761,7 +761,7 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;keep&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -786,9 +786,11 @@ surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
 spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
-Vertices not within the cutoff of any of the atoms are assigned the
-<b>farColor</b> color, or if that option was not used,
-the single-color setting of the surface model.
+The <b>farColor</b> option indicates how to color vertices that are
+not within the cutoff distance of any of the atoms: either a specific
+color or <b>keep</b> to retain their current colors.
+If the <b>farColor</b> option is not given, 
+the single-color setting of the surface model will be used.
 </p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
@@ -1158,5 +1160,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2021</address>
+June 2021</address>
 </body></html>
