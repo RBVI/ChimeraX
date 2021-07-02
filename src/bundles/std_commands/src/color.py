@@ -1146,7 +1146,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     res_average[r] = sum(vals)/len(vals) if vals else None
                 attr_vals = [res_average[r] for r in atoms.residues]
             non_none_attr_vals = [v for v in attr_vals if v is not None]
-            non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            if non_none_attr_vals:
+                non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            else:
+                non_none_colors = None
             acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
             if 'c' in target or 'f' in target:
                 if class_obj == Atom:
@@ -1169,7 +1172,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     else:
                         res_attr_vals = [getattr(r.structure, attr_name, None) for r in residues]
                 non_none_res_attr_vals = [v for v in res_attr_vals if v is not None]
-                non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                if non_none_res_attr_vals:
+                    non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                else:
+                    non_none_res_colors = None
                 rib_colors = _none_possible_colors(residues.ribbon_colors, res_attr_vals,
                     non_none_res_colors, no_value_color)
                 ring_colors = _none_possible_colors(residues.ring_colors, res_attr_vals,

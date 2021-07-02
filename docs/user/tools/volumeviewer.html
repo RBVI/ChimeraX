@@ -285,9 +285,17 @@ channel numbers are <a href="../commands/open.html#channel">discerned</a>
 from the filenames, if possible.
 Multiple channels can also be read from a single file (OME TIFF and 
 certain other <a href="../commands/open.html#volume">volume formats</a>).
-Either way, the channels are automatically grouped,
-in that changing the display style, step size, or plane for one channel
-in <b>Volume Viewer</b> changes it for all of the channels in the group.
+Alternatively, multiple maps that are already open as independent data sets
+can be grouped into a single multichannel data set using the
+<a href="../commands/volume.html#channels"><b>volume channels</b></a> command,
+as long as the maps are the same size (have the same
+numbers of points in each dimension).
+</p><p>
+Channels of a single multichannel data set are synchronized,
+in that changing the display style, step size, crop boundaries,
+or display plane of one channel in the <b>Volume Viewer</b> interface
+or <a href="../commands/ui.html#mousemode">with the mouse</a>
+changes it for all of the channels in the group.
 The <a href="../commands/volume.html"><b>volume</b></a> command
 allows changing settings for individual channels.
 </p><p>
@@ -302,5 +310,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+June 2021</address>
 </body></html>
