@@ -30,7 +30,11 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
+ifndef CENTOS_DIST
 NEED_OSMESA=1
+else ifeq ($(CENTOS_DIST),7)
+NEED_OSMESA=1
+endif
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 #NEED_EXPAT=1
