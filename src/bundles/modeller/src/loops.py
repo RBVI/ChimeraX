@@ -81,7 +81,36 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     # Use the ungapped sequence as the target sequence, changing name to conform to Modeller limitations
     target = modeller_copy(seq.ungapped())
     for s, s_chains in by_structure.items():
-        
+        # Go through the residues of the structure: preserve het/water; for chains being modeled
+        # append the complete sequence; for others append the appropriate number of '-' characters
+        chars = []
+        i = 0
+        residues = s.residues
+        chain_id = None
+        while i < len(residues):
+            if r.chain is None:
+                if r.name in r.water_res_names:
+                    chars.append('w')
+                else:
+                    chars.append('.')
+                i += 1
+            else:
+                prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
+                total_len =  len(prefix) + len(r.chain) + len(suffix)
+                if r.chain in s_chains:
+                    chars.append(prefix)
+                    chars.append(r.chain.characters)
+                    chars.append(suffix)
+                else:
+                    chars.append('-' * total_len)
+                i += total_len
+            if chain_id is None:
+                chain_id = r.chain_id
+            elif chain_id != r.chain_id:
+                chars.append('/')
+                chain_id = r.chain_id
+        print("seq for %s:" % s, ''.join(chars))
+    return
 
 
     from .common import modeller_copy
