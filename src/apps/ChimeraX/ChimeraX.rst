@@ -70,6 +70,7 @@ The follow command line arguments are recognized:
 ``--cmd command``
 
     Run the ChimeraX command at startup after starting tools.
+    Turns off querying the Toolshed at startup.
 
 ``--color``
     Turn on colored text in nogui mode (default).
@@ -122,6 +123,7 @@ The follow command line arguments are recognized:
     Run Python script at startup.
     If they Python script has any specific arguments,
     they should be quoted along with the script name.
+    Turns off querying the Toolshed at startup.
     
 ``--silent``
     Don't output startup splash text and otherwise refrain from being

@@ -84,10 +84,34 @@ See also:
 <br>
 <b>vol all hide</b>
 <br>
+<b>vol channels #2-8</b>
+<br>
 <b>vol settings #1</b>
 </blockquote>
+<p>
+<a name="channels"></a>
+The command <b>volume channels</b> (followed by a <i>model-spec</i>,
+as in the example <a href="#examples">above</a>)
+groups the specified volume models into a single
+<a href="../tools/volumeviewer.html#multichannel">multichannel</a>
+data set, where changing the display style, step size, crop boundaries,
+or display plane of one channel
+in the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+interface or <a href="ui.html#mousemode">with the mouse</a>
+changes it for all of the channels in the group.
+The channels are grouped as submodels of a single higher-level model.
+Settings for the individual channels can still be changed independently with
+other options of the <b>volume</b> command.
+</p><p>
+<a name="settings"></a>
+The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
+reports the current volume display settings in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="info.html"><b>info</b></a>
+</p>
 <a name="options"></a>
-The <b>volume</b> command has many options, here grouped into categories:
+The <b>volume</b> command has many further options, 
+here grouped into categories:
 <blockquote><b>
 <a href="#general">General Display Options</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -143,14 +167,6 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
-
-<p>
-<a name="settings"></a>
-The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
-reports the current volume display settings in the 
-<a href="../tools/log.html"><b>Log</b></a>.
-See also: <a href="info.html"><b>info</b></a>
-</p>
 
 <a name="general"></a>
 <p class="nav">
