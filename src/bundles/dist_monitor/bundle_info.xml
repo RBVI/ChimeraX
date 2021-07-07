@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-DistMonitor" version="1.1.3" package="chimerax.dist_monitor"
+<BundleInfo name="ChimeraX-DistMonitor" version="1.1.4" package="chimerax.dist_monitor"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

@@ -137,13 +137,18 @@ class EntriesRow:
 
 def radio_buttons(*check_boxes):
     for cb in check_boxes:
-        cb.widget.stateChanged.connect(lambda state, cb=cb, others=check_boxes: _uncheck_others(cb, others))
+        cb.widget.toggled.connect(lambda state, cb=cb, others=check_boxes: _uncheck_others(cb, others))
 
 def _uncheck_others(check_box, other_check_boxes):
     if check_box.enabled:
         for ocb in other_check_boxes:
-            if ocb is not check_box:
+            if ocb is not check_box and ocb.enabled:
                 ocb.enabled = False
+    else:
+        # If all checkboxes are off, then turn this one back on.
+        # This prevents turning all radio buttons off.
+        if len([ocb for ocb in other_check_boxes if ocb.enabled]) == 0:
+            check_box.enabled = True
 
 class StringEntry:
     def __init__(self, parent, value = '', pixel_width = 100):

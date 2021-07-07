@@ -21,6 +21,8 @@ from chimerax.core.tools import ToolInstance
 class MarkerModeSettings(ToolInstance):
     SESSION_ENDURING = True
 
+    help = 'help:user/tools/markerplacement.html'
+
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
@@ -31,7 +33,7 @@ class MarkerModeSettings(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
         
-        from Qt.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QSizePolicy, QCheckBox
+        from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QSizePolicy
 
         playout = QVBoxLayout(parent)
         playout.setContentsMargins(0,0,0,0)
@@ -47,47 +49,13 @@ class MarkerModeSettings(ToolInstance):
         f.setLayout(layout)
         
         # Marker and link color and radius
-        mf = QFrame(f)
-        mf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        layout.addWidget(mf)
-        mm_layout = QHBoxLayout(mf)
-        mm_layout.setContentsMargins(0,0,0,0)
-        mm_layout.setSpacing(5)
-        mf.setLayout(mm_layout)
+        ms = self._create_marker_settings(f)
+        layout.addWidget(ms)
 
-        ml = QLabel('Marker color', mf)
-        mm_layout.addWidget(ml)
-        from chimerax.ui.widgets import ColorButton
-        self._marker_color = mc = ColorButton(mf, max_size = (16,16))
-        mc.color_changed.connect(self._marker_color_changed)
-        mm_layout.addWidget(mc)
-        rl = QLabel(' radius', mf)
-        mm_layout.addWidget(rl)
-        self._marker_radius = mr = QLineEdit('', mf)
-        mr.setMaximumWidth(40)
-        mr.returnPressed.connect(self._marker_radius_changed)
-        mm_layout.addWidget(mr)
-
-        mm_layout.addSpacing(20)
-        ml = QLabel('Link color', mf)
-        mm_layout.addWidget(ml)
-        from chimerax.ui.widgets import ColorButton
-        self._link_color = lc = ColorButton(mf, max_size = (16,16))
-        lc.color_changed.connect(self._link_color_changed)
-        mm_layout.addWidget(lc)
-        rl = QLabel(' radius', mf)
-        mm_layout.addWidget(rl)
-        self._link_radius = lr = QLineEdit('', mf)
-        lr.setMaximumWidth(40)
-        lr.returnPressed.connect(self._link_radius_changed)
-        mm_layout.addWidget(lr)
-
-        mm_layout.addStretch(1)    # Extra space at end
-
-        # Link consecutive markers checkbutton
-        self.link_new_button = lm = QCheckBox('Link new marker to selected marker', f)
-        lm.stateChanged.connect(self.link_new_cb)
-        layout.addWidget(lm)
+        # Options panel
+        options = self._create_options_gui(parent)
+        self._options_panel = options
+        layout.addWidget(options)
 
         layout.addSpacing(5)
         hl = QLabel('Place markers using mouse modes in the Markers toolbar')
@@ -96,13 +64,138 @@ class MarkerModeSettings(ToolInstance):
         self.update_settings()
         
         tw.manage(placement="side")
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _create_marker_settings(self, parent):
+
+        from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QLineEdit, QSizePolicy
+
+        mf = QFrame(parent)
+        mf.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        mm_layout = QHBoxLayout(mf)
+        mm_layout.setContentsMargins(0,0,0,0)
+        mm_layout.setSpacing(5)
+        mf.setLayout(mm_layout)
+
+        # Marker color
+        ml = QLabel('Marker color', mf)
+        mm_layout.addWidget(ml)
+        from chimerax.ui.widgets import ColorButton
+        self._marker_color = mc = ColorButton(mf, max_size = (16,16))
+        mc.color_changed.connect(self._marker_color_changed)
+        mm_layout.addWidget(mc)
+
+        # Marker radius
+        rl = QLabel(' radius', mf)
+        mm_layout.addWidget(rl)
+        self._marker_radius = mr = QLineEdit('', mf)
+        mr.setMaximumWidth(40)
+        mr.returnPressed.connect(self._marker_radius_changed)
+        mm_layout.addWidget(mr)
+
+        # Link color
+        mm_layout.addSpacing(20)
+        ml = QLabel('Link color', mf)
+        mm_layout.addWidget(ml)
+        from chimerax.ui.widgets import ColorButton
+        self._link_color = lc = ColorButton(mf, max_size = (16,16))
+        lc.color_changed.connect(self._link_color_changed)
+        mm_layout.addWidget(lc)
+
+        # Link radius
+        rl = QLabel(' radius', mf)
+        mm_layout.addWidget(rl)
+        self._link_radius = lr = QLineEdit('', mf)
+        lr.setMaximumWidth(40)
+        lr.returnPressed.connect(self._link_radius_changed)
+        mm_layout.addWidget(lr)
+
+        # Options button
+        mm_layout.addSpacing(20)
+        op = QPushButton('Options', mf)
+        op.clicked.connect(self._show_or_hide_options)
+        mm_layout.addWidget(op)
+
+        mm_layout.addStretch(1)    # Extra space at end
+
+        return mf
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _create_options_gui(self, parent):
+
+        from chimerax.ui.widgets import CollapsiblePanel
+        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        f = p.content_area
+        layout = f.layout()
+
+        # Make marker set menu.
+        mmf = self._create_marker_set_menu(f)
+        layout.addWidget(mmf)
+
+        # Link consecutive markers checkbutton
+        from Qt.QtWidgets import QCheckBox
+        self.link_new_button = lm = QCheckBox('Link new marker to selected marker', f)
+        lm.stateChanged.connect(self.link_new_cb)
+        layout.addWidget(lm)
+    
+        return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_or_hide_options(self):
+        self._options_panel.toggle_panel_display()
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _create_marker_set_menu(self, parent):
+
+        from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
+    
+        mf = QFrame(parent)
+        mlayout = QHBoxLayout(mf)
+        mlayout.setContentsMargins(0,0,0,0)
+        mlayout.setSpacing(10)
+    
+        msl = QLabel('Marker set', mf)
+        mlayout.addWidget(msl)
+
+        from . import MarkerSet
+        from chimerax.ui.widgets import ModelMenuButton
+        self._marker_model_menu = mmm = ModelMenuButton(self.session,
+                                                        class_filter = (MarkerSet))
+        mmm.value_changed.connect(self._marker_set_chosen)
+#        mlist = self.session.models.list(type = MarkerSet)
+#        if mlist:
+#            mmm.value = mlist[0]
+        self._marker_set_chosen()
+        mlayout.addWidget(mmm)
+
+        nm = QPushButton('New', mf)
+        nm.clicked.connect(self._new_marker_model)
+        mlayout.addWidget(nm)
+
+        mlayout.addStretch(1)    # Extra space at end
+        
+        return mf
 
     @property
     def _settings(self):
         from .mouse import _mouse_marker_settings
         mms = _mouse_marker_settings(self.session)
         return mms
-    
+
+    def _marker_set_chosen(self):
+        self._settings['marker set'] = self._marker_model_menu.value
+        self._settings['next_marker_num'] = None
+        
+    def _new_marker_model(self):
+        from . import MarkerSet
+        mset = MarkerSet(self.session)
+        self.session.models.add([mset])
+        self._marker_model_menu.value = mset
+        
     def _marker_color_changed(self, color):
         self._settings['marker color'] = color
         from . import selected_markers

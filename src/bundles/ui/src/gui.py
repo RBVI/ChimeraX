@@ -222,7 +222,7 @@ class UI(QApplication):
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
-        mw.rapid_access_shown = True
+
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
         from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
@@ -805,6 +805,14 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
 
+    def showEvent(self, event):
+        QMainWindow.showEvent(self, event)
+        if not hasattr(self, '_already_shown'):
+            self._already_shown = True
+            # Work around startup crash on Windows that appears to happen when
+            # rapid access is shown too early, a likely Qt bug.  ChimeraX ticket #4698.
+            self.rapid_access_shown = True
+            
     def resizeEvent(self, event):
         QMainWindow.resizeEvent(self, event)
         size = event.size()

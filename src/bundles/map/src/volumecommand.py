@@ -115,13 +115,19 @@ def register_volume_command(logger):
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
+    # Register volume settings command
     vsettings_desc = CmdDesc(optional = [('volumes', MapsArg)],
                              synopsis = 'report volume display settings')
     register('volume settings', vsettings_desc, volume_settings, logger=logger)
 
+    # Register volume channels command
+    from . import channels
+    channels.register_volume_channels_command(logger)
+    
     # Register volume subcommands for filtering operations.
     from chimerax import map_filter
     map_filter.register_volume_filtering_subcommands(logger)
+
     
 # -----------------------------------------------------------------------------
 #
@@ -561,13 +567,6 @@ def level_and_color_settings(v, options):
 
     colors = options.get('color', [])
 
-    # Allow 0 or 1 colors and 0 or more levels, or number colors matching
-    # number of levels.
-    if len(colors) > 1 and len(colors) != len(levels):
-        from chimerax.core.errors import UserError
-        raise UserError('Number of colors (%d) does not match number of levels (%d)'
-                        % (len(colors), len(levels)))
-
     if 'change' in options:
         style = options['change']
     elif 'style' in options:
@@ -602,12 +601,19 @@ def level_and_color_settings(v, options):
     if levels:
         kw[style+'_levels'] = levels
 
+    # Allow 0 or 1 colors and 0 or more levels, or number colors matching
+    # number of levels.
+    if levels:
+        nlev = len(levels)
+    else:
+        nlev = len(v.image_levels) if style == 'image' else len(v.surfaces)
+    if len(colors) > 1 and len(colors) != nlev:
+        from chimerax.core.errors import UserError
+        raise UserError('Number of colors (%d) does not match number of levels (%d)'
+                        % (len(colors), nlev))
+
     if len(colors) == 1:
-        if levels:
-            clist = [colors[0].rgba]*len(levels)
-        else:
-            nlev = len(v.image_levels if style == 'image' else [s.level for s in v.surfaces])
-            clist = [colors[0].rgba]*nlev
+        clist = [colors[0].rgba]*nlev
         kw[style+'_colors'] = clist
     elif len(colors) > 1:
         kw[style+'_colors'] = [c.rgba for c in colors]

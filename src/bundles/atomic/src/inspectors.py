@@ -21,6 +21,8 @@ def item_options(session, name, **kw):
             AtomIdatmTypeOption, AtomOccupancyOption, AtomRadiusOption, AtomShownOption, AtomStyleOption]],
         'bonds': [make_tuple(opt, "bond") for opt in [BondColorOption, BondHalfBondOption,
             BondLengthOption, BondRadiusOption, BondShownOption]],
+        'pseudobond groups': [make_tuple(opt, "pseudobond_group") for opt in [PBGColorOption,
+            PBGDashesOption, PBGHalfBondOption, PBGNameOption, PBGRadiusOption, PBGShownOption]],
         'pseudobonds': [make_tuple(opt, "pseudobond") for opt in [PBondColorOption, PBondHalfBondOption,
             PBondLengthOption, PBondRadiusOption, PBondShownOption]],
         'residues': [make_tuple(opt, "residue") for opt in [ResidueChi1Option, ResidueChi2Option,
@@ -28,43 +30,46 @@ def item_options(session, name, **kw):
             ResiduePhiOption, ResiduePsiOption, ResidueRibbonColorOption, ResidueRibbonHidesBackboneOption,
             ResidueRibbonShownOption, ResidueRingColorOption, ResidueSSIDOption, ResidueSSTypeOption,
             ResidueThinRingsOption]],
+        'structures': [make_tuple(opt, "structure") for opt in [StructureAutochainOption,
+            StructureBallScaleOption, StructureNameOption, StructureShownOption]],
     }[name]
 
 from chimerax.ui.options import BooleanOption, ColorOption, EnumOption, FloatOption, IntOption, \
-    SymbolicEnumOption
+    SymbolicEnumOption, StringOption
 from chimerax.core.colors import color_name
+from chimerax.core.commands import StringArg
 from chimerax.core.utils import CustomSortString
-from . import Atom, Element, Residue
+from . import Atom, Element, Residue, Structure
+
+color_arg = lambda x: StringArg.unparse(color_name(x))
 
 class AtomBFactorOption(FloatOption):
     attr_name = "bfactor"
-    balloon = "Atomic temperature factor"
     default = 1.0
     name = "B-factor"
     @property
     def command_format(self):
-        return "size %%s bfactor %g" % self.value
+        return "setattr %%s a bfactor %g" % self.value
 
     def __init__(self, *args, **kw):
         if 'decimal_places' not in kw:
             kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = 0.5
         super().__init__(*args, **kw)
-        self.enabled = False
 
 class AtomColorOption(ColorOption):
     attr_name = "color"
-    balloon = "Atom color"
     default = "white"
     name = "Color"
     @property
     def command_format(self):
-        return "color %%s %s atoms" % color_name(self.value)
+        return "color %%s %s atoms" % color_arg(self.value)
 
 idatm_entries = list(Atom.idatm_info_map.keys()) + [nm for nm in Element.names if len(nm) < 3]
 class AtomIdatmTypeOption(EnumOption):
     values = sorted(idatm_entries)
     attr_name = "idatm_type"
-    balloon = "IDATM type"
     default = "C3"
     name = "IDATM type"
     @property
@@ -77,22 +82,21 @@ class AtomIdatmTypeOption(EnumOption):
 
 class AtomOccupancyOption(FloatOption):
     attr_name = "occupancy"
-    balloon = "Fraction of time that atom is in this location"
     default = 1.0
     name = "Occupancy"
     @property
     def command_format(self):
-        return "size %%s occupancy %g" % self.value
+        return "setattr %%s a occupancy %g" % self.value
 
     def __init__(self, *args, **kw):
         if 'decimal_places' not in kw:
             kw['decimal_places'] = 2
-        super().__init__(*args, **kw)
-        self.enabled = False
+        if 'step' not in kw:
+            kw['step'] = 0.1
+        super().__init__(*args, min=0.0, max=1.0, **kw)
 
 class AtomRadiusOption(FloatOption):
     attr_name = "radius"
-    balloon = "Atomic radius"
     default = 1.4
     name = "Radius"
     @property
@@ -114,7 +118,6 @@ class AtomStyleOption(SymbolicEnumOption):
     values = (1, 0, 2)
     labels = ("ball", "sphere", "stick")
     attr_name = "draw_mode"
-    balloon = "Atom/bond display style"
     default = 0
     name = "Style"
     @property
@@ -124,7 +127,7 @@ class AtomStyleOption(SymbolicEnumOption):
 class BaseBondColorOption(ColorOption):
     def __init_subclass__(cls, **kwargs):
         cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
-        cls.balloon = "If not in half bond mode, the color of the %sbond" % (cls.prefix)
+        cls.balloon = "If not in halfbond mode, the color of the %sbond" % (cls.prefix)
 
     attr_name = "color"
     default = "white"
@@ -132,7 +135,7 @@ class BaseBondColorOption(ColorOption):
 
     @property
     def command_format(self):
-        return "color =%%s %s %sbonds" % (color_name(self.value), self.prefix)
+        return "color =%%s %s %sbonds" % (color_arg(self.value), self.prefix)
 
 class BaseBondHalfBondOption(BooleanOption):
     def __init_subclass__(cls, **kwargs):
@@ -167,9 +170,9 @@ class BaseBondLengthOption(FloatOption):
 class BaseBondRadiusOption(FloatOption):
     def __init_subclass__(cls, **kwargs):
         cls.prefix = "pseudo" if cls.__name__.startswith("PB") else ""
-        cls.balloon = "%sbond radius" % cls.prefix
 
     attr_name = "radius"
+    balloon = "stick radius"
     default = 0.2
     name = "Radius"
     @property
@@ -231,6 +234,71 @@ class AngleOption(FloatOption):
         if 'step' not in kw:
             kw['step'] = 5.0
         super().__init__(*args, **kw)
+
+class PBGColorOption(ColorOption):
+    attr_name = "color"
+    balloon = "Pseudobond model color.  Setting it will set all member pseudobonds\n" \
+        "to that color, and newly created pseudobonds will be that color."
+    default = "gold"
+    name = "Color"
+    @property
+    def command_format(self):
+        return "setattr %%s g color %s" % color_arg(self.value)
+
+class PBGDashesOption(IntOption):
+    attr_name = "dashes"
+    balloon = "Number of dashes per pseudobond.  Zero gives a solid stick.\n" \
+        "Currently odd values are rounded down to the next even value."
+    default = 9
+    name = "Dashes"
+    @property
+    def command_format(self):
+        return "style %%s dashes %d" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min=0, **kw)
+
+class PBGHalfBondOption(BooleanOption):
+    balloon = "If true, each half of the pseudobonds are colored the same as their neighboring atoms.\n" \
+            "Otherwise, the pseudobonds use their own color attribute for the whole pseudobond."
+    attr_name = "halfbond"
+    default = True
+    name = "Halfbond mode"
+    @property
+    def command_format(self):
+        return "setattr %%s g halfbond %s" % str(self.value).lower()
+
+class PBGNameOption(StringOption):
+    attr_name = "name"
+    default = "unknown"
+    name = "Name"
+    @property
+    def command_format(self):
+        return "setattr %%s g name %s" % StringArg.unparse(self.value)
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.enabled = False
+
+class PBGRadiusOption(FloatOption):
+    attr_name = "radius"
+    balloon = "Pseudobond radius"
+    default = 1.4
+    name = "Radius"
+    @property
+    def command_format(self):
+        return "setattr %%s g radius %g" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min='positive', **kw)
+
+class PBGShownOption(BooleanOption):
+    attr_name = "display"
+    default = True
+    name = "Shown"
+    @property
+    def command_format(self):
+        return "setattr %%s g display %s" % str(self.value).lower()
 
 class ResidueChi1Option(AngleOption):
     attr_name = "chi1"
@@ -297,7 +365,7 @@ class ResiduePsiOption(AngleOption):
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
-    balloon = "Whether to depict rings as filled/solid"
+    balloon = "Whether ring fill should be thick or thin"
     default = False
     name = "Fill rings"
     @property
@@ -310,7 +378,7 @@ class ResidueRibbonColorOption(ColorOption):
     name = "Cartoon color"
     @property
     def command_format(self):
-        return "color %%s %s target r" % color_name(self.value)
+        return "color %%s %s target r" % color_arg(self.value)
 
 class ResidueRibbonHidesBackboneOption(BooleanOption):
     attr_name = "ribbon_hide_backbone"
@@ -337,7 +405,7 @@ class ResidueRingColorOption(ColorOption):
     name = "Ring fill color"
     @property
     def command_format(self):
-        return "color %%s %s target f" % color_name(self.value)
+        return "color %%s %s target f" % color_arg(self.value)
 
 class ResidueSSIDOption(IntOption):
     attr_name = "ss_id"
@@ -370,4 +438,114 @@ class ResidueThinRingsOption(SymbolicEnumOption):
     @property
     def command_format(self):
         return "setattr %%s r thin_rings %s" % str(self.value).lower()
+
+class StructureAutochainOption(BooleanOption):
+    attr_name = "autochain"
+    balloon = "Fraction of atomic radius to use in ball-and-stick style"
+    default = True
+    name = "Autochain"
+    @property
+    def command_format(self):
+        return "setattr %%s structures autochain %s" % str(self.value).lower()
+
+class StructureBallScaleOption(FloatOption):
+    attr_name = "ball_scale"
+    balloon = "Fraction of atomic radius to use in ball-and-stick style"
+    default = 0.25
+    name = "Ball scale"
+    @property
+    def command_format(self):
+        return "size %%s ballScale %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .01
+        super().__init__(*args, **kw)
+
+class StructureNameOption(StringOption):
+    attr_name = "name"
+    default = "unknown"
+    name = "Name"
+    @property
+    def command_format(self):
+        return "setattr %%s structures name %s" % StringArg.unparse(self.value)
+
+class StructureRibbonTetherOpacityOption(FloatOption):
+    attr_name = "ribbon_tether_opacity"
+    balloon = "How opaque (non-transparent) the cartoon tether is"
+    default = 0.5
+    name = "Cartoon tether opacity"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s opacity %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .05
+        super().__init__(*args, **kw)
+
+class StructureRibbonTetherScaleOption(FloatOption):
+    attr_name = "ribbon_tether_scale"
+    balloon = "Size of tether base radius relative to\nthe display radius of the corresponding α-carbon"
+    default = 1.0
+    name = "Cartoon tether scale"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s scale %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'decimal_places' not in kw:
+            kw['decimal_places'] = 2
+        if 'step' not in kw:
+            kw['step'] = .05
+        super().__init__(*args, **kw)
+
+class StructureRibbonTetherShapeOption(SymbolicEnumOption):
+    values = (Structure.TETHER_CONE, Structure.TETHER_REVERSE_CONE, Structure.TETHER_CYLINDER)
+    labels = ("cone", "steeple", "cylinder")
+    attr_name = "ribbon_tether_shape"
+    default = Structure.TETHER_CONE
+    name = "Cartoon tether shape"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s shape %s" % self.labels[self.value]
+
+class StructureRibbonTetherSidesOption(IntOption):
+    attr_name = "ribbon_tether_sides"
+    balloon = "Number of planar facets used to draw a tether"
+    default = 4
+    name = "Cartoon tether sides"
+    @property
+    def command_format(self):
+        return "cartoon tether %%s sides %d" % self.value
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, min=3, max=10, **kw)
+
+class StructureShownOption(BooleanOption):
+    attr_name = "display"
+    default = True
+    name = "Shown"
+    @property
+    def command_format(self):
+        return "setattr %%s struct display %s" % str(self.value).lower()
+
+class StructureHelixModeOption(SymbolicEnumOption):
+    values = (Structure.RIBBON_MODE_DEFAULT, Structure.RIBBON_MODE_ARC, Structure.RIBBON_MODE_WRAP)
+    labels = ("default", "tube", "wrap")
+    attr_name = "ribbon_mode_helix"
+    balloon = "How peptide helices are depicted in cartoons.  If 'default', depicted as\n" \
+        "a ribbon whose flat surface faces outward from the local curvature of the\n" \
+        "peptide chain.  If 'tube', as a cylinder that follows the overall curvature\n" \
+        "of the helix path.  If 'wrap', similar to 'default' except following the same\n" \
+        "curved path as 'tube'."
+    default = Structure.RIBBON_MODE_DEFAULT
+    name = "Cartoon helix style"
+    @property
+    def command_format(self):
+        return "cartoon style %%s modeHelix %s" % self.labels[self.values.index(self.value)]
 

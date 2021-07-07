@@ -1146,7 +1146,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     res_average[r] = sum(vals)/len(vals) if vals else None
                 attr_vals = [res_average[r] for r in atoms.residues]
             non_none_attr_vals = [v for v in attr_vals if v is not None]
-            non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            if non_none_attr_vals:
+                non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            else:
+                non_none_colors = None
             acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
             if 'c' in target or 'f' in target:
                 if class_obj == Atom:
@@ -1169,7 +1172,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     else:
                         res_attr_vals = [getattr(r.structure, attr_name, None) for r in residues]
                 non_none_res_attr_vals = [v for v in res_attr_vals if v is not None]
-                non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                if non_none_res_attr_vals:
+                    non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                else:
+                    non_none_res_colors = None
                 rib_colors = _none_possible_colors(residues.ribbon_colors, res_attr_vals,
                     non_none_res_colors, no_value_color)
                 ring_colors = _none_possible_colors(residues.ring_colors, res_attr_vals,
@@ -1296,9 +1302,10 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
       used then the surface is not changed.
     bond_point_spacing : float
       Include points along bonds between the given atoms at this spacing.
-    far_color : Color or None
-      Color surface points beyond the distance range this color.  If None then distance
-      points are given the current surface single color.
+    far_color : Color or 'keep' or None
+      Color surface points beyond the distance range this color.  If None then far
+      points are given the current surface single color.  If 'keep' then far points
+      keep their current color.  Default is None.
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
@@ -1306,7 +1313,8 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
-    fcolor = far_color.uint8x4() if far_color is not None else None
+    from chimerax.core.colors import Color
+    fcolor = far_color.uint8x4() if isinstance(far_color, Color) else far_color
     from chimerax.core.undo import UndoState
     undo_state = UndoState('color zone')
     for s in surfaces:
@@ -1430,7 +1438,7 @@ def register_command(logger):
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
                             ('bond_point_spacing', FloatArg),
-                            ('far_color', ColorArg),
+                            ('far_color', Or(EnumOf(['keep']), ColorArg)),
                             ('update', BoolArg),
                        ],
                    required_arguments = ['near'],

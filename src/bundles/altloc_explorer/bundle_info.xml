@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-AltlocExplorer" version="1.0"
+	    package="chimerax.altloc_explorer"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Examine/change alternate atomic locations</Synopsis>
+  <Description>High-resolution structures may have several different possible positions for an atom.  ChimeraX only depicts one position for an atom.  This tool allows the user to determine which atoms have alternate locations and to change the depiction to those locations if desired.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.21"/>
+    <Dependency name="ChimeraX-UI" version="~=1.9"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Altloc Explorer :: Structure Analysis :: interact with alternate atom locations</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

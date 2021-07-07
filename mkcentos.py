@@ -92,6 +92,7 @@ CENTOS_DEPENDENCIES = {
        "pango": "1.42.4",
        "pulseaudio-libs": "10.0",
        "pulseaudio-libs-glib2": "10.0",
+       "sqlite": "3.7.17",
        "xcb-util-keysyms": "0.4.0",
        "xdg-utils": "1.1.0",
        "xz-libs": "5.2.2",
@@ -148,6 +149,7 @@ CENTOS_DEPENDENCIES = {
        "pango": "1.42.4",
        "pulseaudio-libs": "11.1",
        "pulseaudio-libs-glib2": "11.1",
+       "sqlite": "3.26.0",
        "xcb-util-image": "0.4.0",
        "xcb-util-keysyms": "0.4.0",
        "xcb-util-renderutil": "0.4.0",
@@ -293,6 +295,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
         #    }} \
         #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}}
         print(textwrap.dedent(f"""\
+            %define _build_id_links none
             %define __spec_install_post %{{nil}}
             %define debug_package %{{nil}}
             # %%define __os_install_post\

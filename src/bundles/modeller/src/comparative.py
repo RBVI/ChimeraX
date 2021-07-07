@@ -170,6 +170,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             templates_info.append((chain, aseq.match_maps[chain]))
             if not match_chains:
                 match_chains.append(chain)
+        target_name = target.name
 
     if het_preserve or water_preserve:
         for template_strings in templates_strings:
@@ -197,8 +198,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                 template_string += water_string
             target_strings[i] = target_string
             templates_strings[i] = [template_string]
-
-        target_name = target.name
 
     from .common import write_modeller_scripts, get_license_key
     script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),

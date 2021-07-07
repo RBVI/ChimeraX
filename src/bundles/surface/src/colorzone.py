@@ -69,9 +69,13 @@ def color_surface(surf, points, point_colors, distance, far_color = None):
     from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
-    from numpy import empty, uint8
-    rgba = empty((len(varray),4), uint8)
-    rgba[:,:] = (surf.color if far_color is None else far_color)
+    if far_color == 'keep':
+        rgba = surf.get_vertex_colors(create = True)
+    else:
+        from numpy import empty, uint8
+        rgba = empty((len(varray),4), uint8)
+        rgba[:,:] = (surf.color if far_color is None else far_color)
+        
     for k in range(len(i1)):
         rgba[i1[k],:] = point_colors[n1[k]]
         
@@ -159,10 +163,10 @@ def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     ec = _edge_cuts(varray, tarray, i1, n1, points, colors, distance)
-    
+
     from numpy import empty, uint8
     carray = empty((len(varray),4), uint8)
-    carray[:,:] = (surface.color if far_color is None else far_color)
+    carray[:,:] = (surface.color if far_color is None or far_color == 'keep' else far_color)
     for vi,ai in zip(i1, n1):
         carray[vi,:] = colors[ai]
 

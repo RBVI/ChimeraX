@@ -20,7 +20,7 @@ from chimerax.core.errors import LimitationError
 class SmilesTranslationError(LimitationError):
     pass
 
-def fetch_smiles(session, smiles_string, **kw):
+def fetch_smiles(session, smiles_string, *, res_name=None, **kw):
 
     printables = []
     for char in smiles_string:
@@ -54,6 +54,9 @@ def fetch_smiles(session, smiles_string, **kw):
             "Web services failed to translate SMILES string to 3D structure.")
     translation_info = "Translated SMILES to 3D structure via %s web service (SMILES: %s)" % (
         moniker, smiles_string)
+    if res_name is not None:
+        for s in structures:
+            s.residues.names = res_name
     return structures, translation_info
 
 def _cactus_fetch(session, smiles, web_smiles):

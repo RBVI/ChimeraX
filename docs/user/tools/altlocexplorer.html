@@ -1,0 +1,61 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Altloc Explorer</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Altloc Explorer</h3>
+<p>
+<b>Altloc Explorer</b> lists and manages <b><i>alternate locations</i></b>,
+where an atomic structure contains multiple different positions for the
+same set of atoms. In PDB format, for example, alternate locations are
+indicated by a character identifier in column 17 of ATOM and HETATM records.
+<!-- examples 1hf4, 1crc, 1a0m, 5nn8 -->
+</p><p>
+ChimeraX uses only one of the alternate locations at a time for display
+and for any calculations. For each contiguous (through-bond) set of atoms
+with alternate locations, the location used initially is that with
+the highest average atomic occupancy, then as a tie-breaker, the lowest
+average atomic B-factor, and if a  tie-breaker is still needed,
+by alphabetical order of the alternate location ID.
+</p><p>
+The <b>Altloc Explorer</b> can be started 
+from the <b>Structure Analysis</b> section of the 
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It is also implemented as the command
+<a href="../commands/altlocs.html"><b>altlocs</b></a>.
+See also: <a href="rotamers.html"><b>Rotamers</b></a>,
+<a href="buildstructure.html"><b>Build Structure</b></a>,
+<a href="../attributes.html">attributes</a>
+</p><p>
+The pulldown menu near the top of the dialog lists the current atomic models.
+Choosing a specific model lists any residues with alternate locations
+that it contains. Clicking the identifier of a residue with alternate
+locations focuses on that residue and displays its atoms, and the adjacent
+buttons can be used to change which ID (which location) is being used.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2021</address>
+</body></html>

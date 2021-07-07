@@ -123,6 +123,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
             pbonds = self.pseudobonds
             if pbonds.num_selected > 0:
                 return [pbonds.filter(pbonds.selected)]
+        elif itype == 'pseudobond groups':
+            if self.pseudobonds.num_selected > 0:
+                return [[self]]
         return []
 
     def selection_promotion(self):

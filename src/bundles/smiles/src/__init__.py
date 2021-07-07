@@ -20,9 +20,14 @@ class _SmilesAPI(BundleAPI):
         if mgr == session.open_command:
             from chimerax.open_command import FetcherInfo
             class SmilesFetcherInfo(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                def fetch(self, session, ident, format_name, ignore_cache, *, res_name=None, **kw):
                     from .import smiles
-                    return smiles.fetch_smiles(session, ident, ignore_cache=ignore_cache)
+                    return smiles.fetch_smiles(session, ident, ignore_cache=ignore_cache, res_name=res_name)
+
+                @property
+                def fetch_args(self):
+                    from chimerax.core.commands import StringArg
+                    return { 'res_name': StringArg }
             return SmilesFetcherInfo()
 
         from .build_ui import SmilesProvider
