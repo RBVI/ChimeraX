@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 ALL_MISSING = "all-missing"
-NT_MISSING "non-terminal-missing"
+NT_MISSING = "non-terminal-missing"
 
 special_region_values = [ALL_MISSING, NT_MISSING]
 
@@ -78,8 +78,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             chain_indices[chain] = region_info
     #MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
 
-    # Use the ungapped sequence as the target sequence, changing name to conform to Modeller limitations
-    target = modeller_copy(seq.ungapped())
     for s, s_chains in by_structure.items():
         # Go through the residues of the structure: preserve het/water; for chains being modeled
         # append the complete sequence; for others append the appropriate number of '-' characters
@@ -88,6 +86,12 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         residues = s.residues
         chain_id = None
         while i < len(residues):
+            r = residues[i]
+            if chain_id is None:
+                chain_id = r.chain_id
+            elif chain_id != r.chain_id:
+                chars.append('/')
+                chain_id = r.chain_id
             if r.chain is None:
                 if r.name in r.water_res_names:
                     chars.append('w')
@@ -95,20 +99,14 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     chars.append('.')
                 i += 1
             else:
-                prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
-                total_len =  len(prefix) + len(r.chain) + len(suffix)
                 if r.chain in s_chains:
+                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
                     chars.append(prefix)
                     chars.append(r.chain.characters)
                     chars.append(suffix)
                 else:
-                    chars.append('-' * total_len)
-                i += total_len
-            if chain_id is None:
-                chain_id = r.chain_id
-            elif chain_id != r.chain_id:
-                chars.append('/')
-                chain_id = r.chain_id
+                    chars.append('-' * r.chain.num_existing_residues)
+                i += r.chain.num_existing_residues
         print("seq for %s:" % s, ''.join(chars))
     return
 

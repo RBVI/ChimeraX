@@ -67,10 +67,10 @@ def score_models(session, structures, *, block=None, license_key=None, refresh=F
     scores.fetch_scores(session, structures, block=block, license_key=license_key, refresh=refresh)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, RepeatOf, BoolArg, PasswordArg, IntArg
-    from chimerax.core.commands import OpenFileNameArg, OpenFolderNameArg, NonNegativeIntArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, create_alias, RepeatOf, BoolArg, PasswordArg
+    from chimerax.core.commands import IntArg, OpenFileNameArg, OpenFolderNameArg, NonNegativeIntArg, EnumOf
     from chimerax.seqalign import AlignSeqPairArg, SeqRegionArg
-    from chimerax.atomic import AtomicStructuresArg, ChainsArg
+    from chimerax.atomic import AtomicStructuresArg, UniqueChainsArg
     desc = CmdDesc(
         required = [('targets', RepeatOf(AlignSeqPairArg))],
         keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
@@ -88,14 +88,14 @@ def register_command(logger):
 
     desc = CmdDesc(
         required = [('targets', LoopsRegionArg)],
-        keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg), ('chains', ChainsArg),
+        keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg), ('chains', UniqueChainsArg),
             ('executable_location', OpenFileNameArg), ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])), ('show_gui', BoolArg),
             ('temp_path', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
-    register('modeller loops', desc, sequence_model, logger=logger)
+    register('modeller loops', desc, model_loops, logger=logger)
     create_alias('modeller refine', "%s $*" % 'modeller loops', logger=logger)
     #create_alias('modeller refine', "%s $*" % 'modeller loops', logger=logger, url="help:user/commands/matchmaker.html")
 

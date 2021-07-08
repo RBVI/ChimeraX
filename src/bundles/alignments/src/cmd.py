@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation, AnnotationError
+from chimerax.core.commands import Annotation, AnnotationError, next_token
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -71,11 +71,12 @@ class SeqRegionArg(Annotation):
                     regions = special
                     break
             else:
-                for seqment in region_text.split(','):
+                regions = []
+                for segment in region_text.split(','):
                     if '-' in segment:
                         start, end = segment.split('-', 1)
                     else:
-                        start = end = seqment
+                        start = end = segment
                     try:
                         start, end = int(start)-1, int(end)
                     except ValueError:
