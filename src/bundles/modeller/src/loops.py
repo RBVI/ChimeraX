@@ -353,15 +353,15 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 def find_missing(chain, match_map, terminal):
     missing = []
     start_missing = None
-    for i in len(match_map):
-        if match_map[i] is None:
-            if start_missing is None:
-                start_missing = i
-        else:
+    for i in range(len(match_map)):
+        if i in match_map:
             if start_missing is not None:
                 if not terminal or start_missing == 0:
                     missing.append((start_missing, i))
                 start_missing = None
+        else:
+            if start_missing is None:
+                start_missing = i
     if start_missing is not None:
         missing.append((start_missing, len(match_map)))
     return missing

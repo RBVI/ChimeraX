@@ -49,6 +49,75 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
         block = session.in_script or not session.ui.is_gui
     if chains is not None and not chains:
         raise UserError("'chains' argument doe not match any chains")
+    #TODO: consider if we want the modeled region to be a separate argument, so you could omit
+    # the alignment specifier and yet still control the modeling region
+    from .loops import ALL_MISSING, NT_MISSING
+    if targets is None:
+        structure = None
+        seq = None
+        sseqs = []
+        for alignment in session.alignments.alignments:
+            for sseq, aseq in alignment.associations.items():
+                if chains is not None and sseq not in chains:
+                    continue
+                if structure is None:
+                    structure = sseq.structure
+                    seq = aseq
+                elif sseq.structure != structure or aseq != seq:
+                    raise UserError("Must specify 'targets' value when there are multiple structures"
+                        " or sequences that could be modeled")
+                sseqs.append(sseq)
+                target_alignment = alignment
+        if structure is None:
+            raise UserError("No sequence-associated structure to model")
+        model_type = None
+        for sseq in sseqs:
+            state = 0
+            some_none = False
+            for r in sseq.residues:
+                some_none = some_none or (r is None)
+                if state == 0:
+                    if r is not None:
+                        state = 1
+                elif state == 1:
+                    if r is None:
+                        state = 2
+                elif state == 2:
+                    if r is not None:
+                        state = 3
+                        break
+            if state == 3:
+                model_type = NT_MISSING
+                break
+            if some_none:
+                model_type = ALL_MISSING
+        if model_type is None:
+            from chimerax.atomic import selected_residues
+            sel_residues = set(selected_residues(session))
+            indices = []
+            start = None
+            for i in range(len(seq)):
+                for sseq in sseqs:
+                    try:
+                        r = seq.match_maps[sseq][i]
+                    except KeyError:
+                        continue
+                if r in sel_residues:
+                    if start is None:
+                        start = end = i
+                    else:
+                        end = i
+                else:
+                    if start is not None:
+                        indices.append((start, end+1))
+                        start = None
+            if start is not None:
+                indices.append((start, len(seq)))
+            if not indices:
+                raise UserError("No missing-structure regions or selection in associated structure")
+            model_type = indices
+        targets = (target_alignment, seq, model_type)
+
     from . import loops, common
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
@@ -69,6 +138,7 @@ def score_models(session, structures, *, block=None, license_key=None, refresh=F
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias, RepeatOf, BoolArg, PasswordArg
     from chimerax.core.commands import IntArg, OpenFileNameArg, OpenFolderNameArg, NonNegativeIntArg, EnumOf
+    from chimerax.core.commands import Or, EmptyArg
     from chimerax.seqalign import AlignSeqPairArg, SeqRegionArg
     from chimerax.atomic import AtomicStructuresArg, UniqueChainsArg
     desc = CmdDesc(
@@ -87,7 +157,7 @@ def register_command(logger):
         from .loops import special_region_values
 
     desc = CmdDesc(
-        required = [('targets', LoopsRegionArg)],
+        required = [('targets', Or(LoopsRegionArg, EmptyArg))],
         keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg), ('chains', UniqueChainsArg),
             ('executable_location', OpenFileNameArg), ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])), ('show_gui', BoolArg),
