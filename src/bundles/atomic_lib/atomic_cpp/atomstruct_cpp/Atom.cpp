@@ -1123,7 +1123,7 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 Coord
 Atom::effective_coord() const
 {
-    if (_residue && _residue->ribbon_display()) {
+    if (_residue && _residue->ribbon_display() && _residue->ribbon_hide_backbone()) {
         const Coord *c = ribbon_coord();
         if (c != nullptr)
             return *c;
