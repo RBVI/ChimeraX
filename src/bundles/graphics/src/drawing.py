@@ -2031,13 +2031,14 @@ class PickedInstance(Pick):
         d.highlighted_positions = pmask
 
 
-def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True,
+                 clamp_to_edge = True):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
     '''
     from . import opengl
-    t = opengl.Texture(rgba)
+    t = opengl.Texture(rgba, clamp_to_edge = clamp_to_edge)
     d = _texture_drawing(t, pos, size, drawing)
     d.opaque_texture = opaque
     return d
