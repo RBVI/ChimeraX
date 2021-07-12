@@ -731,6 +731,8 @@ cdef class CyAtom:
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
+            if self.num_alt_locs > 0:
+                atom_str += " (alt loc %s)" % self.alt_loc
         elif style.startswith("command"):
             # have to get fancy if the atom name isn't unique in the residue
             atoms = self.residue.atoms

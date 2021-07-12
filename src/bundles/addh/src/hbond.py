@@ -211,7 +211,11 @@ def add_hydrogens(session, atom_list, *args):
                         [nb._addh_coord for nb in atom.neighbors],
                         coplanar=[cpa._addh_coord for cpa in coplanar_atoms])
                 altloc_hpos_info.append((alt_loc, altloc_atom.occupancy, h_positions))
-            _attach_hydrogens(atom, altloc_hpos_info, bonding_info)
+            try:
+                _attach_hydrogens(atom, altloc_hpos_info, bonding_info)
+            except:
+                print("altloc_atom:", altloc_atom)
+                raise
             finished[atom] = True
             hbond_info[atom] = [(alt_loc, h_positions, [])
                 for alt_loc, _, h_positions in altloc_hpos_info]

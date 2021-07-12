@@ -134,6 +134,7 @@ class Log(ToolInstance, HtmlLog):
         from .settings import settings
         self.settings = settings
         self.suppress_scroll = False
+        self._log_file = None
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -294,7 +295,7 @@ class Log(ToolInstance, HtmlLog):
         start_len = len(self.page_source)
         if image_info[0] is not None:
             from chimerax.core.logger import image_info_to_html
-            self.page_source += image_info_to_html(msg, image_info)
+            self._append_message(image_info_to_html(msg, image_info))
         else:
             from .settings import settings
             if ((level >= self.LEVEL_ERROR and settings.errors_raise_dialog) or
@@ -370,12 +371,30 @@ class Log(ToolInstance, HtmlLog):
                         self.page_source = self.page_source[:compaction_start] + "%s%d%s" % (
                             compaction_start_text, compaction_number+1, compaction_end_text)
                 else:
-                    self.page_source += msg
+                    self._append_message(msg)
             else:
-                self.page_source += msg
+                self._append_message(msg)
         self.show_page_source()
         return True
 
+    def _append_message(self, msg):
+        self.page_source += msg
+        self._log_to_file(msg)
+
+    def _log_to_file(self, msg):
+        file = self._log_file
+        if file is not None:
+            try:
+                file.write(msg)
+                file.flush()
+            except Exception:
+                pass
+
+    def record_to_file(self, file):
+        '''Save messages to a file for crash reporting.'''
+        self._log_file = file
+        self._log_to_file(self.page_source)
+        
     def show_page_source(self):
         self.session.ui.thread_safe(self._show)
 
@@ -402,30 +421,7 @@ class Log(ToolInstance, HtmlLog):
 
     def plain_text(self):
         """Convert HTML to plain text"""
-        import html2text
-        h = html2text.HTML2Text()
-        h.unicode_snob = True
-        h.ignore_links = True
-        h.ignore_emphasis = True
-        # html2text doesn't understand css style display:None
-        # so remove "duplicate" of command and add leading '> '
-        import lxml.html
-        html = lxml.html.fromstring(self.page_source)
-        for node in html.find_class("cxcmd"):
-            cxcmd_as_doc = False
-            for child in node:
-                cls = child.attrib.get('class', None)
-                if cls == 'cxcmd_as_doc':
-                    cxcmd_as_doc = True
-                    node.remove(child)
-                    continue
-                if cls == 'cxcmd_as_cmd':
-                    child.text = '> '
-                    break
-            if not cxcmd_as_doc:
-                node.text = '> '
-        src = lxml.html.tostring(html, encoding='unicode')
-        return h.handle(src)
+        return log_html_to_plain_text(self.page_source)
 
     def clear(self):
         self.page_source = ""
@@ -504,7 +500,7 @@ class Log(ToolInstance, HtmlLog):
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
                 if session.restore_options['error encountered']:
                     # if the session did't restore successfully, don't clear the log
-                    self.page_source += prev_ses_html
+                    self._append_message(prev_ses_html)
                 else:
                     # "retain" version info
                     class FakeLogger:
@@ -528,7 +524,7 @@ class Log(ToolInstance, HtmlLog):
                 return DEREGISTER
             session.triggers.add_handler('end restore session', clear_log_unless_error)
         else:
-            self.page_source += prev_ses_html
+            self._append_message(prev_ses_html)
         #self.show_page_source()
 
     def take_snapshot(self, session, flags):
@@ -541,3 +537,29 @@ class Log(ToolInstance, HtmlLog):
         }
         return data
 
+def log_html_to_plain_text(log_html_text):
+    import html2text
+    h = html2text.HTML2Text()
+    h.unicode_snob = True
+    h.ignore_links = True
+    h.ignore_emphasis = True
+    # html2text doesn't understand css style display:None
+    # so remove "duplicate" of command and add leading '> '
+    import lxml.html
+    html = lxml.html.fromstring(log_html_text)
+    for node in html.find_class("cxcmd"):
+        cxcmd_as_doc = False
+        for child in node:
+            cls = child.attrib.get('class', None)
+            if cls == 'cxcmd_as_doc':
+                cxcmd_as_doc = True
+                node.remove(child)
+                continue
+            if cls == 'cxcmd_as_cmd':
+                child.text = '> '
+                break
+        if not cxcmd_as_doc:
+            node.text = '> '
+    src = lxml.html.tostring(html, encoding='unicode')
+    log_plain_text = h.handle(src)
+    return log_plain_text

@@ -13,7 +13,7 @@
 
 from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
     bond_with_H_length
-from chimerax.atomic import Element, Residue, TmplResidue
+from chimerax.atomic import Element, Residue, TmplResidue, Atom
 from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
@@ -53,7 +53,6 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
     num_pre_hs = len(atoms.filter(atoms.elements.numbers == 1))
     # at this time, Atom.scene_coord is *so* much slower then .coord (50x),
     # that we use this hack to use .coord if possible
-    from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
     from chimerax.core.logger import Collator
     with Collator(session.logger, "Summary of feedback from adding hydrogens to %s"
@@ -185,6 +184,14 @@ for element_num in range(1, Element.NUM_SUPPORTED_ELEMENTS):
 type_info.update(idatm.type_info)
 
 def post_add(session, fake_n, fake_c, fake_5p):
+    # Add alt locs to parent atoms that wouldn't otherwise need them so that their
+    # alt loc hydrogens can merge into the proper "alt loc pool".  Do it now instead
+    # of "at the time" so that unneeded alt locs don't spread from the parent atom.
+    for parent_atom, alt_locs in parent_alt_locs.items():
+        for alt_loc in alt_locs:
+            parent_atom.set_alt_loc(alt_loc, True)
+    parent_alt_locs.clear()
+
     # fix up non-"true" terminal residues (terminal simply because
     # next residue is missing)
     for fn in fake_n:
@@ -407,13 +414,14 @@ def _delete_shared_data():
 asp_res_names, asp_prot_names = ["ASP", "ASH"], ["OD1", "OD2"]
 glu_res_names, glu_prot_names = ["GLU", "GLH"], ["OE1", "OE2"]
 def _prep_add(session, structures, unknowns_info, template, need_all=False, **prot_schemes):
-    global _serial
+    global _serial, parent_alt_locs
     _serial = None
     atoms = []
     type_info_for_atom = {}
     naming_schemas = {}
     idatm_type = {} # need this later; don't want a recomp
     hydrogen_totals= {}
+    parent_alt_locs = {}
 
     # add missing OXTs of "real" C termini;
     # delete hydrogens of "fake" N termini after protonation
@@ -854,7 +862,10 @@ def vdw_radius(atom):
 
 def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
     added_hs = []
+    create_alt_loc = atom.num_alt_locs < 2 and len(altloc_hpos_info) > 1
     for alt_loc, occupancy, positions in altloc_hpos_info:
+        if create_alt_loc:
+            parent_alt_locs.setdefault(atom, []).append(alt_loc)
         if added_hs:
             for h, pos in zip(added_hs, positions):
                 if h is None:
@@ -886,11 +897,24 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info, alt_loc):
     global _serial, _metals
     nearby_metals = _metals.search(pos, _metal_dist) if _metal_dist > 0.0 else []
+    use_scene = Atom._addh_coord == Atom.scene_coord
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
-        metal_pos = metal.get_alt_loc_coord(alt_loc)
-        parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
+        if metal.has_alt_loc(alt_loc):
+            if use_scene:
+                metal_pos = metal.get_alt_loc_scene_coord(alt_loc)
+            else:
+                metal_pos = metal.get_alt_loc_coord(alt_loc)
+        else:
+            metal_pos = metal._addh_coord
+        if parent_atom.has_alt_loc(alt_loc):
+            if use_scene:
+                parent_pos = parent_atom.get_alt_loc_scene_coord(alt_loc)
+            else:
+                parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
+        else:
+            parent_pos = parent_atom._addh_coord
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
     # determine added H color before actually adding it...
