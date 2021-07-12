@@ -13,15 +13,15 @@
 
 # -----------------------------------------------------------------------------
 #
-def scalebar(session, *, width = None, thickness = None, color = None, xpos = None, ypos = None):
+def scalebar(session, *, length = None, height = None, color = None, xpos = None, ypos = None):
     '''
     Create a scalebar label.
 
     Parameters
     ----------
-    width : float
-      Width in physical units (Angstroms).  Default 100.
-    thickness : float
+    length : float
+      Length in physical units (Angstroms).  Default 100.
+    height : float
       Thickness of scalebar in pixels.  Default 10.
     color : Color
       Color of the scalebar.  If no color is specified black is used on light backgrounds
@@ -44,10 +44,10 @@ def scalebar(session, *, width = None, thickness = None, color = None, xpos = No
         label.scalebar_width = 100
         label.scalebar_height = 10
 
-    if width is not None:
-        label.scalebar_width = width
-    if thickness is not None:
-        label.scalebar_height = thickness
+    if length is not None:
+        label.scalebar_width = length
+    if height is not None:
+        label.scalebar_height = height
     if color is not None or xpos is not None or ypos is not None:
         label2d._update_label(session, label, color=color, xpos=xpos, ypos=ypos)
 
@@ -66,12 +66,14 @@ def scalebar_off(session):
         if label:
             label.delete()
 
+scalebar_delete = scalebar_off
+
 # -----------------------------------------------------------------------------
 #
 def register_scalebar_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, ColorArg, Or, EnumOf
-    desc = CmdDesc(optional = [('width', FloatArg)],
-                   keyword = [('thickness', FloatArg),
+    desc = CmdDesc(optional = [('length', FloatArg)],
+                   keyword = [('height', FloatArg),
                               ('color', Or(EnumOf(['default', 'auto']), ColorArg)),
                               ('xpos', FloatArg),
                               ('ypos', FloatArg)],
@@ -80,3 +82,5 @@ def register_scalebar_command(logger):
 
     desc = CmdDesc(synopsis = 'Delete scalebar')
     register('scalebar off', desc, scalebar_off, logger=logger)
+    desc = CmdDesc(synopsis = 'Delete scalebar')
+    register('scalebar delete', desc, scalebar_off, logger=logger)
