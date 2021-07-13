@@ -40,8 +40,9 @@ class Scalebar(ToolInstance):
             show, length, color, xpos, ypos, h = l1.values
         show.changed.connect(self._update_scalebar)
         length.widget.returnPressed.connect(self._update_scalebar)
-        color.color_changed.connect(self._update_scalebar)
+        color.color_changed.connect(self._color_changed)
         color.color = 'white' if cur_color is None else cur_color
+        self._user_set_color = (cur_color is not None)
         xpos.widget.returnPressed.connect(self._update_scalebar)
         ypos.widget.returnPressed.connect(self._update_scalebar)
         h.widget.returnPressed.connect(self._update_scalebar)
@@ -55,6 +56,10 @@ class Scalebar(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, Scalebar, 'Scale Bar', create=create)
 
+    def _color_changed(self):
+        self._user_set_color = True
+        self._update_scalebar()
+        
     def _update_scalebar(self):
         if self._show.enabled:
             self._show_scalebar()
@@ -83,16 +88,15 @@ class Scalebar(ToolInstance):
         cur_length, cur_color, cur_xpos, cur_ypos, cur_thickness =  self._scalebar_settings()
 
         length = self._length.value
-        color = self._color.color	# None or rgba8
+        color = self._color.color	# rgba8
         xpos, ypos = self._xpos.value, self._ypos.value
         thickness = self._thickness.value
 
         options = []
         if length != cur_length:
             options.append('%.5g' % length)
-        if color is None and cur_color is not None:
-            options.append('color default')
-        elif color is not None and (cur_color is None or tuple(color) != tuple(cur_color)):
+        set_color = self._user_set_color if cur_color is None else tuple(color) != tuple(cur_color)
+        if set_color:
             from chimerax.core.colors import hex_color
             options.append('color %s' % hex_color(color))
         if xpos != cur_xpos:
