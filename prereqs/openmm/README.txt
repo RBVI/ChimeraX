@@ -1,14 +1,15 @@
 Build notes for OpenMM
 ----------------------
 
-Not sure where the 7.5 builds came from except for Linux.  On Linux,
-we need to build OpenMM with the same compiler environment as the rest
-of ChimeraX.  At this time, that is CentOS 7 with devtoolset-9.  And it is
+The 7.5 builds came from https://anaconda.org/omnia-dev/openmm/files.
+
+On Linux, we need OpenMM built with the same C++ compiler as the rest
+of ChimeraX so that ISOLDE can link to both ChimeraX and OpenMM libraries.
+At this time, that is CentOS 7 with devtoolset-9.  And it is
 devtoolset-9 so OpenMM can use newer C++ constructs.  See ticket #3756.
 In the openmm_build3.zip file with a build script and a singularity
 definition file that is used to create the .tar.gz file.  And that
 .tar.gz is placed on the chimerax web site for downloading.
-
 
 Old Build notes for OpenMM
 --------------------------
