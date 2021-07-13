@@ -50,7 +50,15 @@ Only one scale bar can be present at a time. Initial defaults are described
 <a href="#options">below</a>, but using the command when
 a scale bar is already present simply updates the existing model;
 any unspecified options are left unchanged.
-The scale bar is created as a 2D labels submodel that can be controlled with
+</p><p>
+The scale bar is a 2D object (no depth, cannot be moved forward/backward)
+and is simply drawn on top of the view, like 
+<a href="2dlabels.html">2D labels</a>.
+It can be repositioned by dragging with the <b>move label</b>
+<span class="nowrap"><a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a></span>
+and is created as a 2D labels submodel that can be controlled with
 general commands such as <a href="close.html"><b>close</b></a> and
 <a href="show.html"><b>show/hide</b></a>.
 <!--
