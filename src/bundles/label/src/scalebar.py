@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def scalebar(session, *, length = None, height = None, color = None, xpos = None, ypos = None):
+def scalebar(session, *, length = None, thickness = None, color = None, xpos = None, ypos = None):
     '''
     Create a scalebar label.
 
@@ -21,7 +21,7 @@ def scalebar(session, *, length = None, height = None, color = None, xpos = None
     ----------
     length : float
       Length in physical units (Angstroms).  Default 100.
-    height : float
+    thickness : float
       Thickness of scalebar in pixels.  Default 10.
     color : Color
       Color of the scalebar.  If no color is specified black is used on light backgrounds
@@ -33,24 +33,32 @@ def scalebar(session, *, length = None, height = None, color = None, xpos = None
       Placement of bottom edge of scalebar. Range 0 - 1 covers full height of graphics window.
       Default 0.1
     '''
-    name = 'scalebar'
-    from . import label2d
-    lm = label2d.session_labels(session)
-    label = lm.named_label(name) if lm else None
+    label = _scalebar_label(session)
     if label is None:
         x = 0.1 if xpos is None else xpos
         y = 0.1 if ypos is None else ypos
-        label = label2d.label_create(session, name, color=color, xpos=x, ypos=y)
+        from .label2d import label_create
+        label = label_create(session, 'scalebar', color=color, xpos=x, ypos=y)
         label.scalebar_width = 100
         label.scalebar_height = 10
 
     if length is not None:
         label.scalebar_width = length
-    if height is not None:
-        label.scalebar_height = height
+    if thickness is not None:
+        label.scalebar_height = thickness
     if color is not None or xpos is not None or ypos is not None:
-        label2d._update_label(session, label, color=color, xpos=xpos, ypos=ypos)
+        from .label2d import _update_label
+        _update_label(session, label, color=color, xpos=xpos, ypos=ypos)
 
+    return label
+
+# -----------------------------------------------------------------------------
+#
+def _scalebar_label(session):
+    name = 'scalebar'
+    from . import label2d
+    lm = label2d.session_labels(session)
+    label = lm.named_label(name) if lm else None
     return label
 
 # -----------------------------------------------------------------------------
@@ -73,7 +81,7 @@ scalebar_delete = scalebar_off
 def register_scalebar_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, ColorArg, Or, EnumOf
     desc = CmdDesc(optional = [('length', FloatArg)],
-                   keyword = [('height', FloatArg),
+                   keyword = [('thickness', FloatArg),
                               ('color', Or(EnumOf(['default', 'auto']), ColorArg)),
                               ('xpos', FloatArg),
                               ('ypos', FloatArg)],

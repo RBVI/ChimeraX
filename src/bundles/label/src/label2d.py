@@ -671,6 +671,8 @@ class LabelModel(Model):
         else:
             sw,shp = l.scalebar_width, l.scalebar_height
             psize = self.session.main_view.pixel_size()
+            if psize == 0:
+                psize = 1	# No models open, so no center of rotation depth.
             tps = self._texture_pixel_scale
             sx,sy = tps*sw/(w*psize), tps*shp/h
         return sx,sy
