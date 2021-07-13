@@ -94,7 +94,6 @@ public:
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
     static const std::string  REASON_INSERTION_CODE;
-    static const std::string  REASON_IS_BACKBONE;
     static const std::string  REASON_NAME;
     static const std::string  REASON_NUMBER;
     static const std::string  REASON_OCCUPANCY;

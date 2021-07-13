@@ -42,7 +42,7 @@ def install(session, registration):
     with _registration_lock:
         reg_file = _registration_file()
         try:
-            with open(reg_file, "w") as f:
+            with open(reg_file, "w", encoding='utf-8') as f:
                 f.write(registration)
             return True
         except IOError as e:
@@ -127,7 +127,7 @@ def _get_registration(logger):
         reg_file = _registration_file()
         try:
             param = {}
-            with open(reg_file) as f:
+            with open(reg_file, encoding='utf-8') as f:
                 for line in f:
                     key, value = [s.strip() for s in line.split(':', 1)]
                     param[key] = value
@@ -173,7 +173,7 @@ def _write_registration(logger, param):
     with _registration_lock:
         reg_file = _registration_file()
         try:
-            with open(reg_file, "w") as f:
+            with open(reg_file, "w", encoding='utf-8') as f:
                 for key, value in param.items():
                     print("%s: %s" % (key, value), file=f)
         except IOError as e:
@@ -221,7 +221,7 @@ def _get_usage():
     try:
         # Read the usage file of count (total number of invocations)
         # and dates (first usage datetime on any day)
-        with open(usage_file) as f:
+        with open(usage_file, encoding='utf-8') as f:
             for line in f:
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
@@ -236,7 +236,7 @@ def _get_usage():
 def _write_usage(logger, usage):
     usage_file = _usage_file()
     try:
-        with open(usage_file, "w") as f:
+        with open(usage_file, "w", encoding='utf-8') as f:
             print("count: %d" % usage["count"], file=f)
             for dt in usage["dates"]:
                 print("date: %s" % _strftime(dt), file=f)

@@ -44,9 +44,9 @@ endif
 
 ifeq ($(OS),Linux)
 ifndef RELEASE
-CHIMERAX_APP = /opt/UCSF/ChimeraX-daily
+CHIMERAX_APP = /usr/libexec/ChimeraX-daily
 else
-CHIMERAX_APP = /opt/UCSF/ChimeraX
+CHIMERAX_APP = /usr/libexec/ChimeraX
 endif
 endif
 

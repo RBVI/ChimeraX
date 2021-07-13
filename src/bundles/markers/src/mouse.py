@@ -123,7 +123,7 @@ class MarkerMouseMode(MouseMode):
         a1 = atoms1[0]
 
         if a1.structure != a2.structure:
-            s.logger.status('Cannot connect atoms from different molecules')
+            s.logger.status('Cannot connect markers from different marker sets')
             return False
         if a1 is a2 or a1.connects_to(a2):
             return False
@@ -451,8 +451,8 @@ def first_maximum_along_ray(volume, xyz_in, xyz_out, threshold):
 def _mouse_marker_settings(session, attr = None):
     if not hasattr(session, '_marker_settings'):
         session._marker_settings = {
-            'molecule': None,
-            'next_marker_num': 1,
+            'marker set': None,
+            'next_marker_num': None,
             'marker_chain_id': 'M',
             'marker color': (255,255,0,255),	# yellow
             'marker radius': 1.0,
@@ -465,7 +465,7 @@ def _mouse_marker_settings(session, attr = None):
 
 def _mouse_markerset(session):
     ms = _mouse_marker_settings(session)
-    m = ms['molecule']
+    m = ms['marker set']
     if m is None or m.was_deleted:
         from .markers import MarkerSet
         mlist = [m for m in session.models.list(type = MarkerSet)]
@@ -474,7 +474,7 @@ def _mouse_markerset(session):
         else:
             m = MarkerSet(session, 'markers')
             session.models.add([m])
-        ms['molecule'] = m
+        ms['marker set'] = m
     return m
     
 def _mouse_place_marker(session, center, link_to_selected = False,
@@ -483,12 +483,13 @@ def _mouse_place_marker(session, center, link_to_selected = False,
     m = _mouse_markerset(session)
     ms = _mouse_marker_settings(session)
     mcenter = m.scene_position.inverse() * center
-    a = m.create_marker(mcenter, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    marker_num = ms['next_marker_num']
+    a = m.create_marker(mcenter, ms['marker color'], ms['marker radius'], marker_num)
     if on_model:
         _set_marker_frame_number(a, on_model)
     if log:
         _log_place_marker(m, center, ms['marker color'], ms['marker radius'])
-    ms['next_marker_num'] += 1
+    ms['next_marker_num'] = (a.residue.number+1) if marker_num is None else (marker_num+1)
     session.logger.status('Placed marker')
     if link_to_selected:
         from chimerax.atomic import selected_atoms

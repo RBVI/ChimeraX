@@ -8,8 +8,8 @@ VERSION = 20
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-USE_PREBUILT=true
-UPLOAD_PREBUILT=false
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
 ifeq ($(OS),Linux)
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
@@ -88,7 +88,7 @@ app-install: install
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
 	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
 ifeq ($(OS),Windows)
-	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll $(AMBERBIN_DST)
+	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
 	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
 	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
