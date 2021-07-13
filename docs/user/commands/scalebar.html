@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: scalebar</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>scalebar</b> [&nbsp;<i>length</i>&nbsp;]
-[&nbsp;<b>height</b>&nbsp;&nbsp;<i>pixel-height</i>&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>pixel-height</i>&nbsp;]
 [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
 [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
@@ -38,6 +38,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>scalebar</b> command draws a horizontal bar of the specified
 <i>length</i> (initial default <b>100</b> &Aring;).
+It is the command-line implementation of the <b>Scale Bar</b> tool.
 A text label is not included, but can be added with the 
 <a href="2dlabels.html"><b>2dlabels</b></a> command.
 See also: 
@@ -81,17 +82,17 @@ at all depths, use orthographic projection instead
 (command <a href="camera.html"><b>camera ortho</b></a>).
 </blockquote>
 <blockquote>
-<a name="height"></a>
-<b>height</b>&nbsp;&nbsp;<i>pixel-height</i>
+<a name="thickness"></a>
+<b>thickness</b>&nbsp;&nbsp;<i>pixel-height</i>
 <br>
 Height in pixels of the scale bar (initial default <b>10</b>).
 </blockquote>
 <blockquote>
 <a name="xpos"></a>
 <a name="ypos"></a>
-[&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
+<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>
 <br>
-[&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>
 <br>
 Lower-left-corner position of the rectangular scale bar along 
 the X (horizontal) and Y (vertical) axes, with <b>0.1</b> as the
@@ -103,7 +104,8 @@ initial default for each. The values are expressed in fractional coordinates
 <a name="color"></a>
 <b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
 <br>
-If the label color is set to <b>auto</b> or <b>default</b> (initial default),
+Color of the scale bar.
+If set to <b>auto</b> or <b>default</b> (initial default),
 it will automatically adjust to <b>white</b> or <b>black</b>
 depending on the color of the <a href="set.html#bgColor">window background</a>.
 </blockquote>
