@@ -32,6 +32,7 @@
     <ChimeraXClassifier>Command :: scalebar :: General :: show a scalebar</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: label :: General :: add 3d labels to graphics</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~label :: General :: remove 3d labels from graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Scale Bar :: Higher-Order Structure :: Show a scale bar</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
