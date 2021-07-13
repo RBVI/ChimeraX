@@ -29,6 +29,12 @@ class _LabelBundle(BundleAPI):
                 lambda *args, ses=session: settings.register_settings_options(ses))
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Scale Bar':
+            from .scalebar_gui import Scalebar
+            return Scalebar.get_singleton(session)
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import label2d, label3d, arrows, scalebar
