@@ -187,9 +187,10 @@ def post_add(session, fake_n, fake_c, fake_5p):
     # Add alt locs to parent atoms that wouldn't otherwise need them so that their
     # alt loc hydrogens can merge into the proper "alt loc pool".  Do it now instead
     # of "at the time" so that unneeded alt locs don't spread from the parent atom.
-    for parent_atom, alt_locs in parent_alt_locs.items():
-        for alt_loc in alt_locs:
+    for parent_atom, alt_loc_info in parent_alt_locs.items():
+        for alt_loc, occupancy in alt_loc_info:
             parent_atom.set_alt_loc(alt_loc, True)
+            parent_atom.occupancy = occupancy
     parent_alt_locs.clear()
 
     # fix up non-"true" terminal residues (terminal simply because
@@ -865,7 +866,7 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
     create_alt_loc = atom.num_alt_locs < 2 and len(altloc_hpos_info) > 1
     for alt_loc, occupancy, positions in altloc_hpos_info:
         if create_alt_loc:
-            parent_alt_locs.setdefault(atom, []).append(alt_loc)
+            parent_alt_locs.setdefault(atom, []).append((alt_loc, occupancy))
         if added_hs:
             for h, pos in zip(added_hs, positions):
                 if h is None:
