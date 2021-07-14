@@ -1,7 +1,7 @@
 Build notes for OpenMM
 ----------------------
 
-The 7.5 builds came from https://anaconda.org/omnia-dev/openmm/files.
+The 7.5 builds came from https://anaconda.org/conda-forge/openmm/files
 
 On Linux, we need OpenMM built with the same C++ compiler as the rest
 of ChimeraX so that ISOLDE can link to both ChimeraX and OpenMM libraries.
