@@ -302,6 +302,7 @@ static void corner_depths(const float *corners, const float *axis, float *depths
       depths[c] = cp[0]*axis[0] + cp[1]*axis[1] + cp[2]*axis[2];
     }
 }
+
 // -----------------------------------------------------------------------------
 // Triangulate plane intersection with a box.  Returns the number of
 // triangles.  Number of vertices is one more than number of triangles.
@@ -327,7 +328,8 @@ static int box_cut(const float *corners, const float *corner_depths,
     {
       int v1 = ec[e][0], v2 = ec[e][1];
       float s1 = corner_depths[v1]-offset, s2 = corner_depths[v2]-offset;
-      float f1 = s1/(s1-s2), f2 = -s2/(s1-s2);
+      float ds = s1-s2;
+      float f1 = (ds == 0 ? 0.5 : s1/ds), f2 = (ds == 0 ? 0.5 : -s2/ds);
       const float *c1 = corners +3*v1, *c2 = corners + 3*v2;
       for (int a = 0 ; a < 3 ; ++a)
 	vertices[3*(e+1)+a] = f2*c1[a]+f1*c2[a];
