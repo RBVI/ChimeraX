@@ -1,0 +1,37 @@
+--- AmberTools/src/antechamber/common.c	2020-04-27 18:19:42.000000000 -0700
++++ AmberTools/src/antechamber/common.c.new	2021-07-13 11:32:49.000000000 -0700
+@@ -21,14 +21,22 @@
+    'for_system' indicates if the path will be used in a 'system'
+    command and therefore needs quotes if there are spaces in the
+    AMBERHOME variable.
+-   dac change: code to handle spaces in AMBERHOME is wrong! remove earlier refs to quote
+  */
+ size_t build_path(char *path, const char *subdir, const char *fname, size_t sizeof_path,
+                   int for_system)
+ {
+     /* number of chars copied plus 1; on overflow > sizeof_path */
++	char *quote = NULL;
+     size_t c = 1;
+     path[0] = '\0';
++	if (for_system && index(amberhome, ' ') != NULL) {
++		if (index(amberhome, '"') == NULL)
++			quote = "\"";
++		else
++			quote = "'";
++		strncat(path, quote, sizeof_path - c);
++		c += 1;
++	}
+ 
+     strncat(path, amberhome, sizeof_path - c);
+     c += strlen(amberhome);
+@@ -36,6 +44,10 @@
+     c += strlen(subdir);
+     strncat(path, fname, sizeof_path - c);
+     c += strlen(fname);
++	if (quote != NULL) {
++		strncat(path, quote, sizeof_path - c);
++		c += 1;
++	}
+     if (c > sizeof_path) {
+         eprintf("Insufficient string size.\n"
+         "Increase MAXCHAR in define.h and rebuild.\n"
