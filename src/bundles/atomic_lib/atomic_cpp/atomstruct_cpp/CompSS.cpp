@@ -25,6 +25,7 @@
 #define PYINSTANCE_EXPORT
 #include "Atom.h"
 #include "AtomicStructure.h"
+#include "CompSS.h"
 #include "Coord.h"
 #include "Residue.h"
 
@@ -704,7 +705,7 @@ compute_chain(KsdsspParams& params)
 
 void
 AtomicStructure::compute_secondary_structure(float energy_cutoff,
-    int min_helix_length, int min_strand_length, bool report)
+    int min_helix_length, int min_strand_length, bool report, CompSSInfo* ss_info)
 {
     // initialize
     KsdsspParams params;
