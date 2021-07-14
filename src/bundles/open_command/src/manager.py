@@ -41,6 +41,7 @@ class OpenManager(ProviderManager):
         self.session = session
         self._openers = {}
         self._fetchers = {}
+        self._ui_names = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("open command changed")
@@ -50,23 +51,25 @@ class OpenManager(ProviderManager):
             check_path=True, batch=False, format_name=None,
             is_default=True, synopsis=None, example_ids=None, **kw):
         logger = self.session.logger
+        self._ui_names[name.lower()] = ui_name = name
+        name = name.lower()
 
         bundle_name = _readable_bundle_name(bundle_info)
-        is_default = bool_cvt(is_default, name, bundle_name, "is_default")
-        want_path = bool_cvt(want_path, name, bundle_name, "want_path")
-        check_path = bool_cvt(check_path, name, bundle_name, "check_path")
+        is_default = bool_cvt(is_default, ui_name, bundle_name, "is_default")
+        want_path = bool_cvt(want_path, ui_name, bundle_name, "want_path")
+        check_path = bool_cvt(check_path, ui_name, bundle_name, "check_path")
         if batch or not check_path:
             want_path = True
         type_description = "Open-command" if type == "open" else type.capitalize()
         if kw:
             logger.warning("%s provider '%s' supplied unknown keywords in provider"
-                " description: %s" % (type_description, name, repr(kw)))
+                " description: %s" % (type_description, ui_name, repr(kw)))
         if type == "open":
             try:
-                data_format = self.session.data_formats[name]
+                data_format = self.session.data_formats[ui_name]
             except KeyError:
                 logger.warning("Open-command provider in bundle %s specified unknown"
-                    " data format '%s';" " skipping" % (bundle_name, name))
+                    " data format '%s';" " skipping" % (bundle_name, ui_name))
                 return
             if data_format in self._openers and self._openers[data_format].bundle_info.installed:
                 if not bundle_info.installed:
@@ -74,25 +77,25 @@ class OpenManager(ProviderManager):
                 logger.warning("Replacing opener for '%s' from %s bundle with that from"
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
-            self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
+            self._openers[data_format] = OpenerProviderInfo(bundle_info, ui_name, want_path,
                 check_path, batch, is_default)
         elif type == "fetch":
             if not name:
                 raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
             if len(name) == 1:
                 raise ValueError("Database fetch '%s' in bundle %s has single-character name which is"
-                    " disallowed to avoid confusion with Windows drive letters" % (name, bundle_name))
+                    " disallowed to avoid confusion with Windows drive letters" % (ui_name, bundle_name))
             if format_name is None:
                 raise ValueError("Database fetch '%s' in bundle %s failed to specify"
-                    " file format name" % (name, bundle_name))
+                    " file format name" % (ui_name, bundle_name))
             try:
                 data_format = self.session.data_formats[format_name]
             except KeyError:
                 raise ValueError("Database-fetch provider '%s' in bundle %s specified"
-                    " unknown data format '%s'" % (name, bundle_name, format_name))
+                    " unknown data format '%s'" % (ui_name, bundle_name, format_name))
             if name in self._fetchers and format_name in self._fetchers[name]:
                 logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
-                    " with that from %s bundle" % (name, format_name,
+                    " with that from %s bundle" % (ui_name, format_name,
                     _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
                     bundle_name))
             if example_ids:
@@ -113,20 +116,20 @@ class OpenManager(ProviderManager):
 
     def database_info(self, database_name):
         try:
-            return self._fetchers[database_name]
+            return self._fetchers[database_name.lower()]
         except KeyError:
             raise NoOpenerError("No such database '%s'" % database_name)
 
     @property
     def database_names(self):
-        return list(self._fetchers.keys())
+        return [self._ui_names[f] for f in self._fetchers.keys()]
 
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
 
     def fetch_args(self, database_name, *, format_name=None):
         try:
-            db_formats = self._fetchers[database_name]
+            db_formats = self._fetchers[database_name.lower()]
         except KeyError:
             raise NoOpenerError("No such database '%s'" % database_name)
         from chimerax.core.commands import commas
