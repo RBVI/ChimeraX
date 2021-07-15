@@ -19,12 +19,12 @@ app-install:
 endif
 
 ifeq ($(OS),Windows)
-app-install:
+app-install: $(DISTRIBUTION)
 	$(APP_PYTHON_EXE) -m pip install $(DISTRIBUTION)
 endif
 
 ifeq ($(OS),Darwin)
-app-install:
+app-install: $(DISTRIBUTION)
 	tar xf $(DISTRIBUTION) -C $(APP_PYSITEDIR)
 	$(APP_PYTHON_EXE) -m pip install numexpr
 endif
