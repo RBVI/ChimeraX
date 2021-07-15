@@ -400,9 +400,9 @@ We actually add the action/item to the menu on line 103.
 Help Documentation
 ++++++++++++++++++
 
-All tools will have a **HELP** context-menu entry,
+All tools will have a **Help** context-menu entry,
 one of the "generic" context-menu items that ChimeraX
-adds to all tool context menus.  The **HELP** menu item
+adds to all tool context menus.  The **Help** menu item
 will be disabled unless the tool specifies that it 
 provides help by setting the :py:attr:`help` attribute
 of the :py:class:`~chimerax.core.tools.ToolInstance` instance
@@ -425,7 +425,7 @@ allow help to be accessed even if the user doesn't currently
 have Internet connectiity.
 
 The remainder of the string after "help:" is the actual location
-of the help page, relative to the package's `src` folder.
+of the help page, relative to the package's ``src/docs`` folder.
 The directory structure is chosen to allow for multiple types
 of documentation for a bundle.
 For example, developer documentation such as
