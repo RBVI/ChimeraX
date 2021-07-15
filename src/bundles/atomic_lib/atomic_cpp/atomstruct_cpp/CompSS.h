@@ -16,12 +16,23 @@
 #ifndef atomstruct_CompSS
 #define atomstruct_CompSS
 
+#include <vector>
+#include <utility> // std::pair
+
 #include "imex.h"
 
 namespace atomstruct {
 
+class Residue;
+
 class ATOMSTRUCT_IMEX CompSSInfo
 {
+public:
+    std::vector<std::pair<Residue*, Residue*>> strands;
+    std::vector<std::set<int>> sheets; // indices into strands
+    std::map<std::pair<int, int>, bool> strands_parallel; // indices into strands (false if anti-parallel)
+    std::vector<std::pair<std::pair<Residue*, Residue*>, char>> helix_info;
+        // helix ends, helix type using same characters as "dssp report true" (G, H, I)
 };
 
 }  // namespace atomstruct

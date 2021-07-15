@@ -107,6 +107,7 @@ struct KsdsspParams {
     std::vector<KsdsspCoords *>  coords;
     std::vector<Residue *>  residues;
     bool  report;
+	CompSSInfo*	ss_info;
 };
 
 //
@@ -640,6 +641,154 @@ make_summary(KsdsspParams& params)
 }
 
 static void
+merge_ladder(int start, int end, std::map<int, int>& res_to_strand, std::map<int,
+	std::set<int>>& strands, int* strand_num)
+{
+	int start_i, end_i;
+	if (end > start) {
+		start_i = start;
+		end_i = end;
+	} else {
+		start_i = end;
+		end_i = start;
+	}
+	std::set<int> component_strands;
+	for (int i = start_i; i <= end_i; ++i) {
+		auto s_i = res_to_strand.find(i);
+		if (s_i != res_to_strand.end())
+			component_strands.insert(s_i->second);
+	}
+	if (component_strands.empty()) {
+		// create new strand
+		*strand_num += 1;
+		std::set<int> strand;
+		for (int i = start_i; i <= end_i; ++i) {
+			strand.insert(i);
+			res_to_strand[i] = *strand_num;
+		}
+		strands[*strand_num] = strand;
+	} else if (component_strands.size() == 1) {
+		// just (possibly) increase the existing strand
+		int strand_i = *component_strands.begin();
+		for (int i = start_i; i <= end_i; ++i) {
+			strands[strand_i].insert(i);
+			res_to_strand[i] = strand_i;
+		}
+	} else {
+		// create new strand and coalesce old strands and ladder into it
+		*strand_num += 1;
+		std::set<int> strand;
+		for (auto strand_i: component_strands) {
+			for (auto i: strands[strand_i]) {
+				strand.insert(i);
+				res_to_strand[i] = *strand_num;
+			}
+			strands.erase(strand_i);
+		}
+		for (int i = start_i; i <= end_i; ++i) {
+			strand.insert(i);
+			res_to_strand[i] = *strand_num;
+		}
+		strands[*strand_num] = strand;
+	}
+}
+
+static void
+fill_in_ss_info(KsdsspParams& params)
+{
+	// merge the various sides of ladders into strands
+	std::map<int, int> res_to_strand;
+	std::map<int, std::set<int>> strands;
+	int strand_num = 0;
+    for (auto l: params.ladders) {
+		merge_ladder(l.start[0], l.end[0], res_to_strand, strands, &strand_num);
+		merge_ladder(l.start[1], l.end[1], res_to_strand, strands, &strand_num);
+    }
+	std::map<int, int> strand_to_output_index;
+	for (auto sn_srs: strands) {
+		auto& res_indices = sn_srs.second;
+		strand_to_output_index[sn_srs.first] = params.ss_info->strands.size();
+		params.ss_info->strands.push_back(std::pair<Residue*, Residue*>(
+			params.residues[*std::min_element(res_indices.begin(), res_indices.end())],
+			params.residues[*std::max_element(res_indices.begin(), res_indices.end())]
+		));
+	}
+
+	// form sheets from strands
+	std::map<int, int> strand_to_sheet;
+	std::map<int, std::set<int>> sheets;
+	int sheet_num = 0;
+	for (auto l: params.ladders) {
+		auto strand1 = res_to_strand[l.start[0]];
+		auto strand2 = res_to_strand[l.start[1]];
+		auto sh1_i = strand_to_sheet.find(strand1);
+		auto sh2_i = strand_to_sheet.find(strand2);
+		if (sh1_i == strand_to_sheet.end() && sh2_i == strand_to_sheet.end()) {
+			// start new sheet
+			sheet_num += 1;
+			sheets[sheet_num] = std::set<int>{strand1, strand2};
+			strand_to_sheet[strand1] = sheet_num;
+			strand_to_sheet[strand2] = sheet_num;
+		} else if (sh1_i != strand_to_sheet.end() && sh2_i != strand_to_sheet.end()) {
+			if (sh1_i->second != sh2_i->second) {
+				// ladder joins different sheets; merge
+				sheet_num += 1;
+				std::set<int> sheet;
+				for (auto sn: std::vector<int>{sh1_i->second, sh2_i->second}) {
+					for (auto strand_i: sheets[sn]) {
+						sheet.insert(strand_i);
+						strand_to_sheet[strand_i] = sheet_num;
+					}
+					sheets.erase(sn);
+				}
+			}
+			// else: ladder within same sheet, no need to do anything
+		} else {
+			// one strand in sheet and the other isn't in any sheet; add the other one
+			int sheet;
+			int other_strand;
+			if (sh1_i == strand_to_sheet.end()) {
+				sheet = sh2_i->second;
+				other_strand = strand1;
+			} else {
+				sheet = sh1_i->second;
+				other_strand = strand2;
+			}
+			strand_to_sheet[other_strand] = sheet;
+			sheets[sheet].insert(other_strand);
+		}
+	}
+	for (auto sheet_strands: sheets) {
+		std::set<int> output_strands;
+		for (auto sn: sheet_strands.second) {
+			output_strands.insert(strand_to_output_index[sn]);
+		}
+		params.ss_info->sheets.push_back(output_strands);
+	}
+
+	// provide (anti-)parallel strand info
+    for (auto l: params.ladders) {
+		auto strand1 = res_to_strand[l.start[0]];
+		auto strand2 = res_to_strand[l.start[1]];
+		params.ss_info->strands_parallel[std::pair<int, int>(strand1, strand2)] = l.type == DSSP_PARA;
+		params.ss_info->strands_parallel[std::pair<int, int>(strand2, strand1)] = l.type == DSSP_PARA;
+    }
+
+	// helix information
+    for (auto start_end: params.helices) {
+        Residue *start = params.residues[start_end.first];
+        Residue *end = params.residues[start_end.second];
+        int rflags = params.rflags[start];
+        char summary = 'H';
+        if (rflags & (DSSP_3HELIX))
+            summary = 'G';
+        else if (rflags & (DSSP_5HELIX))
+            summary = 'I';
+		params.ss_info->helix_info.push_back({{start, end}, summary});
+    }
+}
+
+static void
 compute_chain(KsdsspParams& params)
 {
     int num_res = params.residues.size();
@@ -701,6 +850,9 @@ compute_chain(KsdsspParams& params)
 
     if (params.report)
         make_summary(params);
+
+	if (params.ss_info != nullptr)
+		fill_in_ss_info(params);
 }
 
 void
@@ -714,6 +866,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
         params.min_helix_length = min_helix_length;
         params.min_strand_length = min_strand_length;
         params.report = report;
+		params.ss_info = ss_info;
         // commented out lines that restricted
         // sheets to be intra-chain
         //Residue *prev_res = nullptr;
