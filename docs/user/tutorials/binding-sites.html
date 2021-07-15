@@ -27,6 +27,21 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html"
 target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 
+<table class="clRight" cellpadding="0px">
+<tr><td>
+<a href="#hbonds">
+<img class="outline" src="bind2.png" alt="H-bonds" width="100px"></a>
+</td></tr>
+<tr><td>
+<a href="#mlp">
+<img class="outline" src="bind3.png" alt="lipophilicity" width="100px"></a>
+</td></tr>
+<tr><td>
+<a href="#esp">
+<img class="outline" src="bind6.png" alt="electrostatics" width="100px"></a>
+</td></tr>
+</table>
+
 <ul>
 <!-- Kinase and inhibitor -->
 <li><a href="#opening"><b>Opening a Structure and Surveying Its Parts</b></a>
@@ -50,6 +65,9 @@ target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 <!-- Bacterial gene regulator with DNA and small-molecule binding sites -->
 <li><a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>
 <img class="iconbar" src="../tools/shortcut-icons/esp.png">
+  <ul>
+  <li><a href="#key"><b>Color Key and 2D Label</b></a>
+  </ul>
 </ul>
 
 <p>
@@ -660,8 +678,6 @@ width="220px">
 </td></tr>
 </table>
 <p>
-This section requires ChimeraX production release 1.2 or newer.
-</p><p>
 The protein in structure <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
 interior pocket. 
@@ -744,8 +760,6 @@ When finished with this structure, close the session:
 <h3><a href="#top" class="nounder">&larr;</a>
 Surface Coloring by Electrostatic Potential</h3>
 <p>
-This section requires ChimeraX production release 1.2 or newer.
-</p><p>
 Coloring a protein surface by electrostatic potential (ESP)
 may help to identify binding sites for charged or polar molecules.
 Regions of positive potential are complementary to negative charges,
@@ -841,12 +855,6 @@ and show nucleotide sidechains as stubs (broken ladder rungs):
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:nuc stubs">nuc stubs</a></b>
 </blockquote>
-<table class="clRight">
-<tr><td>
-<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" 
-width="300px">
-</td></tr>
-</table>
 <p>
 The nucleotide change to stubs can also be done by clicking
 <img class="iconbar" src="../tools/nuc-icons/nuc-stubs.png">
@@ -880,22 +888,64 @@ or shadows
 <img class="iconbar" src="../tools/shortcut-icons/fulllight.png">
 <img class="iconbar" src="../tools/shortcut-icons/flat.png">
 </ul>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" 
+width="300px">
+</td></tr>
+</table>
+<a name="key"></a>
+<h4><a href="#esp" class="nounder">&larr;</a>
+Color Key and 2D Label</h4>
 <p>
-You can also try adding a color key and associated label, for example:
+When making a figure, it is generally best to compose the rest of the image
+before adding any <a href="../commands/key.html">color key</a> and/or
+<a href="../commands/2dlabels.html">2D labels</a>,
+since their sizes and positions will depend on how the image is laid out.
+</p><p>
+A color key can be added with the 
+<b>key</b> option of the coloring command (in this case, <b>coulombic</b>):
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein range -10,10 key true">coulombic protein range -10,10 key true</a></b>
+</blockquote>
+<p>
+This draws an initial color key, but also opens the
+<a href="../tools/colorkey.html"><b>Color Key</b></a> tool and
+enables redrawing and moving the key with the mouse 
+(the <b>Adjust key...</b> option in the tool). 
+The <b>Adjust key...</b> option can be unchecked
+to restore the mouse to moving the structure instead of the key.
+</p><p>
+When the key is in place, a text label can be added with a command, for example:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08">key red:-10 white:0 blue:10 pos .65,.08</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential'">2dlab text 'electrostatic potential'</a></b>
+</blockquote>
+<p>
+...and then dragged interactively to the right place
+with the <b>move label</b> mouse mode
+(in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, click the icon 
+<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png">
+and then use the right mouse button or trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
+</p><p>
+Although it is usually most convenient to use the <b>key</b> option of the 
+coloring command to set key parameters, and to position the key and label
+interactively as described above, it could all be done with commands instead:
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05">key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .62 ypos .14">2dlab text 'electrostatic potential' xpos .62 ypos .14</a></b>
 </blockquote>
 <p>
-What positions and sizes of the
-<a href="../commands/key.html">color key</a> and
-<a href="../commands/2dlabels.html">2D label</a>
-will look good in an image depend on the current size and aspect ratio of the 
-graphics window and on how the image is laid out.
-There is also a <a href="../tools/colorkey.html"><b>Color Key</b></a>
-graphical interface.
+If you now have multiple copies of the label, you can delete the extras.
+Each label is added as a submodel of the <b>2D labels</b> model, and
+can be shown/hidden/closed using the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+In that tool, use the disclosure triangle to show the submodels of the
+<b>2D labels</b> model so that they can be controlled individually.
 </p><p>
 To quit from ChimeraX, just close its main window or use a command:
 </p>
@@ -905,5 +955,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2021</address>
+July 2021</address>
 </body></html>
