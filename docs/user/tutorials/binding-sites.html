@@ -898,10 +898,10 @@ width="300px">
 <h4><a href="#esp" class="nounder">&larr;</a>
 Color Key and 2D Label</h4>
 <p>
-When making a figure, it is generally best to compose the rest of the image
+When making a figure, it is usually best to compose the rest of the image
 before adding any <a href="../commands/key.html">color key</a> and/or
-<a href="../commands/2dlabels.html">2D labels</a>,
-since their sizes and positions will depend on how the image is laid out.
+<a href="../commands/2dlabels.html">2D labels</a>, since their
+sizes and positions will need to be adjusted to fit the image layout.
 </p><p>
 A color key can be added with the 
 <b>key</b> option of the coloring command (in this case, <b>coulombic</b>):
@@ -915,24 +915,27 @@ enables redrawing and moving the key with the mouse
 (the <b>Adjust key...</b> option in the tool). 
 The <b>Adjust key...</b> option can be unchecked
 to restore the mouse to moving the structure instead of the key.
+Closing the tool also restores the mouse function to moving the structure.
 </p><p>
-When the key is in place, a text label can be added with a command, for example:
+When the color key is in place, 
+a text label can be added with a command, for example:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential'">2dlab text 'electrostatic potential'</a></b>
 </blockquote>
 <p>
-...and then dragged interactively to the right place
-with the <b>move label</b> mouse mode
-(in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+...and then dragged interactively to the desired location
+with the <b>move label</b> mouse mode:
+in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, click the icon 
 <img class="icon" border=1 src="../tools/mouse-icons/movelabel.png">
 and then use the right mouse button or trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac to drag the label.
 </p><p>
-Although it is usually most convenient to use the <b>key</b> option of the 
-coloring command to set key parameters, and to position the key and label
-interactively as described above, it could all be done with commands instead:
+Although it is usually most convenient to set color-key colors and values
+by using the <b>key</b> option of the coloring command, 
+and to position the key and label interactively as described above, 
+these could be done explicitly with commands instead. For example:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05">key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05</a></b>
@@ -940,12 +943,11 @@ interactively as described above, it could all be done with commands instead:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .62 ypos .14">2dlab text 'electrostatic potential' xpos .62 ypos .14</a></b>
 </blockquote>
 <p>
-If you now have multiple copies of the label, you can delete the extras.
+If you now have multiple copies of the label, you can hide or delete the extras.
 Each label is added as a submodel of the <b>2D labels</b> model, and
 can be shown/hidden/closed using the 
-<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
-In that tool, use the disclosure triangle to show the submodels of the
-<b>2D labels</b> model so that they can be controlled individually.
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>; in that tool,
+use the disclosure triangle next to a model's name to show its submodels.
 </p><p>
 To quit from ChimeraX, just close its main window or use a command:
 </p>
