@@ -18,6 +18,7 @@ endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
 DISTRIBUTION = openmm-7.5.0-windows-py38_cuda110_1.tar.bz2
+#DISTRIBUTION = openmm-7.5.1-win-cuda11.2-py39h6dc0912_1.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
