@@ -145,6 +145,20 @@ All other contents of the bundle should be in ``src``.
     the ``sample`` command.
 
 
+*Bundle Help Files*
+
+    This sample bundle does not provide any help files,
+    but if it did they would be provided as HTML files 
+    under a ``src/docs`` folder.  Inside that folder
+    documentation intended for developers should be in
+    a ``devel`` subfolder and documentation for users
+    in a ``users`` subfolder.  Specifically, documentation
+    for commands should be under ``users/commands`` as
+    described :ref:`here <command help>`,
+    and documentation for tools under ``users/tools`` as
+    described :ref:`here <help>`.
+
+
 *Building and testing the Sample Bundle using ``ChimeraX``*
     #. Create a **license.txt** file.  The easiest way is to copy
        **license.txt.bsd** to **license.txt**.

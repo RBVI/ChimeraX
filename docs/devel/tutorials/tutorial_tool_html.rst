@@ -348,7 +348,7 @@ script that updates the drop-down list of models.
 The documentation for the graphical tool should be written
 in `HTML 5`_ and saved in a file with a suffix of ``.html``.
 For our example, we named the help file ``tutorial.html``.
-The location of the help file (relative to ``src``) is expicitly
+The location of the help file (relative to ``src/docs``) is expicitly
 indicated by setting the :py:attr:`help` attribute of the
 :py:class:`~chimerax.ui.htmltool.HtmlToolInstance`,
 as shown on line 31 of ``tool.py``:

@@ -267,6 +267,7 @@ of molecular data, e.g., atoms, usually results in a NumPy array.
 Although code involving NumPy arrays are sometimes opaque, they are
 typically much more efficient than using Python loops.
 
+.. _command help:
 
 ``src/docs/user/commands/tutorial.html``
 ----------------------------------------

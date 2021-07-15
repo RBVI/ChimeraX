@@ -26,22 +26,6 @@ that defines a graphical interface.  Graphical interfaces
 can either be based on HTML or on the Qt windowing toolkit.
 
 
-HTML-based
-==========
-
-The :doc:`HTML-based tool example <tutorial_tool_html>`
-demonstrates developing a graphical interface whose
-layout is specified using HTML.  This approach is likely
-easiest for developers who are fairly well versed in web
-development (including form handling and Javascript).
-For those not so familiar with HTML development, the
-:doc:`Qt-based example <tutorial_tool_qt>` may prove simpler.
-
-The :doc:`HTML example <tutorial_tool_html>` takes the commands
-developed earlier in the tutorial and creates a graphical
-interface for them.
-
-
 Qt-based
 ========
 
@@ -58,6 +42,22 @@ does not create an interface for the commands developed
 earlier in the tutorial, but instead displays a text-input
 field which logs text typed in by the user, using the
 appropriate `log command <../../user/commands/log.html>`_.
+
+
+HTML-based
+==========
+
+The :doc:`HTML-based tool example <tutorial_tool_html>`
+demonstrates developing a graphical interface whose
+layout is specified using HTML.  This approach is likely
+easiest for developers who are fairly well versed in web
+development (including form handling and Javascript).
+For those not so familiar with HTML development, the
+:doc:`Qt-based example <tutorial_tool_qt>` may prove simpler.
+
+The :doc:`HTML example <tutorial_tool_html>` takes the commands
+developed earlier in the tutorial and creates a graphical
+interface for them.
 
 
 What's Next
