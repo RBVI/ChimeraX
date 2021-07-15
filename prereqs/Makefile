@@ -124,7 +124,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices imex openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools cxservices imex openmm pips PyQt pytables Python qtshim
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
