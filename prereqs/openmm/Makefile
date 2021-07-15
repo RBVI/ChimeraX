@@ -14,6 +14,7 @@ endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
 DISTRIBUTION = openmm-7.5.0-linux-py38_cuda110_1.tar.bz2
+#DISTRIBUTION = openmm-7.5.1-linux-cuda11.2-py39h71eca04_1.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
