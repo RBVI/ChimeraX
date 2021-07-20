@@ -22,7 +22,11 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 ifeq ($(OS),Darwin)
-DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+ifeq ($(OSARCH),DarwinIntel64)
+	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+else ifeq ($(OSARCH),DarwinArm64)
+	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac-arm.tar.bz2
+endif
 DISTDIR =
 SOURCE = 
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
