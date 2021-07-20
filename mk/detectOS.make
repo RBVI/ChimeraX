@@ -31,6 +31,7 @@ endif
 ifeq ($(OS),Darwin)
 	UNIX	= macos
 	OSXVER = $(shell sw_vers -productVersion | awk -F. '{ print $$1"."$$2 }')
+	MACOSV1 = $(shell sw_vers -productVersion | awk -F. '{ print $$1 }')
 	ifeq ($(shell uname -m),i386)
 		ifeq (,$(shell echo $(OSXVER) | sed -e 's/^10\.[0-5]$$//'))
 			OSARCH = DarwinIntel

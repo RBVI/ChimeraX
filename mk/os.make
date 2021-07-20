@@ -70,7 +70,14 @@ endif
 
 ifeq ($(OS),Darwin)
 ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
-	BIN_PLATFORM=macosx_$(subst .,_,$(OSXVER))_x86_64
+	ifeq ($(MACOSV1),10)
+		# Major versions are 10.14, 10.15, 11, 12, ...
+		WHEEL_MACOS_VER = $(subst .,_,$(OSXVER))
+	else
+		# Use the version reported by platform.mac_ver()
+		WHEEL_MACOS_VER = 10_16
+	endif
+	BIN_PLATFORM=macosx_$(WHEEL_MACOS_VER)_x86_64
 else
 	BIN_PLATFORM=macosx_$(subst .,_,$(MACOSX_DEPLOYMENT_TARGET))_x86_64
 endif
