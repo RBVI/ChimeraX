@@ -205,15 +205,22 @@ def _check_usage(session):
     _write_usage(session.logger, usage)
     days = len(usage["dates"])
     if not nagged and days > GracePeriod and session is not None:
-        from chimerax.ui.ask import ask
-        answer = ask(session, NagMessage % (usage["count"], days),
-                     buttons=["Dismiss", "Register"])
-        if answer == "Register":
-            try:
-                session.ui.settings.autostart.append("Registration")
-            except AttributeError:
-                session.ui.settings.autostart = ["Registration"]
+        _ask_to_register(session, usage["count"], days)
 
+def _ask_to_register(session, times_used, days_used, wait_for_main_window = True):
+    if wait_for_main_window:
+        def _delayed_ask(*args, session=session, times_used=times_used, days_used=days_used):
+            _ask_to_register(session, times_used, days_used, wait_for_main_window = False)
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        session.triggers.add_handler('new frame', _delayed_ask)
+        return
+    from chimerax.ui.ask import ask
+    answer = ask(session, NagMessage % (times_used, days_used),
+                 buttons=["Dismiss", "Register"])
+    if answer == "Register":
+        from chimerax.core.commands import run
+        run(session, 'ui tool show Registration')
 
 def _get_usage():
     usage_file = _usage_file()
