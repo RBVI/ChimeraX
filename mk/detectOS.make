@@ -32,18 +32,10 @@ ifeq ($(OS),Darwin)
 	UNIX	= macos
 	OSXVER = $(shell sw_vers -productVersion | awk -F. '{ print $$1"."$$2 }')
 	MACOSV1 = $(shell sw_vers -productVersion | awk -F. '{ print $$1 }')
-	ifeq ($(shell uname -m),i386)
-		ifeq (,$(shell echo $(OSXVER) | sed -e 's/^10\.[0-5]$$//'))
-			OSARCH = DarwinIntel
-		else
-			# 10.6 and above can run 64-bit binaries even though
-			# kernel is 32-bit.
-			OSARCH = DarwinIntel64
-		endif
-	else ifeq ($(shell uname -m),x86_64)
+	ifeq ($(shell uname -m),x86_64)
 		OSARCH = DarwinIntel64
 	else
-		OSARCH = DarwinPPC
+		OSARCH = DarwinArm64
 	endif
 endif
 
