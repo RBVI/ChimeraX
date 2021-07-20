@@ -12,7 +12,7 @@ DISTRIBUTION = openmm-7.5.1-mac-py39h17f8b25_1_apple.tar.bz2
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
-DISTRIBUTION = openmm-7.5.1-linux-cuda11.2-py39h71eca04_1.tar.bz2
+DISTRIBUTION = openmm-7.5.1-linux-cuda11.2-py39-centos7.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
