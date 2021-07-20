@@ -69,6 +69,8 @@ endif
 #### Darwin, a.k.a., Apple Mac OS X
 
 ifeq ($(OS),Darwin)
+# Architecture is x86_64 or arm64
+MACOS_ARCH = $(shell uname -m)
 ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
 	ifeq ($(MACOSV1),10)
 		# Major versions are 10.14, 10.15, 11, 12, ...
@@ -77,9 +79,9 @@ ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
 		# Wheel names are 11_0 even for macOS 11.4 since the 4 is a patch version.
 		WHEEL_MACOS_VER = $(MACOSV1)_0
 	endif
-	BIN_PLATFORM=macosx_$(WHEEL_MACOS_VER)_x86_64
+	BIN_PLATFORM=macosx_$(WHEEL_MACOS_VER)_$(MACOS_ARCH)
 else
-	BIN_PLATFORM=macosx_$(subst .,_,$(MACOSX_DEPLOYMENT_TARGET))_x86_64
+	BIN_PLATFORM=macosx_$(subst .,_,$(MACOSX_DEPLOYMENT_TARGET))_$(MACOS_ARCH)
 endif
 	USE_MAC_FRAMEWORKS = 1
 	# *nix system
