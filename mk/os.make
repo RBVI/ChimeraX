@@ -74,8 +74,8 @@ ifeq (,$(MACOSX_DEPLOYMENT_TARGET))
 		# Major versions are 10.14, 10.15, 11, 12, ...
 		WHEEL_MACOS_VER = $(subst .,_,$(OSXVER))
 	else
-		# Use the version reported by platform.mac_ver()
-		WHEEL_MACOS_VER = 10_16
+		# Wheel names are 11_0 even for macOS 11.4 since the 4 is a patch version.
+		WHEEL_MACOS_VER = $(MACOSV1)_0
 	endif
 	BIN_PLATFORM=macosx_$(WHEEL_MACOS_VER)_x86_64
 else
