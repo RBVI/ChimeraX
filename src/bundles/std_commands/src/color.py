@@ -1150,6 +1150,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                 non_none_colors = _value_colors(palette, range, non_none_attr_vals)
             else:
                 non_none_colors = None
+                session.logger.warning("All '%s' values are None" % attr_name)
             acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
             if 'c' in target or 'f' in target:
                 if class_obj == Atom:
