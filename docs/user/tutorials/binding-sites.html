@@ -811,7 +811,7 @@ The following shows surfaces for the protein chains
 and colors them by Coulombic ESP calculated on the fly:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein range -10,10">coulombic protein range -10,10</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
 </blockquote>
 <p>
 The default color scheme is red for negative potential, white at zero,
@@ -906,7 +906,7 @@ sizes and positions will need to be adjusted to fit the image layout.
 A color key can be added with the 
 <b>key</b> option of the coloring command (in this case, <b>coulombic</b>):
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein range -10,10 key true">coulombic protein range -10,10 key true</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein key true">coulombic protein key true</a></b>
 </blockquote>
 <p>
 This draws an initial color key, but also opens the
@@ -932,15 +932,16 @@ of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, click the icon
 and then use the right mouse button or trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="../icon-clover.png" width="12px"> on Mac to drag the label.
 </p><p>
-Although it is usually most convenient to set color-key colors and values
+Although it is usually most convenient 
+to position the key and label interactively as described above, 
+and to set color-key colors and values
 by using the <b>key</b> option of the coloring command, 
-and to position the key and label interactively as described above, 
 these could be done explicitly with commands instead. For example:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05">key red:-10 white:0 blue:10 pos .65,.08 size 0.25,0.05</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .53 ypos .15">2dlab text 'electrostatic potential' xpos .53 ypos .15</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .62 ypos .14">2dlab text 'electrostatic potential' xpos .62 ypos .14</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .53,.09 size .32,.04">key red:-10 white:0 blue:10 pos .51,.09 size .32,.04</a></b>
 </blockquote>
 <p>
 If you now have multiple copies of the label, you can hide or delete the extras.
