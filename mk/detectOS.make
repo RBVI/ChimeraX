@@ -34,7 +34,7 @@ ifeq ($(OS),Darwin)
 	MACOSV1 = $(shell sw_vers -productVersion | awk -F. '{ print $$1 }')
 	ifeq ($(shell uname -m),x86_64)
 		OSARCH = DarwinIntel64
-	else
+	else ifeq ($(shell uname -m),arm64)
 		OSARCH = DarwinArm64
 	endif
 endif

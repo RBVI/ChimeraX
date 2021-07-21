@@ -10,7 +10,7 @@
 +         import platform
 +         if platform.system() == 'Darwin':
 +             macos_version = platform.mac_ver()[0]
-+             if macos_version.startswith('11.') or macos_version.startswith('10.16'):
++             if int(macos_version[:2]) >= 11 or macos_version.startswith('10.16'):
 +                 # Fix loading opengl library on macOS 11, Big Sur, ChimeraX bug #3746
 +                 # TODO: Remove this when Python updates ctypes to fix the problem.
 +                 name = '/System/Library/Frameworks/OpenGL.framework/OpenGL'
