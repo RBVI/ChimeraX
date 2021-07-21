@@ -3343,6 +3343,39 @@ extern "C" EXPORT void *sseq_copy(void* source)
     }
 }
 
+extern "C" EXPORT void sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto& descript = c[i]->description();
+            if (descript.empty()) {
+                descripts[i] = Py_None;
+                Py_INCREF(Py_None);
+            } else
+                descripts[i] = unicode_from_string(descript);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **sseq = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto descript = static_cast<PyObject *>(descripts[i]);
+            if (descript == Py_None)
+                sseq[i]->set_description("");
+            else
+                sseq[i]->set_description(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(descripts[i])));
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void sseq_from_seqres(void *sseqs, size_t n, npy_bool *from_seqres)
 {
     StructureSeq **ss = static_cast<StructureSeq **>(sseqs);

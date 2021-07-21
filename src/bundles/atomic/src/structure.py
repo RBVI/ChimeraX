@@ -2255,7 +2255,7 @@ def selected_residues(session):
 # -----------------------------------------------------------------------------
 #
 def structure_residues(structures):
-    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues
     res = Residues()
     for m in structures:

@@ -425,6 +425,7 @@ void Structure::_copy(Structure* s) const
             cc->bulk_set(bulk_residues, &c->contents());
             cc->set_circular(c->circular());
             cc->set_from_seqres(c->from_seqres());
+            cc->set_description(c->description());
         }
     }
 
@@ -1577,8 +1578,8 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     int num_chains = _chains == nullptr ? -1 : _chains->size();
     num_ints = 1; // for storing num_chains, since len(chain_ids) can't show nullptr
     num_floats = 0;
-    // allocate for list of chain IDs
-    PyObject* chain_misc = PyList_New(1);
+    // allocate for list of chain IDs; descriptions
+    PyObject* chain_misc = PyList_New(2);
     if (chain_misc == nullptr)
         throw std::runtime_error("Cannot create Python list for chain misc info");
     if (PyList_Append(misc, chain_misc) < 0)
@@ -1587,14 +1588,19 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     if (chain_ids == nullptr)
         throw std::runtime_error("Cannot create Python list for chain IDs");
     PyList_SET_ITEM(chain_misc, 0, chain_ids);
+    PyObject* descriptions = PyList_New(num_chains);
+    if (descriptions == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain descriptions");
+    PyList_SET_ITEM(chain_misc, 1, descriptions);
     i = 0;
     if (_chains != nullptr) {
         for (auto ch: *_chains) {
             num_ints += ch->session_num_ints();
             num_floats += ch->session_num_floats();
 
-            // remember chain ID
-            PyList_SET_ITEM(chain_ids, i++, cchar_to_pystring(ch->chain_id(), "chain chain ID"));
+            // remember chain ID, description
+            PyList_SET_ITEM(chain_ids, i, cchar_to_pystring(ch->chain_id(), "chain chain ID"));
+            PyList_SET_ITEM(descriptions, i++, cchar_to_pystring(ch->description(), "chain description"));
         }
     }
     int* chain_ints;
@@ -1869,10 +1875,16 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
 
     // chains
     PyObject* chain_misc = PyTuple_GET_ITEM(misc, 6);
-    if (!(PyTuple_Check(chain_misc) || PyList_Check(chain_misc)) || PySequence_Fast_GET_SIZE(chain_misc) != 1)
-        throw std::invalid_argument("chain misc info is not a one-item tuple");
+    int misc_size = 1;
+    if (version > 16)
+        misc_size = 2;
+    if (!(PyTuple_Check(chain_misc) || PyList_Check(chain_misc)) || PySequence_Fast_GET_SIZE(chain_misc) != misc_size)
+        throw std::invalid_argument("chain misc info list is wrong size");
     std::vector<ChainID> chain_chain_ids;
     pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    std::vector<std::string> chain_descriptions;
+    if (version > 16)
+        pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(chain_misc, 1), chain_descriptions, "chain description");
     PyObject* py_chain_ints = PyTuple_GET_ITEM(ints, 6);
     iarray = Numeric_Array();
     if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))
@@ -1889,9 +1901,12 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _chains = nullptr;
     } else {
         _chains = new Chains();
+        i = 0;
         for (auto chain_id: chain_chain_ids) {
             auto chain = _new_chain(chain_id);
             chain->session_restore(version, &chain_ints, &chain_floats);
+            if (version > 16)
+                chain->set_description(chain_descriptions[i++]);
         }
     }
 }
