@@ -402,7 +402,7 @@ def collated_open(session, database_name, data, data_format, main_opener, log_er
             data=data):
         try:
             models, status = func(*func_args, **func_kw)
-        except (IOError, PermissionError):
+        except (IOError, PermissionError) as e:
             if isinstance(data, str):
                 raise UserError("Cannot open '%s': %s" % (data, e))
             else:
