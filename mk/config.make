@@ -146,6 +146,13 @@ PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 APP_PIP = $(APP_EXE) -m pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
+ifeq ($(OSARCH),DarwinIntel64)
+ifneq ($(MACOSV1),10)
+# To get Python to install wheel filenames with os version 11_0, 12_0, ...
+# Details in ChimeraX ticket #4923.
+APP_BOOTSTRAP_PIP = env SYSTEM_VERSION_COMPAT=0 $(APP_PYTHON_EXE) -m pip
+endif
+endif
 
 ifeq ($(OS),Darwin)
 export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
