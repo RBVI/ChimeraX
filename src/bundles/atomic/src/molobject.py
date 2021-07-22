@@ -760,7 +760,9 @@ class Sequence(State):
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        f(self._c_pointer, self)
+        # since this Sequence has been created in the Python layer, don't call
+        # set_sequence_py_instance, since that will add a reference and the
+        # Sequence will not be properly garbage collected
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
