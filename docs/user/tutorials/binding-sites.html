@@ -27,6 +27,21 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html"
 target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 
+<table class="clRight" cellpadding="0px">
+<tr><td>
+<a href="#hbonds">
+<img class="outline" src="bind2.png" alt="H-bonds" width="100px"></a>
+</td></tr>
+<tr><td>
+<a href="#mlp">
+<img class="outline" src="bind3.png" alt="lipophilicity" width="100px"></a>
+</td></tr>
+<tr><td>
+<a href="#esp">
+<img class="outline" src="bind6.png" alt="electrostatics" width="100px"></a>
+</td></tr>
+</table>
+
 <ul>
 <!-- Kinase and inhibitor -->
 <li><a href="#opening"><b>Opening a Structure and Surveying Its Parts</b></a>
@@ -50,6 +65,9 @@ target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 <!-- Bacterial gene regulator with DNA and small-molecule binding sites -->
 <li><a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>
 <img class="iconbar" src="../tools/shortcut-icons/esp.png">
+  <ul>
+  <li><a href="#key"><b>Color Key and 2D Label</b></a>
+  </ul>
 </ul>
 
 <p>
@@ -660,8 +678,6 @@ width="220px">
 </td></tr>
 </table>
 <p>
-This section requires ChimeraX production release 1.2 or newer.
-</p><p>
 The protein in structure <a href="https://www.rcsb.org/structure/1G74"
 target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
 interior pocket. 
@@ -744,8 +760,6 @@ When finished with this structure, close the session:
 <h3><a href="#top" class="nounder">&larr;</a>
 Surface Coloring by Electrostatic Potential</h3>
 <p>
-This section requires ChimeraX production release 1.2 or newer.
-</p><p>
 Coloring a protein surface by electrostatic potential (ESP)
 may help to identify binding sites for charged or polar molecules.
 Regions of positive potential are complementary to negative charges,
@@ -797,7 +811,7 @@ The following shows surfaces for the protein chains
 and colors them by Coulombic ESP calculated on the fly:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein range -10,10">coulombic protein range -10,10</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
 </blockquote>
 <p>
 The default color scheme is red for negative potential, white at zero,
@@ -841,12 +855,6 @@ and show nucleotide sidechains as stubs (broken ladder rungs):
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:nuc stubs">nuc stubs</a></b>
 </blockquote>
-<table class="clRight">
-<tr><td>
-<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" 
-width="300px">
-</td></tr>
-</table>
 <p>
 The nucleotide change to stubs can also be done by clicking
 <img class="iconbar" src="../tools/nuc-icons/nuc-stubs.png">
@@ -880,22 +888,70 @@ or shadows
 <img class="iconbar" src="../tools/shortcut-icons/fulllight.png">
 <img class="iconbar" src="../tools/shortcut-icons/flat.png">
 </ul>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" 
+width="300px">
+</td></tr>
+</table>
+<a name="key"></a>
+<h4><a href="#esp" class="nounder">&larr;</a>
+Color Key and 2D Label</h4>
 <p>
-You can also try adding a color key and associated label, for example:
-</p>
+When making a figure, it is usually best to compose the rest of the image
+before adding any <a href="../commands/key.html">color key</a> and/or
+<a href="../commands/2dlabels.html">2D labels</a>, since their
+sizes and positions will need to be adjusted to fit the image layout.
+</p><p>
+A color key can be added with the 
+<b>key</b> option of the coloring command, in this case,
+<a href="../commands/coulombic.html"><b>coulombic</b></a>:
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .65,.08">key red:-10 white:0 blue:10 pos .65,.08</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .62 ypos .14">2dlab text 'electrostatic potential' xpos .62 ypos .14</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein key true">coulombic protein key true</a></b>
 </blockquote>
 <p>
-What positions and sizes of the
-<a href="../commands/key.html">color key</a> and
-<a href="../commands/2dlabels.html">2D label</a>
-will look good in an image depend on the current size and aspect ratio of the 
-graphics window and on how the image is laid out.
-There is also a <a href="../tools/colorkey.html"><b>Color Key</b></a>
-graphical interface.
+(If you already did the coloring, just repeat the same command except with
+<b>key true</b> appended.)
+This draws an initial color key, but also opens the
+<a href="../tools/colorkey.html"><b>Color Key</b></a> tool and
+enables redrawing and moving the key with the mouse 
+(the <b>Adjust key...</b> option in the tool). 
+The <b>Adjust key...</b> option can be unchecked
+to restore the mouse to moving the structure instead of the key.
+Closing the tool also restores the mouse function to moving the structure.
+</p><p>
+When the color key is in place, 
+a text label can be added with a command, for example:
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential'">2dlab text 'electrostatic potential'</a></b>
+</blockquote>
+<p>
+...and then dragged interactively to the desired location
+with the <b>move label</b> mouse mode:
+in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, click the icon 
+<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png">
+and then use the right mouse button or trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac to drag the label.
+</p><p>
+Although it is usually most convenient 
+to position the key and label interactively as described above, 
+and to set color-key colors and values
+by using the <b>key</b> option of the coloring command, 
+these could be done explicitly with commands instead. For example:
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:2dlab text 'electrostatic potential' xpos .53 ypos .15">2dlab text 'electrostatic potential' xpos .53 ypos .15</a></b>
+<br>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:key red:-10 white:0 blue:10 pos .53,.09 size .32,.04">key red:-10 white:0 blue:10 pos .51,.09 size .32,.04</a></b>
+</blockquote>
+<p>
+If you now have multiple copies of the label, you can hide or delete the extras.
+Each label is added as a submodel of the <b>2D labels</b> model. 
+One way to show/hide/close them is by using the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>; in that tool,
+use the disclosure triangle next to a model's name to show its submodels.
 </p><p>
 To quit from ChimeraX, just close its main window or use a command:
 </p>
@@ -905,5 +961,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2021</address>
+July 2021</address>
 </body></html>

@@ -760,7 +760,9 @@ class Sequence(State):
             args = (ctypes.c_char_p, ctypes.c_char_p), ret = ctypes.c_void_p)(
                 name.encode('utf-8'), characters.encode('utf-8'))
         set_c_pointer(self, seq_pointer)
-        f(self._c_pointer, self)
+        # since this Sequence has been created in the Python layer, don't call
+        # set_sequence_py_instance, since that will add a reference and the
+        # Sequence will not be properly garbage collected
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -982,8 +984,6 @@ class StructureSeq(Sequence):
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
-        # description derived from PDB/mmCIF info and set by AtomicStructure constructor
-        self.description = None
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -996,10 +996,12 @@ class StructureSeq(Sequence):
         return self.residues < other.residues
 
     chain_id = c_property('sseq_chain_id', string)
-    '''Chain identifier. Limited to 4 characters. Read only string.'''
+    '''Chain identifier. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
         "Supported API. A string representing the contents of the sequence. Read only.")
+    description = c_property('sseq_description', string, doc="description derived from PDB/mmCIF"
+        " info and set by AtomicStructure constructor")
     existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = convert.non_null_residues, read_only = True)
     '''Supported API. :class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
     from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "

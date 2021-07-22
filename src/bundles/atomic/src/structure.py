@@ -1839,7 +1839,10 @@ class PickedAtom(Pick):
                 if numpy.count_nonzero(same) > 1:
                     # Well, I could go off and see if the other residue(s) contain an atom
                     # with the same name, but at this point I'm going to be lazy...
-                    return '@@serial_number=%d' % self.atom.serial_number
+                    base = '@@serial_number=%d' % self.atom.serial_number
+                    if len([s for s in self.atom.structure.session.models if isinstance(s, Structure)]) == 1:
+                        return base
+                    return self.atom.structure.string(style="command") + base
         return self.atom.string(style='command')
     @property
     def residue(self):
@@ -2252,7 +2255,7 @@ def selected_residues(session):
 # -----------------------------------------------------------------------------
 #
 def structure_residues(structures):
-    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues
     res = Residues()
     for m in structures:

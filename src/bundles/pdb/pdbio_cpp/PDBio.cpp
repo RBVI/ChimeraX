@@ -550,6 +550,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     bool        dup_MODEL_numbers = false;
     std::vector<Residue*> chain_residues;
     bool        second_chain_let_okay = true;
+    std::map<std::string, decltype(let)> modres_mappings;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -623,15 +624,32 @@ start_t = end_t;
                     record.modres.res.seq_num,
                     record.modres.res.i_code));
             let = Sequence::protein3to1(record.modres.std_res);
+            { // switch statement can't jump past declaration, so add a scope
+            auto lookup = modres_mappings.find(record.modres.res.name);
             if (let != 'X') {
-                Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                if (lookup == modres_mappings.end()) {
+                    Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                    modres_mappings[record.modres.res.name] = let;
+                } else {
+                    if (lookup->second != 'X' && lookup->second != let) {
+                        Sequence::assign_rname3to1(record.modres.res.name, 'X', true);
+                        modres_mappings[record.modres.res.name] = 'X';
+                    }
+                }
             } else {
                 let = Sequence::nucleic3to1(record.modres.std_res);
                 if (let != 'X') {
-                    Sequence::assign_rname3to1(record.modres.res.name, let,
-                        false);
+                    if (lookup == modres_mappings.end()) {
+                        Sequence::assign_rname3to1(record.modres.res.name, let, false);
+                        modres_mappings[record.modres.res.name] = let;
+                    } else {
+                        if (lookup->second != 'X' && lookup->second != let) {
+                            Sequence::assign_rname3to1(record.modres.res.name, 'X', false);
+                            modres_mappings[record.modres.res.name] = 'X';
+                        }
+                    }
                 }
-            }
+            }}
             break;
 
         case PDB::HELIX:

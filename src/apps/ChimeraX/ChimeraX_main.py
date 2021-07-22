@@ -250,6 +250,7 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.start_tools.append(optarg)
         elif opt == "--cmd":
             opts.commands.append(optarg)
+            opts.get_available_bundles = False
         elif opt == "--script":
             opts.scripts.append(optarg)
             opts.get_available_bundles = False

@@ -829,7 +829,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 disable = enable = NULL;
                 std::cerr << "Can't control garbage collection\n";
             }
-            if (disable) Py_XDECREF(PyEval_CallObject(disable, NULL));
+            if (disable) Py_XDECREF(PyObject_CallNoArgs(disable));
             auto type_obj = PyStructSequence_NewType(&type_desc);
             // As per https://bugs.python.org/issue20066 and https://bugs.python.org/issue15729,
             // the type object isn't completely initialized, so...
@@ -848,7 +848,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 Py_DECREF(key);
                 Py_DECREF(val);
             }
-            if (enable) Py_XDECREF(PyEval_CallObject(enable, NULL));
+            if (enable) Py_XDECREF(PyObject_CallNoArgs(enable));
         } catch (...) {
             molc_error();
         }
@@ -2747,14 +2747,14 @@ extern "C" EXPORT void set_residue_insertion_code(void *residues, size_t n, pyob
     try {
         for (size_t i = 0; i != n; ++i) {
             PyObject* py_ic = static_cast<PyObject*>(ics[i]);
-            auto size = PyUnicode_GET_DATA_SIZE(py_ic);
+            auto size = PyUnicode_GET_LENGTH(py_ic);
             if (size > 1)
                 throw std::invalid_argument("Insertion code must be one character or empty string");
             char val;
             if (size == 0)
                 val = ' ';
             else
-                val = PyUnicode_AS_DATA(py_ic)[0];
+                val = (char)PyUnicode_READ_CHAR(py_ic, 0);
             r[i]->set_insertion_code(val);
         }
     } catch (...) {
@@ -3340,6 +3340,39 @@ extern "C" EXPORT void *sseq_copy(void* source)
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto& descript = c[i]->description();
+            if (descript.empty()) {
+                descripts[i] = Py_None;
+                Py_INCREF(Py_None);
+            } else
+                descripts[i] = unicode_from_string(descript);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **sseq = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto descript = static_cast<PyObject *>(descripts[i]);
+            if (descript == Py_None)
+                sseq[i]->set_description("");
+            else
+                sseq[i]->set_description(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(descripts[i])));
+        }
+    } catch (...) {
+        molc_error();
     }
 }
 

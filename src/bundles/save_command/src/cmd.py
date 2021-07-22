@@ -84,8 +84,11 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
     # not seem like the ideal solution to put this update here.
     session.update_loop.update_graphics_now()
-    provider_info.bundle_info.run_provider(session, provider_info.format_name,
-        mgr).save(session, path, **provider_kw)
+    try:
+        provider_info.bundle_info.run_provider(session, provider_info.format_name,
+            mgr).save(session, path, **provider_kw)
+    except (IOError, PermissionError) as e:
+        raise UserError("Cannot save '%s': %s" % (file_name, e))
 
     # remember in file history if appropriate
     try:

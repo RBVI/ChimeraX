@@ -287,7 +287,13 @@ The command can also be used to list, install, or remove bundles,
 and to control how the toolshed manages bundle information.
 </p>
 <ul>
-<li><b>Toolshed update interval</b> &ndash; how often to check for updates
+<li><b>Toolshed update interval</b> &ndash; how often to check 
+the Toolshed for updates to installed bundles as well as for
+new features (commands, file formats) available from bundles
+that the user does not have installed.
+This connection occurs at <a href="startup.html">startup</a>
+but asynchronously, <i>i.e.</i>,
+without slowing down the startup process or subsequent use of ChimeraX.  
   <ul>
   <li><b>every day</b>
   <li><b>every week</b> (initial default)
@@ -425,5 +431,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2021</address>
+June 2021</address>
 </body></html> 

@@ -28,6 +28,7 @@
 
 #include "Chain.h"
 #include "ChangeTracker.h"
+#include "CompSS.h"
 #include "destruct.h"
 #include "PBManager.h"
 #include "polymer.h"
@@ -227,7 +228,8 @@ public:
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
     void  combine_sym_atoms();
-    virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
+    virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3,
+        bool = false, CompSSInfo* = nullptr) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;
     void  delete_alt_locs();

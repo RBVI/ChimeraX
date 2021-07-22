@@ -398,8 +398,15 @@ def file_format(session, file_name, format_name):
 
 def collated_open(session, database_name, data, data_format, main_opener, log_errors,
         func, func_args, func_kw):
-    def remember_data_format(func=func, data_format=data_format, func_args=func_args, func_kw=func_kw):
-        models, status = func(*func_args, **func_kw)
+    def remember_data_format(func=func, data_format=data_format, func_args=func_args, func_kw=func_kw,
+            data=data):
+        try:
+            models, status = func(*func_args, **func_kw)
+        except (IOError, PermissionError) as e:
+            if isinstance(data, str):
+                raise UserError("Cannot open '%s': %s" % (data, e))
+            else:
+                raise UserError("Cannot open files: %s" % e)
         for m in models:
             m.opened_data_format = data_format
         return models, status

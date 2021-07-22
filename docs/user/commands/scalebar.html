@@ -1,0 +1,126 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: scalebar</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: scalebar</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scalebar</b> [&nbsp;<i>length</i>&nbsp;]
+[&nbsp;<b>thickness</b>&nbsp;&nbsp;<i>pixel-height</i>&nbsp;]
+[&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
+[&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+</h3>
+<a name="delete"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scalebar&nbsp;(&nbsp;delete</b>&nbsp;|&nbsp;<b>off</b>&nbsp;)
+</h3>
+<p>
+The <b>scalebar</b> command draws a horizontal bar of the specified
+<i>length</i> (initial default <b>100</b> &Aring;).
+It is the command-line implementation of the 
+<a href="../tools/scalebar.html"><b>Scale Bar</b></a> tool.
+A text label is not included, but can be added with the 
+<a href="2dlabels.html"><b>2dlabels</b></a> command.
+See also: 
+<a href="key.html"><b>key</b></a>,
+<a href="zoom.html"><b>zoom</b></a>,
+<a href="../images.html">making images</a>
+</p><p>
+Only one scale bar can be present at a time. Initial defaults are described 
+<a href="#options">below</a>, but using the command when
+a scale bar is already present simply updates the existing model;
+any unspecified options are left unchanged.
+</p><p>
+The scale bar is a 2D object (no depth, cannot be moved forward/backward)
+and is simply drawn on top of the view, like 
+<a href="2dlabels.html">2D labels</a>.
+It can be repositioned by dragging with the <b>move label</b>
+<span class="nowrap"><a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a></span>
+and is created as a 2D labels submodel that can be controlled with
+the <a href="../tools/modelpanel.html"><b>Model Panel</b></a> and
+general commands such as <a href="close.html"><b>close</b></a> and
+<a href="show.html"><b>show/hide</b></a>.
+<!--
+It can also be modified with the equivalent options of the
+<a href="2dlabels.html"><b>2dlabels</b></a> command.
+-->
+</p><p>
+The command <a href="#delete"><b>scalebar delete</b></a> or 
+<a href="#delete"><b>scalebar off</b></a> removes an existing scale bar model.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: scalebar</a>]
+</p>
+<h3>Options</h3>
+
+<blockquote>
+<a name="length"></a>
+<i>length</i> 
+<br>
+Length of the scale bar in physical units of distance 
+(initial default <b>100</b> &Aring;) based on the pixel-to-length 
+correspondence at the center of rotation.
+The length in pixels will automatically adjust for changes in zoom.
+In perspective projection, objects appear progressively larger in the front 
+and smaller in the back; for a constant relationship of pixels to length 
+at all depths, use orthographic projection instead
+(command <a href="camera.html"><b>camera ortho</b></a>).
+</blockquote>
+<blockquote>
+<a name="thickness"></a>
+<b>thickness</b>&nbsp;&nbsp;<i>pixel-height</i>
+<br>
+Height in pixels of the scale bar (initial default <b>10</b>).
+</blockquote>
+<blockquote>
+<a name="xpos"></a>
+<a name="ypos"></a>
+<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>
+<br>
+<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>
+<br>
+Lower-left-corner position of the rectangular scale bar along 
+the X (horizontal) and Y (vertical) axes, with <b>0.1</b> as the
+initial default for each. The values are expressed in fractional coordinates
+0.0-1.0 where 1.0 represents the full width or height of the 
+<a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner.
+</blockquote>
+<blockquote>
+<a name="color"></a>
+<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
+<br>
+Color of the scale bar.
+If set to <b>auto</b> or <b>default</b> (initial default),
+it will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the <a href="set.html#bgColor">window background</a>.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2021</address>
+</body></html>

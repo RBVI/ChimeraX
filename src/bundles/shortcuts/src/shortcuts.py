@@ -434,7 +434,7 @@ def shortcut_models(session, mclass = None, undisplayed = True, at_least = None)
     sel = session.selection.models()
     mlist = [m for m in sel
              if (mclass is None or isinstance(m,mclass))
-             and (undisplayed or m.display)]
+             and (undisplayed or m.visible)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
                  if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.visible)]
@@ -491,10 +491,10 @@ def shortcut_surfaces_and_maps(session):
 
 def sel_unsel_models(session, mclass = None, undisplayed = False):
     sel = [m for m in session.selection.models()
-           if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))]
+           if (undisplayed or m.visible) and (mclass is None or isinstance(m,mclass))]
     selset = set(sel)
     usel = [m for m in session.models
-            if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))
+            if (undisplayed or m.visible) and (mclass is None or isinstance(m,mclass))
             and  not m in selset]
     return sel, usel
 
@@ -731,12 +731,12 @@ def fit_subtract(session):
     from chimerax.map import Volume
     maps = [m for m in models if isinstance(m, Volume) and m.get_selected(include_children=True)]
     if len(maps) == 0:
-        maps = [m for m in models if isinstance(m, Volume) and m.display]
-    molfit = [m for m in shortcut_molecules(session) if m.display]
+        maps = [m for m in models if isinstance(m, Volume) and m.visible]
+    molfit = [m for m in shortcut_molecules(session) if m.visible]
     mfitset = set(molfit)
     from chimerax.atomic import AtomicStructure
     molsub = [m for m in models
-              if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
+              if isinstance(m, AtomicStructure) and m.visible and not m in mfitset]
     print ('fs', len(maps), len(molfit), len(molsub))
     log = session.logger
     if len(maps) != 1:
@@ -859,13 +859,13 @@ def hide_dust(session):
         maps = sfmaps
     elif ufmaps:
         maps = ufmaps
-    elif smaps or umaps:
+    else:
         log = session.logger
         msg = 'Hide dust shortcut requires a displayed map surface'
         log.warning(msg)
         log.status(msg, color='red')
         maps = []
-        
+
     for map in maps:
         size = 10 * max(map.data.step)
         cmd = 'surface dust #%s size %.3g' % (map.id_string, size)
@@ -949,7 +949,7 @@ def show_surface_transparent(session, alpha = 0.5):
     from chimerax.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
-        if not m.display:
+        if not m.visible:
             continue
         if isinstance(m, Volume):
             for s in m.surfaces:
@@ -1125,7 +1125,7 @@ def show_triangle_count(session):
     na = nt = 0
     for m in mols:
         ad = m._atoms_drawing
-        if m.display and ad:
+        if m.visible and ad:
             dp = ad.display_positions
             if dp is not None:
                 nma = dp.sum()

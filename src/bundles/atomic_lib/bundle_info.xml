@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomicLibrary" version="3.3"
+<BundleInfo name="ChimeraX-AtomicLibrary" version="4.0"
             package="chimerax.atomic_lib"
             purePython="false"
             installedDataDir="data"
@@ -101,6 +101,7 @@
     <ExtraFile source="atomic_cpp/atomstruct_cpp/Bond.h">include/atomstruct/Bond.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/Chain.h">include/atomstruct/Chain.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/ChangeTracker.h">include/atomstruct/ChangeTracker.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/CompSS.h">include/atomstruct/CompSS.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/Connection.h">include/atomstruct/Connection.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/Coord.h">include/atomstruct/Coord.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/CoordSet.h">include/atomstruct/CoordSet.h</ExtraFile>

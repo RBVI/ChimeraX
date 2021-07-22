@@ -137,6 +137,12 @@ class _AtomicBundleAPI(BundleAPI):
         register_selectors(logger)
 
     @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        cmd.register_command(logger)
+
+    @staticmethod
     def _add_gui_items(session):
         from .selectors import add_select_menu_items
         add_select_menu_items(session)
