@@ -48,6 +48,7 @@ protected:
     void  clear_residues();
 
     ChainID  _chain_id;
+    std::string  _description;
     bool  _from_seqres;
     PolymerType  _polymer_type;
     ResMap  _res_map;
@@ -80,6 +81,7 @@ public:
     const ChainID&  chain_id() const { return _chain_id; }
     const Contents&  characters() const { return _contents; }
     Contents::const_iterator  end() const { return Sequence::end(); }
+    const std::string&  description() const { return _description; }
     virtual void  destructors_done(const std::set<void*>& destroyed);
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
@@ -110,6 +112,7 @@ public:
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_chain_id(ChainID chain_id);
+    void  set_description(const std::string& d) { _description = d; }
     void  set_from_seqres(bool fs);
     Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }

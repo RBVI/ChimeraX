@@ -168,9 +168,6 @@ XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021) on macOS 10
 
      git clone git@github.com:RBVI/ChimeraX.git chimerax
 
-#. There may be some build tools or libraries needed from Homebrew.  We need to start with
-   a clean machine to figure out what is needed.
-
 #. In the repository chimerax directory run make to build the application::
 
     make build-from-scratch >& make.out
