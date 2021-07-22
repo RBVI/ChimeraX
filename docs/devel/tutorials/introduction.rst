@@ -76,6 +76,13 @@ The ``run()`` call will return the result of the command,
 semi-colon-separated list of commands, the the returned
 value will be a list of the individual return values.
 
+If all you need to do is run a fixed set of commands over
+a set of data files, you should be aware that the
+`forEachFile option <../../user/commands/open.html#forEachFile>`_
+to the
+`open command <../../user/commands/open.html>`_
+does exactly that.
+
 What is a ChimeraX Bundle?
 ==========================
 

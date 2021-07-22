@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.26.1"
+<BundleInfo name="ChimeraX-Atomic" version="1.27.1"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -55,7 +55,7 @@
   <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.3"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=4.0"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
@@ -111,6 +111,7 @@
     <ChimeraXClassifier>Selector :: template-mismatch :: residues whose heavy atoms don't match the residue template</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: log chains :: General :: show chain info in log</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

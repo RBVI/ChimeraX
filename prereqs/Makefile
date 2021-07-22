@@ -124,7 +124,13 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
+ifeq ($(OSARCH),DarwinArm64)
+# Have not ported ambertools, openmm, pytables to Mac arm64, July 2021
+SUBDIRS	+= cxservices imex pips PyQt Python qtshim
+else
 SUBDIRS	+= ambertools cxservices imex openmm pips PyQt pytables Python qtshim
+endif
+
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
