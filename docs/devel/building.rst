@@ -162,18 +162,17 @@ Here is an example of the requirements for building on Ubuntu 20.04::
 macOS Build
 -----------
 
-XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021).
+XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021) on macOS 10.15 (Catalina) and 11 (Big Sur).
+  
+#. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub::
 
-#. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
+     git clone git@github.com:RBVI/ChimeraX.git chimerax
 
-#. "make build-from-scratch >& make.out" in the repository root chimerax directory.
+#. There may be some build tools or libraries needed from Homebrew. We need to start with a clean machine to figure out what is needed.
 
-When building on versions of macOS newer than and including Big Sur (macOS 11 released November 2020)
-it is necessary to use the macOS environment variable SYSTEM_VERSION_COMPAT in order
-to have the build use correct Python wheel file names with suffixes like macosx_11_0_x86_64.whl.
-Details are in ChimeraX ticket `#4923 <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4923>`_::
+#. In the repository chimerax directory run make to build the application::
 
-    env SYSTEM_VERSION_COMPAT=0 make build-from-scratch >& make.out
+    make build-from-scratch >& make.out
 
 macOS with ARM CPUs
 ^^^^^^^^^^^^^^^^^^^
