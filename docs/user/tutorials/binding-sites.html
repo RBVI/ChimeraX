@@ -904,12 +904,14 @@ before adding any <a href="../commands/key.html">color key</a> and/or
 sizes and positions will need to be adjusted to fit the image layout.
 </p><p>
 A color key can be added with the 
-<b>key</b> option of the coloring command (in this case,
-<a href="../commands/coulombic.html"><b>coulombic</b></a>):
+<b>key</b> option of the coloring command, in this case,
+<a href="../commands/coulombic.html"><b>coulombic</b></a>:
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein key true">coulombic protein key true</a></b>
 </blockquote>
 <p>
+(If you already did the coloring, just repeat the same command except with
+<b>key true</b> appended.)
 This draws an initial color key, but also opens the
 <a href="../tools/colorkey.html"><b>Color Key</b></a> tool and
 enables redrawing and moving the key with the mouse 
@@ -946,8 +948,8 @@ these could be done explicitly with commands instead. For example:
 </blockquote>
 <p>
 If you now have multiple copies of the label, you can hide or delete the extras.
-Each label is added as a submodel of the <b>2D labels</b> model, and
-can be shown/hidden/closed using the 
+Each label is added as a submodel of the <b>2D labels</b> model. 
+One way to show/hide/close them is by using the 
 <a href="../tools/modelpanel.html"><b>Model Panel</b></a>; in that tool,
 use the disclosure triangle next to a model's name to show its submodels.
 </p><p>
