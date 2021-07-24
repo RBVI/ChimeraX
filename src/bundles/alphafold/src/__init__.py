@@ -28,7 +28,8 @@ class _AlphaFoldBundle(BundleAPI):
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg
                     return {
-                            'color_confidence': BoolArg,
+                        'color_confidence': BoolArg,
+                        'trim': BoolArg,
                     }
             return Info()
 
