@@ -1451,30 +1451,32 @@ class AtomicStructure(Structure):
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
-            self.name if is_ensemble else self)
-        summary += '    </tr>\n'
-        summary += '    <tr>\n'
-        summary += '      <th>Chain</th>\n'
-        summary += '      <th>Description</th>\n'
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        struct_name = self.name if is_ensemble else str(self)
+        lines = ['<table %s>' % html_table_params,
+                 '  <thead>',
+                 '    <tr>',
+                 '      <th colspan="2">Chain information for %s</th>' % struct_name,
+                 '    </tr>',
+                 '    <tr>',
+                 '      <th>Chain</th>',
+                 '      <th>Description</th>',
+                 '    </tr>',
+                 '  </thead>',
+                 '  <tbody>',
+        ]
         for key, chains in descripts.items():
             description, characters = key
-            summary += '    <tr>\n'
-            summary += '      <td style="text-align:center">'
-            summary += ' '.join([chain_text(chain) for chain in chains])
-            summary += '      </td>'
-            summary += '      <td>'
-            summary += descript_text(description, chains)
-            summary += '      </td>'
-            summary += '    </tr>\n'
-        summary += '  </tbody>\n'
-        summary += '</table>'
+            cids = ' '.join([chain_text(chain) for chain in chains])
+            cdescrip = descript_text(description, chains)
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">' + cids + '</td>',
+                '      <td>' + cdescrip + '</td>',
+                '    </tr>',
+            ])
+        lines.extend(['  </tbody>',
+                      '</table>'])
+        summary = '\n'.join(lines)
         session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
