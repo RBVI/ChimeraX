@@ -31,12 +31,14 @@ def uniprot_ids(structure):
                                       'pdbx_auth_seq_align_beg', 'pdbx_auth_seq_align_end'))
     useqs = []
     for ref_id, chain_id, db_seq_start, db_seq_end, chain_seq_start, chain_seq_end in chains:
+        if ref_id not in db_codes:
+            continue
         uniprot_name, uniprot_id = db_codes.get(ref_id)
         if None in (uniprot_name, uniprot_id, db_seq_start, db_seq_end, chain_seq_start, chain_seq_end):
             continue
         useq = UniprotSequence(chain_id, uniprot_id, uniprot_name,
-                               (db_seq_start, db_seq_end),
-                               (chain_seq_start, chain_seq_end))
+                               (int(db_seq_start), int(db_seq_end)),
+                               (int(chain_seq_start), int(chain_seq_end)))
         useqs.append(useq)
 
     return useqs
