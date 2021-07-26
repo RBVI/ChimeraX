@@ -288,7 +288,56 @@ class Fit:
             if m is model:
                 return tf
         return None
-    
+
+# -----------------------------------------------------------------------------
+#
+def save_fits(session, fits, path = None):
+
+    mlist = sum([f.fit_molecules() for f in fits], [])
+    if len(mlist) == 0:
+        session.logger.warning('No fits of molecules chosen from list.')
+        return
+
+    idir = ifile = None
+    vlist = [f.volume for f in fits]
+    pmlist = [m for m in mlist + vlist if hasattr(m, 'filename')]
+    if pmlist:
+        for m in pmlist:
+            import os.path
+            dpath, fname = os.path.split(m.filename)
+            base, suf = os.path.splitext(fname)
+            if ifile is None:
+                suffix = '_fit%d.pdb' if len(fits) > 1 else '_fit.pdb'
+                ifile = base + suffix
+            if dpath and idir is None:
+                idir = dpath
+
+    if path is None:
+        from chimerax.ui.open_save import SaveDialog
+        d = SaveDialog(session, caption = 'Save Fit Molecules',
+                       data_formats = [session.data_formats['PDB']],
+                       directory = idir)
+        if ifile:
+            d.selectFile(ifile)
+        if not d.exec():
+            return
+        paths = d.selectedFiles()
+        if paths:
+            path = paths[0]
+        else:
+            return
+        
+    if len(fits) > 1 and path.find('%d') == -1:
+        base, suf = os.path.splitext(path)
+        path = base + '_fit%d' + suf
+
+    from chimerax.pdb import save_pdb
+    for i, fit in enumerate(fits):
+        p = path if len(fits) == 1 else path % (i+1)
+        fit.place_models(session)
+        save_pdb(session, p, models = fit.fit_molecules(),
+                 rel_model = fit.volume)
+        
 # -----------------------------------------------------------------------------
 #
 def fit_order(f):
