@@ -78,7 +78,9 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
         for alphafold_model in models:
             if trim:
                 _trim_sequence(alphafold_model, uid.chain_sequence_range)
+            _rename_chains(alphafold_model, chain)
             _align_to_chain(alphafold_model, chain)
+            alphafold_model.name += ' chain %s' % chain.chain_id
         mlist.extend(models)
 
     if missing:
@@ -86,7 +88,7 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
                                   for uid,cnames in missing.items())
         session.logger.warning('AlphaFold database does not have models for %d UniProt ids %s'
                                % (len(missing), missing_names))
-        
+
     msg = 'Opened %d AlphaFold models' % len(mlist)
     return mlist, msg
 
@@ -144,6 +146,15 @@ def _trim_sequence(structure, sequence_range):
         from chimerax.atomic import concatenate
         rdel = concatenate(rdelete)
         rdel.delete()
+        
+def _rename_chains(structure, chain):
+    schains = structure.chains
+    if len(schains) > 1:
+        cnames = ', '.join(c.chain_id for c in schains)
+        structure.session.logger.warning('Alphafold structure %s has %d chains (%s), expected 1.  Not renaming chain id to match target structure.' % (structure.name, len(schains), cnames))
+
+    for schain in schains:
+        schain.chain_id = chain.chain_id
         
 def _align_to_chain(structure, chain):
     from chimerax.match_maker.match import cmd_match
