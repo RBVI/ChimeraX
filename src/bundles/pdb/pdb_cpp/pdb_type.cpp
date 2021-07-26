@@ -170,6 +170,8 @@ PDB::get_type(const char *buf)
     case 'L':
         if (strcmp(rt + 1, "INK  ") == 0)
             return LINK;
+        if (strcmp(rt + 1, "INKR ") == 0)
+            return LINKR;
         break;
 
     case 'M':
