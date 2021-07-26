@@ -61,16 +61,19 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
         session.logger.warning(msg)
 
     mlist = []
-    missing = []
+    missing = {}
     from chimerax.core.errors import UserError
     for chain, uid in chain_uids.items():
+        if uid.uniprot_id in missing:
+            missing[uid.uniprot_id].append(str(chain))
+            continue
         try:
             models, status = fetch_alphafold(session, uid.uniprot_id, ignore_cache=ignore_cache,
                                              color_confidence=color_confidence, **kw)
         except UserError as e:
             if not str(e).endswith('Not Found'):
                 session.logger.warning(str(e))
-            missing.append((uid.uniprot_id, str(chain)))
+            missing[uid.uniprot_id] = [str(chain)]
             models = []
         for alphafold_model in models:
             if trim:
@@ -79,28 +82,21 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
         mlist.extend(models)
 
     if missing:
-        _warn_missing(session, missing)
+        missing_names = ', '.join('%s (%s)' % (uid,','.join(cnames))
+                                  for uid,cnames in missing.items())
+        session.logger.warning('AlphaFold database does not have models for %d UniProt ids %s'
+                               % (len(missing), missing_names))
         
     msg = 'Opened %d AlphaFold models' % len(mlist)
     return mlist, msg
-
-def _warn_missing(session, missing):
-    uc = {}
-    for uid, cname in missing:
-        if uid in uc:
-            uc[uid].append(cname)
-        else:
-            uc[uid] = [cname]
-    missing_names = ', '.join('%s (%s)' % (uid,','.join(cnames)) for uid,cnames in uc.items())
-    session.logger.warning('AlphaFold database does not have models for UniProt ids %s'
-                           % missing_names)
 
 def _color_by_confidence(structure):
     from chimerax.core.colors import Colormap, BuiltinColors
     colors = [BuiltinColors[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
     palette = Colormap((0, 50, 70, 90, 100), colors)
     from chimerax.std_commands.color import color_by_attr
-    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms, palette = palette)
+    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms, palette = palette,
+                  log_info = False)
 
 def _parse_chain_spec(session, spec):
     from chimerax.atomic import UniqueChainsArg
@@ -151,4 +147,5 @@ def _trim_sequence(structure, sequence_range):
         
 def _align_to_chain(structure, chain):
     from chimerax.match_maker.match import cmd_match
-    cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms)
+    cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
+              verbose=None)
