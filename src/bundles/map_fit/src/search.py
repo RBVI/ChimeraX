@@ -334,7 +334,7 @@ def move_step(move_table, session):
             else:
                 mt[m][2] = frames-1
         else:
-            m.set_place(tf)
+            m.position = tf
             del mt[m]
 
     if len(mt) == 0:
