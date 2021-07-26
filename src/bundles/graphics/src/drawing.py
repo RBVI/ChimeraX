@@ -668,14 +668,15 @@ class Drawing:
                     return True
         return False
 
-    def set_geometry(self, vertices, normals, triangles):
+    def set_geometry(self, vertices, normals, triangles,
+                     edge_mask = None, triangle_mask = None):
         '''Set vertices, normals and triangles defining the shape to be drawn.'''
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
         self._vertex_colors = None
-        self._edge_mask = None
-        self._triangle_mask = None
+        self._edge_mask = edge_mask
+        self._triangle_mask = triangle_mask
         self._highlighted_triangles_mask = None
         self.redraw_needed(shape_changed=True)
 
