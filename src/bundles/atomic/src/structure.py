@@ -1450,7 +1450,6 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
-        from chimerax.mmcif.uniprot_id import uniprot_ids
         uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
         have_uniprot_ids = len([chain for chains in descripts.values()
                                 for chain in chains if chain.chain_id in uids]) > 0
@@ -2275,6 +2274,16 @@ def structure_residues(structures):
     for m in structures:
         res = res | m.residues
     return res
+
+# -----------------------------------------------------------------------------
+#
+def uniprot_ids(structure):
+    from chimerax.mmcif.uniprot_id import uniprot_ids
+    uids = uniprot_ids(structure)
+    if len(uids) == 0:
+        from chimerax.pdb.uniprot_id import uniprot_ids
+        uids = uniprot_ids(structure)
+    return uids
 
 def _residue_mouse_hover(pick, log):
     res = getattr(pick, 'residue', None)
