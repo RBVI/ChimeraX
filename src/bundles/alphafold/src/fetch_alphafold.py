@@ -122,7 +122,7 @@ def _parse_chain_spec(session, spec):
 def _chain_uniprot_ids(chains):
     chain_uids = {}
     chains_no_uid = []
-    from chimerax.mmcif.uniprot_id import uniprot_ids
+    from chimerax.atomic import uniprot_ids
     for structure, schains in _chains_by_structure(chains).items():
         uids = {u.chain_id:u for u in uniprot_ids(structure)}
         for chain in schains:
