@@ -1450,31 +1450,45 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
+        from chimerax.mmcif.uniprot_id import uniprot_ids
+        uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
+        have_uniprot_ids = len([chain for chains in descripts.values()
+                                for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
-            self.name if is_ensemble else self)
-        summary += '    </tr>\n'
-        summary += '    <tr>\n'
-        summary += '      <th>Chain</th>\n'
-        summary += '      <th>Description</th>\n'
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        struct_name = self.name if is_ensemble else str(self)
+        lines = ['<table %s>' % html_table_params,
+                 '  <thead>',
+                 '    <tr>',
+                 '      <th colspan="2">Chain information for %s</th>' % struct_name,
+                 '    </tr>',
+                 '    <tr>',
+                 '      <th>Chain</th>',
+                 '      <th>Description</th>',
+                 '      <th>UniProt</th>' if have_uniprot_ids else '',
+                 '    </tr>',
+                 '  </thead>',
+                 '  <tbody>',
+        ]
         for key, chains in descripts.items():
             description, characters = key
-            summary += '    <tr>\n'
-            summary += '      <td style="text-align:center">'
-            summary += ' '.join([chain_text(chain) for chain in chains])
-            summary += '      </td>'
-            summary += '      <td>'
-            summary += descript_text(description, chains)
-            summary += '      </td>'
-            summary += '    </tr>\n'
-        summary += '  </tbody>\n'
-        summary += '</table>'
+            cids = ' '.join([chain_text(chain) for chain in chains])
+            cdescrip = descript_text(description, chains)
+            if have_uniprot_ids:
+                uidset = set(uids.get(chain.chain_id) for chain in chains
+                             if chain.chain_id in uids)
+                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+                cuids = ','.join(ucmd % (uid,uname) for uid,uname in uidset)
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">' + cids + '</td>',
+                '      <td>' + cdescrip + '</td>',
+                (('      <td style="text-align:center">' + cuids + '</td>')
+                 if have_uniprot_ids else ''),
+                '    </tr>',
+            ])
+        lines.extend(['  </tbody>',
+                      '</table>'])
+        summary = '\n'.join(lines)
         session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):

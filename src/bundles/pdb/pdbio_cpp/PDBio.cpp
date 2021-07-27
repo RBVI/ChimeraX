@@ -1027,6 +1027,10 @@ start_t = end_t;
             link_ssbond_records->push_back(record);
             break;
 
+        case PDB::LINKR:
+            link_ssbond_records->push_back(record);
+            break;
+
         case PDB::SSBOND: {
             // process SSBOND records as CONECT because Phenix uses them that way
             link_ssbond_records->push_back(record);
@@ -1322,7 +1326,7 @@ prune_short_bonds(Structure *as)
     }
 }
 
-static void
+static bool
 extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
     PDB::Residue* pdb_res1, PDB::Residue* pdb_res2, PDB::Atom* pdb_atom1, PDB::Atom* pdb_atom2)
 {
@@ -1340,12 +1344,28 @@ extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
         *pdb_res2 = link_ssbond.link.res[1];
         strcpy(*pdb_atom1, link_ssbond.link.name[0]);
         strcpy(*pdb_atom2, link_ssbond.link.name[1]);
+    } else if (link_ssbond.type() == PDB::LINKR) {
+        // non-standard Refmac "LINKR" record; blank atom names indicate gap rather than link
+        char* name_ptr = link_ssbond.linkr.name[0];
+        bool non_space = false;
+        while (*name_ptr != '\0')
+            if (!isspace(*name_ptr++)) {
+                non_space = true;
+                break;
+            }
+        if (!non_space)
+            return false;
+        *pdb_res1 = link_ssbond.link.res[0];
+        *pdb_res2 = link_ssbond.link.res[1];
+        strcpy(*pdb_atom1, link_ssbond.link.name[0]);
+        strcpy(*pdb_atom2, link_ssbond.link.name[1]);
     } else {
         std::stringstream err_msg;
         err_msg << "Trying to extact linkup info from non-LINK/SSBOND record (record is: '"
             << link_ssbond.c_str() << "')";
         throw std::logic_error(err_msg.str().c_str());
     }
+    return true;
 }
 
 static Residue*
@@ -1379,8 +1399,8 @@ link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
     int sym1, sym2;
     PDB::Residue pdb_res1, pdb_res2;
     PDB::Atom pdb_atom1, pdb_atom2;
-    extract_linkup_record_info(link_ssbond,
-        &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2);
+    if (!extract_linkup_record_info(link_ssbond, &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2))
+        return; // "gap" Refmac non-standard LINKR record
     if (sym1 != sym2) {
         // don't use LINKs/SSBONDs to symmetry copies;
         // skip if symmetry operators differ (or blank vs. non-blank)

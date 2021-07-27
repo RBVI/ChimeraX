@@ -719,5 +719,16 @@ class LabelModel(Model):
 
     @staticmethod
     def restore_snapshot(session, data):
-        label = Label(session, **data['label state'])
+        label = Label(session, **LabelModel._label_restore_parameters(data))
         return label.drawing
+
+    @staticmethod
+    def _label_restore_parameters(data):
+        # Try to allow a newer session to open in older ChimeraX by
+        # filtering out extra parameters not known by older ChimeraX.
+        from inspect import signature
+        param_names = signature(Label.__init__).parameters
+        ls = data['label state']
+        params = {key:val for key,val in ls.items() if key in param_names}
+        return params 
+        
