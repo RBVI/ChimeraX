@@ -1171,6 +1171,16 @@ instead. This option is also needed to open local MTZ files
 (<a href="#clipper">details...</a>).
 </blockquote>
 <blockquote>
+<a name="trim"></a>
+<b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+When fetching <td align="center"><a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a> predictions
+<a href="../alphafold.html#by-model">for an existing model number</a>,
+whether to trim the predicted structures to the same residue ranges as in the
+PDB SEQRES records (or mmCIF equivalent) of the experimental structure.
+</blockquote>
+<blockquote>
 <a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1425,6 +1435,18 @@ accession code PDBDEV_00000001 can be opened with command:
 <br><b>open pdbdev:1</b>
 </td>
 <td align="center"><b>ihm</b></td>
+</tr><tr>
+<td align="center"><a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a></td>
+<td align="center"><b>alphafold</b></td>
+<td align="center">theoretical protein structure modeled by
+<a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a> and specified by
+<a href="https://www.uniprot.org" 
+target="_blank">UniProt</a> ID/accession
+or by the model number of a structure already open in ChimeraX
+(<a href="../alphafold.html">details...</a>)</td>
+<td align="center"><b>alphafold</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
@@ -1692,5 +1714,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2021</address>
+July 2021</address>
 </body></html>
