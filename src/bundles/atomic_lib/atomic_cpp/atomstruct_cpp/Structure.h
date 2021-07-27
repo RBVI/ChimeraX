@@ -168,7 +168,7 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
-    void  _copy(Structure*) const;
+    void  _copy(Structure* s, std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
     void  _delete_atoms(const std::set<Atom*>& atoms, bool verify=false);
     void  _delete_residue(Residue* r);
