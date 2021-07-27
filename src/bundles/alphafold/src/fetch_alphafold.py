@@ -62,32 +62,45 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
 
     mlist = []
     missing = {}
+    naf = 0
     from chimerax.core.errors import UserError
-    for chain, uid in chain_uids.items():
-        if uid.uniprot_id in missing:
-            missing[uid.uniprot_id].append(str(chain))
-            continue
-        try:
-            models, status = fetch_alphafold(session, uid.uniprot_id, ignore_cache=ignore_cache,
-                                             color_confidence=color_confidence, **kw)
-        except UserError as e:
-            if not str(e).endswith('Not Found'):
-                session.logger.warning(str(e))
-            missing[uid.uniprot_id] = [str(chain)]
-            models = []
-        for alphafold_model in models:
-            if trim:
-                _trim_sequence(alphafold_model, uid.chain_sequence_range)
-            _align_to_chain(alphafold_model, chain)
-        mlist.extend(models)
+    cbs = _chains_by_structure(chain_uids.keys())
+    for structure, schains in cbs.items():
+        smlist = []
+        for chain in schains:
+            uid = chain_uids[chain]
+            if uid.uniprot_id in missing:
+                missing[uid.uniprot_id].append(chain.chain_id)
+                continue
+            try:
+                models, status = fetch_alphafold(session, uid.uniprot_id, ignore_cache=ignore_cache,
+                                                 color_confidence=color_confidence, **kw)
+            except UserError as e:
+                if not str(e).endswith('Not Found'):
+                    session.logger.warning(str(e))
+                missing[uid.uniprot_id] = [chain.chain_id]
+                models = []
+            for alphafold_model in models:
+                if trim:
+                    _trim_sequence(alphafold_model, uid.chain_sequence_range)
+                _rename_chains(alphafold_model, chain)
+                _align_to_chain(alphafold_model, chain)
+                alphafold_model.name = 'UniProt %s chain %s' % (uid.uniprot_id, chain.chain_id)
+            smlist.extend(models)
+        if smlist:
+            from chimerax.core.models import Model
+            group = Model('%s AlphaFold' % structure.name, session)
+            group.add(smlist)
+            mlist.append(group)
+            naf += len(smlist)
 
     if missing:
-        missing_names = ', '.join('%s (%s)' % (uid,','.join(cnames))
+        missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
                                   for uid,cnames in missing.items())
         session.logger.warning('AlphaFold database does not have models for %d UniProt ids %s'
                                % (len(missing), missing_names))
-        
-    msg = 'Opened %d AlphaFold models' % len(mlist)
+
+    msg = 'Opened %d AlphaFold chain models' % naf
     return mlist, msg
 
 def _color_by_confidence(structure):
@@ -144,6 +157,15 @@ def _trim_sequence(structure, sequence_range):
         from chimerax.atomic import concatenate
         rdel = concatenate(rdelete)
         rdel.delete()
+        
+def _rename_chains(structure, chain):
+    schains = structure.chains
+    if len(schains) > 1:
+        cnames = ', '.join(c.chain_id for c in schains)
+        structure.session.logger.warning('Alphafold structure %s has %d chains (%s), expected 1.  Not renaming chain id to match target structure.' % (structure.name, len(schains), cnames))
+
+    for schain in schains:
+        schain.chain_id = chain.chain_id
         
 def _align_to_chain(structure, chain):
     from chimerax.match_maker.match import cmd_match

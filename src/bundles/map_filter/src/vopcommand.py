@@ -303,7 +303,7 @@ def register_volume_filtering_subcommands(logger):
     from chimerax.core.commands import create_alias
     create_alias('vop', 'volume $*', logger=logger,
             url="help:user/commands/volume.html#vop")
-    
+
 # -----------------------------------------------------------------------------
 #
 def volume_add(session, volumes, on_grid = None, bounding_grid = None,
@@ -517,7 +517,7 @@ def volume_copy(session, volumes, value_type = None, subregion = 'all', step = 1
 
 # -----------------------------------------------------------------------------
 #
-def volume_cover(session, volumes, atom_box = None, pad = 5.0, 
+def volume_cover(session, volumes, atom_box = None, pad = 5.0,
              box = None, x = None, y = None, z = None,
              f_box = None, fx = None, fy = None, fz = None,
              i_box = None, ix = None, iy = None, iz = None,
@@ -542,7 +542,7 @@ def volume_cover(session, volumes, atom_box = None, pad = 5.0,
                          if cell_size is None else cell_size)
         syms = v.data.symmetries if use_symmetry else ()
         cg = map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, syms, step)
-                              
+
         cv = volume_from_grid_data(cg, session, model_id = model_id)
         cv.copy_settings_from(v, copy_region = False, copy_colors = False,
                               copy_zone = False)
@@ -620,7 +620,7 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
         from math import pi, sqrt
         sd = sqrt(abs(bfactor)/(8*pi**2))
         s_dev = (sd,sd,sd)
-        
+
     from .gaussian import gaussian_convolve
     gv = [gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
           for v in volumes]
@@ -701,7 +701,7 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
             raise CommandError('Map positions are not the same, %s and %s.'
                                % (v.name_with_id(), v0.name_with_id()) +
                                '  Use the "volume resample" command to make a copy of one map with the same grid as the other map.')
-        
+
     from .morph import morph_maps
     im = morph_maps(volumes, frames, start, play_step, play_direction, prange,
                     add_mode, constant_volume, scale_factors,
@@ -710,7 +710,7 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     if slider and session.ui.is_gui:
         from .morph_gui import MorphMapSlider
         MorphMapSlider(session, im)
-        
+
     return im
 
 # -----------------------------------------------------------------------------
@@ -719,7 +719,7 @@ def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,
             origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
             value_type = None, model_id = None):
     '''Create a new volume with specified bounds filled with zeros.'''
-    
+
     from numpy import zeros
     shape = list(size)
     shape.reverse()
@@ -744,7 +744,7 @@ def check_in_place(in_place, volumes):
     if nwv:
         names = ', '.join([v.name for v in nwv])
         raise CommandError("Can't modify volume in place: %s" % names)
-        
+
 # -----------------------------------------------------------------------------
 #
 def volume_octant(session, volumes, center = None, i_center = None,
@@ -802,7 +802,7 @@ def set_box_value(data, value, ijk_min, ijk_max, outside = False):
 
     m = data.matrix(ijk_origin, ijk_size)
     m[:,:,:] = value
-    
+
 # -----------------------------------------------------------------------------
 #
 def set_value_outside_box(data, value, ijk_min, ijk_max):
@@ -822,7 +822,7 @@ def set_value_outside_box(data, value, ijk_min, ijk_max):
 def volume_permute_axes(session, volumes, axis_order = 'xyz',
                     subregion = 'all', step = 1, model_id = None):
     '''Permute map axes.'''
-    ao = {'xyz':(0,1,2), 'xzy':(0,2,1), 'yxz':(1,0,2), 
+    ao = {'xyz':(0,1,2), 'xzy':(0,2,1), 'yxz':(1,0,2),
           'yzx':(1,2,0), 'zxy':(2,0,1), 'zyx':(2,1,0)}
     from .permute import permute_axes
     pv = [permute_axes(v, ao[axis_order], step, subregion, model_id)
@@ -1023,7 +1023,7 @@ def volume_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
     fv = [flip_operation(v, axis, subregion, step, in_place, model_id)
           for v in volumes]
     return _volume_or_list(fv)
-        
+
 # -----------------------------------------------------------------------------
 #
 def flip_operation(v, axes, subregion, step, in_place, model_id):
