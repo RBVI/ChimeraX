@@ -1460,6 +1460,15 @@ class StructureData:
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
 
+    def _combine(self, s, chain_id_map, ref_xform):
+        f = c_function('structure_combine', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+            ctypes.py_object))
+        if s.scene_position == ref_xform:
+            pos_ptr = 0
+        else:
+            pos_ptr = pointer(ref_xform * s.scene_position.inverse())
+        f(s._c_pointer, self._c_pointer, pos_ptr, chain_id_map)
+
     def _copy(self):
         f = c_function('structure_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
         p = f(self._c_pointer)

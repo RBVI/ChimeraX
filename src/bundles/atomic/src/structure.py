@@ -117,6 +117,13 @@ class Structure(Model, StructureData):
 
     deleted = Model.deleted
 
+    def combine(self, s, chain_id_mapping):
+        '''
+        Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
+        dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        '''
+        StructureData._combine(self, s, chain_id_mapping)
+
     def copy(self, name = None):
         '''
         Return a copy of this structure with a new name.
@@ -125,8 +132,8 @@ class Structure(Model, StructureData):
         '''
         if name is None:
             name = self.name
-        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = self.__class__(self.session, name = name,
+            c_pointer = StructureData._copy(self), auto_style = False, log_info = False)
         m.positions = self.positions
         return m
 

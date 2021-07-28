@@ -53,7 +53,7 @@ public:
     }
     void  add_coord(const Point& coord) { _coords.push_back(coord); }
     void  add_coords(const CoordSet* coords) {
-        _coords.insert(_coords.end(), coords->begin(), coords->end());
+        _coords.insert(_coords.end(), coords->coords().begin(), coords->coords().end());
     }
     const Coords &  coords() const { return _coords; }
     void set_coords(Real* xyz, size_t n);
@@ -73,6 +73,7 @@ public:
     void  set_bfactor(const Atom* a, float val) { _bfactor_map[a] = val; }
     void  set_occupancy(const Atom* a, float val) { _occupancy_map[a] = val; }
     Structure*  structure() const { return _structure; }
+    void  xform(PositionMatrix);
 };
 
 }  // namespace atomstruct
