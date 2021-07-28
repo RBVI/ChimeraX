@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDB" version="2.5"
+<BundleInfo name="ChimeraX-PDB" version="2.5.1"
 	    package="chimerax.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 

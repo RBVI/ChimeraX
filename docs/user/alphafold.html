@@ -1,0 +1,151 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Protein Structures Predicted by AlphaFold</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Protein Structures Predicted by AlphaFold</h3>
+<p>
+Theoretical protein structures predicted by the
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+AI system can be <a href="commands/open.html#fetch">fetched</a>
+by ChimeraX from the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>.
+Users of this resource should cite:
+</p>
+<blockquote>
+<a href="https://pubmed.ncbi.nlm.nih.gov/34265844/" target="_blank">
+Highly accurate protein structure prediction with AlphaFold.</a>
+Jumper J, Evans R, Pritzel A, <i>et al.</i>
+<i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
+</blockquote>
+<p>
+The
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+does not cover all sequences in
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+so there may not be a prediction available for a given protein chain.
+It is also important to realize that the predicted structures vary in
+confidence levels and should be interpreted with caution.
+See also:
+<a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+</p><p>
+What structures to fetch can be specified in two main ways with the 
+<a href="commands/open.html#fetch"><b>open</b></a> command:
+</p>
+<ol>
+<li><a name="by-uniprot"></a>
+by <a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession number</a>, for example:
+<blockquote>
+<b>open P29474 from alphafold</b>
+</blockquote>
+<li><a name="by-model"></a>
+by chain(s) of an experimentally determined atomic model already open in 
+ChimeraX, for example:
+<blockquote>
+<b>open #1/B,D from alphafold</b>
+<br>
+<b>open #3 from alphafold <a href="commands/open.html#trim">trim</a> true</b>
+</blockquote>
+<p>
+Giving just a model number specifies all of its protein chains.
+Specifying one or more chains of an existing model means to:
+</p>
+  <ol>
+  <li>search the 
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+for the <a href="https://www.uniprot.org"
+for the <a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession numbers</a> (if any)
+  provided for those chains in the mmCIF or PDB file of that model
+  <li>for each available predicted structure, make the chain ID the same as the
+  corresponding chain of the existing model
+  <li>superimpose each predicted structure on the corresponding
+  chain of the model using 
+  <a href="commands/matchmaker.html"><b>matchmaker</b></a> defaults
+  <li><a href="commands/color.html#byattribute">color</a>
+  the predicted structures by the 
+  <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+  confidence measure</a> in the B-factor field:
+     <ul>
+     <li>90 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+to 100 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=blue width="10px" title="blue"></td></tr>
+</table>
+&ndash; high accuracy expected 
+     <li>70 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+to 90 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+&ndash; expected to be modeled well (a generally good backbone prediction)
+     <li>50 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+to 70 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+&ndash; low confidence, treat with caution
+     <li>0 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=red width="10px" title="red"></td></tr>
+</table>
+to 50 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+&ndash; should not be interpreted, may be disordered
+     </ul>
+  </ol>
+<p>
+The <b>trim</b> option (default <b>true</b>)
+indicates whether to trim the predicted
+protein structures to the same residue ranges as used in the experiment
+to determine the known structure.
+These ranges are given in DBREF records in PDB format and in
+struct_ref and struct_ref_seq tables in mmCIF.
+The alternative is to include the full UniProt sequences, which could be longer.
+</p>
+</ol>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+July 2021</address>
+</body></html>
