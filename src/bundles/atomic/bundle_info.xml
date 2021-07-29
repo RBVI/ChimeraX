@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.27.1"
+<BundleInfo name="ChimeraX-Atomic" version="1.28"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -267,6 +267,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: log chains :: General :: show chain info in log</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: combine :: Structure Editing :: copy or combine structure models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

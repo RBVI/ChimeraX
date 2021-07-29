@@ -51,13 +51,16 @@ public:
         }
         return *this;
     }
-    void  add_coord(const Point &coord) { _coords.push_back(coord); }
+    void  add_coord(const Point& coord) { _coords.push_back(coord); }
+    void  add_coords(const CoordSet* coords) {
+        _coords.insert(_coords.end(), coords->coords().begin(), coords->coords().end());
+    }
     const Coords &  coords() const { return _coords; }
-    void set_coords(Real *xyz, size_t n);
+    void set_coords(Real* xyz, size_t n);
     virtual  ~CoordSet();
-    float  get_bfactor(const Atom *) const;
-    float  get_occupancy(const Atom *) const;
-    void  fill(const CoordSet *source) { _coords = source->_coords; }
+    float  get_bfactor(const Atom*) const;
+    float  get_occupancy(const Atom*) const;
+    void  fill(const CoordSet* source) { _coords = source->_coords; }
     int  id() const { return _cs_id; }
     int  session_num_floats(int /*version*/=CURRENT_SESSION_VERSION) const {
         return _bfactor_map.size() + _occupancy_map.size() + 3 * _coords.size();
@@ -70,6 +73,7 @@ public:
     void  set_bfactor(const Atom* a, float val) { _bfactor_map[a] = val; }
     void  set_occupancy(const Atom* a, float val) { _occupancy_map[a] = val; }
     Structure*  structure() const { return _structure; }
+    void  xform(PositionMatrix);
 };
 
 }  // namespace atomstruct
