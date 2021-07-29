@@ -117,12 +117,13 @@ class Structure(Model, StructureData):
 
     deleted = Model.deleted
 
-    def combine(self, s, chain_id_mapping):
+    def combine(self, s, chain_id_mapping, ref_xform):
         '''
         Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
         dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        'ref_xform' is the scene_position of the reference model.
         '''
-        StructureData._combine(self, s, chain_id_mapping)
+        StructureData._combine(self, s, chain_id_mapping, ref_xform)
 
     def copy(self, name = None):
         '''
@@ -1465,7 +1466,8 @@ class AtomicStructure(Structure):
         lines = ['<table %s>' % html_table_params,
                  '  <thead>',
                  '    <tr>',
-                 '      <th colspan="2">Chain information for %s</th>' % struct_name,
+                 '      <th colspan="%d">Chain information for %s</th>'
+                   % ((3 if have_uniprot_ids else 2), struct_name),
                  '    </tr>',
                  '    <tr>',
                  '      <th>Chain</th>',

@@ -20,7 +20,7 @@
   </Dependencies>
 
   <Providers manager="open command">
-      <Provider name="AlphaFold" type="fetch" format_name="mmCIF"/>
+      <Provider name="alphafold" type="fetch" format_name="mmCIF"/>
   </Providers>
 
   <Classifiers>
