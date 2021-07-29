@@ -56,7 +56,6 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
                 seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
     combination.position = structures[0].scene_position
-    #TODO custom attrs
     if close:
         session.models.close(structures)
         pass
@@ -67,7 +66,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, BoolArg, ModelIdArg, \
-        ModelArg, NoneArg
+        NoneArg
     from .args import StructuresArg, AtomicStructuresArg
 
     chains_desc = CmdDesc(
@@ -82,7 +81,6 @@ def register_command(logger):
             ('close', BoolArg),
             ('model_id', ModelIdArg),
             ('name', StringArg),
-            ('ref_model', ModelArg),
         ],
         synopsis = 'Copy/combine structure models')
     register('combine', combine_desc, combine_cmd, logger=logger)

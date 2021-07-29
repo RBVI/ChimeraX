@@ -117,12 +117,15 @@ class Structure(Model, StructureData):
 
     deleted = Model.deleted
 
-    def combine(self, s, chain_id_mapping):
+    def combine(self, s, chain_id_mapping, ref_xform):
         '''
         Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
         dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        'ref_xform' is the scene_position of the reference model.
         '''
-        StructureData._combine(self, s, chain_id_mapping)
+        totals = self._get_instance_totals()
+        StructureData._combine(self, s, chain_id_mapping, ref_xform)
+        self._copy_custom_attrs(s, totals)
 
     def copy(self, name = None):
         '''
@@ -135,7 +138,31 @@ class Structure(Model, StructureData):
         m = self.__class__(self.session, name = name,
             c_pointer = StructureData._copy(self), auto_style = False, log_info = False)
         m.positions = self.positions
+        m._copy_custom_attrs(self)
         return m
+
+    def _get_instance_totals(self):
+        return {
+            'atoms': self.num_atoms,
+            'bonds': self.num_bonds,
+            'residues': self.num_residues,
+            'chains': self.num_chains
+        }
+
+    def _copy_custom_attrs(self, source, totals=None):
+        from .molobject import Chain
+        for class_obj in [Atom, Bond, Chain, Residue]:
+            py_objs = [py_obj for py_obj in python_instances_of_class(class_obj)
+                if py_obj.structure == source and py_obj.has_custom_attrs]
+            if not py_objs:
+                continue
+            class_attr = class_obj.__name__.lower() + 's'
+            index_lookup = { obj:i for i, obj in enumerate(getattr(source, class_attr)) }
+            base_index = 0 if totals is None else totals[class_attr]
+            collection = getattr(self, class_attr)
+            for py_obj in py_objs:
+                collection[base_index + index_lookup[py_obj]].set_custom_attrs(
+                    {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
         if not self.scene_position.is_identity():

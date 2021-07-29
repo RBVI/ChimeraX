@@ -1076,6 +1076,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 ('Tutorials', 'https://www.rbvi.ucsf.edu/chimerax/tutorials.html', 'Tutorials'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
+                ('Citing ChimeraX', 'credits.html', 'How to cite ChimeraX in publications'),
                 ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
