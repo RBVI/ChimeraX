@@ -1,8 +1,9 @@
 #!/usr/bin/env python2
 from __future__ import print_function
 
+
 def make_dependencies(dir_path, output_name):
-    import os, os.path
+    import os
     from xml.dom import minidom
 
     if not dir_path:
@@ -36,16 +37,24 @@ def make_dependencies(dir_path, output_name):
 
     # Loop over all directories and emit one dependency line each
     missing = set()
+    clean = {}
     with open(os.path.join(dir_path, output_name), "w") as f:
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
             for dep in dependencies[dir_name]:
                 try:
-                    dep_dirs.append(bundle2dirname[dep] + ".build")
+                    dep_dir = bundle2dirname[dep]
                 except KeyError:
                     missing.add(dep)
+                    continue
+                dep_dirs.append(f"{dep_dir}.build")
+                clean_dirs = clean.setdefault(dep_dir, [])
+                clean_dirs.append(f"{dir_name}.clean")
             if dep_dirs:
-                print("%s.build: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
+                print(f"{dir_name}.build: {' '.join(dep_dirs)}", file=f)
+        for dir_name in sorted(clean.keys()):
+            clean_dirs = clean[dir_name]
+            print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)
 
     # Report any bundle dependencies that is not found
     missing.discard("ChimeraX-Core")

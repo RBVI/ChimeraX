@@ -49,6 +49,7 @@ public:
     Real  length() const {
         return sqrt(_xyz[0] * _xyz[0] + _xyz[1] * _xyz[1] + _xyz[2] * _xyz[2]);
     }
+    Point  mat_mul(const PositionMatrix pos) const;
     void  normalize();
     void  set_xyz(Real x, Real y, Real z) {
         _xyz[0] = x; _xyz[1] = y; _xyz[2] = z;
@@ -72,6 +73,7 @@ public:
             (_xyz[1] == pt._xyz[1] && _xyz[2] < pt._xyz[2])));
     }
     std::string  str() const;
+    void  xform(const PositionMatrix pos);
 };
 
 inline std::ostream&

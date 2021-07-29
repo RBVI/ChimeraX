@@ -3981,6 +3981,35 @@ extern "C" EXPORT void set_structure_color(void *mol, uint8_t *rgba)
     }
 }
 
+extern "C" EXPORT void structure_combine(void *combination, void *s, void *pos, PyObject* chain_id_map)
+{
+    Structure *combo = static_cast<Structure *>(combination);
+    Structure *addition = static_cast<Structure *>(s);
+    try {
+        if (!PyDict_Check(chain_id_map))
+            throw std::invalid_argument("Structure.combine() chain_id_map is not a dict!");
+        Py_ssize_t index = 0;
+        PyObject* from_cid;
+        PyObject* to_cid;
+        std::map<ChainID, ChainID> cid_mapping;
+        while (PyDict_Next(chain_id_map, &index, &from_cid, &to_cid)) {
+            cid_mapping[string_from_unicode(from_cid)] = string_from_unicode(to_cid);
+        }
+        if (pos == nullptr) {
+            combo->combine(addition, &cid_mapping);
+            return;
+        }
+        PositionMatrix pm;
+        auto dptr = static_cast<double*>(pos);
+        for (int row=0; row < 3; ++row)
+            for (int col=0; col < 4; ++col)
+                pm[row][col] = *dptr++;
+        combo->combine(addition, &cid_mapping, pm);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void *structure_copy(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);

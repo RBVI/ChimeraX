@@ -32,6 +32,7 @@
 #include "destruct.h"
 #include "PBManager.h"
 #include "polymer.h"
+#include "Real.h"
 #include "Rgba.h"
 #include "Ring.h"
 #include "session.h"
@@ -109,7 +110,6 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
-    typedef double PositionMatrix[3][4];
     typedef std::vector<Residue*>  Residues;
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
@@ -168,7 +168,8 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
-    void  _copy(Structure*) const;
+    void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
+        std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
     void  _delete_atoms(const std::set<Atom*>& atoms, bool verify=false);
     void  _delete_residue(Residue* r);
@@ -227,6 +228,8 @@ public:
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
+    void  combine(Structure* s, std::map<ChainID, ChainID>* chain_id_map,
+        PositionMatrix coord_adjust=nullptr) const { _copy(s, coord_adjust, chain_id_map); }
     void  combine_sym_atoms();
     virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3,
         bool = false, CompSSInfo* = nullptr) {}

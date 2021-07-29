@@ -1176,9 +1176,11 @@ instead. This option is also needed to open local MTZ files
 <br>
 When fetching <td align="center"><a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold</a> predictions
-<a href="../alphafold.html#by-model">for an existing model number</a>,
-whether to trim the predicted proteins to the same residue ranges as in the
-PDB SEQRES records (or mmCIF equivalent) of the experimental structure.
+<a href="../alphafold.html#by-model">for chains in an
+experimentally determined structure</a>, whether to trim the predicted 
+protein structures to the same residue ranges as used in the experiment. 
+These ranges are given in DBREF records in PDB format and in
+struct_ref and struct_ref_seq tables in mmCIF.
 The alternative is to include the full UniProt sequences, which could be longer.
 </blockquote>
 <blockquote>
@@ -1439,13 +1441,13 @@ accession code PDBDEV_00000001 can be opened with command:
 </tr><tr>
 <td align="center"><a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold</a></td>
-<td align="center"><b>alphafold</b></td>
+<td align="center"><b>AlphaFold</b></td>
 <td align="center">theoretical protein structure modeled by
 <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold</a> and specified by
-<a href="https://www.uniprot.org" 
-target="_blank">UniProt</a> ID/accession
-or by the model number of a structure already open in ChimeraX
+<a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession number</a>
+or by the protein chain(s) of a structure already open in ChimeraX
 (<a href="../alphafold.html">details...</a>)</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>

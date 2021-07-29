@@ -49,30 +49,36 @@ confidence levels and should be interpreted with caution.
 See also:
 <a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 </p><p>
-The structures to fetch can be specified in two main ways with the 
+What structures to fetch can be specified in two main ways with the 
 <a href="commands/open.html#fetch"><b>open</b></a> command:
 </p>
 <ol>
 <li><a name="by-uniprot"></a>
-by <a href="https://www.uniprot.org"
-target="_blank">UniProt</a> ID or accession code, for example:
+by <a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession number</a>, for example:
 <blockquote>
 <b>open P29474 from alphafold</b>
 </blockquote>
 <li><a name="by-model"></a>
-by model number of a structure already open in ChimeraX, for example:
+by chain(s) of an experimentally determined atomic model already open in 
+ChimeraX, for example:
 <blockquote>
+<b>open #1/B,D from alphafold</b>
+<br>
 <b>open #3 from alphafold <a href="commands/open.html#trim">trim</a> true</b>
 </blockquote>
+<!-- example structure 3p5b -->
 <p>
-Specifying an existing model number means to:
+Giving just a model number specifies all of its protein chains.
+Specifying one or more chains of an existing model means to:
 </p>
   <ol>
   <li>search the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-using the <a href="https://www.uniprot.org"
-target="_blank">UniProt</a> identifier (if any) 
-  provided for each protein chain in the mmCIF or PDB file of that model
+for the <a href="https://www.uniprot.org"
+for the <a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession numbers</a> (if any)
+  provided for those chains in the mmCIF or PDB file of that model
   <li>for each available predicted structure, make the chain ID the same as the
   corresponding chain of the existing model
   <li>superimpose each predicted structure on the corresponding
@@ -128,11 +134,18 @@ style="display:inline-block; vertical-align:middle">
 </table>
 &ndash; should not be interpreted, may be disordered
      </ul>
+...in other words, using 
+<b><a href="commands/color.html#palette-options">palette</a>
+0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
   </ol>
 <p>
-The <b>trim</b> option indicates
-whether to trim the predicted proteins to the residue ranges in the
-PDB SEQRES records (or mmCIF equivalent) of the experimental structure.
+The <a href="commands/open.html#fetch"><b>open</b></a> command
+<a href="commands/open.html#trim"><b>trim</b></a> option (default <b>true</b>)
+indicates whether to trim the predicted
+protein structures to the same residue ranges as used in the experiment
+to determine the known structure.
+These ranges are given in DBREF records in PDB format and in
+struct_ref and struct_ref_seq tables in mmCIF.
 The alternative is to include the full UniProt sequences, which could be longer.
 </p>
 </ol>

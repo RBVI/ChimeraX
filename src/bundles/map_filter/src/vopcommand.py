@@ -619,7 +619,7 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
             invert = True
         from math import pi, sqrt
         # Calculates sd according to https://www3.cmbi.umcn.nl/bdb/theory/
-        sd = sqrt(abs(bfactor)*3/(8*pi**2))
+        sd = sqrt(abs(bfactor)/(3*8*pi**2))
         s_dev = (sd,sd,sd)
 
     from .gaussian import gaussian_convolve
