@@ -56,7 +56,6 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
                 seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
     combination.position = structures[0].scene_position
-    #TODO custom attrs
     if close:
         session.models.close(structures)
         pass
