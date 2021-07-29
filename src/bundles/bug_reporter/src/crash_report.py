@@ -28,6 +28,7 @@ def check_for_crash(session):
         traceback = _python_fault_handler_traceback()
 
     if traceback:
+        traceback += _last_log_text()
         # Delay showing bug report dialog until ChimeraX fully started.
         def _report(trigger_name, update_loop, session=session, traceback = traceback):
             _show_bug_report_dialog(session, traceback)
@@ -46,7 +47,7 @@ def register_signal_handler(session):
         traceback_path = _python_traceback_file_path()
         traceback_file = open(traceback_path, 'w')
     except IOError:
-        # If we can't write the file just do witnout.
+        # If we can't write the file just do without.
         return
 
     # Remove the file at exit if no crash.
@@ -96,6 +97,83 @@ def _python_traceback_file_path():
     import os.path
     traceback_path = os.path.join(app_dirs_unversioned.user_config_dir, 'crash_traceback.txt')
     return traceback_path
+
+# -----------------------------------------------------------------------------
+#
+def register_log_recorder(session):
+    '''
+    Save log messages to a file so they can be reported in case of crash.
+    '''
+
+    # Need to delay since log panel has not yet been started.
+    def _delayed_register_log_recorder(trigger_name, update_loop, session=session):
+        _register_log_recorder(session)
+        from chimerax.core import triggerset
+        return triggerset.DEREGISTER
+
+    session.triggers.add_handler('new frame', _delayed_register_log_recorder)
+
+# -----------------------------------------------------------------------------
+#
+def _register_log_recorder(session):
+
+    from chimerax.log.cmd import get_singleton
+    log = get_singleton(session)
+    if log is None:
+        return
+
+    try:
+        log_path = _last_log_file_path()
+        log_file = open(log_path, 'w')
+    except IOError:
+        # If we can't write the file just do without.
+        return
+
+    # Remove the file at exit if no crash.
+    def remove_log_file(file=log_file, path=log_path):
+        import os
+        try:
+            file.close()
+            os.remove(path)
+        except Exception:
+            pass
+    # Python atexit routines are not called on a fatal signal.
+    import atexit
+    atexit.register(remove_log_file)
+    
+    log.record_to_file(log_file)
+
+# -----------------------------------------------------------------------------
+#
+def _last_log_text():
+    '''
+    Return log text from last session.
+    '''
+    last_log_path = _last_log_file_path()
+
+    try:
+        f = open(last_log_path, 'r')
+        log = f.read()
+        f.close()
+    except IOError:
+        return ''
+
+    try:
+        from chimerax.log.tool import log_html_to_plain_text
+        text = log_html_to_plain_text(log)
+    except BaseException:
+        return ''
+
+    text = '===== Log before crash start =====\n' + text + '\n===== Log before crash end ====='
+    return text
+
+# -----------------------------------------------------------------------------
+#
+def _last_log_file_path():
+    from chimerax import app_dirs_unversioned
+    import os.path
+    last_log_path = os.path.join(app_dirs_unversioned.user_config_dir, 'last_log.txt')
+    return last_log_path
 
 # -----------------------------------------------------------------------------
 #

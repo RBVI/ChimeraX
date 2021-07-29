@@ -1029,6 +1029,17 @@ class StringArg(Annotation):
         return quote_if_necessary(value)
 
 
+class CharacterArg(StringArg):
+    name = "a single character"
+
+    @staticmethod
+    def parse(text, session):
+        token, log_token, rest = StringArg.parse(text, session)
+        if len(token) != 1:
+            raise AnnotationError("must be a single character")
+        return token, log_token, rest
+
+
 class PasswordArg(StringArg):
     """Annotation for a password (should not be echoed to log)"""
     name = "a password"
@@ -2834,13 +2845,19 @@ class Command:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]
             with command_trigger(session, really_log, cmd_text):
+                from chimerax.core.errors import CancelOperation
                 if not isinstance(ci.function, Alias):
                     if not log_only:
                         if ci.can_return_json:
                             kw_args['return_json'] = return_json
                         if self._ci.self_logging:
                             kw_args['log'] = log
-                        result = ci.function(session, **kw_args)
+                        try:
+                            result = ci.function(session, **kw_args)
+                        except CancelOperation:
+                            if not self._ci.self_logging:
+                                session.logger.info("Command cancelled by user")
+                            raise
                         results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
@@ -2856,8 +2873,13 @@ class Command:
                         used_aliases = _used_aliases.copy()
                         used_aliases.add(self.command_name)
                     if not log_only:
-                        result = ci.function(session, *args, optional=optional,
+                        try:
+                            result = ci.function(session, *args, optional=optional,
                                              _used_aliases=used_aliases, log=log)
+                        except CancelOperation:
+                            if not self._ci.self_logging:
+                                session.logger.info("Command cancelled by user")
+                            raise
                         results.append(result)
 
             self.command_name = None

@@ -146,9 +146,13 @@ residue number, and atom name. The lack of a specifier is interpreted
 as all units at the associated level; for example, if no chain ID is given,
 the specification refers to all chains.
 </p><p>
-Specifying a set of atoms always specifies any <b><i>bonds</i></b> and
+Specifying a set of atoms also specifies any <b><i>bonds</i></b> and
 <a href="../pseudobonds.html"><b><i>pseudobonds</i></b></a>
-between pairs of atoms in the set.
+between pairs of atoms in the set, unless the first character in the
+entire specification is an equals symbol (<b>=</b>).
+Starting the specification with <b>=</b> prevents implicitly 
+including bonds and pseudobonds
+when only their endpoint atoms have been specified explicitly. 
 A <a href="../pseudobonds.html">pseudobond model</a>
 can also be specified directly by its own model number
 (not necessarily within the atomic-model hierarchy).
@@ -627,6 +631,10 @@ being blue, and <i>vice versa</i>
 </blockquote>
 &ndash; residues with 10 or more atoms
 <blockquote>
+<b>//identity="#1/A,B"</b>
+</blockquote>
+&ndash; chains with sequences the same as either chain A or chain B in model 1
+<blockquote>
 <b>##name="2gbp map 5"</b>
 </blockquote>
 &ndash; any model named &ldquo;2gbp map 5&rdquo;
@@ -763,5 +771,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+May 2021</address>
 </body></html> 

@@ -1,0 +1,56 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: combine</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: combine</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>combine</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>input-model-spec</i></a>&nbsp;
+[&nbsp;<b>close</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+</h3>
+<p>
+The command <b>combine</b> combines atomic models or copies a single
+atomic model to create a new model, optionally closing the
+originals (default <b>false</b>, keep all models).
+The ID number and name of the new model can be specified.
+See also: 
+<a href="rename.html"><b>rename</b></a>,
+<a href="bond.html"><b>bond</b></a>,
+<a href="build.html"><b>build</b></a>,
+<a href="open.html"><b>open</b></a>
+</p><p>
+A blank specification of input models means all current atomic models.
+When multiple models are combined, the order of specification has an effect:
+</p>
+<ul>
+<li>The coordinate system of the first input model is used in the new model.
+<li>Duplicate chain IDs are resolved by assigning new chain IDs,
+with left-to-right priority of models in keeping their original chain IDs.
+</ul>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2021</address>
+</body></html>

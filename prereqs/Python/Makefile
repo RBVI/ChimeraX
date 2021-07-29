@@ -7,7 +7,7 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
 PIP_VERSION = 21.1.1
 WHEEL_VERSION = 0.36.2
-SETUPTOOLS_VERSION = 56.2.0
+SETUPTOOLS_VERSION = 57.0.0
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -22,7 +22,11 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 ifeq ($(OS),Darwin)
-DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+ifeq ($(OSARCH),DarwinIntel64)
+	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+else ifeq ($(OSARCH),DarwinArm64)
+	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac-arm.tar.bz2
+endif
 DISTDIR =
 SOURCE = 
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload

@@ -439,10 +439,10 @@ class _ModelList(list):
             return "<no model specifier>"
         return "".join(str(mr) for mr in self)
 
-    def find_matches(self, session, model_list, results, ordered):
+    def find_matches(self, session, model_list, results, ordered, *, add_implied=None):
         for model_spec in self:
             # "model_spec" should be an _Model instance
-            model_spec.find_matches(session, model_list, results, ordered)
+            model_spec.find_matches(session, model_list, results, ordered, add_implied=add_implied)
 
 
 class _ModelHierarchy(list):
@@ -456,7 +456,7 @@ class _ModelHierarchy(list):
             return "[empty]"
         return ".".join(str(mr) for mr in self)
 
-    def find_matches(self, session, model_list, sub_parts, results, ordered):
+    def find_matches(self, session, model_list, sub_parts, results, ordered, *, add_implied=None):
         self._check(session, model_list, sub_parts, results, 0, ordered)
 
     def _check(self, session, model_list, sub_parts, results, i, ordered):
@@ -589,7 +589,7 @@ class _Model(_SubPart):
         super().__init__(*args)
         self.exact_match = exact_match
 
-    def find_matches(self, session, model_list, results, ordered):
+    def find_matches(self, session, model_list, results, ordered, *, add_implied=None):
         model_list = [model for model in model_list
                       if not self.my_attrs or
                       model.atomspec_model_attr(self.my_attrs)]
@@ -599,7 +599,8 @@ class _Model(_SubPart):
             if self.exact_match:
                 model_list = [model for model in model_list
                               if len(model.id) == len(self.my_parts)]
-            self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered)
+            self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered,
+                add_implied=add_implied)
         else:
             # No model spec given, everything matches
             for model in model_list:
@@ -907,7 +908,7 @@ class _SelectorName:
     def __str__(self):
         return self.name
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
         f = get_selector(self.name)
         if f:
             from ..objects import Objects
@@ -939,14 +940,14 @@ class _ZoneSelector:
     def __str__(self):
         return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
         if self.model is None:
             # No reference atomspec, so do nothing
             return
         from ..objects import Objects
         my_results = Objects()
         zone_results = Objects()
-        self.model.find_matches(session, models, my_results, ordered)
+        self.model.find_matches(session, models, my_results, ordered, add_implied=add_implied)
         if my_results.num_atoms > 0:
             # expand my_results before combining with results
             coords = my_results.atoms.scene_coords
@@ -971,14 +972,14 @@ class _Term:
     def __str__(self):
         return str(self._specifier)
 
-    def evaluate(self, session, models, *, top=True, ordered=False):
+    def evaluate(self, session, models, *, top=True, ordered=False, add_implied=None):
         """Return Objects for model elements that match."""
         from ..objects import Objects
         results = Objects()
-        return self.find_matches(session, models, results, ordered)
+        return self.find_matches(session, models, results, ordered, add_implied=add_implied)
 
-    def find_matches(self, session, models, results, ordered):
-        self._specifier.find_matches(session, models, results, ordered)
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        self._specifier.find_matches(session, models, results, ordered, add_implied=add_implied)
         return results
 
 
@@ -991,20 +992,24 @@ class _Invert:
     def __str__(self):
         return "~%s" % str(self._atomspec)
 
-    def evaluate(self, session, models=None, *, ordered=False, **kw):
+    def evaluate(self, session, models=None, *, ordered=False, add_implied=None, **kw):
+        if add_implied is None:
+            add_implied = self._add_implied
         if models is None:
             models = session.models.list(**kw)
         with maximum_stack():
             results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
-        if self._add_implied:
+        if add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        if add_implied is None:
+            add_implied = self._add_implied
         with maximum_stack():
-            self._atomspec.find_matches(session, models, results, ordered)
-        if self._add_implied:
+            self._atomspec.find_matches(session, models, results, ordered, add_implied=add_implied)
+        if add_implied:
             add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -1024,6 +1029,7 @@ class AtomSpec:
         self._left_spec = left_spec
         self._right_spec = right_spec
         self._add_implied = add_implied
+        self.outermost_inversion = None
 
     def __str__(self):
         if self._operator is None:
@@ -1032,7 +1038,7 @@ class AtomSpec:
             return "%s %s %s" % (str(self._left_spec), self._operator,
                                  str(self._right_spec))
 
-    def evaluate(self, session, models=None, *, order_implicit_atoms=False, **kw):
+    def evaluate(self, session, models=None, *, order_implicit_atoms=False, add_implied=None, **kw):
         """Return results of evaluating atom specifier for given models.
 
         Parameters
@@ -1054,38 +1060,48 @@ class AtomSpec:
             this atom specifier.
         """
         # print("evaluate:", str(self))
+        if add_implied is None:
+            add_implied = self._add_implied
         if models is None:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
         if self._operator is None:
             results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = isinstance(self._left_spec, _Invert)
         elif self._operator == '|':
             left_results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             right_results = self._right_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             from ..objects import Objects
             results = Objects.union(left_results, right_results)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = False
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
-            if self._add_implied:
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if add_implied:
                 add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
-            if self._add_implied:
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if add_implied:
                 add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = False
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        if self._add_implied:
+        if add_implied:
             add_implied_bonds(results)
         return results
 
-    def find_matches(self, session, models, results, ordered):
-        my_results = self.evaluate(session, models, top=False, ordered=ordered)
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        if add_implied is None:
+            add_implied = self._add_implied
+        my_results = self.evaluate(session, models, top=False, ordered=ordered, add_implied=add_implied)
         results.combine(my_results)
         return results
 

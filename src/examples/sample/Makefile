@@ -44,9 +44,9 @@ endif
 
 ifeq ($(OS),Linux)
 ifndef RELEASE
-CHIMERAX_APP = /opt/UCSF/ChimeraX-daily
+CHIMERAX_APP = /usr/libexec/ChimeraX-daily
 else
-CHIMERAX_APP = /opt/UCSF/ChimeraX
+CHIMERAX_APP = /usr/libexec/ChimeraX
 endif
 endif
 
@@ -62,7 +62,9 @@ ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+#CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+# since the install path varies by Linux distro, just do this and hope...
+CHIMERAX_EXE = ChimeraX
 endif
 
 BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))

@@ -1,0 +1,143 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>Web Services Used by UCSF ChimeraX</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="user/userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/">
+<img width="50px" src="user/ChimeraX-home-icon.svg" alt="ChimeraX home icon"
+title="ChimeraX Home" class="clRight"/></a>
+
+<h2>Web Services Used by UCSF ChimeraX</h2>
+<p>
+Web services accessed by ChimeraX fall into two general categories:
+</p>
+<ul>
+<li><a href="#comp">Computational Services</a>
+<li><a href="#data">Data Retrieval Services</a>
+</ul>
+
+<h3><a href="#top" class="nounder">&bull;</a>
+<a name="comp">Computational Services</a></h3>
+<blockquote>
+<dt><a name="blast"><b>BLAST Protein</b></a>
+<dd>
+The <a href="user/tools/blastprotein.html"><b>Blast Protein</b></a> tool
+performs protein sequence searches using a
+<a href="https://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
+web service hosted by the
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
+<br><br>
+
+<dt><a name="modeller"><b>Modeller</b></a>
+<dd>
+The <a href="user/tools/modeller.html"><b>Modeller Comparative</b></a> tool
+performs comparative (homology) modeling
+<!-- loop remodeling, and building missing segments -->
+with <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
+<!-- either run locally or -->
+using a web service hosted by the
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI.</a>
+<br><br>
+
+<dt><a name="smiles"
+<a href="https://cactus.nci.nih.gov/translate/" target="_blank"><b>SMILES
+Translator</b></a>
+<dd>
+The <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the <a href="https://cactus.nci.nih.gov/"
+target="_blank">National Cancer Institute CADD group</a> is used to
+generate 3D molecule structures specified by
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string with the command
+<a href="user/commands/open.html#fetch"><b>open</b></a> or in
+<a href="user/tools/buildstructure.html#start"><b>Build Structure</b></a>.
+<br><br>
+
+<dt><a name="smi23d"><b>smi23d</b></a>
+<dd>
+Generates <i>modeled</i> organic molecule structures specified by
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string with the command
+<a href="user/commands/open.html#fetch"><b>open</b></a> or in
+<a href="user/tools/buildstructure.html#start"><b>Build Structure</b></a>.
+The <i>smi23d</i> web service</a> is provided by the
+cheminformatics group at Indiana University
+and deploys the same procedure as described for <b>Pub3D</b> in
+<a href="https://www.biomedcentral.com/1471-2105/8/487"
+target="_blank">Willighagen <i>et al.</i></a>, <i>BMC Bioinformatics</i>
+<b>8</b>:487 (2007).
+
+</blockquote>
+
+<h3><a href="#top" class="nounder">&bull;</a>
+<a name="data">Data Retrieval Services</a></h3>
+<blockquote>
+<p>
+Information can be retrieved from the following databases using the
+<a href="user/commands/open.html#fetch"><b>open</b></a> command:
+</p>
+<ul>
+<li><a href="https://www.rcsb.org/"
+target="_blank">RCSB Protein Data Bank</a>
+&ndash; atomic structures, assemblies of atomic structures
+<li><a href="https://www.ebi.ac.uk/pdbe/"
+target="_blank">Protein Data Bank in Europe (PDBe)</a>
+&ndash; atomic structures, assemblies of atomic structures,
+small-molecule connectivity and binding-site information
+<li><a href="https://pdbj.org/" target="_blank">Protein
+Data Bank Japan (PDBj)</a>
+&ndash; atomic structures
+<li><a href="https://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+&ndash; idealized structures of PDB chemical components (residue types)
+<li><a href="https://www.ebi.ac.uk/pdbe/eds/"
+target="_blank">PDBe Electron Density Server (EDS)</a>
+&ndash; (2Fo-Fc) electron density maps 
+and (Fo-Fc) difference maps for some PDB entries
+<li><a href="https://www.ebi.ac.uk/pdbe/emdb/"
+target="_blank">Electron Microscopy Data Bank</a>
+&ndash; electron density maps (<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
+target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
+Chinese mirror site to .cn hosts, otherwise from ebi.ac.uk)
+<li><a href="https://pdb-dev.wwpdb.org/"
+target="_blank">PDB-Dev</a>
+&ndash; integrative hybrid models
+<!--
+<li><a href="http://www.cellpack.org"
+target="_blank">cellPACK</a>
+&ndash; hierarchical model
+-->
+<li><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank">PubChem3D</a>
+&ndash; modeled atomic coordinates for most entries in
+<a href="https://pubchem.ncbi.nlm.nih.gov/"
+target="_blank">PubChem Compound</a>
+<li><a href="https://www.uniprot.org"
+target="_blank">UniProt</a>
+&ndash; protein sequences
+</ul>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2021</address>
+</body></html>

@@ -496,6 +496,10 @@ def register_command(logger):
     # Register surface operation subcommands.
     from . import sop
     sop.register_surface_subcommands(logger)
+
+    # Register splitbycolor operation
+    from . import splitbycolor
+    splitbycolor.register_splitbycolor_command(logger)
     
 def check_atoms(atoms, session):
     if atoms is None:

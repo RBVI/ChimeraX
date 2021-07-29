@@ -85,7 +85,7 @@ class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
 <a href="../tools/inspector.html"><b>Selection Inspector</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
-<a href="colortables.html#autocolors">initial colors</a>,
+<a href="colortables.html">color schemes</a>,
 <a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>,
 <a href="colornames.html#transparency-limitations">limitations
@@ -152,7 +152,7 @@ also used for the initial colors of per-chain
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 <li><a name="bymodel"><b>bymodel</b></a>
 &ndash; the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="bypolymer"><b>bypolymer</b></a>
+<li><a name="bypolymer"><b>bypolymer</b></a> or <b>byidentity</b>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -460,10 +460,16 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <p>
 Atomic models can be colored to show the values of numerical
 <a href="../attributes.html">attributes</a>.
-For coloring by a user-defined attribute, see the
-<a href="../preferences.html#startup">custom preset example</a>.
+Several attributes are present automatically, but others can be
+defined by the user arbitrarily or created by various ChimeraX tools and
+commands (<a href="../attributes.html">details...</a>).
+For example, the values of a map at atom positions can be assigned as an
+<a href="../attributes.html">attribute</a> with
+<a href="measure.html#mapvalues"><b>measure mapvalues</b></a>.
 Examples of coloring by <b>bfactor</b>, an attribute 
 automatically read from mmCIF/PDB, are given below.
+For coloring by a user-defined attribute, see the
+<a href="../preferences.html#startup">custom preset example</a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 See also the tutorial:
@@ -557,7 +563,7 @@ to make the cap match the nearby atoms.
 <p class="nav">
 [<a href="#top">back to top: color</a>]
 </p>
-<h3>Coloring by Map Value</h3>
+<h3>Coloring Surfaces by Map Value</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>sample</b>&nbsp;|&nbsp;<b>electrostatic</b>&nbsp;|&nbsp;<b>gradient</b>&nbsp;)
@@ -571,9 +577,12 @@ to make the cap match the nearby atoms.
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
-Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
-value applies to surfaces only, both molecular and nonmolecular.
-It is also implemented in the
+The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
+color surfaces by <a href="../tools/volumeviewer.html">volume data</a>
+(map) values. To color atoms by map values, instead use 
+<a href="measure.html#mapvalues"><b>measure mapvalues</b></a>
+followed by <a href="#byattribute"><b>color byattribute</b></a>.
+Surface coloring by map value is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
@@ -752,7 +761,7 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;keep&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -777,9 +786,11 @@ surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
 spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
-Vertices not within the cutoff of any of the atoms are assigned the
-<b>farColor</b> color, or if that option was not used,
-the single-color setting of the surface model.
+The <b>farColor</b> option indicates how to color vertices that are
+not within the cutoff distance of any of the atoms: either a specific
+color or <b>keep</b> to retain their current colors.
+If the <b>farColor</b> option is not given, 
+the single-color setting of the surface model will be used.
 </p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
@@ -1149,5 +1160,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+June 2021</address>
 </body></html>

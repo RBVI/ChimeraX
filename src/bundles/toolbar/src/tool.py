@@ -242,6 +242,9 @@ class ToolbarTool(ToolInstance):
             tab_title, section_title, button_title, icon_path = info
             self.ttb.add_button_highlight(tab_title, section_title, button_title)
 
+    def set_enabled(self, enabled, tab_title, section_title, button_title):
+        self.ttb.set_enabled(enabled, tab_title, section_title, button_title)
+
 
 def _home_layout(session, home_tab):
     # interact through buttons in home tab

@@ -84,10 +84,34 @@ See also:
 <br>
 <b>vol all hide</b>
 <br>
+<b>vol channels #2-8</b>
+<br>
 <b>vol settings #1</b>
 </blockquote>
+<p>
+<a name="channels"></a>
+The command <b>volume channels</b> (followed by a <i>model-spec</i>,
+as in the example <a href="#examples">above</a>)
+groups the specified volume models into a single
+<a href="../tools/volumeviewer.html#multichannel">multichannel</a>
+data set, where changing the display style, step size, crop boundaries,
+or display plane of one channel
+in the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+interface or <a href="ui.html#mousemode">with the mouse</a>
+changes it for all of the channels in the group.
+The channels are grouped as submodels of a single higher-level model.
+Settings for the individual channels can still be changed independently with
+other options of the <b>volume</b> command.
+</p><p>
+<a name="settings"></a>
+The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
+reports the current volume display settings in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="info.html"><b>info</b></a>
+</p>
 <a name="options"></a>
-The <b>volume</b> command has many options, here grouped into categories:
+The <b>volume</b> command has many further options, 
+here grouped into categories:
 <blockquote><b>
 <a href="#general">General Display Options</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -143,14 +167,6 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
-
-<p>
-<a name="settings"></a>
-The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
-reports the current volume display settings in the 
-<a href="../tools/log.html"><b>Log</b></a>.
-See also: <a href="info.html"><b>info</b></a>
-</p>
 
 <a name="general"></a>
 <p class="nav">
@@ -277,17 +293,20 @@ See also: <a href="colortables.html#autocolors">initial colors</a>
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
-If a color is specified but no levels, the color applies to all existing 
+If one color is specified but no levels, the color applies to all existing 
 levels and becomes the default color for the volume model.  
 If levels are given but no color, the model's current default color is used 
-for the levels, and all old levels are removed.  
+for the levels, and all old levels are removed. 
 If one color and one or more levels are given, that color applies to all 
-levels but does not become the default color.  Otherwise,
-if multiple levels and colors are given, there must be an equal number of each.
+levels but does not become the default color. Otherwise,
+if multiple colors are specified, there must be either be an equal number 
+of levels specified in the command, or no level specifications but an
+equal number of pre-existing levels.
 Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
-is significant. 
+is significant. If multiple colors are specified for multiple pre-existing
+levels, they are paired in order of increasing level value.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
@@ -303,7 +322,7 @@ is significant.
   <ul class="circle">
   <li>For <b>surface</b> and <b>mesh</b> displays, transparency
   is the fraction of light transmitted from behind the surface or a
-  line of mesh (default <b>0.0</b>).  By default,
+  line of mesh (default <b>0.0</b>). By default,
   these objects are dimmed as they are made more transparent
   (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -2596,5 +2615,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+June 2021</address>
 </body></html>

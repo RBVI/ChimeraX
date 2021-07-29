@@ -183,7 +183,7 @@ def vseries_save(session, series, path, subregion = None, step = None, value_typ
     Process the frames of a map series and save the result to a a file.
     Processing can normalize, align, mask and change the numeric value type of maps.
     '''
-    if len(series) > 1:
+    if len(series) != 1:
         from chimerax.core.errors import UserError
         raise UserError('vseries save: Can only save one series in a file, got %d' % len(series))
     s = series[0]
@@ -390,6 +390,9 @@ def release_stopped_players():
 #
 def vseries_slider(session, series):
     '''Display a graphical user interface slider to play through frames of a map series.'''
+    if len(series) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No volume series specified')
     from .slider import MapSeriesSlider
     MapSeriesSlider(session, series = series).show()
 

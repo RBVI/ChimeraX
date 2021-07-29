@@ -221,8 +221,8 @@ calling :py:func:`_get_cofm`.  It then
    Nx4 array of integers, where N is the number of atoms and
    the rows (of 4 elements) are the RGBA values for each atom.
    The :code:`color` argument to :py:func:`highlight` is an instance
-   of :py:class:`chimera.core.colors.Color`, whose :py:meth:`uint8x4`
-   returns its RGBA value as an array of four (:code:`x4`) of
+   of :py:class:`chimerax.core.colors.Color`, whose :py:meth:`uint8x4`
+   returns its RGBA value as an array of four (:code:`x4`)
    8-bit integers (:code:`uint8`).
 
 :py:func:`_get_cofm`, used by both :py:func:`cofm` and
@@ -267,6 +267,7 @@ of molecular data, e.g., atoms, usually results in a NumPy array.
 Although code involving NumPy arrays are sometimes opaque, they are
 typically much more efficient than using Python loops.
 
+.. _command help:
 
 ``src/docs/user/commands/tutorial.html``
 ----------------------------------------

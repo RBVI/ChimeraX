@@ -175,7 +175,7 @@ class ItemTable(QTableView):
             The Settings instance will be used to remember the displayed column preferences (as
             an attribute given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR and which
             should be declared as 'EXPLICIT_SAVE').  The defaults dictionary controls whether the
-            column is shown by default, which column titles as keys and booleans as values (True =
+            column is shown by default, with column titles as keys and booleans as values (True =
             displayed).  The fallback default (a boolean) is for columns missing from the defaults
             dictionary.  The display callback, if not None, is called when a column is configured
             in/out of the table.  It is called with a single argument: the ItemColumn instance (whose
@@ -253,7 +253,7 @@ class ItemTable(QTableView):
             with right justification.  This means you should provide a 'format' with a fixed number
             of decimal places, possibly with trailing spaces to mitigate the right justification.
 
-            'balloon' is explanatory text that will be shown in a tooltip if the user hover the mouse
+            'balloon' is explanatory text that will be shown in a tooltip if the user hovers the mouse
             over the column header.
 
             'font' is the font employed to display column data items, and should be a QFont instance.

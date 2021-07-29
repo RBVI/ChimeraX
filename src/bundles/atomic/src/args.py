@@ -35,8 +35,7 @@ class AtomArg(AtomsArg):
     def parse(cls, text, session):
         atoms, used, rest = super().parse(text, session)
         if len(atoms) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError("Must specify exactly one atom (specified %d)" % len(atoms))
+            raise AnnotationError("must specify exactly one atom (specified %d)" % len(atoms))
         return atoms[0], used, rest
 
 
@@ -50,7 +49,6 @@ class ElementArg(StringArg):
         from . import Element
         e = Element.get_element(element_name)
         if e.number == 0:
-            from chimerax.core.commands import AnnotationError
             raise AnnotationError("'%s' is not an atomic symbol" % element_name)
         return e, used, rest
 
@@ -70,9 +68,21 @@ class ResiduesArg(AtomSpecArg):
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
         evaled = aspec.evaluate(session)
-        from .molarray import concatenate, Atoms
+        from .molarray import concatenate, Atoms, Residues
         atoms = concatenate((evaled.atoms,) + evaled.bonds.atoms, Atoms)
         residues = atoms.residues.unique()
+        if aspec.outermost_inversion:
+            # the outermost operator was '~', so weed out partially-selected residues
+            explicit = aspec.evaluate(session, add_implied=False)
+            unselected = residues.atoms - explicit.atoms
+            residues = residues - unselected.residues.unique()
+            # trickier to screen out partial bond selection, go residue by residue...
+            remaining = []
+            for r in residues:
+                res_bonds = r.atoms.intra_bonds
+                if len(res_bonds & explicit.bonds) == len(res_bonds):
+                    remaining.append(r)
+            residues = Residues(remaining)
         residues.spec = str(aspec)
         return residues, text, rest
 
@@ -85,9 +95,39 @@ class UniqueChainsArg(AtomSpecArg):
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
         chains = aspec.evaluate(session).atoms.residues.unique_chains
+        if aspec.outermost_inversion:
+            # the outermost operator was '~', so weed out partially-selected residues
+            explicit = aspec.evaluate(session, add_implied=False)
+            remaining = []
+            for chain in chains:
+                chain_atoms = chain.existing_residues.atoms
+                if len(chain_atoms) != len(chain_atoms & explicit.atoms):
+                    continue
+                chain_bonds = chain_atoms.intra_bonds
+                if len(chain_bonds & explicit.bonds) == len(chain_bonds):
+                    remaining.append(chain)
+            from .molarray import Chains
+            chains = Chains(remaining)
         chains.spec = str(aspec)
         return chains, text, rest
 
+
+class ChainArg(UniqueChainsArg):
+    """Parse command chains specifier"""
+    name = "a chains specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        chains, text, rest = super().parse(text, session)
+        if len(chains) != 1:
+            raise AnnotationError("must specify exactly one chain")
+        return chains[0], text, rest
+
+
+def fully_selected(session, aspec, mols):
+    explicit = aspec.evaluate(session, add_implied=False)
+    return [m for m in mols
+        if m.num_atoms == len(explicit.atoms & m.atoms) and m.num_bonds == len(explicit.bonds & m.bonds)]
 
 class StructuresArg(AtomSpecArg):
     """Parse command structures specifier"""
@@ -99,6 +139,8 @@ class StructuresArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         from . import Structure
         mols = [m for m in models if isinstance(m, Structure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
         return mols, text, rest
 
 
@@ -112,6 +154,8 @@ class AtomicStructuresArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         from . import AtomicStructure, AtomicStructures
         mols = [m for m in models if isinstance(m, AtomicStructure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
         return AtomicStructures(mols), text, rest
 
 
@@ -161,8 +205,7 @@ class BondArg(BondsArg):
     def parse(cls, text, session):
         bonds, used, rest = super().parse(text, session)
         if len(bonds) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError("Must specify exactly one bond (specified %d)" % len(bonds))
+            raise AnnotationError("must specify exactly one bond (specified %d)" % len(bonds))
         return bonds[0], used, rest
 
 class StructureArg(ModelArg):
@@ -175,8 +218,7 @@ class StructureArg(ModelArg):
         from . import Structure
         models = [s for s in m.all_models() if isinstance(s, Structure)]
         if len(models) != 1:
-            from chimerax.core.commands import AnnotationError
-            raise AnnotationError('Must specify 1 structure, got %d for "%s"' % (len(models), text))
+            raise AnnotationError('must specify 1 structure, got %d for "%s"' % (len(models), text))
         return models[0], text, rest
 
 

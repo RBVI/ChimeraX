@@ -829,7 +829,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 disable = enable = NULL;
                 std::cerr << "Can't control garbage collection\n";
             }
-            if (disable) Py_XDECREF(PyEval_CallObject(disable, NULL));
+            if (disable) Py_XDECREF(PyObject_CallNoArgs(disable));
             auto type_obj = PyStructSequence_NewType(&type_desc);
             // As per https://bugs.python.org/issue20066 and https://bugs.python.org/issue15729,
             // the type object isn't completely initialized, so...
@@ -848,7 +848,7 @@ extern "C" EXPORT PyObject *atom_idatm_info_map()
                 Py_DECREF(key);
                 Py_DECREF(val);
             }
-            if (enable) Py_XDECREF(PyEval_CallObject(enable, NULL));
+            if (enable) Py_XDECREF(PyObject_CallNoArgs(enable));
         } catch (...) {
             molc_error();
         }
@@ -1596,6 +1596,12 @@ extern "C" EXPORT void bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
 {
     Bond **b = static_cast<Bond **>(bonds);
     error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::halfbond, halfb);
+}
+
+extern "C" EXPORT void bond_in_cycle(void *bonds, size_t n, npy_bool *cycle)
+{
+    Bond **b = static_cast<Bond **>(bonds);
+    error_wrap_array_get<Bond, bool, npy_bool>(b, n, &Bond::in_cycle, cycle);
 }
 
 extern "C" EXPORT void set_bond_halfbond(void *bonds, size_t n, npy_bool *halfb)
@@ -2741,14 +2747,14 @@ extern "C" EXPORT void set_residue_insertion_code(void *residues, size_t n, pyob
     try {
         for (size_t i = 0; i != n; ++i) {
             PyObject* py_ic = static_cast<PyObject*>(ics[i]);
-            auto size = PyUnicode_GET_DATA_SIZE(py_ic);
+            auto size = PyUnicode_GET_LENGTH(py_ic);
             if (size > 1)
                 throw std::invalid_argument("Insertion code must be one character or empty string");
             char val;
             if (size == 0)
                 val = ' ';
             else
-                val = PyUnicode_AS_DATA(py_ic)[0];
+                val = (char)PyUnicode_READ_CHAR(py_ic, 0);
             r[i]->set_insertion_code(val);
         }
     } catch (...) {
@@ -3337,6 +3343,39 @@ extern "C" EXPORT void *sseq_copy(void* source)
     }
 }
 
+extern "C" EXPORT void sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **c = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto& descript = c[i]->description();
+            if (descript.empty()) {
+                descripts[i] = Py_None;
+                Py_INCREF(Py_None);
+            } else
+                descripts[i] = unicode_from_string(descript);
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sseq_description(void *chains, size_t n, pyobject_t *descripts)
+{
+    StructureSeq **sseq = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            auto descript = static_cast<PyObject *>(descripts[i]);
+            if (descript == Py_None)
+                sseq[i]->set_description("");
+            else
+                sseq[i]->set_description(CheckedPyUnicode_AsUTF8(static_cast<PyObject *>(descripts[i])));
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void sseq_from_seqres(void *sseqs, size_t n, npy_bool *from_seqres)
 {
     StructureSeq **ss = static_cast<StructureSeq **>(sseqs);
@@ -3751,6 +3790,7 @@ extern "C" EXPORT void sequence_characters(void *seqs, size_t n, pyobject_t *cha
                 *ptr++ = c;
             *ptr = '\0';
             chars[i] = unicode_from_string(str);
+            delete[] str;
         }
     } catch (...) {
         molc_error();
@@ -3936,6 +3976,35 @@ extern "C" EXPORT void set_structure_color(void *mol, uint8_t *rgba)
         c.b = *rgba++;
         c.a = *rgba++;
         m->set_color(c);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_combine(void *combination, void *s, void *pos, PyObject* chain_id_map)
+{
+    Structure *combo = static_cast<Structure *>(combination);
+    Structure *addition = static_cast<Structure *>(s);
+    try {
+        if (!PyDict_Check(chain_id_map))
+            throw std::invalid_argument("Structure.combine() chain_id_map is not a dict!");
+        Py_ssize_t index = 0;
+        PyObject* from_cid;
+        PyObject* to_cid;
+        std::map<ChainID, ChainID> cid_mapping;
+        while (PyDict_Next(chain_id_map, &index, &from_cid, &to_cid)) {
+            cid_mapping[string_from_unicode(from_cid)] = string_from_unicode(to_cid);
+        }
+        if (pos == nullptr) {
+            combo->combine(addition, &cid_mapping);
+            return;
+        }
+        PositionMatrix pm;
+        auto dptr = static_cast<double*>(pos);
+        for (int row=0; row < 3; ++row)
+            for (int col=0; col < 4; ++col)
+                pm[row][col] = *dptr++;
+        combo->combine(addition, &cid_mapping, pm);
     } catch (...) {
         molc_error();
     }
@@ -4438,6 +4507,37 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void set_structure_display(void *structures, size_t n, npy_bool *display)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_display, display);
+}
+
+extern "C" EXPORT PyObject* structure_bonded_groups(void *structure, bool consider_missing_structure)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<std::vector<Atom*>> groups;
+    try {
+        s->bonded_groups(&groups, consider_missing_structure);
+        PyObject* grps_list = PyList_New(groups.size());
+        if (grps_list == nullptr)
+            throw std::bad_alloc();
+        int grps_i = 0;
+        for (auto grp: groups) {
+            PyObject* grp_list = PyList_New(grp.size());
+            PyList_SET_ITEM(grps_list, grps_i++, grp_list);
+            int grp_i = 0;
+            for (auto atom: grp) {
+                PyList_SET_ITEM(grp_list, grp_i++, PyLong_FromVoidPtr(atom));
+            }
+        }
+        return grps_list;
+    } catch (...) {
+        molc_error();
+        return NULL;
+    }
+}
+
 extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_chains, PyObject *py_chain_ids, bool non_polymeric)
 {
     Structure *s = static_cast<Structure *>(structure);
@@ -4746,6 +4846,12 @@ extern "C" EXPORT void structure_ss_assigned(void *structures, size_t n, npy_boo
 {
     Structure **s = static_cast<Structure **>(structures);
     error_wrap_array_get(s, n, &Structure::ss_assigned, ss_assigned);
+}
+
+extern "C" EXPORT void structure_display(void *structures, size_t n, npy_bool *display)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::display, display);
 }
 
 extern "C" EXPORT void structure_start_change_tracking(void *mol, void *vct)

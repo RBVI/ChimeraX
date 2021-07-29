@@ -23,12 +23,12 @@ for more information.</Description>
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="cellPACK" category="Molecular structure" 
+    <Provider name="cellpack" category="Molecular structure" 
 		reference_url="http://www.cellpack.org" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="cellPACK" type="fetch" format_name="cellpack"/>
+    <Provider name="cellpack" type="fetch" format_name="cellpack"/>
   </Providers>
 
   <Classifiers>

@@ -13,7 +13,7 @@
 
 from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
     bond_with_H_length
-from chimerax.atomic import Element
+from chimerax.atomic import Element, Residue, TmplResidue, Atom
 from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
@@ -53,7 +53,6 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
     num_pre_hs = len(atoms.filter(atoms.elements.numbers == 1))
     # at this time, Atom.scene_coord is *so* much slower then .coord (50x),
     # that we use this hack to use .coord if possible
-    from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
     from chimerax.core.logger import Collator
     with Collator(session.logger, "Summary of feedback from adding hydrogens to %s"
@@ -125,7 +124,7 @@ def simple_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=
         return
     from .simple import add_hydrogens
     atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
-        coordinations, fake_N, fake_C = \
+        coordinations, fake_N, fake_C, fake_5p = \
         _prep_add(session, structures, unknowns_info, template, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
     from chimerax.atomic import Atom
@@ -145,7 +144,7 @@ def simple_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=
         add_hydrogens(atom, bonding_info, (naming_schemas[atom.residue],
             naming_schemas[atom.structure]), hydrogen_totals[atom],
             idatm_type, invert, coordinations.get(atom, []))
-    post_add(session, fake_N, fake_C)
+    post_add(session, fake_N, fake_C, fake_5p)
     _delete_shared_data()
 
 def hbond_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=False,
@@ -164,12 +163,12 @@ def hbond_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=F
         return
     from .hbond import add_hydrogens
     atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
-        coordinations, fake_N, fake_C = \
+        coordinations, fake_N, fake_C, fake_5p = \
         _prep_add(session, structures, unknowns_info, template, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
     add_hydrogens(session, atoms, type_info_for_atom, naming_schemas, hydrogen_totals,
         idatm_type, his_Ns, coordinations, in_isolation)
-    post_add(session, fake_N, fake_C)
+    post_add(session, fake_N, fake_C, fake_5p)
     _delete_shared_data()
 
 class IdatmTypeInfo:
@@ -184,7 +183,16 @@ for element_num in range(1, Element.NUM_SUPPORTED_ELEMENTS):
         type_info[e.name] = IdatmTypeInfo(idatm.single, 0)
 type_info.update(idatm.type_info)
 
-def post_add(session, fake_n, fake_c):
+def post_add(session, fake_n, fake_c, fake_5p):
+    # Add alt locs to parent atoms that wouldn't otherwise need them so that their
+    # alt loc hydrogens can merge into the proper "alt loc pool".  Do it now instead
+    # of "at the time" so that unneeded alt locs don't spread from the parent atom.
+    for parent_atom, alt_loc_info in parent_alt_locs.items():
+        for alt_loc, occupancy in alt_loc_info:
+            parent_atom.set_alt_loc(alt_loc, True)
+            parent_atom.occupancy = occupancy
+    parent_alt_locs.clear()
+
     # fix up non-"true" terminal residues (terminal simply because
     # next residue is missing)
     for fn in fake_n:
@@ -252,6 +260,15 @@ def post_add(session, fake_n, fake_c):
         h.color = determine_h_color(n)
         h.hide = n.hide
         fc.structure.delete_atom(hn)
+
+    for f5p in fake_5p:
+        o5p = f5p.find_atom("O5'")
+        if not o5p:
+            continue
+        for nb in o5p.neighbors:
+            if nb.element.number == 1:
+                session.logger.info("%s is not terminus, removing H atom from O5'" % str(f5p))
+                nb.structure.delete_atom(nb)
 
 def _acid_check(r, protonation, res_types, atom_names):
     if protonation == res_types[0]:
@@ -398,20 +415,21 @@ def _delete_shared_data():
 asp_res_names, asp_prot_names = ["ASP", "ASH"], ["OD1", "OD2"]
 glu_res_names, glu_prot_names = ["GLU", "GLH"], ["OE1", "OE2"]
 def _prep_add(session, structures, unknowns_info, template, need_all=False, **prot_schemes):
-    global _serial
+    global _serial, parent_alt_locs
     _serial = None
     atoms = []
     type_info_for_atom = {}
     naming_schemas = {}
     idatm_type = {} # need this later; don't want a recomp
     hydrogen_totals= {}
+    parent_alt_locs = {}
 
     # add missing OXTs of "real" C termini;
     # delete hydrogens of "fake" N termini after protonation
     # and add a single "HN" back on, using same dihedral as preceding residue;
     # delete extra hydrogen of "fake" C termini after protonation
     logger = session.logger
-    real_N, real_C, fake_N, fake_C = determine_termini(session, structures)
+    real_N, real_C, fake_N, fake_C, fake_5p = determine_termini(session, structures)
     logger.info("Chain-initial residues that are actual N"
         " termini: %s" % ", ".join([str(r) for r in real_N]))
     logger.info("Chain-initial residues that are not actual N"
@@ -420,6 +438,9 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         " termini: %s" % ", ".join([str(r) for r in real_C]))
     logger.info("Chain-final residues that are not actual C"
         " termini: %s" % ", ".join([str(r) for r in fake_C]))
+    if fake_5p:
+        logger.info("Chain-initial residues that are not actual 5'"
+            " termini: %s" % ", ".join([str(r) for r in fake_5p]))
     for rc in real_C:
         complete_terminal_carboxylate(session, rc)
 
@@ -451,7 +472,6 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
 
     remaining_unknowns = {}
     type_info_class = type_info['H'].__class__
-    from chimerax.atomic import Residue
     for struct in structures:
         for atom in struct.atoms:
             if atom.element.number == 0:
@@ -460,7 +480,6 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         idatm_lookup = {}
         if template:
             template_lookup = {}
-            from chimerax.atomic import TmplResidue
             get_template = TmplResidue.get_template
             for res in struct.residues:
                 if get_template(res.name):
@@ -684,7 +703,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 sg.idatm_type = it
 
     return atoms, type_info_for_atom, naming_schemas, idatm_type, \
-            hydrogen_totals, his_Ns, coordinations, fake_N, fake_C
+            hydrogen_totals, his_Ns, coordinations, fake_N, fake_C, fake_5p
 
 def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
     nearby = search_tree.search(pos, check_dist)
@@ -844,7 +863,10 @@ def vdw_radius(atom):
 
 def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
     added_hs = []
+    create_alt_loc = atom.num_alt_locs < 2 and len(altloc_hpos_info) > 1
     for alt_loc, occupancy, positions in altloc_hpos_info:
+        if create_alt_loc:
+            parent_alt_locs.setdefault(atom, []).append((alt_loc, occupancy))
         if added_hs:
             for h, pos in zip(added_hs, positions):
                 if h is None:
@@ -876,11 +898,24 @@ def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogen
 def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent_type_info, alt_loc):
     global _serial, _metals
     nearby_metals = _metals.search(pos, _metal_dist) if _metal_dist > 0.0 else []
+    use_scene = Atom._addh_coord == Atom.scene_coord
     for metal in nearby_metals:
         if metal.structure != parent_atom.structure:
             continue
-        metal_pos = metal.get_alt_loc_coord(alt_loc)
-        parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
+        if metal.has_alt_loc(alt_loc):
+            if use_scene:
+                metal_pos = metal.get_alt_loc_scene_coord(alt_loc)
+            else:
+                metal_pos = metal.get_alt_loc_coord(alt_loc)
+        else:
+            metal_pos = metal._addh_coord
+        if parent_atom.has_alt_loc(alt_loc):
+            if use_scene:
+                parent_pos = parent_atom.get_alt_loc_scene_coord(alt_loc)
+            else:
+                parent_pos = parent_atom.get_alt_loc_coord(alt_loc)
+        else:
+            parent_pos = parent_atom._addh_coord
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
     # determine added H color before actually adding it...

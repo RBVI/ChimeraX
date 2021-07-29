@@ -323,7 +323,7 @@ class HelpUI(ToolInstance):
         # "item" is an instance of QWebEngineDownloadItem
         # print("HelpUI.download_requested", item)
         import os
-        url_file = item.url().fileName()
+        url_file = item.suggestedFileName()
         base, extension = os.path.splitext(url_file)
         # print("HelpUI.download_requested connect", item.mimeType(), extension)
         # Normally, we would look at the download type or MIME type,
@@ -331,23 +331,11 @@ class HelpUI(ToolInstance):
         # download extension instead
         if extension == ".whl":
             is_wheel = True
-            if not base.endswith("x86_64"):
-                # Since the file name encodes the package name and version
-                # number, we make sure that we are using the right name
-                # instead of whatever QWebEngine may want to use.
-                # Remove _# which may be present if bundle author submitted
-                # the same version of the bundle multiple times.
-                parts = base.rsplit('_', 1)
-                if len(parts) == 2 and parts[1].isdigit():
-                    url_file = parts[0] + extension
-            file_path = os.path.join(os.path.dirname(item.path()), url_file)
-            import pkg_resources
-            py_env = pkg_resources.Environment()
-            dist = pkg_resources.Distribution.from_filename(file_path)
-            if not py_env.can_add(dist):
-                raise ValueError("unsupported wheel platform")
-            item.setPath(file_path)
-            # print("HelpUI.download_requested clean", file_path)
+            # Since the file name encodes information about the bundle, we make
+            # sure that we are using the original name instead of the name
+            # QWebEngine generated to avoid conflicting with an existing download.
+            item.setDownloadFileName(url_file)
+            file_path = os.path.join(item.downloadDirectory(), url_file)
             try:
                 # Guarantee that file name is available
                 os.remove(file_path)
@@ -358,12 +346,15 @@ class HelpUI(ToolInstance):
         else:
             is_wheel = False
             from Qt.QtWidgets import QFileDialog
-            path, filt = QFileDialog.getSaveFileName(directory=item.path())
+            file_path = os.path.join(item.downloadDirectory(), item.downloadFileName())
+            path, filt = QFileDialog.getSaveFileName(directory=file_path)
             if not path:
                 return
             self.session.logger.info("Downloading file %s" % url_file)
             self.status("Downloading file %s" % url_file, 0)
-            item.setPath(path)
+            dirname, filename = os.path.split(path)
+            item.setDownloadDirectory(dirname)
+            item.setDownloadFileName(filename)
         # print("HelpUI.download_requested accept", file_path)
         item.downloadProgress.connect(self.download_progress)
         item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
@@ -377,39 +368,62 @@ class HelpUI(ToolInstance):
 
     def download_finished(self, *args, item=None, is_wheel=False, **kw):
         # print("HelpUI.download_finished", args, kw)
-        self.progress_bar.setVisible(False)
-        self.status("Download finished")
-        item.downloadProgress.disconnect()
         item.finished.disconnect()
+        item.downloadProgress.disconnect()
+        self.progress_bar.setVisible(False)
+        state = item.state()
+        if state == item.DownloadCompleted:
+            self.status("Download finished")
+        elif state == item.DownloadCancelled:
+            self.status("Download cancelled")
+            return
+        elif state == item.DownloadInterrupted:
+            self.status(f"Download interrupted: {item.interrupteReasonString()}")
+            return
+        else:
+            self.status(f"Odd download state: {state}")
+            return
         if not is_wheel:
             return
+        import os
         import pkginfo
         from chimerax.ui.ask import ask
-        filename = item.path()
+        dirname = item.downloadDirectory()
+        if os.altsep:
+            dirname = dirname.replace(os.altsep, os.sep)
+        filename = item.downloadFileName()
+        path = os.path.join(dirname, filename)
+        if not os.path.exists(path):
+            self.session.logger.warning("Can't find saved bundle %s" % path)
+            return
         try:
-            wh = pkginfo.Wheel(filename)
+            wh = pkginfo.Wheel(path)
         except Exception as e:
-            self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
-            self.session.logger.info("File saved as %s" % filename)
+            self.session.logger.info("Error parsing %s: %s" % (path, str(e)))
+            self.session.logger.info("File saved as %s" % path)
             return
         if not _installable(wh, self.session.logger):
-            self.session.logger.info("Bundle saved as %s" % filename)
+            self.session.logger.info("Bundle saved as %s" % path)
             return
-        prefix = _install_or_upgrade(filename, self.session).decode()
+        prefix = _install_or_upgrade(path, self.session).decode()
+        reinstall = False
+        action = "Install"
         if prefix in ("Downgrade", "Upgrade"):
+            action = prefix
             prefix += " to"
         elif prefix == "Installed":
-            prefix = "Reinstall"
+            action = prefix = "Reinstall"
+            reinstall = True
         how = ask(self.session,
-                  f"{prefix} {wh.name} {wh.version} (file {filename})?",
-                  ["install", "cancel"],
+                  f"{prefix} {wh.name} {wh.version} (file {path})?",
+                  [action, "cancel"],
                   title="Toolshed")
         if how == "cancel":
             self.session.logger.info("Bundle installation canceled")
             return
-        self.session.toolshed.install_bundle(filename,
+        self.session.toolshed.install_bundle(path,
                                              self.session.logger,
-                                             per_user=True,
+                                             per_user=True, reinstall=reinstall,
                                              session=self.session)
         self.reload_toolshed_tabs()
 
@@ -623,14 +637,14 @@ def _compatible(filename, logger=None):
             if t == (s.interpreter, s.abi, s.platform):
                 return True
     if logger:
-        if _sys_info[0].isdisjoint(winfo.python_tags):
-            logger.info("bundle is for different version of Python")
+        if _sys_info[2].isdisjoint(winfo.platform_tags):
+            logger.warning("bundle is for different platform")
+        elif _sys_info[0].isdisjoint(winfo.python_tags):
+            logger.warning("bundle is for different version of Python")
         elif _sys_info[1].isdisjoint(winfo.abi_tags):
-            logger.info("bundle uses incompatible Python ABI")
-        elif _sys_info[2].isdisjoint(winfo.platform_tags):
-            logger.info("bundle is for different platform")
+            logger.warning("bundle uses incompatible Python ABI")
         else:
-            logger.info("bundle is incompatible")
+            logger.warning("bundle is incompatible")
     return False
 
 

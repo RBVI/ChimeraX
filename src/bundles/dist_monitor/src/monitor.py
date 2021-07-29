@@ -97,12 +97,19 @@ class DistancesMonitor(StateManager):
             for mg in list(self.monitored_groups):
                 if mg.deleted:
                     self.remove_group(mg)
+        existing_pbs = {}
         for pb in changes.created_pseudobonds():
-            if pb in self._already_restored or pb not in pb.group.pseudobonds:
-                # latter test needed to prevent showing labels on pseudobonds
-                # in non-current coordinate sets
+            if pb in self._already_restored:
                 continue
-            if pb.group in self.monitored_groups:
+            pbg = pb.group
+            if pbg in self.monitored_groups:
+                if pbg.group_type == pbg.GROUP_TYPE_COORD_SET and pbg.structure \
+                and pbg.structure.num_coordsets > 1:
+                    if pbg not in existing_pbs:
+                        existing_pbs[pbg] = set(pbg.pseudobonds)
+                    if pb not in existing_pbs[pbg]:
+                        # prevent showing labels on pseudobonds in non-current coordinate sets
+                        continue
                 self._update_distances(pseudobonds=[pb])
         self._already_restored.clear()
         if "position changed" in changes.structure_reasons() \

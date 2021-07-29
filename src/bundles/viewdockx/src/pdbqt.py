@@ -1,8 +1,28 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def open_pdbqt(session, path, file_name, auto_style, atomic):
-    structures, _status = session.open_command.open_data(path, format="pdb", log_errors=False)
-    from chimerax.io import open_input
+    from chimerax.io import open_input, open_output
+    from tempfile import TemporaryDirectory
+    # clean up columns that foul up PDB reader
+    with TemporaryDirectory() as d:
+        import os
+        prefix = os.path.splitext(os.path.basename(path))[0]
+        cleaned_file = os.path.join(d, prefix + ".pdb")
+        with open_output(cleaned_file, 'utf-8') as out:
+            with open_input(path, 'utf-8') as f:
+                for line in f:
+                    line = line[:-1]
+                    if line.startswith("ATOM "):
+                        if len(line) > 78 and line[78].isupper():
+                            line = line[:78] + ' ' + line[79:]
+                        if len(line) > 70:
+                            line = line[:70] + '      ' + line[76:]
+                        if line[17:20] == '***':
+                            line = line[:17] + 'UNL' + line[20:]
+                        if line[25] == '*':
+                            line = line[:25] + '1' + line[26:]
+                    print(line, file=out)
+        structures, _status = session.open_command.open_data(cleaned_file, format="pdb", log_errors=False)
     with open_input(path, encoding='utf-8') as f:
         _extract_metadata(session, f, structures)
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (

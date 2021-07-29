@@ -162,11 +162,25 @@ Here is an example of the requirements for building on Ubuntu 20.04::
 macOS Build
 -----------
 
-XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021).
+XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021) on macOS 10.15 (Catalina) and 11 (Big Sur).
   
-#. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
+#. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub::
 
-#. There may be some build tools or libraries needed from Homebrew.  We need to start with
-   a clean machine to figure out what is needed.
+     git clone git@github.com:RBVI/ChimeraX.git chimerax
 
-#. "make install" in the repository root.
+#. There may be some build tools or libraries needed from Homebrew. We need to start with a clean machine to figure out what is needed.
+
+#. In the repository chimerax directory run make to build the application::
+
+    make build-from-scratch >& make.out
+
+macOS with ARM CPUs
+^^^^^^^^^^^^^^^^^^^
+
+A native ARM CPU build of ChimeraX has not yet been made (July 2021).  We have made a
+partly functional version and it was 1-2 times faster than Intel ChimeraX running under
+Rosetta 2 emulation. A primary obstacle is PyQt5 is not distributed for Mac ARM CPUs.
+Homebrew provides a native PyQt5 without QtWebEngine which we have tried.  The missing
+QtWebEngine disables some ChimeraX tools like the Log panel.  Progress on a native
+Mac ARM distribution is described in ChimeraX ticket
+`#4663 <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4663>`_.

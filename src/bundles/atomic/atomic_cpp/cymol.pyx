@@ -731,6 +731,8 @@ cdef class CyAtom:
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
+            if self.num_alt_locs > 0:
+                atom_str += " (alt loc %s)" % self.alt_loc
         elif style.startswith("command"):
             # have to get fancy if the atom name isn't unique in the residue
             atoms = self.residue.atoms
@@ -960,6 +962,22 @@ cdef class CyResidue:
     # properties...
 
     @property
+    def alt_loc(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        for a in self.atoms:
+            if a.alt_loc != ' ':
+                return a.alt_loc
+        return ' '
+
+    @property
+    def alt_locs(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        alt_locs = set()
+        for a in self.atoms:
+            alt_locs.update(a.alt_locs)
+        return alt_locs
+
+    @property
     def atoms(self):
         "Supported API. :class:`.Atoms` collection containing all atoms of the residue."
         from .molarray import Atoms
@@ -971,6 +989,7 @@ cdef class CyResidue:
 
     @property
     def atomspec(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
         return self.string(style="command")
 
     @property
@@ -988,7 +1007,7 @@ cdef class CyResidue:
 
     @property
     def chain_id(self):
-        "Supported API. PDB chain identifier. Limited to 4 characters."
+        "Supported API. PDB chain identifier."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.chain_id().decode()
 

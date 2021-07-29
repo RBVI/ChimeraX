@@ -280,6 +280,19 @@ also applies to nonpolymeric residues)</td>
 </tr><tr>
 <td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
+</tr><tr>
+<td width="150px" align=center><b>identity=</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
+<td class="text">the <i><a href="commands/atomspec.html">atom-spec</a></i>
+is any atom specification string (surrounding quotation marks required)
+and will be taken to indicate the biopolymer chains containing those atoms. 
+The attribute means that a chain has the same sequence as 
+any of the specified chains. For example, <b>//identity="#1/A,B"</b> 
+would specify all chains with sequences the same as either chain A or chain B 
+in model 1.
+Chain sequences are determined from PDB SEQRES records or the mmCIF equivalent,
+if available, otherwise from the atomic coordinates. See also 
+<a href="commands/color.html#bypolymer"><b>color byidentity</b></a> and the 
+<b>sequence</b> option of <a href="commands/select.html#new"><b>select</b></a>.
 </tr>
 </table>
 <br>
@@ -320,5 +333,5 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2021</address>
+May 2021</address>
 </body></html>

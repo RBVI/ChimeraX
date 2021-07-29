@@ -56,6 +56,7 @@ public:
     }
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
+    bool  in_cycle() const;
     bool  is_backbone() const;
     // length() inherited from UniqueConnection
     const Rings&  minimum_rings(bool cross_residues = false,

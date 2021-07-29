@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SaveCommand" version="1.4" package="chimerax.save_command"
+<BundleInfo name="ChimeraX-SaveCommand" version="1.4.1" package="chimerax.save_command"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -26,7 +26,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-IO" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.4"/>
+    <Dependency name="ChimeraX-UI" version="~=1.10"/>
   </Dependencies>
 
   <Managers>

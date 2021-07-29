@@ -550,6 +550,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     bool        dup_MODEL_numbers = false;
     std::vector<Residue*> chain_residues;
     bool        second_chain_let_okay = true;
+    std::map<std::string, decltype(let)> modres_mappings;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -568,6 +569,8 @@ cum_preloop_t += end_t - start_t;
 start_t = clock();
 #endif
         std::pair<const char *, PyObject *> read_vals = (*read_func)(input);
+        if (PyErr_Occurred() != nullptr)
+            return nullptr;
         const char *char_line = read_vals.first;
         if (char_line[0] == '\0') {
             Py_XDECREF(read_vals.second);
@@ -621,15 +624,32 @@ start_t = end_t;
                     record.modres.res.seq_num,
                     record.modres.res.i_code));
             let = Sequence::protein3to1(record.modres.std_res);
+            { // switch statement can't jump past declaration, so add a scope
+            auto lookup = modres_mappings.find(record.modres.res.name);
             if (let != 'X') {
-                Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                if (lookup == modres_mappings.end()) {
+                    Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                    modres_mappings[record.modres.res.name] = let;
+                } else {
+                    if (lookup->second != 'X' && lookup->second != let) {
+                        Sequence::assign_rname3to1(record.modres.res.name, 'X', true);
+                        modres_mappings[record.modres.res.name] = 'X';
+                    }
+                }
             } else {
                 let = Sequence::nucleic3to1(record.modres.std_res);
                 if (let != 'X') {
-                    Sequence::assign_rname3to1(record.modres.res.name, let,
-                        false);
+                    if (lookup == modres_mappings.end()) {
+                        Sequence::assign_rname3to1(record.modres.res.name, let, false);
+                        modres_mappings[record.modres.res.name] = let;
+                    } else {
+                        if (lookup->second != 'X' && lookup->second != let) {
+                            Sequence::assign_rname3to1(record.modres.res.name, 'X', false);
+                            modres_mappings[record.modres.res.name] = 'X';
+                        }
+                    }
                 }
-            }
+            }}
             break;
 
         case PDB::HELIX:
@@ -1007,6 +1027,10 @@ start_t = end_t;
             link_ssbond_records->push_back(record);
             break;
 
+        case PDB::LINKR:
+            link_ssbond_records->push_back(record);
+            break;
+
         case PDB::SSBOND: {
             // process SSBOND records as CONECT because Phenix uses them that way
             link_ssbond_records->push_back(record);
@@ -1302,7 +1326,7 @@ prune_short_bonds(Structure *as)
     }
 }
 
-static void
+static bool
 extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
     PDB::Residue* pdb_res1, PDB::Residue* pdb_res2, PDB::Atom* pdb_atom1, PDB::Atom* pdb_atom2)
 {
@@ -1320,12 +1344,28 @@ extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
         *pdb_res2 = link_ssbond.link.res[1];
         strcpy(*pdb_atom1, link_ssbond.link.name[0]);
         strcpy(*pdb_atom2, link_ssbond.link.name[1]);
+    } else if (link_ssbond.type() == PDB::LINKR) {
+        // non-standard Refmac "LINKR" record; blank atom names indicate gap rather than link
+        char* name_ptr = link_ssbond.linkr.name[0];
+        bool non_space = false;
+        while (*name_ptr != '\0')
+            if (!isspace(*name_ptr++)) {
+                non_space = true;
+                break;
+            }
+        if (!non_space)
+            return false;
+        *pdb_res1 = link_ssbond.link.res[0];
+        *pdb_res2 = link_ssbond.link.res[1];
+        strcpy(*pdb_atom1, link_ssbond.link.name[0]);
+        strcpy(*pdb_atom2, link_ssbond.link.name[1]);
     } else {
         std::stringstream err_msg;
         err_msg << "Trying to extact linkup info from non-LINK/SSBOND record (record is: '"
             << link_ssbond.c_str() << "')";
         throw std::logic_error(err_msg.str().c_str());
     }
+    return true;
 }
 
 static Residue*
@@ -1359,8 +1399,8 @@ link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
     int sym1, sym2;
     PDB::Residue pdb_res1, pdb_res2;
     PDB::Atom pdb_atom1, pdb_atom2;
-    extract_linkup_record_info(link_ssbond,
-        &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2);
+    if (!extract_linkup_record_info(link_ssbond, &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2))
+        return; // "gap" Refmac non-standard LINKR record
     if (sym1 != sym2) {
         // don't use LINKs/SSBONDs to symmetry copies;
         // skip if symmetry operators differ (or blank vs. non-blank)
@@ -1401,6 +1441,8 @@ read_no_fileno(void *py_file)
 {
     const char *line;
     PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
+    if (PyErr_Occurred() != nullptr)
+        return std::pair<const char*, PyObject *>(line, Py_None);
     if (PyBytes_Check(py_line)) {
         line = PyBytes_AS_STRING(py_line);
     } else {

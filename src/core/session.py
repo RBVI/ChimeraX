@@ -445,6 +445,7 @@ class Session:
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
         self.session_file_path = None  # Last saved or opened session file.
+        self.minimal = minimal
 
         from . import logger
         self.logger = logger.Logger(self)

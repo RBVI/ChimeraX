@@ -21,6 +21,16 @@ from chimerax.graphics import Drawing, Pick
 # (maximum) session version number.
 STRUCTURE_STATE_VERSION = 1
 
+# Auto-styling tunables
+MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
+MULTI_SHADOW = 16               # lighting defaults to 64, so a 4x reduction
+SMALL_THRESHOLD = 200_000       # not a small polymer if more than threshold atoms
+MEDIUM_THRESHOLD = 1_000_000    # not a medium polymer if more than threshold atoms
+MIN_RIBBON_THRESHOLD = 10       # skip ribbons if less than threshold ribbonable residues
+MAX_RIBBON_THRESHOLD = 5000     # skip ribbons if more than threshold ribbonable residues
+SLAB_THRESHOLD = 100            # skip slab nucleotide styling if more than threshold residues
+LADDER_THRESHOLD = 2000         # skip ladder nucleotide styling if more than threshold residues
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -67,8 +77,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED
+        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
+        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -106,6 +117,16 @@ class Structure(Model, StructureData):
 
     deleted = Model.deleted
 
+    def combine(self, s, chain_id_mapping, ref_xform):
+        '''
+        Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
+        dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        'ref_xform' is the scene_position of the reference model.
+        '''
+        totals = self._get_instance_totals()
+        StructureData._combine(self, s, chain_id_mapping, ref_xform)
+        self._copy_custom_attrs(s, totals)
+
     def copy(self, name = None):
         '''
         Return a copy of this structure with a new name.
@@ -114,10 +135,34 @@ class Structure(Model, StructureData):
         '''
         if name is None:
             name = self.name
-        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = self.__class__(self.session, name = name,
+            c_pointer = StructureData._copy(self), auto_style = False, log_info = False)
         m.positions = self.positions
+        m._copy_custom_attrs(self)
         return m
+
+    def _get_instance_totals(self):
+        return {
+            'atoms': self.num_atoms,
+            'bonds': self.num_bonds,
+            'residues': self.num_residues,
+            'chains': self.num_chains
+        }
+
+    def _copy_custom_attrs(self, source, totals=None):
+        from .molobject import Chain
+        for class_obj in [Atom, Bond, Chain, Residue]:
+            py_objs = [py_obj for py_obj in python_instances_of_class(class_obj)
+                if py_obj.structure == source and py_obj.has_custom_attrs]
+            if not py_objs:
+                continue
+            class_attr = class_obj.__name__.lower() + 's'
+            index_lookup = { obj:i for i, obj in enumerate(getattr(source, class_attr)) }
+            base_index = 0 if totals is None else totals[class_attr]
+            collection = getattr(self, class_attr)
+            for py_obj in py_objs:
+                collection[base_index + index_lookup[py_obj]].set_custom_attrs(
+                    {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
         if not self.scene_position.is_identity():
@@ -144,7 +189,7 @@ class Structure(Model, StructureData):
     def apply_auto_styling(self, set_lighting = False, style=None):
         # most auto-styling only makes sense for atomic structures
         if set_lighting:
-            kw = {} if self.num_atoms >= 300000 else {'multi_shadow': 16}
+            kw = {} if self.num_atoms >= MULTI_SHADOW_THRESHOLD else {'multi_shadow': MULTI_SHADOW}
             from chimerax.std_commands.lighting import lighting
             lighting(self.session, preset = 'full', **kw)
 
@@ -435,6 +480,12 @@ class Structure(Model, StructureData):
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
 
+    def _notify_display_change(self, trig_name, model):
+        if model != self:
+            return
+        # ensure that "display changed" trigger fires
+        StructureData.display.fset(self, self.display)
+
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
         bd = self._bonds_drawing
@@ -692,7 +743,7 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         elif itype == 'residues':
-            from .molarray import concatenate, Atoms
+            from . import concatenate, Atoms
             atoms, bonds = self.atoms, self.bonds
             sel_residues = []
             if atoms.num_selected > 0:
@@ -707,6 +758,8 @@ class Structure(Model, StructureData):
             if sel_residues:
                 from . import concatenate, Residues
                 return [concatenate(sel_residues, Residues, remove_duplicates=True).unique()]
+        elif itype == 'structures':
+            return [[self]] if self.selected else []
         return []
 
     def clear_selection(self):
@@ -1157,9 +1210,9 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
                 style = "small polymer"
-            elif self.num_chains < 250:
+            elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
             else:
                 style = "large polymer"
@@ -1184,7 +1237,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if len(ribbonable) > 10:
+            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1200,9 +1253,9 @@ class AtomicStructure(Structure):
                 display |= nucleic
                 if nucleic:
                     from chimerax.nucleotides.cmd import nucleotides
-                    if len(nucleic) < 100:
+                    if len(nucleic) <= SLAB_THRESHOLD:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
-                    else:
+                    elif len(nucleic) <= LADDER_THRESHOLD:
                         nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
@@ -1220,8 +1273,8 @@ class AtomicStructure(Structure):
                 ribbonable.ribbon_displays = True
         elif style == "medium polymer":
             lighting = {'preset': 'full'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
             from .colors import chain_colors, element_colors
             residues = self.residues
             residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
@@ -1236,8 +1289,8 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = {'preset': 'soft'}
-            if self.num_atoms >= 300000:
-                lighting['multi_shadow'] = 16
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
 
         # correct the styling of per-structure pseudobond bond groups
         for cat, pbg in self.pbg_map.items():
@@ -1431,31 +1484,45 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
+        uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
+        have_uniprot_ids = len([chain for chains in descripts.values()
+                                for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
-            self.name if is_ensemble else self)
-        summary += '    </tr>\n'
-        summary += '    <tr>\n'
-        summary += '      <th>Chain</th>\n'
-        summary += '      <th>Description</th>\n'
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        struct_name = self.name if is_ensemble else str(self)
+        lines = ['<table %s>' % html_table_params,
+                 '  <thead>',
+                 '    <tr>',
+                 '      <th colspan="%d">Chain information for %s</th>'
+                   % ((3 if have_uniprot_ids else 2), struct_name),
+                 '    </tr>',
+                 '    <tr>',
+                 '      <th>Chain</th>',
+                 '      <th>Description</th>',
+                 '      <th>UniProt</th>' if have_uniprot_ids else '',
+                 '    </tr>',
+                 '  </thead>',
+                 '  <tbody>',
+        ]
         for key, chains in descripts.items():
             description, characters = key
-            summary += '    <tr>\n'
-            summary += '      <td style="text-align:center">'
-            summary += ' '.join([chain_text(chain) for chain in chains])
-            summary += '      </td>'
-            summary += '      <td>'
-            summary += descript_text(description, chains)
-            summary += '      </td>'
-            summary += '    </tr>\n'
-        summary += '  </tbody>\n'
-        summary += '</table>'
+            cids = ' '.join([chain_text(chain) for chain in chains])
+            cdescrip = descript_text(description, chains)
+            if have_uniprot_ids:
+                uidset = set(uids.get(chain.chain_id) for chain in chains
+                             if chain.chain_id in uids)
+                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+                cuids = ','.join(ucmd % (uid,uname) for uid,uname in uidset)
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">' + cids + '</td>',
+                '      <td>' + cdescrip + '</td>',
+                (('      <td style="text-align:center">' + cuids + '</td>')
+                 if have_uniprot_ids else ''),
+                '    </tr>',
+            ])
+        lines.extend(['  </tbody>',
+                      '</table>'])
+        summary = '\n'.join(lines)
         session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
@@ -1820,7 +1887,10 @@ class PickedAtom(Pick):
                 if numpy.count_nonzero(same) > 1:
                     # Well, I could go off and see if the other residue(s) contain an atom
                     # with the same name, but at this point I'm going to be lazy...
-                    return '@@serial_number=%d' % self.atom.serial_number
+                    base = '@@serial_number=%d' % self.atom.serial_number
+                    if len([s for s in self.atom.structure.session.models if isinstance(s, Structure)]) == 1:
+                        return base
+                    return self.atom.structure.string(style="command") + base
         return self.atom.string(style='command')
     @property
     def residue(self):
@@ -2233,12 +2303,22 @@ def selected_residues(session):
 # -----------------------------------------------------------------------------
 #
 def structure_residues(structures):
-    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues
     res = Residues()
     for m in structures:
         res = res | m.residues
     return res
+
+# -----------------------------------------------------------------------------
+#
+def uniprot_ids(structure):
+    from chimerax.mmcif.uniprot_id import uniprot_ids
+    uids = uniprot_ids(structure)
+    if len(uids) == 0:
+        from chimerax.pdb.uniprot_id import uniprot_ids
+        uids = uniprot_ids(structure)
+    return uids
 
 def _residue_mouse_hover(pick, log):
     res = getattr(pick, 'residue', None)
@@ -2266,8 +2346,9 @@ from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
-        {attr_name: types for attr_name, types in getattr(reg_class, '_cython_property_return_info', [])})
+        {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
-    if not isinstance(inst, AtomicStructure)], getattr(Structure, '_cython_property_return_info', []))
+    if not isinstance(inst, AtomicStructure)],
+    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

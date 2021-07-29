@@ -217,7 +217,7 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
                 else:
                     bundle_name = bundle
                 raise ToolshedInstalledError("bundle %r already installed" % bundle_name)
-            install_now = _can_install(old_bundle)
+            install_now = _can_install(old_bundle, session)
             if install_now:
                 old_bundle.deregister(logger)
                 toolshed._installed_bundle_info.remove(old_bundle)
@@ -302,8 +302,11 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
     toolshed.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle_name)
 
 
-def _can_install(bi):
+def _can_install(bi, session=None):
     """Check if bundle can be installed (i.e., not in use)."""
+    # A custom init means it's currently in use
+    if session and not session.minimal and bi.custom_init:
+        return False
     # A bundle can be installed if its own package is not in use
     # and does not pull in any dependent bundle that is in use.
     if not bi.imported():
