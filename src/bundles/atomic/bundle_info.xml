@@ -267,6 +267,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: log chains :: General :: show chain info in log</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: combine :: Structure Editing :: copy or combine structure models</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
