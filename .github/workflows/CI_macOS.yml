@@ -1,0 +1,25 @@
+name: Build ChimeraX
+
+on:
+  push:
+    branches: [ setup_github_workflows ]
+  pull_request:
+    branches: [ setup_github_workflows ]
+  
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build ChimeraX
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-10.15, macos-11]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Compile
+        run: make build-from-scratch
