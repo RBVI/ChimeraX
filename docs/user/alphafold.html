@@ -67,6 +67,7 @@ ChimeraX, for example:
 <br>
 <b>open #3 from alphafold <a href="commands/open.html#trim">trim</a> true</b>
 </blockquote>
+<!-- example structure 3p5b -->
 <p>
 Giving just a model number specifies all of its protein chains.
 Specifying one or more chains of an existing model means to:
@@ -133,9 +134,13 @@ style="display:inline-block; vertical-align:middle">
 </table>
 &ndash; should not be interpreted, may be disordered
      </ul>
+...in other words, using 
+<b><a href="commands/color.html#palette-options">palette</a>
+0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
   </ol>
 <p>
-The <b>trim</b> option (default <b>true</b>)
+The <a href="commands/open.html#fetch"><b>open</b></a> command
+<a href="commands/open.html#trim"><b>trim</b></a> option (default <b>true</b>)
 indicates whether to trim the predicted
 protein structures to the same residue ranges as used in the experiment
 to determine the known structure.

@@ -29,9 +29,10 @@ def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
                                           ignore_cache=ignore_cache, **kw)
     
     from chimerax.core.errors import UserError
-    if len(uniprot_id) != 6:
-        raise UserError("UniProt identifiers must be 6 characters long")
+    if len(uniprot_id) not in (6, 10):
+        raise UserError("UniProt identifiers must be 6 or 10 characters long")
 
+    uniprot_id = uniprot_id.upper()
     file_name = 'AF-%s-F1-model_v1.cif' % uniprot_id
     url = 'https://alphafold.ebi.ac.uk/files/' + file_name
 
