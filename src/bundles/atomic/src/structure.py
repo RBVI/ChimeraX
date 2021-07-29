@@ -1458,7 +1458,8 @@ class AtomicStructure(Structure):
         lines = ['<table %s>' % html_table_params,
                  '  <thead>',
                  '    <tr>',
-                 '      <th colspan="2">Chain information for %s</th>' % struct_name,
+                 '      <th colspan="%d">Chain information for %s</th>'
+                   % ((3 if have_uniprot_ids else 2), struct_name),
                  '    </tr>',
                  '    <tr>',
                  '      <th>Chain</th>',
