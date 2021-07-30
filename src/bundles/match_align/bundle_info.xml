@@ -16,14 +16,19 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AlignmentAlgorithms" version="~=2.0"/>
-    <Dependency name="ChimeraX-AlignmentMatrices" version="~=2.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.28"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=4.0"/>
   </Dependencies>
+
+  <CModule name="_msa3d">
+    <SourceFile>msa3d_cpp/msa3d.cpp</SourceFile>
+	<Library>atomstruct</Library>
+  </CModule>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: msafrom3d :: Sequence, Structure Comparison :: Generate multiple sequence alignment from structural superposition</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: msa3d :: Sequence, Structure Comparison :: Generate multiple sequence alignment from structural superposition</ChimeraXClassifier>
     <!-- <ChimeraXClassifier>Tool :: Matchmaker :: Structure Analysis :: superimpose structures/chains</ChimeraXClassifier> -->
   </Classifiers>
 
