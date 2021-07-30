@@ -43,6 +43,7 @@ def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
     model_name = 'AlphaFold %s' % uniprot_id
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
                                                     name = model_name, **kw)
+
     if color_confidence:
         for s in models:
             # Set initial style so confidence coloring is not replaced.
@@ -109,6 +110,9 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
             missing[uid.uniprot_id] = [chain.chain_id]
             models = []
         for alphafold_model in models:
+            alphafold_model._log_info = False          # Don't log chain tables
+            alphafold_model.uniprot_id = uid.uniprot_id
+            alphafold_model.uniprot_name = uid.uniprot_name
             if trim:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             _rename_chains(alphafold_model, chain)
@@ -136,11 +140,45 @@ def _group_chains_by_structure(chain_models):
     for structure, models in struct_models.items():
         from chimerax.core.models import Model
         group = Model('%s AlphaFold' % structure.name, structure.session)
+        group.added_to_session = lambda session, g=group: _log_alphafold_chain_info(g)
         group.add(models)
         mlist.append(group)
         nchains += len(models)
 
     return mlist, nchains
+
+def _log_alphafold_chain_info(alphafold_group_model):
+    am = alphafold_group_model
+    struct_name = am.name.rstrip(' AlphaFold')
+    from chimerax.core.logger import html_table_params
+    lines = ['<table %s>' % html_table_params,
+             '  <thead>',
+             '    <tr><th colspan=5>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length',
+             '  </thead>',
+             '  <tbody>',
+        ]
+    msorted = list(am.child_models())
+    msorted.sort(key = lambda m: m.chains[0].chain_id if m.chains else '')
+    for m in msorted:
+        cid = ', '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
+        rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
+        lines.extend([
+            '    <tr>',
+            '      <td style="text-align:center">%s' % cid,
+            '      <td style="text-align:center">%s' % m.uniprot_name,
+            '      <td style="text-align:center">%s' % m.uniprot_id,
+            '      <td style="text-align:center">%s' % rmsd,
+            '      <td style="text-align:center">%s' % m.num_residues])
+    lines.extend(['  </tbody>',
+                  '</table>'])
+    msg = '\n'.join(lines)
+    
+    m.session.logger.info(msg, is_html = True)
+
+def _sel_chain_cmd(structure, chain_id):
+    spec = '#%s/%s' % (structure.id_string, chain_id)
+    return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (spec, chain_id)
 
 def _color_by_confidence(structure):
     from chimerax.core.colors import Colormap, BuiltinColors
@@ -204,5 +242,8 @@ def _rename_chains(structure, chain):
         
 def _align_to_chain(structure, chain):
     from chimerax.match_maker.match import cmd_match
-    cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
-              verbose=None)
+    results = cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
+                        verbose=None)
+    if len(results) == 1:
+        matched_patoms, matched_pto_atoms, rmsd, full_rmsd, tf = results[0]
+        structure.rmsd = full_rmsd
