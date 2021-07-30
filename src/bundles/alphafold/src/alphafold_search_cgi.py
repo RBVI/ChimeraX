@@ -104,6 +104,7 @@ def search_database():
         sys.stdout.write('Content-Type: application/json\n\n%s'
                          % json.dumps({'error': str(e)}))
 
-search_database()
+if __name__ == '__main__':
+    search_database()
 
     
