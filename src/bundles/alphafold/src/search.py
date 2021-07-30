@@ -106,7 +106,8 @@ def _fasta(sequence_strings, LINELEN=60):
     return '\n'.join(lines)
 
 #sequence_search_url = 'http://localhost/cgi-bin/alphafold_search_cgi.py'
-sequence_search_url = 'https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
+#sequence_search_url = 'https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
+sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
     request = json.dumps({'sequences': sequences})
