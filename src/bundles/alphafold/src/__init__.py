@@ -26,10 +26,11 @@ class _AlphaFoldBundle(BundleAPI):
                     return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
                 @property
                 def fetch_args(self):
-                    from chimerax.core.commands import BoolArg
+                    from chimerax.core.commands import BoolArg, Or, EnumOf
                     return {
                         'color_confidence': BoolArg,
                         'trim': BoolArg,
+                        'search': Or(EnumOf(['local']), BoolArg),
                     }
             return Info()
 
