@@ -99,10 +99,10 @@ def search_database():
         sequences = parse_request_sequences()
         matches = search_sequences(sequences)
         report_matches({'sequences':matches})
-    except Exception as e:
-        import sys, json
+    except Exception:
+        import sys, json, traceback
         sys.stdout.write('Content-Type: application/json\n\n%s'
-                         % json.dumps({'error': str(e)}))
+                         % json.dumps({'error': traceback.format_exc()}))
 
 if __name__ == '__main__':
     search_database()
