@@ -86,5 +86,6 @@ def _alphafold_uniprot_ids(dbinfo):
     ids = [(db['reference_proteome'], db['archive_name'].split('_')[1], db['species']) for db in d]
     return ids
 
-fetch_alphafold_sequence_databases(directory = 'sequences', log = session.logger)
+if 'session' in globals():
+    fetch_alphafold_sequence_databases(directory = 'sequences', log = session.logger)
 
