@@ -31,8 +31,8 @@ def chain_sequence_search(chains, min_length=20, local=False):
         seq_uniprot_ids = _search_sequences_local(sequences)
     else:
         seq_uniprot_ids = _search_sequences_web(sequences)
-    chain_uids = {chain:seq_uniprot_ids[chain.characters].copy(chain.chain_id)
-                  for chain in chains if chain.characters in seq_uniprot_ids}
+    chain_uids = [(chain, seq_uniprot_ids[chain.characters].copy(chain.chain_id))
+                  for chain in chains if chain.characters in seq_uniprot_ids]
     
     return chain_uids
 

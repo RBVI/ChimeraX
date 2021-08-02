@@ -63,7 +63,8 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
         chain_uids = _chain_uniprot_ids(chains)
 
     if not search:
-        chains_no_uid = [chain for chain in chains if chain not in chain_uids]
+        cset = set(chain for chain, uid in chain_uids)
+        chains_no_uid = [chain for chain in chains if chain not in cset]
         if chains_no_uid:
             cnames = ','.join(str(c) for c in chains_no_uid)
             msg = 'UniProt sequence identifier not specified in file for chains %s' % cnames
@@ -94,8 +95,7 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
     chain_models = {}
     missing = {}
     from chimerax.core.errors import UserError
-    for chain in chain_uids.keys():
-        uid = chain_uids[chain]
+    for chain, uid in chain_uids:
         if uid.uniprot_id in missing:
             missing[uid.uniprot_id].append(chain.chain_id)
             continue
@@ -119,7 +119,10 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
             _align_to_chain(alphafold_model, chain)
             alphafold_model.name = 'UniProt %s chain %s' % (uid.uniprot_id, chain.chain_id)
         if models:
-            chain_models[chain] = models
+            if chain in chain_models:
+               chain_models[chain].extend(models)
+            else:
+                chain_models[chain] = models
 
     return chain_models, missing
 
@@ -197,13 +200,14 @@ def _parse_chain_spec(session, spec):
     return chains
 
 def _chain_uniprot_ids(chains):
-    chain_uids = {}
+    chain_uids = []
     from chimerax.atomic import uniprot_ids
     for structure, schains in _chains_by_structure(chains).items():
-        uids = {u.chain_id:u for u in uniprot_ids(structure)}
-        for chain in schains:
-            if chain.chain_id in uids:
-                chain_uids[chain] = uids[chain.chain_id]
+        id_to_chain = {chain.chain_id:chain for chain in schains}
+        for u in uniprot_ids(structure):
+            chain = id_to_chain.get(u.chain_id)
+            if chain:
+                chain_uids.append((chain, u))
     return chain_uids
 
 def _chains_by_structure(chains):
