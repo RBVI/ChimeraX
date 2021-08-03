@@ -24,7 +24,12 @@ def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
     # associated with those chains will be fetched, trimmed and aligned to the chains.
     chains = _parse_chain_spec(session, uniprot_id)
     if chains:
-        return fetch_alphafold_for_chains(session, chains,
+        from chimerax.atomic import Residue
+        protein_chains = [chain for chain in chains if chain.polymer_type == Residue.PT_AMINO]
+        if len(protein_chains) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No protein chains specified')
+        return fetch_alphafold_for_chains(session, protein_chains,
                                           color_confidence=color_confidence, trim=trim,
                                           search=search, ignore_cache=ignore_cache, **kw)
     
