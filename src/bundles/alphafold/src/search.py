@@ -25,16 +25,20 @@ def chain_sequence_search(chains, min_length=20, local=False):
         return {}
 
     session = chains[0].structure.session
-    session.logger.status('Searching AlphaFold database for %d sequences' % len(sequences))
+    session.logger.status('Searching AlphaFold database for %d sequence%s'
+                          % (len(sequences), _plural(sequences)))
                           
     if local:
         seq_uniprot_ids = _search_sequences_local(sequences)
     else:
         seq_uniprot_ids = _search_sequences_web(sequences)
-    chain_uids = {chain:seq_uniprot_ids[chain.characters].copy(chain.chain_id)
-                  for chain in chains if chain.characters in seq_uniprot_ids}
+    chain_uids = [(chain, seq_uniprot_ids[chain.characters].copy(chain.chain_id))
+                  for chain in chains if chain.characters in seq_uniprot_ids]
     
     return chain_uids
+
+def _plural(seq):
+    return 's' if len(seq) > 1 else ''
 
 seq_database = '/Users/goddard/ucsf/chimerax/src/bundles/alphafold/src/sequences/ref_proteomes/alphafold.fasta'
 blat_exe = '/Users/goddard/ucsf/blat/bin/blat'
