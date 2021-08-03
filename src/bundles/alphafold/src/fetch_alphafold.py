@@ -72,8 +72,9 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
                     ' that do not have AlphaFold database models.')
     if chain_models:
         uid_chains = _uniprot_chains(chain_models)
-        log.info('%d AlphaFold model%s found using UniProt identifiers %s in structure file metadata'
-                 % (len(uid_chains), _plural(uid_chains), _uniprot_chain_info(uid_chains)))
+        log.info('%d AlphaFold model%s found using UniProt identifier%s %s in structure file metadata'
+                 % (len(uid_chains), _plural(uid_chains), _plural(uid_chains),
+                    _uniprot_chain_info(uid_chains)))
         
     # Try sequence search if some chains were not found by UniProt id.
     if search:
