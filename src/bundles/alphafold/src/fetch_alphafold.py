@@ -94,7 +94,8 @@ def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True
     chains_no_model = [chain for chain in chains if chain not in chain_models]
     if chains_no_model:
         cnames = ','.join(c.chain_id for c in chains_no_model)
-        msg = 'No matching AlphaFold model for chains %s' % cnames
+        msg = ('No matching AlphaFold model for chain%s %s'
+               % (_plural(chains_no_model), cnames))
         log.warning(msg)
 
     mlist, nchains = _group_chains_by_structure(chain_models)
