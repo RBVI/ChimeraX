@@ -18,7 +18,7 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
-                    search = False, ignore_cache=False, **kw):
+                    search = True, ignore_cache=False, **kw):
 
     # Instead of UniProt id can specify an chain specifiers and any uniprot ids
     # associated with those chains will be fetched, trimmed and aligned to the chains.
@@ -55,41 +55,72 @@ def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
 
 def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True,
                                search=False, ignore_cache=False, **kw):
-    if search:
-        from .search import chain_sequence_search
-        chain_uids = chain_sequence_search(chains, local = (search == 'local'))
-    else:
-        # Get Uniprot ids from mmCIF or PDB file metadata
-        chain_uids = _chain_uniprot_ids(chains)
-
-    if not search:
-        cset = set(chain for chain, uid in chain_uids)
-        chains_no_uid = [chain for chain in chains if chain not in cset]
-        if chains_no_uid:
-            cnames = ','.join(str(c) for c in chains_no_uid)
-            msg = 'UniProt sequence identifier not specified in file for chains %s' % cnames
-            session.logger.warning(msg)
-
+    # Get Uniprot ids from mmCIF or PDB file metadata
+    chain_uids = _chain_uniprot_ids(chains)
     chain_models, missing_uids = _alphafold_models(chains, chain_uids,
                                                    color_confidence=color_confidence, trim=trim,
                                                    ignore_cache=ignore_cache, **kw)
-    mlist, nchains = _group_chains_by_structure(chain_models)
+    log = session.logger
+    if missing_uids:
+        log.warning('Structure metadata included %d UniProt id%s %s'
+                    % (len(missing_uids), _plural(missing_uids), _uniprot_chain_info(missing_uids)) +
+                    ' that do not have AlphaFold database models.')
+    if chain_models:
+        uid_chains = _uniprot_chains(chain_models)
+        log.info('%d AlphaFold model%s found using UniProt identifiers %s in structure file metadata'
+                 % (len(uid_chains), _plural(uid_chains), _uniprot_chain_info(uid_chains)))
+        
+    # Try sequence search if some chains were not found by UniProt id.
+    if search:
+        search_chains = [chain for chain in chains if chain not in chain_models]
+        from .search import chain_sequence_search
+        search_chain_uids = chain_sequence_search(search_chains, local = (search == 'local'))
+        search_chain_models, search_missing_uids = \
+            _alphafold_models(search_chains, search_chain_uids,
+                              color_confidence=color_confidence, trim=trim,
+                              ignore_cache=ignore_cache, **kw)
+        if search_missing_uids:
+            search_missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
+                                             for uid,cnames in search_missing_uids.items())
+            log.warning('Sequence search found %d UniProt id%s %s'
+                        % (len(search_missing_uids), plural(search_missing_uids), search_missing_names) +
+                        ' that do not have AlphaFold database models.')
+        if search_chain_models:
+            uid_chains = _uniprot_chains(search_chain_models)
+            log.info('%d AlphaFold model%s %s found using sequence similarity searches'
+                     % (len(uid_chains), _plural(uid_chains), _uniprot_chain_info(uid_chains)))
+        chain_models.update(search_chain_models)
 
     chains_no_model = [chain for chain in chains if chain not in chain_models]
     if chains_no_model:
-        cnames = ','.join(str(c) for c in chains_no_model)
+        cnames = ','.join(c.chain_id for c in chains_no_model)
         msg = 'No matching AlphaFold model for chains %s' % cnames
-        session.logger.warning(msg)
+        log.warning(msg)
 
-    if missing_uids:
-        missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
-                                  for uid,cnames in missing_uids.items())
-        session.logger.warning('AlphaFold database does not have models for %d UniProt ids %s'
-                               % (len(missing_uids), missing_names))
-
+    mlist, nchains = _group_chains_by_structure(chain_models)
     msg = 'Opened %d AlphaFold chain models' % nchains
+    
     return mlist, msg
 
+def _uniprot_chain_info(uniprot_chains):
+    info = ', '.join('%s (chain%s %s)' % (uid, ('s' if len(cnames) > 1 else ''), ','.join(cnames))
+                     for uid,cnames in uniprot_chains.items())
+    return info
+
+def _uniprot_chains(chain_models):
+    uc = {}
+    for chain, models in chain_models.items():
+        for model in models:
+            uid = model.uniprot_id
+            if uid in uc:
+                uc[uid].append(chain.chain_id)
+            else:
+                uc[uid] = [chain.chain_id]
+    return uc
+
+def _plural(seq):
+    return 's' if len(seq) > 1 else ''
+                
 def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
                       ignore_cache=False, **kw):
     chain_models = {}
