@@ -48,8 +48,10 @@ class OpenerInfo:
         """
         return {}
 
-    # set to false if file should not appear in file history
-    in_file_history = True
+    @property
+    def in_file_history(self):
+        "Set this to False in the rare case that the file should not appear in the file history"
+        return True
 
 class FetcherInfo:
     """
@@ -96,8 +98,12 @@ class FetcherInfo:
         """
         return {}
 
-    # set to false if file should not appear in file history
-    in_file_history = True
+    @property
+    def in_file_history(self):
+        """
+        Set this to False in the rare case that the file should not appear in the file history.
+        """
+        return True
 
 from .manager import NoOpenerError
 from .dialog import show_open_file_dialog, set_use_native_open_file_dialog, show_open_folder_dialog

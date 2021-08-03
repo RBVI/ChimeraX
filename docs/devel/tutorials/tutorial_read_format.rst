@@ -155,6 +155,8 @@ link, but briefly:
    files of your format (e.g. with additional suffixes such as .gz, .bz2) will
    be handled automatically.  For path-based openers, such files will result in an
    error before your opener is called.
+4. If for some reason the opened file should not appear in the file history,
+   set :py:attr:`in_file_history` to ``False``.
 
 
 ``src/io.py``
