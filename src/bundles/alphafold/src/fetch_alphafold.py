@@ -151,6 +151,7 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
             alphafold_model._log_info = False          # Don't log chain tables
             alphafold_model.uniprot_id = uid.uniprot_id
             alphafold_model.uniprot_name = uid.uniprot_name
+            alphafold_model.observed_num_res = chain.num_existing_residues
             if trim:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             _rename_chains(alphafold_model, chain)
@@ -194,8 +195,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
     from chimerax.core.logger import html_table_params
     lines = ['<table %s>' % html_table_params,
              '  <thead>',
-             '    <tr><th colspan=5>AlphaFold chains matching %s</th>' % struct_name,
-             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length',
+             '    <tr><th colspan=6>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen',
              '  </thead>',
              '  <tbody>',
         ]
@@ -210,7 +211,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
             '      <td style="text-align:center">%s' % m.uniprot_name,
             '      <td style="text-align:center">%s' % m.uniprot_id,
             '      <td style="text-align:center">%s' % rmsd,
-            '      <td style="text-align:center">%s' % m.num_residues])
+            '      <td style="text-align:center">%s' % m.num_residues,
+            '      <td style="text-align:center">%s' % m.observed_num_res])
     lines.extend(['  </tbody>',
                   '</table>'])
     msg = '\n'.join(lines)
