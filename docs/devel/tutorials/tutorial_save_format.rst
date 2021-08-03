@@ -171,6 +171,9 @@ link, but briefly:
 3. If your underlying file-writing function uses :py:func:`~chimerax.io.io.open_output`
    to open the path, then compression implied by the file name (*e.g.* a additional
    .gz suffix) will be handled automatically.
+4. In the rare case where you save a file type that ChimeraX knows how to open but would
+   be inappriate to open for some reason, set :py:attr:`in_file_history` to ``False``
+   to exclude it from the file history listing.
 
 
 ``src/io.py``

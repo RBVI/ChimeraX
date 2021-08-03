@@ -18,13 +18,18 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
-                    search = False, ignore_cache=False, **kw):
+                    search = True, ignore_cache=False, **kw):
 
     # Instead of UniProt id can specify an chain specifiers and any uniprot ids
     # associated with those chains will be fetched, trimmed and aligned to the chains.
     chains = _parse_chain_spec(session, uniprot_id)
     if chains:
-        return fetch_alphafold_for_chains(session, chains,
+        from chimerax.atomic import Residue
+        protein_chains = [chain for chain in chains if chain.polymer_type == Residue.PT_AMINO]
+        if len(protein_chains) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No protein chains specified')
+        return fetch_alphafold_for_chains(session, protein_chains,
                                           color_confidence=color_confidence, trim=trim,
                                           search=search, ignore_cache=ignore_cache, **kw)
     
@@ -55,47 +60,80 @@ def fetch_alphafold(session, uniprot_id, color_confidence=True, trim = True,
 
 def fetch_alphafold_for_chains(session, chains, color_confidence=True, trim=True,
                                search=False, ignore_cache=False, **kw):
-    if search:
-        from .search import chain_sequence_search
-        chain_uids = chain_sequence_search(chains, local = (search == 'local'))
-    else:
-        # Get Uniprot ids from mmCIF or PDB file metadata
-        chain_uids = _chain_uniprot_ids(chains)
-
-    if not search:
-        chains_no_uid = [chain for chain in chains if chain not in chain_uids]
-        if chains_no_uid:
-            cnames = ','.join(str(c) for c in chains_no_uid)
-            msg = 'UniProt sequence identifier not specified in file for chains %s' % cnames
-            session.logger.warning(msg)
-
+    # Get Uniprot ids from mmCIF or PDB file metadata
+    chain_uids = _chain_uniprot_ids(chains)
     chain_models, missing_uids = _alphafold_models(chains, chain_uids,
                                                    color_confidence=color_confidence, trim=trim,
                                                    ignore_cache=ignore_cache, **kw)
-    mlist, nchains = _group_chains_by_structure(chain_models)
+    log = session.logger
+    if missing_uids:
+        log.warning('Structure metadata included %d UniProt id%s %s'
+                    % (len(missing_uids), _plural(missing_uids), _uniprot_chain_info(missing_uids)) +
+                    ' that do not have AlphaFold database models.')
+    if chain_models:
+        uid_chains = _uniprot_chains(chain_models)
+        log.info('%d AlphaFold model%s found using UniProt identifier%s %s in structure file metadata'
+                 % (len(uid_chains), _plural(uid_chains), _plural(uid_chains),
+                    _uniprot_chain_info(uid_chains)))
+        
+    # Try sequence search if some chains were not found by UniProt id.
+    if search:
+        search_chains = [chain for chain in chains if chain not in chain_models]
+        from .search import chain_sequence_search
+        search_chain_uids = chain_sequence_search(search_chains, local = (search == 'local'))
+        search_chain_models, search_missing_uids = \
+            _alphafold_models(search_chains, search_chain_uids,
+                              color_confidence=color_confidence, trim=trim,
+                              ignore_cache=ignore_cache, **kw)
+        if search_missing_uids:
+            search_missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
+                                             for uid,cnames in search_missing_uids.items())
+            log.warning('Sequence search found %d UniProt id%s %s'
+                        % (len(search_missing_uids), plural(search_missing_uids), search_missing_names) +
+                        ' that do not have AlphaFold database models.')
+        if search_chain_models:
+            uid_chains = _uniprot_chains(search_chain_models)
+            log.info('%d AlphaFold model%s %s found using sequence similarity searches'
+                     % (len(uid_chains), _plural(uid_chains), _uniprot_chain_info(uid_chains)))
+        chain_models.update(search_chain_models)
 
     chains_no_model = [chain for chain in chains if chain not in chain_models]
     if chains_no_model:
-        cnames = ','.join(str(c) for c in chains_no_model)
-        msg = 'No matching AlphaFold model for chains %s' % cnames
-        session.logger.warning(msg)
+        cnames = ','.join(c.chain_id for c in chains_no_model)
+        msg = ('No matching AlphaFold model for chain%s %s'
+               % (_plural(chains_no_model), cnames))
+        log.warning(msg)
 
-    if missing_uids:
-        missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
-                                  for uid,cnames in missing_uids.items())
-        session.logger.warning('AlphaFold database does not have models for %d UniProt ids %s'
-                               % (len(missing_uids), missing_names))
-
+    mlist, nchains = _group_chains_by_structure(chain_models)
     msg = 'Opened %d AlphaFold chain models' % nchains
+    
     return mlist, msg
 
+def _uniprot_chain_info(uniprot_chains):
+    info = ', '.join('%s (chain%s %s)' % (uid, ('s' if len(cnames) > 1 else ''), ','.join(cnames))
+                     for uid,cnames in uniprot_chains.items())
+    return info
+
+def _uniprot_chains(chain_models):
+    uc = {}
+    for chain, models in chain_models.items():
+        for model in models:
+            uid = model.uniprot_id
+            if uid in uc:
+                uc[uid].append(chain.chain_id)
+            else:
+                uc[uid] = [chain.chain_id]
+    return uc
+
+def _plural(seq):
+    return 's' if len(seq) > 1 else ''
+                
 def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
                       ignore_cache=False, **kw):
     chain_models = {}
     missing = {}
     from chimerax.core.errors import UserError
-    for chain in chain_uids.keys():
-        uid = chain_uids[chain]
+    for chain, uid in chain_uids:
         if uid.uniprot_id in missing:
             missing[uid.uniprot_id].append(chain.chain_id)
             continue
@@ -113,13 +151,17 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
             alphafold_model._log_info = False          # Don't log chain tables
             alphafold_model.uniprot_id = uid.uniprot_id
             alphafold_model.uniprot_name = uid.uniprot_name
+            alphafold_model.observed_num_res = chain.num_existing_residues
             if trim:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             _rename_chains(alphafold_model, chain)
             _align_to_chain(alphafold_model, chain)
             alphafold_model.name = 'UniProt %s chain %s' % (uid.uniprot_id, chain.chain_id)
         if models:
-            chain_models[chain] = models
+            if chain in chain_models:
+               chain_models[chain].extend(models)
+            else:
+                chain_models[chain] = models
 
     return chain_models, missing
 
@@ -153,8 +195,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
     from chimerax.core.logger import html_table_params
     lines = ['<table %s>' % html_table_params,
              '  <thead>',
-             '    <tr><th colspan=5>AlphaFold chains matching %s</th>' % struct_name,
-             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length',
+             '    <tr><th colspan=6>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen',
              '  </thead>',
              '  <tbody>',
         ]
@@ -169,7 +211,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
             '      <td style="text-align:center">%s' % m.uniprot_name,
             '      <td style="text-align:center">%s' % m.uniprot_id,
             '      <td style="text-align:center">%s' % rmsd,
-            '      <td style="text-align:center">%s' % m.num_residues])
+            '      <td style="text-align:center">%s' % m.num_residues,
+            '      <td style="text-align:center">%s' % m.observed_num_res])
     lines.extend(['  </tbody>',
                   '</table>'])
     msg = '\n'.join(lines)
@@ -197,13 +240,14 @@ def _parse_chain_spec(session, spec):
     return chains
 
 def _chain_uniprot_ids(chains):
-    chain_uids = {}
+    chain_uids = []
     from chimerax.atomic import uniprot_ids
     for structure, schains in _chains_by_structure(chains).items():
-        uids = {u.chain_id:u for u in uniprot_ids(structure)}
-        for chain in schains:
-            if chain.chain_id in uids:
-                chain_uids[chain] = uids[chain.chain_id]
+        id_to_chain = {chain.chain_id:chain for chain in schains}
+        for u in uniprot_ids(structure):
+            chain = id_to_chain.get(u.chain_id)
+            if chain:
+                chain_uids.append((chain, u))
     return chain_uids
 
 def _chains_by_structure(chains):

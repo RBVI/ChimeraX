@@ -3,14 +3,14 @@ Client is generated using Swagger Codegen
 The command to create a source client library is:
 
 	java -jar swagger-codegen-cli.jar generate \
-		-DpackageName=cxservices_client \
+		-DpackageName=cxservices \
 		--input-spec cxservices.yml \
 		--lang python \
 		--output client
 
-The "-DpackageName=cxservices_client" option
+The "-DpackageName=cxservices" option
 is to rename the package from its default of
-"swagger_client" to "cxservices_client".
+"swagger_client" to "cxservices".
 Although this should be doable using a
 configuration file, "--config cxservices.config"
 does not work.

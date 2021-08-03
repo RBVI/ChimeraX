@@ -229,8 +229,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        'bring' specifies other structures that should be transformed along with the
        match structure (so, there must be only one match structure in such a case).
 
-       'verbose', if True, produces additional output to the log, If None, the parameter
-       table will not be logged.
+       'verbose', if True, produces additional output to the log, If None, nothing
+       will be logged.
 
        If 'always_raise_errors' is True, then an iteration that goes to too few
        matched atoms will immediately raise an error instead of noting the
