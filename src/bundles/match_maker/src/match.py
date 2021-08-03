@@ -477,7 +477,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
                 " sequence alignment score = %g" % (
                 s1.name, s1.structure.id_string, s2.name,
-                s2.structure.id_string, score), log=True)
+                s2.structure.id_string, score), log=(verbose is not None))
             skip = set()
             if show_alignment:
                 for s in [s1,s2]:
@@ -542,7 +542,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         from chimerax.atomic import Atoms
         try:
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),
-                cutoff_distance=cutoff_distance))
+                                        cutoff_distance=cutoff_distance,
+                                        log_info = (verbose is not None)))
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -555,7 +556,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             xf = ret_vals[-1][-1]
             for m in bring:
                 m.scene_position = xf * m.scene_position
-        logger.info("") # separate matches with whitespace
+        if verbose is not None:
+            logger.info("") # separate matches with whitespace
         if region_info:
             by_viewer = {}
             for ra in ret_vals[-1][1]:

@@ -6,42 +6,34 @@ authors:
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Pettersen
     given-names: Eric
-    name-particle: F
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Goddard
     given-names: Thomas
-    name-particle: D
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Huang
     given-names: Conrad
-    name-particle: C
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Meng
     given-names: Elaine
-    name-particle: C
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Couch
     given-names: Gregory
-    name-particle: S
   -
     affiliation: "Cambridge Institute for Medical Research, Department of Haematology, University of Cambridge, Cambridge, UK"
     family-names: Croll
     given-names: Tristan
-    name-particle: I
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Morris
     given-names: John
-    name-particle: H
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Ferrin
     given-names: Thomas
-    name-particle: E
 cff-version: "1.1.0"
 date-released: 2021-01-01
 doi: "10.1002/pro.3943"
