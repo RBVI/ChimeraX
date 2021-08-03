@@ -1466,7 +1466,7 @@ class StructureData:
         if s.scene_position == ref_xform:
             pos_ptr = 0
         else:
-            pos_ptr = pointer((ref_xform * s.scene_position.inverse()).matrix)
+            pos_ptr = pointer((ref_xform.inverse() * s.scene_position).matrix)
         f(s._c_pointer, self._c_pointer, pos_ptr, chain_id_map)
 
     def _copy(self):
