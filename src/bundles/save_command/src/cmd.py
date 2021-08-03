@@ -74,7 +74,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         raise
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
-def provider_save(session, file_name, format=None, **provider_kw):
+def provider_save(session, file_name, format=None, in_file_history=None, **provider_kw):
     mgr = session.save_command
     data_format = file_format(session, file_name, format)
     provider_info = mgr.provider_info(data_format)
@@ -85,9 +85,9 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # not seem like the ideal solution to put this update here.
     session.update_loop.update_graphics_now()
     try:
-        provider_info.bundle_info.run_provider(session, provider_info.format_name,
-            mgr).save(session, path, **provider_kw)
-    except (IOError, PermissionError) as e:
+        saver_info = provider_info.bundle_info.run_provider(session, provider_info.format_name, mgr)
+        saver_info.save(session, path, **provider_kw)
+    except (IOError, PermissionError, OSError) as e:
         raise UserError("Cannot save '%s': %s" % (file_name, e))
 
     # remember in file history if appropriate
@@ -96,8 +96,10 @@ def provider_save(session, file_name, format=None, **provider_kw):
     except Exception:
         pass
     else:
+        if in_file_history is None:
+            in_file_history = saver_info.in_file_history
         from os.path import isfile
-        if data_format.category != "Image" and isfile(path):
+        if in_file_history and isfile(path):
             from chimerax.core.filehistory import remember_file
             remember_file(session, path, data_format.nicknames[0],
                 provider_kw.get('models', 'all models'), file_saved=True)

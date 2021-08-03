@@ -47,9 +47,8 @@ class OpenManager(ProviderManager):
         self.triggers.add_trigger("open command changed")
         super().__init__(name)
 
-    def add_provider(self, bundle_info, name, *, type="open", want_path=False,
-            check_path=True, batch=False, format_name=None,
-            is_default=True, synopsis=None, example_ids=None, **kw):
+    def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
+            batch=False, format_name=None, is_default=True, synopsis=None, example_ids=None, **kw):
         logger = self.session.logger
         self._ui_names[name.lower()] = ui_name = name
         name = name.lower()

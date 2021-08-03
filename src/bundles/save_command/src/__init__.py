@@ -86,6 +86,10 @@ class SaverInfo:
         """
         raise NotImplementedError("Saver did not implement 'save_args_string_from_widget' method")
 
+    # set in_file_history to False if saved file shouldn't be in the file history despite the fact
+    # that ChimeraX can open files in that format (unopenable files are automatically excluded)
+    in_file_history = True
+
 from .manager import NoSaverError
 from .dialog import show_save_file_dialog
 from .options import SaveModelOptionWidget
