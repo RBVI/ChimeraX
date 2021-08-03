@@ -1151,6 +1151,31 @@ Opening a ChimeraX <a href="save.html#session">session</a>
 automatically runs <a href="close.html"><b>close session</b></a> first.
 </blockquote>
 <blockquote>
+<a name="search"></a>
+<b>search</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+When fetching <td align="center"><a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a> predictions
+<a href="../alphafold.html#by-model">for chains in an
+experimentally determined structure</a>, whether to
+<a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
+target="_blank">BLAT</a>
+search <a href="https://alphafold.ebi.ac.uk/download"
+target="_blank">the 20 proteomes in the database</a> for the closest match 
+if the <a href="uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession number</a>
+for a chain is not provided in the experimental structure's input file,
+or is provided but not found in the 
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+(<b>search true</b>, default).
+The closest sequence match for which a prediction is available
+will be retrieved, as long as the sequence identity is at least 25%.
+With <b>search false</b>, only the experimental structure's input file will
+be used as a potential source of UniProt accession numbers.
+When present, these are given in DBREF records in PDB format and
+in struct_ref and struct_ref_seq tables in mmCIF.
+</blockquote>
+<blockquote>
 <a name="segidChains"></a>
 <b>segidChains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -1178,10 +1203,13 @@ When fetching <td align="center"><a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold</a> predictions
 <a href="../alphafold.html#by-model">for chains in an
 experimentally determined structure</a>, whether to trim the predicted 
-protein structures to the same residue ranges as used in the experiment. 
+protein structures to the same residue ranges as used in the experiment 
+(<b>true</b>, default).
 These ranges are given in DBREF records in PDB format and in
 struct_ref and struct_ref_seq tables in mmCIF.
-The alternative is to include the full UniProt sequences, which could be longer.
+Use <b>trim false</b> to include the full
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+sequences, which could be longer.
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1197,7 +1225,7 @@ for playback with
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
 same-sized maps are automatically interpreted as series, if possible.
-When multiple maps are opened in a single command (multiple files specified with 
+When multiple maps are opened in a single command (multiple files specified with
 wild cards or globbing), time ordering is automatically discerned from the
 filenames, if possible: for example, a file will be identified as time point 12 
 if its name contains either of the following:
@@ -1717,5 +1745,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+August 2021</address>
 </body></html>
