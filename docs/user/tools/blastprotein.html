@@ -29,14 +29,14 @@ class="clRight" title="User Guide Index"/></a>
 using a <a href="#notes">BLAST</a> web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
-See also: 
+See also:
 <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 </p><p>
 The <b>Blast Protein</b> tool
 can be opened from the <b>Sequence</b> section of the
 <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>).
-It is also implemented as the 
+It is also implemented as the
 <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command.
 </p>
 
@@ -47,11 +47,11 @@ It is also implemented as the
 <h3>Search Parameters</h3>
 
 <ul class="none">
-<li><b>Chain</b> 
+<li><b>Chain</b>
 &ndash; protein chain of a structure open in ChimeraX to use as the query
 <br>
 *Note: the <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
-command additionally allows using a sequence 
+command additionally allows using a sequence
 (for which no structure may be available) as the query,
 such as to find templates for <a href="modeller.html">comparative modeling</a>
 <li><b>Database</b> &ndash; protein sequence database to search:
@@ -59,12 +59,12 @@ such as to find templates for <a href="modeller.html">comparative modeling</a>
    <li><b>PDB</b> (default) &ndash; experimentally determined structures in the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
    <li><b>NR</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
-<a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a> 
+<a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
 CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
-+ <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> + 
-<a href="https://proteininformationresource.org/"  target="_blank">PIR</a> 
++ <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
+<a href="https://proteininformationresource.org/"  target="_blank">PIR</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
-excluding environmental samples from whole-genome sequencing; this database 
+excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>PDB</b> alone and takes much longer to search
    </ul>
 <li><b># Sequences</b> (default <b>100</b>)
@@ -99,12 +99,12 @@ Clicking the <b>Blast</b> button initiates the search.
 <p>
 When results are returned, the hits are listed in a table below the
 <a href="#parameters">search parameters</a> in the <b>Blast Protein</b> window.
-The <b>Blast Protein</b> tool including search results 
+The <b>Blast Protein</b> tool including search results
 (but not window size or location) is saved in
 <a href="../commands/save.html#session">ChimeraX sessions</a>.
 </p><p>
 A text-search box allows finding hits that contain terms of interest.
-Pull-down menus to the right of the search box allow adjusting the number 
+Pull-down menus to the right of the search box allow adjusting the number
 of hits shown at a time and which columns of information are shown
 in the table. Clicking a column header sorts by the values in that column.
 </p><p>
@@ -113,14 +113,14 @@ regardless of whether they are in the PDB subset:
 </p>
 <ul>
 <li>checkboxes for designating one or more hit sequences to show
-in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a> 
-as a <a href="#notes">multiple alignment</a> with the query 
+in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+as a <a href="#notes">multiple alignment</a> with the query
 when <b>Show in sequence viewer</b> is clicked
 <li><b>ID</b> &ndash; an index number, simply N for the Nth hit listed
-<li><b>Name</b> 
+<li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain;
-clicking it <a href="../commands/open.html#fetch">fetches</a> the 
+clicking it <a href="../commands/open.html#fetch">fetches</a> the
 structure, and if a structure chain was used as the query,
 automatically superimposes the hit chain onto the query chain
 using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
@@ -156,7 +156,7 @@ target="_blank">PubMed</a> identifier of literature reference, if any
 <li><b>Residues</b> &ndash; number of residues in the hit chain
 <li><b>Species</b> &ndash; scientific name of source organism
 <li><b>UniProt</b>
-&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a> 
+&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 identifier, if any, for hit chain
 <li><b>Weight</b> &ndash; molecular weight of hit chain
 <li><b>Ligand formulas</b> &ndash; chemical formulae of ligand chemical components
@@ -165,7 +165,7 @@ identifier, if any, for hit chain
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 <li><b>Ligand symbols</b> &ndash; residue names of ligand chemical components
-<li><b>Ligand weights</b> 
+<li><b>Ligand weights</b>
 &ndash; molecular weights of ligand chemical components
 </ul>
 
@@ -184,12 +184,12 @@ This output corresponds to the BLAST formatting option
 </p><p>
 <b>Basic Local Alignment Search Tool (BLAST)</b>.
 The <a href="https://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
-software is provided by the 
+software is provided by the
 <a href="https://www.ncbi.nlm.nih.gov/" target="_blank">NCBI</a> and described in:
 </p>
 <blockquote>
 <a href="https://nar.oxfordjournals.org/content/25/17/3389.full"
-target="_blank">Gapped BLAST and PSI-BLAST: 
+target="_blank">Gapped BLAST and PSI-BLAST:
 a new generation of protein database search programs.</a>
 Altschul SF, Madden TL, Sch&auml;ffer AA, Zhang J, Zhang Z, Miller W, Lipman DJ.
 <i>Nucleic Acids Res.</i> 1997 Sep 1;25(17):3389-402.
@@ -201,6 +201,6 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 </blockquote>
 
 <hr>
-<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+August 2021</address>
 </body></html>
