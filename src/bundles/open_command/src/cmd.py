@@ -124,7 +124,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     return models
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
-        _return_status=False, _add_models=True, log_errors=True, in_file_history=None, **provider_kw):
+        _return_status=False, _add_models=True, log_errors=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
@@ -144,8 +144,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
         database_name, format = databases.pop() if databases else (None, format)
         if database_name:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
-            if in_file_history is None:
-                in_file_history = fetcher_info.in_file_history
+            in_file_history = fetcher_info.in_file_history
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
@@ -161,8 +160,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             opener_info = mgr.opener_info(data_format)
             if opener_info is None:
                 raise NotImplementedError("Don't know how to open uninstalled format %s" % data_format.name)
-            if in_file_history is None:
-                in_file_history = opener_info.in_file_history
+            in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
@@ -195,8 +193,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             if opener_info is None:
                 raise NotImplementedError("Don't know how to fetch uninstalled format %s"
                     % fi.data_format.name)
-            if in_file_history is None:
-                in_file_history = opener_info.in_file_history
+            in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(fi.data_format)
             if provider_info.want_path:
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
@@ -211,8 +208,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
-            if in_file_history is None:
-                in_file_history = fetcher_info.in_file_history
+            in_file_history = fetcher_info.in_file_history
             if format_name is None:
                 format_name = default_format_name
             models, status = collated_open(session, database_name, ident, session.data_formats[format_name],
