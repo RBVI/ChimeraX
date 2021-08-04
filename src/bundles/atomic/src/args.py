@@ -506,6 +506,9 @@ def concise_residue_spec(session, residues):
         if need_model_spec:
             full_spec += struct.string(style="command")
         for spec, chain_ids in spec_chain_ids:
-            full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
+            if ' ' in chain_ids:
+                full_spec += '/*' + spec
+            else:
+                full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
 
     return full_spec
