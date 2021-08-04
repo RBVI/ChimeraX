@@ -49,29 +49,28 @@ confidence levels and should be interpreted with caution.
 See also:
 <a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 </p><p>
-What structures to fetch can be specified in two main ways with the 
-<a href="commands/open.html#fetch"><b>open</b></a> command:
+What structures to fetch can be specified in two main ways.
 </p>
 <ol>
 <li><a name="by-uniprot"></a>
 by <a href="https://www.uniprot.org/help/accession_numbers"
 target="_blank">UniProt accession number</a>, for example:
 <blockquote>
-<b>open P29474 from alphafold</b>
+<b><a href="commands/open.html#fetch">open</a> p29474 from alphafold</b>
+<br>&ndash; OR &ndash;<br>
+<b>alphafold fetch p29474</b>
 </blockquote>
 <li><a name="by-model"></a>
 by chain(s) of an experimentally determined atomic model already open in 
 ChimeraX, for example:
 <blockquote>
-<b>open #1/B,D from alphafold</b>
+<b>alphafold match #1/B,D</b>
 <br>
-<b>open #3 from alphafold 
-<a href="commands/open.html#search">search</a> true
-<a href="commands/open.html#trim">trim</a> true</b>
+<b>alphafold match #3 search true trim false</b>
 </blockquote>
 <!-- example structure 3p5b -->
 <p>
-Giving just a model number specifies all of its protein chains.
+Giving a model number specifies all of its protein chains.
 Specifying one or more chains of an existing model means to:
 </p>
   <ol>
@@ -85,7 +84,8 @@ identified as described below
   <li>superimpose each predicted structure on the corresponding
   chain of the model using 
   <a href="commands/matchmaker.html"><b>matchmaker</b></a> defaults
-  <li><a href="commands/color.html#byattribute">color</a>
+  <li>if the option <b>colorConfidence</b> is <b>true</b> (default),
+  <a href="commands/color.html#byattribute">color</a>
   the predicted structures by the 
   <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
   confidence measure</a> in the B-factor field:
@@ -145,22 +145,20 @@ target="_blank">UniProt accession numbers</a>
 may be included in the experimental structure's input file; 
 when present, these are given in DBREF records in PDB format and 
 in struct_ref and struct_ref_seq tables in mmCIF.
-If the accession number 
+With <b>search true</b> (default), if the accession number 
 for a chain is not provided in the file, or is provided but not found in the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>,
 <a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
 target="_blank">BLAT</a> is used to search
 <a href="https://alphafold.ebi.ac.uk/download"
-target="_blank">the 21 proteomes in the database</a> for the closest match
-(with the <b><a href="commands/open.html#fetch">open</a></b> command option
-<b><a href="commands/open.html#search">search</a> true</b>, default).
+target="_blank">the 21 proteomes in the database</a> for the closest match.
 The closest sequence match for which a prediction is available 
 will be retrieved, as long as the sequence identity is at least 25%.
-With <b><a href="commands/open.html#search">search</a> false</b>, however,
+With <b>search false</b>, however,
 only the experimental structure's input file will be used as a potential
 source of UniProt accession numbers.
 </p><p>
-The <a href="commands/open.html#trim"><b>trim</b></a> option
+The <b>trim</b> option
 (default <b>true</b>) indicates whether to trim the predicted
 protein structures to the same residue ranges as used in the experiment
 to determine the known structure.
@@ -169,6 +167,13 @@ struct_ref and struct_ref_seq tables in mmCIF.
 Use <b><a href="commands/open.html#trim">trim</a> false</b> to include 
 the full <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 sequences, which could be longer.
+</p><p>
+The <b>alphafold</b> command also has an <b>ignoreCache</b> option 
+(default <b>false</b>) with the 
+<a href="commands/open.html#ignoreCache">same meaning</a> as for the 
+<a href="commands/open.html#fetch"><b>open</b></a> command.
+Namely, <b>ignoreCache true</b> forces fetching the database entry
+even if it has already been cached locally.
 </p>
 </ol>
 
