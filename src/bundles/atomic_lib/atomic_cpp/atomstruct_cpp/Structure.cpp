@@ -336,6 +336,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
+    s->_polymers_computed = true;
     if (chain_id_map == nullptr) {
         s->lower_case_chains = lower_case_chains;
         s->set_ss_assigned(ss_assigned());
@@ -475,7 +476,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     
     for (auto b: bonds()) {
         const Bond::Atoms& a = b->atoms();
-        Bond* cb = s->new_bond(amap[a[0]], amap[a[1]]);
+        Bond* cb = s->_new_bond(amap[a[0]], amap[a[1]], true);
         cb->set_display(b->display());
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
@@ -483,7 +484,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     }
 
     if (_chains != nullptr) {
-        s->_chains = new Chains();
+        if (chain_id_map == nullptr)
+            s->_chains = new Chains();
         for (auto c: chains()) {
             ChainID cid;
             if (chain_id_map == nullptr)
@@ -1173,11 +1175,13 @@ follow_backbone(Atom* bb1, Atom* bb2, Atom* goal, std::set<Atom*>& seen)
 }
 
 Bond *
-Structure::new_bond(Atom *a1, Atom *a2)
+Structure::_new_bond(Atom *a1, Atom *a2, bool bond_only)
 {
-    Bond *b = new Bond(this, a1, a2);
+    Bond *b = new Bond(this, a1, a2, bond_only);
     b->finish_construction(); // virtual calls work now
     add_bond(b);
+    if (bond_only)
+        return b;
     _idatm_valid = false;
     auto inst = py_instance(false);
     Py_DECREF(inst);

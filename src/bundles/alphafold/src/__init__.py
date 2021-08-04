@@ -16,14 +16,23 @@ from chimerax.core.toolshed import BundleAPI
 class _AlphaFoldBundle(BundleAPI):
 
     @staticmethod
+    def register_command(command_name, logger):
+        if command_name == 'alphafold match':
+            from . import match
+            match.register_alphafold_match_command(logger)
+        elif command_name == 'alphafold fetch':
+            from . import fetch
+            fetch.register_alphafold_fetch_command(logger)
+
+    @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            from .fetch_alphafold import fetch_alphafold
             from chimerax.open_command import FetcherInfo
             class Info(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache,
-                          fetcher=fetch_alphafold, **kw):
-                    return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                    from .fetch import alphafold_fetch
+                    return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
+                                           add_to_session=False, **kw)
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg, Or, EnumOf

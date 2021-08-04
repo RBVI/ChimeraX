@@ -23,7 +23,7 @@ def uniprot_ids(structure):
         return []
 
     db_refs = database_ref.mapping('id', ['db_name', 'db_code', 'pdbx_db_accession'])
-    db_codes = {id:(db_code,db_id) for id, (db_name, db_code, db_id) in db_refs.items()
+    db_codes = {id: (db_code, db_id) for id, (db_name, db_code, db_id) in db_refs.items()
                 if db_name == 'UNP'}
 
     chains = database_ref_seq.fields(('ref_id', 'pdbx_strand_id',
@@ -43,11 +43,12 @@ def uniprot_ids(structure):
 
     return useqs
 
+
 class UniprotSequence:
     def __init__(self, chain_id, uniprot_id, uniprot_name,
                  database_sequence_range, chain_sequence_range):
         self.chain_id = chain_id
-        self.uniprot_id = uniprot_id        
+        self.uniprot_id = uniprot_id
         self.uniprot_name = uniprot_name
         self.database_sequence_range = database_sequence_range
         self.chain_sequence_range = chain_sequence_range
