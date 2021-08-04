@@ -26,6 +26,9 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: alphafold match :: Structure Analysis :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Analysis :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
+
   </Classifiers>
 
 </BundleInfo>
