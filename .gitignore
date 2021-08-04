@@ -20,6 +20,11 @@
 .Trashes
 Thumbs.db
 *.exp
+# Ignore a top-level symlink created to get lsp-pyright
+# imports working
+chimerax
+# Emacs
+.projectile
 # vim
 *.swp
 errs*

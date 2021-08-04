@@ -46,7 +46,7 @@ cxservices.config:	cxservices.config.in
 	sed -e 's/VERSION/$(VERSION)/' \
 	    -e 's/PACKAGE/$(NAME)/' cxservices.config.in > cxservices.config
 
-# "-DpackageName=cxservices_client" is needed to set the package name
+# "-DpackageName=cxservices" is needed to set the package name
 # because "packageName" in cxservices.config does nothing
 
 #
