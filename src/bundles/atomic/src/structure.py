@@ -153,7 +153,7 @@ class Structure(Model, StructureData):
         from .molobject import Chain
         for class_obj in [Atom, Bond, Chain, Residue]:
             py_objs = [py_obj for py_obj in python_instances_of_class(class_obj)
-                if py_obj.structure == source and py_obj.has_custom_attrs]
+                if (not py_obj.deleted) and py_obj.structure == source and py_obj.has_custom_attrs]
             if not py_objs:
                 continue
             class_attr = class_obj.__name__.lower() + 's'

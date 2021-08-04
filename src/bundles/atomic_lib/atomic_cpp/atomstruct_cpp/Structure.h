@@ -184,6 +184,7 @@ protected:
             std::set<Atom*>& left_missing_structure_atoms,
             std::set<Atom*>& right_missing_structure_atoms,
             const std::set<Atom*>* deleted_atoms = nullptr) const;
+    Bond*  _new_bond(Atom* a1, Atom* a2, bool bond_only);
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
@@ -258,7 +259,7 @@ public:
     virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     Atom*  new_atom(const char* name, const Element& e);
-    Bond*  new_bond(Atom *, Atom *);
+    Bond*  new_bond(Atom* a1, Atom* a2) { return _new_bond(a1, a2, false); }
     CoordSet*  new_coord_set();
     CoordSet*  new_coord_set(int index);
     CoordSet*  new_coord_set(int index, int size);
