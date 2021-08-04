@@ -66,7 +66,7 @@ ChimeraX, for example:
 <blockquote>
 <b>alphafold match #1/B,D</b>
 <br>
-<b>alphafold match #3 search true trim false</b>
+<b>alphafold match #3 trim false</b>
 </blockquote>
 <!-- example structure 3p5b -->
 <p>
@@ -145,7 +145,8 @@ target="_blank">UniProt accession numbers</a>
 may be included in the experimental structure's input file; 
 when present, these are given in DBREF records in PDB format and 
 in struct_ref and struct_ref_seq tables in mmCIF.
-With <b>search true</b> (default), if the accession number 
+With the <b>alphafold match</b> option <b>search true</b> (default), 
+if the accession number 
 for a chain is not provided in the file, or is provided but not found in the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>,
 <a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
@@ -167,7 +168,9 @@ struct_ref and struct_ref_seq tables in mmCIF.
 Use <b><a href="commands/open.html#trim">trim</a> false</b> to include 
 the full <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 sequences, which could be longer.
-</p><p>
+</p>
+</ol>
+<p>
 The <b>alphafold</b> command also has an <b>ignoreCache</b> option 
 (default <b>false</b>) with the 
 <a href="commands/open.html#ignoreCache">same meaning</a> as for the 
@@ -175,7 +178,6 @@ The <b>alphafold</b> command also has an <b>ignoreCache</b> option
 Namely, <b>ignoreCache true</b> forces fetching the database entry
 even if it has already been cached locally.
 </p>
-</ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
