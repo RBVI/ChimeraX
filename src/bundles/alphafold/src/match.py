@@ -45,7 +45,7 @@ def alphafold_match(session, chains, color_confidence=True, trim = True,
     mlist, nchains = _group_chains_by_structure(chain_models)
     session.models.add(mlist)
 
-    msg = 'Opened %d AlphaFold chain models' % nchains
+    msg = 'Opened %d AlphaFold chain model%s' % (nchains, _plural(nchains))
     session.logger.info(msg)
 
     return mlist
@@ -60,7 +60,8 @@ def _fetch_by_uniprot_id(chains, color_confidence = True, trim = True,
     if missing_uids:
         log.warning('Structure metadata included %d UniProt id%s %s'
                     % (len(missing_uids), _plural(missing_uids), _uniprot_chain_info(missing_uids)) +
-                    ' that do not have AlphaFold database models.')
+                    (' that do not have AlphaFold database models.' if len(missing_uids) > 1 else
+                     ' that does not have an AlphaFold database model.'))
     if chain_models:
         uid_chains = _uniprot_chains(chain_models)
         log.info('%d AlphaFold model%s found using UniProt identifier%s %s from structure file metadata'
@@ -70,8 +71,13 @@ def _fetch_by_uniprot_id(chains, color_confidence = True, trim = True,
 
 def _fetch_by_sequence(chains, color_confidence = True, trim = True,
                        local = False, ignore_cache = False, log = None):
-    from .search import chain_sequence_search
-    chain_uids = chain_sequence_search(chains, local = local)
+    from .search import chain_sequence_search, SearchError
+    try:
+        chain_uids = chain_sequence_search(chains, local = local)
+    except SearchError as e:
+        log.error(str(e))
+        return {}
+    
     chain_models, missing_uids = \
         _alphafold_models(chains, chain_uids,
                           color_confidence=color_confidence, trim=trim,
@@ -198,7 +204,8 @@ def _uniprot_chains(chain_models):
     return uc
 
 def _plural(seq):
-    return 's' if len(seq) > 1 else ''
+    n = seq if isinstance(seq, int) else len(seq)
+    return 's' if n > 1 else ''
 
 def _group_chains_by_structure(chain_models):
     

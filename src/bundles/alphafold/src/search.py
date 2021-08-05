@@ -40,7 +40,7 @@ def chain_sequence_search(chains, min_length=20, local=False):
 def _plural(seq):
     return 's' if len(seq) > 1 else ''
 
-seq_database = '/Users/goddard/ucsf/chimerax/src/bundles/alphafold/src/sequences/ref_proteomes/alphafold.fasta'
+seq_database = '/Users/goddard/ucsf/data/alphafold/sequences/ref_proteomes/alphafold.fasta'
 blat_exe = '/Users/goddard/ucsf/blat/bin/blat'
 def _search_sequences_local(sequences, database_path=seq_database, blat_exe=blat_exe):
 
@@ -109,22 +109,29 @@ def _fasta(sequence_strings, LINELEN=60):
         lines.append('')
     return '\n'.join(lines)
 
-#sequence_search_url = 'http://localhost/cgi-bin/alphafold_search_cgi.py'
-#sequence_search_url = 'https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
 sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
     request = json.dumps({'sequences': sequences})
     import requests
-    r = requests.post(url, data=request)
+    try:
+        r = requests.post(url, data=request)
+    except requests.exceptions.ConnectionError:
+        raise SearchError('Unable to reach AlphaFold sequence search web service\n\n%s' % url)
+    
+    if r.status_code != 200:
+        raise SearchError('AlphaFold sequence search web service failed (%s) "%s"\n\n%s'
+                          % (r.status_code, r.reason, url))
+
     results = r.json()
     if 'error' in results:
-        raise RuntimeError('Web service reported error:\n%s' % results['error'])
-    if r.status_code != 200:
-        raise RuntimeError('Web service failed, return code %s' % r.status_code)
+        raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
+                          % (url, results['error']))
     seq_uids = {seq : UniprotSequence(None, u['uniprot id'], u['uniprot name'],
                                       (u['dbseq start'], u['dbseq end']),
                                       (u['query start'], u['query end']))
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
         
+class SearchError(RuntimeError):
+    pass
