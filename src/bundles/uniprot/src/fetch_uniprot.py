@@ -36,7 +36,7 @@ def fetch_uniprot(session, ident, ignore_cache=False):
     session.alignments.new_alignment([seq], ident)
     return [], "Opened UniProt %s" % ident
 
-def map_uniprot_ident(ident):
+def map_uniprot_ident(ident, *, return_entry=False):
     from urllib.parse import urlencode
     params = {
         'from': 'ACC+ID',
@@ -61,7 +61,7 @@ def map_uniprot_ident(ident):
     if not page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
     lines = page.splitlines()
-    return lines[1].split()[0]
+    return lines[1].split()[1 if return_entry else 0]
 
 def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
     session.logger.status("Fetch UniProt accession code %s..." % accession)
