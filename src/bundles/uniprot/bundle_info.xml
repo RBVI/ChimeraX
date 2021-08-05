@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-uniprot" version="2.1"
+<BundleInfo name="ChimeraX-uniprot" version="2.2"
 	    package="chimerax.uniprot"
   	    minSessionVersion="1" maxSessionVersion="1">
 

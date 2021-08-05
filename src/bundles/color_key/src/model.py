@@ -750,6 +750,8 @@ class ColorKeyModel(Model):
                         if values == sorted(values):
                             proportional = True
                         values.reverse()
+                    if proportional and values[0] == values[-1]:
+                        proportional = False
             finally:
                 if restore_locale:
                     locale.setlocale(locale.LC_NUMERIC, local_numeric)
