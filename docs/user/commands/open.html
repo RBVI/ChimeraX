@@ -925,6 +925,72 @@ See also: <a href="#image-wildcards">image stack wildcards</a>,
 <a href="volume.html#channels"><b>volume channels</b></a>
 </blockquote>
 <blockquote>
+<a name="childModels"></a>
+<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
+whether to explicitly apply matrices for submodels rather than simply
+allowing them to follow their parent models.
+</blockquote>
+<blockquote>
+<a name="colorConfidence"></a>
+<b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+When <a href="alphafold.html#by-uniprot">fetching an AlphaFold prediction</a>, 
+whether to <a href="color.html#byattribute">color</a> it by the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field (default <b>true</b>):
+     <ul>
+     <li>90
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+to 100
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=blue width="10px" title="blue"></td></tr>
+</table>
+&ndash; high accuracy expected
+     <li>70
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+to 90
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+&ndash; expected to be modeled well (a generally good backbone prediction)
+     <li>50
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+to 70
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+&ndash; low confidence, treat with caution
+     <li>0
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=red width="10px" title="red"></td></tr>
+</table>
+to 50
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+&ndash; should not be interpreted, may be disordered
+     </ul>
+...in other words, using
+<b><a href="color.html#palette-options">palette</a>
+0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
+</blockquote>
+<blockquote>
 <b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
@@ -932,14 +998,6 @@ at symmetry positions; this option indicates whether to merge
 multiple singleton atoms of the same element at the same 3D position 
 into one (default <b>true</b>) to prevent errors in subsequent
 calculations such as <a href="addh.html">adding hydrogens</a>.
-</blockquote>
-<blockquote>
-<a name="childModels"></a>
-<b>childModels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>
-When opening a <a href="../formats/positions.html">ChimeraX positions file</a>,
-whether to explicitly apply matrices for submodels rather than simply
-allowing them to follow their parent models.
 </blockquote>
 <blockquote>
 <a name="contours"></a>
@@ -1319,6 +1377,11 @@ it assigns a residue name to the compound (default UNL).
 For compatibility with other programs and PDB format,
 three-character residue names consisting of uppercase letters 
 and possibly numbers are recommended. 
+</p><p>
+The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
+<b>alphafold</b> fetch and specifies whether to color the predicted structures
+by a confidence value (<a href="#colorConfidence">details...</a>).
+See also: <a href="alphafold.html"><b>alphafold</b></a>
 </p><p>
 See also: 
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
