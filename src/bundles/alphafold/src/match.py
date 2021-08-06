@@ -86,7 +86,7 @@ def _fetch_by_sequence(chains, color_confidence = True, trim = True,
         missing_names = ', '.join('%s (chains %s)' % (uid,','.join(cnames))
                                   for uid,cnames in missing_uids.items())
         log.warning('Sequence search found %d UniProt id%s %s'
-                    % (len(missing_uids), plural(missing_uids), missing_names) +
+                    % (len(missing_uids), _plural(missing_uids), missing_names) +
                     ' that do not have AlphaFold database models.')
     if chain_models and log:
         uid_chains = _uniprot_chains(chain_models)
