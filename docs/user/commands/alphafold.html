@@ -61,6 +61,11 @@ does not cover all sequences in
 so there may not be a prediction available for a given protein chain.
 It is also important to realize that the predicted structures vary in
 confidence levels and should be interpreted with caution.
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+predicts structures for single chains, not complexes, so assembling 
+the individual predictions into a complex will frequently give unphysical
+results where parts of the chains intersect or interact poorly
+with one another.
 See also:
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
 </p><p>
@@ -81,9 +86,9 @@ for example:
 by chain(s) of an experimentally determined atomic model already open in
 ChimeraX, for example:
 <blockquote>
-<b>alphafold match #1/B,D</b>
+<b>alphafold match #1</b>
 <br>
-<b>alphafold match #3 trim false</b>
+<b>alphafold match #3/B,D trim false</b>
 </blockquote>
 <!-- example structure 3p5b -->
 <p>
@@ -112,7 +117,8 @@ in the <a href="../tools/log.html"><b>Log</b></a>:
   <li><b>RMSD</b> &ndash; C&alpha; root-mean-square deviation between
   the predicted and experimental structures, over all residues of the latter
   <li><b>Length</b> &ndash; number of residues in the predicted structure
-  <li><b>Seen</b> &ndash; number of residues in its experimental counterpart
+  <li><b>Seen</b> &ndash; number of residues with atomic coordinates 
+  in the experimental structure
 </ol>
 
 <a name="options"></a>
@@ -183,19 +189,17 @@ style="display:inline-block; vertical-align:middle">
 <a name="ignoreCache"></a>
 <b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
-(where ~ indicates a user's home directory), with subdirectories
-for the different databases, including <b>AlphaFold</b>.
-If a data file specified for opening is not found in this local cache or 
+The fetched predictions are stored locally in 
+<b>~/Downloads/ChimeraX/AlphaFold/</b>,
+where ~ indicates a user's home directory.
+If a file specified for opening is not found in this local cache or 
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
 </blockquote>
 <blockquote>
 <a name="search"></a>
 <b>search</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When fetching predictions
-<a href="#by-model">for chains in an
-experimentally determined structure</a>, whether to
+When fetching predictions with <b>alphafold match</b>, whether to
 <a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
 target="_blank">BLAT</a>
 search <a href="https://alphafold.ebi.ac.uk/download"
@@ -210,20 +214,26 @@ The closest sequence match for which a prediction is available
 will be retrieved, as long as the sequence identity is at least 25%.
 With <b>search false</b>, only the experimental structure's input file will
 be used as a potential source of UniProt accession numbers.
-When present, these are given in DBREF records in PDB format and
-in struct_ref and struct_ref_seq tables in mmCIF.
+When present, these are given in 
+<a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect3.html" target="_blank">DBREF records</a>
+in PDB format and in 
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref.html" target="_blank">struct_ref</a> and
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref_seq.html" target="_blank">struct_ref_seq</a>
+tables in mmCIF.
 </blockquote>
 <blockquote>
 <a name="trim"></a>
 <b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When fetching predictions
-<a href="#by-model">for chains in an
-experimentally determined structure</a>, whether to
+When fetching predictions with <b>alphafold match</b>, whether to
 trim the predicted protein structures to the same residue 
 ranges as used in the experiment (<b>true</b>, default).
-These ranges are given in DBREF records in PDB format and in
-struct_ref and struct_ref_seq tables in mmCIF.
+These ranges are given in 
+<a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect3.html" target="_blank">DBREF records</a>
+in PDB format and in 
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref.html" target="_blank">struct_ref</a> and
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref_seq.html" target="_blank">struct_ref_seq</a>
+tables in mmCIF.
 Use <b>trim false</b> to include the full
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 sequences, which could be longer.
