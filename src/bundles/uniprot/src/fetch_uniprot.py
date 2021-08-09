@@ -19,7 +19,9 @@ def fetch_uniprot(session, ident, ignore_cache=False):
 
     from chimerax.core.errors import UserError, CancelOperation
     try:
-        accession = map_uniprot_ident(ident)
+        accession, entry = map_uniprot_ident(ident, return_value="both")
+        if accession != entry:
+            session.logger.info("UniProt identifier %s maps to entry %s" % (accession, entry))
         seq_string, full_name, features = fetch_uniprot_accession_info(session, accession,
             ignore_cache=ignore_cache)
     except InvalidAccessionError as e:
@@ -36,7 +38,7 @@ def fetch_uniprot(session, ident, ignore_cache=False):
     session.alignments.new_alignment([seq], ident)
     return [], "Opened UniProt %s" % ident
 
-def map_uniprot_ident(ident, *, return_entry=False):
+def map_uniprot_ident(ident, *, return_value="identifier"):
     from urllib.parse import urlencode
     params = {
         'from': 'ACC+ID',
@@ -61,7 +63,9 @@ def map_uniprot_ident(ident, *, return_entry=False):
     if not page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
     lines = page.splitlines()
-    return lines[1].split()[1 if return_entry else 0]
+    if return_value == "both":
+        return lines[1].split()
+    return lines[1].split()[1 if return_value == "entry" else 0]
 
 def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
     session.logger.status("Fetch UniProt accession code %s..." % accession)
