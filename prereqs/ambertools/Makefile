@@ -150,4 +150,7 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) $(AMBERTOOLS_PREBUILT)
+ifeq ($(OS),Darwin)
+	rm -rf $(AMBERTOOLS_FLIBS_PREBUILT)
+endif
