@@ -73,7 +73,6 @@ class UI:
     def __init__(self, session):
         self.is_gui = False
         self.has_graphics = False
-        session.logger.add_log(NoGuiLog())
 
         import weakref
         self._session = weakref.ref(session)

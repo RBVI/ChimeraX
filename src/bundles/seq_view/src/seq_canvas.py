@@ -1537,6 +1537,8 @@ class SeqBlock:
             seq_len = len(alignment.seqs[0])
             if 4 * (100 + seq_len / line_width) > recur_limit:
                 sys.setrecursionlimit(4 * int(100 + seq_len / line_width))
+            from chimerax.atomic import get_triggers
+            self.handler = get_triggers().add_handler('changes', self._changes_cb)
         self.bottom_y = self.top_y
 
         self.label_texts = {}
@@ -1783,6 +1785,21 @@ class SeqBlock:
             self._brushes[rgb] = brush
             return brush
 
+    def _changes_cb(self, trigger_name, changes):
+        reasons = changes.atom_reasons()
+        if "color changed" not in reasons:
+            return
+        # for performance reasons, changes.modified_atoms() returns nothing for color changes,
+        # so just redo all label colors
+        for aseq in self.alignment.seqs:
+            assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
+            if not assoc_structures or len(assoc_structures) > 1:
+                continue
+            block = self
+            while block is not None:
+                block._colorize_label(aseq)
+                block = block.next_block
+
     def _color_func(self, line):
             if hasattr(line, 'position_color'):
                 from .region_browser import get_rgba, rgba_to_qcolor
@@ -1837,7 +1854,10 @@ class SeqBlock:
             from Qt.QtCore import Qt
             from Qt.QtGui import QPen, QBrush
             brush = QBrush(QColor(*color), Qt.SolidPattern)
-            pen = QPen(brush, 0, Qt.SolidLine)
+            if 255 == color[0] == color[1] == color[2]:
+                pen = QPen(QColor(216, 216, 216))
+            else:
+                pen = QPen(brush, 0, Qt.SolidLine)
             from chimerax.core.colors import contrast_with
             contrast = contrast_with([c/255.0 for c in color])
         label_rect.setBrush(brush)
@@ -1868,6 +1888,8 @@ class SeqBlock:
     """
 
     def destroy(self):
+        if not self.prev_block:
+            self.handler.remove()
         if self.next_block:
             self.next_block.destroy()
             self.next_block = None

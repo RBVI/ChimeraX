@@ -1484,7 +1484,7 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
-        uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
+        uids = {u.chain_id:u.uniprot_name for u in uniprot_ids(self)}
         have_uniprot_ids = len([chain for chains in descripts.values()
                                 for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
@@ -1511,7 +1511,7 @@ class AtomicStructure(Structure):
                 uidset = set(uids.get(chain.chain_id) for chain in chains
                              if chain.chain_id in uids)
                 ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
-                cuids = ','.join(ucmd % (uid,uname) for uid,uname in uidset)
+                cuids = ','.join(ucmd % (uname,uname) for uname in uidset)
             lines.extend([
                 '    <tr>',
                 '      <td style="text-align:center">' + cids + '</td>',
