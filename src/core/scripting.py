@@ -83,8 +83,10 @@ def open_python_script(session, stream, file_name, argv=None):
         code = compile(data, stream.name, 'exec')
         _exec_python(session, code, argv)
     except Exception as e:
-        session.logger.error(_format_file_exception(stream.name))
         from chimerax.core.errors import UserError
+        if probably_chimera1_session(e):
+           raise UserError(chimera1_session_message)
+        session.logger.error(_format_file_exception(stream.name))
         raise UserError('Error opening python file %s' % stream.name)
     finally:
         stream.close()
@@ -196,3 +198,18 @@ def apply_command_script_to_files(session, path, script_name, for_each_file, log
         _run_commands(session, cmds, directory = dirname(data_path), log = log)
 
     return [], "executed %s on %d data files" % (script_name, len(paths))
+
+def probably_chimera1_session(evalue):
+    if type(evalue) != ModuleNotFoundError:
+        return False
+    if 'cPickle' not in str(evalue):
+        return False
+    from traceback import format_exception
+    import sys
+    formatted = format_exception(*sys.exc_info())
+    if len(formatted) > 1 and ' line 1,' in formatted[-2]:
+        return True
+    return False
+
+chimera1_session_message = """ChimeraX cannot open a regular Chimera session.
+An exporter from Chimera to ChimeraX is being worked on but is not ready at this time."""

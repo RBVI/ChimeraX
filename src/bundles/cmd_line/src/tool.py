@@ -36,6 +36,7 @@ class CommandLine(ToolInstance):
         from Qt.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
+        import sys
         class CmdText(QComboBox):
             def __init__(self, parent, tool):
                 self.tool = tool
@@ -46,22 +47,38 @@ class CommandLine(ToolInstance):
                 self.setContextMenuPolicy(Qt.NoContextMenu)
                 self.setAcceptDrops(True)
                 self._out_selection = None
+                # horrible hack needed for Linux...
+                self._drop_hack = False
 
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
                     event.acceptProposedAction()
+                    if sys.platform == "linux":
+                        if "file://" not in self.lineEdit().text():
+                            self._drop_hack = True
+                            self.editTextChanged.connect(self._drop_hack_cb)
+
+            def dragLeaveEvent(self, event):
+                if self._drop_hack:
+                    self._drop_hack = False
+                    self.editTextChanged.disconnect(self._drop_hack_cb)
 
             def dropEvent(self, event):
                 text = event.mimeData().text()
                 if text.startswith("file://"):
                     text = text[7:]
-                    import sys
                     if sys.platform.startswith("win") and text.startswith('/'):
                         # Windows seems to provide /C:/...
                         text = text[1:]
                 from chimerax.core.commands import StringArg
                 self.lineEdit().insert(StringArg.unparse(text))
                 event.acceptProposedAction()
+
+            def _drop_hack_cb(self, new_text):
+                self._drop_hack = False
+                self.editTextChanged.disconnect(self._drop_hack_cb)
+                if "file://" in new_text:
+                    self.lineEdit().setText(new_text.replace("file://", ""))
 
             def focusInEvent(self, event):
                 self._out_selection = None

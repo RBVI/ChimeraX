@@ -49,7 +49,7 @@ def determine_element_from_mass(mass, *, consider_hydrogens=True):
             nearest = (element, diff)
     return Element.get_element(nearest[0])
 
-def read_psf(session, path, file_name, *, auto_style=True, coords=None):
+def read_psf(session, path, file_name, *, auto_style=True, coords=None, **kw):
     from chimerax.core.errors import UserError, CancelOperation
     import os
     if coords is None:
@@ -124,7 +124,7 @@ def read_psf(session, path, file_name, *, auto_style=True, coords=None):
                     res_lookup[key] = r
 
         from .read_coords import read_coords
-        read_coords(session, coords, s, data_fmt.nicknames[0], replace=True)
+        read_coords(session, coords, s, data_fmt.nicknames[0], replace=True, **kw)
     except BaseException:
         s.delete()
         raise
