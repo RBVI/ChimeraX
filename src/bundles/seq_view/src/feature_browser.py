@@ -301,8 +301,10 @@ class FeatureList(QListWidget):
             if len(feature.details) > 1:
                 text = "<dl><dt>" + feature.details[0] + "</dt><dd>" + "<br>".join(
                     feature.details[1:]) + "</dt></dl>"
-            else:
+            elif feature.details:
                 text = feature.details[0]
+            else:
+                text  = "(no description)"
             label.setText(text)
             self.addItem(item)
             self.setItemWidget(item, label)
