@@ -109,7 +109,9 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
-void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid,
+    PyObject* py_logger = nullptr, bool *warned_res_name_length = nullptr,
+    bool *warned_chain_id_length = nullptr)
 {
     if (res->chain_id().size() == 2) {
         std::string adjusted_name;
@@ -123,6 +125,14 @@ void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out
     } else {
         strcpy(out_rn, res->name().c_str());
         *out_cid = res->chain_id()[0];
+        if (py_logger != nullptr && res->chain_id().size() > 2 && !*warned_chain_id_length) {
+            *warned_chain_id_length = true;
+            logger::warning(py_logger, "Chain IDs longer than 2 characters; truncating");
+        }
+    }
+    if (py_logger != nullptr && res->name().size() > 4 && !*warned_res_name_length) {
+        *warned_res_name_length = true;
+        logger::warning(py_logger, "Residue names longer than 4 characters; truncating");
     }
 }
 
@@ -1727,7 +1737,8 @@ static void
 write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
     bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map,
-    const std::set<ResName>& polymeric_res_names)
+    const std::set<ResName>& polymeric_res_names, PyObject* py_logger, bool *warned_atom_name_length,
+    bool *warned_res_name_length, bool *warned_chain_id_length)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
@@ -1817,7 +1828,13 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, aname.c_str());
                 }
             }
-            set_res_name_and_chain_id(r, res->name, &res->chain_id);
+            if (aname.size() > 4 && !*warned_atom_name_length) {
+                *warned_atom_name_length = true;
+                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
+
+            }
+            set_res_name_and_chain_id(r, res->name, &res->chain_id,
+                py_logger, warned_res_name_length, warned_chain_id_length);
             auto seq_num = r->number();
             auto i_code = r->insertion_code();
             // since H36 also works with the non-ATOM fields that require large residue numbers,
@@ -2078,7 +2095,7 @@ write_conect(StreamDispatcher& os, const Structure* s, std::map<const Atom*, int
 static void
 write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool selected_only,
     bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36,
-    const std::set<ResName>& polymeric_res_names)
+    const std::set<ResName>& polymeric_res_names, PyObject* py_logger)
 {
     PDB p(h36);
     // non-selected/displayed atoms may not be written out, so we need to track what
@@ -2086,6 +2103,10 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
     std::set<const Atom*> written;
     int out_model_num = 0;
     std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK"), Seqres("SEQRES");
+    bool warned_atom_name_length = false;
+    bool warned_res_name_length = false;
+    bool warned_chain_id_length = false;
+
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -2155,7 +2176,8 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
                 os << p << "\n";
             }
             write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, h36,
-                written, polymer_map, polymeric_res_names);
+                written, polymer_map, polymeric_res_names, py_logger, &warned_atom_name_length,
+                &warned_res_name_length, &warned_chain_id_length);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -2229,18 +2251,19 @@ docstr_write_pdb_file =
 extern "C" PyObject*
 write_pdb_file(PyObject *, PyObject *args)
 {
-    PyObject *py_structures;
-    PyObject *py_output;
+    PyObject* py_structures;
+    PyObject* py_output;
     int selected_only;
     int displayed_only;
     PyObject* py_xforms;
     int all_coordsets;
     int pqr;
     int h36;
-    PyObject *py_poly_res_names;
-    if (!PyArg_ParseTuple(args, "OOppOpppO",
-            &py_structures, &py_output, &selected_only,
-            &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36, &py_poly_res_names))
+    PyObject* py_poly_res_names;
+    PyObject* py_logger;
+    if (!PyArg_ParseTuple(args, "OOppOpppOO",
+            &py_structures, &py_output, &selected_only, &displayed_only, &py_xforms, &all_coordsets,
+            &pqr, &h36, &py_poly_res_names, &py_logger))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -2368,7 +2391,7 @@ write_pdb_file(PyObject *, PyObject *args)
     }
 
     write_pdb(structures, *out_stream, (bool)selected_only, (bool)displayed_only, xforms,
-        (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names);
+        (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names, py_logger);
 
     if (out_stream->bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
