@@ -208,7 +208,7 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>
 <br>(also requires trajectory topology, either from being opened at the same
 time as a <a href="#trajtop">PSF</a> file, or from an already-open atomic model
 given with the <a href="#structureModel"><b>structureModel</b></a> option;
-see also the <a href="#coordsets"><b>coordsets</b></a> option)</td>
+see also <a href="#traj-options">trajectory options</a>)</td>
 </tr><tr>
 <td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
 target="_blank">Amber NetCDF</a> (binary)</td>
@@ -245,7 +245,8 @@ coordinates</td>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Topology</b>
 <br>(also requires a <a href="#trajectory">trajectory coordinate file</a>
-given with the <a href="#coords"><b>coords</b></a> option)</td>
+given with the <a href="#coords"><b>coords</b></a> option;
+see also <a href="#traj-options">trajectory options</a>)</td>
 </tr><tr>
 <td align="center">PSF (protein structure file;
 <a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html"
@@ -848,8 +849,8 @@ the option must be set to <b>false</b>.
 <a name="atomic"></a>
 <b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Whether to interpret coordinates read from mmCIF or PDB format as an atomic model 
-(<b>true</b>, default).
+Whether to interpret coordinates read from mmCIF or PDB format as 
+an atomic model (<b>true</b>, default).
 Setting the option to <b>false</b> is appropriate for data such as SAXS models 
 that are simply collections of points 
 (possibly with connecting &ldquo;bonds&rdquo;)
@@ -1007,66 +1008,6 @@ Whether to read the contours from an
 <a href="../formats/imod.html">IMOD segmentation file</a>.
 </blockquote>
 <blockquote>
-<a name="coords"></a>
-<b>coords</b> &nbsp;<i>trajectory-coordinate-file</i>&nbsp;
-<br>
-Specify the corresponding <a href="#trajectory">trajectory coordinate file</a>
-required to open a PSF <a href="#trajtop">trajectory topology file</a>.
-Any of the <a href="#trajectory">trajectory coordinate formats</a> may be used.
-The <i>trajectory-coordinate-file</i> is specified by pathname, or by the word
-<a href="usageconventions.html#browse"><b>browse</b></a>
-to specify it interactively in a file browser window.
-Omitting this option also raises a file browser window
-for specifying the file interactively.
-</blockquote>
-<blockquote>
-<a name="coordsets"></a>
-<a name="missingCoordsets"></a>
-<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
-[&nbsp;<b>missingCoordsets</b>&nbsp;&nbsp;fill&nbsp;|&nbsp;ignore&nbsp;|&nbsp;<b>renumber</b>&nbsp;]
-<br>
-Whether to open a multi-model file in mmCIF or PDB format as a
-<a href="../trajectories.html">trajectory</a> and show a
-<a href="coordset.html#slider">slider</a> graphical interface.
-Only one frame (coordinate set) of a trajectory can be viewed at a time;
-different frames can be accessed or played back sequentially with the
-<a href="coordset.html"><b>coordset</b></a> command or
-the <a href="coordset.html#slider">slider interface</a>.
-By default (<b>coordsets false</b>), 
-the multiple models in the file will be opened not as a
-<a href="../trajectories.html">trajectory</a> but as
-separate submodels that can be shown/hidden/specified independently 
-(for example, using #1.1, #1.2, #1.3...) 
-or collectively (for example, using #1).
-<p>
-The <b>missingCoordsets</b></a> option indicates how
-to treat gaps in MODEL numbering when reading a PDB multi-model file
-as a <a href="../trajectories.html">trajectory</a>
-with <b>coordsets true</b>.
-In PDB format, MODEL records are typically numbered consecutively.
-The numbers from these records are used as the frame numbers of the 
-coordinate sets in the trajectory.
-When gaps in the numbering are detected, options are to:
-</p>
-<ul>
-<li><b>fill</b>
-&ndash; generate duplicate coordinate sets (additional trajectory frames) 
-to fill in the gaps
-<li><b>ignore</b> 
-&ndash; use the MODEL numbers without filling gaps
-<li><b>renumber</b> (default)
-&ndash; renumber the coordinate sets consecutively
-</ul>
-<p>
-For example, if the first coordinate set MODEL 1 is immediately
-followed in the file by another coordinate set MODEL 6,
-<b>fill</b> would create four additional copies of the first 
-coordinate set as frames 2-5,
-<b>ignore</b> would give trajectory frame 1 immediately followed by
-trajectory frame 6, and
-<b>renumber</b> would renumber the MODEL 6 coordinate set as trajectory frame 2.
-</blockquote>
-<blockquote>
 <a name="debug"></a>
 <b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -1215,20 +1156,6 @@ automatically runs <a href="close.html"><b>close session</b></a> first.
 Whether to assign segment IDs in PDB format as the chain IDs in ChimeraX.
 </blockquote>
 <blockquote>
-<a name="structureModel"></a>
-<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-<br>
-A <a href="#trajectory">trajectory coordinate</a> file is
-automatically opened as <a href="../trajectories.html">trajectory</a>,
-but to provide topology information, this option must be used 
-to specify an existing model with the same set of atoms
-(for example: <b>open myfile.trr structureModel #1</b>).
-The coordinates of the existing model will be replaced with the new,
-unless <b>replace false</b> is used to indicate appending the new frames 
-instead. This option is also needed to open local MTZ files
-(<a href="#clipper">details...</a>).
-</blockquote>
-<blockquote>
 <a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1280,6 +1207,135 @@ is only available for this format. See also:
 <br>
 Width in physical units of distance (&Aring;) for the
 <a href="#photo">photo</a> (single image) being opened.
+</blockquote>
+
+<a name="traj-options"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h4>Trajectory Options</h4>
+<p>
+A <a href="coordset.html#slider">slider</a> graphical interface is only
+shown automatically for <a href="../trajectories.html">trajectories</a>
+read from multi-model mmCIF or PDB format with the option
+<a href="#coordsets"><b>coordsets true</b></a>.
+Sliders can be shown for trajectories opened from other formats by first 
+opening the trajectory and then using a separate
+<a href="coordset.html#slider"><b>coordset slider</b></a> command.
+Only one frame (coordinate set) of a trajectory can be viewed at a time;
+different frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command or
+the <a href="coordset.html#slider">slider interface</a>.
+</p><p>
+Only multi-model mmCIF or PDB files provide all of the trajectory information 
+in a single file. Otherwise, the trajectory topology and coordinates come 
+from two different files, either:
+</p>
+<ul>
+<li>a <a href="#trajectory">trajectory coordinate file</a>
+with topology provided by an already-open atomic model specified with the
+<a href="#structureModel"><b>structureModel</b></a> option, for example:
+<br><b>open myfile.trr structureModel #1</b>
+<li> a PSF <a href="#trajtop">trajectory topology file</a> 
+with the corresponding <a href="#trajectory">trajectory coordinate file</a>
+specified with the <a href="#coords"><b>coords</b></a> option, for example:
+<br><b>open myfile.psf coords myfile.dcd</b>
+</ul>
+<p>
+Option details:
+</p>
+<blockquote>
+<a name="coordsets"></a>
+<a name="missingCoordsets"></a>
+<b>coordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+[&nbsp;<b>missingCoordsets</b>&nbsp;&nbsp;fill&nbsp;|&nbsp;ignore&nbsp;|&nbsp;<b>renumber</b>&nbsp;]
+<br>
+Whether to open a multi-model file in mmCIF or PDB format as a
+<a href="../trajectories.html">trajectory</a>.
+By default (<b>coordsets false</b>), 
+the multiple models in the file will be opened not as a
+<a href="../trajectories.html">trajectory</a> but as
+separate submodels that can be shown/hidden/specified independently 
+(for example, using #1.1, #1.2, #1.3...) 
+or collectively (for example, using #1).
+<p>
+The <b>missingCoordsets</b> sub-option indicates how
+to treat gaps in MODEL numbering when reading a PDB multi-model file
+as a <a href="../trajectories.html">trajectory</a>
+with <b>coordsets true</b>.
+In PDB format, MODEL records are typically numbered consecutively.
+The numbers from these records are used as the frame numbers of the 
+coordinate sets in the trajectory.
+When gaps in the numbering are detected, options are to:
+</p>
+<ul>
+<li><b>fill</b>
+&ndash; generate duplicate coordinate sets (additional trajectory frames) 
+to fill in the gaps
+<li><b>ignore</b> 
+&ndash; use the MODEL numbers without filling gaps
+<li><b>renumber</b> (default)
+&ndash; renumber the coordinate sets consecutively
+</ul>
+<p>
+For example, if the first coordinate set MODEL 1 is immediately
+followed in the file by another coordinate set MODEL 6,
+<b>fill</b> would create four additional copies of the first 
+coordinate set as frames 2-5,
+<b>ignore</b> would give trajectory frame 1 immediately followed by
+trajectory frame 6, and
+<b>renumber</b> would renumber the MODEL 6 coordinate set as trajectory frame 2.
+</blockquote>
+<blockquote>
+<a name="structureModel"></a>
+<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+To provide the topology information needed to open a 
+<a href="#trajectory">trajectory coordinate file</a> as a 
+<a href="../trajectories.html">trajectory</a>, the <b>structureModel</b> 
+option must be used to specify an existing model with the same set of atoms
+(for example: <b>open myfile.trr structureModel #1</b>).
+The coordinates of the existing model will be replaced with the new,
+unless <b>replace false</b> is used to indicate appending the new frames 
+instead. This option is also needed to open local MTZ files
+(<a href="#clipper">details...</a>).
+</blockquote>
+<blockquote>
+<a name="coords"></a>
+<b>coords</b> &nbsp;<i>trajectory-coordinate-file</i>&nbsp;
+<br>
+As an alternative to opening
+a <a href="#trajectory">trajectory coordinate file</a> and supplying the
+topology with the <a href="#structureModel"><b>structureModel</b></a> option,
+one can open a PSF <a href="#trajtop">trajectory topology file</a> 
+and use the <b>coords</b> option to supply
+the corresponding <a href="#trajectory">trajectory coordinate file</a>.
+Any of the <a href="#trajectory">trajectory coordinate formats</a> may be used.
+The <i>trajectory-coordinate-file</i> is specified by pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+Omitting this option also raises a file browser window
+for specifying the file interactively.
+</blockquote>
+<blockquote>
+<a name="start"></a>
+<a name="end"></a>
+<a name="step"></a>
+<b>start</b>&nbsp;&nbsp;<i>start</i></a>
+<br>
+<b>end</b>&nbsp;&nbsp;<i>end</i></a>
+<br>
+<b>step</b>&nbsp;&nbsp;<i>step</i></a>
+<br>
+The <b>start</b>, <b>end</b> and <b>step</b> options allow loading a subset of 
+the coordinate sets from a <a href="#trajectory">trajectory coordinate file</a>,
+starting with frame number <i>start</i> and proceeding with steps of 
+<i>step</i> but not exceeding the specified <i>end</i>. For example,
+<b>start 2 end 25 step 5</b> would read in coordinate sets 2 
+(the second one in the file), 7 (the seventh), 12, 17, and 22. 
+These options take integer values only, and they do not apply to 
+reading trajectories from multi-model mmCIF or PDB files.
 </blockquote>
 
 <a name="url"></a>
