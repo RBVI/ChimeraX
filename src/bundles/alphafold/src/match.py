@@ -163,8 +163,21 @@ def _align_to_chain(structure, chain):
     results = cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
                         verbose=None)
     if len(results) == 1:
-        matched_patoms, matched_pto_atoms, rmsd, full_rmsd, tf = results[0]
-        structure.rmsd = full_rmsd
+        r = results[0]
+        rmsd = r.get('full RMSD')
+        if rmsd is not None:
+            structure.rmsd = rmsd
+        rseq, mseq = r.get('aligned ref seq'), r.get('aligned match seq')
+        if rseq and mseq:
+            structure.seq_identity = _sequence_identity(rseq, mseq)
+
+def _sequence_identity(seq1, seq2):
+    m = 0
+    for r1, r2 in zip(seq1.characters, seq2.characters):
+        if r1 == r2 and r1 != '.':
+            m += 1
+    d = min(seq1.num_residues, seq2.num_residues)
+    return m/d if d > 0 else 0.0
 
 def _chain_uniprot_ids(chains):
     chain_uids = []
@@ -237,8 +250,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
     from chimerax.core.logger import html_table_params
     lines = ['<table %s>' % html_table_params,
              '  <thead>',
-             '    <tr><th colspan=6>AlphaFold chains matching %s</th>' % struct_name,
-             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen',
+             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
         ]
@@ -247,6 +260,7 @@ def _log_alphafold_chain_info(alphafold_group_model):
     for m in msorted:
         cid = ', '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
+        pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
         lines.extend([
             '    <tr>',
             '      <td style="text-align:center">%s' % cid,
@@ -254,7 +268,8 @@ def _log_alphafold_chain_info(alphafold_group_model):
             '      <td style="text-align:center">%s' % m.uniprot_id,
             '      <td style="text-align:center">%s' % rmsd,
             '      <td style="text-align:center">%s' % m.num_residues,
-            '      <td style="text-align:center">%s' % m.observed_num_res])
+            '      <td style="text-align:center">%s' % m.observed_num_res,
+            '      <td style="text-align:center">%s' % pct_id])
     lines.extend(['  </tbody>',
                   '</table>'])
     msg = '\n'.join(lines)
