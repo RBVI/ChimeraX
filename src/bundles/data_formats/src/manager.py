@@ -59,7 +59,7 @@ class FormatsManager(ProviderManager):
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)
         for suffix in suffixes:
-            self._suffix_to_formats.setdefault(suffix, []).append(data_format)
+            self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)
@@ -166,7 +166,7 @@ class FormatsManager(ProviderManager):
         if '#' in suffix:
             suffix = suffix[:suffix.index('#')]
         try:
-            formats = self._suffix_to_formats[suffix]
+            formats = self._suffix_to_formats[suffix.lower()]
         except KeyError:
             return None
 
