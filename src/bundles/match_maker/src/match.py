@@ -196,6 +196,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
          "final RMSD": float
          "full RMSD": float
          "transformation matrix": chimerax.geometry.Place
+         "aligned ref seq": chimerax.atomic.StructureSeq
+         "aligned match seq": chimerax.atomic.StructureSeq
        }
        "full" is before iteration pruning and "final" is afterward.
 
@@ -568,6 +570,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             "full RMSD": full_rmsd,
             "final RMSD": rmsd,
             "transformation matrix": xf,
+            "aligned ref seq": s1,
+            "aligned match seq": s2,
         })
         if bring is not None:
             for m in bring:
