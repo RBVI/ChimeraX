@@ -109,7 +109,9 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
-void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid,
+    PyObject* py_logger = nullptr, bool *warned_res_name_length = nullptr,
+    bool *warned_chain_id_length = nullptr)
 {
     if (res->chain_id().size() == 2) {
         std::string adjusted_name;
@@ -123,6 +125,14 @@ void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out
     } else {
         strcpy(out_rn, res->name().c_str());
         *out_cid = res->chain_id()[0];
+        if (py_logger != nullptr && res->chain_id().size() > 2 && !*warned_chain_id_length) {
+            *warned_chain_id_length = true;
+            logger::warning(py_logger, "Chain IDs longer than 2 characters; truncating");
+        }
+    }
+    if (py_logger != nullptr && res->name().size() > 4 && !*warned_res_name_length) {
+        *warned_res_name_length = true;
+        logger::warning(py_logger, "Residue names longer than 4 characters; truncating");
     }
 }
 
@@ -550,6 +560,7 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     bool        dup_MODEL_numbers = false;
     std::vector<Residue*> chain_residues;
     bool        second_chain_let_okay = true;
+    std::map<std::string, decltype(let)> modres_mappings;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -623,15 +634,32 @@ start_t = end_t;
                     record.modres.res.seq_num,
                     record.modres.res.i_code));
             let = Sequence::protein3to1(record.modres.std_res);
+            { // switch statement can't jump past declaration, so add a scope
+            auto lookup = modres_mappings.find(record.modres.res.name);
             if (let != 'X') {
-                Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                if (lookup == modres_mappings.end()) {
+                    Sequence::assign_rname3to1(record.modres.res.name, let, true);
+                    modres_mappings[record.modres.res.name] = let;
+                } else {
+                    if (lookup->second != 'X' && lookup->second != let) {
+                        Sequence::assign_rname3to1(record.modres.res.name, 'X', true);
+                        modres_mappings[record.modres.res.name] = 'X';
+                    }
+                }
             } else {
                 let = Sequence::nucleic3to1(record.modres.std_res);
                 if (let != 'X') {
-                    Sequence::assign_rname3to1(record.modres.res.name, let,
-                        false);
+                    if (lookup == modres_mappings.end()) {
+                        Sequence::assign_rname3to1(record.modres.res.name, let, false);
+                        modres_mappings[record.modres.res.name] = let;
+                    } else {
+                        if (lookup->second != 'X' && lookup->second != let) {
+                            Sequence::assign_rname3to1(record.modres.res.name, 'X', false);
+                            modres_mappings[record.modres.res.name] = 'X';
+                        }
+                    }
                 }
-            }
+            }}
             break;
 
         case PDB::HELIX:
@@ -1009,6 +1037,10 @@ start_t = end_t;
             link_ssbond_records->push_back(record);
             break;
 
+        case PDB::LINKR:
+            link_ssbond_records->push_back(record);
+            break;
+
         case PDB::SSBOND: {
             // process SSBOND records as CONECT because Phenix uses them that way
             link_ssbond_records->push_back(record);
@@ -1304,7 +1336,7 @@ prune_short_bonds(Structure *as)
     }
 }
 
-static void
+static bool
 extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
     PDB::Residue* pdb_res1, PDB::Residue* pdb_res2, PDB::Atom* pdb_atom1, PDB::Atom* pdb_atom2)
 {
@@ -1322,12 +1354,28 @@ extract_linkup_record_info(PDB& link_ssbond, int* sym1, int* sym2,
         *pdb_res2 = link_ssbond.link.res[1];
         strcpy(*pdb_atom1, link_ssbond.link.name[0]);
         strcpy(*pdb_atom2, link_ssbond.link.name[1]);
+    } else if (link_ssbond.type() == PDB::LINKR) {
+        // non-standard Refmac "LINKR" record; blank atom names indicate gap rather than link
+        char* name_ptr = link_ssbond.linkr.name[0];
+        bool non_space = false;
+        while (*name_ptr != '\0')
+            if (!isspace(*name_ptr++)) {
+                non_space = true;
+                break;
+            }
+        if (!non_space)
+            return false;
+        *pdb_res1 = link_ssbond.link.res[0];
+        *pdb_res2 = link_ssbond.link.res[1];
+        strcpy(*pdb_atom1, link_ssbond.link.name[0]);
+        strcpy(*pdb_atom2, link_ssbond.link.name[1]);
     } else {
         std::stringstream err_msg;
         err_msg << "Trying to extact linkup info from non-LINK/SSBOND record (record is: '"
             << link_ssbond.c_str() << "')";
         throw std::logic_error(err_msg.str().c_str());
     }
+    return true;
 }
 
 static Residue*
@@ -1361,8 +1409,8 @@ link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
     int sym1, sym2;
     PDB::Residue pdb_res1, pdb_res2;
     PDB::Atom pdb_atom1, pdb_atom2;
-    extract_linkup_record_info(link_ssbond,
-        &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2);
+    if (!extract_linkup_record_info(link_ssbond, &sym1, &sym2, &pdb_res1, &pdb_res2, &pdb_atom1, &pdb_atom2))
+        return; // "gap" Refmac non-standard LINKR record
     if (sym1 != sym2) {
         // don't use LINKs/SSBONDs to symmetry copies;
         // skip if symmetry operators differ (or blank vs. non-blank)
@@ -1689,7 +1737,8 @@ static void
 write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
     bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map,
-    const std::set<ResName>& polymeric_res_names)
+    const std::set<ResName>& polymeric_res_names, PyObject* py_logger, bool *warned_atom_name_length,
+    bool *warned_res_name_length, bool *warned_chain_id_length)
 {
     Residue* prev_res = nullptr;
     bool prev_standard = false;
@@ -1779,7 +1828,13 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, aname.c_str());
                 }
             }
-            set_res_name_and_chain_id(r, res->name, &res->chain_id);
+            if (aname.size() > 4 && !*warned_atom_name_length) {
+                *warned_atom_name_length = true;
+                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
+
+            }
+            set_res_name_and_chain_id(r, res->name, &res->chain_id,
+                py_logger, warned_res_name_length, warned_chain_id_length);
             auto seq_num = r->number();
             auto i_code = r->insertion_code();
             // since H36 also works with the non-ATOM fields that require large residue numbers,
@@ -2040,7 +2095,7 @@ write_conect(StreamDispatcher& os, const Structure* s, std::map<const Atom*, int
 static void
 write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool selected_only,
     bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36,
-    const std::set<ResName>& polymeric_res_names)
+    const std::set<ResName>& polymeric_res_names, PyObject* py_logger)
 {
     PDB p(h36);
     // non-selected/displayed atoms may not be written out, so we need to track what
@@ -2048,6 +2103,10 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
     std::set<const Atom*> written;
     int out_model_num = 0;
     std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK"), Seqres("SEQRES");
+    bool warned_atom_name_length = false;
+    bool warned_res_name_length = false;
+    bool warned_chain_id_length = false;
+
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -2117,7 +2176,8 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
                 os << p << "\n";
             }
             write_coord_set(os, s, cs, rev_asn, selected_only, displayed_only, xform, pqr, h36,
-                written, polymer_map, polymeric_res_names);
+                written, polymer_map, polymeric_res_names, py_logger, &warned_atom_name_length,
+                &warned_res_name_length, &warned_chain_id_length);
             if (use_MODEL) {
                 p.set_type(PDB::ENDMDL);
                 os << p << "\n";
@@ -2191,18 +2251,19 @@ docstr_write_pdb_file =
 extern "C" PyObject*
 write_pdb_file(PyObject *, PyObject *args)
 {
-    PyObject *py_structures;
-    PyObject *py_output;
+    PyObject* py_structures;
+    PyObject* py_output;
     int selected_only;
     int displayed_only;
     PyObject* py_xforms;
     int all_coordsets;
     int pqr;
     int h36;
-    PyObject *py_poly_res_names;
-    if (!PyArg_ParseTuple(args, "OOppOpppO",
-            &py_structures, &py_output, &selected_only,
-            &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36, &py_poly_res_names))
+    PyObject* py_poly_res_names;
+    PyObject* py_logger;
+    if (!PyArg_ParseTuple(args, "OOppOpppOO",
+            &py_structures, &py_output, &selected_only, &displayed_only, &py_xforms, &all_coordsets,
+            &pqr, &h36, &py_poly_res_names, &py_logger))
         return nullptr;
 
     if (!PySequence_Check(py_structures)) {
@@ -2330,7 +2391,7 @@ write_pdb_file(PyObject *, PyObject *args)
     }
 
     write_pdb(structures, *out_stream, (bool)selected_only, (bool)displayed_only, xforms,
-        (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names);
+        (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names, py_logger);
 
     if (out_stream->bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");

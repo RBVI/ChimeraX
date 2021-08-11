@@ -437,6 +437,24 @@ class StructureDatas(Collection):
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
 
+    @property
+    def autochains(self):
+        return array([s.autochain for s in self])
+    
+    @autochains.setter
+    def autochains(self, ac):
+        for s in self:
+            s.autochain = ac
+
+    @property
+    def names(self):
+        return array([s.name for s in self])
+
+    @names.setter
+    def names(self, nm):
+        for s in self:
+            s.name = nm
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -446,6 +464,16 @@ class AtomicStructures(StructureDatas):
     def __init__(self, mol_pointers):
         from . import AtomicStructure
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
+
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1425,6 +1453,17 @@ class PseudobondGroupDatas(Collection):
         Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
                             PseudobondGroupDatas)
 
+    colors = cvec_property('pseudobond_group_color', uint8, 4,
+        doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
+        "with such an array (or equivalent sequence), or with a single RGBA value.")
+    halfbonds = cvec_property('pseudobond_group_halfbond', npy_bool)
+    '''
+    Controls whether the pseudobonds should be colored in "halfbond"
+    mode, *i.e.* each half colored the same as its endpoint atom.
+    Returns a :mod:`numpy` array of boolean values.  Can be
+    set with such an array (or equivalent sequence), or with a
+    single boolean value.
+    '''
     pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                                 astype = _pseudobonds, read_only = True, per_object = False)
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
@@ -1432,6 +1471,20 @@ class PseudobondGroupDatas(Collection):
     '''A numpy string array of categories of each group.'''
     num_pseudobonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
+    radii = cvec_property('pseudobond_group_radius', float32,
+        doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
+        "sequence), or with a single floating-point number.")
+
+    # 'displays' being defined as property only so that setattr (used by selection inspector)
+    # knows that it exists.  Not defining as a vector property since we actually want to go
+    # through Model.display
+    @property
+    def displays(self):
+        return array([pbg.display for pbg in self])
+    @displays.setter
+    def displays(self, d):
+        for pbg in self:
+            pbg.display = d
 
 # -----------------------------------------------------------------------------
 #
@@ -1442,6 +1495,19 @@ class PseudobondGroups(PseudobondGroupDatas):
     def __init__(self, pbg_pointers):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+
+    @property
+    def dashes(self):
+        return array([pbg.dashes for pbg in self])
+
+    @dashes.setter
+    def dashes(self, n):
+        for pbg in self:
+            pbg.dashes = n
+
+    @property
+    def names(self):
+        return array([pbg.name for pbg in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1477,6 +1543,17 @@ class Structures(StructureDatas):
     def __init__(self, mol_pointers):
         from . import Structure
         Collection.__init__(self, mol_pointers, Structure, Structures)
+
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
+
 
     @classmethod
     def session_restore_pointers(cls, session, data):

@@ -54,9 +54,9 @@ CoordSet::set_coords(Real *xyz, size_t n)
     size_t nc = _coords.size();
     size_t c = 0;
     for (size_t i = 0 ; i < nc ; ++i, c += 3)
-    _coords[i].set_xyz(xyz[c], xyz[c+1], xyz[c+2]);
+        _coords[i].set_xyz(xyz[c], xyz[c+1], xyz[c+2]);
     for (size_t i = nc ; i < n ; ++i, c += 3)
-    add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
+        add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
 
     _structure->change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_COORDSET);
     if (_structure->active_coord_set() == this)
@@ -138,6 +138,14 @@ CoordSet::session_save(int** ints, float** floats) const
         float_ptr[2] = crd[2];
         float_ptr += 3;
     }
+}
+
+void
+CoordSet::xform(PositionMatrix mat)
+{
+    size_t nc = _coords.size();
+    for (size_t i = 0 ; i < nc ; ++i)
+        _coords[i].xform(mat);
 }
 
 }  // namespace atomstruct

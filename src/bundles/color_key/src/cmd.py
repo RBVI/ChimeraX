@@ -148,7 +148,7 @@ def _precision_values(values, precision):
     # should only happen if values very close to ints
     return "%d", [int(v+0.5) for v in values]
 
-def show_key(session, color_map, *, show_tool=True, show_all_values=False, precision=3):
+def show_key(session, color_map, *, show_tool=True, precision=3):
     """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
     from chimerax.core.colors import color_name, rgba_to_rgba8

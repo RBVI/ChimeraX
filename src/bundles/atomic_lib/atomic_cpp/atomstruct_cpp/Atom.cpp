@@ -1123,7 +1123,7 @@ Atom::rings(bool cross_residues, int all_size_threshold,
 Coord
 Atom::effective_coord() const
 {
-    if (_residue && _residue->ribbon_display()) {
+    if (_residue && _residue->ribbon_display() && _residue->ribbon_hide_backbone()) {
         const Coord *c = ribbon_coord();
         if (c != nullptr)
             return *c;
@@ -1131,45 +1131,30 @@ Atom::effective_coord() const
     return coord();
 }
 
-static inline double
-row_mul(const double row[4], const Coord& crd)
-{
-    return row[0] * crd[0] + row[1] * crd[1] + row[2] * crd[2] + row[3];
-}
-
-static Coord
-mat_mul(const Structure::PositionMatrix& pos, const Coord& crd)
-{
-    double x = row_mul(pos[0], crd);
-    double y = row_mul(pos[1], crd);
-    double z = row_mul(pos[2], crd);
-    return Coord(x, y, z);
-}
-
 Coord
 Atom::scene_coord() const
 {
-    return mat_mul(structure()->position(), coord());
+    return coord().mat_mul(structure()->position());
 
 }
 
 Coord
 Atom::effective_scene_coord() const
 {
-    return mat_mul(structure()->position(), effective_coord());
+    return effective_coord().mat_mul(structure()->position());
 
 }
 
 Coord
 Atom::scene_coord(const CoordSet* cs) const
 {
-    return mat_mul(structure()->position(), coord(cs));
+    return coord(cs).mat_mul(structure()->position());
 }
 
 Coord
 Atom::scene_coord(char alt_loc) const
 {
-    return mat_mul(structure()->position(), coord(alt_loc));
+    return coord(alt_loc).mat_mul(structure()->position());
 }
 
 int

@@ -1,0 +1,77 @@
+To test cgi script on macOS 10.15 I enabled the apache server by editing
+
+   /etc/apache2/httpd.conf
+   
+to enable cgi scripts by uncommenting line
+
+   LoadModule cgi_module libexec/apache2/mod_cgi.so
+
+verifying the syntax with
+
+   apachectl configtest
+   
+and starting the server with
+
+   sudo launchctl load -w /System/Library/LaunchDaemons/org.apache.httpd.plist
+
+I put alphafold_search_cgi.py in the macOS cgi-bin directory
+
+   sudo cp -p src/alphafold_search_cgi.py /Library/WebServer/CGI-Executables/
+
+Then ChimeraX successfully used this blat sequence search using the Python requests
+module.
+
+To build a blast database from a fasta file for testing blastp I used
+
+~/ucsf/ncbi-blast-2.12.0+/bin/makeblastdb -in alphafold.fasta -dbtype prot
+
+which produces several files
+
+alphafold.fasta.pdb
+alphafold.fasta.phr
+alphafold.fasta.pin
+alphafold.fasta.pot
+alphafold.fasta.psq
+alphafold.fasta.ptf
+alphafold.fasta.pto
+
+Timing showed fasta and blastp were slower than blat searching for 7 sequences of PDB 3o81.
+The blat time was only slightly different for 1 sequence, suggesting almost all time was loading
+database and then .1 second per sequence to search.  While fasta and blastp time seemed to scale
+linearly with time taking ~5 seconds per sequence.
+
+$ time ~/ucsf/blat/bin/blat ref_proteomes/all.fasta 3o81_all.fa blat8.out -prot -out=blast8
+Loaded 163316211 letters in 365605 sequences
+Searched 3156 bases in 7 sequences
+real	0m4.764s
+user	0m4.617s
+sys	0m0.143s
+
+$ time ~/ucsf/fasta36/bin/fasta36 3o81_all.fa ref_proteomes/all.fasta >& fasta.out
+real	0m7.029s
+user	0m57.521s
+sys	0m2.130s
+Note fasta appears to be using 8 threads since user time is 8x real time.
+
+$ time ~/ucsf/ncbi-blast-2.12.0+/bin/blastp -query 3o81_all.fa -db ref_proteomes/all.fasta -out blast.out
+real	0m20.500s
+user	0m19.928s
+sys	0m0.062s
+
+To test the CGI script without a server I run it passing in some json test sequences.
+Need to set CONTENT_LENGTH environment variable used by cgi script
+
+time env CONTENT_LENGTH=1059 ./alphafold_search_cgi.py < sequences/3p5b_sequence_input.json
+Loaded 163316211 letters in 365605 sequences
+Searched 1032 bases in 3 sequences
+Content-Type: application/json
+
+[{"uniprot id": "P01130", "uniprot name": "LDLR_HUMAN", "dbseq start": 316, "dbseq end": 715, "query start": 1, "query end": 400}, {"uniprot id": "Q8NBP7", "uniprot name": "PCSK9_HUMAN", "dbseq start": 153, "dbseq end": 692, "query start": 1, "query end": 540}, {"uniprot id": "Q8NBP7", "uniprot name": "PCSK9_HUMAN", "dbseq start": 61, "dbseq end": 152, "query start": 1, "query end": 92}]$ 
+real	0m4.770s
+user	0m4.586s
+sys	0m0.156s
+
+
+Plato ChimeraX cgi location
+
+https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/hello_cgi.py

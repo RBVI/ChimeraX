@@ -39,7 +39,7 @@ public:
     // use Atom::HIDE_* constants for hide bits
     typedef std::vector<const Ring*>  Rings;
 private:
-    Bond(Structure*, Atom*, Atom*);
+    Bond(Structure*, Atom*, Atom*, bool);
     void  add_to_atoms() { atoms()[0]->add_bond(this); atoms()[1]->add_bond(this); }
     const char*  err_msg_exists() const
         { return "Bond already exists between these atoms"; }

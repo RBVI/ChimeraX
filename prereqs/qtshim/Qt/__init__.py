@@ -61,3 +61,10 @@ if using_pyside2:
 
     def qt_image_bytes(qimage):
         return qimage.bits().tobytes()
+
+def qt_have_web_engine():
+    try:
+        from . import QtWebEngineWidgets
+    except Exception:
+        return False
+    return True

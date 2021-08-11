@@ -42,7 +42,7 @@ def install(session, registration):
     with _registration_lock:
         reg_file = _registration_file()
         try:
-            with open(reg_file, "w") as f:
+            with open(reg_file, "w", encoding='utf-8') as f:
                 f.write(registration)
             return True
         except IOError as e:
@@ -127,7 +127,7 @@ def _get_registration(logger):
         reg_file = _registration_file()
         try:
             param = {}
-            with open(reg_file) as f:
+            with open(reg_file, encoding='utf-8') as f:
                 for line in f:
                     key, value = [s.strip() for s in line.split(':', 1)]
                     param[key] = value
@@ -173,7 +173,7 @@ def _write_registration(logger, param):
     with _registration_lock:
         reg_file = _registration_file()
         try:
-            with open(reg_file, "w") as f:
+            with open(reg_file, "w", encoding='utf-8') as f:
                 for key, value in param.items():
                     print("%s: %s" % (key, value), file=f)
         except IOError as e:
@@ -205,15 +205,22 @@ def _check_usage(session):
     _write_usage(session.logger, usage)
     days = len(usage["dates"])
     if not nagged and days > GracePeriod and session is not None:
-        from chimerax.ui.ask import ask
-        answer = ask(session, NagMessage % (usage["count"], days),
-                     buttons=["Dismiss", "Register"])
-        if answer == "Register":
-            try:
-                session.ui.settings.autostart.append("Registration")
-            except AttributeError:
-                session.ui.settings.autostart = ["Registration"]
+        _ask_to_register(session, usage["count"], days)
 
+def _ask_to_register(session, times_used, days_used, wait_for_main_window = True):
+    if wait_for_main_window:
+        def _delayed_ask(*args, session=session, times_used=times_used, days_used=days_used):
+            _ask_to_register(session, times_used, days_used, wait_for_main_window = False)
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        session.triggers.add_handler('new frame', _delayed_ask)
+        return
+    from chimerax.ui.ask import ask
+    answer = ask(session, NagMessage % (times_used, days_used),
+                 buttons=["Dismiss", "Register"])
+    if answer == "Register":
+        from chimerax.core.commands import run
+        run(session, 'ui tool show Registration')
 
 def _get_usage():
     usage_file = _usage_file()
@@ -221,7 +228,7 @@ def _get_usage():
     try:
         # Read the usage file of count (total number of invocations)
         # and dates (first usage datetime on any day)
-        with open(usage_file) as f:
+        with open(usage_file, encoding='utf-8') as f:
             for line in f:
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
@@ -236,7 +243,7 @@ def _get_usage():
 def _write_usage(logger, usage):
     usage_file = _usage_file()
     try:
-        with open(usage_file, "w") as f:
+        with open(usage_file, "w", encoding='utf-8') as f:
             print("count: %d" % usage["count"], file=f)
             for dt in usage["dates"]:
                 print("date: %s" % _strftime(dt), file=f)

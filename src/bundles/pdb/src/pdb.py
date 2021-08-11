@@ -188,11 +188,11 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
             file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
                 displayed_only, [xform], all_coordsets,
-                pqr, (serial_numbering == "h36"), polymeric_res_names)
+                pqr, (serial_numbering == "h36"), polymeric_res_names, session.logger)
     else:
         _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,
             displayed_only, xforms, all_coordsets, pqr,
-            (serial_numbering == "h36"), polymeric_res_names)
+            (serial_numbering == "h36"), polymeric_res_names, session.logger)
 
 _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",

@@ -2242,9 +2242,7 @@ class VolumeSurface(Surface):
   #
   def _set_surface(self, va, na, ta, hidden_edges):
     
-    self.set_geometry(va, na, ta)
-
-    self.edge_mask = hidden_edges
+    self.set_geometry(va, na, ta, edge_mask = hidden_edges)
 
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     v = self.volume

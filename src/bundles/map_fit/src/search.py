@@ -183,17 +183,16 @@ class Fit:
     #
     def place_copies(self):
 
-        from chimera import Molecule, openModels as om
-        from Molecule import copy_molecule
-
-        mxf_list = [(m,xf) for m,xf in self.model_xforms()
-                    if isinstance(m, Molecule)]
-        copies = [copy_molecule(m) for m, xf in mxf_list]
+        from chimerax.atomic import Structure
+        mpos_list = [(m,position) for m,position in self.model_transforms()
+                    if isinstance(m, Structure)]
+        copies = [m.copy() for m, position in mpos_list]
         if copies:
-            om.add(copies)
+            session = copies[0].session
+            session.models.add(copies)
 
-        for c, (m,xf) in zip(copies, mxf_list):
-            c.openState.xform = xf
+        for c, (m,pos) in zip(copies, mpos_list):
+            c.position = pos
 
         return copies
 
@@ -289,7 +288,56 @@ class Fit:
             if m is model:
                 return tf
         return None
-    
+
+# -----------------------------------------------------------------------------
+#
+def save_fits(session, fits, path = None):
+
+    mlist = sum([f.fit_molecules() for f in fits], [])
+    if len(mlist) == 0:
+        session.logger.warning('No fits of molecules chosen from list.')
+        return
+
+    idir = ifile = None
+    vlist = [f.volume for f in fits]
+    pmlist = [m for m in mlist + vlist if hasattr(m, 'filename')]
+    if pmlist:
+        for m in pmlist:
+            import os.path
+            dpath, fname = os.path.split(m.filename)
+            base, suf = os.path.splitext(fname)
+            if ifile is None:
+                suffix = '_fit%d.pdb' if len(fits) > 1 else '_fit.pdb'
+                ifile = base + suffix
+            if dpath and idir is None:
+                idir = dpath
+
+    if path is None:
+        from chimerax.ui.open_save import SaveDialog
+        d = SaveDialog(session, caption = 'Save Fit Molecules',
+                       data_formats = [session.data_formats['PDB']],
+                       directory = idir)
+        if ifile:
+            d.selectFile(ifile)
+        if not d.exec():
+            return
+        paths = d.selectedFiles()
+        if paths:
+            path = paths[0]
+        else:
+            return
+        
+    if len(fits) > 1 and path.find('%d') == -1:
+        base, suf = os.path.splitext(path)
+        path = base + '_fit%d' + suf
+
+    from chimerax.pdb import save_pdb
+    for i, fit in enumerate(fits):
+        p = path if len(fits) == 1 else path % (i+1)
+        fit.place_models(session)
+        save_pdb(session, p, models = fit.fit_molecules(),
+                 rel_model = fit.volume)
+        
 # -----------------------------------------------------------------------------
 #
 def fit_order(f):
@@ -300,10 +348,10 @@ def fit_order(f):
 #
 def move_models(models, transforms, base_model, frames, session):
 
-    if not hasattr(session, move_table):
-        session.move_table = {}            # Map motion handlers for animating moves to fit positions
+    if not hasattr(session, '_move_table'):
+        session._move_table = {}            # Map motion handlers for animating moves to fit positions
 
-    move_table = session.move_table
+    move_table = session._move_table
     add = (len(move_table) == 0)
     if base_model.was_deleted:
         return
@@ -320,22 +368,22 @@ def move_models(models, transforms, base_model, frames, session):
 #
 def move_step(move_table, session):
 
-    mt = session.move_table
+    mt = session._move_table
     for m, (rxf, base_model, frames) in tuple(mt.items()):
         if m.was_deleted or base_model.was_deleted:
             del mt[m]
             continue
         tf = base_model.position * rxf
-        b = m.bounds(positions = False)
+        b = m.bounds()
         if b:
-            c = .5 * (b[0] + b[1])
-            m.set_place(m.position.interpolate(tf, c, 1.0/frames))
+            c = .5 * (b.xyz_min + b.xyz_max)
+            m.position = m.position.interpolate(tf, c, 1.0/frames)
             if frames <= 1:
                 del mt[m]
             else:
                 mt[m][2] = frames-1
         else:
-            m.set_place(tf)
+            m.position = tf
             del mt[m]
 
     if len(mt) == 0:

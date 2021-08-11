@@ -42,7 +42,7 @@ PDB::get_type(const char *buf)
     char    rt[7];      // PDB record type
     int i;
 
-    for (i = 0; buf[i] != '\0' && buf[i] != '\n' && i < 6; i += 1) {
+    for (i = 0; buf[i] != '\0' && buf[i] != '\n' && buf[i] != '\r' && i < 6; i += 1) {
         if (islower(buf[i]))
             rt[i] = _toupper(buf[i]);
         else
@@ -170,6 +170,8 @@ PDB::get_type(const char *buf)
     case 'L':
         if (strcmp(rt + 1, "INK  ") == 0)
             return LINK;
+        if (strcmp(rt + 1, "INKR ") == 0)
+            return LINKR;
         break;
 
     case 'M':

@@ -48,6 +48,8 @@ _additional_categories = (
     "reflns",
     "em_3d_reconstruction",
     "exptl",
+    "struct_ref",	# Uniprot data base id
+    "struct_ref_seq",	# Sequence range for uniprot id
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"

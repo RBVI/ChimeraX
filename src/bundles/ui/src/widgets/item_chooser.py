@@ -373,5 +373,6 @@ class ModelMenuButton(ItemMenuButton):
        For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
        MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
-    def __init__(self, session, **kw):
+    def __init__(self, session, *, no_value_button_text="No model chosen", **kw):
+        kw['no_value_button_text'] = no_value_button_text
         super().__init__(**_process_model_kw(session, **kw))
