@@ -293,21 +293,29 @@ def _log_alphafold_chain_info(alphafold_group_model):
              '  </thead>',
              '  <tbody>',
         ]
-    msorted = list(am.child_models())
-    msorted.sort(key = lambda m: m.chains[0].chain_id if m.chains else '')
-    for m in msorted:
+
+    rows = []
+    for m in am.child_models():
         cid = ', '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
+        rows.append((cid, m.uniprot_name, m.uniprot_id, rmsd,
+                     m.num_residues, m.observed_num_res, pct_id))
+
+    # Combine rows that are identical except chain id.
+    row_cids = {}
+    for row in rows:
+        values = row[1:]
+        if values in row_cids:
+            row_cids[values].append(row[0])
+        else:
+            row_cids[values] = [row[0]]
+    urows = [(', '.join(cids),) + values for values, cids in row_cids.items()]
+    urows.sort(key = lambda row: row[1])	# Sort by UniProt name
+    for urow in urows:
         lines.extend([
             '    <tr>',
-            '      <td style="text-align:center">%s' % cid,
-            '      <td style="text-align:center">%s' % m.uniprot_name,
-            '      <td style="text-align:center">%s' % m.uniprot_id,
-            '      <td style="text-align:center">%s' % rmsd,
-            '      <td style="text-align:center">%s' % m.num_residues,
-            '      <td style="text-align:center">%s' % m.observed_num_res,
-            '      <td style="text-align:center">%s' % pct_id])
+            '\n'.join('      <td style="text-align:center">%s' % field for field in urow)])
     lines.extend(['  </tbody>',
                   '</table>'])
     msg = '\n'.join(lines)
