@@ -253,7 +253,11 @@ class UI(QApplication):
         from Qt.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
             from chimerax.core.toolshed import get_toolshed
-            if event.file() in self._bad_drop_events:
+            if not hasattr(self, '_bad_drop_events'):
+                # script running window_size() (which call processEvents)
+                # can cause this to get called before open_pending_files()
+                self._seen_bad_drops = getattr(self, '_seen_bad_drops', []) + [event.file()]
+            elif event.file() in self._bad_drop_events:
                 self._bad_drop_events.remove(event.file())
             elif get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
@@ -268,6 +272,8 @@ class UI(QApplication):
         # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
         # on the command-line, but our code also opens those files, so ignore files we already processed.
         self._bad_drop_events = set(ignore_files)
+        for bad_drop in getattr(self, '_seen_bad_drops', []):
+            self._bad_drop_events.discard(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:

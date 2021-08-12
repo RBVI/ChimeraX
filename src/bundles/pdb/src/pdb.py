@@ -113,15 +113,7 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
                 coordset_slider(session, mc)
     if models:
         m = models[0]
-        title_recs = m.metadata.get('TITLE', None)
-        if title_recs:
-            text = collate_records_text(title_recs)
-            m.html_title = process_chem_name(text.strip(), sentences=True)
-            m.has_formatted_metadata = lambda ses: True
-            from types import MethodType
-            from weakref import proxy
-            m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
-            m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
+        set_logging_info(m)
 
     return models, info
 
@@ -481,6 +473,18 @@ def _process_chem_word(word, use_greek, probable_abbrs):
         else:
             segs.append(word)
     return '-'.join(segs)
+
+def set_logging_info(m):
+    # also used by Chimera->ChimeraX exporter
+    title_recs = m.metadata.get('TITLE', None)
+    if title_recs:
+        text = collate_records_text(title_recs)
+        m.html_title = process_chem_name(text.strip(), sentences=True)
+        m.has_formatted_metadata = lambda ses: True
+        from types import MethodType
+        from weakref import proxy
+        m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
+        m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
 
 def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params
