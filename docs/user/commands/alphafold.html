@@ -122,6 +122,9 @@ in the <a href="../tools/log.html"><b>Log</b></a>:
   <li><b>Length</b> &ndash; number of residues in the predicted structure
   <li><b>Seen</b> &ndash; number of residues with atomic coordinates 
   in the experimental structure
+  <li><b>% Id</b> &ndash; percent identity in the sequence alignment 
+calculated by <a href="matchmaker.html"><b>matchmaker</b></a> for superposition;
+the number of identical positions divided by the length of the shorter sequence
 </ol>
 
 <a name="options"></a>
@@ -187,6 +190,22 @@ style="display:inline-block; vertical-align:middle">
 ...in other words, using
 <b><a href="color.html#palette-options">palette</a>
 0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
+<!-- 100,blue:90,cornflowerblue:70,yellow:50,orange:0,red</b> -->
+<br>
+The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
+or <a href="key.html"><b>key</b></a> command
+can be used to draw a corresponding color key, for example:
+</p>
+  <blockquote>
+  <b>key</b> <b>red:low orange: yellow: cornflower blue: blue:high</b>
+  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+<!--
+<br>
+  <b>key</b> <b>blue:100 cornflowerblue:90 yellow:70 orange:50 red:0</b>
+  &nbsp;<b>numericLabelSpacing equal</b>
+  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+-->
+  </blockquote>
 </blockquote>
 <blockquote>
 <a name="ignoreCache"></a>
