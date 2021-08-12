@@ -183,7 +183,7 @@ def _sequence_identity(seq1, seq2, range2 = None):
     if range2:
         rmin, rmax = range2
         pairs = [(aa1,aa2) for aa1, aa2, r2 in zip(seq1.characters, seq2.characters, seq2.residues)
-                 if r2.number >= rmin and r2.number <= rmax]
+                 if r2 is not None and r2.number >= rmin and r2.number <= rmax]
     else:
         pairs = list(zip(seq1.characters, seq2.characters))
 
@@ -209,7 +209,7 @@ def _sequence_match_range(seq1, seq2):
     '''
     rnum1 = rnum2 = None
     for aa1, aa2, r2 in zip(seq1.characters, seq2.characters, seq2.residues):
-        if aa1 != '.' and aa2 != '.':
+        if aa1 != '.' and aa2 != '.' and r2 is not None:
             rnum2 = r2.number
             if rnum1 is None:
                 rnum1 = rnum2
