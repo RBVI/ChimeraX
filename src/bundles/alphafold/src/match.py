@@ -174,17 +174,32 @@ def _align_to_chain(structure, chain):
             structure.rmsd = rmsd
         rseq, mseq = r.get('aligned ref seq'), r.get('aligned match seq')
         if rseq and mseq:
-            structure.seq_identity = _sequence_identity(rseq, mseq)
             range = _sequence_match_range(rseq, mseq)
-            if range != (None, None):
+            if range:
                 structure.seq_match_range = range
+            structure.seq_identity = _sequence_identity(rseq, mseq, range)
 
-def _sequence_identity(seq1, seq2):
+def _sequence_identity(seq1, seq2, range2 = None):
+    if range2:
+        rmin, rmax = range2
+        pairs = [(aa1,aa2) for aa1, aa2, r2 in zip(seq1.characters, seq2.characters, seq2.residues)
+                 if r2.number >= rmin and r2.number <= rmax]
+    else:
+        pairs = list(zip(seq1.characters, seq2.characters))
+
     m = 0
-    for r1, r2 in zip(seq1.characters, seq2.characters):
-        if r1 == r2 and r1 != '.':
+    for aa1, aa2 in pairs:
+        if aa1 == aa2 and aa1 != '.':
             m += 1
-    d = min(seq1.num_residues, seq2.num_residues)
+
+    len1 = len2 = 0
+    for aa1, aa2 in pairs:
+        if aa1 != '.':
+            len1 += 1
+        if aa2 != '.':
+            len2 += 1
+        
+    d = min(len1, len2)
     return m/d if d > 0 else 0.0
 
 def _sequence_match_range(seq1, seq2):
@@ -198,7 +213,9 @@ def _sequence_match_range(seq1, seq2):
             rnum2 = r2.number
             if rnum1 is None:
                 rnum1 = rnum2
-    return rnum1, rnum2
+    if rnum1 is None:
+        return None
+    return (rnum1, rnum2)
 
 def _chain_uniprot_ids(chains):
     chain_uids = []
