@@ -121,10 +121,15 @@ def _alphafold_models(chains, chain_uids, color_confidence=True, trim=True,
             alphafold_model.uniprot_id = uid.uniprot_id
             alphafold_model.uniprot_name = uid.uniprot_name
             alphafold_model.observed_num_res = chain.num_existing_residues
-            if trim:
+            seq_match = getattr(uid, 'range_from_sequence_match', False)
+            if trim and not seq_match:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             _rename_chains(alphafold_model, chain)
             _align_to_chain(alphafold_model, chain)
+            if trim and seq_match:
+                seq_range = getattr(alphafold_model, 'seq_match_range', None)
+                if seq_range:
+                    _trim_sequence(alphafold_model, seq_range)
             alphafold_model.name = 'UniProt %s chain %s' % (uid.uniprot_id, chain.chain_id)
         if models:
             if chain in chain_models:
@@ -170,6 +175,9 @@ def _align_to_chain(structure, chain):
         rseq, mseq = r.get('aligned ref seq'), r.get('aligned match seq')
         if rseq and mseq:
             structure.seq_identity = _sequence_identity(rseq, mseq)
+            range = _sequence_match_range(rseq, mseq)
+            if range != (None, None):
+                structure.seq_match_range = range
 
 def _sequence_identity(seq1, seq2):
     m = 0
@@ -178,6 +186,19 @@ def _sequence_identity(seq1, seq2):
             m += 1
     d = min(seq1.num_residues, seq2.num_residues)
     return m/d if d > 0 else 0.0
+
+def _sequence_match_range(seq1, seq2):
+    '''
+    Return the residue number range for seq2 spanning
+    the first to last matching position in the sequence alignment.
+    '''
+    rnum1 = rnum2 = None
+    for aa1, aa2, r2 in zip(seq1.characters, seq2.characters, seq2.residues):
+        if aa1 != '.' and aa2 != '.':
+            rnum2 = r2.number
+            if rnum1 is None:
+                rnum1 = rnum2
+    return rnum1, rnum2
 
 def _chain_uniprot_ids(chains):
     chain_uids = []
