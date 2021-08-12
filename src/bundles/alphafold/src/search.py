@@ -96,6 +96,7 @@ class UniprotSequence:
         self.uniprot_name = uniprot_name
         self.database_sequence_range = database_sequence_range
         self.chain_sequence_range = chain_sequence_range
+        self.range_from_sequence_match = True
     def copy(self, chain_id):
         return UniprotSequence(chain_id, self.uniprot_id, self.uniprot_name,
                             self.database_sequence_range, self.chain_sequence_range)
