@@ -96,8 +96,10 @@ class ToolUI(HtmlToolInstance):
         self.html_view.setUrl(pathlib.Path(html_file).as_uri())
 
     def handle_scheme(self, url):
-        # Called when GUI sets browser URL location.
-        # ``url`` - ``Qt.QtCore.QUrl`` instance
+        """
+        Called when GUI sets browser URL location.
+        url: Qt.QtCore.QUrl instance
+        """
 
         # First check that the path is a real command
         command = url.path()
@@ -106,7 +108,7 @@ class ToolUI(HtmlToolInstance):
         elif command == "search":
             self.blast(url)
         elif command == "load":
-            self.load_pdb(url)
+            self.load(url)
         elif command == "update_models":
             self.update_models()
         elif command == "show_mav":
@@ -120,9 +122,11 @@ class ToolUI(HtmlToolInstance):
 
 
     def update_models(self, trigger=None, trigger_data=None):
-        # Update the <select> options in the web form with current
-        # list of chains in all atomic structures.  Also enable/disable
-        # submit buttons depending on whether there are any structures open.
+        """
+        Update the <select> options in the web form with current
+        list of chains in all atomic structures.  Also enable/disable
+        submit buttons depending on whether there are any structures open.
+        """
 
         # Get the list of atomic structures
         if not self._initialized:
@@ -149,7 +153,6 @@ class ToolUI(HtmlToolInstance):
     # Initialize after GUI is ready
     #
 
-
     def initialize(self):
         self._initialized = True
         self.update_models()
@@ -160,7 +163,6 @@ class ToolUI(HtmlToolInstance):
                     self._ref_atomspec = v
         if self._blast_results:
             self._show_results(self._ref_atomspec, self._blast_results)
-            self._blast_results = None
         elif self._hits:
             self._show_hits()
 
@@ -277,49 +279,43 @@ class ToolUI(HtmlToolInstance):
     def job_finished(self, job, blast_results, params):
         self._params = params
         self._show_params(params)
-        self._show_results(job.atomspec, blast_results)
+        self._blast_results = blast_results
+        self._show_results(job.atomspec, self._blast_results)
         self.html_view.runJavaScript("status('');")
 
     def _show_results(self, atomspec, blast_results):
-        # blast_results is either None or a blastp_parser.Parser
+        # blast_results is either None or a subclass of databases.Database
         self._ref_atomspec = atomspec
         hits = []
         self._sequences = {}
         if blast_results is not None:
-            query_match = blast_results.matches[0]
+            query_match = blast_results.parser.matches[0]
             if self._ref_atomspec:
                 name = self._ref_atomspec
             else:
                 name = query_match.name
             self._sequences[0] = (name, query_match.sequence)
-            import re
-            NCBI_IDS = ["ref","gi"]
-            NCBI_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
-            id_pat = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
-            pdb_chains = {}
-            for n, m in enumerate(blast_results.matches[1:]):
+
+            match_chains = {}
+
+            for n, m in enumerate(blast_results.parser.matches[1:]):
                 sid = n + 1
                 hit = {"id":sid, "evalue":m.evalue, "score":m.score,
                        "description":m.description}
-                if m.pdb:
-                    hit["name"] = m.pdb
-                    hit["url"] = "%s:load?pdb=%s" % (self.CUSTOM_SCHEME, m.pdb)
-                    pdb_chains[m.pdb] = hit
+                if m.match:
+                    hit["name"] = m.match
+                    hit["url"] = "%s:load?match=%s" % (self.CUSTOM_SCHEME, m.match)
+                    match_chains[m.match] = hit
                 else:
-                    mdb = None
-                    mid = None
-                    match = id_pat.search(m.name)
-                    if match is not None:
-                        mdb = match.group(1)
-                        mid = match.group(2)
-                        hit["name"] = "%s (%s)" % (mid, mdb)
-                        hit["url"] = NCBI_ID_URL % mid
-                    else:
-                        hit["name"] = m.name
-                        hit["url"] = ""
+                    hit = blast_results.add_url(hit, m)
                 hits.append(hit)
                 self._sequences[sid] = (hit["name"], m.sequence)
-            self._add_pdbinfo(pdb_chains)
+
+            # TODO: Make what this function does more explicit. It works on the
+            # hits that are in match_chain's hit dictionary, but that's not
+            # immediately clear.
+            blast_results.add_info(self.session, match_chains)
+
         self._hits = hits
         self._show_hits()
 
@@ -333,53 +329,30 @@ class ToolUI(HtmlToolInstance):
         js = "table_update(%s);" % json.dumps(self._hits)
         self.html_view.runJavaScript(js)
 
-    def _add_pdbinfo(self, pdb_chains):
-        from .pdbinfo import fetch_pdb_info
-        chain_ids = pdb_chains.keys()
-        data = fetch_pdb_info(self.session, chain_ids)
-        for chain_id, hit in pdb_chains.items():
-            for k, v in data[chain_id].items():
-                if isinstance(v, list):
-                    v = ", ".join([str(s) for s in v])
-                hit[k] = v
-
-
     def job_failed(self, job, error):
         from chimerax.core.errors import UserError
         raise UserError("BlastProtein failed: %s" % error)
 
 
     #
-    # Code for loading (and matching) a PDB entry
+    # Code for loading (and spatially matching) a match entry
     #
 
-    def load_pdb(self, url):
+    def load(self, url) -> None:
+        """Load the model from the results database.
+        url: Instance of Qt.QtCore.QUrl
+        """
         from chimerax.core.commands import run
-        from chimerax.atomic import AtomicStructure
         from urllib.parse import parse_qs
         query = parse_qs(url.query())
-        for code in query["pdb"]:
-            parts = code.split('_', 1)
-            if len(parts) == 1:
-                pdb_id = parts[0]
-                chain_id = None
-            else:
-                pdb_id, chain_id = parts
-            models = run(self.session, "open pdb:%s" % pdb_id)[0]
-            if isinstance(models, AtomicStructure):
-                models = [models]
+        for code in query["match"]:
+            models, chain_id = self._blast_results.load_model(self.session, code)
             if not self._ref_atomspec:
                 run(self.session, "select clear")
             else:
                 for m in models:
-                    spec = m.atomspec
-                    if chain_id:
-                        spec += '/' + chain_id
-                    if self._ref_atomspec:
-                        run(self.session, "matchmaker %s to %s" %
-                                          (spec, self._ref_atomspec))
-                    else:
-                        run(self.session, "select add %s" % spec)
+                    self._blast_results.display_model(self.session, self._ref_atomspec, m, chain_id)
+
 
 
     #

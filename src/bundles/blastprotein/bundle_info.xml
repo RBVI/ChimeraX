@@ -24,6 +24,7 @@ interface is available; otherwise, the results are logged.</Description>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-WebServices" version="~=1.0"/>
     <Dependency name="ChimeraX-Alignments" version="~=2.0"/>
+    <Dependency name="ChimeraX-AlphaFold" version="~=1.0"/>
   </Dependencies>
 
   <Providers>

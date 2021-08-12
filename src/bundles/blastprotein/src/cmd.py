@@ -15,12 +15,11 @@ from chimerax.core.commands import CmdDesc, AtomSpecArg
 from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or
 from chimerax.seqalign import AlignSeqPairArg
 
-DBs = ["pdb", "nr"]
+DBs = ["pdb", "nr", "alphafold"]
 Matrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
             "PAM30", "PAM70", "PAM250", "IDENTITY"]
 
 # Use camel-case variable names for displaying keywords in help/usage
-
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
                  matrix="BLOSUM62", maxSeqs=500, log=None, *, name=None):
     from .job import BlastProteinJob
@@ -56,6 +55,8 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
     BlastProteinJob(session, chain.ungapped(), chain_spec,
                     database=database, cutoff=cutoff, matrix=matrix,
                     max_seqs=maxSeqs, log=log, tool_inst_name=name)
+
+
 blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                                    AlignSeqPairArg))],
                         keyword=[("database", EnumOf(DBs)),
