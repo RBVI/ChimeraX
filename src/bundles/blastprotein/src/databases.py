@@ -120,8 +120,28 @@ class AlphaFoldDb(Database):
         return models, None
 
     def add_info(self, session, matches):
-        pass
+        for match in matches:
+            raw_desc = matches[match]["description"]
+            # Splitting by = then spaces lets us cut out the X=VAL attributes
+            # and the longform Uniprot ID,
+            hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            matches[match]["title"] = hit_title
+            matches[match]["chain_species"] = self._get_species(raw_desc)
 
+    def _get_species(self, raw_desc):
+        """AlphaFold's BLAST output is polluted with lots of metadata in the
+        form XY=Z, in the order OS OX GN PE SV, some of which may be missing.
+        This is some ugly string hacking to return the species if it exists."""
+        try:
+            species_loc = raw_desc.index('OS')
+        except:
+            # No species
+            return ""
+        else:
+            next_attr_start = raw_desc[species_loc+3:].index('=')
+            # Cut off the first equals sign, and the ' XY' of the
+            # second XY parameter
+            return raw_desc[species_loc+3:][:next_attr_start-3]
 
 def get_database(db):
     """Instantiate and return a database instance.
