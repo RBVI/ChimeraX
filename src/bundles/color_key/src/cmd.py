@@ -17,7 +17,7 @@ from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
         label_color=None, label_offset=None, font=None, border=None, border_color=None, border_width=None,
-        ticks=None, tick_length=None, tick_thickness=None):
+        show_tool=False, ticks=None, tick_length=None, tick_thickness=None):
     if colors_and_labels is not None:
         # list of (color, label) and/or (colormap, label1, label2...) items.  Convert...
         from chimerax.core.colors import Colormap
@@ -84,6 +84,9 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
         key.rgbas_and_labels = rgbas_and_labels
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session,"ui tool show 'Color Key'", log=False)
     return key
 
 def key_delete_cmd(session):
@@ -159,9 +162,9 @@ def show_key(session, color_map, *, show_tool=True, precision=3):
             for c, dv in zip(color_map.colors, values)])
     else:
         key_arg = "%s %s" % (StringArg.unparse(palette), " ".join([(':' + v_fmt) % dv for dv in values]))
+    if show_tool:
+        key_arg += " showTool true"
     run(session, "key " + key_arg)
-    if show_tool and session.ui.is_gui and not session.in_script:
-        run(session,"ui tool show 'Color Key'")
 
 from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token, \
     ColormapArg, Or
@@ -253,6 +256,7 @@ def register_command(logger):
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
+            ('show_tool', BoolArg),
             ('size', TupleOf(NonNegativeFloatArg,2)),
             ('ticks', BoolArg),
             ('tick_length', NonNegativeFloatArg),

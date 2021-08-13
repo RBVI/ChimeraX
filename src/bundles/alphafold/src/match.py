@@ -296,7 +296,7 @@ def _log_alphafold_chain_info(alphafold_group_model):
 
     rows = []
     for m in am.child_models():
-        cid = ', '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
+        cid = ' '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
         rows.append((cid, m.uniprot_name, m.uniprot_id, rmsd,
@@ -310,7 +310,7 @@ def _log_alphafold_chain_info(alphafold_group_model):
             row_cids[values].append(row[0])
         else:
             row_cids[values] = [row[0]]
-    urows = [(', '.join(cids),) + values for values, cids in row_cids.items()]
+    urows = [(' '.join(cids),) + values for values, cids in row_cids.items()]
     urows.sort(key = lambda row: row[1])	# Sort by UniProt name
     for urow in urows:
         lines.extend([
