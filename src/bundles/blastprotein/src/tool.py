@@ -114,8 +114,11 @@ class ToolUI(HtmlToolInstance):
         elif command == "show_mav":
             from urllib.parse import parse_qs
             query = parse_qs(url.query())
-            id_list = [int(n) for n in query["ids"][0].split(',')]
-            self.show_mav(id_list)
+            if 'ids' not in query:
+                self.session.logger.info("No sequences to show.")
+            else:
+                id_list = [int(n) for n in query["ids"][0].split(',')]
+                self.show_mav(id_list)
         else:
             from chimerax.core.errors import UserError
             raise UserError("unknown blastprotein command: %s" % command)
