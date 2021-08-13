@@ -115,7 +115,7 @@ class Parser(ABC):
         q_end = int(hsp["query_to"])
         self._update_gap_counts(q_seq, q_start, q_end)
         m = Match(name, match_id, desc, score, evalue, q_start, q_end, q_seq, h_seq)
-        self.matches.append(m)
+        # self.matches.append(m)
         self.match_dict[name] = m
         return m
 
