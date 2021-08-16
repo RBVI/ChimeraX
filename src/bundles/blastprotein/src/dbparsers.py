@@ -1,29 +1,36 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
+# Copyright 2021 Regents of the University of California.
+# All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
+# duplication and use. For details see:
 # http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
 _GapChars = "-. "
 
-import re
-RE_PDBId = re.compile(r"\S*pdb\|(?P<id>\w{4})\|(?P<chain>\w*)\s*(?P<desc>.*)")
-RE_ChainId = re.compile(r"Chain (?P<id>\w*)\W.*")
+from abc import ABC, abstractmethod
+import json
+from typing import Callable
 
-class Parser:
-    """Parser for XML output from blastp (tested against
-    version 2.2.29+."""
+class Parser(ABC):
+    """Abstract base class for BLAST JSON parsers. To define a parser for a new
+    type of database, create a subclass that implements _extract_hit and pass it
+    to the superclass constructor."""
+    def __init__(self, query_title, query_seq, output, extract_hit):
+        self.true_name = query_title
+        self.query_seq = query_seq
+        self.output = output
+        self._parse(extract_hit)
 
-    def __init__(self, true_name, query_seq, output):
+    def _parse(self, extract_hit: Callable[[dict], None]) -> None:
+        """
+        extract_hit: A function that will parse the hits from BLAST output.
+        """
         # Bookkeeping data
-        self.true_name = true_name
         self.matches = []
         self.match_dict = {}
         self._gap_count = None
@@ -43,27 +50,36 @@ class Parser:
         self.db_size_letters = None
 
         # Extract information from results
-        import xml.etree.ElementTree as ET
-        tree = ET.fromstring(output)
-        if tree.tag != "BlastOutput":
-            raise ValueError("Text is not BLAST XML output")
-        self._extract_root(tree)
-        e = tree.find("./BlastOutput_param/Parameters")
+        self.res = json.loads(self.output)
+
+        if not 'BlastOutput2' in self.res.keys():
+            raise ValueError("Text is not BLAST JSON output")
+
+        self.res_data = self.res["BlastOutput2"][0]["report"]
+        self._extract_metadata(self.res_data)
+
+        e = self.res_data["params"]
         if e is not None:
             self._extract_params(e)
-        el = tree.findall("BlastOutput_iterations/Iteration")
-        if len(el) > 1:
-            raise ValueError("Multi-iteration BLAST output unsupported")
-        elif len(el) == 0:
-            raise ValueError("No iteration data in BLAST OUTPUT")
-        iteration = el[0]
-        for he in iteration.findall("./Iteration_hits/Hit"):
-            self._extract_hit(he)
-        self._extract_stats(iteration.find("./Iteration_stat/Statistics"))
 
-        # Insert the query as match[0]
+        num_results = len(self.res_data["results"])
+        if num_results > 1:
+            raise ValueError("Multi-iteration BLAST output unsupported")
+        elif num_results == 0:
+            raise ValueError("No iteration data in BLAST output")
+        for hit in self.res_data["results"]["search"]["hits"]:
+            extract_hit(hit)
+        self._extract_stats(self.res_data["results"]["search"]["stat"])
+        self._append_query()
+
+    @abstractmethod
+    def _extract_hit(self, hit):
+        pass
+
+    def _append_query(self):
+        """Insert the query as the first match"""
         m = Match(self.true_name, None, "user_input",
-                  0.0, 0.0, 1, len(query_seq), query_seq, query_seq) #SH
+                  0.0, 0.0, 1, len(self.query_seq), self.query_seq, self.query_seq) #SH
         self.matches.insert(0, m)
         self.match_dict[self.query] = m
 
@@ -71,78 +87,35 @@ class Parser:
         # with the query sequence
         self._align_sequences()
 
-    def _text(self, parent, tag):
-        e = parent.find(tag)
-        return e is not None and e.text.strip() or None
-
-    def _extract_root(self, oe):
-        self.database = self._text(oe, "BlastOutput_db")
-        self.query = self._text(oe, "BlastOutput_query-ID")
-        self.query_length = int(self._text(oe, "BlastOutput_query-len"))
+    def _extract_metadata(self, md):
+        self.database = md["search_target"]["db"]
+        self.query = md["results"]["search"]["query_id"]
+        self.query_length = md["results"]["search"]["query_len"]
         self._gap_count = [ 0 ] * self.query_length
-        self.reference = self._text(oe, "BlastOutput_reference")
-        self.version = self._text(oe, "BlastOutput_version")
+        self.reference = md["reference"]
+        self.version = md["version"]
 
     def _extract_params(self, pe):
-        self.gap_existence = self._text(pe, "Parameters_gap-open")
-        self.gap_extension = self._text(pe, "Parameters_gap-extend")
-        self.matrix = self._text(pe, "Parameters_matrix")
+        self.gap_existence = pe["gap_open"]
+        self.gap_extension = pe["gap_extend"]
+        self.matrix = pe["matrix"]
 
-    def _extract_stats(self, se):
-        self.db_size_sequences = self._text(se, "Statistics_db-num")
-        self.db_size_letters = self._text(se, "Statistics_db-len")
+    def _extract_stats(self, sts):
+        self.db_size_sequences = sts["db_num"]
+        self.db_size_letters = sts["db_len"]
 
-    def _extract_hit(self, he):
-        hid = self._text(he, "Hit_id")
-        m = RE_PDBId.match(hid)
-        if m:
-            # PDB hit, create list of PDB hits
-            id_list = []
-            for defline in (hid + ' ' + self._text(he, "Hit_def")).split(">"):
-                m = RE_PDBId.match(defline)
-                if m:
-                    id_list.append(m.groups())
-            pdbid, chain, desc = id_list.pop(0)
-            name = pdb = self._make_pdb_name(pdbid, chain, desc)
-        else:
-            name = hid
-            pdb = None
-            desc = self._text(he, "Hit_def").split(">")[0]
-            # An nr hit can have many more ids on the defline, but
-            # we only keep pdb ones
-            id_list = []
-            for defline in (hid + ' ' + self._text(he, "Hit_def")).split(">"):
-                m = RE_PDBId.match(defline)
-                if m:
-                    id_list.append(m.groups())
-        match_list = []
-        for hspe in he.findall("./Hit_hsps/Hsp"):
-            match_list.append(self._extract_hsp(hspe, name, pdb, desc))
-        for pdbid, chain, desc in id_list:
-            name = pdb = self._make_pdb_name(pdbid, chain, desc)
-            for m in match_list:
-                self._copy_match(m, name, pdb, desc)
-
-    def _make_pdb_name(self, pdbid, chain, desc):
-        if not chain:
-            name = pdbid
-        else:
-            m = RE_ChainId.match(desc)
-            name = pdbid + '_' + (m.group("id") if m else chain)
-        return name
-
-    def _extract_hsp(self, hspe, name, pdb, desc):
-        score = int(float(self._text(hspe, "Hsp_bit-score"))) #SH
-        evalue = float(self._text(hspe, "Hsp_evalue"))
-        q_seq = self._text(hspe, "Hsp_qseq")
-        q_start = int(self._text(hspe, "Hsp_query-from"))
-        q_end = int(self._text(hspe, "Hsp_query-to"))
+    def _extract_hsp(self, hsp, name, match_id, desc):
+        score = int(float(hsp["bit_score"]))
+        evalue = float(hsp["evalue"])
+        h_seq = hsp["hseq"]
+        h_start = int(hsp["hit_from"])
+        h_end = int(hsp["hit_to"])
+        q_seq = hsp["qseq"]
+        q_start = int(hsp["query_from"])
+        q_end = int(hsp["query_to"])
         self._update_gap_counts(q_seq, q_start, q_end)
-        h_seq = self._text(hspe, "Hsp_hseq")
-        h_start = int(self._text(hspe, "Hsp_hit-from"))
-        h_end = int(self._text(hspe, "Hsp_hit-to"))
-        m = Match(name, pdb, desc, score, evalue, q_start, q_end, q_seq, h_seq)
-        self.matches.append(m)
+        m = Match(name, match_id, desc, score, evalue, q_start, q_end, q_seq, h_seq)
+        # self.matches.append(m)
         self.match_dict[name] = m
         return m
 
@@ -154,7 +127,7 @@ class Parser:
         self.match_dict[name] = nm
 
     def _update_gap_counts(self, seq, start, end):
-        start -= 1    # Switch to 0-based indexing
+        start -= 1 # Switch to 0-based indexing
         count = 0
         for c in seq:
             if c in _GapChars:
@@ -170,6 +143,8 @@ class Parser:
             m.match_sequence_gaps(self._gap_count)
 
     def write_msf(self, f, per_line=60, block=10, matches=None):
+        # TODO: Ripgrep of src directory for write_msf returned nothing
+        # but this code block. Is this dead code?
         if (matches is not None and len(matches) == 1 and
             matches[0] is self.matches[0]):
             # if user selected only the query sequence,
@@ -260,13 +235,64 @@ class Parser:
             elif attr is None:
                 print("  %s: _uninitialized_" % a, file=f)
 
+
+class PDBParser(Parser):
+    def __init__(self, query_title, query_seq, output):
+        super().__init__(query_title, query_seq, output, self._extract_hit)
+
+    def _extract_hit(self, hit):
+        id_list = []
+        # Unlike XML output, JSON output doesn't separate out the first PDBID.
+        for entry in hit["description"]:
+            eid = entry["id"].split("|")
+            # We only want to keep PDB hits e.g. pdb|6P5N|B
+            if eid[0] != "pdb":
+                continue
+            name = eid[1]
+            chain = eid[2]
+            desc = entry["title"]
+            if desc.startswith("Chain"):
+                # Strip the chain information up to the first comma, but since
+                # the description can have many commas splice the description
+                # back together at the end
+                desc = (','.join(desc.split(',')[1:])).strip()
+            id_list.append((name, chain, desc))
+        name = pdb = id_list[0][0] + '_' + id_list[0][1]
+        desc = id_list[0][2]
+        match_list = []
+        for hsp in hit["hsps"]:
+            match_list.append(self._extract_hsp(hsp, name, pdb, desc))
+        for pdbid, chain, desc in id_list:
+            name = pdb = (pdbid + '_' + chain)
+            for m in match_list:
+                self._copy_match(m, name, pdb, desc)
+
+
+class AlphaFoldParser(Parser):
+    def __init__(self, query_title, query_seq, output):
+        super().__init__(query_title, query_seq, output, self._extract_hit)
+
+    def _extract_hit(self, hit):
+        id_list = []
+        for entry in hit["description"]:
+            uniprot_id = entry["title"].split('|')[1]
+            desc = entry["title"].split('|')[2]
+            id_list.append((uniprot_id, desc))
+        match_list = []
+        for hsp in hit["hsps"]:
+            match_list.append(self._extract_hsp(hsp, uniprot_id, uniprot_id, desc))
+        for uniprot_id, desc in id_list:
+            for m in match_list:
+                self._copy_match(m, uniprot_id, uniprot_id, desc)
+
+
 class Match:
     """Data from a single BLAST hit."""
 
-    def __init__(self, name, pdb, desc, score, evalue,
+    def __init__(self, name, match_id, desc, score, evalue,
                  q_start, q_end, q_seq, h_seq):
         self.name = name
-        self.pdb = pdb
+        self.match = match_id
         self.description = desc.strip()
         self.score = score
         self.evalue = evalue
@@ -279,7 +305,7 @@ class Match:
         self.sequence = ""
 
     def __repr__(self):
-        return "<Match %s (pdb=%s)>" % (self.name, self.pdb)
+        return "<Match %s (match=%s)>" % (self.name, self.match)
 
     def print_sequence(self, f, prefix, per_line=60):
         for i in range(0, len(self.sequence), per_line):
@@ -328,15 +354,3 @@ class Match:
     def dump(self, f):
         print(self, file=f)
         self.print_sequence(f, '')
-
-
-if __name__ == "__main__":
-    query_name = "query"
-    query_seq = "MSGAGSKRKNVFIEKATKLFTTYDKMIVAEADFVGSSQLQKIRKSIRGIGAVLMGKKTMIRKVIRDLADSKPELDALNTYLKQNTCIIFCKDNIAEVKRVINTQRVGAPAKAGVFAPNDVIIPAGPTGMEPTQTSFLQDLKIATKINRGQIDIVNEVHIIKTGQKVGASEATLLQKLNIKPFTYGLEPKIIYDAGACYSPSISEE"
-    with open("testdata/blast_pdb.txt") as f:
-        output = f.read()
-    p = Parser(query_name, query_seq, output)
-    print(p.matches)
-    import sys
-    for m in p.matches:
-        m.dump(sys.stdout)

@@ -62,3 +62,7 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# Files that get created on-demand
+swagger-codegen-cli.jar
+cxservices.config

@@ -46,7 +46,7 @@ class Configuration(six.with_metaclass(TypeWithDefault, object)):
     def __init__(self):
         """Constructor"""
         # Default Base url
-        self.host = "http://webservices.rbvi.ucsf.edu/rest/api/v1"
+        self.host = "http://webservices.rbvi.ucsf.edu/cxservices/api/v1/"
         # Temp file folder for downloading files
         self.temp_folder_path = None
 
@@ -240,5 +240,5 @@ class Configuration(six.with_metaclass(TypeWithDefault, object)):
                "OS: {env}\n"\
                "Python Version: {pyversion}\n"\
                "Version of the API: 0.1\n"\
-               "SDK Package Version: 1.0".\
+               "SDK Package Version: 1.0.1".\
                format(env=sys.platform, pyversion=sys.version)
