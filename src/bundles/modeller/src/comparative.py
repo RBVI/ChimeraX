@@ -124,9 +124,9 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         # of '-' characters
         prefixes, suffixes = find_affixes(mm_chains, chain_info)
         target_strings = []
-        for prefix, suffix, mm_target in zip(prefixes, suffixes, mm_targets):
+        for prefix, suffix, mm_target, mm_chain in zip(prefixes, suffixes, mm_targets, mm_chains):
             if mm_target is None:
-                target_strings.append('-')
+                target_strings.append('-' * len(mm_chain))
                 continue
             target_strings.append('-' * len(prefix) + mm_target.characters + '-' * len(suffix))
         templates_strings = []
@@ -136,7 +136,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             try:
                 aseq, target = chain_info[chain]
             except KeyError:
-                mm_template_strings.append('-')
+                mm_template_strings.append("".join([c if r else '-'
+                    for c, r in zip(chain.characters, chain.residues)]))
                 continue
             mm_template_strings.append(prefix + regularized_seq(aseq, chain).characters + suffix)
         templates_strings.append(mm_template_strings)
@@ -221,8 +222,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         if info is None:
             # multimer template
             pir_template = Sequence(name=structure_save_name(multimer_template))
-            pir_template.description = "structure:%s:FIRST:%s::::::" % (
-                pir_template.name, multimer_template.chains[0].chain_id)
+            pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (pir_template.name,
+                multimer_template.chains[0].chain_id, multimer_template.chains[-1].chain_id)
             structures_to_save.add(multimer_template)
         else:
             # single-chain template
