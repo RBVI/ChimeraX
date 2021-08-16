@@ -59,7 +59,11 @@ The
 does not cover all sequences in
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
 so there may not be a prediction available for a given protein chain.
-It is also important to realize that the predicted structures vary in
+The database can be searched for sequences similar to a query with
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a>
+or the <a href="blastprotein.html"><b>blastprotein</b></a> command.
+</p><p>
+It is important to realize that the predicted structures vary in
 confidence levels and should be interpreted with caution.
 The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 system predicts structures for single chains, not complexes; 
@@ -116,7 +120,10 @@ in the <a href="../tools/log.html"><b>Log</b></a>:
 </p>
   <ul>
   <li><b>Chain</b> &ndash; chain ID
-  <li><b>UniProt Name</b> and <b>UniProt Id</b> (accession number)
+  <li><a href="https://www.uniprot.org/help/entry_name" 
+  target="_blank"><b>UniProt Name</b></a>
+  and <a href="https://www.uniprot.org/help/accession_numbers"
+  target="_blank"><b>UniProt Id</b></a> (accession number)
   <li><b>RMSD</b> &ndash; C&alpha; root-mean-square deviation between
   the predicted and experimental structures, over all residues of the latter
   <li><b>Length</b> &ndash; number of residues in the predicted structure

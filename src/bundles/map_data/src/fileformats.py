@@ -333,13 +333,22 @@ def save_grid_data(grids, path, session, format = None, options = {}):
 #
 def matching_grid_path(glist, path):
 
-  from os.path import realpath
-  rp = realpath(path)
+  rp = _realpath(path)
   for g in glist:
     for gp in grid_paths(g):
-      if realpath(gp) == rp:
+      if _realpath(gp) == rp:
         return True
   return False
+
+# -----------------------------------------------------------------------------
+#
+def _realpath(path):
+  from os.path import realpath
+  try:
+    return realpath(path)
+  except FileNotFoundError:
+    # The current working directory is unreadable so relative path cannot be expanded.
+    return path
   
 # -----------------------------------------------------------------------------
 #
