@@ -5,6 +5,10 @@ include $(TOP)/mk/config.make
 # alternate method is "fromsrc"
 METHOD=wheel
 
+ifeq ($(OSARCH),DarwinArm64)
+METHOD=mac_arm64
+endif
+
 # PYQT_LICENSE can be "commercial" for commercial version
 PYQT_LICENSE = gpl
 

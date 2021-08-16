@@ -28,8 +28,14 @@ class _MDCrdsBundleAPI(BundleAPI):
                         return read_psf(session, data, file_name, **kw)
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg, OpenFileNameArg
-                        return { 'auto_style': BoolArg, 'coords': OpenFileNameArg }
+                        from chimerax.core.commands import BoolArg, OpenFileNameArg, PositiveIntArg
+                        return {
+                            'auto_style': BoolArg,
+                            'coords': OpenFileNameArg,
+                            'end': PositiveIntArg,
+                            'start': PositiveIntArg,
+                            'step': PositiveIntArg,
+                        }
             elif name == "gro":
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
@@ -42,7 +48,7 @@ class _MDCrdsBundleAPI(BundleAPI):
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,
-                            md_type=name, replace=True, **kw):
+                            md_type=name, replace=True, start=1, step=1, end=None, **kw):
                         if structure_model is None:
                             from chimerax.core.errors import UserError, CancelOperation
                             from chimerax.atomic import Structure
@@ -91,19 +97,22 @@ class _MDCrdsBundleAPI(BundleAPI):
                                         " into")
                         from .read_coords import read_coords
                         num_coords = read_coords(session, data, structure_model, md_type,
-                            replace=replace)
+                            replace=replace, start=start, step=step, end=end)
                         if replace:
-                            return [], "Replaced existing frames of %s with  %d new frames" \
+                            return [], "Replaced existing frames of %s with %d new frames" \
                                 % (structure_model, num_coords)
                         return [], "Added %d frames to %s" % (num_coords, structure_model)
 
                     @property
                     def open_args(self):
                         from chimerax.atomic import StructureArg
-                        from chimerax.core.commands import BoolArg
+                        from chimerax.core.commands import BoolArg, PositiveIntArg
                         return {
+                            'replace': BoolArg,
+                            'end': PositiveIntArg,
+                            'start': PositiveIntArg,
+                            'step': PositiveIntArg,
                             'structure_model': StructureArg,
-                            'replace': BoolArg
                         }
         else:
             from chimerax.save_command import SaverInfo

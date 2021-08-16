@@ -151,7 +151,9 @@ class UI(QApplication):
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
-        import Qt.QtWebEngineWidgets
+        from Qt import qt_have_web_engine
+        if qt_have_web_engine():
+            import Qt.QtWebEngineWidgets
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
@@ -251,7 +253,11 @@ class UI(QApplication):
         from Qt.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
             from chimerax.core.toolshed import get_toolshed
-            if event.file() in self._bad_drop_events:
+            if not hasattr(self, '_bad_drop_events'):
+                # script running window_size() (which call processEvents)
+                # can cause this to get called before open_pending_files()
+                self._seen_bad_drops = getattr(self, '_seen_bad_drops', []) + [event.file()]
+            elif event.file() in self._bad_drop_events:
                 self._bad_drop_events.remove(event.file())
             elif get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
@@ -266,6 +272,8 @@ class UI(QApplication):
         # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
         # on the command-line, but our code also opens those files, so ignore files we already processed.
         self._bad_drop_events = set(ignore_files)
+        for bad_drop in getattr(self, '_seen_bad_drops', []):
+            self._bad_drop_events.discard(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
@@ -459,9 +467,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             "</body>",
             "</html>"
         ]
-        from .file_history import FileHistory
-        fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
-            filename_size=15, no_hist_text="\n".join(new_user_text))
+        from Qt import qt_have_web_engine
+        if qt_have_web_engine():
+            from .file_history import FileHistory
+            fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
+                             filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
@@ -1072,6 +1082,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 ('Tutorials', 'https://www.rbvi.ucsf.edu/chimerax/tutorials.html', 'Tutorials'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
+                ('Citing ChimeraX', 'credits.html', 'How to cite ChimeraX in publications'),
                 ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)

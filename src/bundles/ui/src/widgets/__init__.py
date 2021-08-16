@@ -14,7 +14,9 @@ ui.widgets: ChimeraX graphical user interface widgets
 =====================================================
 """
 
-from .htmlview import HtmlView, ChimeraXHtmlView
+from Qt import qt_have_web_engine
+if qt_have_web_engine():
+    from .htmlview import HtmlView, ChimeraXHtmlView
 from .color_button import ColorButton, MultiColorButton, hex_color_name
 from .citation import Citation
 from .histogram import MarkedHistogram

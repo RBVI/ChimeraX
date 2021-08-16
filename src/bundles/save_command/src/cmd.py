@@ -85,9 +85,9 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # not seem like the ideal solution to put this update here.
     session.update_loop.update_graphics_now()
     try:
-        provider_info.bundle_info.run_provider(session, provider_info.format_name,
-            mgr).save(session, path, **provider_kw)
-    except (IOError, PermissionError) as e:
+        saver_info = provider_info.bundle_info.run_provider(session, provider_info.format_name, mgr)
+        saver_info.save(session, path, **provider_kw)
+    except (IOError, PermissionError, OSError) as e:
         raise UserError("Cannot save '%s': %s" % (file_name, e))
 
     # remember in file history if appropriate
@@ -97,7 +97,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
         pass
     else:
         from os.path import isfile
-        if data_format.category != "Image" and isfile(path):
+        if saver_info.in_file_history and isfile(path):
             from chimerax.core.filehistory import remember_file
             remember_file(session, path, data_format.nicknames[0],
                 provider_kw.get('models', 'all models'), file_saved=True)

@@ -388,10 +388,10 @@ class Alignment(State):
         if sseq not in self.associations or self._in_destroy:
             return
 
-        if self.intrinsic:
+        aseq = self.associations[sseq]
+        if self.intrinsic and len(aseq.match_maps) == 1:
             self.session.alignments.destroy_alignment(self)
             return
-        aseq = self.associations[sseq]
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]
         del self.associations[sseq]

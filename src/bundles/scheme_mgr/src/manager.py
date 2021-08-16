@@ -30,6 +30,10 @@ class SchemesManager(ProviderManager):
         def is_true(value):
             return value and value.casefold() in ('true', '1', 'on')
 
+        from Qt import qt_have_web_engine
+        if not qt_have_web_engine():
+            return # macOS arm64 does not have QtWebEngine
+    
         from Qt.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
         port = kw.get('defaultPort', None)

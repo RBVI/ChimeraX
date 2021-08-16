@@ -31,14 +31,16 @@ class CCDJob(OpalJob):
 class BlastProteinBase:
 
     QUERY_FILENAME = "query.fa"
-    RESULTS_FILENAME = "results.txt"
+    RESULTS_FILENAME = "results.json"
 
     def setup(self, seq, atomspec, database="pdb", cutoff=1.0e-3,
               matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None):
         from . import tool
+        from . import databases
         self.seq = seq.replace('?', 'X')        # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
+        self._database = databases.get_database(database) # object
         self.cutoff = cutoff                    # float
         self.matrix = matrix                    # string
         self.max_seqs = max_seqs                # int
@@ -77,10 +79,10 @@ class BlastProteinBase:
                 if err:
                     logger.bug("Standard error:\n" + err)
         else:
-            from .blastp_parser import Parser
             results = self.get_file(self.RESULTS_FILENAME)
             try:
-                p = Parser("query", self.seq, results)
+                logger.info("Parsing BLAST results.")
+                self._database.parse("query", self.seq, results)
             except Exception as e:
                 if self.tool:
                     err = self.get_stderr()
@@ -89,12 +91,12 @@ class BlastProteinBase:
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:
                 if self.tool:
-                    self.tool.job_finished(self, p, self._params())
+                    self.tool.job_finished(self, self._database, self._params())
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
-                               blast_results=p, params=self._params(),
+                               blast_results=self._database, params=self._params(),
                                instance_name=self.tool_inst_name)
                 if self.log or (self.log is None and
                                 not self.session.ui.is_gui):
@@ -102,7 +104,7 @@ class BlastProteinBase:
                     for name, value in self._params():
                         msgs.append("  %s: %s" % (name, value))
                     for m in p.matches:
-                        name = m.pdb if m.pdb else m.name
+                        name = m.match if m.match else m.name
                         msgs.append('\t'.join([name, "%.1e" % m.evalue,
                                                str(m.score),
                                                m.description]))
@@ -151,7 +153,7 @@ ServiceMap = {
 
 
 def BlastProteinJob(session, seq, atomspec, **kw):
-    service = kw.get("service", "opal")
+    service = kw.get("service", "rest")
     try:
         return ServiceMap[service](session, seq, atomspec, **kw)
     except KeyError:

@@ -20,6 +20,11 @@
 .Trashes
 Thumbs.db
 *.exp
+# Ignore a top-level symlink created to get lsp-pyright
+# imports working
+chimerax
+# Emacs
+.projectile
 # vim
 *.swp
 errs*
@@ -40,6 +45,7 @@ src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/bundles/Makefile.dependencies
+src/bundles/arrays/src/include/
 src/bundles/atomic/atomic_cpp/cymol.cpp
 src/bundles/atomic/atomic_cpp/cytmpl.cpp
 src/bundles/atomic/atomic_cpp/data/
@@ -52,32 +58,51 @@ src/bundles/atomic/src/cytmpl.pyx
 src/bundles/atom_search/search_cpp/ast.cpp
 src/bundles/atom_search/src/include/
 src/bundles/atom_search/src/ast.pyx
+src/bundles/atom_search_lib/src/include/
+src/bundles/atomic_lib/atomic_cpp/pyinstance_cpp/imex.map.h
+src/bundles/atomic_lib/src/data/
+src/bundles/atomic_lib/src/include/
 src/bundles/chem_group/src/__init__.py
+src/bundles/chem_group/bundle_info.xml
+src/bundles/looking_glass/holoplaycore-*.tar.gz
 src/bundles/md_crds/gromacs/xdrfile-1.1b/
 src/bundles/meeting/src/server.pem
 src/bundles/mmcif/mmcif_cpp/include/
+src/bundles/mmcif/src/mmcif.cpp
+src/bundles/mmcif/src/mmcif_write.cpp
 src/bundles/mmtf/.eggs/
 src/bundles/mmtf/mmtf-cpp-master/
+src/bundles/mmtf/mmtf-cpp-master.zip
+src/bundles/mmtf/msgpack-c-master.zip
 src/bundles/mmtf/msgpack-c-master/
 src/bundles/pdb/pdb_cpp/include/
 src/bundles/pdb/src/include/
+src/bundles/pdb_lib/src/include/
 src/bundles/rest_server/src/server.pem
 src/bundles/rest_server/server.key
 src/bundles/ui/src/about.html
+src/bundles/segger/seggerx/
+src/bundles/segger/seggerx_2021_06_11.tar.gz
 src/bundles/std_commands/bundle_info.xml
 src/bundles/viewdockx/src/lib/flot
 src/bundles/viewdockx/src/lib/rateyo
 src/bundles/viewdockx/src/lib/jquery.multiselect.*
 src/core/buildinfo.py
 src/core/_serialize.cpp
+src/core/_serialize.cpp-e
 src/core/commands/_atomspec.py
 src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
 prereqs/PyQt/*commercial*
+prereqs/Python/python-*.tar.bz2
+prereqs/ambertools/ambertools-*.tar.bz2
+prereqs/openmm/openmm-*.tar.bz2
+prereqs/pytables/tables-*.tar.gz
 docs/license.html
 docs/license.txt
 docs/embedded.html
 docs/devel/index.rst
 docs/devel/_static
 docs/licenses
+vdocs/user/

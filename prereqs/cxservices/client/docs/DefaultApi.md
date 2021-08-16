@@ -1,6 +1,6 @@
 # cxservices.DefaultApi
 
-All URIs are relative to *http://webservices.rbvi.ucsf.edu/rest/api/v1*
+All URIs are relative to *http://webservices.rbvi.ucsf.edu/cxservices/api/v1/*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------

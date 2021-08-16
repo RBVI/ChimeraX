@@ -31,13 +31,15 @@ template class pyinstance::PythonInstance<atomstruct::Bond>;
 
 namespace atomstruct {
 
-Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
+Bond::Bond(Structure* as, Atom* a1, Atom* a2, bool bond_only): UniqueConnection(a1, a2)
 {
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");
 
-    as->_form_chain_check(a1, a2, this);
-    a1->structure()->_structure_cats_dirty = true;
+    if (!bond_only) {
+        as->_form_chain_check(a1, a2, this);
+        a1->structure()->_structure_cats_dirty = true;
+    }
     change_tracker()->add_created(a1->structure(), this);
 }
 

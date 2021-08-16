@@ -229,46 +229,8 @@ class FitList(ToolInstance):
     def save_fits_cb(self):
 
         lfits = self.selected_listbox_fits()
-        mlist = sum([f.fit_molecules() for f in lfits], [])
-        if len(mlist) == 0:
-            self.session.logger.warning('No fits of molecules chosen from list.')
-            return
-
-        idir = ifile = None
-        vlist = [f.volume for f in lfits]
-        pmlist = [m for m in mlist + vlist if hasattr(m, 'filename')]
-        if pmlist:
-            for m in pmlist:
-                import os.path
-                dpath, fname = os.path.split(m.filename)
-                base, suf = os.path.splitext(fname)
-                if ifile is None:
-                    suffix = '_fit%d.pdb' if len(lfits) > 1 else '_fit.pdb'
-                    ifile = base + suffix
-                if dpath and idir is None:
-                    idir = dpath
-                      
-        from chimerax.ui.open_save import SaveDialog
-        d = SaveDialog(self.session, caption = 'Save Fit Molecules',
-                       data_formats = [self.session.data_formats['PDB']],
-                       directory = idir)
-        if ifile:
-            d.selectFile(ifile)
-        if not d.exec():
-            return
-        paths = d.selectedFiles()
-        if paths:
-            path = paths[0]
-            if len(lfits) > 1 and path.find('%d') == -1:
-                base, suf = os.path.splitext(path)
-                path = base + '_fit%d' + suf
-            from chimerax.pdb import save_pdb
-            for i, fit in enumerate(lfits):
-                p = path if len(lfits) == 1 else path % (i+1)
-                fit.place_models(self.session)
-                save_pdb(self.session, p, models = fit.fit_molecules(),
-                         rel_model = fit.volume)
-        
+        from .search import save_fits
+        save_fits(self.session, lfits)
 
     def delete_fit_cb(self, all = False):
 
@@ -314,6 +276,7 @@ class FitList(ToolInstance):
     def close_session_cb(self, trigger, x, y):
 
         self.delete_fit_cb(all = True)
+
         
 # -----------------------------------------------------------------------------
 #

@@ -47,7 +47,7 @@ see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
 </table>
 <a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br>(&nbsp;<b>key&nbsp;delete</b>&nbsp;|&nbsp;<b>~key</b>)
+<br>(&nbsp;<b>key&nbsp;delete</b>&nbsp;|&nbsp;<b>~key</b>&nbsp;)
 </h3>
 <a name="listfonts"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -79,10 +79,11 @@ It is the command-line implementation of the
 <a href="../tools/colorkey.html"><b>Color Key</b></a> tool.
 See also: 
 <a href="2dlabels.html"><b>2dlabels</b></a>,
+<a href="scalebar.html"><b>scalebar</b></a>,
 <a href="../images.html">making images</a>
 </p><p>
-The color key is added as a new model that can be acted on 
-by general commands such as <a href="close.html"><b>close</b></a> and
+The color key is added as a new model that can be controlled with
+general commands such as <a href="close.html"><b>close</b></a> and
 <a href="show.html"><b>show/hide</b></a>.
 Initial defaults are described in this page,
 but if a color key is already present, the existing model is
@@ -178,6 +179,14 @@ and <a href="#ticks">tick marks</a>.
 </p>
 <h3>Options</h3>
 
+<blockquote>
+<a name="showTool"></a>
+<b>showTool</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to raise the <a href="../tools/colorkey.html"><b>Color Key</b></a>
+dialog to enable moving/redrawing the key with the mouse and adjusting
+other settings interactively.
+</blockquote>
 <blockquote>
 <a name="size"></a>
 <b>size</b>&nbsp;&nbsp;<i>width,height</i>
@@ -318,5 +327,5 @@ Tick mark thickness in pixels (initial default <b>4.0</b>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+August 2021</address>
 </body></html>

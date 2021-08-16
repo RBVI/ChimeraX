@@ -19,6 +19,7 @@
 namespace atomstruct {
     
 typedef double Real;
+typedef double PositionMatrix[3][4];
 
 } //  namespace atomstruct
 

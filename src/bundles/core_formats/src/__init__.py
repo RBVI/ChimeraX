@@ -73,6 +73,8 @@ class _SessionAPI(BundleAPI):
                             'data_format': EnumOf([fmt.nicknames[0]
                                 for fmt in session.open_command.open_data_formats]),
                         }
+                    # let what gets fetched handle file history insertion
+                    in_file_history = False
         else:
             from chimerax.save_command import SaverInfo
             if name == "ChimeraX session":

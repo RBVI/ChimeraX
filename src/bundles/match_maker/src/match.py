@@ -186,10 +186,20 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         verbose=defaults['verbose_logging'], always_raise_errors=False,
         keep_computed_ss=defaults['overwrite_ss'], **align_kw):
     """Superimpose structures based on sequence alignment
-       
-       Returns a list of tuples, one per chain pairing.  The tuples are:
-       (ref-Atoms-used, match-Atoms-used, paired-RMSD, overall-RMSD, transformation-matrix)
-       "Atoms-used" means after any pruning due to iteration.
+
+       Returns a list of dictionaries, one per chain pairing.  The dictionaries are:
+       {
+         "full ref atoms": chimerax.atomic.Atoms
+         "full match atoms": chimerax.atomic.Atoms
+         "final ref atoms": chimerax.atomic.Atoms
+         "final match atoms": chimerax.atomic.Atoms
+         "final RMSD": float
+         "full RMSD": float
+         "transformation matrix": chimerax.geometry.Place
+         "aligned ref seq": chimerax.atomic.StructureSeq
+         "aligned match seq": chimerax.atomic.StructureSeq
+       }
+       "full" is before iteration pruning and "final" is afterward.
 
        'chain_pairing' is the method of pairing chains to match:
 
@@ -229,8 +239,8 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        'bring' specifies other structures that should be transformed along with the
        match structure (so, there must be only one match structure in such a case).
 
-       'verbose', if True, produces additional output to the log, If None, the parameter
-       table will not be logged.
+       'verbose', if True, produces additional output to the log, If None, nothing
+       will be logged.
 
        If 'always_raise_errors' is True, then an iteration that goes to too few
        matched atoms will immediately raise an error instead of noting the
@@ -477,7 +487,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
                 " sequence alignment score = %g" % (
                 s1.name, s1.structure.id_string, s2.name,
-                s2.structure.id_string, score), log=True)
+                s2.structure.id_string, score), log=(verbose is not None))
             skip = set()
             if show_alignment:
                 for s in [s1,s2]:
@@ -540,9 +550,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             logger.error(msg)
             continue
         from chimerax.atomic import Atoms
+        initial_match, initial_ref = Atoms(match_atoms), Atoms(ref_atoms)
         try:
-            ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),
-                cutoff_distance=cutoff_distance))
+            final_match, final_ref, rmsd, full_rmsd, xf = align.align(session, initial_match, initial_ref,
+                                        cutoff_distance=cutoff_distance, log_info = (verbose is not None))
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -551,14 +562,25 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 " satisfying iteration threshold."
                 % (s1.name, s2.name))
             continue
+        ret_vals.append({
+            "full match atoms": initial_match,
+            "full ref atoms": initial_ref,
+            "final match atoms": final_match,
+            "final ref atoms": final_ref,
+            "full RMSD": full_rmsd,
+            "final RMSD": rmsd,
+            "transformation matrix": xf,
+            "aligned ref seq": s1,
+            "aligned match seq": s2,
+        })
         if bring is not None:
-            xf = ret_vals[-1][-1]
             for m in bring:
                 m.scene_position = xf * m.scene_position
-        logger.info("") # separate matches with whitespace
+        if verbose is not None:
+            logger.info("") # separate matches with whitespace
         if region_info:
             by_viewer = {}
-            for ra in ret_vals[-1][1]:
+            for ra in final_ref:
                 viewer, index = region_info[ra]
                 by_viewer.setdefault(viewer, []).append(index)
             for viewer, indices in by_viewer.items():
@@ -575,8 +597,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 for s in [s1, s2]:
                     logger.info(", ".join([str(r) for r in s.residues]))
                 logger.info("Residue usage in match (1=used, 0=unused):")
-                match_atoms1, match_atoms2 = ret_vals[-1][:2]
-                match_residues = set([a.residue for matched in ret_vals[-1][:2] for a in matched])
+                match_residues = set([a.residue for matched in (final_match, final_ref) for a in matched])
                 for s in [s1, s2]:
                     logger.info(", ".join([str(int(r in match_residues)) for r in s.residues]))
 

@@ -28,9 +28,11 @@
 
 #include "Chain.h"
 #include "ChangeTracker.h"
+#include "CompSS.h"
 #include "destruct.h"
 #include "PBManager.h"
 #include "polymer.h"
+#include "Real.h"
 #include "Rgba.h"
 #include "Ring.h"
 #include "session.h"
@@ -108,7 +110,6 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
-    typedef double PositionMatrix[3][4];
     typedef std::vector<Residue*>  Residues;
     // The MSR-finding step of ring perception depends on the iteration
     // being in ascending order (which std::set guarantees), so use std::set
@@ -167,7 +168,8 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
-    void  _copy(Structure*) const;
+    void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
+        std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
     void  _delete_atoms(const std::set<Atom*>& atoms, bool verify=false);
     void  _delete_residue(Residue* r);
@@ -182,6 +184,7 @@ protected:
             std::set<Atom*>& left_missing_structure_atoms,
             std::set<Atom*>& right_missing_structure_atoms,
             const std::set<Atom*>* deleted_atoms = nullptr) const;
+    Bond*  _new_bond(Atom* a1, Atom* a2, bool bond_only);
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
         _chains->emplace_back(chain);
@@ -226,8 +229,11 @@ public:
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
+    void  combine(Structure* s, std::map<ChainID, ChainID>* chain_id_map,
+        PositionMatrix coord_adjust=nullptr) const { _copy(s, coord_adjust, chain_id_map); }
     void  combine_sym_atoms();
-    virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
+    virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3,
+        bool = false, CompSSInfo* = nullptr) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;
     void  delete_alt_locs();
@@ -253,7 +259,7 @@ public:
     virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     Atom*  new_atom(const char* name, const Element& e);
-    Bond*  new_bond(Atom *, Atom *);
+    Bond*  new_bond(Atom* a1, Atom* a2) { return _new_bond(a1, a2, false); }
     CoordSet*  new_coord_set();
     CoordSet*  new_coord_set(int index);
     CoordSet*  new_coord_set(int index, int size);

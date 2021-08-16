@@ -422,8 +422,6 @@ class Logger(StatusLogger):
 
         if isinstance(exception_value, NotABug):
             self.error("%s%s" % (preface, exception_value))
-        elif probably_chimera1_session(ei):
-            self.error(chimera1_session_message, exception_value)
         elif isinstance(exception_value, CancelOperation):
             pass  # Cancelled operations are not reported
         else:
@@ -737,18 +735,3 @@ def log_version(logger):
         version = ad.version
     logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, version, buildinfo.date.split()[0]))
     logger.info(buildinfo.copyright)
-
-def probably_chimera1_session(exc_info):
-    etype, evalue, etraceback = exc_info
-    if etype != ModuleNotFoundError:
-        return False
-    if 'cPickle' not in str(evalue):
-        return False
-    from traceback import format_exception
-    formatted = format_exception(*exc_info)
-    if len(formatted) > 1 and ' line 1,' in formatted[-2]:
-        return True
-    return False
-
-chimera1_session_message = """ChimeraX cannot open a regular Chimera session.
-An exporter from Chimera to ChimeraX is being worked on but is not ready at this time."""
