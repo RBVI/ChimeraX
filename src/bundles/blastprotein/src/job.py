@@ -103,7 +103,7 @@ class BlastProteinBase:
                     msgs = ["BLAST results for:"]
                     for name, value in self._params():
                         msgs.append("  %s: %s" % (name, value))
-                    for m in p.matches:
+                    for m in self._database.parser.matches:
                         name = m.match if m.match else m.name
                         msgs.append('\t'.join([name, "%.1e" % m.evalue,
                                                str(m.score),
