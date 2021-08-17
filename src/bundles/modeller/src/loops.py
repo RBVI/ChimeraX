@@ -81,33 +81,72 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     for s, s_chains in by_structure.items():
         # Go through the residues of the structure: preserve het/water; for chains being modeled
         # append the complete sequence; for others append the appropriate number of '-' characters
-        chars = []
+        template_chars = []
+        target_chars = []
         i = 0
         residues = s.residues
         chain_id = None
+        target_offsets = {}
         while i < len(residues):
             r = residues[i]
             if chain_id is None:
                 chain_id = r.chain_id
             elif chain_id != r.chain_id:
-                chars.append('/')
+                template_chars.append('/')
+                target_chars.append('/')
                 chain_id = r.chain_id
             if r.chain is None:
                 if r.name in r.water_res_names:
-                    chars.append('w')
+                    template_chars.append('w')
+                    target_chars.append('w')
                 else:
-                    chars.append('.')
+                    template_chars.append('.')
+                    target_chars.append('.')
                 i += 1
             else:
                 if r.chain in s_chains:
                     prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
-                    chars.append(prefix)
-                    chars.append(r.chain.characters)
-                    chars.append(suffix)
+                    template_chars.append(prefix)
+                    template_chars.append(regularized_seq(seq, r.chain).characters)
+                    template_chars.append(suffix)
+                    target_chars.append(seq.characters)
+                    target_offsets[r.chain] = i
                 else:
-                    chars.append('-' * r.chain.num_existing_residues)
+
+                    existing = "".join([c for c, r in zip(r.chain.characters, r.chain.residues) if r])
+                    template_chars.append(existing)
+                    target_chars.append('-' * len(existing))
                 i += r.chain.num_existing_residues
-        print("seq for %s:" % s, ''.join(chars))
+        print("template seq for %s:" % s, ''.join(template_chars))
+        print("target seq for %s:" % s, ''.join(target_chars))
+
+        from .common import write_modeller_scripts, get_license_key
+        script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+            #num_models, True, True, False, False, None, None, temp_path, False, None)
+            num_models, True, True, False, False, None, None, "/Users/pett/rm", False, None)
+
+        input_file_map = []
+
+        # form the sequences to be written out as a PIR
+        from chimerax.atomic import Sequence
+        pir_target = Sequence(name=seq.name)
+        pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
+        pir_target.characters = ''.join(target_chars)
+        pir_seqs = [pir_target]
+
+        pir_template = Sequence(name=structure_save_name(s))
+        pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (
+            pir_template.name, residues[0].chain_id, residues[-1].chain_id)
+        pir_template.characters = ''.join(template_chars)
+        pir_seqs.append(pir_template)
+
+        import os.path
+        pir_file = os.path.join(temp_dir.name, "alignment.ali")
+        aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
+        aln.save(pir_file, format_name="pir")
+        session.alignments.destroy_alignment(aln)
+        input_file_map.append(("alignment.ali", "text_file", pir_file))
+        print(temp_dir.name)
     return
 
 
