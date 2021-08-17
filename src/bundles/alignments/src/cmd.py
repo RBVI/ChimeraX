@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation, AnnotationError
+from chimerax.core.commands import Annotation, AnnotationError, next_token
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -28,6 +28,67 @@ class SeqArg(Annotation):
         align_seq, text, rest = AlignSeqPairArg.parse(text, session)
         return align_seq[-1], text, rest
 
+class SeqRegionArg(Annotation):
+    '''Part(s) of a single sequence (in a single alignment)
+
+       If only one alignment is open, the alignment ID can be omitted.
+       Within the alignment, sequences can be specified by name or number, with
+       negative numbers counting backwards from the end of the alignment.
+
+       The region is a comma-separated list of sequence positions or ranges. If blank, the whole sequence.
+       If the region text matches any of the text values in the special_region_values class variable
+       (truncation allowed), the full value text is returned instead of the region list.
+
+
+       Return value is (alignment, seq, list of (start,end) Python-like indices into sequence.
+    '''
+
+    name = "[alignment-id]:sequence-name-or-number:[sequence-positions-or-ranges]"
+    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>:<i>sequence-positions-or-ranges</i>"
+
+    special_region_values = []
+
+    @classmethod
+    def parse(cls, text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
+        token, text, rest = next_token(text)
+        try:
+            align_seq_text, region_text = token.rsplit(':', 1)
+        except ValueError:
+            raise AnnotationError("Must include at least one ':' character")
+        align_seq, _text, _rest = AlignSeqPairArg.parse(align_seq_text, session)
+        if _rest:
+            raise AnnotationError("Unexpected text (%s) after alignment/sequence name and before range"
+                % _rest)
+        align, seq = align_seq
+        if not region_text:
+            # whole sequence
+            regions = [(0, len(seq))]
+        else:
+            for special in cls.special_region_values:
+                if special.lower().startswith(region_text.lower()):
+                    regions = special
+                    break
+            else:
+                regions = []
+                for segment in region_text.split(','):
+                    if '-' in segment:
+                        start, end = segment.split('-', 1)
+                    else:
+                        start = end = segment
+                    try:
+                        start, end = int(start)-1, int(end)
+                    except ValueError:
+                        raise AnnotationError("Sequence position is not a comma-separated list of integer"
+                            " positions or position ranges")
+                    if start < 0:
+                        raise AnnotationError("Sequence position is less than one")
+                    elif end > len(seq):
+                        raise AnnotationError("Sequence position (%d) is past end of sequence" % end)
+                    regions.append((start, end))
+        return (align, seq, regions), text, rest
+
 class AlignSeqPairArg(Annotation):
     '''Same as SeqArg, but the return value is (alignment, seq)'''
 
@@ -38,7 +99,7 @@ class AlignSeqPairArg(Annotation):
     def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % SeqArg.name)
+            raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
         token, text, rest = next_token(text)
         if ':' not in token:
             align_id, seq_id = "", token

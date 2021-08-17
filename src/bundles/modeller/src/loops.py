@@ -11,55 +11,106 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def model(session, targets, *, block=True, multichain=True, custom_script=None,
-    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
-    thorough_opt=False, water_preserve=False):
+ALL_MISSING = "all-missing"
+NT_MISSING = "non-terminal-missing"
+
+special_region_values = [ALL_MISSING, NT_MISSING]
+
+def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
+    license_key=None, num_models=5, protocol=None, show_gui=True, temp_path=None):
     """
-    Generate comparative models for the target sequences.
+    Model or remodel parts of structure, typically missing structure regions.
 
     Arguments:
     session
         current session
     targets
-        list of (alignment, sequence) tuples.  Each sequence will be modelled.
+        What parts of the structures associated with a sequence to remodel.  It should be an
+        (alignment, sequence, indices) tuple.  The indices should be a list of two-tuples of
+        (start, end) Python-style indices into the ungapped sequence.  Alternatively, "indices" can be
+        one of the string values from special_region_values above to remodel all missing structure
+        or non-terminal missing structure associated with the sequence.
+    adjacent_flexible
+        How many residues adjacent to the remodelled region(s) on each side to allow to be adjusted
+        to accomodate the remodelled segment(s).  Can be zero.
     block
-        If True, wait for modelling job to finish before returning and return list of
-        (opened) models.  Otherwise return immediately.
-    multichain
-        If True, the associated chains of each structure are used individually to generate
-        chains in the resulting models (i.e. the models will be multimers).  If False, all
-        associated chains are used together as templates to generate a single-chain model
-        for the target sequence.
-    custom_script
-        If provided, the location of a custom Modeller script to use instead of the
-        one we would otherwise generate.  Only used when executing locally.
-    dist_restraints
-        If provided, the location of a file containing additional distance restraints
+        If True, wait for modelling job to finish before returning and return list of (opened) models.
+        Otherwise return immediately.
+    chains
+        If specified, the particular chains associated with the sequence to remodel.  If omitted, all
+        associated chains will be remodeled.
     executable_location
-        If provided, the path to the locally installed Modeller executable.  If not
-        provided, use the web service.
-    fast
-        Whether to use fast but crude generation of models
-    het_preserve
-        Whether to preserve HET atoms in generated models
-    hydrogens
-        Whether to generate models with hydrogen atoms
+        If provided, the path to the locally installed Modeller executable.  If not provided, use the
+        web service.
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
-        Number of models to generate for each template sequence
+        Number of models to generate
+    protocol
+        Loop-modeling refinement method.  One of: standard, DOPE, or DOPE-HR.
     show_gui
         If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
-    thorough_opt
-        Whether to perform thorough optimization
-    water_preserve
-        Whether to preserve water in generated models
     """
 
     from chimerax.core.errors import LimitationError, UserError
+
+    alignment, seq, region_info = targets
+    model_chains = set(seq.match_maps.keys())
+    if not model_chains:
+        raise UserError("No chains/structures associated with sequence %s" % seq.name)
+    if chains:
+        model_chains = [chain for chain in chains if chain in model_chains]
+    if not model_chains:
+        raise UserError("Specified chains not associated with sequence %s" % seq.name)
+    by_structure = {}
+    for chain in model_chains:
+        by_structure.setdefault(chain.structure, []).append(chain)
+
+    chain_indices = {}
+    for chain in model_chains:
+        if region_info == ALL_MISSING:
+            chain_indices[chain] = find_missing(chain, seq.match_maps[chain], False)
+        elif region_info == NT_MISSING:
+            chain_indices[chain] = find_missing(chain, seq.match_maps[chain], True)
+        else:
+            chain_indices[chain] = region_info
+    #MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
+
+    for s, s_chains in by_structure.items():
+        # Go through the residues of the structure: preserve het/water; for chains being modeled
+        # append the complete sequence; for others append the appropriate number of '-' characters
+        chars = []
+        i = 0
+        residues = s.residues
+        chain_id = None
+        while i < len(residues):
+            r = residues[i]
+            if chain_id is None:
+                chain_id = r.chain_id
+            elif chain_id != r.chain_id:
+                chars.append('/')
+                chain_id = r.chain_id
+            if r.chain is None:
+                if r.name in r.water_res_names:
+                    chars.append('w')
+                else:
+                    chars.append('.')
+                i += 1
+            else:
+                if r.chain in s_chains:
+                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
+                    chars.append(prefix)
+                    chars.append(r.chain.characters)
+                    chars.append(suffix)
+                else:
+                    chars.append('-' * r.chain.num_existing_residues)
+                i += r.chain.num_existing_residues
+        print("seq for %s:" % s, ''.join(chars))
+    return
+
+
     from .common import modeller_copy
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
@@ -121,9 +172,9 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         # of '-' characters
         prefixes, suffixes = find_affixes(mm_chains, chain_info)
         target_strings = []
-        for prefix, suffix, mm_target, mm_chain in zip(prefixes, suffixes, mm_targets, mm_chains):
+        for prefix, suffix, mm_target in zip(prefixes, suffixes, mm_targets):
             if mm_target is None:
-                target_strings.append('-' * len(mm_chain))
+                target_strings.append('-')
                 continue
             target_strings.append('-' * len(prefix) + mm_target.characters + '-' * len(suffix))
         templates_strings = []
@@ -133,8 +184,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             try:
                 aseq, target = chain_info[chain]
             except KeyError:
-                mm_template_strings.append("".join([c if r else '-'
-                    for c, r in zip(chain.characters, chain.residues)]))
+                mm_template_strings.append('-')
                 continue
             mm_template_strings.append(prefix + regularized_seq(aseq, chain).characters + suffix)
         templates_strings.append(mm_template_strings)
@@ -171,7 +221,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             templates_info.append((chain, aseq.match_maps[chain]))
             if not match_chains:
                 match_chains.append(chain)
-        target_name = target.name
 
     if het_preserve or water_preserve:
         for template_strings in templates_strings:
@@ -200,6 +249,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             target_strings[i] = target_string
             templates_strings[i] = [template_string]
 
+        target_name = target.name
+
     from .common import write_modeller_scripts, get_license_key
     script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
         num_models, het_preserve, water_preserve, hydrogens, fast, None, custom_script, temp_path,
@@ -209,7 +260,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     # form the sequences to be written out as a PIR
     from chimerax.atomic import Sequence
-    pir_target = Sequence(name=opal_safe_file_name(target_name))
+    pir_target = Sequence(name=target_name)
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
     pir_seqs = [pir_target]
@@ -219,8 +270,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         if info is None:
             # multimer template
             pir_template = Sequence(name=structure_save_name(multimer_template))
-            pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (pir_template.name,
-                multimer_template.chains[0].chain_id, multimer_template.chains[-1].chain_id)
+            pir_template.description = "structure:%s:FIRST:%s::::::" % (
+                pir_template.name, multimer_template.chains[0].chain_id)
             structures_to_save.add(multimer_template)
         else:
             # single-chain template
@@ -299,6 +350,22 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     return job_runner.run(block=block)
 
+def find_missing(chain, match_map, terminal):
+    missing = []
+    start_missing = None
+    for i in range(len(match_map)):
+        if i in match_map:
+            if start_missing is not None:
+                if not terminal or start_missing == 0:
+                    missing.append((start_missing, i))
+                start_missing = None
+        else:
+            if start_missing is None:
+                start_missing = i
+    if start_missing is not None:
+        missing.append((start_missing, len(match_map)))
+    return missing
+
 def regularized_seq(aseq, chain):
     mmap = aseq.match_maps[chain]
     from .common import modeller_copy
@@ -371,11 +438,8 @@ def find_affixes(chains, chain_info):
     s.in_seq_hets = het_set
     return prefixes, suffixes
 
-def opal_safe_file_name(fn):
-    return fn.replace(':', '_').replace(' ', '_').replace('|', '_')
-
 def structure_save_name(s):
-    return opal_safe_file_name(s.name) + "_" + s.id_string
+    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
