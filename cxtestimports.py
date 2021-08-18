@@ -10,8 +10,9 @@ import chimerax
 
 blacklist = set([
     "chimerax.add_charge.process_lib",  # creates data.py
-    "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.alignment_algs.libalign_algs",  # non-importable dynamic lib
+    "chimerax.alphafold.alphafold_predict_colab.py",  # IPython notebook with syntax magic
+    "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
     "chimerax.build_structure.process",  # processes Chimera fragment files
     "chimerax.coulombic.create_data",  # creates data.py
