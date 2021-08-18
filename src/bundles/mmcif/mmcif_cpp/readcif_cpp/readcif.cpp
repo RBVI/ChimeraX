@@ -1209,6 +1209,8 @@ CIFFile::parse_row(ParseValues& pv)
 	if (!values.empty()) {
 		// values were given per-tag
 		// assert(current_colnames.size() == values.size())
+		auto save_current_value_start = current_value_start;
+		auto save_current_value_end = current_value_end;
 		for (; pvi != pve; ++pvi) {
 			const char* buf = values[pvi->column].c_str();
 			current_value_start = buf;
@@ -1221,6 +1223,8 @@ CIFFile::parse_row(ParseValues& pv)
 		current_colnames.clear();
 		current_colnames_cp.clear();
 		values.clear();
+		current_value_start = save_current_value_start;
+		current_value_end = save_current_value_end;
 		return true;
 	}
 	if (current_token != T_VALUE) {
