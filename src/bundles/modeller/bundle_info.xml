@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Modeller" version="1.0.2"
+<BundleInfo name="ChimeraX-Modeller" version="1.0.3"
 	    package="chimerax.modeller"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -23,6 +23,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: modeller comparative :: Sequence :: Generate comparative model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: modeller loops :: Sequence :: Fill missing structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: modeller scores :: Sequence :: Fetch Modeller scores for a model</ChimeraXClassifier>
    <ChimeraXClassifier>Tool :: Modeller Comparative :: Sequence :: Generate comparative models</ChimeraXClassifier>
   </Classifiers>

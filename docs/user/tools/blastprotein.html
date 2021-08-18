@@ -66,8 +66,10 @@ CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>PDB</b> alone and takes much longer to search
-   <li><b>AlphaFold</b> &ndash; Theoretical protein structures predicted by
-     the <a href="https://alphafold.ebi.ac.uk"> AlphaFold</a> AI system.</li>
+  <li><b>AlphaFold</b> 
+&ndash; artificial-intelligence-predicted structures in the
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+(<a href="../commands/alphafold.html">more...</a>)
    </ul>
 <li><b># Sequences</b> (default <b>100</b>)
 &ndash; maximum number of unique sequences to return; more hits than this number
@@ -124,6 +126,14 @@ when <b>Show in sequence viewer</b> is clicked
   <li>for PDB sequences, the corresponding PDB identifier, including the chain;
 clicking it <a href="../commands/open.html#fetch">fetches</a> the
 structure, and if a structure chain was used as the query,
+automatically superimposes the hit chain onto the query chain
+using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+  <li>for AlphaFold predictions, the corresponding
+<a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">UniProt accession number</a>;
+clicking it <a href="../commands/alphafold.html#fetch">fetches</a>
+and <a href="../commands/alphafold.html#colorConfidence">colors</a>
+the prediction, and if a structure chain was used as the query,
 automatically superimposes the hit chain onto the query chain
 using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
   <li>otherwise, sequence GI number; clicking it opens the web page for

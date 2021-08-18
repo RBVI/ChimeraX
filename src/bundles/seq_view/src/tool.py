@@ -584,6 +584,23 @@ class SequenceViewer(ToolInstance):
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
 
+        """
+        #TODO: instead of completely launching from menu, just a top-level item that brings up
+        # a non-modal dialog for choosing structure and modeling areas (all missing; non-terminal;
+        # selection region; current region)
+        loop_menu = menu.addMenu("Loop Modeling")
+        if self.alignment.associations:
+            structs = set([chain.structure for chain in self.associations])
+            if len(structs) > 1:
+                for s in structs:
+                    struct_menu = loop_menu.addMenu(str(s))
+                    self._add_loop_action_menu(struct_menu, s)
+            else:
+                self._add_loop_action_menu(loop_menu, structs[0])
+        else:
+            loop_menu.setEnabled(False)
+        """
+
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
         # sequence features available, use "Features"
