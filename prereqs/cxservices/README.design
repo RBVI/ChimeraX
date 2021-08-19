@@ -6,7 +6,7 @@ There are multiple layers to supporting external services:
   web services hosted at other sites (like NBCR Opal).
 
 Let's consider a single ChimeraX bundle providing access to a single
-service, but supporting multiple inocation methods.  (This is what
+service, but supporting multiple invocation methods.  (This is what
 Chimera supported.)  Obviously, a bundle *can* provide access to
 multiple services, but the implementation would be essentially
 applying the same design multiple times.
