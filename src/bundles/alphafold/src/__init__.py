@@ -23,6 +23,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold fetch':
             from . import fetch
             fetch.register_alphafold_fetch_command(logger)
+        elif command_name == 'alphafold predict':
+            from . import predict
+            predict.register_alphafold_predict_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):

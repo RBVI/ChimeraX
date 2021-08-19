@@ -1,5 +1,5 @@
 # ================================================================================================
-# Install prerequisites
+# Google Colab code for running an AlphaFold structure prediction.
 #
 
 # Make sure virtual machine has a GPU
@@ -207,7 +207,7 @@ def multiple_seq_align(dbs, mgnify_max_hits = 501):
 
     total_msa_size = len(set(full_msa))
     counts = ', '.join('%d %s' % (count,name) for name, count in db_counts)
-    print('%d total sequences found (%s)' % (total_msa_size, counts))
+    print('%d similar sequences found (%s)' % (total_msa_size, counts))
     return msas, deletion_matrices
 
 # Predict the structures
@@ -279,6 +279,7 @@ def write_best_pdb(plddts, unrelaxed_proteins, output_dir):
 
     # Write out the prediction
     write_pdb(relaxed_pdb, best_model_name + '_relaxed.pdb', output_dir)
+    write_pdb(relaxed_pdb, 'best_model.pdb', output_dir)
 
 def energy_minimize_structure(pdb_model):
     from alphafold.relax import relax
@@ -340,7 +341,9 @@ def predict_and_save(sequence, databases, output_dir = 'prediction',
       f.write(f'>query\n{sequence}')
 
     # Search for sequences
-    print ('Searching sequence databases (150 Gbytes).  This takes about 30 minutes or more.')
+    nchunks = sum(db['num chunks'] for db in databases)
+    print ('Searching sequence databases (%d Gbytes).' % nchunks)
+    print ('Search will take %d minutes or more.' % max(1,nchunks//5))
     dbs = jackhmmer_sequence_search(seq_file, databases)
 
     # Make multiple sequence alignment.
@@ -384,7 +387,7 @@ def run_prediction(sequence, output_dir = 'prediction', INSTALL_LOG = 'install_l
         install_hmmer(INSTALL_LOG = INSTALL_LOG)
         print ('Installing AlphaFold')
         install_alphafold(INSTALL_LOG = INSTALL_LOG)
-        print ('Installing OpenMM for energy structure minimization')
+        print ('Installing OpenMM for structure energy minimization')
         install_openmm(INSTALL_LOG = INSTALL_LOG)
 
     set_environment_variables()
@@ -397,16 +400,18 @@ def run_prediction(sequence, output_dir = 'prediction', INSTALL_LOG = 'install_l
         predict_and_save(sequence, databases, output_dir)
 
     # Make a zip file of the predictions
-    !zip -q -r {output_dir}.zip {output_dir}
+#    !zip -q -r {output_dir}.zip {output_dir}
 
     # Download predictions.  Does not work on Safari 14.1, macOS 10.15.7
     from google.colab import files
-    files.download(f'{output_dir}.zip')
+    files.download(f'{output_dir}/best_model.pdb')
+#    files.download(f'{output_dir}.zip')
 
 # ================================================================================================
 # Predict a structure for a sequence.
 #
 fast_test = False
-sequence = 'QVQLVESGGGSVQAGGSLRLSCTASGGSEYSYSTFSLGWFRQAPGQEREAVAAIASMGGLTYYADSVKGRFTISRDNAKNTVTLQMNNLKPEDTAIYYCAAVRGYFMRLPSSHNFRYWGQGTQVTVSSRGR'  #@param {type:"string"}
+sequence = 'Paste a sequence here'  #@param {type:"string"}
+#sequence = 'QVQLVESGGGSVQAGGSLRLSCTASGGSEYSYSTFSLGWFRQAPGQEREAVAAIASMGGLTYYADSVKGRFTISRDNAKNTVTLQMNNLKPEDTAIYYCAAVRGYFMRLPSSHNFRYWGQGTQVTVSSRGR'  #@param {type:"string"}
 
 run_prediction(sequence)
