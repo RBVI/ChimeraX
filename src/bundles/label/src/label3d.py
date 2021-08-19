@@ -30,10 +30,10 @@ def label(session, objects = None, object_type = None, text = None,
       Displayed text of the label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    color : Color or "default"
+    color : (r,g,b,a) or "auto" or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    bg_color : Color or "none"
+    bg_color : (r,g,b,a) or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     attribute : string
       Attribute name whose value to display as text
@@ -79,14 +79,19 @@ def label(session, objects = None, object_type = None, text = None,
     elif offset is not None:
         settings['offset'] = offset
     from chimerax.core.colors import Color
+    from numpy import ndarray
     if isinstance(color, Color):
         settings['color'] = color.uint8x4()
-    elif color == 'default':
+    elif isinstance(color, str) and color in ('default', 'auto'):
         settings['color'] = None
+    elif isinstance(color, (tuple, list, ndarray)):
+        settings['color'] = tuple(color)
     if isinstance(bg_color, Color):
         settings['background'] = bg_color.uint8x4()
-    elif bg_color == 'none':
+    elif isinstance(bg_color, str) and bg_color == 'none':
         settings['background'] = None
+    elif isinstance(bg_color, (tuple, list, ndarray)):
+        settings['background'] = tuple(bg_color)
     if size == 'default':
         settings['size'] = 48
     elif size is not None:
@@ -256,15 +261,15 @@ NoneArg = EnumOf(['none'])
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
-    from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
+    from chimerax.core.commands import Float3Arg, Color8Arg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
-                              ('color', Or(DefArg, ColorArg)),
-                              ('bg_color', Or(NoneArg, ColorArg)),
+                              ('color', Or(EnumOf(['default', 'auto']), Color8Arg)),
+                              ('bg_color', Or(NoneArg, Color8Arg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('default_height', FloatArg),
@@ -322,6 +327,7 @@ class ObjectLabels(Model):
         self._texture_needs_update = True		# Has text, color, size, font changed.
         self._positions_need_update = True		# Has label position changed relative to atom?
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
+        self._monitored_attr_info = {}
         
     def delete(self):
         h = self._update_graphics_handler
@@ -371,10 +377,14 @@ class ObjectLabels(Model):
             if o not in ol:
                 ol[o] = lo = label_class(o, view, **settings)
                 self._labels.append(lo)
-            if settings:
+            elif settings:
                 lo = ol[o]
                 for k,v in settings.items():
                     setattr(lo, k, v)
+            else:
+                continue
+            if lo.attribute is not None:
+                self._monitor_attribute(lo)
         self._count_pixel_sized_labels()
         if objects:
             self.update_labels()
@@ -390,7 +400,13 @@ class ObjectLabels(Model):
         ol = self._object_label
         count = 0
         for o in objects:
-            if o in ol:
+            try:
+                lo = ol[o]
+            except KeyError:
+                pass
+            else:
+                if lo.attribute is not None:
+                    self._demonitor_attribute(lo)
                 del ol[o]
                 count += 1
         if count > 0:
@@ -413,11 +429,38 @@ class ObjectLabels(Model):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
         if 'name changed' in changes.atom_reasons() or 'name changed' in changes.residue_reasons():
             self._texture_needs_update = True
+        else:
+            for monitored_class, attr_name_info in self._monitored_attr_info.items():
+                reasons = getattr(changes, monitored_class.__name__.lower() + '_reasons')()
+                for attr_name in attr_name_info.keys():
+                    if attr_name + ' changed' in reasons:
+                        self._texture_needs_update = True
+                        break
+                if self._texture_needs_update:
+                    break
         self._visibility_needs_update = True
         self._positions_need_update = True
         if changes.num_deleted_atoms() > 0 or changes.num_deleted_bonds() > 0 or changes.num_deleted_pseudobonds() > 0:
             self.delete_labels([l.object for l in self._labels if l.object_deleted])
         self.redraw_needed()
+
+    def _monitor_attribute(self, lo):
+        self._monitored_attr_info.setdefault(lo.object.__class__, {}).setdefault(lo.attribute, set()).add(lo)
+
+    def _demonitor_attribute(self, lo):
+        try:
+            by_class = self._monitored_attr_info[lo.object.__class__]
+        except KeyError:
+            return
+        try:
+            by_attr = by_class[lo.attribute]
+        except KeyError:
+            return
+        by_attr.discard(lo)
+        if not by_attr:
+            del by_class[lo.attribute]
+            if not by_class:
+                del self._monitored_attr_info[lo.object.__class__]
 
     def _model_display_changed(self, trig_name, model):
         # If a model is hidden global pseudobond labels may need to be hidden.
@@ -463,7 +506,7 @@ class ObjectLabels(Model):
                 self._reposition_label_graphics()
             if self._visibility_needs_update:
                 self._update_triangles()
-                
+
     def _rebuild_label_graphics(self):
         if len(self._labels) == 0:
             return

@@ -42,9 +42,9 @@ class Slider(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
-        from PyQt5.QtGui import QPixmap, QIcon
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
+        from Qt.QtGui import QPixmap, QIcon
+        from Qt.QtCore import Qt
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(4)
@@ -186,3 +186,108 @@ class Slider(ToolInstance):
             t.remove_handler(self._play_handler)
             self._play_handler = None
         super().delete()
+
+    
+# -----------------------------------------------------------------------------
+#
+class LogSlider:
+    '''
+    Slider with floating point values and logarithmic scale.
+    '''
+    def __init__(self, parent, label = '', range = (1,1000), decimal_step = True,
+                 value_change_cb = None, release_cb = None):
+        self._range = range
+        self._int_range = (0,10000)  # Qt 5.15 only has integer value sliders
+        self._value_changed = value_change_cb
+        
+        from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel, QDoubleSpinBox, QSlider
+        self.frame = f = QFrame(parent)
+        layout = QHBoxLayout(f)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(4)
+
+        if label:
+            vl = QLabel(label, f)
+            layout.addWidget(vl)
+
+        self._entry = se = QDoubleSpinBox(f)
+        se.setRange(range[0], range[1])
+        if decimal_step:
+            se.setStepType(se.AdaptiveDecimalStepType)
+        se.valueChanged.connect(self._entry_changed_cb)
+        layout.addWidget(se)
+
+        from Qt.QtCore import Qt
+        self._slider = sl = QSlider(Qt.Horizontal, f)
+        sl.setRange(self._int_range[0], self._int_range[1])
+        sl.valueChanged.connect(self._slider_moved_cb)
+        if release_cb:
+            sl.sliderReleased.connect(release_cb)
+        layout.addWidget(sl)
+
+    # ---------------------------------------------------------------------------
+    #
+    def set_range(self, value_min, value_max):
+        self._range = (value_min, value_max)
+        self._entry.setRange(value_min, value_max)
+
+    # ---------------------------------------------------------------------------
+    #
+    def set_precision(self, precision):
+        '''Decimals to right of decimal point shown in slider entry field.'''
+        self._entry.setDecimals(precision)
+
+    # ---------------------------------------------------------------------------
+    #
+    def get_value(self):
+        return self._entry.value()
+    def set_value(self, value):
+        self._entry.setValue(value)
+    value = property(get_value, set_value)
+  
+    # ---------------------------------------------------------------------------
+    #
+    def _entry_changed_cb(self):
+        value = self._entry.value()
+        if self._slider_int_to_value(self._slider.value()) != value:
+            i = self._value_to_slider_int(value)
+            self._slider.setValue(i)
+        if self._value_changed:
+            self._value_changed(value, slider_down = self._slider.isSliderDown())
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _slider_moved_cb(self):
+        i = self._slider.value()
+        if self._value_to_slider_int(self._entry.value()) != i:
+            value = self._slider_int_to_value(i)
+            self._entry.setValue(value)
+
+    # ---------------------------------------------------------------------------
+    # Map desired slider value range to integer slider position.
+    #
+    def _value_to_slider_int(self, value):
+        vmin, vmax = self._range
+        if value <= vmin:
+            f = 0
+        elif value >= vmax:
+            f = 1
+        else:
+            from math import log10
+            f = log10(value/vmin) / log10(vmax/vmin)
+
+        imin, imax = self._int_range
+        i = imin + f * (imax-imin)
+        i = int(i + 0.5)
+        return i
+
+    # ---------------------------------------------------------------------------
+    # Map integer slider position to value in desired floating point value range.
+    #
+    def _slider_int_to_value(self, i):
+        imin, imax = self._int_range
+        f = (i - imin) / (imax - imin)
+        vmin, vmax = self._range
+        from math import log10, pow
+        value = vmin * pow(10, f * log10(vmax/vmin))
+        return value

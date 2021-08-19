@@ -549,6 +549,8 @@ class MolecularSurface(Surface):
             atom = self.atoms[a]
             from .structure import PickedAtom
             pa = PickedAtom(atom, p.distance)
+            if isinstance(p, PickedTriangle):
+                pa.triangle_pick = p	# Used by for reporting surface color value
         return pa
 
     def set_selected(self, sel, *, fire_trigger=True):

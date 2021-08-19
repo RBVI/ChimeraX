@@ -37,8 +37,8 @@ that consists of the following fields separated by double colons (``::``).
     Comma-separated list of categories in which the bundle belongs.
 3. ``session_versions`` : two comma-separated integers
     Minimum and maximum session version that the bundle can read.
-4. ``supercedes`` : str
-   Comma-separated list of superceded bundle names.
+4. ``supersedes`` : str
+   Comma-separated list of superseded bundle names.
 5. ``custom_init`` : str
     Whether bundle has initialization code that must be called when
     ChimeraX starts.  Either 'true' or 'false'.  If 'true', the bundle
@@ -334,9 +334,6 @@ class Toolshed:
         os.makedirs(self._site_dir, exist_ok=True)
         sys.path.insert(0, self._site_dir)
         site.addsitedir(self._site_dir)
-        # Make "user" chimerax namespace directory so live installs
-        # will find packages in it.
-        os.makedirs(os.path.join(self._site_dir, 'chimerax'), exist_ok=True)
 
         # Create triggers
         from .. import triggerset
@@ -360,6 +357,9 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
+        if check_available and (self._available_bundle_info is None or
+                                self._available_bundle_info.toolshed_url != self.remote_url):
+            check_remote = True
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
@@ -376,17 +376,19 @@ class Toolshed:
                     need_check = True
                 else:
                     interval = settings.toolshed_update_interval
-                    last_check = datetime.strptime(settings.toolshed_last_check,
-                                                   "%Y-%m-%dT%H:%M:%S.%f")
-                    delta = now - last_check
-                    max_delta = timedelta(days=1)
-                    if interval == "week":
-                        max_delta = timedelta(days=7)
-                    elif interval == "day":
+                    if interval == "never":
+                        need_check = False
+                    else:
+                        last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
+                        delta = now - last_check
                         max_delta = timedelta(days=1)
-                    elif interval == "month":
-                        max_delta = timedelta(days=30)
-                    need_check = delta > max_delta
+                        if interval == "week":
+                            max_delta = timedelta(days=7)
+                        elif interval == "day":
+                            max_delta = timedelta(days=1)
+                        elif interval == "month":
+                            max_delta = timedelta(days=30)
+                        need_check = delta > max_delta
             if need_check:
                 if ui is None or not ui.is_gui:
                     self.async_reload_available(logger)
@@ -508,10 +510,7 @@ class Toolshed:
         except FileNotFoundError:
             logger.info("available bundle cache has not been initialized yet")
         else:
-            if abc.toolshed_url and abc.toolshed_url == self.remote_url:
-                self._available_bundle_info = abc
-            else:
-                logger.info("available bundle cache was for a different toolshed")
+            self._available_bundle_info = abc
 
     def register_available_commands(self, logger):
         from sortedcontainers import SortedDict
@@ -558,19 +557,31 @@ class Toolshed:
         logger.status(status_msg)
 
     def _bundle_names_and_refs(self, bundles):
+        from packaging.version import Version
         bundle_names = set()
         bundle_refs = []
-        for b in bundles:
-            bname = b[0]
+        version_info = {}
+        for name, version in bundles:
+            versions = version_info.setdefault(name, [])
+            versions.append(Version(version))
+
+        for name in version_info:
+            bname = name
+            all_versions = version_info[name]
+            all_versions.sort()
             if bname.startswith('ChimeraX-'):
                 bname = bname[len('ChimeraX-'):]
             if bname in bundle_names:
                 continue
             bundle_names.add(bname)
+            if len(all_versions) == 1:
+                versions = f' version {all_versions[0]}'
+            else:
+                versions = f' versions {all_versions[0]} &ndash; {all_versions[-1]}'
             # TODO: what are the app store rules for toolshed names?
-            toolshed_name = b[0].casefold().replace('-', '')
-            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a>' % (
-                    toolshed_name, bname
+            toolshed_name = name.casefold().replace('-', '')
+            ref = '<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/%s">%s</a> %s' % (
+                    toolshed_name, bname, versions
             )
             bundle_refs.append(ref)
         return bundle_names, bundle_refs
@@ -672,7 +683,7 @@ class Toolshed:
         best_version = None
         for bi in container:
             if bi.name.casefold() not in lc_names:
-                for name in bi.supercedes:
+                for name in bi.supersedes:
                     if name.casefold() in lc_names:
                         break
                 else:
@@ -821,32 +832,31 @@ class Toolshed:
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
-            if self._available_bundle_info:
-                all_bundles = self._installed_bundle_info + self._available_bundle_info
-            else:
-                all_bundles = self._installed_bundle_info
             for mgr, kw in bi.managers.items():
-                if not session.ui.is_gui and kw.pop("guiOnly", False):
+                if not session.ui.is_gui and kw.pop("guiOnly", "false") == "true":
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
                     continue
-                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
-                m = bi.init_manager(session, mgr, **kw)
-                if m is None:
-                    logger = session.logger
-                    if logger:
-                        logger.error("Manager initialization for %r failed to return the manager instance"
-                                     % mgr)
+                if kw.pop("autostart", "true") == "false":
+                    _debug("skip non-autostart manager %s for bundle %r" % (mgr, bi.name))
                     continue
-                self._manager_instances[mgr] = m
-                for pbi in all_bundles:
-                    for name, kw in pbi.providers.items():
-                        p_mgr, pvdr = name.split('/', 1)
-                        if p_mgr == mgr:
-                            m.add_provider(pbi, pvdr, **kw)
-                m.end_providers()
+                _debug("initialize manager %s for bundle %r" % (mgr, bi.name))
+                bi.init_manager(session, mgr, **kw)
         except ToolshedError:
             failed.append(bi)
         done.add(bi)
+
+    def _init_single_manager(self, mgr, mgr_name):
+        if self._available_bundle_info:
+            all_bundles = self._installed_bundle_info + self._available_bundle_info
+        else:
+            all_bundles = self._installed_bundle_info
+        self._manager_instances[mgr_name] = mgr
+        for pbi in all_bundles:
+            for name, kw in pbi.providers.items():
+                p_mgr, pvdr = name.split('/', 1)
+                if p_mgr == mgr_name:
+                    mgr.add_provider(pbi, pvdr, **kw)
+        mgr.end_providers()
 
     def import_bundle(self, bundle_name, logger,
                       install="ask", session=None):
@@ -961,11 +971,11 @@ import abc
 
 
 class ProviderManager(metaclass=abc.ABCMeta):
-    """API for managers created by bundles
+    """API for managers created by bundles"""
 
-    Managers returned by bundle ``init_manager`` methods should be an
-    instance of this class.
-    """
+    def __init__(self, manager_name):
+        ts = get_toolshed()
+        ts._init_single_manager(self, manager_name)
 
     @abc.abstractmethod
     def add_provider(self, bundle_info, provider_name, **kw):
@@ -1104,9 +1114,11 @@ class BundleAPI:
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        """Supported API. Called to create and return a manager in a bundle.
+        """Supported API. Called to create a manager in a bundle at startup.
 
-        Must be defined if there is a ``Manager`` tag in the bundle.
+        Must be defined if there is a ``Manager`` tag in the bundle,
+        unless that tag has an autostart="false" attribute, in which
+        case the bundle is in charge of creating the manager as needed.
         ``init_manager`` is called when bundles are first loaded.
         It is the responsibility of ``init_manager`` to make the manager
         locatable, e.g., assign as an attribute of `session`.
@@ -1376,12 +1388,16 @@ def get_toolshed():
 def get_help_directories():
     global _default_help_dirs
     if _default_help_dirs is None:
-        import os
-        from chimerax import app_data_dir, app_dirs
-        _default_help_dirs = [
-            os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
-            os.path.join(app_data_dir, 'docs')              # for builtin files
-        ]
+        import chimerax
+        if hasattr(chimerax, 'app_dirs'):
+            from chimerax import app_data_dir, app_dirs
+            import os
+            _default_help_dirs = [
+                os.path.join(app_dirs.user_cache_dir, 'docs'),  # for generated files
+                os.path.join(app_data_dir, 'docs')              # for builtin files
+            ]
+        else:
+            _default_help_dirs = []
     hd = _default_help_dirs[:]
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)

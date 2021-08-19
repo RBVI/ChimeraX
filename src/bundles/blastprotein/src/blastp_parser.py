@@ -15,7 +15,7 @@ _GapChars = "-. "
 
 import re
 RE_PDBId = re.compile(r"\S*pdb\|(?P<id>\w{4})\|(?P<chain>\w*)\s*(?P<desc>.*)")
-RE_ChainId = re.compile(r"Chain (?P<id>\w*),.*")
+RE_ChainId = re.compile(r"Chain (?P<id>\w*)\W.*")
 
 class Parser:
     """Parser for XML output from blastp (tested against
@@ -128,7 +128,7 @@ class Parser:
             name = pdbid
         else:
             m = RE_ChainId.match(desc)
-            name = pdbid + '_' + m.group("id") if m else chain
+            name = pdbid + '_' + (m.group("id") if m else chain)
         return name
 
     def _extract_hsp(self, hspe, name, pdb, desc):
@@ -243,13 +243,6 @@ class Parser:
                 f.write("\n")
             f.write("\n")
 
-    def session_data(self):
-        try:
-            from cPickle import dumps
-        except ImportError:
-            from pickle import dumps
-        return dumps(self)
-
     def dump(self, f=None):
         if f is None:
             from sys import stderr as f
@@ -266,13 +259,6 @@ class Parser:
                     o.dump(f)
             elif attr is None:
                 print("  %s: _uninitialized_" % a, file=f)
-
-def restore_parser(data):
-    try:
-        from cPickle import loads
-    except ImportError:
-        from pickle import loads
-    return loads(data)
 
 class Match:
     """Data from a single BLAST hit."""

@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# get PDB shared lib loaded...
-import chimerax.pdb  # noqa
+# ensure C++ shared libs are linkable by us
+import chimerax.atomic_lib  # noqa
+import chimerax.pdb_lib  # noqa
+
 from .mmcif import (  # noqa
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
@@ -97,6 +99,13 @@ class _mmCIFioAPI(BundleAPI):
                         'fixed_width': BoolArg,
                         'best_guess': BoolArg,
                     }
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
 
         return Info()
 

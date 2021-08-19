@@ -53,11 +53,13 @@ class TapeMeasureMouseMode(MouseMode):
         self._marker_set = None
             
     def _show_distance(self, end_point):
-        if self._markers:
+        adjust = (len(self._markers) == 2)
+        if adjust:
             self._markers[1].scene_coord = end_point
         else:
             self._create_line(end_point)
         self._show_label()
+        self._motion_command(adjust = adjust)
 
     def _create_line(self, end_point):
         mset = self._marker_set
@@ -103,6 +105,11 @@ class TapeMeasureMouseMode(MouseMode):
             self._clear()
 
     def _log_tape_command(self):
+        cmd = self._tape_command(adjust = self._logging_motion())
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, cmd)
+
+    def _tape_command(self, adjust = False):
         m1, m2 = self._markers
         label,h = self._label_text_and_height()
         mset = m1.structure
@@ -112,9 +119,21 @@ class TapeMeasureMouseMode(MouseMode):
         cname = color_name(self._color)
         cmd = ('marker segment %s position %s toPosition %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
                % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
-        from chimerax.core.commands import log_equivalent_command
-        log_equivalent_command(mset.session, cmd)
+        if adjust:
+            n1,n2 = m1.residue.number, m2.residue.number
+            cmd += ' adjust %s:%d,%d' % (mset.atomspec, n1, n2)
+        return cmd
+            
+    def _motion_command(self, adjust = True):
+        if self._logging_motion():
+            cmd = self._tape_command(adjust = adjust)
+            from chimerax.core.commands import motion_command
+            motion_command(self.session, cmd)
 
+    def _logging_motion(self):
+        from chimerax.core.commands import motion_commands_enabled
+        return motion_commands_enabled(self.session)
+        
     def _log_clear_command(self):
         mset = self._marker_set
         cmd = 'marker delete %s' % mset.atomspec
@@ -216,8 +235,10 @@ class TapeMeasureMouseMode(MouseMode):
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
-        self._markers = []
         from time import time
         end_time = time()
         if end_time - self._start_time < self._clear_time:
             self._clear()
+        elif self._markers:
+            self._log_tape_command()
+        self._markers = []

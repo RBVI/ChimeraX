@@ -26,7 +26,7 @@ cdef extern from "<atomstruct/tmpl/Atom.h>" namespace "tmpl":
         cycoord.Coord& coord()
         cyelem.Element& element()
         const char* idatm_type()
-        const char* name()
+        string name()
         const vector[Atom*]& neighbors()
         object py_instance(bool)
         Residue* residue()

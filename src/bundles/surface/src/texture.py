@@ -93,7 +93,7 @@ def image_file_as_rgba(path):
     if not isfile(p):
         from chimerax.core.errors import UserError
         raise UserError('texture image file "%s" does not exist' % p)
-    from PyQt5.QtGui import QImage
+    from Qt.QtGui import QImage
     qi = QImage(p)
     from chimerax.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(qi)
@@ -190,10 +190,10 @@ def _remove_texture(session, drawing):
     drawing.texture = None
 
 def register_color_image_command(logger):
-    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg, BoolArg, EnumOf, Or
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
-        keyword = [('file', OpenFileNameArg),
+        keyword = [('file', Or(EnumOf(['none']), OpenFileNameArg)),
                    ('coords', EnumOf(('sphere','pole','south','vertexcolors'))),
                    ('write_colors', SaveFileNameArg),
                    ('modulate', BoolArg)],

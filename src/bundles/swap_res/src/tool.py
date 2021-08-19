@@ -33,8 +33,8 @@ class PrepRotamersDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         tw.title = "Choose Rotamer Parameters"
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
+        from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         layout.setContentsMargins(0,0,0,0)
@@ -74,14 +74,14 @@ class PrepRotamersDialog(ToolInstance):
         if cw:
             layout.addWidget(cw, alignment=Qt.AlignCenter)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_rotamers)
         bbox.button(qbbox.Apply).clicked.connect(self.launch_rotamers)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
@@ -133,7 +133,7 @@ class PrepRotamersDialog(ToolInstance):
             self.citation_widgets[self.rot_lib_option.value] = self._make_citation_widget()
         new_cite = self.citation_widgets[self.rot_lib_option.value]
         if new_cite:
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             self.layout.insertWidget(self.layout.indexOf(self.bbox), new_cite, alignment=Qt.AlignCenter)
             new_cite.show()
         self.citation_widgets['showing'] = new_cite
@@ -205,9 +205,9 @@ class RotamerDialog(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
+        from Qt.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
             QPushButton, QRadioButton, QButtonGroup, QGridLayout
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         lib_display_name = self.session.rotamers.library(rot_lib).display_name
@@ -215,14 +215,14 @@ class RotamerDialog(ToolInstance):
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from Qt.QtCore import QSize
                 return QSize(350, 450)
         self.table = RotamerTable(
             column_control_info=(column_disp_widget, _settings, {}, True, None, None, False),
             auto_multiline_headers=False)
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
-        self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
+        self.table.add_column("Prevalence", "rotamer_prob", format="%.6f ")
 
         if table_info:
             table_state, additional_col_info = table_info
@@ -276,12 +276,13 @@ class RotamerDialog(ToolInstance):
         self.ignore_solvent_button.setChecked(True)
         add_col_layout.addWidget(self.ignore_solvent_button, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Cancel | qbbox.Help)
+        bbox.addButton("Use Chosen Rotamer(s)", qbbox.AcceptRole)
         bbox.accepted.connect(self._apply_rotamer)
         bbox.rejected.connect(self.tool_window.destroy)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
         self.tool_window.manage(placement=None)
 
@@ -429,37 +430,46 @@ class RotamerDialog(ToolInstance):
                 self._eval_vol(volumes[0])
                 return
         if sd_type not in self.subdialogs:
-            self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
-            from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
+            self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type,
+                close_destroys=False)
+            from Qt.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
             layout = QVBoxLayout()
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
                 from chimerax.hbonds.gui import HBondsGUI
-                sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
+                sd.hbonds_gui = gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
                     show_inter_model=False, show_intra_model=False, show_intra_mol=False,
                     show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
                     show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
             elif sd_type == "Clashes":
                 from chimerax.clashes.gui import ClashesGUI
-                sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers", radius=0.075,
-                    show_restrict=False, show_bond_separation=False, show_res_separation=False,
+                sd.clashes_gui = gui = ClashesGUI(self.session, False, settings_name="rotamers",
+                    radius=0.075, show_restrict=False, show_bond_separation=False, show_res_separation=False,
                     show_inter_model=False, show_intra_model=False, show_intra_res=False,
                     show_intra_mol=False, show_attr_name=False, show_set_attrs=False,
                     show_checking_frequency=False, restrict="cross", bond_separation=0, reveal=True,
                     show_save_file=False)
                 layout.addWidget(sd.clashes_gui)
             else: # Density
+                gui = None
                 from chimerax.ui.widgets import ModelListWidget
-                from PyQt5.QtWidgets import QFormLayout
+                from Qt.QtWidgets import QFormLayout
                 density_layout = QFormLayout()
                 layout.addLayout(density_layout)
                 sd.vol_list = ModelListWidget(self.session, selection_mode='single', class_filter=Volume)
                 density_layout.addRow("Select density:", sd.vol_list)
             bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
-            bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
-            bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
-            bbox.rejected.connect(lambda sd=sd: setattr(sd, 'shown', False))
+            bbox.accepted.connect(lambda *, sdt=sd_type: self._process_subdialog(sdt))
+            bbox.accepted.connect(lambda *, sd=sd: setattr(sd, 'shown', False))
+            bbox.rejected.connect(lambda *, sd=sd: setattr(sd, 'shown', False))
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
+                run(ses, "help help:user/tools/rotamers.html#evaluation"))
+            if gui:
+                reset_button = bbox.addButton("Reset", qbbox.ActionRole)
+                reset_button.setToolTip("Reset to initial-installation defaults")
+                reset_button.clicked.connect(lambda *args, gui=gui: gui.reset())
             layout.addWidget(bbox)
             sd.manage(placement=None)
         else:

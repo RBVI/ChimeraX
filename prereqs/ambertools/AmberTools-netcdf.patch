@@ -1,0 +1,82 @@
+--- AmberTools/src/netcdf-fortran-4.4.4/configure	2020-11-18 16:33:52.000000000 -0800
++++ AmberTools/src/netcdf-fortran-4.4.4/configure.new	2020-11-18 16:34:43.000000000 -0800
+@@ -19437,6 +19437,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19504,6 +19505,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19571,6 +19573,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19638,6 +19641,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT1_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19709,6 +19713,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19776,6 +19781,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19843,6 +19849,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"$NF_INT2_T\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19912,6 +19919,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"integer\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"integer\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -19979,6 +19987,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"real\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"real\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {
+@@ -20046,6 +20055,7 @@
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if Fortran \"doubleprecision\" is C \"$ctype\"" >&5
+ $as_echo_n "checking if Fortran \"doubleprecision\" is C \"$ctype\"... " >&6; }
+ 	cat >conftest.c <<EOF
++	    #include <stdlib.h>
+ 	    void $FCALLSCSUB(values)
+ 		$ctype values[4];
+ 	    {

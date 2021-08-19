@@ -134,7 +134,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
     }
 
     // compute which entity corresponds to a chain
-    vector<int> per_chain_entity_index(data.numChains);
+    vector<int> per_chain_entity_index(data.numChains, -1);
     const auto entity_count = data.entityList.size();
     for (size_t i = 0; i < entity_count; ++i) {
         for (auto j: data.entityList[i].chainIndexList) {
@@ -157,8 +157,15 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 chain_name = data.chainNameList[chain_index];
             else
                 chain_name = chain_id;
-            auto& entity = data.entityList[per_chain_entity_index[chain_index]];
-            bool is_polymer = entity.type == "polymer";
+            int entity_index = per_chain_entity_index[chain_index];
+            auto& entity = data.entityList[entity_index];
+            bool is_polymer;
+            if (entity_index != -1)
+                is_polymer = entity.type == "polymer";
+            else {
+                is_polymer = false;
+                logger::warning(_logger, "Missing entity information for chain ", chain_id);
+            }
             vector<Residue*> residues;
             if (is_polymer && has_sequence_index_list)
                 residues.reserve(entity.sequence.size());

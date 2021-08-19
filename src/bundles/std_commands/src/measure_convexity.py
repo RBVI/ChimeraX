@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def measure_convexity(session, surfaces, palette = None, range = None, smoothing_iterations = 5,
-                      write_surface_data = None, patches = None):
+def measure_convexity(session, surfaces, palette = None, range = None, key = False,
+                      smoothing_iterations = 5, write_surface_data = None, patches = None):
     '''
     Compute the convexity at each surface vertex defined as 2*pi minus the cone-angle
     spanned by the triangles incident at the vertex.  The surface vertices are colored
@@ -32,6 +32,8 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
       Default color palette is cyan-gray-maroon.
     range : 2-tuple of float or "full"
       Minimum and maximum convexity values corresponding to ends of color palette.
+    key : bool
+      Whether to show a color key.  Default false.
     smoothing_iterations : int
       Convexity values are averaged with neighbor vertices connected by an edge.
       This value specifies how many rounds of smoothing to perform.  Default 5.
@@ -75,6 +77,10 @@ def measure_convexity(session, surfaces, palette = None, range = None, smoothing
             for i,v in enumerate(pv):
                 vc[v] = rc[i]
         s.vertex_colors = vc
+        if key and patches is None:
+            from chimerax.color_key import show_key
+            show_key(session, cmap)
+
         if sd_file:
             sd_file.write(_surface_data(s, c))
         msg = ('Convexity %.3g - %.3g, mean %.3g, std deviation %.3g at %d vertices of %s'
@@ -122,11 +128,12 @@ def _patch_vertices(threshold, vertex_values, triangles):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, ColormapArg, \
-        ColormapRangeArg, IntArg, SaveFileNameArg, FloatArg
+        ColormapRangeArg, IntArg, SaveFileNameArg, FloatArg, BoolArg
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
         keyword = [('palette', ColormapArg),
                    ('range', ColormapRangeArg),
+                   ('key', BoolArg),
                    ('smoothing_iterations', IntArg),
                    ('write_surface_data', SaveFileNameArg),
                    ('patches', FloatArg)],

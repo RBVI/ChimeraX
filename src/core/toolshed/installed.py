@@ -385,7 +385,7 @@ def _make_bundle_info(d, installed, logger):
         if parts[0] != 'ChimeraX':
             continue
         if parts[1] == 'Bundle':
-            # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supercedes :: custom_init
+            # ChimeraX :: Bundle :: categories :: session_versions :: module_name :: supersedes :: custom_init
             if bi is not None:
                 logger.warning("Second ChimeraX :: Bundle line ignored.")
                 break
@@ -393,7 +393,7 @@ def _make_bundle_info(d, installed, logger):
                 logger.warning("Malformed ChimeraX :: Bundle line in %s skipped." % name)
                 logger.warning("Expected 7 fields and got %d." % len(parts))
                 continue
-            categories, session_versions, module_name, supercedes, custom_init = parts[2:]
+            categories, session_versions, module_name, supersedes, custom_init = parts[2:]
             kw["categories"] = [v.strip() for v in categories.split(',')]
             if session_versions:
                 vs = [v.strip() for v in session_versions.split(',')]
@@ -413,8 +413,8 @@ def _make_bundle_info(d, installed, logger):
                     hi = lo
                 kw["session_versions"] = range(lo, hi + 1)
             kw["api_package_name"] = module_name
-            if supercedes:
-                kw['supercedes'] = [v.strip() for v in supercedes.split(',')]
+            if supersedes:
+                kw['supersedes'] = [v.strip() for v in supersedes.split(',')]
             if custom_init:
                 kw["custom_init"] = (custom_init == "true")
             bi = BundleInfo(installed=installed, **kw)
@@ -470,104 +470,26 @@ def _make_bundle_info(d, installed, logger):
                 atomic = True
             si = SelectorInfo(name, synopsis, atomic)
             bi.selectors.append(si)
-        elif parts[1] == 'DataFormat':
+        elif parts[1] in ('DataFormat', 'Fetch', 'Open', 'Save'):
             # ChimeraX :: DataFormat :: format_name :: nicknames :: category :: suffixes :: mime_types :: url :: dangerous :: icon :: synopsis :: encoding
-            if bi is None:
-                logger.warning('ChimeraX :: Bundle entry must be first')
-                return None
-            if len(parts) not in [11, 12]:
-                logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
-                logger.warning("Expected 11 or 12 fields and got %d." % len(parts))
-                continue
-            if len(parts) == 12:
-                name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis, encoding = parts[2:]
-            else:
-                encoding = None
-                name, nicknames, category, suffixes, mime_types, url, dangerous, icon, synopsis = parts[2:]
-            if not synopsis:
-                logger.warning("Missing synopsis for %s data format" % name)
-                synopsis = name
-            nicknames = [v.strip() for v in nicknames.split(',')] if nicknames else None
-            suffixes = [v.strip() for v in suffixes.split(',')] if suffixes else None
-            mime_types = [v.strip() for v in mime_types.split(',')] if mime_types else None
-            # construct absolute path name of icon by looking
-            # in package directory
-            if icon:
-                icon = bi.get_path(icon)
-            fi = FormatInfo(name=name, nicknames=nicknames,
-                            category=category, suffixes=suffixes,
-                            mime_types=mime_types, url=url, icon=icon,
-                            dangerous=dangerous, synopsis=synopsis,
-                            encoding=encoding)
-            bi.formats.append(fi)
-        elif parts[1] == 'Fetch':
             # ChimeraX :: Fetch :: database_name :: format_name :: prefixes :: example_id :: is_default
-            if bi is None:
-                logger.warning('ChimeraX :: Bundle entry must be first')
-                return None
-            if len(parts) != 7:
-                logger.warning("Malformed ChimeraX :: Fetch line in %s skipped." % name)
-                logger.warning("Expected 7 fields and got %d." % len(parts))
-                continue
-            database_name, format_name, prefixes, example_id, is_default = parts[2:]
-            prefixes = [v.strip() for v in prefixes.split(',')] if prefixes else ()
-            is_default = (is_default == 'true')
-            bi.fetches.append((database_name, format_name, prefixes, example_id, is_default))
-        elif parts[1] == 'Open':
             # ChimeraX :: Open :: format_name :: tag :: is_default :: keyword_arguments
-            if bi is None:
-                logger.warning('ChimeraX :: Bundle entry must be first')
-                return None
-            if len(parts) not in [5, 6]:
-                logger.warning("Malformed ChimeraX :: Open line in %s skipped." % name)
-                logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
-                continue
-            if len(parts) == 6:
-                name, tag, is_default, kwds = parts[2:]
-                kwds = _extract_extra_keywords(kwds)
-            else:
-                name, tag, is_default = parts[2:]
-                kwds = None
-            is_default = (is_default == 'true')
-            try:
-                fi = [fi for fi in bi.formats if fi.name == name][0]
-            except (KeyError, IndexError):
-                logger.warning("Unknown format name: %r." % name)
-                continue
-            fi.has_open = True
-            fi.open_kwds = kwds
-        elif parts[1] == 'Save':
             # ChimeraX :: Save :: format_name :: tag :: is_default :: keyword_arguments
-            if bi is None:
-                logger.warning('ChimeraX :: Bundle entry must be first')
-                return None
-            if len(parts) not in [5, 6]:
-                logger.warning("Malformed ChimeraX :: Save line in %s skipped." % name)
-                logger.warning("Expected 5 or 6 fields and got %d." % len(parts))
-                continue
-            if len(parts) == 6:
-                name, tag, is_default, kwds = parts[2:]
-                kwds = _extract_extra_keywords(kwds)
-            else:
-                name, tag, is_default = parts[2:]
-                kwds = None
-            is_default = (is_default == 'true')
-            try:
-                fi = [fi for fi in bi.formats if fi.name == name][0]
-            except (KeyError, IndexError):
-                logger.warning("Unknown format name: %r." % name)
-                continue
-            fi.has_save = True
-            fi.save_kwds = kwds
+            logger.warning(f"ChimeraX :: {parts[1]} classifier is no longer used")
         elif parts[1] == 'DataDir':
+            # ChimeraX :: DataDir :: directory
             bi.installed_data_dir = parts[2]
         elif parts[1] == 'IncludeDir':
+            # ChimeraX :: IncludeDir :: directory
             bi.installed_include_dir = parts[2]
         elif parts[1] == 'LibraryDir':
+            # ChimeraX :: LibraryDir :: directory
             bi.installed_library_dir = parts[2]
         elif parts[1] == 'ExecutableDir':
+            # ChimeraX :: ExecutableDir :: directory
             bi.installed_executable_dir = parts[2]
         elif parts[1] == 'Manager':
+            # ChimeraX :: Mangager :: name [:: key:value]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
@@ -586,6 +508,7 @@ def _make_bundle_info(d, installed, logger):
                 kw[k] = v
             bi.managers[name] = kw
         elif parts[1] == 'Provider':
+            # ChimeraX :: Provider :: name :: manager [:: key:value]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
@@ -605,6 +528,7 @@ def _make_bundle_info(d, installed, logger):
                 kw[k] = v
             bi.providers[mgr + '/' + name] = kw
         elif parts[1] == 'InitAfter':
+            # ChimeraX :: InitAfter :: type :: name [:: name]*
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None

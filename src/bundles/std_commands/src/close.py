@@ -58,7 +58,7 @@ def _contains_model_tree(m, mset, contains):
 
 def close_session(session):
     session.reset()
-        
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ModelsArg
     desc = CmdDesc(optional=[('models', ModelsArg)],

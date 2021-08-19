@@ -82,6 +82,5 @@ principle_plane_edges(PyObject *, PyObject *args, PyObject *keywds)
 
   principle_plane_edges(varray, tarray, static_cast<unsigned char *>(barray.values()), barray.stride(0));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

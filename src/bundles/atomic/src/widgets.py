@@ -149,7 +149,7 @@ def make_elements_menu(parent, *, _session=None, _parent_menus=None):
         add_submenu = _session.ui.main_window.add_select_submenu
         elements_menu = add_submenu(_parent_menus[:-1], _parent_menus[-1])
     else:
-        from PyQt5.QtWidgets import QMenu
+        from Qt.QtWidgets import QMenu
         elements_menu = QMenu(parent)
 
     for element_name in ["C", "H", "N", "O", "P", "S"]:

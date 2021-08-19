@@ -21,12 +21,12 @@ class _FunctionKeyBundleAPI(BundleAPI):
         if not session.ui.is_gui:
             return
         def fkey_press(session, key):
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             key_num = key - Qt.Key_F1 + 1
             from . import fkey
             fkey.function_key_pressed(session, key_num)
 
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         for k in range(Qt.Key_F1, Qt.Key_F15):
             session.ui.intercept_key(k, fkey_press)
 

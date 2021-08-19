@@ -128,6 +128,5 @@ extern "C" PyObject *reverse_triangle_vertex_order(PyObject *, PyObject *args)
 
   reverse_triangle_vertex_order(tarray);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

@@ -116,8 +116,7 @@ extern "C" PyObject *py_torques(PyObject *, PyObject *args, PyObject *keywds)
   Fitting::torques(p, points.size(0), center, f, t);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

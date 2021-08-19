@@ -60,6 +60,9 @@ class MatrixValueStatistics:
     # Determine count of matrix values in each bin.
     bins_start = fbc - .5*bsize
     bins_end = lbc + .5*bsize
+    # TODO: Should use 64 bit integer to avoid wrapping when counting
+    #  values in density maps larger than 2 Gvoxels.  Currently C++ array
+    #  parsing does not support 64-bit int.
     from numpy import zeros, int32
     counts = zeros((bins,), int32)
     if ignore_pad_value is None:
@@ -109,8 +112,8 @@ class MatrixValueStatistics:
     r = bsize/fbsize
     s = 0.5 + ((fbc - ffbc) / fbsize)
 
-    from numpy import zeros, float32, sum
-    bcounts = zeros((bins,), float32)
+    from numpy import zeros, float64, sum
+    bcounts = zeros((bins,), float64)
 
     from math import ceil, floor
     for b in range(bins):

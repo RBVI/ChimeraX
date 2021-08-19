@@ -115,8 +115,11 @@ class Place:
             return Places([self]) * p
 
         from numpy import ndarray
+        if isinstance(p, (ndarray, tuple, list)):
+            return m34.apply_matrix(self._matrix, p)
+
         from tinyarray import ndarray_int, ndarray_float
-        if isinstance(p, (ndarray_float, ndarray, tuple, list, ndarray_int)):
+        if isinstance(p, (ndarray_float, ndarray_int)):
             return m34.apply_matrix(self._matrix, p)
 
         raise TypeError('Cannot multiply Place times "%s"' % str(p))
@@ -299,6 +302,17 @@ class Place:
         '''
         return m34.axis_center_angle_shift(self._matrix)
 
+    def rotation_quaternion(self):
+        '''Supported API. Return the quaternion of the rotation part of the transform.'''
+        axis, angle = self.rotation_axis_and_angle()
+        from math import pi, sin, cos
+        a = angle * pi/180
+        sa2 = sin(a/2)
+        ca2 = cos(a/2)
+        from numpy import array, float64
+        q = array((ca2, sa2*axis[0], sa2*axis[1], sa2*axis[2]), float64)
+        return q
+
     def translation(self):
         '''
         Supported API.
@@ -422,21 +436,22 @@ def rotation(axis, angle, center=(0, 0, 0)):
     return Place(m34.rotation_transform(axis, angle, center))
 
 
-def quaternion_rotation(q, center=(0, 0, 0)):
+def quaternion_rotation(q, shift=(0, 0, 0)):
     '''
     Supported API.
 
-    Return a transform which is a rotation about the specified center
-    using quaternion (q0, q1, q2, q3) which need not be normalized.
+    Return a transform which is a rotation for quaternion (q0, q1, q2, q3)
+    followed by a translation.
     '''
     a,b,c,d = q
     a2,b2,c2,d2 = a*a,b*b,c*c,d*d
     bc,da,bd,ca,cd,ba = b*c,d*a,b*d,c*a,c*d,b*a
     from math import sqrt
     s2 = 2 / sqrt(a2+b2+c2+d2)
-    m = ((1 - s2*(c2 + d2), s2*(bc - da), s2*(bd + ca), center[0]),
-         (s2*(bc + da), 1 - s2*(b2 + d2), s2*(cd - ba), center[1]),
-         (s2*(bd - ca), s2*(cd + ba), 1 - s2*(b2 + c2), center[2]))
+    sx,sy,sz = shift
+    m = ((1 - s2*(c2 + d2), s2*(bc - da), s2*(bd + ca), sx),
+         (s2*(bc + da), 1 - s2*(b2 + d2), s2*(cd - ba), sy),
+         (s2*(bd - ca), s2*(cd + ba), 1 - s2*(b2 + c2), sz))
     return Place(m)
 
 
@@ -465,6 +480,7 @@ def orthonormal_frame(zaxis, ydir=None, xdir=None, origin=None):
     Return a Place object with the specified z axis.  Any rotation
     about that z axis is allowed, unless a vector ydir is given in which
     case the y axis will be in the plane define by the z axis and ydir.
+    If the zaxis is 0 then (0,0,1) is used.
     '''
     axes = m34.orthonormal_frame(zaxis, ydir, xdir)
     result = _reuse_place()
@@ -754,6 +770,20 @@ class Places:
     def __iter__(self):
         '''Supported API. Iterator returning Place instances.'''
         return self.place_list().__iter__()
+    
+    def __eq__(self, p):
+        '''
+        Supported API.
+        Test if these places identical in order and matrix elements.
+        '''
+        if p is self:
+            return True
+        if len(p) != len(self):
+            return False
+        for p0,p in zip(self, p):
+            if p != p0:
+                return False
+        return True
 
     def __mul__(self, places_or_vector):
         '''

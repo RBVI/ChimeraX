@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
-	    version="1.0" package="chimerax.toolbar"
+	    version="1.0.1" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -18,10 +18,10 @@ Provides a Windows ribbon-style toolbar interface
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-Shortcuts" version="~=1.0"/>
-    <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
     <!-- depend on everything that registers a mousemode for now,
 	 so they'll exist when toolbar is made -->
     <Dependency name="ChimeraX-BondRot" version="~=2.0"/>
@@ -96,10 +96,10 @@ Provides a Windows ribbon-style toolbar interface
       name="layout-map-steps" after="Style"/>
     <Provider tab="Map" section="Subregions"
       name="layout-map-subregions" after="Steps"/>
+    <Provider tab="Map" section="Appearance"
+      name="layout-map-image-display" after="Subregions"/>
     <Provider tab="Map" section="Calculations"
-      name="layout-map-calculations" after="Subregions"/>
-    <Provider tab="Map" section="Image Display"
-      name="layout-map-image-display" after="Calculations"/>
+      name="layout-map-calculations" after="Appearance"/>
 
 
     <!-- Markers tab -->
@@ -148,6 +148,8 @@ Provides a Windows ribbon-style toolbar interface
       mouse_mode="translate selected models" display_name="Move model" description="Translate selected models, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm6"
       mouse_mode="rotate selected models" display_name="Rotate model" description="Rotate selected models, hold shift key to translate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm6a"
+      mouse_mode="move picked models" display_name="Drag model" description="Move clicked-on models, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm7"
       mouse_mode="translate selected atoms" display_name="Move atoms" description="Translate selected atoms, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm8" hidden="true"

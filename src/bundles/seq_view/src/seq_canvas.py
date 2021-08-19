@@ -52,8 +52,8 @@ class SeqCanvas:
     viewMargin = 2
     """
     def __init__(self, parent, sv, alignment):
-        from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
+        from Qt.QtCore import Qt
         self.label_scene = QGraphicsScene()
         """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
@@ -65,7 +65,7 @@ class SeqCanvas:
         self.main_scene.setBackgroundBrush(Qt.white)
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
-        from PyQt5.QtGui import QColor
+        from Qt.QtGui import QColor
         ms_color = QColor(240, 240, 240) # lighter gray than "lightGray"
         ms_brush.setColor(ms_color)
         self.main_scene.setBackgroundBrush(ms_color)
@@ -147,7 +147,7 @@ class SeqCanvas:
         self.font = tkFont.Font(parent,
             (self.sv.prefs[FONT_NAME], self.sv.prefs[FONT_SIZE]))
         """
-        from PyQt5.QtGui import QFont, QFontMetrics
+        from Qt.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
         self.emphasis_font = QFont(self.font)
         self.emphasis_font.setBold(True)
@@ -162,7 +162,7 @@ class SeqCanvas:
         # pad font a little...
         self.font_pixels = (font_width + 1, font_height + 1)
         self.show_numberings = [len(self.alignment.seqs) == 1, False]
-        from PyQt5.QtCore import QTimer
+        from Qt.QtCore import QTimer
         self._resize_timer = QTimer()
         self._resize_timer.timeout.connect(self._actually_resize)
         self._resize_timer.start(200)
@@ -183,6 +183,7 @@ class SeqCanvas:
         self.label_view.hide()
         #self._vdivider.hide()
         self.main_view.show()
+        self._initial_layout = True
         self.layout_alignment()
         """TODO
         self.mainCanvas.grid(row=1, column=2, sticky='nsew')
@@ -733,7 +734,7 @@ class SeqCanvas:
         self._resizescrollregion()
         """
         label_scene = self._label_scene()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.main_view.setAlignment(
             Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
         self.lead_block = SeqBlock(label_scene, self.main_scene, None, self.font,
@@ -756,6 +757,11 @@ class SeqCanvas:
 
     def line_width_from_settings(self):
         if self.wrap_okay():
+            # return a narrow line width the first time, so that the initial layout doesn't
+            # force the tool column to be wider than needed
+            if self._initial_layout:
+                self._initial_layout = False
+                return 20
             if len(self.alignment.seqs) == 1:
                 prefix = SINGLE_PREFIX
             else:
@@ -971,7 +977,7 @@ class SeqCanvas:
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         label_scene = self._label_scene()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.main_view.setAlignment(
             Qt.AlignCenter if label_scene == self.main_scene else Qt.AlignLeft)
         self.lead_block = SeqBlock(label_scene, self.main_scene,
@@ -1132,7 +1138,7 @@ class SeqCanvas:
         self.sv.status(msg)
     """
 
-    def save_state(self):
+    def state(self):
         '''Used to save header state, now done by alignment'''
         return {}
 
@@ -1440,12 +1446,12 @@ class SeqCanvas:
 
 
 class SeqBlock:
-    from PyQt5.QtCore import Qt
+    from Qt.QtCore import Qt
     normal_label_color = Qt.black
     header_label_color = Qt.blue
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
-    from PyQt5.QtGui import QPen
+    from Qt.QtGui import QPen
     qt_no_pen = QPen(Qt.NoPen)
 
     def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font, font_metrics,
@@ -1513,12 +1519,12 @@ class SeqBlock:
             for i in range(len(lines)):
                 self.line_index[lines[i]] = i
             self.lines = lines
-            from PyQt5.QtGui import QBrush, QPen
+            from Qt.QtGui import QBrush, QPen
             """TODO
             if prefs[prefPrefix + BOLD_ALIGNMENT]:
                 self.font = self.emphasis_font
             """
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             self.multi_assoc_brush = QBrush(self.multi_assoc_color, Qt.NoBrush)
             self.multi_assoc_pen = QPen(QBrush(self.multi_assoc_color, Qt.SolidPattern),
                                         0, Qt.DashLine)
@@ -1626,7 +1632,7 @@ class SeqBlock:
     def assoc_mod(self, aseq):
         label_text = self.label_texts[aseq]
         name = _seq_name(aseq, self.settings)
-        from PyQt5.QtGui import QFontMetrics
+        from Qt.QtGui import QFontMetrics
         first_width = QFontMetrics(label_text.font()).width(name)
         label_text.setFont(self._label_font(aseq))
         diff = QFontMetrics(label_text.font()).width(name) - first_width
@@ -1640,7 +1646,7 @@ class SeqBlock:
             if aseq in self.label_rects:
                 self.label_scene.removeItem(self.label_rects[aseq])
                 del self.label_rects[aseq]
-                from PyQt5.QtCore import Qt
+                from Qt.QtCore import Qt
                 label_text.setBrush(Qt.black)
         line_items = self.line_items[aseq]
         for i in range(len(line_items)):
@@ -1766,7 +1772,7 @@ class SeqBlock:
 
 
     def _brush(self, color):
-        from PyQt5.QtGui import QBrush, QColor
+        from Qt.QtGui import QBrush, QColor
         if not isinstance(color, QColor):
             color = QColor(color)
         rgb = color.rgb()
@@ -1781,7 +1787,7 @@ class SeqBlock:
             if hasattr(line, 'position_color'):
                 from .region_browser import get_rgba, rgba_to_qcolor
                 return lambda l, o: rgba_to_qcolor(get_rgba(l.position_color(o)))
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             return lambda l, o, color=Qt.black: color
     """TODO
         try:
@@ -1800,7 +1806,7 @@ class SeqBlock:
             # below the text and none of that space above it.  Move the bounding box up
             # to make the enclosure look more even
             ## leading() doesn't seem to return anything useful
-            ##from PyQt5.QtGui import QFontMetrics
+            ##from Qt.QtGui import QFontMetrics
             ##interline = QFontMetrics(label_text.font()).leading()
             interline = 2
             bbox.adjust(0, -interline/2, 0, -interline/2)
@@ -1808,7 +1814,7 @@ class SeqBlock:
             label_rect.setZValue(-1)
             self.label_rects[aseq] = label_rect
         structures = set([chain.structure for chain in aseq.match_maps.keys()])
-        from PyQt5.QtGui import QColor
+        from Qt.QtGui import QColor
         if len(structures) > 1:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
@@ -1828,8 +1834,8 @@ class SeqBlock:
                 else:
                     colors = struct.atoms.colors
                     color = numpy.sum(colors, axis=0) / len(colors)
-            from PyQt5.QtCore import Qt
-            from PyQt5.QtGui import QPen, QBrush
+            from Qt.QtCore import Qt
+            from Qt.QtGui import QPen, QBrush
             brush = QBrush(QColor(*color), Qt.SolidPattern)
             pen = QPen(brush, 0, Qt.SolidLine)
             from chimerax.core.colors import contrast_with

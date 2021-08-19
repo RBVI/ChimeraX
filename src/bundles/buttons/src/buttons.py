@@ -109,7 +109,7 @@ class ButtonPanel(ToolInstance):
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
-        from PyQt5.QtWidgets import QGridLayout
+        from Qt.QtWidgets import QGridLayout
         self._layout = layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -118,8 +118,8 @@ class ButtonPanel(ToolInstance):
 
     def add_button(self, name, command, row=None, column=None):
         parent = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QPushButton
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QPushButton
+        from Qt.QtCore import Qt
         b = QPushButton(name, parent)
         b.clicked.connect(lambda e, cmd=command: self._run_command(command=cmd))
         b.name = name

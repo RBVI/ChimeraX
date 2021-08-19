@@ -41,6 +41,9 @@ It can also report least-squares-fit root-mean-square deviations (RMSDs)
 as if the atoms had been moved, but without actually moving the atoms.
 The number of atom pairs used and the RMSD are reported in the
 <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+To calculate RMSDs using the current atomic positions without any fitting,
+see the <a href="rmsd.html"><b>rmsd</b></a> command.
 See also:
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
@@ -65,15 +68,15 @@ and allows the best-matching regions to be well superimposed.
 The <a name="move"><b>move</b></a> option indicates <i>what</i> to move,
 which can be:
 <ul>
-<li><b>atoms</b> - move the specified atoms (<i>matchatoms</i>)
-<li><b>residues</b> - move the residues containing the specified atoms
-<li><b>chains</b> - move the chains containing the specified atoms
+<li><b>atoms</b> &ndash; move the specified atoms (<i>matchatoms</i>)
+<li><b>residues</b> &ndash; move the residues containing the specified atoms
+<li><b>chains</b> &ndash; move the chains containing the specified atoms
 <li><b>structures</b> (default unless <a href="#each"><b>each</b></a> is used)
-- move the models containing the specified atoms by overall rotation/translation
+&ndash; move the models containing the specified atoms by overall rotation/translation
 (transform the models)
-<li><b>structure atoms</b> - move all atoms in the models 
+<li><b>structure atoms</b> &ndash; move all atoms in the models 
 by changing their coordinates instead of transforming the overall models
-<li><b>nothing</b> - do not move anything, but report the RMSD as if the
+<li><b>nothing</b> &ndash; do not move anything, but report the RMSD as if the
 atoms had been fitted
 </ul>
 <p>
@@ -82,10 +85,10 @@ The <a name="each"><b>each</b></a> option indicates dividing
 rather than collectively, where the <i>level</i> can be:
 </p>
 <ul>
-<li><b>chain</b> - match each chain separately
+<li><b>chain</b> &ndash; match each chain separately
 (implies <b><a href="#move">move</a> chains</b>)
-<li><b>structure</b> - match each atomic model separately
-<li><b>coordset</b> - match each coordinate set in <i>matchatoms</i>
+<li><b>structure</b> &ndash; match each atomic model separately
+<li><b>coordset</b> &ndash; match each coordinate set in <i>matchatoms</i>
 (which must specify a <a href="../trajectories.html">trajectory</a> model)
 separately
 </ul>
@@ -121,5 +124,5 @@ Atoms are assumed to be in residue-number order.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+September 2020</address>
 </body></html>

@@ -59,7 +59,7 @@ executable code, source code, and documentation ("Software").
    receives a request to furnish all or any portion of the Software
    to a third party, Licensee will not fulfill such a request but will
    refer the third party to the
-   `UCSF ChimeraX web page <http://www.rbvi.ucsf.edu/chimerax/>`_
+   `UCSF ChimeraX web page <https://www.rbvi.ucsf.edu/chimerax/>`_
    so that the third party's use of this Software will be subject to
    the terms and conditions of this License. Notwithstanding the above,
    Licensee may disclose any Improvements that do not involve disclosure
@@ -76,7 +76,7 @@ executable code, source code, and documentation ("Software").
    results obtained with the Software will acknowledge its use by an
    appropriate citation as specified in the
    `Software's documentation
-   <http://www.rbvi.ucsf.edu/chimerax/docs/credits.html>`_.
+   <https://www.rbvi.ucsf.edu/chimerax/docs/credits.html>`_.
 
 6. **Disclaimer of Warranties and Limitation of Liability.** THE
    LICENSEE AGREES THAT ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,

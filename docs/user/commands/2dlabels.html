@@ -31,7 +31,7 @@ class="clRight" title="User Guide Index"/></a>
 <img class="outline" src="prc.png" alt="2D labels example" 
 width="300px"></a></td></tr>
 <tr><td align="center"><font size="-1">
-<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html"
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html"
 target="_blank">Get this session...</a></font></td></tr>
 </table>
 
@@ -74,6 +74,7 @@ for <a href="usageconventions.html#cxc-files">scripting</a>.
 See also:
 <a href="save.html"><b>save</b></a>,
 <a href="movie.html"><b>movie</b></a>,
+<a href="key.html"><b>key</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 </p><p>
@@ -97,7 +98,7 @@ Example command script:
 2dlab #2 text 'Fading...' vis f frames 100; 2d arrow #3 vis f frames 100; <a href="wait.html">wait</a> 100
 </b></blockquote>
 <p>
-See also the <a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
+See also the <a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
 target="_blank">G-Protein Switch Regions</a> example image and script.
 </p><p>
 <a name="listfonts"></a>
@@ -113,7 +114,7 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>2dlabels</b> &nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
 [&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
 [&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
@@ -134,7 +135,7 @@ The <b>text</b> <i>label-contents</i> may include letters, numbers,
 and symbols. A few symbols are available from the keyboard, and many 
 others can be copied and pasted into the command line from various sources 
 (such as <a href="symbols.html">this page</a>) or indicated with
-<a href="http://unicode.org/charts/" target="_blank">unicode</a> 
+<a href="https://unicode.org/charts/" target="_blank">unicode</a> 
 character codes or character names, as in the following examples:
  <ul class="none">
  <li><b>text 'the \u03b1 subunit'</b> &nbsp;&nbsp;
@@ -153,11 +154,11 @@ for arrows pointing in any direction in the X,Y plane, see
 <p>
 The label can be shown over a rectangular background of another color 
 given with the <b>bgColor</b> option (default <b>none</b>, no background).
-If the <b>color</b> is specified as <b>default</b>
-(or the <b>color</b> option is not used), the label color will
-automatically adjust to <b>white</b> or <b>black</b>
-depending on the color of the label background, if any, 
-otherwise the <a href="set.html#bgColor">window background</a>.
+If the label <b>color</b> is specified as <b>default</b> or <b>auto</b>,
+it will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the label background, 
+or if there is no label background, depending on the color of
+the <a href="set.html#bgColor">window background</a>.
 The colored rectangle will extend beyond the text in each direction
 by a <b>margin</b> of <i>rectangle-padding</i> pixels (default <b>9</b>) 
 and an additional <b>outline</b> in <b>white</b>
@@ -166,7 +167,7 @@ be drawn around the rectangle if <i>rectangle-outline-width</i>
 &gt; 0 is specified (default <b>0</b>, no outline).
 </p><p>
 The label <b>size</b> must be an integer greater than zero 
-(default <b>24</b>). 
+(default <b>24</b>).
 The <b>xpos</b> and <b>ypos</b> options specify the X and Y
 coordinates of the lower lefthand corner of the label 
 (defaults are <b>0.5</b> and <b>0.5</b>). The X axis is horizontal 
@@ -299,11 +300,12 @@ over <i>N</i> frames, such as fading in or out
 <h3>Deletion</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>2dlabels delete</b>
+(&nbsp;<b>2dlabels delete</b>&nbsp;|&nbsp;<b>~2dlabels</b>)
 [&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 </blockquote>
 <p>
-The 2D label(s) and arrows to delete can be specified by
+The <b>2dlabels delete</b> or <b>~2dlabels</b> command removes 2D labels
+and arrows. Which 2D label(s) and arrows to delete can be specified by
 <a href="atomspec.html#othermodels">model number</a>,
 or a blank specification or the word <b>all</b>
 to indicate all 2D labels and arrows collectively.
@@ -313,5 +315,5 @@ Alternatively, the models can be closed with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+February 2021</address>
 </body></html> 

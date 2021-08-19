@@ -108,10 +108,13 @@ def mouse_maps(models):
 def adjust_threshold_levels(maps, f):
     for m in maps:
         if isinstance(m, tuple):
-            adjust_threshold_level(m[0], f, surf = m[1])
+            v = m[0]
+            adjust_threshold_level(v, f, surf = m[1])
         else:
-            adjust_threshold_level(m, f)
-            
+            v = m
+            adjust_threshold_level(v, f)
+        log_volume_level_command(v, final = False)
+
 def adjust_threshold_level(m, f, surf=None):
     ms = m.matrix_value_statistics()
     step = f * (ms.maximum - ms.minimum)
@@ -127,14 +130,25 @@ def adjust_threshold_level(m, f, surf=None):
             new_levels = tuple(s.level+step for s in m.surfaces)
         m.set_parameters(surface_levels = new_levels, threaded_surface_calculation = True)
 
-def log_volume_level_command(v):
+def log_volume_level_command(v, final = True):
+    if not final:
+        from chimerax.core.commands import motion_commands_enabled
+        if not motion_commands_enabled(v.session):
+            return
     if v.image_shown:
         levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
     elif v.surface_shown:
         levels = ' '.join('level %.4g' % s.level for s in v.surfaces)
+    else:
+        return
     command = 'volume #%s %s' % (v.id_string, levels)
-    from chimerax.core.commands import log_equivalent_command
-    log_equivalent_command(v.session, command)
+    if final:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(v.session, command)
+    else:
+        from chimerax.core.commands import motion_command
+        motion_command(v.session, command)
+
 
 def register_mousemode(session):
     mm = session.ui.mouse_modes

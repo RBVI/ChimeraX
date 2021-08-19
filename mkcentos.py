@@ -24,7 +24,6 @@ Steps:
 import os
 import subprocess
 import sys
-import tempfile
 import textwrap
 
 # app_author and app_name are the same as ChimeraX_main.py
@@ -34,8 +33,11 @@ app_name = "ChimeraX"
 CHIMERAX_INSTALL = f"{os.getcwd()}/{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
-INST_DIR = f"/opt/{app_author}/{app_name}"
-#INST_DIR = "/usr/libexec/{app_author}-{app_name}""
+PREFIX = "/usr"
+if PREFIX == "/opt":
+    APP_DIR = f"{app_author}/{app_name}"
+else:
+    APP_DIR = f"libexec/{app_author}-{app_name}"
 
 CENTOS_DEPENDENCIES = {
     "7": {
@@ -59,6 +61,7 @@ CENTOS_DEPENDENCIES = {
        "libdrm": "2.4.97",
        "libffi": "3.0.13",
        "libgcc": "4.8.5",
+       "libgfortran4": "4.8.5",
        "libglvnd-egl": "1.0.1",
        "libglvnd-glx": "1.0.1",
        "libstdc++": "4.8.5",
@@ -89,6 +92,7 @@ CENTOS_DEPENDENCIES = {
        "pango": "1.42.4",
        "pulseaudio-libs": "10.0",
        "pulseaudio-libs-glib2": "10.0",
+       "sqlite": "3.7.17",
        "xcb-util-keysyms": "0.4.0",
        "xdg-utils": "1.1.0",
        "xz-libs": "5.2.2",
@@ -112,6 +116,7 @@ CENTOS_DEPENDENCIES = {
        "libdrm": "2.4.98",
        "libffi": "3.1",
        "libgcc": "8.3.1",
+       "libgfortran": "8.3.1",
        "libglvnd-egl": "1.0.1",
        "libglvnd-glx": "1.0.1",
        "libstdc++": "8.3.1",
@@ -144,12 +149,17 @@ CENTOS_DEPENDENCIES = {
        "pango": "1.42.4",
        "pulseaudio-libs": "11.1",
        "pulseaudio-libs-glib2": "11.1",
+       "sqlite": "3.26.0",
+       "xcb-util-image": "0.4.0",
        "xcb-util-keysyms": "0.4.0",
+       "xcb-util-renderutil": "0.4.0",
+       "xcb-util-wm": "0.4.0",
        "xdg-utils": "1.1.2",
        "xz-libs": "5.2.4",
        "zlib": "1.2.11",
     }
 }
+
 
 def main():
     """main program"""
@@ -184,14 +194,14 @@ def main():
     version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
-    bin_path = f"/usr/bin/{app_name.lower()}"  # were the symlink is place on default path
+    bin_name = f"{app_name.lower()}"
     if build == 'daily':
         # daily build, version is date
         version = version_date
-        global INST_DIR
-        INST_DIR += "-daily"
+        global APP_DIR
+        APP_DIR += "-daily"
         pkg_name += "-daily"
-        bin_path += "-daily"
+        bin_name += "-daily"
         rpm_release = 1
     elif build == 'release':
         # release build
@@ -200,9 +210,11 @@ def main():
     elif build == 'candidate':
         # release build
         version = version.base_version
-        rpm_release = f"0.{version_date}"
-    rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
+        # rpm_release = f"0.{version_date}"
+        rpm_release = 1
+    bin_path = f"{PREFIX}/bin/{bin_name}"  # were the symlink is placed on default path
 
+    # rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
     # print('full_version:', repr(full_version))
     # print('version_number:', version_number)
     # print('version_date:', version_date)
@@ -232,7 +244,7 @@ def make_rpmbuild_tree():
 
 def clean_app():
     """Clean application
-    
+
     remove unwanted __pycache__ directories
     remove script's who interpreter is not a system binary
     (eg., Python scripts with paths to "nonexisting" python)
@@ -270,19 +282,20 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
     else:
         deps = []
     depends = ', '.join(deps)
-    pkg_root = f'{INST_DIR}'
+    pkg_root = f'{PREFIX}/{APP_DIR}'
     bin_name = os.path.basename(bin_path)
     relpath = os.path.relpath(f'{pkg_root}/bin', os.path.dirname(bin_path))
-    man_dir = '/usr/share/man/man1'
+    man_dir = f'{PREFIX}/share/man/man1'
     man_path = f'{man_dir}/{bin_name}.1'
-    doc_dir = f'/usr/share/doc/{pkg_name}-{version}'
+    doc_dir = f'{PREFIX}/share/doc/{pkg_name}-{version}'
     with open(f"{rpmbuild_dir}/SPECS/{pkg_name}.spec", 'w') as f:
         #    %{{!?__debug_package:\
         #    /usr/lib/rpm/redhat/brp-strip %{{__strip}} \
         #    /usr/lib/rpm/redhat/brp-strip-comment-note %{{__strip}} %{{__objdump}} \
         #    }} \
-        #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}} 
+        #    /usr/lib/rpm/redhat/brp-strip-static-archive %{{__strip}}
         print(textwrap.dedent(f"""\
+            %define _build_id_links none
             %define __spec_install_post %{{nil}}
             %define debug_package %{{nil}}
             # %%define __os_install_post\
@@ -305,11 +318,12 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             Group: Applications/Science
             # Suggests: ocl-icd
             Requires: {depends}
+            Prefix: {PREFIX}
 
             %description
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
              molecular visualization program from the Resource for Biocomputing
-             Visualization, and Informatics (RBVI), following UCSF Chimera. 
+             Visualization, and Informatics (RBVI), following UCSF Chimera.
              ChimeraX can be downloaded free of charge for academic, government
              nonprofit, and personal use. Commercial users, please see licensing.
 
@@ -338,7 +352,7 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             http://www.rbvi.ucsf.edu/chimerax
 
             Copyrights for embedded code are given in the documentation
-            in {INST_DIR}/share/docs/embeded.html
+            in {PREFIX}/{APP_DIR}/share/docs/embeded.html
 
             The computer code and documentation that comprises UCSF ChimeraX is protected
             by copyrights held by The Regents of the University of California ("The Regents")
@@ -361,25 +375,27 @@ def make_spec_file(rpmbuild_dir, pkg_name, version, rpm_release, bin_path, depen
             {doc_dir}
 
             %post
+            test -n "$RPM_INSTALL_PREFIX" || exit 1
             echo "Install desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-install system true'
+            $RPM_INSTALL_PREFIX/bin/{bin_name} --exit --nogui --silent --cmd 'linux xdg-install system true'
             echo "Precompiling Python packages"
-            ({bin_path} -m compileall {pkg_root} || exit 0)
+            ($RPM_INSTALL_PREFIX/bin/{bin_name} -m compileall $RPM_INSTALL_PREFIX/{APP_DIR} || exit 0)
 
             %preun
+            test -n "$RPM_INSTALL_PREFIX" || exit 1
             echo "Deregister desktop menu and associated mime types"
-            {bin_path} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
+            $RPM_INSTALL_PREFIX/bin/{bin_name} --exit --nogui --silent --cmd 'linux xdg-uninstall system true'
             echo "Remove Python cache files"
-            find {pkg_root} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
+            find $RPM_INSTALL_PREFIX/{APP_DIR} -name __pycache__ -print0 | xargs -0 /bin/rm -rf
             """), file=f)
 
-        #Icon: .gif or .xpm!
-        #Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
-        #Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
-        # field::biology:structural, field::biology:bioinformatics,
-        # biology::nucleic-acids, biology::peptidic,
-        # scope::application, x11::application, role::program, interface::3d,
-        # implemented-in::python, uitoolkit::qt, use:viewing, network::client
+        # Icon: .gif or .xpm!
+        # Bugs: mailto:chimerax-bugs@cgl.ucsf.edu
+        # Tags: science::visualisation, science::modelling, field::biology, field::chemistry,
+        #  field::biology:structural, field::biology:bioinformatics,
+        #  biology::nucleic-acids, biology::peptidic,
+        #  scope::application, x11::application, role::program, interface::3d,
+        #  implemented-in::python, uitoolkit::qt, use:viewing, network::client
 
 
 def make_copyright_file(doc_dir):

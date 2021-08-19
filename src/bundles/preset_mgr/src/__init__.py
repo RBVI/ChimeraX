@@ -35,8 +35,7 @@ class _PresetsBundleAPI(BundleAPI):
         """Initialize presets manager"""
         if name == "presets":
             from .manager import PresetsManager
-            session.presets = PresetsManager(session)
-            return session.presets
+            session.presets = PresetsManager(session, name)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

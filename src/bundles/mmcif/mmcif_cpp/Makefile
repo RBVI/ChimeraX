@@ -24,9 +24,9 @@ PYMOD_NAME = _mmcif
 DEFS += $(PYDEF)
 INCS += $(PYTHON_INCLUDE_DIRS) -I$(ARRAYS_DIR)/include
 ifeq ($(WIN32),msvc)
-LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib liblogger.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
+LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib liblogger.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -llogger -L$(ARRAYS_DIR)/lib -larrays -lappdirs $(PYTHON_LIB)
+LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -llogger -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
 endif
 
 lib:

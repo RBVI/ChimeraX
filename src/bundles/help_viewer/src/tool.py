@@ -22,8 +22,11 @@ from chimerax.ui.widgets.htmlview import (
     ChimeraXHtmlView, chimerax_intercept,
     create_chimerax_profile
 )
+from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 _singleton = None
+_sys_tags = None
+_sys_info = None
 
 
 def _qurl2text(qurl):
@@ -51,7 +54,7 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        from Qt.QtWebEngineWidgets import QWebEnginePage
         background = win_type == QWebEnginePage.WebBrowserBackgroundTab
         return self.help_tool.create_tab(background=background)
 
@@ -61,8 +64,8 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def contextMenuEvent(self, event):
         # inpsired by qwebengine simplebrowser example
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
-        from PyQt5.QtCore import Qt
+        from Qt.QtWebEngineWidgets import QWebEnginePage
+        from Qt.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
         self._context_menu = menu = page.createStandardContextMenu()
@@ -99,9 +102,9 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from PyQt5.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar
-        from PyQt5.QtGui import QIcon
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
+        from Qt.QtGui import QIcon
+        from Qt.QtCore import Qt
         shortcuts = (
             (Qt.CTRL + Qt.Key_0, self.page_reset_zoom),
             (Qt.CTRL + Qt.Key_T, lambda: self.create_tab(empty=True)),
@@ -159,10 +162,11 @@ class HelpUI(ToolInstance):
             a.setToolTip(tooltip)
             a.triggered.connect(callback)
             if shortcut:
+                from Qt.QtGui import QKeySequence
                 if isinstance(shortcut, list):
-                    a.setShortcuts(shortcut)
+                    a.setShortcuts([QKeySequence(s) for s in shortcut])
                 else:
-                    a.setShortcut(shortcut)
+                    a.setShortcut(QKeySequence(shortcut))
             a.setEnabled(enabled)
             tb.addAction(a)
 
@@ -190,15 +194,20 @@ class HelpUI(ToolInstance):
 
         self.status_bar = QStatusBar()
         layout.addWidget(self.status_bar)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.status_bar.addPermanentWidget(self.progress_bar)
 
         self.tool_window.manage(placement=None)
 
         self.profile = create_chimerax_profile(
             self.tabs, interceptor=self.intercept,
+            schemes=("installable",),
+            handlers={"installable": _InstallableSchemeHandler(self.session)},
             download=self.download_requested)
 
-    def status(self, message):
-        self.status_bar.showMessage(message, 2000)
+    def status(self, message, timeout=2000):
+        self.status_bar.showMessage(message, timeout)
 
     def create_tab(self, *, empty=False, background=False):
         w = _HelpWebView(self.session, self, profile=self.profile)
@@ -206,7 +215,7 @@ class HelpUI(ToolInstance):
         if empty:
             from chimerax import app_dirs
             self.tool_window.title = app_dirs.appname
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             self.url.setFocus(Qt.ShortcutFocusReason)
         if not background:
             self.tabs.setCurrentWidget(w)
@@ -226,8 +235,9 @@ class HelpUI(ToolInstance):
         return w
 
     def authorize(self, requestUrl, auth):
-        from PyQt5.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
+        from Qt.QtCore import Qt
+
         class PasswordDialog(QDialog):
 
             def __init__(self, requestUrl, auth, parent=None):
@@ -264,7 +274,7 @@ class HelpUI(ToolInstance):
                 layout.addWidget(self.ok_button, 3, 3)
 
             def reject(self):
-                from PyQt5.QtNetwork import QAuthenticator
+                from Qt.QtNetwork import QAuthenticator
                 import sip
                 sip.assign(auth, QAuthenticator())
                 return super().reject()
@@ -300,9 +310,12 @@ class HelpUI(ToolInstance):
                     qurl.setPath(new_path)
                     request_info.redirect(qurl)
                     return
-        import sip
+        elif scheme == "installable":
+            # dealt with in scheme handler
+            return
         tabs = self.tabs
-        if not sip.isdeleted(tabs):
+        from Qt import qt_object_is_deleted
+        if not qt_object_is_deleted(tabs):
             chimerax_intercept(request_info, *args, session=self.session,
                                view=tabs.currentWidget())
 
@@ -317,6 +330,7 @@ class HelpUI(ToolInstance):
         # but since neither one is set by the server, we look at the
         # download extension instead
         if extension == ".whl":
+            is_wheel = True
             if not base.endswith("x86_64"):
                 # Since the file name encodes the package name and version
                 # number, we make sure that we are using the right name
@@ -339,54 +353,69 @@ class HelpUI(ToolInstance):
                 os.remove(file_path)
             except OSError:
                 pass
-            self._pending_downloads.append(item)
             self.session.logger.info("Downloading bundle %s" % url_file)
-            item.finished.connect(self.download_finished)
+            self.status("Downloading bundle %s" % url_file, 0)
         else:
-            from PyQt5.QtWidgets import QFileDialog
+            is_wheel = False
+            from Qt.QtWidgets import QFileDialog
             path, filt = QFileDialog.getSaveFileName(directory=item.path())
             if not path:
                 return
             self.session.logger.info("Downloading file %s" % url_file)
+            self.status("Downloading file %s" % url_file, 0)
             item.setPath(path)
         # print("HelpUI.download_requested accept", file_path)
+        item.downloadProgress.connect(self.download_progress)
+        item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
-    def download_finished(self, *args, **kw):
+    def download_progress(self, bytes_received, bytes_total):
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setMaximum(bytes_total)
+        self.progress_bar.setValue(bytes_received)
+        self.progress_bar.update()
+
+    def download_finished(self, *args, item=None, is_wheel=False, **kw):
         # print("HelpUI.download_finished", args, kw)
-        finished = []
-        pending = []
-        for item in self._pending_downloads:
-            if not item.isFinished():
-                pending.append(item)
-            else:
-                finished.append(item)
-        self._pending_downloads = pending
+        self.progress_bar.setVisible(False)
+        self.status("Download finished")
+        item.downloadProgress.disconnect()
+        item.finished.disconnect()
+        if not is_wheel:
+            return
         import pkginfo
         from chimerax.ui.ask import ask
-        for item in finished:
-            item.finished.disconnect()
-            filename = item.path()
-            try:
-                w = pkginfo.Wheel(filename)
-            except Exception as e:
-                self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
-                self.session.logger.info("File saved as %s" % filename)
-                continue
-            if not _installable(w, self.session.logger):
-                self.session.logger.info("Bundle saved as %s" % filename)
-                continue
-            how = ask(self.session,
-                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
-                      ["install", "cancel"],
-                      title="Toolshed")
-            if how == "cancel":
-                self.session.logger.info("Bundle installation canceled")
-                continue
-            self.session.toolshed.install_bundle(filename,
-                                                 self.session.logger,
-                                                 per_user=True,
-                                                 session=self.session)
+        filename = item.path()
+        try:
+            wh = pkginfo.Wheel(filename)
+        except Exception as e:
+            self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
+            self.session.logger.info("File saved as %s" % filename)
+            return
+        if not _installable(wh, self.session.logger):
+            self.session.logger.info("Bundle saved as %s" % filename)
+            return
+        prefix = _install_or_upgrade(filename, self.session).decode()
+        reinstall = False
+        action = "Install"
+        if prefix in ("Downgrade", "Upgrade"):
+            action = prefix
+            prefix += " to"
+        elif prefix == "Installed":
+            action = prefix = "Reinstall"
+            reinstall = True
+        how = ask(self.session,
+                  f"{prefix} {wh.name} {wh.version} (file {filename})?",
+                  [action, "cancel"],
+                  title="Toolshed")
+        if how == "cancel":
+            self.session.logger.info("Bundle installation canceled")
+            return
+        self.session.toolshed.install_bundle(filename,
+                                             self.session.logger,
+                                             per_user=True, reinstall=reinstall,
+                                             session=self.session)
+        self.reload_toolshed_tabs()
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
@@ -399,7 +428,7 @@ class HelpUI(ToolInstance):
             w = self.create_tab()
         else:
             w = self.tabs.currentWidget()
-        from PyQt5.QtCore import QUrl
+        from Qt.QtCore import QUrl
         if html:
             w.setHtml(html, QUrl(url))
         else:
@@ -482,7 +511,7 @@ class HelpUI(ToolInstance):
         self.tabs.setTabText(i, title)
 
     def link_hovered(self, url):
-        from PyQt5.QtCore import QUrl
+        from Qt.QtCore import QUrl
         try:
             self.status(_qurl2text(QUrl(url)))
         except Exception:
@@ -530,37 +559,123 @@ class HelpUI(ToolInstance):
     def update_back_forward(self, w=None):
         if w is None:
             w = self.tabs.currentWidget()
+            if w is None:
+                return
         history = w.history()
         self.back.setEnabled(history.canGoBack())
         self.forward.setEnabled(history.canGoForward())
 
+    def reload_toolshed_tabs(self):
+        toolshed_url = self.session.toolshed.remote_url
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            tab_url = w.url().url()
+            if tab_url.startswith(toolshed_url):
+                w.reload()
+
     @classmethod
-    def get_viewer(cls, session, target=None):
+    def get_viewer(cls, session, target=None, create=True):
         global _singleton
         if _singleton is None:
+            if not create:
+                return None
             _singleton = HelpUI(session)
         return _singleton
 
 
-def _installable(w, logger):
-    return True
-    # TODO: check if installable to give better error message than
+def _installable(wh, logger):
+    # check if installable to give better error message than
     #       downstream use of pip.
-    import re
-    from distutils.version import LooseVersion as Version
+    if not _compatible(wh.filename, logger):
+        return False
     import chimerax.core
-    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
-    for req in w.requires_dist:
-        m = pat.match(req)
-        if m:
-            op = m.group("op")
-            version = m.group("version")
-            if op == ">=":
-                return Version(chimerax.core.version) >= Version(version)
-            elif op == "==":
-                return Version(chimerax.core.version) == Version(version)
-            elif op == "<=":
-                return Version(chimerax.core.version) <= Version(version)
-            logger.info("Unsupported version comparison:", op)
+    core_bundle = chimerax.core.BUNDLE_NAME + ' '
+    for r in wh.requires_dist:
+        if not r.startswith(core_bundle):
+            continue
+        from packaging.requirements import Requirement
+        from packaging.version import Version
+        core_version = Version(chimerax.core.version)
+        try:
+            req = Requirement(r)
+            return req.specifier.contains(core_version, prereleases=True)
+        except Exception:
+            logger.info(f"Unsupported ChimeraX-Core requirement: {repr(r)}")
             return False
     return True
+
+
+def _compatible(filename, logger=None):
+    # using wheel filename check if compatible with running ChimeraX
+    from wheel_filename import parse_wheel_filename
+    global _sys_tags, _sys_info
+    if _sys_tags is None:
+        from packaging import tags
+        _sys_tags = list(tags.sys_tags())
+        i, a, p = zip(*((s.interpreter, s.abi, s.platform) for s in _sys_tags))
+        _sys_info = (set(i), set(a), set(p))
+
+    def supported_tags(winfo):
+        for interpreter in winfo.python_tags:
+            for abi in winfo.abi_tags:
+                for platform in winfo.platform_tags:
+                    yield (interpreter, abi, platform)
+
+    winfo = parse_wheel_filename(filename)
+    for t in supported_tags(winfo):
+        for s in _sys_tags:
+            if t == (s.interpreter, s.abi, s.platform):
+                return True
+    if logger:
+        if _sys_info[0].isdisjoint(winfo.python_tags):
+            logger.info("bundle is for different version of Python")
+        elif _sys_info[1].isdisjoint(winfo.abi_tags):
+            logger.info("bundle uses incompatible Python ABI")
+        elif _sys_info[2].isdisjoint(winfo.platform_tags):
+            logger.info("bundle is for different platform")
+        else:
+            logger.info("bundle is incompatible")
+    return False
+
+
+def _install_or_upgrade(filename, session):
+    from wheel_filename import parse_wheel_filename
+    winfo = parse_wheel_filename(filename)
+    bundle = session.toolshed.find_bundle(winfo.project, session.logger)
+    if bundle is None:
+        return b"Install"
+    try:
+        from packaging.version import Version
+        b_ver = Version(bundle.version)
+        wh_ver = Version(winfo.version)
+        if b_ver == wh_ver:
+            return b"Installed"
+        if b_ver < wh_ver:
+            return b"Upgrade"
+        return b"Downgrade"
+    except Exception:
+        return b"Install"
+
+
+class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
+
+    def __init__(self, session):
+        self.session = session
+        super().__init__()
+
+    def requestStarted(self, request):
+        from Qt.QtCore import QBuffer
+        wheel_name = request.requestUrl().path()
+        try:
+            compatible = _compatible(wheel_name)
+        except Exception:
+            compatible = False
+        reply = QBuffer(parent=self)
+        request.destroyed.connect(reply.deleteLater)
+        reply.open(QBuffer.WriteOnly)
+        if not compatible:
+            reply.write(b"Not compatible")
+        else:
+            reply.write(_install_or_upgrade(wheel_name, self.session))
+        reply.close()
+        request.reply(b"text/plain", reply)

@@ -212,8 +212,7 @@ bin_counts(PyObject *, PyObject *args, PyObject *keywds)
 
   call_template_function(bin_counts, seq.value_type(), (seq, min, max, counts, ignore_pad_value));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

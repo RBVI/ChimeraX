@@ -74,7 +74,7 @@ def surfaces_z_depth(surfaces, depth, triangle_num,
   set = False
   toffset = 0
   beyond_kw = {k:v for k,v in (('beyond', beyond), ('beyond_triangle_number', beyond_triangle_num)) if v is not None}
-  from ._mask import surface_z_depth
+  from .mask_cpp import surface_z_depth
   for varray, tarray in surfaces:
     if surface_z_depth(varray, tarray, depth, triangle_num,
                        triangle_number_offset = toffset, **beyond_kw):
@@ -105,7 +105,7 @@ def masked_volume(volume, surfaces,
 
   # Extend mask boundary by n voxels
   if extend:
-    from ._mask import pad_mask
+    from .mask_cpp import pad_mask
     pad_mask(mvol, extend)
 
   # Multiply ones mask times volume.
@@ -228,7 +228,7 @@ def project_and_mask(zsurf, size, mvol, mijk_to_dijk, sandwich, fill_overlap):
   else:
     dlimit = 2*max_depth
   zsurfs = [[s] for s in zsurf] if fill_overlap else [zsurf]
-  from ._mask import fill_slab
+  from .mask_cpp import fill_slab
   for zs in zsurfs:
     beyond = beyond_tnum = None
     max_layers = 200

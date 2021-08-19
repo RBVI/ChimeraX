@@ -109,6 +109,18 @@ class Alignment(State):
             self._auto_associate = False
         if create_headers:
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
+            if file_markups is not None:
+                for name, markup in file_markups.items():
+                    from chimerax.core.utils import string_to_attr
+                    from chimerax.alignment_headers import FixedHeaderSequence
+                    class MarkupHeaderSequence(FixedHeaderSequence):
+                        ident = string_to_attr(name, prefix="file_markup_")
+                        def settings_info(self):
+                            base_settings_name, defaults = super().settings_info()
+                            from chimerax.core.commands import BoolArg
+                            defaults.update({'initially_shown': (BoolArg, True)})
+                            return "sequence file header %s" % name, defaults
+                    self._headers.append(MarkupHeaderSequence(self, name, markup))
             self._headers.sort(key=lambda hdr: hdr.name.casefold())
             attr_headers = []
             for header in self._headers:
@@ -394,7 +406,6 @@ class Alignment(State):
                 # ensemble
                 struct_name += " (" + struct.id_string + ")"
             self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
-        # delay notifying the observers until all chain demotions/deletions have been received
         num_unknown = 0
         structures = set()
         for sseq in self.associations:
@@ -409,6 +420,11 @@ class Alignment(State):
             'max previous structures': len(structures) + num_unknown,
             'num remaining structures': len(structures)
         }
+        if not demotion:
+            # do immediately, since 'changes done' trigger may never fire for manual disassociations
+            self._notify_observers(self.NOTE_DEL_ASSOC, data)
+            return
+        # delay notifying the observers until all chain demotions/deletions have been received
         def _delay_disassoc(_, __, data=data):
             self._notify_observers(self.NOTE_DEL_ASSOC, data)
             from chimerax.core.triggerset import DEREGISTER
@@ -688,6 +704,7 @@ class Alignment(State):
             attr_name = header.residue_attr_name
             Residue.register_attr(self.session, attr_name, "sequence alignment",
                 attr_type=header.value_type, can_return_none=header.value_none_okay)
+            assigned = set()
             for match_map in match_maps:
                 aseq = match_map.align_seq
                 for i, val in enumerate(header):
@@ -699,6 +716,9 @@ class Alignment(State):
                     except KeyError:
                         continue
                     setattr(r, attr_name, val)
+                    assigned.add(r)
+            if assigned:
+                self.session.change_tracker.add_modified(assigned, attr_name + " changed")
 
     def __str__(self):
         return self.ident

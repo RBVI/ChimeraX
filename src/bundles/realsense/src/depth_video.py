@@ -224,27 +224,27 @@ class DepthVideo (Model):
         # Convert images to numpy arrays
         depth_image = numpy.asanyarray(depth_frame.get_data())
         color_image = numpy.asanyarray(color_frame.get_data())
-        if view.frame_number % 100 == -1:
-            print ('depth', depth_image.dtype, depth_image.shape,
-                   'color', color_image.dtype, color_image.shape)
-            print ('depth values')
-            for r in range(10):
-                print(' '.join('%5d' % d for d in depth_image[230+r, 310:320]))
+#        if view.frame_number % 100 == -1:
+#            print ('depth', depth_image.dtype, depth_image.shape,
+#                   'color', color_image.dtype, color_image.shape)
+#            print ('depth values')
+#            for r in range(10):
+#                print(' '.join('%5d' % d for d in depth_image[230+r, 310:320]))
 
         if self._first_image:
             self._create_textures_video(color_image, depth_image)
             self._first_image = False
             ci = color_frame.profile.as_video_stream_profile().intrinsics
-            print('color intrinsics', ci)
+#            print('color intrinsics', ci)
             cfov = rs.rs2_fov(ci)
-            print('color fov', cfov)
+#            print('color fov', cfov)
             self._realsense_color_field_of_view = cfov
             di = depth_frame.profile.as_video_stream_profile().intrinsics
-            print('depth intrinsics', di)
+#            print('depth intrinsics', di)
             dfov = rs.rs2_fov(di)
-            print('depth fov', dfov)
+#            print('depth fov', dfov)
             self._realsense_depth_field_of_view = dfov
-            print('extrinsics color to depth', color_frame.profile.get_extrinsics_to(depth_frame.profile))
+#            print('extrinsics color to depth', color_frame.profile.get_extrinsics_to(depth_frame.profile))
             if self._denoise_depth:
                 self._ave_depth_image = depth_image.copy()
                 self._max_depth = depth_image.copy()
@@ -257,6 +257,8 @@ class DepthVideo (Model):
 
             if self._denoise_depth:
                 ave_depth = self._ave_depth_image
+                # Make sure _depthvideo can runtime link shared library libarrays.
+                from chimerax import arrays ; arrays.load_libarrays()
                 from ._depthvideo import denoise_depth
                 denoise_depth(depth_image, color_image,
                               ave_depth = ave_depth, ave_weight = self._denoise_weight,
@@ -300,9 +302,9 @@ class DepthVideo (Model):
         # Shader wants to handle 0 depth values (= unknown depth) as max distance
         # so need to turn off linear interpolation so fragment shader gets 0 values.
         dt.linear_interpolation = False
-        print ('color image type', color_image.dtype, color_image.shape)
-        print ('depth image type', depth_image.dtype, depth_image.shape,
-               'mean', depth_image.mean(), 'min', depth_image.min(), 'max', depth_image.max())
+#        print ('color image type', color_image.dtype, color_image.shape)
+#        print ('depth image type', depth_image.dtype, depth_image.shape,
+#               'mean', depth_image.mean(), 'min', depth_image.min(), 'max', depth_image.max())
 
     def _create_textures_test(self):
         w = h = 512

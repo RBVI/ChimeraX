@@ -45,7 +45,9 @@ different sets of items:
 &ndash; atomic models
 <li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
-<li><b>Coloring by Value</b>:
+<li><b>Coloring by Value</b>
+(see also the <a href="../tools/colorkey.html"><b>Color Key</b></a> tool
+or <a href="key.html"><b>key</b></a> command):
   <ul>
   <li><a href="#byattribute"><b>Attribute</b></a>
   &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
@@ -59,24 +61,34 @@ different sets of items:
   &ndash; surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
+<li><a href="#single"><b>Removing Coloring by Value or Zone</b></a>
 <li><a href="#image"><b>Coloring from Image File</b></a>
 &ndash; paste an image from a file onto a surface; perform texture mapping
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
-<a href="coulombic.html"><b>coulombic</b></a>,
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="../tools/coloractions.html"><b>Color Actions</b></a>,
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color specification</a>,
-<a href="palettes.html">palettes</a>
+<a href="palettes.html">palettes</a>,
+<a href="colornames.html#transparency-limitations">limitations
+of transparency</a>
 </p><p>
 Additional subcommands manage the set of named colors:
 </p>
@@ -236,7 +248,9 @@ Existing transparency is not changed unless this option is used or the
 <i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
 alpha (opacity). An alpha value overrides this option if both are given.
 Note that the <a href="transparency.html"><b>transparency</b></a> command
-can be used to set transparency apart from color.
+can be used to set transparency apart from color. There are
+<a href="colornames.html#transparency-limitations">limitations
+in rendering transparency</a>.
 </p>
 <h4>Examples (<a href="#simple">Simple</a>)</h4>
 Color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>):
@@ -295,20 +309,20 @@ to atomic models at the specified <i>level</i>:
 <li><b>residues</b> (default)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
-&ndash; a different color for each residue 
-in a biopolymer chain (always applies to entire chains); other residues
-such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
+&ndash; a different color for each residue in a biopolymer chain;
+other residues such as 
+<a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
 <li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
 <li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
-(macromolecular entity) in an atomic model, based on sequence; 
+(macromolecular entity) in an atomic model, based on sequence;
 non-biopolymer residues are not affected
+(see also <a href="#simple"><b>color bypolymer</b></a>)
 <li><b>structures</b> &ndash; a different color for each atomic model
 </ul>
-Sequential coloring applies to all atoms within the affected residues,
-chains, or models even if fewer atoms are specified, but can be restricted 
-to certain representations with the <a href="#target"><b>target</b></a> option.
+Sequential coloring can be restricted to certain representations 
+with the <a href="#target"><b>target</b></a> option.
 The <a href="#palette-options"><b>palette</b></a> option specifies
 what colors to use (default
 <table border cellpadding="4" cellspacing="0"
@@ -320,6 +334,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 </tr></table>),
 and <a href="#transparency"><b>transparency</b></a> can be set independently.
+If the scope of coloring is limited by giving an
+<a href="atomspec.html"><i>atom-spec</i></a> in the command,
+the full palette will be mapped to the specification only.
 </p>
 <h4>Examples (<a href="#sequential">Sequential</a>)</h4>
 Rainbow-color residues blue &rarr; red along each biopolymer chain:
@@ -329,6 +346,11 @@ Rainbow-color residues blue &rarr; red along each biopolymer chain:
 <b>rainbow res</b>
 <br>&ndash; or &ndash;<br>
 <b>rainbow</b>
+</blockquote>
+Rainbow-color each biopolymer chain from blue at residue 1 to red at residue 50,
+leaving the colors of other parts unchanged.
+<blockquote>
+<b>rainbow :1-50</b>
 </blockquote>
 Color the unique biopolymers in each atomic model, cartoons only,
 along the range cornflower blue &rarr; red &rarr; gold
@@ -341,7 +363,7 @@ along the range cornflower blue &rarr; red &rarr; gold
 &nbsp;palette cornflowerblue:red:gold</b>
 </blockquote>
 Color the 10-mer in PDB entry 
-<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
+<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
 target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
 <a href="palettes.html#colorbrewer">ColorBrewer palette</a>:
 <blockquote>
@@ -412,7 +434,7 @@ For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
 the current value, or simply set as the current value.
 </p><p>
 Example image and script:
-<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html#colormod"
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#colormod"
 target="_blank">Potassium Channel-Calmodulin Complex</a> 
 </p>
 
@@ -425,10 +447,11 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>byattribute</b>
-&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<i>attribute-name</i>
+&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
+[&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
@@ -442,8 +465,12 @@ Examples of coloring by <b>bfactor</b>, an attribute
 automatically read from mmCIF/PDB, are given below.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+See also the tutorial:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
+target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
-An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
+An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the
+<a href="../attributes.html#attrnames">attribute name</a>
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
@@ -459,6 +486,12 @@ can be set independently.
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
 with the <b>noValueColor</b> option.
+</p><p>
+When <b>color byattribute</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
@@ -530,6 +563,7 @@ to make the cap match the nearby atoms.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
@@ -537,6 +571,8 @@ to make the cap match the nearby atoms.
 <p>
 Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
 value applies to surfaces only, both molecular and nonmolecular.
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -547,19 +583,28 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> across the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently. 
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
-The <a href="coulombic.html"><b>coulombic</b></a> command
-colors molecular surfaces
+The <a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
+command colors molecular surfaces
 by Coulombic electrostatic potential without requiring an input map.
 See also: 
-<a href="mlp.html"><b>mlp</b></a>,
+<a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img 
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
-<a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>
 </p>
 <ul>
@@ -574,20 +619,19 @@ from each surface vertex, along its normal, to evaluate the data
 with default <b>offset</b> <b>1.4</b> &Aring;, 
 which is typically used for coloring a 
 <a href="surface.html">molecular surface</a> by electrostatic potential.
-The rationale for looking outward is that the values at the centers 
-of any interacting atoms are more relevant than those at their surfaces.
-By default, a <a href="surface.html#surfdefs">molecular surface</a>
-shows where the surface of a spherical probe 
-of radius 1.4 &Aring; can lie, the
-<a href="surface.html#surfdefs">solvent-excluded surface</a>.
-An offset of 1.4 &Aring; approximates the 
+The rationale for looking outward is to show the values that any atoms
+binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+A molecular surface in ChimeraX is the
+<a href="surface.html#surfdefs">solvent-excluded surface</a>
+where the surface of a spherical probe can lie. The default probe radius
+is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
 about as close as the probe center can get to the molecule.
-** However, an offset of 0.0 may be preferred for coloring
-<a href="surface.html#cap">surface caps</a>
-(from <a href="clip.html">clipping</a>),
-and a zero or negative offset may be appropriate
-for coloring the surface of one structure by the potential from another. **
+**However, an offset of 0.0 may be preferred for coloring
+the <a href="surface.html#cap">cap</a>
+of a <a href="clip.html">clipped</a> surface,
+and a zero or negative offset for coloring the surface of one structure
+by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm,
 with default <b>offset</b> <b>0.0</b> &Aring;.
@@ -630,6 +674,7 @@ Same as previous except use royal blue instead of blue:
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 <br>
@@ -639,12 +684,15 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
 both molecular and nonmolecular (such as volume isosurfaces).
+It is also implemented in the
+<a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-distance mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -653,6 +701,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> across the full range).
+When the coloring command is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
@@ -692,6 +745,7 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -699,6 +753,13 @@ Coloring by <b>zone</b> to match nearby atoms or
 <a href="../markers.html">markers</a> applies to surfaces only.
 The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png">
+uses a <b>distance</b> value six times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/colorzone.html"><b>Color Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
+</p><p>
 For coloring a <a href="surface.html">molecular surface</a>
 (and/or its <a href="surface.html#cap">caps</a> where sliced by
 <a href="clip.html">clipping</a>)
@@ -709,8 +770,9 @@ surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
 spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
-Vertices not within the cutoff of any of the atoms are assigned 
-the default color of the surface model (single-color mode).
+Vertices not within the cutoff of any of the atoms are assigned the
+<b>farColor</b> color, or if that option was not used,
+the single-color setting of the surface model.
 </p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
@@ -719,9 +781,30 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 </p><p>
 A map that has been colored by zone can be split accordingly with
-<a href="volume#splitbyzone"><b>volume splitbyzone</b></a>.
+<a href="volume.html#splitbyzone"><b>volume splitbyzone</b></a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+</p>
+
+<a name="single"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3><b>Removing Coloring by Value or Zone</b></h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color</b> &nbsp;<b>single</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+</blockquote>
+<p>
+The <b>color single</b> command removes surface per-vertex colors
+such as from coloring by value
+(<a href="#byattribute">attribute</a>, <a href="#map">map</a>, 
+<a href="#distance">distance</a>,
+<a href="coulombic.html"><b>coulombic</b></a>, or
+<a href="mlp.html"><b>mlp</b></a>), <a href="#zone">by zone</a>,
+or by the atomic patches in a <a href="surface.html">molecular surface</a>.
+The surface model is returned to its single-color setting.
 </p>
 
 <a name="image"></a>
@@ -746,11 +829,14 @@ The <b>file</b> option specifies an image from a file to paste
 onto the surface (<a href="save.html#imgformats">image format</a> 
 indicated by the filename suffix), or <b>none</b>,
 <!-- needed before doing any other type of coloring -->
-which clears any previous image coloring. Omitting the <b>file</b> option 
+which clears any previous image coloring (since coloring by image
+does not work with <a href="undo.html"><b>undo</b></a>).
+Omitting the <b>file</b> option 
 keeps using the previously specified image, if any, for texture mapping.
 The <b>modulate</b> option indicates whether the image in the file should
 modulate rather than replace the current surface coloring (default <b>false</b>,
-replace the current coloring).
+which changes the underlying surface color to white so that the resulting
+coloring will come from the image only).
 </p><p>
 An image is rectangular, with XY coordinates (0,0) at the lower left corner
 and (1,1) at the top right. 
@@ -948,7 +1034,7 @@ is not recommended, as it would disrupt the specified color-value pairing.
 <br><br>
 <li> <i>colourlovers-id</i> 
 &ndash; the ID number, name, or name+author of a palette to be fetched from 
-<a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
+<a href="https://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
 Examples:
 <blockquote>
 <b>palette 92095</b><br>
@@ -957,7 +1043,7 @@ Examples:
 <b>palette "^Giant Goldfish"</b>
 </blockquote>
 The page of a specific palette at 
-<a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>
+<a href="https://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>
 shows its name, author, ID number (in the URL), and any licensing stipulations
 for its use. 
 Palette names with spaces must be enclosed in quotation marks.
@@ -1056,5 +1142,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+April 2021</address>
 </body></html>

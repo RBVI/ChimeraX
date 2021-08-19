@@ -34,7 +34,7 @@ class CageBuilder(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QLineEdit
+        from Qt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QLineEdit
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)

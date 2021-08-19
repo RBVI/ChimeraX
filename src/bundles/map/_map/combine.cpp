@@ -64,6 +64,5 @@ extern "C" PyObject *linear_combination(PyObject *, PyObject *args, PyObject *ke
 
   call_template_function(lin_combine, m.value_type(), (f1, m1, f2, m2, m));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

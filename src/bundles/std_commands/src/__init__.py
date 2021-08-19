@@ -69,4 +69,68 @@ class StdCommandsAPI(BundleAPI):
         from .selectors import register_selectors
         register_selectors(logger)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class DefattrInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from .defattr import defattr
+                    if 'models' in kw:
+                        kw['restriction'] = kw.pop('models')
+                    defattr(session, data, file_name=file_name, **kw)
+                    return [], ""
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    from chimerax.atomic import StructuresArg
+                    return {
+                        'log': BoolArg,
+                        'models': StructuresArg
+                    }
+        else:
+            from chimerax.save_command import SaverInfo
+            class DefattrInfo(SaverInfo):
+                def save(self, session, path, **kw):
+                    from .defattr import write_defattr
+                    write_defattr(session, path, **kw)
+
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import StringArg, BoolArg, EnumOf
+                    from chimerax.atomic import StructuresArg
+                    from .defattr import match_modes
+                    return {
+                        'attr_name': StringArg,
+                        'model_ids': BoolArg,
+                        'match_mode': EnumOf(match_modes),
+                        'selected_only': BoolArg,
+                        'models': StructuresArg,
+                    }
+
+                def save_args_widget(self, session):
+                    from .defattr_gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
+        return DefattrInfo()
+
 bundle_api = StdCommandsAPI()
+
+def register_commands(session):
+    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
+
+    if not session.ui.is_gui:
+        # Remove commands that require Qt to import
+        gui_mod_names = ['coordset_gui', 'defattr_gui']
+        for mod_name in gui_mod_names:
+            mod_names.remove(mod_name)
+
+    # Run command registration for each command.
+    from importlib import import_module
+    for mod_name in mod_names:
+        mod = import_module(".%s" % mod_name, __package__)
+        mod.register_command(session.logger)

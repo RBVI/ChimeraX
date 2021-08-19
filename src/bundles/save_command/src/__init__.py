@@ -101,8 +101,7 @@ class _OpenBundleAPI(BundleAPI):
             session.ui.triggers.add_handler('ready',
                 lambda *args, ses=session: dialog.create_menu_entry(ses))
         from . import manager
-        session.save_command = manager.SaveManager(session)
-        return session.save_command
+        session.save_command = manager.SaveManager(session, name)
 
     @staticmethod
     def register_command(command_name, logger):

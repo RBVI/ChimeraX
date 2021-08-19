@@ -48,5 +48,5 @@
 
 .. automodule:: chimerax.ui.options.options
     :members:
-    :exclude-members: pyqtSignal
+    :exclude-members: Signal
     :show-inheritance:

@@ -31,10 +31,12 @@ markers are implemented as atoms, so actions that apply to
 atoms in ChimeraX also apply to markers:
 they can be <a href="commands/atomspec.html">specified</a> in commands,
 <a href="selection.html">selected</a>, <i>etc.</i>
+<!--
 <li>A <b><i>marker note</i></b> is a text label on a marker, analogous to
 an atom label.
+-->
 <li>A <b><i>link</i></b> is a connection between markers, analogous to a bond.
-<li>A <b><i>marker set</i></b> is a named collection of markers and links,
+<li>A <b><i>marker set</i></b> is a model that consists of markers and links,
 analogous to an atomic model.
 </ul>
 <p>
@@ -42,6 +44,9 @@ Markers and links can be created and adjusted
 <a href="commands/ui.html#mousemode">with the mouse</a>
 (see <a href="tools/markerplacement.html"><b>Marker Placement</b></a>)
 or the <a href="commands/marker.html"><b>marker</b></a> command.
+Markers placed on <a href="trajectories.html#vseries">volume series</a> data
+are assigned a <a href="attributes.html#atom"><b>frame</b> attribute</a>
+with value indicating the associated time step within the series.
 Various other commands such as <a href="commands/bumps.html"><b>bumps</b></a>,
 <a href="commands/measure.html#center"><b>measure center</b></a>,
 <a href="commands/define.html#centroid"><b>define centroid</b></a>,
@@ -74,7 +79,7 @@ links, colors, and radii.
 <a href="#smooth">smooth paths</a> or <a href="#surfaces">surfaces</a>).
 -->
 <font color="brown">
-However, ChimeraX does not yet save labels on markers as marker notes,
+However, ChimeraX does not save labels on markers as marker notes,
 and marker notes are not shown as labels when read from a file.</font>
 Marker files can be opened and saved using the <b>File</b> menu
 or the commands <a href="commands/open.html"><b>open</b></a> and
@@ -98,24 +103,31 @@ The <b>r</b>, <b>g</b>, and <b>b</b> attributes are red, green,
 and blue color components, respectively, with possible values ranging
 from 0 to 1.
 </p><p>
-Extra attributes can be present within the marker, link, and marker_set
+Extra XML attributes can be specified within the marker, link, and marker_set
 tags, as a mechanism for retaining information from or passing information to
-other programs.  For example, the following marker description
-includes a <b>frame</b> attribute:
+other programs. For example, the following marker description
+includes <b>nr</b>, <b>ng</b>, <b>nb</b>, and <b>frame</b> attributes:
+</p>
 <pre>
 &lt;marker id="3" x="195.43" y="166.62" z="174.03" r="1" g="1" b="0" radius="5"
  note="cap domain" nr="1" ng="1" nb="0" frame="5"/&gt;
 </pre>
-<!-- 
-The <b>frame</b> attribute is used by the
-<a href="commands/vseries.html"><b>vseries</b></a> command
-to synchronise marker display with series playback.
--->
-Extra attributes from an input file are retained and included
-in files written back out.
+<p>
+The <a href="attributes.html#atom"><b>frame</b> attribute</a>
+is used for markers on <a href="trajectories.html#vseries">volume series</a>;
+it gives the associated time step to allow synchronized playback with
+<a href="commands/vseries.html#play"><b>vseries play</b></a>.
+Only the <b>x</b>, <b>y</b>, <b>z</b>, <b>radius</b>, <b>r</b>, <b>b</b>,
+<b>g</b>, and <b>frame</b> values are saved in
+<a href="commands/save.html#session">sessions</a>.
+Any other XML attributes read from input marker files, including notes, 
+are retained and included in files written back out (without exiting ChimeraX 
+in between), but are not actually assigned as marker
+<a href="attributes.html">attributes</a> in ChimeraX or saved in 
+<a href="commands/save.html#session">sessions</a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2020</address>
+October 2020</address>
 </body></html>

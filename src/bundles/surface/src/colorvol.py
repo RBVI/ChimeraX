@@ -31,28 +31,28 @@ _color_map_args_doc = '''
 
 # -----------------------------------------------------------------------------
 #
-def color_sample(session, surfaces, map, palette = None, range = None,
-                 offset = 0, transparency = None, update = True):
+def color_sample(session, surfaces, map, palette = None, range = None, key = False,
+                 offset = 0, transparency = None, update = True, undo_state = None):
     '''
     Color surfaces using an interpolated map value at each surface vertex
     with values mapped to colors by a color palette.
     '''
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
-                        undo_name = 'color sample')
+                        undo_name = 'color sample', undo_state = undo_state)
 
 color_sample.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_electrostatic(session, surfaces, map, palette = None, range = None,
+def color_electrostatic(session, surfaces, map, palette = None, range = None, key = False,
                         offset = 1.4, transparency = None, update = True):
     '''
     Color surfaces using an interpolated electrostatic potential map value
     at each surface vertex with values mapped to colors by a color palette.
     '''
     
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
     
@@ -60,7 +60,7 @@ color_electrostatic.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
-def color_gradient(session, surfaces, map = None, palette = None, range = None,
+def color_gradient(session, surfaces, map = None, palette = None, range = None, key = False,
                    offset = 0, transparency = None, update = True):
     '''
     Color surfaces using an map gradient norm value at each surface vertex
@@ -74,7 +74,7 @@ def color_gradient(session, surfaces, map = None, palette = None, range = None,
             raise UserError('volume gradient command must specify "map" option')
         map = surfaces[0].volume
             
-    _color_by_map_value(session, surfaces, map, palette = palette, range = range,
+    _color_by_map_value(session, surfaces, map, palette = palette, range = range, key = key,
                         offset = offset, transparency = transparency, gradient = True,
                         auto_update = update, undo_name = 'color gradient')
 
@@ -103,23 +103,34 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
 
 # -----------------------------------------------------------------------------
 #
-def _color_by_map_value(session, surfaces, map, palette = None, range = None,
+def _color_by_map_value(session, surfaces, map, palette = None, range = None, key = False,
                         offset = 0, transparency = None, gradient = False, caps_only = False,
-                        auto_update = True, undo_name = 'color map by value'):
+                        auto_update = True, undo_name = 'color map by value', undo_state = None):
 
     surfs = [s for s in surfaces if s.vertices is not None]
     cs_class = GradientColor if gradient else VolumeColor
-    from chimerax.core.undo import UndoState
-    undo_state = UndoState(undo_name)
+
+    if undo_state is None:
+        from chimerax.core.undo import UndoState
+        undo = UndoState(undo_name)
+    else:
+        undo = undo_state
+
     for surf in surfs:
         cprev = surf.color_undo_state
         cs = cs_class(surf, map, palette, range, transparency = transparency,
                       offset = offset, auto_recolor = auto_update)
         cs.set_vertex_colors()
-        undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+        undo.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+        if key:
+            from chimerax.color_key import show_key
+            show_key(session, cs.colormap)
 
-    session.undo.register(undo_state)
-        
+    if undo_state is None:
+        session.undo.register(undo)
+
+    return cs
+
 # -----------------------------------------------------------------------------
 #
 def _use_full_range(range, palette):
@@ -147,12 +158,6 @@ def _colormap_with_range(cmap, range, default = 'redblue'):
 from chimerax.core.state import State
 class VolumeColor(State):
 
-    menu_name = 'volume data value'
-    volume_name = 'volume'
-    uses_volume_data = True
-    uses_origin = False
-    uses_axis = False
-
     def __init__(self, surface, volume, palette = None, range = None,
                  transparency = None, offset = 0, auto_recolor = True):
 
@@ -176,26 +181,17 @@ class VolumeColor(State):
 
     # -------------------------------------------------------------------------
     #
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_recolor_vertices == self._auto_recolor
+
+    # -------------------------------------------------------------------------
+    #
     def set_colormap(self, palette, range, per_pixel = False):
         r = self.value_range() if _use_full_range(range, palette) else range
         self.colormap = _colormap_with_range(palette, r)
         self.per_pixel_coloring = per_pixel
         self.set_texture_colormap()
-
-    # -------------------------------------------------------------------------
-    #
-    def color_surface_pieces(self, plist):
-
-        t = self.texture()
-        if t:
-            txf = self.volume.openState.xform
-            border_color = self.colormap.color_no_value
-            for p in plist:
-                texture_surface_piece(p, t, txf, border_color, self.offset)
-        else:
-            for p in plist:
-                p.vertexColors = self.vertex_colors(p)
-                p.using_surface_coloring = True
         
     # -------------------------------------------------------------------------
     #
@@ -412,9 +408,18 @@ class VolumeColor(State):
 
 # -----------------------------------------------------------------------------
 #
-class GradientColor(VolumeColor):
+def volume_coloring(surface):
+    '''Return VolumeColor class for surface model if it is being auto colored.'''
+    arv = surface.auto_recolor_vertices
+    if hasattr(arv, '__self__'):
+        vc = arv.__self__  # Instance of a bound method
+        if isinstance(vc, VolumeColor):
+            return vc
+    return None
 
-    menu_name ='volume data gradient norm'
+# -----------------------------------------------------------------------------
+#
+class GradientColor(VolumeColor):
 
     def vertex_values(self, vertices, vertex_xform):
 
@@ -428,14 +433,6 @@ class GradientColor(VolumeColor):
         gnorms = sqrt(gnorms2)
         
         return gnorms, outside
-
-    # -------------------------------------------------------------------------
-    #
-    def color_surface_pieces(self, plist):
-
-        for p in plist:
-            p.vertexColors = self.vertex_colors(p)
-            p.using_surface_coloring = True
             
 # -----------------------------------------------------------------------------
 #

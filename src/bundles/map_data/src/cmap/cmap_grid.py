@@ -74,13 +74,30 @@ def read_chimera_map(path):
       g = add_subsamples(d, i, g)
     glist.append(g)
 
-  # Mark as volume series if 5 or more maps of same size.
-  # Fewer than 5 maps are considered different channels.
-  if len(glist) > 4 and len(set(tuple(g.size) for g in glist)) == 1:
-      for i,g in enumerate(glist):
-        g.series_index = i
+  _index_grid_series(glist)
 
   return glist
+
+# -----------------------------------------------------------------------------
+#
+def _index_grid_series(grids):
+  '''
+  Mark as volume series if 5 or more maps of same size with the same channel number.
+  Fewer than 5 maps are considered different maps.
+  '''
+  # Find grids by channel
+  cgrids = {}
+  for g in grids:
+    if g.channel in cgrids:
+      cgrids[g.channel].append(g)
+    else:
+      cgrids[g.channel] = [g]
+
+  # Check each channel to see if it is a series.
+  for glist in cgrids.values():
+    if len(glist) > 4 and len(set(tuple(g.size) for g in glist)) == 1:
+      for i,g in enumerate(glist):
+        g.series_index = i
     
 # -----------------------------------------------------------------------------
 # Add subsample grids.

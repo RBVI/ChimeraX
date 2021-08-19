@@ -33,6 +33,9 @@ setup(
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">=3.7",
+    install_requires=[
+        "wheel_filename~=1.2",
+    ],
     package_dir={
         "PKG_NAME": "src",    # directory package's source files are in
     },
@@ -59,8 +62,8 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: General :: 1,1 :: chimerax.toolshed_utils ::  :: true",
-        "ChimeraX :: Tool :: Updates :: General :: synopsis",
+        "ChimeraX :: Bundle :: Utilities :: 1,1 :: chimerax.toolshed_utils ::  :: true",
+        "ChimeraX :: Tool :: Updates :: Utilities :: synopsis",
     ],
     # entry_points={
     #     "egg_info.writers": [

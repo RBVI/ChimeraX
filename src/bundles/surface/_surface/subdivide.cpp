@@ -155,12 +155,7 @@ subdivide_triangles(PyObject *, PyObject *args, PyObject *keywds)
 //
 static PyObject *python_geometry(PyObject *v, PyObject *t, PyObject *n)
 {
-  PyObject *vtn = PyTuple_New(n ? 3 : 2);
-  PyTuple_SetItem(vtn, 0, v);
-  PyTuple_SetItem(vtn, 1, t);
-  if (n)
-    PyTuple_SetItem(vtn, 2, n);
-  return vtn;
+  return (n ? python_tuple(v, t, n) : python_tuple(v, t));
 }
 
 // ----------------------------------------------------------------------------

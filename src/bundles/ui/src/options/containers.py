@@ -20,8 +20,9 @@ The Categorized classes organize the presented options into categories, which th
 switch between.
 """
 
-from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
+from Qt.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
     QPushButton, QCheckBox, QScrollArea, QGroupBox
+from Qt.QtCore import Qt
 
 class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
@@ -56,7 +57,6 @@ class OptionsPanel(QWidget):
         self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
         self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
-        from PyQt5.QtCore import Qt
         # None of the below seem to have an effect on the Mac...
         #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -80,9 +80,13 @@ class OptionsPanel(QWidget):
                 insert_row = len(self._options)
         self._form.insertRow(insert_row, option.name, option.widget)
         self._options.insert(insert_row, option)
-        if option.balloon:
-            self._form.itemAt(insert_row,
-                QFormLayout.LabelRole).widget().setToolTip(option.balloon)
+        label_item = self._form.itemAt(insert_row, QFormLayout.LabelRole)
+        if label_item:
+            label_widget = label_item.widget()
+            label_widget.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            label_widget.setOpenExternalLinks(True)
+            if option.balloon:
+                label_widget.setToolTip(option.balloon)
 
     def add_option_group(self, group_label=None, checked=None, group_alignment=None, **kw):
         if group_label is None:
@@ -110,7 +114,7 @@ class OptionsPanel(QWidget):
         return all_options
 
     def sizeHint(self):
-        from PyQt5.QtCore import QSize
+        from Qt.QtCore import QSize
         form_size = self._form.minimumSize()
         return QSize(min(form_size.width(), 800), min(form_size.height(), 800))
 
@@ -211,7 +215,7 @@ class SettingsPanelBase(QWidget):
                 self.current_check.setChecked(True)
                 from .. import shrink_font
                 shrink_font(self.current_check)
-                from PyQt5.QtCore import Qt
+                from Qt.QtCore import Qt
                 bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
             save_button = QPushButton("Save")
             save_button.clicked.connect(self._save)

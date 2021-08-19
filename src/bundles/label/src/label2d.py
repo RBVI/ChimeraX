@@ -82,12 +82,12 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         kw['color'] = color.uint8x4()
-    elif color == 'default':
+    elif isinstance(color, str) and color in ('default', 'auto'):
         kw['color'] = None
 
     if isinstance(bg_color, Color):
         kw['background'] = bg_color.uint8x4()
-    elif bg_color == 'none':
+    elif isinstance(bg_color, str) and bg_color == 'none':
         kw['background'] = None
 
     has_graphics = session.main_view.render is not None
@@ -123,7 +123,7 @@ def _update_label(session, l, *, text = None, color = None, bg_color = None,
     if italic is not None: l.italic = italic
     if frames is None:
         if color is not None:
-            l.color = None if color == 'default' else color.uint8x4()
+            l.color = None if color in ('default','auto') else color.uint8x4()
         if bg_color is not None:
             l.background = None if bg_color == 'none' else bg_color.uint8x4()
         if size is not None: l.size = size
@@ -287,7 +287,7 @@ def label_listfonts(session):
     if not has_graphics:
         from chimerax.core.errors import LimitationError
         raise LimitationError("Unable to do list fonts without being able to render images")
-    from PyQt5.QtGui import QFontDatabase
+    from Qt.QtGui import QFontDatabase
     fdb = QFontDatabase()
     fnames = list(fdb.families())
     fnames.sort()
@@ -353,13 +353,13 @@ class LabelsArrowsArg(ModelsArg):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
-    from chimerax.core.commands import NonNegativeFloatArg, EnumOf
-    from .label3d import DefArg, NoneArg
+    from chimerax.core.commands import NonNegativeFloatArg, EnumOf, create_alias
+    from .label3d import NoneArg
 
     labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
     # Create and change have same arguments
     cargs = [('text', StringArg),
-             ('color', Or(DefArg, ColorArg)),
+             ('color', Or(EnumOf(['default', 'auto']), ColorArg)),
              ('bg_color', Or(NoneArg, ColorArg)),
              ('size', IntArg),
              ('font', StringArg),
@@ -379,6 +379,7 @@ def register_label_command(logger):
     delete_desc = CmdDesc(optional = [('labels', Or(EnumOf(['all']), LabelsArrowsArg))],
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
+    create_alias('~2dlabels', '2dlabels delete $*', logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
     register('2dlabels listfonts', fonts_desc, label_listfonts, logger=logger)
 

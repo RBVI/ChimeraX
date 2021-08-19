@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-ColorButton is a derived class from PyQt5.QtWidgets.QPushButton
+ColorButton is a derived class from Qt.QtWidgets.QPushButton
 that simplifies showing and editing colors
 
 ColorButton may be instantiated just like QPushButton, but handles
@@ -31,9 +31,9 @@ these extra keyword arguments:
                  requested.
 """
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QPushButton
+from Qt.QtCore import Signal
+from Qt.QtGui import QColor
+from Qt.QtWidgets import QPushButton
 from numpy import array, uint8, ndarray
 
 # some hackery to attempt to make it one color-chooser dialog for the
@@ -60,18 +60,21 @@ def _check_color_chooser(dead_button_id):
 
 class ColorButton(QPushButton):
 
-    color_changed = pyqtSignal(ndarray)
+    color_changed = Signal(ndarray)
+    color_pause = Signal(ndarray)
 
-    def __init__(self, *args, max_size=None, has_alpha_channel=False, **kw):
+    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None, **kw):
         super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
         self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
+        self._pause_timer = None
+        self._pause_delay = pause_delay 	# Seconds before color_pause signal is issued.
 
     def get_color(self):
         return self._color
@@ -90,7 +93,7 @@ class ColorButton(QPushButton):
         _color_setter_id = id(self)
         _color_callback = None
         if _color_dialog is None:
-            from PyQt5.QtWidgets import QColorDialog
+            from Qt.QtWidgets import QColorDialog
             _color_dialog = cd = QColorDialog(self.window())
             cd.setOption(cd.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
@@ -122,6 +125,20 @@ class ColorButton(QPushButton):
     def _color_changed_cb(self, color):
         self.set_color(color)
         self.color_changed.emit(self._color)
+        self._set_pause_timer()
+
+    def _set_pause_timer(self):
+        delay = self._pause_delay
+        if delay is None:
+            return
+        t = self._pause_timer
+        if t is not None:
+            t.stop()
+        from Qt.QtCore import QTimer
+        self._pause_timer = t = QTimer()
+        t.setSingleShot(True)
+        t.timeout.connect(lambda *, p=self.color_pause, c=self._color: p.emit(c))
+        t.start(int(1000*self._pause_delay))
 
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
@@ -160,17 +177,14 @@ class MultiColorButton(ColorButton):
             from chimerax.ui.icons import get_icon_path
             icon_file = get_icon_path("multi")
             max_size = self.maximumSize()
+            import os
             if max_size.width() == max_size.height():
                 test_icon = get_icon_path("multi%d" % max_size.width())
-                import os
                 if os.path.exists(test_icon):
                     icon_file = test_icon
-            # convert Windows 'C:' et al to something that doesn't look like the 'scheme'
-            # part of an URL (pathname2url) and yet don't have spaces and such represented
-            # as '%20' and such (unquote)
-            from urllib.request import pathname2url, unquote
-            path = unquote(pathname2url(icon_file))
-            self.setStyleSheet("background-image: url(%s);" % path)
+            if os.sep != '/':
+                icon_file = '/'.join(icon_file.split(os.sep))
+            self.setStyleSheet("background-image: url(%s);" % icon_file)
         else:
             ColorButton.set_color(self, color)
 

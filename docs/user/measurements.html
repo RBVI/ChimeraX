@@ -67,6 +67,9 @@ and <a href="commands/surface.html">molecular surface</a> displays
 Angles:
 </p>
 <ul>
+<li><a href="commands/angle.html"><b>angle</b></a>
+&ndash; angle defined by three atoms
+or two <a href="commands/define.html#plane">planes</a>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; torsion angle defined by four atoms
 </ul>
@@ -106,6 +109,9 @@ Fit measures:
 <ul>
 <li><a href="commands/align.html"><b>align</b></a>
 &ndash; root-mean-square distance (RMSD) between two sets of atoms
+after fitting
+<li><a href="commands/rmsd.html"><b>rmsd</b></a>
+&ndash; RMSD between two sets of atoms without fitting
 <li><a href="commands/matchmaker.html"><b>matchmaker</b></a> 
 &ndash; pairwise RMSD between biopolymers using one point per residue 
 <li><a href="commands/fitmap.html"><b>fitmap</b></a> 
@@ -118,10 +124,11 @@ one model coordinate system relative to another
 Other map (<a href="tools/volumeviewer.html">volume data</a>) measurements:
 </p>
 <ul>
-<li><a href="commands/measure.html#area"><b>measure area</b></a>
-&ndash; isosurface area (sum of triangle areas)
-<li><a href="commands/measure.html#volume"><b>measure volume</b></a>
-&ndash; isosurface-enclosed volume
+<li><a href="tools/measurevolume.html"><b>Measure Volume and Area</b></a>,
+commands <a href="commands/measure.html#volume"><b>measure volume</b></a>
+and <a href="commands/measure.html#area"><b>measure area</b></a>
+&ndash; total enclosed volume and surface area (sum of triangle areas)
+of a surface model
 <li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 <a href="tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="tools/mouse-icons/pickblobs.png"></a>,
@@ -130,8 +137,9 @@ command <a href="commands/measure.html#blob"><b>measure blob</b></a>
 (disconnected surface parts)
 <li><a href="tools/mapcoords.html"><b>Map Coordinates</b></a>
 &ndash; grid position and scaling in x,y,z coordinates (voxel size, <i>etc.</i>)
-<li><a href="commands/measure.html#mapstats"><b>measure mapstats</b></a>
-&ndash; min, max, standard deviation, root-mean-square deviation from zero
+<li><a href="tools/mapstats.html"><b>Map Statistics</b></a>, command
+<a href="commands/measure.html#mapstats"><b>measure mapstats</b></a>
+&ndash; min, max, mean, standard deviation, root-mean-square deviation from zero
 <li><a href="commands/measure.html#symmetry"><b>measure symmetry</b></a>
 &ndash; check for certain symmetries in standard orientations
 <li><a href="commands/bumps.html"><b>bumps</b></a>
@@ -174,5 +182,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2020</address>
+March 2021</address>
 </body></html>

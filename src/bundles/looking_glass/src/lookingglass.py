@@ -296,7 +296,7 @@ class LookingGlassCamera(Camera):
     
 # -------------------------------------------------------------------------------------------------
 #
-from PyQt5.QtGui import QWindow
+from Qt.QtGui import QWindow
 class LookingGlassWindow(QWindow):
     def __init__(self, session, device_number = 0,
                  view_angle = None, field_of_view = None, depth_offset = None,
@@ -317,7 +317,7 @@ class LookingGlassWindow(QWindow):
         # Create fullscreen window on LookingGlass display
         screen = None if quilt else self._looking_glass_screen()
         QWindow.__init__(self, screen = screen)
-        from PyQt5.QtGui import QSurface
+        from Qt.QtGui import QSurface
         self.setSurfaceType(QSurface.OpenGLSurface)
 
         if screen:
@@ -331,7 +331,7 @@ class LookingGlassWindow(QWindow):
                     self.showFullScreen()
                 # Have to save reference to timer or it is deleted before executing.
                 self._timer = self._session.ui.timer(1000, _set_fullscreen)
-                #from PyQt5.QtCore import Qt
+                #from Qt.QtCore import Qt
                 #self.setFlags(Qt.FramelessWindowHint)
                 self.show()
             else:
@@ -389,7 +389,7 @@ class LookingGlassWindow(QWindow):
         self.delete()
 
     def event(self, event):
-        from PyQt5.QtCore import QEvent
+        from Qt.QtCore import QEvent
         if event.type() == QEvent.Expose:
             self._render()
         return QWindow.event(self, event)

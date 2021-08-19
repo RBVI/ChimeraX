@@ -64,12 +64,13 @@ file_formats = [
   MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
   MapFileFormat('HDF map', 'hdf', ['hdf'], []),
   MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
+  MapFileFormat('ImageJ TIFF map', 'imagestack', ['imagejtiff'], ['tif', 'tiff'], writable = True),
   MapFileFormat('IMAGIC density map', 'imagic', ['imagic'], ['hed', 'img'], writable = True),
   MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
   MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
   MapFileFormat('MRC density map', 'mrc', ['mrc'], ['mrc'], writable = True),
-  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdf'], ['nc']),
+  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdfmap'], ['nc']),
   MapFileFormat('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt']),
   MapFileFormat('PROFEC free energy grid', 'profec', ['profec'], ['profec']),
   MapFileFormat('Purdue image format', 'pif', ['pif'], ['pif']),
@@ -318,9 +319,10 @@ def save_grid_data(grids, path, session, format = None, options = {}):
       os.remove(path)
     shutil.move(tpath, path)
 
-  # Update path in grid data object.
+  # Set path of grid data object if it has no path.
   for g in glist:
-    g.set_path(path, ff.name)
+    if not g.path:
+      g.set_path(path, ff.name)
 
   from os.path import basename
   p.message('Wrote file %s' % basename(path))

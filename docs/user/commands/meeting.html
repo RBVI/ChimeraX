@@ -25,57 +25,40 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: meeting</h3>
 
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>start</b>&nbsp;
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
-<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<i>host</i>&nbsp;
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;] 
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>&nbsp;] 
-[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;] 
-<span class="nowrap">&nbsp;<a href="#options"><i>other-options</i></a></a>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>send</b>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>meeting</b> &nbsp;<b>close</b>
-</h3>
 <p>
 The <b>meeting</b> command shares a scene between
 two or more ChimeraX instances running on different computers.
-Its main purpose is to allow multi-person
-<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX, 
-although it can also be used without VR. 
-Each participant is represented by an image and 
-hand-controller pointers (or if not using VR, the mouse pointer)
+Options for starting and joining a meeting are also implemented 
+in a <a href="../tools/meeting.html"><b>Meeting</b></a>
+graphical interface that is simpler to use than the command.
+<b>Meeting</b> allows conducting a multi-person
+<a href="../vr.html">virtual reality</a> (VR) session in ChimeraX.
+It can also be used without VR, but in that case, 
+a desktop screen-sharing program may be a more reliable alternative.
+Each participant is represented by a head-position image and 
+hand-controller pointer cones
 so that participants can see each other pointing at objects in the scene.
-</p><p>
-A <a href="#limitations">limitation</a> is that the hub server is run
-on the initiator's local host, which may not be reachable through participants'
-firewalls.
-The related command <a href="conference.html"><b>conference</b></a>
-(or <a href="../tools/conferencecall.html"><b>Conference Call</b></a> tool)
-is under development to allow using a publicly accessible address/port 
-to run the hub server instead, but is not yet working.
-See also: <a href="device.html#vr"><b>vr</b></a>
-</p><p>
-The meeting is initiated with <b>meeting start</b>, which reports the 
-hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
-Subsequently, others join using <b>meeting</b> <i>host</i>,
-where <i>host</i> is the hostname or IP address of the starting instance
-(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
-</p><p>
-Each participant can specify a <b>name</b> to serve as an identifier 
-within the shared environment, a <b>faceImage</b> file, 
-and a pointer-cone <b>color</b>.
-</p><p>
+For non-VR participants, the camera view is synchronized, and
+the cone indicating the mouse pointer position of a non-VR user
+is displayed to others when the user pauses the mouse over a model,
+as for picking. 
+</p>
+
+<p>
+Examples:
+</p>
+<blockquote>
+<b>meeting start nanobody</b><br>
+&nbsp;&nbsp;&nbsp;&ndash; start a meeting named <i>nanobody</i><br>
+<b>meeting join nanobody</b><br>
+&nbsp;&nbsp;&nbsp;&ndash; join a meeting named <i>nanobody</i><br>
+<b>meeting close</b><br>
+&nbsp;&nbsp;&nbsp;&ndash; leave the current meeting
+</blockquote>
+
+<p>
 Aside from synchronizing pointers, the <b>meeting</b> command will 
-<a href="#options">copy</a>
+<a href="#copyScene">copy</a>
 a session from the ChimeraX instance that initiates the meeting 
 to each person who joins the meeting.
 This copying is done only when a person joins the meeting. 
@@ -83,33 +66,198 @@ Commands executed by one participant will automatically execute for the others
 (by <a href="#relayCommands">default</a>),
 and if a participant using VR moves the scene,
 others using VR will see the motion.
-Participants not using VR maintain their own viewing directions.
-If unshared changes have been made, a participant can still share 
-his current scene with the others by using <b>meeting send</b>.
-The host can end the meeting with <b>meeting close</b>, or
-others can use it to exit the meeting individually.
-</p><p>
-The <b>meeting</b> command is under development 
-and has several <a href="#limitations">limitations</a>.
+Participants not using VR have a synchronized common viewing direction
+that is not related to the viewing direction of VR participants.
 </p>
 
-<a name="options"></a>
+<p>
+The <b>meeting</b> command is under development 
+and has several <a href="#limitations">limitations</a>.
+See also: <a href="device.html#vr"><b>vr</b></a>
+</p>
+
+<ul>
+  <li><a href="#start"><b>meeting start</b> &nbsp;<i>meeting-name</i>&nbsp;</a> &ndash; start a new meeting
+  <li><a href="#join"><b>meeting join</b> &nbsp;<i>meeting-name</i>&nbsp;</a> 
+&ndash; join a meeting
+  <li><a href="#close"><b>meeting close</b></a> &ndash; leave a meeting
+  <li><a href="#info"><b>meeting info</b></a> 
+&ndash; report information about the current meeting
+  <li><a href="#settings"><b>meeting settings</b></a> 
+&ndash; set name, face image, pointer color and other settings
+  <li><a href="#server"><b>meeting server</b></a> 
+&ndash; define a name for a new meeting server
+  <li><a href="#send"><b>meeting send</b></a> 
+&ndash; synchronize all participants
+  <li><a href="#unname"><b>meeting unname</b></a> &ndash; remove a meeting name
+</ul>
+
+<table style="background-color:lightyellow; border:1px solid black;"><tr><td style="padding:8px">
+<b>Compatibility</b>: The message protocol used by the meeting command changed in a non-backward
+compatible way in ChimeraX versions released after December 8, 2020.  All
+participants of a meeting must use a ChimeraX version newer than that date,
+or all must use a version older than that date.  The incompatible change
+enabled reducing the network bandwidth (4-10x reduction) and
+increasing security that prevents joining a meeting without knowing its name.
+</table>
+
+<a name="start"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Options</h3>
+<h3>Starting a Meeting</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>start</b>&nbsp;
+[&nbsp;<i>meeting-name</i>&nbsp;]
+[&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<b>server</b></a>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<b>nameServer</b>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
+[&nbsp;<b>nameServerPort</b> &nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+A meeting is initiated with
+<b>meeting start</b> <i>meeting-name</i>,
+where the meeting name is a text identifier that participants will
+use to join the meeting. Meeting names are not case-sensitive.
+The initiator (and each person who <a href="#join">joins</a>)
+can specify a <b>name</b> for identification within the shared 
+environment, a pointer-cone <b>color</b>, and a <b>faceImage</b> file.
+These three settings are remembered
+whenever they are specified, and the remembered settings can be reported or 
+changed with the <a href="#settings"><b>meeting settings</b></a> command.
+Full list of options:
+</p>
+<blockquote>
+<a name="name"></a>
+<b>name</b>&nbsp;&nbsp;<i>participant-name</i>
+<br>
+Name to show for a participant's pointer and image models
+in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+The participant name is remembered as a
+<a href="../preferences.html#other">preference</a>.
+</blockquote>
+<blockquote>
+<a name="color"></a>  
+<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>
+<br>
+Color for the cones representing a VR participant's hand-controller pointers
+(or non-VR participant's mouse pointer).
+The pointer color is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
+</blockquote>
+<blockquote>
+<a name="faceImage"></a>
+<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>
+<br>
+Image to represent a VR participant's headset position,
+where <i>image-file</i> is the pathname of a JPG or PNG file.
+The pathname can be absolute or relative to the current working directory as
+reported by <a href="pwd.html"><b>pwd</b></a>,
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the pathname brings up a file browser window for choosing the
+file interactively. The image pathname is remembered as a
+<a href="../preferences.html#other">preference</a>.
+</blockquote>
 
+<blockquote>
+<a name="serveropt"></a>
+<b>server</b> &nbsp;<i>server-name</i>
+<br>
+The server determines how participants connect to a meeting and is used
+to get around firewalls that block access. The initial default method
+<b>chimeraxmeeting.net</b> has participants connect to a public server
+that forwards connections to the computer that started the meeting.
+The method <b>direct</b> has partipants directly connect to the
+computer that started the meeting but will fail if that computer
+cannot be reached. Additional methods can be defined using the 
+<a href="#server"><b>meeting server</b></a> command.
+Using this option with <b>meeting start</b> or <b>meeting settings</b>
+sets the method as the user default in the
+<a href="../preferences.html#other">preferences</a>.
+</blockquote>
+<blockquote>
+<a name="nameServer"></a>
+<b>nameServer</b> &nbsp;<i>hostname</i>
+<br>
+Specify the hostname or IP address to use as the meeting-name server.
+The name server is remembered as a
+<a href="../preferences.html#other">preference</a>.
+The initial default is <b>chimeraxmeeting.net</b>, provided by the 
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>, but a
+<a href="#privatenameserver">private name server</a> can be used instead.
+</blockquote>
+<blockquote>
+<a name="nameServerPort"></a>
+<b>nameServerPort</b> &nbsp;<i>N</i>
+<br>
+Port number for the meeting-name server.
+The name server port is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>51472</b>).
+</blockquote>
+<blockquote>
+<a name="copyScene"></a>
+<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to copy the session from the starting instance
+to each person who joins the meeting (default <b>true</b>).
+This copying is done only when a person joins the meeting. 
+</blockquote>
+
+<a name="join"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Joining a Meeting</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting join</b> (&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
+[&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+&nbsp;<i>additional-options</i>
+</blockquote>
+<p>
+Participants join the meeting by specifying its name.
+If a meeting is started without a <i>meeting-name</i>,
+participants join it by specifying the host name or IP address
+(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>)
+reported in the <a href="../tools/log.html"><b>Log</b></a> by the
+<a href="#start"><b>meeting start</b></a> command.
+A participant's <b>name</b>, pointer-cone <b>color</b>, and <b>faceImage</b> 
+settings are remembered whenever they are specified,
+and the remembered settings can be reported or changed with the 
+<a href="#settings"><b>meeting settings</b></a> command.
+Full list of options:
+</p>
 <blockquote>
 <b>name</b>&nbsp;&nbsp;<i>participant-name</i>
 <br>
 Name to show for a participant's pointer and image models
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+The participant name is remembered as a
+<a href="../preferences.html#other">preference</a>.
 </blockquote>
 <blockquote>
 <b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>pointer-color</i></a>
 <br>
 Color for the cones representing a VR participant's hand-controller pointers
 (or non-VR participant's mouse pointer).
+The pointer color is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
 </blockquote>
 <blockquote>
 <b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>
@@ -120,16 +268,38 @@ The pathname can be absolute or relative to the current working directory as
 reported by <a href="pwd.html"><b>pwd</b></a>,
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the pathname brings up a file browser window for choosing the
-file interactively.
+file interactively. The image pathname is remembered as a
+<a href="../preferences.html#other">preference</a>.
 </blockquote>
-
 <blockquote>
-<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<b>host</b>&nbsp;&nbsp;<i>host-name</i>
 <br>
-Specified with <b>meeting start</b>,
-whether to copy the session from the starting instance
-to each person who joins the meeting (default <b>true</b>).
-This copying is done only when a person joins the meeting. 
+The first argument of the <b>meeting</b> command normally specifies either a 
+meeting name or a host name.
+Names containing &ldquo;.&rdquo; or &ldquo;:&rdquo;
+are interpreted as a host name.
+To avoid ambiguity, that first argument can be omitted, and the <b>host</b>
+option used instead to ensure interpreting the value as a host name
+(<i>e.g.</i>, <b>descartes.cgl.ucsf.edu</b> or <b>169.230.21.39</b>).
+</blockquote>
+<blockquote>
+<b>port</b>&nbsp;&nbsp;<i>N</i>
+<br>
+If participants join a meeting using a host name or IP address instead of a 
+meeting name, they will need to specify the port on the destination computer,
+unless it is the default port, <b>52194</b>.
+If a meeting name is used to join a meeting, this option is not used, 
+as the port will be looked up using the meeting name. 
+</blockquote>
+<blockquote>
+<b>id</b>&nbsp;&nbsp;<i>meeting-name</i>
+<br>
+The first argument of the <b>meeting</b> command normally specifies either a 
+meeting name or a host name.
+Names containing &ldquo;.&rdquo; or &ldquo;:&rdquo;
+are interpreted as a host name.
+To avoid ambiguity, that first argument can be omitted, and the <b>id</b>
+option used instead to ensure interpreting the value as a meeting name.
 </blockquote>
 <blockquote>
 <a name="relayCommands"></a>
@@ -142,56 +312,261 @@ Note that <a href="../index.html#toolbars">toolbar</a> icon buttons and many
 <a href="ui.html#mousemode">mouseclick/pointer operations</a> act via commands.
 </blockquote>
 <blockquote>
-<b>port</b>&nbsp;&nbsp;<i>N</i>
-<br>
-Number of the network port used to connect to the meeting host
-(default <b>52194</b>). Unless the default is used,
-all who join the meeting must specify the same number 
-as specified with <b>meeting start</b>.
-</blockquote>
-<blockquote>
 <b>updateInterval</b>&nbsp;&nbsp;<i>M</i>
 <br>
 How often to send a participant's
 VR headset and hand-controller positions to the other participants
 (every <i>M</i><sup>th</sup> frame, default <b>1</b>, every frame).
-For non-VR users, the mouse pointer is not tracked continuously;
-the position is only displayed to others when it hovers over an atom.
 </blockquote>
+<blockquote>
+<a name="nameServer"></a>
+<b>nameServer</b> &nbsp;<i>hostname</i>
+<br>
+Specify the hostname or IP address to use as the meeting-name server.
+The name server is remembered as a
+<a href="../preferences.html#other">preference</a>.
+The initial default is <b>chimeraxmeeting.net</b>, provided by the 
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>, but a
+<a href="#privatenameserver">private name server</a> can be used instead.
+</blockquote>
+<blockquote>
+<a name="nameServerPort"></a>
+<b>nameServerPort</b> &nbsp;<i>N</i>
+<br>
+Port number for the meeting-name server.
+The name server port is remembered as a
+<a href="../preferences.html#other">preference</a>
+(initial default <b>51472</b>).
+</blockquote>
+<blockquote>
+<a name="timeout"></a>
+<b>timeout</b>&nbsp;&nbsp;<i>seconds</i>
+<br>
+Maximum time to wait when connecting to a meeting (default <b>5</b> seconds). 
+If this time is exceeded, an error message is given and the meeting 
+will not be joined.
+</blockquote>
+
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Changing or Reporting Saved Settings</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting settings</b> 
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<a href="#faceImage"><b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<a href="#server"><b>server</b></a>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<a href="#nameServer"><b>nameServer</b></a>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
+[&nbsp;<a href="#nameServerPort"><b>nameServerPort</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</blockquote>
+<p>
+The <b>meeting settings</b> command sets or reports the values of options
+that are saved as <a href="../preferences.html#other">preferences</a>.
+These options can also be specified with 
+<a href="#start"><b>meeting start</b></a> or 
+<a href="#join"><b>meeting join</b></a> and have the same meanings
+as described above for those commands.
+If no options are specified, the currently saved settings are reported.
+</p>
+
+<a name="server"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Naming New Meeting Servers</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting server</b> [&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<a href="#address"><b>address</b></a>&nbsp;&nbsp;<i>host</i>&nbsp;]
+[&nbsp;<a href="#serverPort"><b>port</b></a>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+[&nbsp;<a href="#account"><b>account</b></a>&nbsp;&nbsp;<i>username</i>&nbsp;]
+[&nbsp;<a href="#key"><b>key</b></a>&nbsp;&nbsp;<i>ssh-identity-file</i>&nbsp;]
+[&nbsp;<a href="#portRange"><b>portRange</b></a>&nbsp;&nbsp;<i>port-min,port-max</i>&nbsp;]
+[&nbsp;<a href="#serverTimeout"><b>timeout</b></a>&nbsp;&nbsp;<i>seconds</i>&nbsp;]
+[&nbsp;<a href="#serverDelete"><b>delete</b></a>&nbsp;]
+</blockquote>
+<p>
+Example command that defines a name for a new server with given IP address, user account and password file:
+</p>
+<blockquote>
+<b>meeting server</b> "NIAID meeting server" <b>address</b> 52.0.161.5 <b>account</b> chimerax <b>key</b> /Users/goddard/ucsf/aws/niaid-chimerax-user.pem
+</blockquote>
+<p>
+The <b>meeting server</b> command defines a name for a new server
+that is shorthand for a computer address, 
+a port number or port range, an authentication key, and a timeout value.
+When starting a meeting the server to use can be specified
+with the <a href="#start"><b>meeting start</b></a>
+command <a href="#serveropt"><b>server</b></a> option.
+Server names with their settings are remembered as 
+<a href="../preferences.html#other">preferences</a>.
+Given without arguments, <b>meeting server</b> reports the existing 
+server names in the <a href="../tools/log.html"><b>Log</b></a>.
+To configure a computer to be a server, 
+see the <a href="#setupserver">instructions</a> below.
+</p>
+
+<blockquote>
+<a name="address"></a>
+<b>address</b> &nbsp;<i>host-address</i>
+<br>
+Host name or IP address of a publicly visible server computer to forward 
+connections made by partipants to the computer that started the meeting.
+</blockquote>
+<blockquote>
+<a name="serverPort"></a>
+<b>port</b>&nbsp;&nbsp;<i>N</i>
+<br>
+The port number on the server computer that participants connect to 
+(initial default <b>52194</b>).
+One port is used for receiving connections from all participants.
+If a tunnel is created because the <b>account</b> option has been specified,
+then this port is not used and instead an available port in <b>portRange</b>
+is used. A tunnel is not needed for port forwarding from a 
+network-address-translation router to a computer on the local network
+served by the router.
+</blockquote>
+<blockquote>
+<a name="account"></a>
+<b>account</b> &nbsp;<i>username</i>
+<br>
+A user name of an account on the server computer for creating an ssh tunnel.
+Specifying this option implies that an ssh tunnel will be created between
+the computer that starts the meeting and the server computer.
+</blockquote>
+<blockquote>
+<a name="key"></a>
+<b>key</b> &nbsp;<i>ssh-identity-file</i>
+<br>
+The ssh identity file (<i>e.g.</i>, <b>meeting-key-private.pem</b>)
+for the account on the server computer used to make an ssh tunnel.
+Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
+for the pathname brings up a file browser window for choosing the
+file interactively.
+This identity file is the private key used to connect to the server using
+the <a href="https://man.openbsd.org/ssh">ssh <i>-i</i></a>
+option when creating the tunnel. The file must not
+have read permissions by others or ssh will consider it insecure and 
+not accept it.
+</blockquote>
+<blockquote>
+<a name="portRange"></a>
+<b>portRange</b> &nbsp;<i>port-min,port-max</i>
+<br>
+The range of port numbers to use on the server computer.
+A randomly chosen port in this range is chosen to create a tunnel.
+All participants connect to that port.
+The initial default range of <b>52194,52203</b> 
+allows up 10 simultaneous meetings to be handled by the server.
+</blockquote>
+<blockquote>
+<a name="serverTimeout"></a>
+<b>timeout</b> &nbsp;<i>seconds</i>
+<br>
+The time to wait for creating the tunnel to the server.
+If a connection is not made within this time the meeting will not be started.
+The initial default is <b>5</b> seconds.
+</blockquote>
+
+<a name="close"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Leaving a Meeting</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>close</b>
+</blockquote>
+<p>
+The host can end the meeting with <b>meeting close</b>, or
+others can use it to exit the meeting individually.
+</p>
+
+<a name="send"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Sharing a Scene</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>send</b>
+</blockquote>
+<p>
+If unshared changes have been made, a participant can share 
+his current scene with the others by using <b>meeting send</b>.
+This replaces the entire scene for the other participants and
+may take significant time to transmit to the participants if
+the scene contains large data models.
+</p>
+
+<a name="info"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Reporting Meeting Status</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>info</b>
+</blockquote>
+<p>
+The <b>meeting info</b> command reports information about the currently
+active meeting.
+</p>
+
+<a name="unname"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Removing an Unused Meeting Name</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>meeting</b> &nbsp;<b>unname</b> &nbsp;<i>meeting-name</i>
+</blockquote>
+<p>
+If the computer that started a meeting loses its network connection
+before the meeting is closed, the meeting name will not be removed 
+from the name server, and future
+attempts to use the same meeting name will fail, saying the meeting
+name is already being used. To remove the meeting name from the
+name server, use <b>meeting unname</b> <i>meeting-name</i>.
+</p>
 
 <a name="limitations"></a>
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
 </p>
-<h3>Limitations and Potential Developments</h3>
+<h3>Limitations</h3>
 <p>
 <b>Firewalls block connections.</b>
-Most academic institutions have firewalls that block incoming network 
+Most organizations have firewalls that block incoming network 
 connections, and require administrative requests to open up network ports.
-Whereas the <b>meeting</b> command only allows running the hub
-server on the initiator's local host (and is thus susceptible to being
-blocked by participants' firewalls), the
-<a href="conference.html"><b>conference</b></a> command
-is being developed to allow using a publicly accessible address/port instead.
-However,
-the <a href="conference.html"><b>conference</b></a> command is not yet working.
-<!--
-To allow this to scale to hundreds of instances running simultaneously,
-ChimeraX could start a cloud-based server on demand using a commercial service
-that accepts the connections and forwards changes to all participants. 
-However, this is a complex undertaking that would require 
-accounts and payment for commercial services.
-Currently, the
-<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a> is providing a hub server for use with the
-<a href="conference.html"><b>conference</b></a> command at:
-<b>cxconference.rbvi.ucsf.edu:443</b>
--->
+The <a href="#serveropt"><b>server</b></a> option allows participants to connect
+to a publicly visible server computer.
+See <a href="#firewalls">getting around firewalls</a>.
+</p>
+
+<p>
+<b>No passwords.</b>
+There is no support for passwords to limit access to meetings.
+Any person who knows the meeting name can join the meeting.  The
+<a href="#nameServer">meeting name server</a>
+provides no way to list meeting names, so only
+participants who are told the meeting name will be able to join.
+In this sense the meeting name serves as the password, and using a less
+common name will prevent others guessing or accidentally joining the 
+wrong meeting. To join a meeting the participant's Chimera transmits
+the meeting name to the host.  The connection will be rejected if the name
+is incorrect preventing uninvited users from connecting and preventing
+port scans from generating spurious connections.
 </p>
 
 <p>
 <b>Synchronizing changes.</b>
-After the initial scene is shared not all changes made by one participant will
+After the initial scene is shared changes made by one participant will
 be propagated to other participants. Changes that are propagated include 
 moving and scaling the displayed structures and
 (by <a href="#relayCommands">default</a>) 
@@ -205,15 +580,24 @@ This may be slow for large amounts of data.
 </p>
 
 <p>
-<b>More than two participants.</b>
-The meeting command has had very limited testing with more than two
-participants. Multiple participants may cause errors or slow display updating.
+<b>Small number of participants.</b>
+The meeting command has been used for two to four participants.
+The number of participants is not limited.
+Larger numbers of participants increase the network bandwidth needed
+expecially for the computer hosting the meeting and may result in
+slow or jittery updating.  All data to synchronize the scene is
+transmitted through the computer that starts the meeting, so it is a bottleneck.
+Each VR participant sends about 40 Kbits/second to update hand and head
+position.  Desktop participants do not send continuous messages, only sending
+when they move the models or execute commands.
 </p>
 
 <p>
 <b>No audio chat support.</b>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
+<a href="https://zoom.us">Zoom</a> using the VR headset speakers and microphone
+works well.
 </p>
 
 <p>
@@ -241,7 +625,255 @@ way to make both computers use the same orientation.
 (The computer screen position is irrelevant.)
 </p>
 
+
+<a name="firewalls"></a>
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Getting Around Firewalls</h3>
+<p>
+Most universities, colleges, institutions, companies and government labs 
+have firewalls that prevent incoming network connections.
+When joining a meeting that is not using a server, 
+ChimeraX attempts to connect
+to port 52194 on the computer that started the meeting, and shows a status
+message &ldquo;Waiting for scene data from meeting host.&rdquo;
+If the connection is blocked, after 5 seconds 
+(<a href="#timeout">default</a>) an error message will appear:
+</p>
+<pre style="color:red">
+  Socket error Connection timed out
+</pre>
+<p>
+Two ways to resolve the problem are to:
+</p>
+<ul>
+<li><a href="#useserver">Use a server computer</a> outside the firewall;
+participants connect to the server machine and it forwards
+connections through the firewall to the computer that started the meeting.
+This is enabled with the <a href="#serveropt"><b>server</b></a> option
+of the <b>meeting start</b> command, specifying a server
+such as chimeraxmeeting.net (the default).
+<br>&ndash; OR &ndash;<br>
+<li><a href="#openport">Open a port in the firewall</a> that protects the computer 
+that started the meeting to allow incoming connections.
+</ul>
+<p>
+Details on each approach are given below.
+</p>
+
+<a name="useserver"></a>
+<h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
+Use a server</h4>
+
+<p>
+By default the meeting start command uses a publicly visible server computer
+chimeraxmeeting.net
+which forwards connections through the firewall to the host computer.
+This is controlled by the 
+<a href="#serveropt"><b>server</b></a> option, for example
+<b>meeting start alzheimers server chimeraxmeeting.net</b>.
+The chimeraxmeeting.net server is provided by the ChimeraX development
+team and can handle up to 10 simultaneous meetings.
+</p>
+
+<p>
+Several problems may arise. The server may be at capacity,
+may be out of service, may introduce delays of seconds if participants
+are in distant parts of the world from the default server in California, USA.
+</p>
+
+<a name="setupserver">
+<h4>Setting up one's own server</h4>
+  
+<p>
+These problems can be mitigated by setting up and using one's own server,
+for example, using Amazon Web Services (AWS). The AWS machine simply accepts
+connections and forwards them to the host computer behind the 
+institution firewall using an ssh tunnel.
+</p><p>
+Here is how to set up a server using an AWS virtual machine for ChimeraX meetings.
+This could be done with any cloud virtual machine service since only ssh is required.
+</p>
+
+<ol>
+  <li>Create an AWS EC2 virtual machine; I used a free tier type t2.micro 
+using an Ubuntu 18.04 LTS Amazon Machine Image.
+The machine will need minimal compute as it is just forwarding data.
+The network bandwidth needed depends on the number of participants, which
+each VR participant sending about 40 Kbits/second of hand and head position
+information.  The only large data being forwarded is the initial 
+ChimeraX meeting session. I chose Ubuntu 18.04 only because I have experience 
+with it. Any Linux distribution will work, since only ssh will be used.
+  <li>Set the virtual machine security group to allow any computer to connect
+on ports 52194 - 52203. By default, the virtual machine will not allow connections 
+except on ssh port 22, so this is a necessary step.
+  <li>Change sshd configuration file on the virtual machine 
+/etc/ssh/sshd_config enabling &ldquo;GatewayPorts yes&rdquo;
+and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
+This will allow other computers to connect to ssh tunnels.
+The normal use of ssh remote tunnels allows only the remote computer to use the tunnel,
+so this setting change is necessary.
+  <li>Create an server name for the server using the 
+<a href="#server"><b>meeting server</b></a> command
+<blockquote>
+  <b>meeting server</b> myserver <b>address</b> 54.215.157.17 <b>account</b> ubuntu <b>key</b> meeting-key-private.pem
+</blockquote>
+The <a href="#key"><b>key</b></a> option specifies
+the public key encryption file <b>meeting-key-private.pem</b>
+that was made when I created the AWS virtual machine. 
+It allows ssh access to the virtual machine without typing a password. 
+The &ldquo;ubuntu&rdquo; is the default administer account name on the AWS virtual machine.
+To use this to start a meeting
+<blockquote>
+  <b>meeting start</b> antibody309 <b>server</b> myserver
+</blockquote>
+The meeting start command will create the tunnel using ssh by executing a command like
+<pre>
+      ssh -N -i meeting-key-private.pem -R 52201:localhost:52194 ubuntu@54.215.157.17
+</pre>
+The server option used to start the meeting will be remembered
+as a preference so those need only be used one time.  Subsequent meetings can
+specify only the meeting name.
+Connections through the tunnel appear to come from the host machine.
+  <li>When participants join the meeting using command <b>meet antibody309</b>
+it will connect to the AWS virtual machine public IP address.
+The participants do not need any authentication or account on the 
+AWS virtual machine. If there are participants within the same firewall 
+as the meeting host, they can connect directly to the host computer 
+without using the AWS virtual machine (for example, command:
+<b>meet 169.230.21.34</b>). Connections through the tunnel and from 
+within the firewall can both be made in the same meeting.
+  <li>In the above configuration the AWS administration account 
+&ldquo;ubuntu&rdquo; was used.
+For better security it is worth making a separate account on the virtual machine
+to create the tunnels.  This is especially important if the private key
+will be shared to allow different people to initiate meetings using this server.
+The account can have no login shell to prevent using ssh to execute commands,
+only allowing tunnels to be created. On Ubuntu,
+an account named &ldquo;tunnel&rdquo;
+can be made with the following commands starting from the ubuntu admin account.
+<pre>
+  sudo adduser tunnel --disabled-password
+  sudo su - tunnel
+  ssh-keygen -t rsa -b 2048 -m PEM -C "ChimeraX meeting server" -f tunnel-key.pem
+  mkdir .ssh
+  chmod go-rwx .ssh
+  mv tunnel-key.pem.pub .ssh/authorized_keys
+  # Move tunnel-key.pem (private key) to machine that will start meetings.
+  exit
+  sudo usermod -s /usr/sbin/nologin tunnel
+</pre>
+To define a new server name using this safer tunnel account:
+<blockquote>
+  <b>meeting server</b> myserver <b>address</b> 54.215.157.17 <b>account</b> tunnel <b>key</b> meeting-key-private.pem
+</blockquote>
+The server option used previously will be remembered so this server will be used when starting a meeting
+<blockquote>
+  <b>meeting start antibody442</b>
+</blockquote>
+</ol>
+
+<a name="openport"></a>
+<a name="useserver"></a>
+<h4><a href="#firewalls" class="nounder"><b>&larr;</b></a>
+Open a firewall port</h4>
+<p>
+A less complex solution than a server is to change the firewall settings protecting
+the computer that starts the meeting to allow incoming connections 
+on port 52194. Here are two examples of how that can be done:
+</p>
+<ul>
+<li><b>Home network firewall.</b>
+If the meeting host is on a home network, a port forwarding rule can be 
+added using the home router administration interface.
+A home usually has just one internet address visible from the outside,
+and a router that
+connects all the home devices (computers, phones, tablets, TVs...)
+on an internal network.
+To allow outside meeting participants to reach the computer on 
+the home network:
+<ol>
+<li>Assign the host computer a static IP address on the home network
+(<i>e.g.</i>, 192.168.0.2) &ndash; this is
+sometimes called a &ldquo;static lease&rdquo;
+<li>Set a port forwarding rule to forward port 52194 to that address
+<li>Define an server name that has participants connect to the router IP address
+and use it when starting a meeting, for example,
+<blockquote>
+  <b>meeting server</b> natrouter <b>address</b> 188.15.37.68 <b>port</b> 52194<br>
+  <b>meeting start</b> rotavirus <b>server</b> natrouter
+</blockquote>
+  
+</ol>
+
+<li><b>Institution firewall.</b>
+If the computer is behind an institution firewall, it may be possible 
+to ask the institution to open the port. For example, 
+at the University of California San Francisco, I (Tom Goddard) put in a request
+with the Information Technology department to open port 52194
+on the campus firewall for connections to my desktop PC.
+They opened the port just for this one computer, limiting the security threats. 
+It took about 10 days before they processed the request. Use the "direct" server
+to start a meeting:
+<blockquote>
+  <b>meeting start</b> influenza <b>server</b> direct
+</blockquote>
+Some institutions
+will not allow these exceptions due to institution security requirements.
+</ul>
+
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<a name="privatenameserver"></a>
+<h3>Setting up a Private Name Server</h3>
+<p>
+By default, the meeting command uses the name server <b>chimeraxmeeting.net</b>
+to record the computer address and port number for each active meeting name.
+This conveniently allows participants to join a meeting with a simple command,
+<b>meeting</b> <i>meeting-name</i>.
+The name server does not log the meetings, and there is no capability 
+to list the meeting names or computers addresses and ports, providing 
+privacy and security. In order to identify a meeting, a request would 
+need to guess the meeting name.
+</p><p>
+For greater security, an organization may wish to use its own meeting-name
+server.  This can be done by running shell command
+<b>nohup python3 namerserver.py start &</b> on a machine
+accessible to the participants. The nohup allows exiting the shell 
+while leaving the name server running. 
+The nameserver.py file is included in the ChimeraX distribution under 
+Chimerax/lib/python3.8/site-packages/chimerax/meeting/nameserver.py (on Linux).
+To use the name server, all participants specify the name server address using 
+the <a href="#nameServer"><b>nameServer</b></a> option when joining the meeting
+or before joining with the <b>meeting settings</b> command.
+This option value is remembered, so only needs to be used once to enable 
+use of the private name server for future meetings.
+</p>
+
+<p class="nav">
+[<a href="#top">back to top: meeting</a>]
+</p>
+<h3>Future Developments</h3>
+
+<p>
+<b>Large meetings</b>.
+We have not tried meetings with more than four participants. 
+In principle, meetings can have any number of participants,
+but this needs testing and likely some improvements
+to make larger meetings feasible. Probably would need the ability 
+for the host to prevent participants from moving or changing the models.
+</p>
+
+<p>
+<b>Reuse large data files</b>.
+It would be useful if large data files could be transferred just one time 
+and then used for multiple meetings. Currently all data is transferred 
+at the start of each meeting, which can be time-consuming.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2020</address>
+April 2021</address>
 </body></html>

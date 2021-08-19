@@ -24,7 +24,7 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>:
-ui, functionkey, mousemode</h3>
+ui, functionkey, mousemode, windowfill</h3>
 
 <p>
 The <b>ui</b> command adjusts the user interface (UI):
@@ -133,6 +133,15 @@ Show/hide the <a href="../menu.html">ChimeraX menu</a> on Windows.
 <p>
 Show/hide the <a href="../window.html">status line</a>.
 </p>
+</blockquote>
+<a name="windowfill"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>ui windowfill</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;toggle
+<blockquote>
+The <b>ui windowfill</b> command expands/contracts the graphics window
+within the <a href="../window.html">overall window</a> like the icons: 
+<img class="iconbar" src="../tools/ui-icons/expand1.png"> 
+<img class="iconbar" src="../tools/ui-icons/contract1.png">
 </blockquote>
 
 <a name="uiassign"></a>
@@ -373,6 +382,11 @@ atomic-model chain description (if available) in
 <b>translate selected models</b> instead</td>
 <td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px"></td>
 </tr><tr>
+<td align="center"><b>move picked model</b></td>
+<td align="center" class="text">translate the model under the mouseclick;
+<br>assigned button + <b>Shift</b> switches to rotation instead</td>
+<td align="center"><img src="../tools/mouse-icons/move_picked_model.png" width="35px"></td>
+</tr><tr>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
 <a href="../selection.html">selected</a> atoms, or if no selection, all models;
@@ -408,7 +422,8 @@ or if no selection, rotate all models around the
 <td align="center"></td>
 </tr><tr>
 <td align="center"><b>pivot</b></td>
-<td align="center" class="text">set center of rotation to atom;
+<td align="center" class="text">set center of rotation to clicked atom,
+bond, ribbon segment, or surface point;
 see also <a href="cofr.html"><b>cofr</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px"></td>
 </tr><tr>
@@ -435,6 +450,11 @@ move <a href="2dlabels.html">2D label</a>,
 <a href="2dlabels.html">2D arrow</a> (by dragging either end),
 or <a href="label.html">&ldquo;3D&rdquo; label</a></td>
 <td align="center"><img src="../tools/mouse-icons/movelabel.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>color key</b></td>
+<td align="center" class="text">
+set <a href="../tools/colorkey.html">color key</a> location and dimensions
+<td align="center"></td>
 </tr><tr>
 <td align="center"><b>clip</b> </td>
 <td align="center" class="text">
@@ -540,7 +560,8 @@ see <a href="../tools/mousemodes.html#multiwindowing">details</a>
 </tr><tr>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position 
-not retained); see also <a href="torsion.html"><b>torsion</b></a></td>
+not retained) by clicking a bond and dragging vertically;
+see also <a href="torsion.html"><b>torsion</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/bondrot.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>swapaa</b></td>
@@ -712,5 +733,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2020</address>
+March 2021</address>
 </body></html>

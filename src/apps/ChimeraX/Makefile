@@ -70,7 +70,7 @@ ifdef DEBUG
 	fi
 endif
 
-install-others:
+install-others: $(PY_MAIN) $(ICONS)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
@@ -78,7 +78,7 @@ install-others:
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 else
-install: $(PROG)
+install: $(PROG) $(PY_MAIN) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(PROG) $(bindir)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
@@ -114,7 +114,10 @@ clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
 	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb \
-		$(APP_NAME).exp $(APP_NAME).lib
+		$(PROG:.exe=.exp) $(PROG:.exe=.lib) main_desktop.$(OBJ_EXT)
+ifneq ($(DESKTOP),1)
+	$(MAKE) clean DESKTOP=1
+endif
 endif
 
 pylint:
@@ -134,6 +137,11 @@ ifeq ($(OS),Linux)
 	if objdump -p $(PROG) | grep RUNPATH > /dev/null; then \
 		$(bindir)/chrpath -C $(PROG); \
 	fi
+endif
+ifeq ($(OS),Darwin)
+	# Add RPATH so Python ssl module can find libssl.dylib.
+	# It needs Python.Framework in the RPATH
+	install_name_tool -add_rpath '@executable_path/../Library/Frameworks/Python.framework' $(PROG)
 endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
@@ -182,6 +190,9 @@ ChimeraX-icon16.png:
 #
 # For Windows
 #
+
+ifdef WIN32
+
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
@@ -202,3 +213,5 @@ icon.$(OBJ_EXT): $(APP_NAME).ico
 
 icon.rc: icon.rc.in
 	sed -e 's/YEAR/$(YEAR)/' -e 's/CHIMERAX_VERSION/$(VER)/' -e 's/CHIMERAX_PRODUCT/$(PRODVER)/' -e 's/CHIMERAX_FLAGS/$(FLAGS)/' < icon.rc.in > icon.rc
+
+endif

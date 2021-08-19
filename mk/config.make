@@ -31,16 +31,18 @@ all:
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 3.7
+PYTHON_VERSION = 3.8
+PYTHON_PATCH_VERSION = 8
 ifndef DEBUG
-PYTHON_ABI = m
+# Starting with Python 3.8 the ABI "m" has been dropped.
+PYTHON_ABI = 
 else
-ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)dm))
-PYTHON_ABI = dm
+ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)d))
+PYTHON_ABI = d
 else
 # didn't find debug include files, Python not compiled with debugging,
 # so revert to regular Python ABI
-PYTHON_ABI = m
+PYTHON_ABI = 
 endif
 endif
 # Windows uses python22.dll instead of libpython2.2.so
@@ -53,18 +55,9 @@ datadir = $(bindir)/share
 endif
 
 # Location for fetching third party binaries.
-ifeq ($(OS),Linux)
-# TODO: curl fails for daily builds run on plato with connection refused because the cluster node
-#   thinks it is plato but the web server is on another cluster node.
-#   Scooter Morris says it can't be fixed.
-#   For now, use rsync.  Later move prereqs archive off of plato.
-PREREQS_ARCHIVE = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
-FETCH_PREREQ = /bin/sh -c 'rsync -a $$1 .' --
-else
 # Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
-PREREQS_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/prereqs
-FETCH_PREREQ = curl --silent --show-error --insecure -O
-endif
+PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
+FETCH_PREREQ = curl --silent --show-error --fail --insecure -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # Location for large test data files
@@ -123,8 +116,8 @@ ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
 APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
-PYTHON_EXE = $(bindir)/python.exe
-APP_PYTHON_EXE = $(app_bindir)/python.exe
+PYTHON_BIN = $(bindir)/python.exe
+APP_PYTHON_BIN = $(app_bindir)/python.exe
 APP_EXE = $(app_bindir)/$(APP_NAME)-console.exe
 CYTHON_EXE = $(bindir)/Scripts/cython.exe
 else ifdef USE_MAC_FRAMEWORKS
@@ -133,19 +126,21 @@ PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 APP_PYTHON_FRAMEWORK = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
-PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
-APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
+PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)
+APP_PYTHON_BIN = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
 CYTHON_EXE = $(bindir)/cython
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
-PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
-APP_PYTHON_EXE = $(app_bindir)/python$(PYTHON_VERSION)
+PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)
+APP_PYTHON_BIN = $(app_bindir)/python$(PYTHON_VERSION)
 APP_EXE = $(app_bindir)/$(APP_NAME)
 CYTHON_EXE = $(bindir)/cython
 endif
+PYTHON_EXE = $(PYTHON_BIN) -I
+APP_PYTHON_EXE = $(APP_PYTHON_BIN) -I
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 APP_PIP = $(APP_EXE) -m pip
@@ -155,7 +150,7 @@ ifeq ($(OS),Darwin)
 export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
 endif
 
-PYLINT = $(PYTHON_EXE) -I -m flake8
+PYLINT = $(PYTHON_EXE) -m flake8
 
 # common makefile targets
 .PHONY: all install app-install clean

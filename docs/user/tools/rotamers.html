@@ -70,14 +70,14 @@ will be placed at each.
 </p>
 <ul>
 <li><a name="library"><b>Rotamer library</b></a>
-&ndash; source of rotamer torsion values and probabilities
+&ndash; source of rotamer torsion and prevalence values
   <ul>
   <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
 target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead):
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
 A smoothed backbone-dependent rotamer library for proteins derived from
 adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
@@ -87,7 +87,7 @@ Shapovalov MV, Dunbrack RL Jr.
 <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dynameomics rotamer library</a>:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations
 and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
@@ -97,7 +97,7 @@ Scouras AD, Daggett V.
 from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
 target="_blank">Richardson backbone-independent rotamer library</a>:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
 The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
@@ -154,7 +154,7 @@ Otherwise, for each <a href="../selection.html">selected</a> position,
 the specified rotamer set will be displayed and a
 <a href="#rotamerlist">rotamer list</a> will appear.
 Bond lengths and angles are taken from the
-<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+<a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>, and hydrogens are not included.
 The rotamers are placed by superimposing backbone atoms of an idealized
 template with those of the existing residue.
@@ -173,11 +173,11 @@ title="click to enlarge..." alt="rotamer list dialog" width="300px"></a>
 </table>
 <p>
 Each rotamer list includes columns with the sidechain torsion 
-(<b>Chi <i>N</i></b>) and <b>Probability</b> values. 
-The probabilities are simply taken from the
+(<b>Chi <i>N</i></b>) and <b>Prevalence</b> values. 
+The values in the <b>Prevalence</b> column are simply taken from the
 <a href="#library">rotamer library</a> and are <b><i>not</i></b>
-affected by the structural environment, except by phi and psi angles 
-when the <a href="#library">Dunbrack library</a> is used;
+affected by the specific structural environment, except by phi and psi 
+(backbone) angles when the <a href="#library">Dunbrack library</a> is used;
 thus, it is important to consider other factors when choosing a rotamer
 to incorporate into the structure.
 </p><p>
@@ -186,7 +186,7 @@ contains checkboxes for showing/hiding the existing columns,
 and allows <a href="#evaluation">adding</a> columns
 for H-bonds, clashes, and agreement with a density map.
 </p><p>
-Rotamers are initially listed in order of decreasing probability, but
+Rotamers are initially listed in order of decreasing prevalence, but
 the listing can be sorted by the values in any column by clicking
 the header. Clicking the header once sorts the entries in
 order of increasing value and places an up arrowhead in the header.
@@ -204,7 +204,8 @@ keep the original sidechain conformation when incorporating
 the chosen rotamer(s).
 </p><p>
 <a name="incorporation"></a>
-Clicking <b>OK</b> incorporates the chosen rotamer(s) and dismisses the list.
+Clicking <b>Use Chosen Rotamer(s)</b> 
+incorporates the chosen rotamer(s) and dismisses the list.
 When there will be multiple sidechains at a given residue position,
 the new sidechain(s) will be assigned different alternative location
 identifiers. After a sidechain has been replaced,
@@ -250,7 +251,12 @@ For <b>H-Bonds</b> and <b>Clashes</b>, another option is shown:
 <a href="../commands/atomspec.html#surfcats">solvent</a>
 when counting interactions between the rotamers and the rest of the structure
 </ul>
+<p>
+Several of the calculation dialog settings are remembered as
+<a href="../preferences.html#other">preferences</a> when the calculation is run.
+Clicking <b>Reset</b> restores the dialog to factory default settings.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+March 2021</address>
 </body></html>

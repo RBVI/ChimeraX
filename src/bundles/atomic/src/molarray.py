@@ -483,13 +483,11 @@ class Atoms(Collection):
     @property
     def by_chain(self):
         '''Return list of triples of structure, chain id, and Atoms for each chain.'''
-        chains = []
-        for m, atoms in self.by_structure:
-            r = atoms.residues
-            cids = r.chain_ids
-            for cid in unique_ordered(cids):
-                chains.append((m, cid, atoms.filter(cids == cid)))
-        return chains
+        f = c_function('atom_by_chain', args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.py_object)
+        sca = f(self._c_pointers, len(self))
+        abc = tuple((s, cid, Atoms(aptr)) for s, cid, aptr in sca)
+        return abc
     @property
     def by_structure(self):
         "Return list of 2-tuples of (structure, Atoms for that structure)."
@@ -628,6 +626,18 @@ class Atoms(Collection):
         '''Returns a :mod:`numpy` Nx3 array of XYZ values.
         Raises error if any atom does nt have a ribbon coordinate.
         Can be set.''')
+    effective_coords = cvec_property('atom_effective_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate.
+        ''')
+    pb_coords = effective_coords
+    effective_scene_coords = cvec_property('atom_effective_scene_coord', float64, 3, read_only=True,
+        doc='''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Return the atom's ribbon_coord if the residue is displayed as a ribbon and
+        has a ribbon coordinate, otherwise return the current coordinate in scene coordinate system.
+        ''')
+    pb_scene_coords = effective_scene_coords
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
@@ -797,20 +807,6 @@ class Atoms(Collection):
                        ret=ctypes.py_object)
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
-
-    @property
-    def pb_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_coord
-        return v
-
-    @property
-    def pb_scene_coords(self):
-        v = empty((len(self), 3), float64)
-        for i, a in enumerate(self):
-            v[i] = a.pb_scene_coord
-        return v
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1135,6 +1131,8 @@ class Residues(Collection):
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
     is_helices = is_helix
+    is_missing_heavy_template_atoms = cvec_property('residue_is_missing_heavy_template_atoms', npy_bool,
+    read_only = True, doc = '''Returns a numpy bool array whether each residue is missing heavy atoms relative to its template.  If no template, returns False.''')
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
     is_strands = is_strand
@@ -1271,10 +1269,13 @@ class Residues(Collection):
         return seqs, seq_ids
 
     def ribbon_clear_hides(self):
-        '''Clear the hide bit for all atoms in given residues.'''
-        f = c_function('residue_ribbon_clear_hide',
-                       args = [ctypes.c_void_p, ctypes.c_size_t])
-        f(self._c_pointers, len(self))
+        self.clear_hide_bits(Atom.HIDE_RIBBON)
+
+    def clear_hide_bits(self, mask, atoms_only=False):
+        '''Clear the hide bit for all atoms and bonds in given residues.'''
+        f = c_function('residue_clear_hide_bits',
+                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_bool])
+        f(self._c_pointers, len(self), mask, atoms_only)
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

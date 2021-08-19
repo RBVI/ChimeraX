@@ -482,35 +482,27 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
         cmap = colors.BuiltinColormaps["rainbow"]
     # Get chains and atoms in chains with "by_chain"
     # Each chain is colored separately with cmap applied by residue
+    res = objects.atoms.unique_residues
+    chain_res = [(chain, chain.existing_residues.intersect(res))
+                 for chain in res.unique_chains]
     import numpy
     from chimerax.core.colors import Color
-    structure_chain_ids = {}
-    for structure, chain_id, atoms in objects.atoms.by_chain:
-        try:
-            cids = structure_chain_ids[structure]
-        except KeyError:
-            structure_chain_ids[structure] = cids = set()
-        cids.add(chain_id)
-    for structure, cids in structure_chain_ids.items():
-        for chain in structure.chains:
-            if chain.chain_id not in cids:
-                continue
-            residues = chain.existing_residues
-            colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
-            for color, r in zip(colors, residues):
-                c = Color(color)
-                if target is None or 'a' in target:
-                    _set_atom_colors(r.atoms, c, opacity, None, undo_state)
-                if target is None or 'c' in target:
-                    rgba = c.uint8x4()
-                    if opacity is not None:
-                        rgba[3] = opacity
-                    undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
-                    r.ribbon_color = rgba
-            if 's' in target:
-                _color_surfaces_at_residues(residues, colors, opacity=opacity,
-                                            undo_state = undo_state)
-
+    for chain, residues in chain_res:
+        colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
+        for color, r in zip(colors, residues):
+            c = Color(color)
+            if target is None or 'a' in target:
+                _set_atom_colors(r.atoms, c, opacity, None, undo_state)
+            if target is None or 'c' in target:
+                rgba = c.uint8x4()
+                if opacity is not None:
+                    rgba[3] = opacity
+                undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
+                r.ribbon_color = rgba
+        if 's' in target:
+            _color_surfaces_at_residues(residues, colors, opacity=opacity,
+                                        undo_state = undo_state)
+                
 # -----------------------------------------------------------------------------
 #
 def _set_sequential_structures(session, objects, cmap, opacity, target, undo_state):
@@ -527,7 +519,7 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
 
     # Each structure is colored separately with cmap applied by chain
     import numpy
-    from chimerax.core.colors import Color
+    from chimerax.core.colors import Color, rgba_to_rgba8
     colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(models)))
     for color, m in zip(colors, models):
         c = Color(color)
@@ -538,7 +530,8 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
         if 'f' in target:
             _set_ring_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
-            _color_surfaces_at_atoms(m.atoms, color, opacity=opacity, undo_state=undo_state)
+            _color_surfaces_at_atoms(m.atoms, rgba_to_rgba8(color),
+                                     opacity=opacity, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -1050,7 +1043,7 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
 
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range=None, no_value_color=None,
-                  transparency=None, undo_name="color byattribute"):
+                  transparency=None, undo_name="color byattribute", key=False):
     '''
     Color atoms by attribute value using a color palette.
 
@@ -1072,28 +1065,14 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
       Specifies the range of map values used for sampling from a palette.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
+    key : boolean
+      Whether to also show a color key
     '''
 
     from chimerax.core.errors import UserError
     from chimerax.atomic import Atom, Residue, Structure
-    if len(attr_name) > 1 and attr_name[1] == ':':
-        attr_level = attr_name[0]
-        if attr_level not in "arm":
-            raise UserError("Unknown attribute level: '%s'" % attr_level)
-        attr_name = attr_name[2:]
-        class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
-        numeric_attrs = session.attr_registration.attributes_returning(class_obj, [int, float], none_okay=True)
-        if attr_name not in numeric_attrs:
-            raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
-    else:
-        # try to find the attribute, in the order Atom->Residue->Structure
-        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
-            numeric_attrs = session.attr_registration.attributes_returning(
-                class_obj, [int, float], none_okay=True)
-            if attr_name in numeric_attrs:
-                break
-        else:
-            raise UserError("No known/registered attribute %s" % attr_name)
+    from .defattr import parse_attribute_name
+    attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
 
     if atoms is None:
         from chimerax.atomic import all_atoms
@@ -1140,7 +1119,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
             else:
                 residues = atoms.unique_residues
                 if class_obj == Residue:
-                    res_attr_vals = getattr(attr_objs, attr_names)
+                    res_attr_vals = getattr(residues, attr_names)
                 else:
                     res_attr_vals = getattr(residues.structures, attr_names)
             rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)
@@ -1238,10 +1217,16 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
             msg.append('%d surfaces' % ns)
 
     session.undo.register(undo_state)
-    if msg and len(attr_vals):
-        r = 'atom %s range' if average is None else 'residue average %s range'
-        m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min(attr_vals), max(attr_vals))
-        session.logger.status(m, log=True)
+    if len(attr_vals):
+        min_val, max_val, cmap = _value_colors(palette, range, attr_vals, return_cmap_data=True)
+        if key:
+            from chimerax.color_key import show_key
+            show_key(session, cmap)
+
+        if msg:
+            r = 'atom %s range' if average is None else 'residue average %s range'
+            m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min_val, max_val)
+            session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
 #
@@ -1273,14 +1258,17 @@ def _residue_atoms_and_colors(residues, colors):
     acolors = repeat(colors, residues.num_atoms, axis=0)
     return atoms, acolors
 
-def _value_colors(palette, range, values):
+def _value_colors(palette, range, values, *, return_cmap_data=False):
     from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
-    r = (min(values), max(values)) if _use_full_range(range, palette) else range
+    min_val, max_val = min(values), max(values)
+    r = (min_val, max_val) if _use_full_range(range, palette) else range
     if r is not None and r[0] == r[1]:
         # all values the same; artificially manipulate the range to get the
         # 'middle' of the color range used
         r = (r[0]-1, r[1]+1)
     cmap = _colormap_with_range(palette, r, default = 'blue-white-red')
+    if return_cmap_data:
+        return min_val, max_val, cmap
     colors = cmap.interpolated_rgba8(values)
     return colors
         
@@ -1324,7 +1312,30 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
 
     session.undo.register(undo_state)
 
+        
+def color_single(session, models = None):
+    '''
+    Turn off per-vertex coloring for specified models.
 
+    models : list of models
+    '''
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('color single')
+
+    if models is None:
+        models = session.models.list()
+
+    # Save undo state before setting any model single colors
+    # since setting may change child model colors, e.g. with Volume.
+    for m in models:
+        if m.vertex_colors is not None:
+            if m.auto_recolor_vertices is not None:
+                undo_state.add(m, 'auto_recolor_vertices', m.auto_recolor_vertices, None)
+            undo_state.add(m, 'vertex_colors', m.vertex_colors, None)
+            m.vertex_colors = None
+
+    session.undo.register(undo_state)
+    
 from chimerax.core.commands import StringArg
 class TargetArg(StringArg):
     """String containing characters indicating what to color:
@@ -1350,8 +1361,8 @@ class TargetArg(StringArg):
 #
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, ColorArg, ColormapArg, ColormapRangeArg
-    from chimerax.core.commands import ObjectsArg, create_alias, EmptyArg, Or, EnumOf
-    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg, StringArg
+    from chimerax.core.commands import ObjectsArg, ModelsArg, create_alias, EmptyArg, Or, EnumOf
+    from chimerax.core.commands import ListOf, FloatArg, BoolArg, SurfacesArg, StringArg, Color8Arg
     from chimerax.core.commands import create_alias
     from chimerax.atomic import AtomsArg
     what_arg = ListOf(EnumOf((*WHAT_TARGETS.keys(),)))
@@ -1398,7 +1409,8 @@ def register_command(logger):
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
                             ('no_value_color', ColorArg),
-                            ('transparency', FloatArg)],
+                            ('transparency', FloatArg),
+                            ('key', BoolArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
     create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,
@@ -1416,3 +1428,8 @@ def register_command(logger):
                    required_arguments = ['near'],
                    synopsis="color surfaces to match nearby atoms")
     register('color zone', desc, color_zone, logger=logger)
+
+    # color a single color
+    desc = CmdDesc(optional=[('models', ModelsArg)],
+                   synopsis="turn off model per-vertex coloring")
+    register('color single', desc, color_single, logger=logger)

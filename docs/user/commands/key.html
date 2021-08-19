@@ -1,0 +1,322 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: key</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: key</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>key</b> [&nbsp;<i>colors-and-labels</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>width,height</i>&nbsp;]
+[&nbsp;<b>pos</b>&nbsp;&nbsp;<i>xpos,ypos</i>&nbsp;]
+[&nbsp;<b>numericLabelSpacing</b>&nbsp;&nbsp;equal&nbsp;|&nbsp;<b>proportional</b>&nbsp;]
+[&nbsp;<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+[&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
+[&nbsp;<b>fontSize</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a></h3>
+</h3>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="../tutorials/bind6.png" 
+alt="Coulombic ESP flat lighting" width="280px">
+</td></tr>
+<tr><td align="center">
+<font size="-1">
+see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
+</font>
+</td></tr>
+</table>
+<a name="delete"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br>(&nbsp;<b>key&nbsp;delete</b>&nbsp;|&nbsp;<b>~key</b>)
+</h3>
+<a name="listfonts"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>key listfonts</b>
+</h3>
+<p>
+The <b>key</b> command creates a legend or key to show the
+value-color correspondences in a figure, such as from:
+</p>
+<ul>
+<li><a href="color.html#byattribute"><b>color</b> by attribute</a>
+(bfactor <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>, 
+others)
+<li><a href="color.html#map"><b>color</b> by map value</a>
+(sample, electrostatic, gradient)
+<li><a href="color.html#distance"><b>color</b> by distance</a>
+(radial, cylindrical, height)
+<li><a href="coulombic.html"><b>coulombic</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
+<li><a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>
+<li><a href="measure.html#convexity"><b>measure convexity</b></a>
+</ul>
+<p>
+It is the command-line implementation of the
+<a href="../tools/colorkey.html"><b>Color Key</b></a> tool.
+See also: 
+<a href="2dlabels.html"><b>2dlabels</b></a>,
+<a href="../images.html">making images</a>
+</p><p>
+The color key is added as a new model that can be acted on 
+by general commands such as <a href="close.html"><b>close</b></a> and
+<a href="show.html"><b>show/hide</b></a>.
+Initial defaults are described in this page,
+but if a color key is already present, the existing model is
+simply updated and any unspecified options are left unchanged.
+Only one color key can be present at a time.
+The <a href="#delete"><b>key delete</b></a> or 
+<a href="#delete"><b>~key</b></a> command removes an existing color-key model.
+</p><p>
+The command <a href="#listfonts"><b>key listfonts</b></a> lists 
+the possible choices of label font (initial default <b>Arial</b>).
+</p><p>
+The <i>colors-and-labels</i> specification 
+can be given in either of the two ways described below, or even as
+a mixture of the two. Each label can be numeric, text, or blank.
+The initial default is 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=blue width="10px" title="blue"></td>
+<td bgcolor=white width="10px" title="white"></td>
+<td bgcolor=red width="10px" title="red"></td>
+</tr></table>
+with labels <b>min</b>, blank, and <b>max</b>.
+</p>
+<ol>
+<li>Two or more space-separated pairs of the form:
+<blockquote>
+<a href="colornames.html"><i>color-spec</i></a>:<i>label</i>
+</blockquote>
+For example, to give the initial-default colors and labels mentioned above:
+<blockquote>
+<b>key blue:min white: red:max</b>
+</blockquote>
+<li>An existing <a href="color.html#palette-options"><i>palette-name</i></a>
+followed by labels entered as:
+<blockquote>
+:<i>label1</i> :<i>label2</i> [...] :<i>labelN</i>
+</blockquote>
+<p>
+...where the number of labels must equal the number of colors in the palette.
+The command <a href="palette.html#list"><b>palette list</b></a>
+lists the available palettes in the <a href="../tools/log.html"><b>Log</b></a>.
+Examples:
+</p>
+<blockquote>
+<b>key ^piyg-5 :-2 :-1 :0 :1 :2</b>
+<br>
+<b>key lipophilicity :-20 :0 :20 size .05,.25 pos .85,.05</b>
+</blockquote>
+<p>
+Example of a mixture of the two types of specification:
+</p>
+<blockquote>
+<b>key blue:0.0 cyanmaroon :0.2 :0.5 :1.0 pos .2,.08 size .6,.05</b>
+</blockquote>
+</ol>
+<p>
+The colors and labels must be given in left&rarr;right order 
+for a horizontal key or bottom&rarr;top for a vertical key.
+Any label text that includes a space must be enclosed in quotation marks.
+</p><p>
+The <a href="#size"><b>size</b></a> and <a href="#pos"><b>pos</b></a>
+options, respectively, set the dimensions and lower-left-corner position
+of the rectangular color-key bar.
+The values are expressed in fractional coordinates 0.0-1.0
+where 1.0 represents the full width or height of the 
+<a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner.
+</p><p>
+Numeric labels can be <a href="#numericLabelSpacing">spaced</a>
+equally along the bar or proportional to the values.
+Text labels are spaced equally.
+If numeric and text (or blank) labels are used in the same color key,
+or the numeric labels are not in monotonic order 
+(always increasing or always decreasing), the entire set of labels
+will be treated as text and cannot be spaced proportional to values.
+</p><p>
+There are options for
+<a href="#labelSide">which side</a> of the bar to place the labels and 
+<a href="#justification">how to align</a> the labels on a vertical bar. 
+All of the color key labels have the same (but adjustable)
+<a href="#labelColor">color</a>, <a href="#font">font</a>, 
+<a href="#fontsize">fontsize</a>, and <a href="#bold">bold</a>
+and/or <a href="#italic">italic</a> setting as each other.
+If labels of multiple different colors and sizes are needed, they can be
+added with <a href="2dlabels.html"><b>2dlabels</b></a> instead.
+</p><p>
+The color key can have a <a href="#border">border</a> (outline)
+and <a href="#ticks">tick marks</a>.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: key</a>]
+</p>
+<h3>Options</h3>
+
+<blockquote>
+<a name="size"></a>
+<b>size</b>&nbsp;&nbsp;<i>width,height</i>
+<br>
+Dimensions of the rectangular
+color-key bar. The values are expressed in fractional coordinates 
+0.0-1.0 where 1.0 represents the full width or height of the 
+<a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner
+(initial default <b>0.25,0.05</b>).
+</blockquote>
+<blockquote>
+<a name="pos"></a>
+<b>pos</b>&nbsp;&nbsp;<i>xpos,ypos</i>
+<br>
+Lower-left-corner position of the rectangular color-key bar. 
+The values are expressed in fractional coordinates 
+0.0-1.0 where 1.0 represents the full width or height of the 
+<a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner
+(initial default <b>0.7,0.08</b>).
+</blockquote>
+<blockquote>
+<a name="colorTreatment"></a>
+<b>colorTreatment</b>&nbsp;&nbsp;<b>blended</b>&nbsp;|&nbsp;distinct
+<br>
+Whether the colors should be interpolated along the bar 
+(<b>blended</b>, initial default) or shown as <b>distinct</b> bands.
+</blockquote>
+<blockquote>
+<a name="numericLabelSpacing"></a>
+<b>numericLabelSpacing</b>&nbsp;&nbsp;equal&nbsp;|&nbsp;<b>proportional</b>
+<br>
+Whether to space numeric labels equally along the bar or
+proportional to the values (initial default). Text labels are spaced equally.
+If numeric and text (or blank) labels are used in the same color key,
+or the numeric labels are not in monotonic order 
+(always increasing or always decreasing), the entire set of labels
+will be treated as text and cannot be spaced proportional to values.
+</blockquote>
+<blockquote>
+<a name="labelColor"></a>
+<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
+<br>
+If the label color is set to <b>auto</b> or <b>default</b> (initial default),
+it will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the <a href="set.html#bgColor">window background</a>.
+</blockquote>
+<blockquote>
+<a name="font"></a>
+<b>font</b>&nbsp;&nbsp;<i>font-name</i>
+<br>
+Possible choices of <i>font-name</i> (initial default <b>Arial</b>)
+can be listed with the command <a href="#listfonts"><b>key listfonts</b></a>.
+Font names with spaces must be enclosed in quotation marks.
+</blockquote>
+<blockquote>
+<a name="fontSize"></a>
+<b>fontSize</b>&nbsp;&nbsp;<i>font-size</i>
+<br>
+The <i>font-size</i> must be an integer greater than zero
+(initial default <b>24</b>).
+</blockquote>
+<blockquote>
+<a name="bold"></a>
+<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether the label text should be <b>bold</b> (initial default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="italic"></a>
+<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether the label text should be <b>italic</b> (initial default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="justification"></a>
+<b>justification</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;|&nbsp;decimal
+<br>
+Whether to align the labels on a vertical bar to the left,
+to the right (initial default for text),
+or by decimal position (initial default for numerical).
+This option does not apply to horizontal bars.
+</blockquote>
+<blockquote>
+<a name="labelSide"></a>
+<b>labelSide</b>&nbsp;&nbsp;left/top&nbsp;|&nbsp;<b>right/bottom</b>
+<br>
+Which side of the bar to place labels. Vertical bars (taller than wide)
+can have the labels on the left or right (initial default <b>right</b>) 
+whereas horizontal bars can have the labels on the 
+top or the bottom (initial default <b>bottom</b>). 
+</blockquote>
+<blockquote>
+<a name="labelOffset"></a>
+<b>labelOffset</b>&nbsp;&nbsp;<i>offset</i>
+<br>
+Move all labels <i>offset</i> pixels further away from (positive values)
+or closer to (negative values) the bar.
+</blockquote>
+<blockquote>
+<a name="border"></a>
+<b>border</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether the color key should have an outline border
+(initial default <b>true</b>).
+</blockquote>
+<blockquote>
+<a name="borderColor"></a>
+<b>borderColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
+<br>
+If the border color is set to <b>auto</b> or <b>default</b> (initial default),
+it will automatically adjust to <b>white</b> or <b>black</b>
+depending on the color of the <a href="set.html#bgColor">window background</a>.
+</blockquote>
+<blockquote>
+<a name="borderWidth"></a>
+<b>borderWidth</b>&nbsp;&nbsp;<i>width</i>
+<br>
+Border pixel width (initial default <b>2.0</b>).
+</blockquote>
+<blockquote>
+<a name="ticks"></a>
+<b>ticks</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to draw tick marks on the color key (initial default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="tickLength"></a>
+<b>tickLength</b>&nbsp;&nbsp;<i>length</i>
+<br>
+Tick mark length in pixels (initial default <b>10.0</b>).
+</blockquote>
+<blockquote>
+<a name="tickThickness"></a>
+<b>tickThickness</b>&nbsp;&nbsp;<i>thickness</i>
+<br>
+Tick mark thickness in pixels (initial default <b>4.0</b>).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2021</address>
+</body></html>

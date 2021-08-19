@@ -33,7 +33,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>defattr</b> command assigns
 <a href="../attributes.html">attribute</a> values
-from an <a href="#attrfile">attribute assignment file</a>.
+from an <a href="../formats/defattr.html">attribute assignment file</a>.
+(This command is deprecated since the same thing can now be done with the
+<a href="open.html#defattr"><b>open</b></a> command instead.)
 It is possible to define new attributes or
 to (re)assign values for existing attributes
 of atoms, residues, and atomic models.
@@ -44,7 +46,7 @@ If an <a href="atomspec.html"><i>atom-spec</i></a> is given, assignment
 will consider only the models containing the specified atoms.
 Of course, whether attribute values are actually assigned to those models
 or their parts depends on the contents of the
-<a href="#attrfile">attribute assignment file</a>.
+<a href="../formats/defattr.html">attribute assignment file</a>.
 </p><p>
 The <b>log</b> option indicates whether to report details of the
 assignments to the <a href="../tools/log.html"><b>Log</b></a>.
@@ -55,138 +57,7 @@ assignment since only a single value can be given per command.
 See also: 
 <a href="info.html"><b>info</b></a>
 </p>
-
-<a name="attrfile"></a>
-<p class="nav">
-[<a href="#top">back to top: defattr</a>]
-</p>
-<h3>Attribute Assignment Files</h3>
-<p>
-Attribute assignment files are simple user- or program-generated text files
-that can be read using the <a href="#top"><b>defattr</b></a> command
-to create <a href="../attributes.html">attributes</a>
-and assign their values. The format is the same as used by Chimera, although 
-the <a href="atomspec.html">atom specifications</a> within may differ.
-Several <a href="#examples">example files</a> are provided.
-</p><p>
-<a name="comment"></a>
-A hash symbol # at the beginning of a line indicates a <b><i>comment</i></b>.
-<a name="controlline"></a>
-Basic properties of an attribute are described
-in <b><i>control lines</i></b> of the form:
-</p>
-<blockquote>
-<i>identifier: value</i>
-</blockquote>
-Possible control line contents:
-<table border cellspacing="0" cellpadding="3">
-<TR><td align=center><b>identifier</b></td>
-<td align=center><b>value</b></td>
-<td align=center><b>description</b></td>
-</tr><TR>
-<a name="attrname"></a>
-<td align=center><b>attribute</b><br>(required)</td>
-<td>alphanumeric string without spaces;
-can include underscores; cannot begin with a digit</td>
-<td align=center>attribute name, existing or new</td>
-</tr><TR>
-<td align=center><b>match&nbsp;mode</b><br>(optional)</td>
-<td align=center><b>any</b> (default)<br>non-zero<br>1-to-1</td>
-<td align=center>expected matches per
-<a href="#assignline">assignment line</a>
-(an error message will be sent to the
-<a href="../tools/log.html"><b>Log</b></a>
-when a line's match behavior differs from the match mode)</td>
-</tr><TR>
-<td align=center><b>recipient</b><br>(optional)</td>
-<td align=center><b>atoms</b> (default)<br>residues<br>molecules</td>
-<td align=center>level of attribute assignment</td>
-</tr><TR>
-<td align=center><b>none handling</b><br>(optional)</td>
-<td align=center><b>None</b> (default)<br>string<br>delete</td>
-<td align=center>treatment of values given as <b>none</b> or <b>None</b>:
-as the Python value None, as a string,
-or as removal of any assignment of that attribute from the specified item
-</td>
-</tr>
-</table>
-<p>
-<a name="assignline"></a>
-The attribute assignments are described in
-<b><i>assignment lines</i></b> of the form:
-<blockquote>
-(Tab)<a href="atomspec.html"><i>atom-spec</i></a>(Tab)<i>attr-value</i>
-</blockquote>
-Any kind of <a href="atomspec.html">atom specification</a> can be used.
-</p><p>
-<a href="#controlline">Control lines</a> and <a href="#comment">comments</a>
-can be interspersed with assignment lines.
-However, if multiple attributes are defined in the same file, the
-<b>attribute</b> control line should precede all other
-lines for the corresponding attribute.
-</p><p>
-Allowed <i>attr-value</i> types are:
-<ul>
-<li> real number (float)
-<li> integer
-<li> boolean (<b>true</b> or <b>false</b>, case-independent)
-<li> color &ndash; an attribute whose <a href="#attrname">name</a>
-ends with <b>color</b> (case-independent) will be interpreted as
-a color-valued attribute. Colors can be specified in the 
-<a href="colornames.html">same ways</a> as in commands.
-<li> string &ndash; a string of any characters except tabs;
-values that might be interpreted as one of the other types
-should be enclosed in quotation marks
-</ul>
-
-<a name="examples"></a>
-<p class="nav">
-[<a href="#top">back to top: defattr</a>]
-</p>
-<h3>Example Attribute Assignment Files</h3>
-<p>
-A simple <a href="#attrfile">text format</a> is used for attribute assignment.
-These files can be opened with <a href="#top"><b>defattr</b></a> 
-to assign the corresponding attributes.
-<ul>
-<li><a href="../formats/percentExposed.txt">percentExposed.txt</a>
-creates a new residue attribute, <b>percentExposed</b>, and assigns
-values previously calculated by
-<a href="http://curie.utmb.edu/getarea.html"
-target="_blank">Getarea</a> for the protein structure 121p
-(see <a href="../formats/getarea-121p.txt">raw results</a>).
-<br><br>
-<li><a href="../formats/midasrad.txt">midasrad.txt</a>
-assigns atomic radii, <i>i.e.</i>, sets values for the existing
-<a href="../attributes.html#atom">atom attribute</a> <b>radius</b>.
-The first assignment line applies to all atoms. 
-Subsequent lines reassign the radii for specific elements.
-Remember that atoms in models opened <i>after</i> the assignment
-will have the <a href="../radii.html">default radii</a>
-instead of those in the assignment file.
-<br><br>
-<li>Several files with different amino acid hydrophobicity scales are provided;
-see comments in files for literature citations and other details:
-  <ul>
-  <li>
-  <a href="../formats/kdHydrophobicity.txt">kdHydrophobicity.txt</a>
-Kyte-Doolittle 
-(see also <a href="../preferences.html#startup">custom presets</a>)
-  <li>
-  <a href="../formats/wwHydrophobicity.txt">wwHydrophobicity.txt</a>
-Wimley-White 
-  <li>
-  <a href="../formats/hhHydrophobicity.txt">hhHydrophobicity.txt</a>
-Hessa <i>et al.</i>
-  <li>
-  <a href="../formats/mfHydrophobicity.txt">mfHydrophobicity.txt</a>
-Moon-Fleming 
-  <li>
-  <a href="../formats/ttHydrophobicity.txt">ttHydrophobicity.txt</a>
-transmembrane tendency (contributed by Shyam M. Saladi)
-  </ul>
-</ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+October 2020</address>
 </body></html>

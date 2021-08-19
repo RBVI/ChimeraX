@@ -7,12 +7,24 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES = suds_jurko.patch webcolors.patch
+PATCHES = pyopengl_macos11.patch suds_jurko.patch webcolors.patch filelock.patch
+
+# Notarized macOS application will not launch first time if it contains
+# libraries or executables with references to non-system libraries outside the application.
+# Remove these inessential libraries from PySide2 that link to external libraries.
+# See ChimeraX ticket #4013 for details.
+PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
+			PySide2/Qt/plugins/sqldrivers/libqsqlodbc.dylib \
+			PySide2/Qt/plugins/sqldrivers/libqsqlpsql.dylib
 
 all:
 
 install:
-	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
+	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt	
+ifeq ($(OS),Darwin)
+	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
+	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
+endif
 
 list:
 	$(PIP) list
@@ -25,9 +37,11 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
+	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	-for p in $(PATCHES); do \
 		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
+	-cd $(APP_PYSITEDIR) ; rm -f $(PYSIDE2_MACOS_REMOVE)
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
@@ -58,7 +72,9 @@ outdated:
 	@echo ""
 	@echo "Known issues:"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
-	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  grako (3.16.5 is the last version that works [see #3460])"
+	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
+	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  jedi (pulled in by line-profiler)"
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"

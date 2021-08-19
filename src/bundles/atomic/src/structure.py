@@ -21,6 +21,16 @@ from chimerax.graphics import Drawing, Pick
 # (maximum) session version number.
 STRUCTURE_STATE_VERSION = 1
 
+# Auto-styling tunables
+MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
+MULTI_SHADOW = 16               # lighting defaults to 64, so a 4x reduction
+SMALL_THRESHOLD = 200_000       # not a small polymer if more than threshold atoms
+MEDIUM_THRESHOLD = 1_000_000    # not a medium polymer if more than threshold atoms
+MIN_RIBBON_THRESHOLD = 10       # skip ribbons if less than threshold ribbonable residues
+MAX_RIBBON_THRESHOLD = 5000     # skip ribbons if more than threshold ribbonable residues
+SLAB_THRESHOLD = 100            # skip slab nucleotide styling if more than threshold residues
+LADDER_THRESHOLD = 2000         # skip ladder nucleotide styling if more than threshold residues
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -120,6 +130,8 @@ class Structure(Model, StructureData):
         return m
 
     def added_to_session(self, session):
+        if not self.scene_position.is_identity():
+            self._cpp_notify_position(self.scene_position)
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
@@ -142,27 +154,14 @@ class Structure(Model, StructureData):
     def apply_auto_styling(self, set_lighting = False, style=None):
         # most auto-styling only makes sense for atomic structures
         if set_lighting:
-            from chimerax.core.commands import Command
-            cmd = Command(self.session)
-            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
-            cmd.run("lighting " + lighting, log=False)
-
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        from .molobject import has_custom_attrs
-        return has_custom_attrs(Structure, self)
+            kw = {} if self.num_atoms >= MULTI_SHADOW_THRESHOLD else {'multi_shadow': MULTI_SHADOW}
+            from chimerax.std_commands.lighting import lighting
+            lighting(self.session, preset = 'full', **kw)
 
     def take_snapshot(self, session, flags):
-        from .molobject import get_custom_attrs
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'structure state': StructureData.save_state(self, session, flags),
-                'custom attrs': get_custom_attrs(Structure, self),
-                # put in dependency on custom-attribute manager so that
-                # such attributes are registered with the classes before the
-                # instances become available to other part of the session
-                # restore, which may access attributes with default values
-                'attr-reg manager': session.attr_registration}
+                'custom attrs': self.custom_attrs }
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
         data['version'] = STRUCTURE_STATE_VERSION
@@ -189,8 +188,7 @@ class Structure(Model, StructureData):
         # TODO: Also marker atoms do not draw without this.
         self._graphics_changed |= (self._SHAPE_CHANGE | self._RIBBON_CHANGE | self._RING_CHANGE)
 
-        from .molobject import set_custom_attrs
-        set_custom_attrs(self, data)
+        self.set_custom_attrs(data)
 
     def _get_bond_radius(self):
         return self._bond_radius
@@ -552,7 +550,7 @@ class Structure(Model, StructureData):
         ribbons_drawing = self._ribbons_drawing
         if ribbons_drawing is None:
             from .ribbon import RibbonsDrawing
-            ribbons_drawing = rd = RibbonsDrawing('ribbons', str(self))
+            ribbons_drawing = rd = RibbonsDrawing('ribbons', self.string(style='simple'))
             self._ribbons_drawing = rd
             self.add_drawing(rd)
 
@@ -837,14 +835,8 @@ class Structure(Model, StructureData):
         import numpy
         for attr in attrs:
             choose = attr.attr_matcher()
-            if len(objects) == 1:
-                # numpy.vectorize produces the wrong size in this case
-                selected = numpy.array(selected)
-                selected[0] = selected[0] and choose(objects[0])
-            else:
-                s = numpy.vectorize(choose)(objects)
-                selected = numpy.logical_and(selected, s)
-        return selected
+            selected = [(selected[i] and choose(obj)) for i, obj in enumerate(objects)]
+        return numpy.array(selected)
 
 
     def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
@@ -1107,7 +1099,7 @@ class BondsDrawing(Drawing):
         if bonds is None:
             return
         ba1, ba2 = bonds.atoms
-        cyl_info = _halfbond_cylinder_x3d(ba1.coords, ba2.coords, bonds.radii)
+        cyl_info = _halfbond_cylinder_x3d(ba1.effective_coords, ba2.effective_coords, bonds.radii)
         tab = ' ' * indent
         for ci, c in zip(cyl_info, self.colors):
             h = ci[0]
@@ -1174,9 +1166,9 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
                 style = "small polymer"
-            elif self.num_chains < 250:
+            elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
             else:
                 style = "large polymer"
@@ -1186,14 +1178,14 @@ class AtomicStructure(Structure):
 
         atoms = self.atoms
         if style == "non-polymer":
-            lighting = "default"
+            lighting = {'preset': 'default'}
             from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
-            lighting = "default"
+            lighting = {'preset': 'default'}
             from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
@@ -1201,7 +1193,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if len(ribbonable) > 10:
+            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1217,9 +1209,9 @@ class AtomicStructure(Structure):
                 display |= nucleic
                 if nucleic:
                     from chimerax.nucleotides.cmd import nucleotides
-                    if len(nucleic) < 100:
+                    if len(nucleic) <= SLAB_THRESHOLD:
                         nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
-                    else:
+                    elif len(nucleic) <= LADDER_THRESHOLD:
                         nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
@@ -1236,7 +1228,9 @@ class AtomicStructure(Structure):
                 display_atoms.displays = True
                 ribbonable.ribbon_displays = True
         elif style == "medium polymer":
-            lighting = "full" if self.num_atoms < 300000 else "full multiShadow 16"
+            lighting = {'preset': 'full'}
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
             from .colors import chain_colors, element_colors
             residues = self.residues
             residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
@@ -1250,7 +1244,9 @@ class AtomicStructure(Structure):
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
-            lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
+            lighting = {'preset': 'soft'}
+            if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
+                lighting['multi_shadow'] = MULTI_SHADOW
 
         # correct the styling of per-structure pseudobond bond groups
         for cat, pbg in self.pbg_map.items():
@@ -1273,9 +1269,8 @@ class AtomicStructure(Structure):
             pbg.dashes = dashes
 
         if set_lighting:
-            from chimerax.core.commands import Command
-            cmd = Command(self.session)
-            cmd.run("lighting " + lighting, log=False)
+            from chimerax.std_commands.lighting import lighting as light_cmd
+            light_cmd(self.session, **lighting)
 
     # used by custom-attr registration code
     @property
@@ -1284,11 +1279,10 @@ class AtomicStructure(Structure):
         return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
 
     def take_snapshot(self, session, flags):
-        from .molobject import get_custom_attrs
         data = {
             'AtomicStructure version': 2,
             'structure state': Structure.take_snapshot(self, session, flags),
-            'custom attrs': get_custom_attrs(AtomicStructure, self)
+            'custom attrs': self.custom_attrs
         }
         return data
 
@@ -1302,9 +1296,8 @@ class AtomicStructure(Structure):
         if data.get('AtomicStructure version', 1) == 1:
             Structure.set_state_from_snapshot(self, session, data)
         else:
-            from .molobject import set_custom_attrs
             Structure.set_state_from_snapshot(self, session, data['structure state'])
-            set_custom_attrs(self, data)
+            self.set_custom_attrs(data)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1416,7 +1409,7 @@ class AtomicStructure(Structure):
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
             return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
-               chain_res_range(chain), chain.chain_id)
+               chain_res_range(chain), (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -1431,8 +1424,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (
-                chain_res_range(chain), chain.structure.id_string, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (chain_res_range(chain),
+                chain.structure.id_string, (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
@@ -1445,7 +1438,7 @@ class AtomicStructure(Structure):
         def descript_text(description, chains):
             from html import escape
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
-                ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
+                ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
         from chimerax.core.logger import html_table_params
         summary = '\n<table %s>\n' % html_table_params
@@ -1514,8 +1507,29 @@ def chain_res_range(chain):
     existing = chain.existing_residues
     if len(existing) == 1:
         return existing[0].string(style="command")
+    def range_string(first, last, first_res_only=False):
+        if first == last:
+            return first.string(residue_only=first_res_only, style="command")
+        return "%s-%s" % (first.string(residue_only=first_res_only, style="command"),
+            last.string(residue_only=True, style="command")[1:])
     first, last = existing[0], existing[-1]
-    return "%s-%s" % (first.string(style="command"), last.string(residue_only=True, style="command")[1:])
+    if first.number < last.number:
+        return range_string(first, last)
+    # circular permutation, do something more elaborate
+    ranges = []
+    cur_num = None
+    for r in existing:
+        if cur_num is None:
+            start_res = end_res = r
+        elif r.number < cur_num:
+            ranges.append((start_res, end_res))
+            start_res = end_res = r
+        else:
+            end_res = r
+        cur_num = r.number
+    ranges.append((start_res, end_res))
+    return range_string(*ranges[0], first_res_only=False) + ',' + ','.join(
+        [range_string(first, last, first_res_only=True)[1:] for first, last in ranges[1:]])
 
 
 # -----------------------------------------------------------------------------
@@ -1576,12 +1590,10 @@ class StructureGraphicsChangeManager:
 
             self._model_display_change = False
 
-            # Fire selection changed trigger.
-            if (gc & StructureData._SELECT_CHANGE).any():
-                self.session.selection.trigger_fire_needed = True
-                # XXX: No data for now.  What should be passed?
+        # set by changes.py when "selected changed" is in the global Atom reasons,
+        # which is the easiest way to detect that there was a selection in a
+        # deleted structure; also set by non-atomic models
         if self.session.selection.trigger_fire_needed:
-            # Models can also set it
             self.session.selection.trigger_fire_needed = False
             from chimerax.core.selection import SELECTION_CHANGED
             self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
@@ -1810,6 +1822,8 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, mode = 'add'):
         select_atom(self.atom, mode)
+    def selected(self):
+        return self.atom.selected
     def drawing(self):
         return self.atom.structure
     
@@ -1862,7 +1876,18 @@ def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
     bshown = bonds.showns
     bs = bonds.filter(bshown)
     a1, a2 = bs.atoms
-    cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords) if scene_coordinates else (a1.coords, a2.coords)
+    from .molarray import Pseudobonds
+    if isinstance(bonds, Pseudobonds):
+        # End positions may be projected onto ribbons.
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.pb_scene_coords, a2.pb_scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.pb_coords, a2.pb_coords)
+    else:
+        if scene_coordinates:
+            cxyz1, cxyz2 = (a1.scene_coords, a2.scene_coords)
+        else:
+            cxyz1, cxyz2 = (a1.coords, a2.coords)
     r = bs.radii
 
     # Check for atom sphere intercept
@@ -1993,6 +2018,8 @@ class PickedResidue(Pick):
             a.selected = False
         elif mode == 'toggle':
             a.selected = not a.selected.any()
+    def selected(self):
+        return self.residue.atoms.selected.any()
     def drawing(self):
         return self.residue.structure
 
@@ -2164,12 +2191,8 @@ def structure_atoms(structures):
 #
 def selected_atoms(session):
     '''All selected atoms in all structures as an :class:`.Atoms` collection.'''
-    alist = []
-    for m in session.models.list(type = Structure):
-        alist.extend(m.selected_items('atoms'))
-    from .molarray import concatenate, Atoms
-    atoms = concatenate(alist, Atoms)
-    return atoms
+    from . import changes
+    return changes.selected_atoms(session)
 
 # -----------------------------------------------------------------------------
 #
@@ -2230,3 +2253,17 @@ def _register_hover_trigger(session):
             _residue_mouse_hover(pick, session.logger)
         session._residue_hover_handler = session.triggers.add_handler('mouse hover', res_hover)
 
+# custom Chain attrs should be registered in the StructureSeq base class
+from chimerax.core.attributes import register_class
+from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
+    Residue, Sequence, StructureSeq
+from .pbgroup import PseudobondGroup
+for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
+        Residue, Sequence, StructureSeq ]:
+    register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
+        {attr_name: types for attr_name, types in getattr(reg_class, '_cython_property_return_info', [])})
+# Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
+# necessary really due to the way instance attributes actually get restored)
+register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
+    if not isinstance(inst, AtomicStructure)],
+    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})

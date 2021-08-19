@@ -27,7 +27,7 @@ class CoordinatesPanel(ToolInstance):
     self.tool_window = tw
     parent = tw.ui_area
 
-    from PyQt5.QtWidgets import QVBoxLayout, QLabel
+    from Qt.QtWidgets import QVBoxLayout, QLabel
     layout = QVBoxLayout(parent)
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(0)
@@ -63,7 +63,7 @@ class CoordinatesPanel(ToolInstance):
   #
   def _create_map_menu(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -92,7 +92,7 @@ class CoordinatesPanel(ToolInstance):
   #
   def _create_parameters_gui(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QVBoxLayout
+    from Qt.QtWidgets import QFrame, QVBoxLayout
         
     f = QFrame(parent)
     layout = QVBoxLayout(f)
@@ -166,7 +166,8 @@ class CoordinatesPanel(ToolInstance):
       self._voxel_size.value = vector_value_text(data.step)
       self._cell_angles.value = vector_value_text(data.cell_angles)
       from chimerax.geometry import Place
-      axis, angle = Place(axes = data.rotation).rotation_axis_and_angle()
+      from numpy import transpose
+      axis, angle = Place(axes = transpose(data.rotation)).rotation_axis_and_angle()
       from .volume_viewer import float_format
       self._rotation_axis.value = ' '.join([float_format(x,5) for x in axis])
       self._rotation_angle.value = angle

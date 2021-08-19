@@ -14,7 +14,7 @@ Basic Usage
 """
 
 
-def tag(pure):
+def tag(pure, limited=None):
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -27,40 +27,53 @@ def tag(pure):
     -----------
     pure : boolean
         Whether the bundle only contains Python code (no C/C++)
+    limited : string
+        Python version major[.minor[.micro]]
 
     Returns:
     --------
     str
         Dash-separated tag string, *e.g.*, **cp36-cp36m-win_amd64**
     """
-    # Code below is taken from wheel==0.29 bdist_wheel.py
-    from wheel.pep425tags import get_impl_ver
-    impl_ver = get_impl_ver()
+    import sys
+    from packaging import tags
+    vi = sys.version_info
     if pure:
-        impl = "py" + impl_ver[0]
-        abi = "none"
-        platform = "any"
+        if limited:
+            version = ''.join(str(v) for v in limited.release[:2])
+            tag = tags.Tag(f"py{version}", "none", "any")
+        else:
+            # savvy developers can handle default of all versions of Python 3
+            tag = tags.Tag(f"py{vi.major}", "none", "any")
     else:
-        from wheel.pep425tags import get_abbr_impl, get_abi_tag
-        impl = get_abbr_impl() + impl_ver
-        # get_abi_tag generates warning messages
-        import warnings
-        warnings.simplefilter("ignore", RuntimeWarning)
-        abi = get_abi_tag()
-        from distutils.util import get_platform
-        platform = get_platform()
-
-    def fix_name(name):
-        return name.replace('-', '_').replace('.', '_')
-    return "%s-%s-%s" % (fix_name(impl), fix_name(abi), fix_name(platform))
+        # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
+        if limited:
+            abi = f"abi{limited.major}"
+            if limited.release < (3, 2):
+                version = "32"
+            else:
+                version = ''.join(str(v) for v in limited.release[:2])
+            interpreter = f"{tags.interpreter_name()}{version}"
+        for tag in tags.sys_tags():
+            if not limited:
+                break
+            if tag.abi == abi and tag.interpreter == interpreter:
+                break
+        else:
+            raise RuntimeError("unable to find suitable tag")
+    return tag
 
 
 if "__main__" in __name__:
     import sys
     import getopt
     pure = False
-    opts, args = getopt.getopt(sys.argv[1:], "p")
+    limited = False
+    opts, args = getopt.getopt(sys.argv[1:], "pl:")
     for opt, val in opts:
         if opt == "-p":
             pure = True
-    print(tag(pure))
+        elif opt == "-l":
+            from packaging.version import Version
+            limited = Version(val)
+    print(tag(pure, limited))

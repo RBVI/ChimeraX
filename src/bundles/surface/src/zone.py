@@ -52,6 +52,10 @@ class ZoneMask(State):
     def __call__(self):
         self.set_surface_mask()
 
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_remask_triangles is self
+
     def set_surface_mask(self):
         surface = self.surface
         surface.auto_remask_triangles = self
@@ -99,6 +103,12 @@ class ZoneMask(State):
         surf.auto_remask_triangles = c
         c.set_surface_mask()
         return c
+
+# -----------------------------------------------------------------------------
+#
+def zoning(surface):
+    zm = surface.auto_remask_triangles
+    return zm if isinstance(zm, ZoneMask) else None
 
 # -----------------------------------------------------------------------------
 #

@@ -87,7 +87,8 @@ whether to include parts of the surface that have been hidden,
 such as with <a href="surface.html#dust"><b>surface dust</b></a>
 or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
-See also: <a href="#sasa"><b>measure sasa</b></a>
+See also: <a href="#sasa"><b>measure sasa</b></a>,
+<a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -124,6 +125,7 @@ in the specified <b>outlineColor</b> (default <b>lime</b>
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=lime width="10px" title="lime"></td>
 </tr></table>). See also:
+<a href="marker.html#connected"><b>marker connected</b></a>,
 <a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 </blockquote>
 
@@ -223,6 +225,7 @@ See also: <a href="cofr"><b>cofr</b></a>
 [&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>writeSurfaceData</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>patches</b>&nbsp;&nbsp;<i>convexity-threshold</i>&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="color.html#palette-options"><i>palette-options</i></a>&nbsp;
 <blockquote>
 Color a surface based on the convexity at each vertex, 
@@ -240,7 +243,7 @@ The surface vertex positions, normals, convexity values, and triangles
 can be saved to a text file with <b>writeSurfaceData</b>,
 where <i>filename</i> can be a pathname including the directory location.
 <p>
-The remaining options specify coloring.
+The remaining options relate to coloring.
 The <b>patches</b> option randomly assigns colors to contiguous patches
 of vertices with convexity values above the <i>convexity-threshold</i>. 
 Otherwise (<b>patches</b> not used),
@@ -258,9 +261,19 @@ style="display:inline-block; vertical-align:middle"><tr>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
 Unsmoothed values typically give mottled coloring.
-See also: <a href="mlp.html"><b>mlp</b></a>, 
+When <b>measure convexity</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
+</p><p>
+See also:
+<a href="key.html"><b>key</b></a>,
+<a href="coulombic.html"><b>coulombic</b></a>, 
+<a href="mlp.html"><b>mlp</b></a>, 
 <a href="color.html"><b>color</b></a>,
-<a href="bumps.html"><b>bumps</b><?a>
+<a href="bumps.html"><b>bumps</b></a>
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -327,7 +340,7 @@ primarily used to measure the length of traced paths of markers.
 <a name="mapstats"><b>measure mapstats</b></a>
 [&nbsp;<a href="atomspec.html#othermodels"><i>volume-spec</i></a>&nbsp;]
 [&nbsp;<b>step</b> &nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>subregion</b> &nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>subregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 <blockquote>
 Report the minimum value, maximum value, mean, standard deviation (SD) 
 from the mean, and the root-mean-square (RMS) deviation from zero for
@@ -348,8 +361,12 @@ A subregion can be specified by:
   <i>k1&ndash;k2</i> along the Z axis.
   Grid indices must be integers separated by commas but not spaces.
   <li>the word <b>all</b>, indicating the full extent of the data
-  (default) rather than a subregion
+  rather than a subregion
   </ul>
+The default is to use the current subregion (if cropped) and current step size
+of each specified map. This command is also implemented as
+<a href="../tools/mapstats.html"><b>Map Statistics</b></a> in the
+<b>Volume Data</b> section of the <b>Tools</b> menu.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -570,7 +587,7 @@ approximate <i>rise</i> (in physical units of distance, typically &Aring;)
 and <i>angle</i> (degrees) per asymmetric unit.  If this option is
 used, the other types of symmetry are not considered except for
 combined helical and cyclic symmetry (for example,
-<a href="http://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html"
+<a href="https://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html"
 target="_blank">EMD-1757</a>, approximately
 42 &Aring; rise and 21&deg; twist per subunit).
 Helical symmetry is infinite, but the number of copies to place
@@ -593,6 +610,8 @@ whether to include parts of the surface that have been hidden,
 such as with <a href="surface.html#dust"><b>surface dust</b></a>
 or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
+See also:
+<a href="../tools/measurevolume.html"><b>Measure Volume and Area</b></a>
 </blockquote>
 
 <a name="notes"></a>
@@ -637,5 +656,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+March 2021</address>
 </body></html>

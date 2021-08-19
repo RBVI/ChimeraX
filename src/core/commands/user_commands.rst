@@ -10,6 +10,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. _user_commands:
+
 Python Functions implementing User Commands
 *******************************************
 
@@ -291,12 +293,15 @@ mseries
 .. autofunction:: chimerax.model_series.mseries.mseries
 .. autofunction:: chimerax.model_series.mseries.mseries_slider
 
+.. _open_command:
+
 open
 ====
 Function defined in *chimerax.open_command.manager* and called via `session.open_command.open_data(...)`
 
 .. autoclass:: chimerax.open_command.manager.OpenManager
 	:members: open_data
+	:noindex:
 
 perframe
 ========
@@ -327,14 +332,15 @@ run
 .. autofunction:: chimerax.core.commands.run
     :noindex:
 
+.. _save_command:
+
 save
 ====
 Function defined in *chimerax.save_command.manager* and called via `session.save_command.save_data(...)`
 
 .. autoclass:: chimerax.save_command.manager.SaveManager
 	:members: save_data
-
-.. autofunction:: chimerax.save_command.cmd.provider_save
+	:noindex:
 
 select
 ======

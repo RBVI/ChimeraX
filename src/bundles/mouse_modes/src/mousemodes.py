@@ -305,7 +305,7 @@ class MouseModes:
         self._bindings = []  # List of MouseBinding instances
         self._trackpad_bindings = [] # List of MultitouchBinding instances
 
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         # Qt maps control to meta on Mac...
 
         # Mouse pause parameters
@@ -314,7 +314,7 @@ class MouseModes:
         self._mouse_pause_interval = 0.5         # seconds
         self._mouse_pause_position = None
 
-        session.triggers.add_trigger("set right mouse")
+        session.triggers.add_trigger("set mouse mode")
         self.bind_standard_mouse_modes()
         self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
@@ -355,8 +355,10 @@ class MouseModes:
                 b = MouseBinding(button, modifiers, mode)
                 self._bindings.append(b)
                 mode.enable()
-        if button == "right" and not modifiers:
-            self.session.triggers.activate_trigger("set right mouse", mode)
+            else:
+                # make handling trigger simpler
+                mode = None
+        self.session.triggers.activate_trigger("set mouse mode", (button, modifiers, mode))
 
     def _bind_trackpad_mode(self, action, modifiers, mode):
         '''
@@ -508,12 +510,12 @@ class MouseModes:
         self._bindings = [b for b in self.bindings if b.mode is not mode]
 
     def _cursor_position(self):
-        from PyQt5.QtGui import QCursor
+        from Qt.QtGui import QCursor
         p = self.graphics_window.mapFromGlobal(QCursor.pos())
         return p.x(), p.y()
 
     def _mouse_buttons_down(self):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         return self.session.ui.mouseButtons() != Qt.NoButton
 
     def _dispatch_mouse_event(self, event, action):
@@ -540,7 +542,7 @@ class MouseModes:
         modifiers = key_modifiers(event)
 
         # button() gives press/release buttons; buttons() gives move buttons
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         b = event.button() | event.buttons()
         if b & Qt.LeftButton:
             button = 'left'
@@ -667,7 +669,7 @@ class MouseEvent:
         if self._modifiers is not None:
             return 'shift' in self._modifiers
         if self._event is not None:
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             return bool(self._event.modifiers() & Qt.ShiftModifier)
         return False
 
@@ -679,7 +681,7 @@ class MouseEvent:
         if self._modifiers is not None:
             return 'alt' in self._modifiers
         if self._event is not None:
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             return bool(self._event.modifiers() & Qt.AltModifier)
         return False
 
@@ -711,9 +713,8 @@ class MouseEvent:
             return self._wheel_value
         if self._event is not None:
             deltas = self._event.angleDelta()
-            delta = max(deltas.x(), deltas.y())
-            if delta == 0:
-                delta = min(deltas.x(), deltas.y())
+            dx, dy = deltas.x(), deltas.y()
+            delta = dy if abs(dy) > abs(dx) else dx
             return delta/120.0   # Usually one wheel click is delta of 120
         return 0
 
@@ -723,7 +724,7 @@ def mod_key_info(key_function):
 
     Returns the Qt modifier bit (e.g. Qt.AltModifier) and name of the actual key
     """
-    from PyQt5.QtCore import Qt
+    from Qt.QtCore import Qt
     import sys
     if sys.platform == "win32" or sys.platform == "linux":
         command_name = "windows"
@@ -744,20 +745,21 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
-_function_keys = ["alt", "control", "command", "shift"]
-_modifier_bits = [(mod_key_info(fkey)[0], fkey) for fkey in _function_keys]
-
-
 def key_modifiers(event):
     return decode_modifier_bits(event.modifiers())
 
+_modifier_bits = None
 def decode_modifier_bits(mod):
+    global _modifier_bits
+    if _modifier_bits is None:
+        _function_keys = ["alt", "control", "command", "shift"]
+        _modifier_bits = [(mod_key_info(fkey)[0], fkey) for fkey in _function_keys]
     modifiers = [mod_name for bit, mod_name in _modifier_bits if bit & mod]
     return modifiers
 
 
 def keyboard_modifier_names(qt_keyboard_modifiers):
-    from PyQt5.QtCore import Qt
+    from Qt.QtCore import Qt
     import sys
     if sys.platform == 'darwin':
         modifiers = [(Qt.ShiftModifier, 'shift'),

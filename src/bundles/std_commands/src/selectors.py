@@ -23,7 +23,12 @@ def register_selectors(logger):
     reg("hbondatoms", _hbondatoms_selector, logger, desc="hydrogen bond atoms")
 
 def _sel_selector(session, models, results):
-    from chimerax.atomic import Structure, PseudobondGroup
+    from chimerax.atomic import Structure, PseudobondGroup, selected_atoms
+    if len([m for m in models if isinstance(m, Structure)]) == len(session.models.list(type=Structure)):
+        per_structure_atoms = False
+        results.add_atoms(selected_atoms(session))
+    else:
+        per_structure_atoms = True
     for m in models:
         if m.selected:
             results.add_model(m)
@@ -33,8 +38,9 @@ def _sel_selector(session, models, results):
         elif _nonmodel_child_selected(m):
             results.add_model(m)
         if isinstance(m, Structure):
-            for atoms in m.selected_items('atoms'):
-                results.add_atoms(atoms)
+            if per_structure_atoms:
+                for atoms in m.selected_items('atoms'):
+                    results.add_atoms(atoms)
             for bonds in m.selected_items('bonds'):
                 results.add_bonds(bonds)
         if isinstance(m, PseudobondGroup):

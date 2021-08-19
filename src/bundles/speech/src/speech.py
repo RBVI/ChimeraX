@@ -66,7 +66,7 @@ class Speech:
                                             "" if count == 1 else "s"))
 
     def _scan_menubar(self):
-        from PyQt5.QtWidgets import QMenu, QToolButton
+        from Qt.QtWidgets import QMenu, QToolButton
         mw = self.session.ui.main_window
         mb = mw.menuBar()
         word_info = WordInfo(self.session)
@@ -87,7 +87,7 @@ class Speech:
         return words
 
     def _scan_menu(self, menu, parent_info):
-        from PyQt5.QtWidgets import QMenu, QAction
+        from Qt.QtWidgets import QMenu, QAction
         words = self._words(menu.title())
         name = ' '.join(words)
         # print("menu", name)

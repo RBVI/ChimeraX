@@ -80,16 +80,16 @@ class _SessionAPI(BundleAPI):
 
                     @property
                     def save_args(self):
-                        from chimerax.core.commands import BoolArg, IntArg
+                        from chimerax.core.commands import BoolArg, IntArg, EnumOf
                         return {
                             'include_maps': BoolArg,
-                            'uncompressed': BoolArg,
+                            'compress': EnumOf(('lz4', 'gzip', 'none')),
                             'version': IntArg,
                         }
 
                     @property
                     def hidden_args(self):
-                        return ['uncompressed', 'version']
+                        return ['version']
 
                     def save_args_widget(self, session):
                         from .gui import SaveOptionsWidget

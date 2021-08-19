@@ -14,8 +14,8 @@
 from chimerax.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 from .hbond import rec_dist_slop, rec_angle_slop
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import Qt
+from Qt.QtWidgets import QWidget
+from Qt.QtCore import Qt
 from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     OptionalRGBAOption, make_optional
 
@@ -39,7 +39,7 @@ class HBondsGUI(QWidget):
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
-            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any",
+            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict=None,
             retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
             show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
@@ -78,15 +78,15 @@ class HBondsGUI(QWidget):
             final_val[name] = getattr(settings, name) if settings else frame_dict[name]
 
         super().__init__()
-        from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         if show_make_pseudobonds:
-            self.__make_pb_group = group = QGroupBox("Display as pseudobonds")
+            self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings
+                else make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
+            group = self.__make_pb_option.widget
             layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['make_pseudobonds'])
             make_pb_layout = QVBoxLayout()
             make_pb_layout.setContentsMargins(0,0,0,0)
             make_pb_layout.setSpacing(0)
@@ -117,10 +117,10 @@ class HBondsGUI(QWidget):
                 make_pb_options.add_option(self.__retain_current_option)
 
         if show_relax:
-            self.__relax_group = group = QGroupBox("Relax distance and angle criteria")
+            self.__relax_option = BooleanOption("Relax distance and angle criteria", None if settings
+                else relax, None, attr_name="relax", settings=settings, as_group=True)
+            group = self.__relax_option.widget
             layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['relax'])
             relax_layout = QVBoxLayout()
             relax_layout.setContentsMargins(0,0,0,0)
             relax_layout.setSpacing(0)
@@ -166,7 +166,8 @@ class HBondsGUI(QWidget):
 
             if show_bond_restrict:
                 self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
-                    None, None, atom_word="end")
+                    None if settings else restrict, None, attr_name="restrict", settings=settings,
+                    atom_word="end")
                 limit_options.add_option(self.__bond_restrict_option)
 
             if show_salt_only:
@@ -266,18 +267,9 @@ class HBondsGUI(QWidget):
         else:
             atom_spec = ""
 
-        if self.__show_values['bond_restrict']:
-            bond_restrict = self.__bond_restrict_option.value
-            if bond_restrict is not None:
-                command_values['restrict'] = bond_restrict
-                if atom_spec:
-                    atom_spec += " & sel"
-                else:
-                    atom_spec = "sel"
-
         if self.__show_values['save_file']:
             if self.__save_file_option.value:
-                from PyQt5.QtWidgets import QFileDialog
+                from Qt.QtWidgets import QFileDialog
                 fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
                 if fname:
                     command_values['save_file'] = fname
@@ -291,7 +283,7 @@ class HBondsGUI(QWidget):
 
         # may be saved in settings
         if self.__show_values['make_pseudobonds']:
-            settings['make_pseudobonds'] = self.__make_pb_group.isChecked()
+            settings['make_pseudobonds'] = self.__make_pb_option.value
             if self.__show_values['color']:
                 settings['color'] = self.__color_option.value
             if self.__show_values['radius']:
@@ -306,6 +298,18 @@ class HBondsGUI(QWidget):
             settings['dashes'] = None
             settings['show_dist'] = None
 
+        if self.__show_values['bond_restrict']:
+            bond_restrict = self.__bond_restrict_option.value
+            if bond_restrict is not None:
+                if atom_spec:
+                    atom_spec += " & sel"
+                else:
+                    atom_spec = "sel"
+            settings['restrict'] = bond_restrict
+            save_restrict = True
+        else:
+            save_restrict = False
+
         if self.__show_values['inter_model']:
             settings['inter_model'] = self.__inter_model_option.value
         else:
@@ -317,7 +321,7 @@ class HBondsGUI(QWidget):
             settings['intra_model'] = None
 
         if self.__show_values['relax']:
-            settings['relax'] = self.__relax_group.isChecked()
+            settings['relax'] = self.__relax_option.value
             if self.__show_values['slop']:
                 settings['dist_slop'] = self.__dist_slop_option.value
                 settings['angle_slop'] = self.__angle_slop_option.value
@@ -380,7 +384,7 @@ class HBondsGUI(QWidget):
         if self.__settings:
             saveables = []
             for attr_name, value in settings.items():
-                if value is not None:
+                if value is not None or (attr_name == 'restrict' and save_restrict):
                     setattr(self.__settings, attr_name, value)
                     saveables.append(attr_name)
             if saveables:
@@ -427,6 +431,18 @@ class HBondsGUI(QWidget):
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
+
+    def reset(self):
+        self.__settings.reset()
+        if self.__show_values['save_file']:
+            self.__save_file_option.value = False
+        if self.__show_values['relax']:
+            if self.__show_values['slop_color']:
+                self.__slop_color_option.value = self.__settings.slop_color
+                self.__slop_color_option.value = None
+        if self.__show_values['bond_restrict']:
+            self.__bond_restrict_option.value = self.__bond_restrict_option.restrict_kw_vals[0]
+            self.__bond_restrict_option.value = None
 
     def _model_restrict_cb(self, opt):
         if opt.value is None:

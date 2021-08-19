@@ -16,6 +16,10 @@ from .split import split_surfaces
 from .shapes import sphere_geometry, sphere_geometry2, cylinder_geometry, dashed_cylinder_geometry, cone_geometry, box_geometry
 from .area import surface_area, enclosed_volume, surface_volume_and_area
 from .gridsurf import ses_surface_geometry
+
+# Make sure _surface can runtime link shared library libarrays.
+from chimerax import arrays ; arrays.load_libarrays()
+
 from ._surface import subdivide_triangles, vertex_areas
 from ._surface import surface_area_of_spheres, estimate_surface_area_of_spheres
 from ._surface import calculate_vertex_normals, invert_vertex_normals
@@ -25,6 +29,7 @@ from ._surface import boundary_edges, compute_cap, triangulate_polygon, refine_m
 from ._surface import boundary_edge_mask
 from ._surface import vertex_convexity
 from ._surface import smooth_vertex_positions
+
 from .dust import largest_blobs_triangle_mask
 from .gaussian import gaussian_surface
 from .cap import update_clip_caps, remove_clip_caps
@@ -70,8 +75,30 @@ class _SurfaceBundle(BundleAPI):
             check.register_command(logger)
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Hide Dust':
+            from . import dustgui
+            ti = dustgui.show_hide_dust_panel(session)
+        elif tool_name == 'Surface Zone':
+            from . import zonegui
+            ti = zonegui.show_surface_zone_panel(session)
+        elif tool_name == 'Color Zone':
+            from . import colorzonegui
+            ti = colorzonegui.show_color_zone_panel(session)
+        elif tool_name == 'Measure Volume and Area':
+            from . import areagui
+            ti = areagui.show_volume_area_panel(session)
+        elif tool_name == 'Surface Color':
+            from . import surfcolorgui
+            ti = surfcolorgui.show_surface_color_panel(session)
+        else:
+            ti = None
+        return ti
+
+    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
+        from .cap import ClipCap
         from .colorgeom import CylinderColor, HeightColor, RadialColor
         from .colorvol import GradientColor, VolumeColor
         from .dust import Redust
@@ -79,6 +106,7 @@ class _SurfaceBundle(BundleAPI):
         from .colorzone import ZoneColor
         from .updaters import SurfaceUpdaters
         ct = {
+            'ClipCap': ClipCap,
             'CylinderColor': CylinderColor,
             'GradientColor': GradientColor,
             'HeightColor': HeightColor,

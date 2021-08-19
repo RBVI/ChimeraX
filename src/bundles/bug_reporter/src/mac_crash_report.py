@@ -1,3 +1,16 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 # Check Mac crash log to see if ChimeraX crashed since the last time it was
 # started.  If so display the ChimeraX bug report dialog with crash log info
@@ -7,7 +20,7 @@ def check_for_crash_on_mac(session):
 
     import sys
     if sys.platform != 'darwin':
-        return  # Only check for crashes on Mac OS.
+        return None # Only check for crashes on Mac OS.
 
     # Get time of last check for crash logs.
     from .settings import BugReporterSettings
@@ -16,18 +29,11 @@ def check_for_crash_on_mac(session):
     from time import time
     settings.last_crash_check = time()
     if last is None:
-        return          # No previous crash check time available.
+        return None         # No previous crash check time available.
 
     report = recent_chimera_crash(last)
-    if report is None:
-        return
 
-    # Show Chimera bug reporting dialog.
-    from chimerax.bug_reporter import show_bug_reporter
-    br = show_bug_reporter(session)
-    br.set_description('<p><font color=red>Last time you used ChimeraX it crashed.</font><br>'
-                       'Please describe steps that led to the crash here.</p>'
-                       '<pre>\n%s\n</pre>' % report)
+    return report
 
 # -----------------------------------------------------------------------------
 #
@@ -58,7 +64,11 @@ def crash_logs_directory():
 def recent_crash(time, dir, file_prefix):
 
     from os import listdir
-    filenames = listdir(dir)
+    try:
+        filenames = listdir(dir)
+    except PermissionError:
+        # Crash directory is not readable so can't report crashes.
+        return None
 
     from os.path import getmtime, join
     pypaths = [join(dir,f) for f in filenames if f.startswith(file_prefix)]
@@ -76,19 +86,3 @@ def recent_crash(time, dir, file_prefix):
     f.close()
 
     return log
-
-# -----------------------------------------------------------------------------
-#
-def register_mac_crash_checker(session):
-    import sys
-    if sys.platform != 'darwin':
-        return
-    
-    # Delay crash check until ChimeraX fully started.
-    def crash_check(tname, data):
-        check_for_crash_on_mac(session)
-        from chimerax.core import triggerset
-        return triggerset.DEREGISTER
-    
-    session.triggers.add_handler('new frame', crash_check)
-

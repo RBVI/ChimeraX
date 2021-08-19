@@ -195,10 +195,7 @@ extern "C" PyObject *py_surface_z_depth(PyObject *, PyObject *args,
   bool set = surface_z_depth(varray, tarray, depth, tnum,
 			     beyondp, beyond_tnump, toffset);
 
-  PyObject *py_set = (set ? Py_True : Py_False);
-  Py_INCREF(py_set);
-
-  return py_set;
+  return python_bool(set);
 }
 
 // -----------------------------------------------------------------------------
@@ -267,8 +264,7 @@ extern "C" PyObject *py_fill_slab(PyObject *, PyObject *args, PyObject *keywds)
   call_template_function(fill_slab, mvol.value_type(),
 			 (depth, depth2, mijk_to_dijk, mvol, depth_limit));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // -----------------------------------------------------------------------------
@@ -320,8 +316,7 @@ extern "C" PyObject *py_pad_mask(PyObject *, PyObject *args, PyObject *keywds)
 
   call_template_function(pad_mask, mvol.value_type(), (mvol, iter));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

@@ -1,0 +1,29 @@
+<BundleInfo name="ChimeraX-CrystalContacts" version="1.0"
+	    package="chimerax.crystal_contacts"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Show contacting asymmetric units in a crystal</Synopsis>
+  <Description>Makes copies of a crystal asymmetric unit for all contacting asymmetric units.</Description>
+
+  <Categories>
+    <Category name="Higher-Order Structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Crystal Contacts :: Higher-Order Structure :: Show contacting subunits in a crystal</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: crystalcontacts :: Higher-Order Structure :: Make contacting copies of a crystal asymmetric unit</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

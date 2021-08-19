@@ -48,6 +48,18 @@ class MapSeries(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def added_to_session(self, session):
+    maps = self.maps
+    if maps and maps[0].other_channels():
+      return  # MultiChannelSeries will report info.
+    msg = ('Opened map series %s as #%s, %d images'
+           % (self.name, self.id_string, len(maps)))
+    if maps:
+      msg += ', ' + maps[0].info_string()
+    session.logger.info(msg)
+
+  # ---------------------------------------------------------------------------
+  #
   def show_first_map_only(self, maps):
     v0 = maps[0]
     v0.display = True	# Show first map of series
@@ -153,7 +165,7 @@ class MapSeries(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def surface_model(self, time):
+  def volume_model(self, time):
 
     return self.maps[time]
       

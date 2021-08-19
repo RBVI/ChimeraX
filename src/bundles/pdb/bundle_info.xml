@@ -1,6 +1,5 @@
-<BundleInfo name="ChimeraX-PDB" version="2.1"
+<BundleInfo name="ChimeraX-PDB" version="2.4.1"
 	    package="chimerax.pdb" purePython="false"
-		installedIncludeDir="include" installedLibraryDir="lib"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -14,24 +13,10 @@
     <Category name="Molecular structure"/>
   </Categories>
 
-  <CLibrary name="pdbconnect">
-    <SourceFile>connect_cpp/connect.cpp</SourceFile>
-	<Library>atomstruct</Library>
-    <Library>element</Library>
-    <Library>pyinstance</Library>
-  </CLibrary>
-
-  <ExtraFiles>
-    <ExtraFile source="connect_cpp/connect.h">include/pdb/connect.h</ExtraFile>
-    <ExtraFile source="connect_cpp/imex.h">include/pdb/imex.h</ExtraFile>
-  </ExtraFiles>
-
   <CModule name="_pdbio">
     <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
     <IncludeDir>pdb_cpp/include</IncludeDir>
-    <IncludeDir>src/include</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
-    <LibraryDir>src/lib</LibraryDir>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
@@ -39,15 +24,17 @@
     <Library>pdb</Library>
     <Library>pdbconnect</Library>
     <Library>arrays</Library>
-    <Library>appdirs</Library>
   </CModule>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
-    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-IO" version="~=1.0.1"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
 
@@ -65,7 +52,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="PDB" />
+    <Provider name="PDB" compression_okay="false" />
   </Providers>
 
   <Classifiers>

@@ -53,20 +53,20 @@ The <i>action</i> can be</a>:
 </p>
 <ul>
 <li><a href="#align"><b>align</b></a>
-- align the maps in the series
+&ndash; align the maps in the series
 <li><a href="#play"><b>play</b></a>
-- series playback (see also the <b>play map series</b>
+&ndash; series playback (see also the <b>play map series</b>
 <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>&nbsp;)
 <li><a href="#stop"><b>stop</b></a>
-- stop looping playback
+&ndash; stop looping playback
 <li><a href="#slider"><b>slider</b></a>
-- show slider interface for the series 
+&ndash; show slider interface for the series 
 <li><a href="#measure"><b>measure</b></a>
-- track surface area, enclosed volume, and centroid position
+&ndash; track surface area, enclosed volume, and centroid position
 <li><a href="#save"><b>save</b></a>
-- save to <a href="save.html#chimap">Chimera map</a> format,
+&ndash; save to <a href="save.html#chimap">Chimera map</a> format,
 optionally with cropping, normalization, alignment
 </ul>
 <p>
@@ -129,13 +129,13 @@ Limit playback to the specified <a href="#time">time</a> range.
 <br>
 Specify the playback <i>mode</i>:
 <ul>
-<li><b>forward</b> (default) - in increasing order, then back to the first
+<li><b>forward</b> (default) &ndash; in increasing order, then back to the first
 when <a href="#loop">looping</a> is on
 (01230123...)
-<li><b>backward</b> - in decreasing order, then back to the last
+<li><b>backward</b> &ndash; in decreasing order, then back to the last
 when <a href="#loop">looping</a> is on
 (32103210...)
-<li><b>oscillate</b> - alternating increasing and decreasing order
+<li><b>oscillate</b> &ndash; alternating increasing and decreasing order
 (01232101...)
 </ul>
 </blockquote>
@@ -156,40 +156,40 @@ This is useful when the signal level in the data changes over time or
 between states.
 </blockquote>
 <blockquote>
-<font color="brown">
-<a name="showMarkers"></a>
-<b>showMarkers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-<br>(not yet supported)
+<a name="markers"></a>
+<b>markers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>precedingMarkerFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]&nbsp;[&nbsp;<b>followingMarkerFrames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <br>
 Display the specified markers to trace spatial and temporal paths. 
 (A <a href="../markers.html">marker</a> is implemented as an atom and can be
 <a href="atomspec.html">specified</a> similarly by model number, <i>etc.</i>)
-The markers could have been created manually with the mouse
-(see <a href="ui.html#mousemode"><b>mousemode</b></a>)
-or automatically with <a href="#measure"><b>vseries measure</b></a>.
-For marker display to be synchronized with playback, 
-each marker should be labeled with the <a href="#time">time</a> 
-of the data set on which it was placed.
-The labels are not shown, but used by <b>vseries</b> to limit marker display
+For marker display to be synchronized with playback, each marker should have a
+<a href="../attributes.html#atom"><b>frame</b> attribute</a> with value 
+corresponding to the <a href="#time">time</a>
+of the data set on which it was placed (0, 1, 2, <i>etc.</i>).
+This attribute is assigned when
+markers are created manually by clicking volume series data
+(see <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>)
+or automatically with <a href="marker.html#connected"><b>marker 
+connected</b></a> or <a href="#measure"><b>vseries measure</b></a>.
+The attribute is used to limit marker display 
 to the corresponding <a href="#time">time</a>. Simultaneously, markers
 can also be displayed for <i>N</i> earlier time points (default <b>0</b>)
 and <i>M</i> later time points (default <b>0</b>) using
 <b>precedingMarkerFrames</b> and <b>followingMarkerFrames</b>, respectively.
 <p>
-</font>
 </blockquote>
 <blockquote>
-<font color="brown">
 <b>colorRange</b> &nbsp;<i>cutoff</i>
-<br>(not yet supported)
 <br>
 Whether to color volume contour surfaces to match 
 <a href="../markers.html">markers</a> within
 a specified distance <i>cutoff</i> (regardless of whether the markers are
-<a href="#showMarkers">shown</a>). All of the markers associated with the
-current <a href="#time">time</a> are used to color the current surface.
+<a href="#markers">shown</a>). 
+All of the markers with
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+matching the current <a href="#time">time</a>
+are used to color the current surface.
 The coloring does not apply to <b>solid</b> displays.
-</font>
 </blockquote>
 <blockquote>
 <a name="maxFrameRate"></a>
@@ -293,11 +293,11 @@ the maps) and <b>color</b> (default <b>#aaaaaa</b>
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#aaaaaa width="10px" title="#aaaaaa"></td></tr></table>).
 Successive markers are linked.
-<!--
-The markers can be shown during playback with the
-<a href="#showMarkers"><b>showMarkers</b></a> option of
+The markers are assigned a 
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+with value indicating the associated time step (0, 1, 2, <i>etc.</i>)
+in the series, allowing synchronization during playback with
 <a href="#play"><b>vseries play</b></a>.
--->
 </p>
 </blockquote>
 
@@ -337,14 +337,14 @@ The related option <a href="#finalValueType"><b>finalValueType</b></a>
 sets the value type after any processing.
 The <i>value-type</i> can be:
 <ul>
-<li><b>int8</b> - 8-bit signed integer
-<li><b>int16</b> - 16-bit signed integer
-<li><b>int32</b> - 32-bit signed integer
-<li><b>uint8</b> - 8-bit unsigned integer
-<li><b>uint16</b> - 16-bit unsigned integer
-<li><b>uint32</b> - 32-bit unsigned integer
-<li><b>float32</b> - 32-bit floating-point
-<li><b>float64</b> - 64-bit floating-point
+<li><b>int8</b> &ndash; 8-bit signed integer
+<li><b>int16</b> &ndash; 16-bit signed integer
+<li><b>int32</b> &ndash; 32-bit signed integer
+<li><b>uint8</b> &ndash; 8-bit unsigned integer
+<li><b>uint16</b> &ndash; 16-bit unsigned integer
+<li><b>uint32</b> &ndash; 32-bit unsigned integer
+<li><b>float32</b> &ndash; 32-bit floating-point
+<li><b>float64</b> &ndash; 64-bit floating-point
 </ul>
 </blockquote>
 <blockquote>
@@ -425,5 +425,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+October 2020</address>
 </body></html>

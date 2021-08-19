@@ -1,44 +1,14 @@
 #
-# Application runtime
+# Packages needed during the build process.
+# These are not installed in the ChimeraX app.
 #
-appdirs==1.4.4
-colorama==0.4.3
-comtypes==1.1.7
-Cython==0.29.20
-distlib==0.3.1
-filelock==3.0.12
-flake8==3.8.3
-funcparserlib==0.3.6
+
+# Cython used by compile core/_serialize.pyx
+Cython==0.29.21
+
+# Grako used to make _atomspec.py parser from _atomspec.peg in core/commands
 grako==3.16.5
-html2text==2020.1.16
-ipython==7.15.0
-# see ../lineprofiler
-#line_profiler==3.0.2
-lxml==4.5.1
-MarkupSafe==1.1.1
-mccabe==0.6.1
-msgpack==1.0.0
-pep8==1.7.1
-pep8-naming==0.10.0
-Pillow==7.1.2
-pkginfo==1.5.0.1
-pycodestyle==2.6.0
-pyflakes==2.2.0
-python-dateutil==2.8.1
-pytz==2020.1
-six==1.15.0
-sortedcontainers==2.2.2
-suds-jurko==0.6
-tables==3.6.1
-tinyarray==1.2.2
-webcolors==1.11.1
-#
-# Documentation
-#
-blockdiag==2.0.1
-docutils==0.16
-Jinja2==2.11.2
-numpydoc==1.0.0
-Pygments==2.6.1
-Sphinx==3.1.1
-sphinxcontrib-blockdiag==2.0.0
+
+# For creating programmer documentation in docs/devel from .rst files and code doc strings.
+Sphinx==3.2.1
+

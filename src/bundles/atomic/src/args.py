@@ -410,3 +410,60 @@ def make_closest_placement_identity(tflist, center):
     from chimerax.geometry import Place, Places
     rtflist[i] = Place()
     return Places(rtflist)
+
+def _form_range(items, index_map, str_func):
+    range_string = ""
+    start_range = end_range = items[0]
+    for item in items[1:]:
+        ii, ei = index_map[item], index_map[end_range]
+        if ii == ei:
+            continue
+        if ii == ei + 1:
+            end_range = item
+        else:
+            if range_string:
+                range_string += ','
+            if start_range == end_range:
+                range_string += str_func(start_range)
+            else:
+                range_string += str_func(start_range) + '-' + str_func(end_range)
+            start_range = end_range = item
+    if range_string:
+        range_string += ','
+    if start_range == end_range:
+        range_string += str_func(start_range)
+    else:
+        range_string += str_func(start_range) + '-' + str_func(end_range)
+    return range_string
+
+def concise_residue_spec(session, residues):
+    from . import Residues
+    if not isinstance(residues, Residues):
+        residues = Residues(residues)
+    from . import all_structures
+    need_model_spec = len(all_structures(session)) > 1
+    full_spec = ""
+    for struct, struct_residues in residues.by_structure:
+        res_index_map = {}
+        for i, r in enumerate(struct.residues):
+            res_index_map[r] = i
+        chain_id_index_map = {}
+        for i, cid in enumerate(sorted(struct.residues.unique_chain_ids)):
+            chain_id_index_map[cid] = i
+        specs = {}
+        for struct, chain_id, chain_residues in struct_residues.by_chain:
+            sort_residues = list(chain_residues)
+            sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
+            specs.setdefault(':' + _form_range(sort_residues, res_index_map, lambda r:
+                r.string(omit_structure=True, style="command", residue_only=True)[1:]), []).append(chain_id)
+
+        if full_spec:
+            full_spec += ' '
+        spec_chain_ids = list(specs.items())
+        spec_chain_ids.sort(key=lambda spec_cids: sorted(spec_cids[1])[0])
+        if need_model_spec:
+            full_spec += struct.string(style="command")
+        for spec, chain_ids in spec_chain_ids:
+            full_spec += '/' + _form_range(chain_ids, chain_id_index_map, str) + spec
+
+    return full_spec

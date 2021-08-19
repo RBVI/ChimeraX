@@ -74,6 +74,8 @@
     <ChimeraXClassifier>Command :: surface hidePatches :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface close :: Surfaces :: close surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface style :: Surfaces :: set surface mesh, solid, or dot display style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface squaremesh :: Surfaces :: mask mesh lines that are not parallel x, y or z</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface showall :: Surfaces :: turn of maskig of triangles and edges</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>
@@ -85,6 +87,12 @@
     <ChimeraXClassifier>Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Hide Dust :: Volume Data :: hide small surface blobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Zone :: Volume Data :: show surface near atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Color Zone :: Volume Data :: color surface to match nearby atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Measure Volume and Area :: Volume Data :: measure surface area and enclosed volume</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Surface Color :: Volume Data, Depiction :: Color surface by geometry or map value</ChimeraXClassifier>
   </Classifiers>
+
 
 </BundleInfo>

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .settings import defaults
-from PyQt5.QtWidgets import QWidget
+from Qt.QtWidgets import QWidget
 from chimerax.ui.options import OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     StringOption, OptionalRGBAOption, make_optional
 from chimerax.atomic.options import AtomPairRestrictOption
@@ -44,7 +44,7 @@ class AtomProximityGUI(QWidget):
             continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
             intra_model=True, intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"],
             log=defaults["action_log"], make_pseudobonds=defaults["action_pseudobonds"],
-            res_separation=None, restrict="any", reveal=False, save_file=None,
+            res_separation=None, restrict=None, reveal=False, save_file=None,
             select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
             summary=True, test_atoms=None,
 
@@ -62,6 +62,7 @@ class AtomProximityGUI(QWidget):
 
         self.session = session
         self.cmd_name = cmd_name
+        self.default_group_name = name
 
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
@@ -81,10 +82,10 @@ class AtomProximityGUI(QWidget):
             final_val[def_name] = getattr(settings, def_name) if settings else frame_dict[def_name]
 
         super().__init__()
-        from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
-        from PyQt5.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
-        from PyQt5.QtWidgets import QSpinBox, QCheckBox
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
+        from Qt.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
+        from Qt.QtWidgets import QSpinBox, QCheckBox
+        from Qt.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -210,7 +211,8 @@ class AtomProximityGUI(QWidget):
                 group_layout.addWidget(restrict_options, alignment=Qt.AlignLeft)
                 if show_restrict:
                     self.sel_restrict_option = make_optional(AtomPairRestrictOption)("Limit by selection",
-                        None, None, atom_word="end")
+                        None if settings else restrict, None, attr_name="restrict", settings=settings,
+                        atom_word="end")
                     restrict_options.add_option(self.sel_restrict_option)
             if show_bond_separation:
                 bond_sep_layout = QHBoxLayout()
@@ -424,15 +426,9 @@ class AtomProximityGUI(QWidget):
 
         # never saved in settings
         atom_spec = ""
-        if self.show_values['restrict']:
-            restrict = self.sel_restrict_option.value
-            if restrict is not None:
-                command_values['restrict'] = restrict
-                atom_spec = "sel"
-
         if self.show_values['save_file']:
             if self.save_file_option.value:
-                from PyQt5.QtWidgets import QFileDialog
+                from Qt.QtWidgets import QFileDialog
                 fname = QFileDialog.getSaveFileName(self, "Save %s File" % self.prox_words.capitalize())[0]
                 if fname:
                     command_values['save_file'] = fname
@@ -455,6 +451,15 @@ class AtomProximityGUI(QWidget):
             command_values['set_attrs'] = None
 
         # may be saved in settings
+        if self.show_values['restrict']:
+            restrict = self.sel_restrict_option.value
+            if restrict is not None:
+                atom_spec = "sel"
+            settings['restrict'] = restrict
+            save_restrict = True
+        else:
+            save_restrict = False
+
         if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
         and self.show_values['distance_only']:
             overlap_active = self.overlap_radio.isChecked()
@@ -563,7 +568,7 @@ class AtomProximityGUI(QWidget):
         if self.settings:
             saveables = []
             for attr_name, value in settings.items():
-                if value is not None:
+                if value is not None or (attr_name == 'restrict' and save_restrict):
                     setattr(self.settings, attr_name, value)
                     saveables.append(attr_name)
             if saveables:
@@ -616,6 +621,45 @@ class AtomProximityGUI(QWidget):
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return self.cmd_name, atom_spec, kw_values
+
+    def reset(self):
+        self.settings.reset()
+        if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
+        and self.show_values['distance_only']:
+            self.overlap_radio.setChecked(True)
+        if self.show_values['overlap_cutoff']:
+            self.overlap_spinbox.setValue(self.settings.overlap_cutoff)
+        if self.show_values['hbond_allowance']:
+            self.hbond_spinbox.setValue(self.settings.hbond_allowance)
+        if self.show_values['distance_only']:
+            val = 4.0 if self.settings.distance_only is None else self.settings.distance_only
+            self.dist_only_spinbox.setValue(val)
+        if self.show_values['restrict']:
+            self.sel_restrict_option.value = self.sel_restrict_option.restrict_kw_vals[0]
+            self.sel_restrict_option.value = None
+        if self.show_values['bond_separation']:
+            self.bond_sep_button.setText(str(self.settings.bond_separation))
+        if self.show_values['res_separation']:
+            self.res_sep_checkbox.setChecked(self.settings.res_separation is not None)
+            val = 5 if self.settings.res_separation is None else self.settings.res_separation
+            self.res_sep_spinbox.setValue(val)
+        if self.show_values['set_attrs']:
+            if self.show_values['attr_name']:
+                self.attr_name_option.value = self.settings.attr_name
+                self.attr_name_option.value = None
+            else:
+                self.set_attrs_option.value = self.settings.set_attrs
+        if self.show_values['make_pseudobonds']:
+            if isinstance(self.make_pseudobonds_widget, BooleanOption):
+                self.make_pseudobonds_widget.value = self.settings.make_pseudobonds
+            else:
+                self.make_pseudobonds_widget.setChecked(self.settings.make_pseudobonds)
+            if self.show_values['name']:
+                self.name_option.value = self.default_group_name
+        if self.show_values['save_file']:
+            self.save_file_option.value = False
+        if self.show_values['checking_frequency']:
+            self.ok_radio.setChecked(True)
 
     def _checking_change(self, ok_now_checked):
         from chimerax.core.commands import run

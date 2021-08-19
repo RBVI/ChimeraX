@@ -110,6 +110,11 @@ see also <a href="../commands/zoom.html"><b>zoom</b></a>
 <br>assigned button + <b>Shift</b> switches to
 <b>translate selected models</b> instead</td>
 </tr><tr>
+<td align="center"><img src="mouse-icons/move_picked_model.png" width="35px"></td>
+<td align="center"><b>move picked model</b></td>
+<td align="center" class="text">translate the model under the mouseclick;
+<br>assigned button + <b>Shift</b> switches to rotation instead</td>
+</tr><tr>
 <td align="center"><img src="mouse-icons/move_atoms.png" width="35px"></td>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
@@ -119,7 +124,8 @@ see also <a href="../commands/zoom.html"><b>zoom</b></a>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
 <td align="center"><b>pivot</b></td>
-<td align="center" class="text">set center of rotation to atom;
+<td align="center" class="text">set center of rotation to clicked atom,
+bond, ribbon segment, or surface point;
 see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <td align="center">
@@ -257,7 +263,8 @@ see <a href="#multiwindowing">details</a>
 <td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position not 
-retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+retained) by clicking a bond and dragging vertically;
+see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
 <td align="center"><b>swapaa</b></td>
@@ -412,6 +419,8 @@ which can also be used to adjust zone size
 (cutoff distances from the clicked residue
 are initially <b>5</b>, <b>4</b>, and <b>8</b> &Aring; for
 residue atoms, residue labels, and map displays, respectively).
+Other parameters such as label color can be changed with
+<a href="../commands/zone.html#setting"><b>zone setting</b></a>.
 See also: 
 <a href="../commands/surface.html#zone"><b>surface zone</b></a>,
 <a href="../commands/volume.html#zone"><b>volume zone</b></a>
@@ -491,5 +500,5 @@ both rotates and translates the volume-data slice in
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+January 2021</address>
 </body></html>

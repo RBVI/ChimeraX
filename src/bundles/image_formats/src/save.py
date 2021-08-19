@@ -11,8 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def save_image(session, path, format_name, width=None, height=None,
-               supersample=3, pixel_size=None, transparent_background=False, quality=95):
+def save_image(session, path, format_name=None, width=None, height=None,
+               supersample=3, pixel_size=None, transparent_background=False,
+               quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -45,6 +46,10 @@ def save_image(session, path, format_name, width=None, height=None,
     from chimerax.core.session import standard_metadata
     std_metadata = standard_metadata()
     metadata = {}
+    if format_name is None:
+        format_name = _format_name_from_suffix(path)
+        if format_name is None:
+            raise UserError('save_image(): File suffix not a known image format, %s (require %s)' % (path, ', '.join(_suffix_formats.keys())))
     if format_name == 'PNG':
         metadata['optimize'] = True
         # if dpi is not None:
@@ -94,6 +99,8 @@ def save_image(session, path, format_name, width=None, height=None,
         #     metadata['x resolution'] = dpcm
         #     metadata['y resolution'] = dpcm
     elif format_name == 'JPEG':
+        if transparent_background:
+            raise UserError('The JPEG file format does not support transparency, use PNG or TIFF instead.')
         metadata['quality'] = quality
         # if dpi is not None:
         #     # PIL's jpeg_encoder requires integer dpi values
@@ -124,3 +131,12 @@ def save_image(session, path, format_name, width=None, height=None,
         if height is not None:
             msg += ', height %d' % height
         session.logger.warning(msg)
+
+_suffix_formats = {'bmp':'BMP', 'gif':'GIF', 'jpg':'JPEG', 'jpeg':'JPEG',
+                   'png':'PNG', 'ppm':'PPM', 'tif':'TIFF', 'tiff':'TIFF'}
+def _format_name_from_suffix(path):
+    i = path.rfind('.')
+    if i < 0:
+        return None
+    suffix = path[i+1:]
+    return _suffix_formats.get(suffix.lower())

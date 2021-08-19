@@ -26,7 +26,7 @@ class Sequences(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QVBoxLayout, QCheckBox
+        from Qt.QtWidgets import QVBoxLayout, QCheckBox
         layout = QVBoxLayout()
         parent.setLayout(layout)
         from chimerax.atomic.widgets import ChainListWidget
@@ -40,7 +40,7 @@ class Sequences(ToolInstance):
         self.grouping_button.stateChanged.connect(self._grouping_change)
         layout.addWidget(self.grouping_button)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox()
         self._show_button = bbox.addButton("Show", qbbox.AcceptRole)
         bbox.addButton(qbbox.Cancel)
@@ -49,7 +49,7 @@ class Sequences(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         self._update_show_button()

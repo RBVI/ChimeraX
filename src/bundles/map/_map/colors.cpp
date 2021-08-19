@@ -68,8 +68,7 @@ copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   copy_la_to_rgba(la, color, rgba);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -116,8 +115,7 @@ blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   blend_la_to_rgba(la, color, rgba);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -162,8 +160,7 @@ copy_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   copy_l_to_rgba(l, color, rgba);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -210,8 +207,7 @@ blend_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   blend_l_to_rgba(l, color, rgba);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -255,8 +251,7 @@ blend_rgb_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   blend_rgb_to_rgba(rgb, rgba);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -299,8 +294,7 @@ blend_rgba(PyObject *, PyObject *args, PyObject *keywds)
     }
   blend_rgba(rgba1, rgba2);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 }	// end of namespace Map_Cpp

@@ -44,7 +44,11 @@ def handle_compression(name, path, **kw):
         from lzma import open as open_compressed
     else:
         raise ValueError("Don't know how to handle compression type '%s'" % name)
-    return open_compressed(path, **kw)
+    stream = open_compressed(path, **kw)
+    # since these return the fileno of the compressed file, mark them as compression
+    # streams so that the PDB reader knows not to try to use the fileno!
+    stream.from_compressed_source = True
+    return stream
 
 def remove_compression_suffix(file_name):
     for suffix in suffix_to_type.keys():

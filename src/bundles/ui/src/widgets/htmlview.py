@@ -17,9 +17,9 @@ ChimeraX-specific schemes.  It is built on top of :py:class:`HtmlView`,
 which provides scheme support.
 """
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
-from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-from PyQt5.QtWebEngineCore import QWebEngineUrlSchemeHandler
+from Qt.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineCore import QWebEngineUrlRequestInterceptor
+from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
 
 def set_user_agent(profile):
@@ -29,7 +29,7 @@ def set_user_agent(profile):
     profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
 
 
-def create_profile(parent, schemes=None, interceptor=None, download=None):
+def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
     """
     Create a QWebEngineProfile.  The profile provides shared access to the
     files in the html directory in the chimerax.ui package by rewriting links
@@ -46,6 +46,7 @@ def create_profile(parent, schemes=None, interceptor=None, download=None):
     download :    a callback function taking one argument, an instance
                   of QWebEngineDownloadItem, invoked when download is
                   requested.  Default None.
+    handlers :    a dictionary of scheme handlers.  Default None.
     """
     profile = QWebEngineProfile(parent)
     set_user_agent(profile)
@@ -84,17 +85,19 @@ def create_profile(parent, schemes=None, interceptor=None, download=None):
             return interceptor(request_info, *args)
 
     profile._intercept = _RequestInterceptor(callback=_intercept)
-    from PyQt5.QtCore import QT_VERSION
-    if QT_VERSION < 0x050d00:
-        profile.setRequestInterceptor(profile._intercept)
-    else:
-        # Qt 5.13 and later
-        profile.setUrlRequestInterceptor(profile._intercept)
+    profile.setUrlRequestInterceptor(profile._intercept)
     if schemes:
         profile._schemes = [s.encode("utf-8") for s in schemes]
         profile._scheme_handler = _SchemeHandler()
+        if handlers:
+            handlers = {key.encode("utf-8"): value for (key, value) in handlers.items()}
+        profile._handlers = handlers
         for scheme in profile._schemes:
-            profile.installUrlSchemeHandler(scheme, profile._scheme_handler)
+            if handlers is not None and scheme in handlers:
+                assert isinstance(handlers[scheme], QWebEngineUrlSchemeHandler)
+                profile.installUrlSchemeHandler(scheme, handlers[scheme])
+            else:
+                profile.installUrlSchemeHandler(scheme, profile._scheme_handler)
     if download:
         profile.downloadRequested.connect(download)
     return profile
@@ -105,9 +108,10 @@ def delete_profile(profile):
     profile.downloadRequested.disconnect()
     if hasattr(profile, '_schemes'):
         profile.removeAllUrlSchemeHandlers()
+        del profile._handlers
         del profile._scheme_handler
         del profile._schemes
-    from PyQt5.QtCore import QT_VERSION
+    from Qt.QtCore import QT_VERSION
     if QT_VERSION < 0x050d00:
         profile.setRequestInterceptor(None)
     else:
@@ -116,7 +120,7 @@ def delete_profile(profile):
 
 class HtmlView(QWebEngineView):
     """
-    HtmlView is a derived class from PyQt5.QtWebEngineWidgets.QWebEngineView
+    HtmlView is a derived class from Qt.QtWebEngineWidgets.QWebEngineView
     that simplifies using custom schemes and intercepting navigation requests.
 
     HtmlView may be instantiated just like QWebEngineView, with additional
@@ -155,7 +159,7 @@ class HtmlView(QWebEngineView):
     require_native_window = False
 
     def __init__(self, *args, size_hint=None, schemes=None,
-                 interceptor=None, download=None, profile=None,
+                 interceptor=None, download=None, handlers=None, profile=None,
                  profile_is_private=None,
                  tool_window=None, log_errors=False, **kw):
         super().__init__(*args, **kw)
@@ -166,7 +170,7 @@ class HtmlView(QWebEngineView):
             self._private_profile = True if profile_is_private else False
         else:
             self._private_profile = profile_is_private if profile_is_private is not None else True
-            self._profile = create_profile(self.parent(), schemes, interceptor, download)
+            self._profile = create_profile(self.parent(), schemes, interceptor, download, handlers)
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
@@ -177,16 +181,17 @@ class HtmlView(QWebEngineView):
         # gets it to work
         import sys
         if sys.platform == "darwin":
-            from PyQt5.QtGui import QKeySequence
-            from PyQt5.QtWidgets import QShortcut
-            from PyQt5.QtCore import Qt
+            from Qt.QtGui import QKeySequence
+            from Qt.QtWidgets import QShortcut
+            from Qt.QtCore import Qt
             self.copy_sc = QShortcut(QKeySequence.Copy, self)
             self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
             if self._tool_window:
-                self.copy_sc.activated.connect(lambda app=self._tool_window.session.ui:
+                self.copy_sc.activated.connect(
+                    lambda app=self._tool_window.session.ui:
                     app.clipboard().setText(self.selectedText()))
             else:
-                self.copy_sc.activated.connect( lambda: self.page().triggerAction(self.page().Copy))
+                self.copy_sc.activated.connect(lambda: self.page().triggerAction(self.page().Copy))
 
         if self.require_native_window:
             # This is to work around ChimeraX bug #2537 where the entire
@@ -206,9 +211,9 @@ class HtmlView(QWebEngineView):
         return self._profile
 
     def sizeHint(self):  # noqa
-        """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
+        """Supported API.  Returns size hint as a :py:class:Qt.QtCore.QSize instance."""
         if self._size_hint:
-            from PyQt5.QtCore import QSize
+            from Qt.QtCore import QSize
             return QSize(*self._size_hint)
         else:
             return super().sizeHint()
@@ -228,7 +233,7 @@ class HtmlView(QWebEngineView):
         html :   a string containing new HTML content.
         url :    a string containing URL corresponding to content.
         """
-        from PyQt5.QtCore import QUrl
+        from Qt.QtCore import QUrl
         # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         self.setEnabled(False)
         # HACK ALERT: to get around a QWebEngineView bug where HTML
@@ -270,7 +275,7 @@ class HtmlView(QWebEngineView):
         url :    a string containing URL to new content.
         """
         if isinstance(url, str):
-            from PyQt5.QtCore import QUrl
+            from Qt.QtCore import QUrl
             url = QUrl(url)
         super().setUrl(url)
 
@@ -281,7 +286,7 @@ class HtmlView(QWebEngineView):
         ----------
         script :    a string containing URL to new content.
         args :      additional arguments supported by
-                    :py:meth:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
+                    :py:meth:`Qt.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
         """
         self.page().runJavaScript(script, *args)
 
@@ -335,7 +340,7 @@ class ChimeraXHtmlView(HtmlView):
     The schemes are 'cxcmd' and 'help'.
     """
 
-    def __init__(self, session, parent, *args, schemes=None, interceptor=None, download=None, profile=None, **kw):
+    def __init__(self, session, parent, *args, schemes=None, interceptor=None, download=None, handlers=None, profile=None, **kw):
         self.session = session
         create_profile = profile is None
         if create_profile:
@@ -350,12 +355,12 @@ class ChimeraXHtmlView(HtmlView):
 
             def intercept(*args, session=session, view=self):
                 chimerax_intercept(*args, view=view, session=session)
-            profile = create_chimerax_profile(parent, schemes=schemes, interceptor=intercept, download=download)
-        profile_is_private = create_profile or kw.get('profile_is_profile', None) == True
+            profile = create_chimerax_profile(parent, schemes=schemes, interceptor=intercept, download=download, handlers=handlers)
+        profile_is_private = create_profile or (kw.get('profile_is_profile', None) == True)
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
 
-def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None):
+def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
     """
     Create QWebEngineProfile with ChimeraX-specific scheme support
 
@@ -368,12 +373,12 @@ def create_chimerax_profile(parent, schemes=None, interceptor=None, download=Non
         schemes = ('cxcmd', 'help')
     else:
         schemes += type(schemes)(('cxcmd', 'help'))
-    return create_profile(parent, schemes, interceptor, download)
+    return create_profile(parent, schemes, interceptor, download, handlers)
 
 
 def chimerax_intercept(request_info, *args, session=None, view=None):
     """Interceptor for ChimeraX-specific schemes
-    
+
     Parameters
     ----------
     request_info : QWebEngineRequestInfo
@@ -390,7 +395,6 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
         # Treat all directories with help documentation as equivalent
         # to integrate bundle help with the main help.  That is, so
         # relative hrefs will find files in other help directories.
-        import sys
         from chimerax.core import toolshed
         path = original_path = os.path.normpath(qurl.toLocalFile())
         help_directories = toolshed.get_help_directories()
@@ -444,7 +448,9 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
             finally:
                 if prev_dir:
                     os.chdir(prev_dir)
-        session.ui.thread_safe(defer, session, qurl.url(qurl.None_), from_dir)
+        from Qt.QtCore import QUrl
+        no_formatting = QUrl.FormattingOptions(QUrl.None_)
+        session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 
 

@@ -175,8 +175,7 @@ extern "C" PyObject *data_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
   call_template_function(data_to_rgba, data.value_type(),
 			 (data, transfer_func, extend_left, extend_right, rgba, blend));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -262,8 +261,7 @@ data_to_colormap_colors(PyObject *, PyObject *args, PyObject *keywds)
   call_template_function(data_to_colormap_colors, data.value_type(),
 			 (data, bcf, bcl, cmap, colors, blend));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -464,8 +462,7 @@ data_to_colors(PyObject *, PyObject *args, PyObject *keywds)
   call_template_function(data_to_colors, data.value_type(),
 			 (data, dmin, dmax, cmap, extend_left, extend_right, colors));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -534,8 +531,7 @@ colors_float_to_uint(PyObject *, PyObject *args, PyObject *keywds)
 	}
     }
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -664,8 +660,7 @@ indices_to_colors(PyObject *, PyObject *args, PyObject *keywds)
       return NULL;
     }
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -814,8 +809,7 @@ data_to_bin_index(PyObject *, PyObject *args, PyObject *keywds)
   call_template_function(data_to_bin_index, data.value_type(),
 			 (data, bcf, bcl, bins, bin_step, index_values, add));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -849,8 +843,7 @@ transfer_function_colormap(PyObject *, PyObject *args, PyObject *keywds)
 
   transfer_function_colors(transfer_func, bcf, bcl, cmap, extend_left, extend_right, bins, bin_step, blend);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -1006,8 +999,7 @@ resample_colormap(PyObject *, PyObject *args, PyObject *keywds)
   resample_colormap(bcf1, bcl1, cmap1, bcf2, bcl2, cmap2,
 		    bins, bin_step, blend);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

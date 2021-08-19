@@ -450,6 +450,11 @@ def _maximum_segment_id(segmentation):
         except Exception:
             max_seg_id = None
         if max_seg_id is None:
+            from numpy import issubdtype, integer
+            if not issubdtype(seg.data.value_type, integer):
+                from chimerax.core.errors import UserError
+                raise UserError('Model %s (#%s) is not a segmentation, has non-integer values (%s)'
+                                % (seg.name, seg.id_string, str(seg.data.value_type)))
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 

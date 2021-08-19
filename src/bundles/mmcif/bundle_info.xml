@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.2"
+<BundleInfo name="ChimeraX-mmCIF" version="2.3"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -18,7 +18,7 @@
     <Category name="Molecular structure"/>
   </Categories>
 
-  <CModule name="_mmcif">
+  <CModule name="_mmcif" usesNumpy="true">
     <SourceFile>mmcif_cpp/_mmcif.cpp</SourceFile>
     <SourceFile>mmcif_cpp/mmcif.cpp</SourceFile>
     <SourceFile>mmcif_cpp/template.cpp</SourceFile>
@@ -31,14 +31,30 @@
     <Library>readcif</Library>
     <Library>logger</Library>
     <Library>arrays</Library>
-    <Library>appdirs</Library>
   </CModule>
+
+  <CModule name="mmcif">
+    <SourceFile>src/mmcif.pyx</SourceFile>
+  </CModule>
+
+  <CModule name="mmcif_write">
+    <SourceFile>src/mmcif_write.pyx</SourceFile>
+  </CModule>
+
+  <!--
+  <ExtraFiles>
+    <ExtraFile source="src/mmcif.pyx">mmcif.pyx</ExtraFile>
+    <ExtraFile source="src/mmcif_write.pyx">mmcif_write.pyx</ExtraFile>
+  </ExtraFiles>
+  -->
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
-    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.5"/>
-    <Dependency name="ChimeraX-PDB" build="true" version="~=2.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.5"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.0"/>
+    <Dependency name="ChimeraX-PDB" version="~=2.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
@@ -61,7 +77,7 @@
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="mmCIF" />
+    <Provider name="mmCIF" compression_okay="false" />
   </Providers>
 
   <Classifiers>

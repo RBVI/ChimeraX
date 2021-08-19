@@ -3,16 +3,22 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-# PYQT_LICENSE can be "gpl" for gpl version
-PYQT_LICENSE = commercial
+ifeq ($(OS),Windows)
+export PATH := $(bindir)/Scripts:$(PATH)
+else
+export PATH := $(bindir):$(PATH)
+endif
+
+# PYQT_LICENSE can be "commercial" for commercial version
+PYQT_LICENSE = gpl
 REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
-VERSION = 5.12
-QT_MINOR_VERSION = 9
-PYQT_MINOR_VERSION = 3
-PYQTWE_MINOR_VERSION = 1
+VERSION = 5.15
+QT_MINOR_VERSION = 2
+PYQT_MINOR_VERSION = 2
+PYQTWE_MINOR_VERSION = 2
 QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
@@ -25,49 +31,48 @@ else
 PYQTWE_VERSION = $(VERSION).$(PYQTWE_MINOR_VERSION)
 endif
 
-# use local directory for the wheel, so we don't have to convert it
-# to a Windows path when installing
-QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
-WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(BUILD_TAGS).whl
-# Explicitly choose sip version that works -- depends how unlicensed wheel
-# from Riverbank Computing Limited was built and presumably matches the gpl
-# wheel in PyPI.
-SIP_VERSION = 4.19.19
+# Versions of Riverbank Computing Limited packages/programs from when
+# unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
+SIP_VERSION = 12.8.1
+BUILDER_VERSION = 1.5.0
 
-PYQT_LICENSE_VERSION = 1.17
-PYTHON_TAGS = cp35.cp36.cp37.cp38
+QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
+
+PYTHON_TAGS = cp35.cp36.cp37.cp38.cp39
 
 ifeq ($(OS),Darwin)
 BIN_PLATFORM = macos
 WHEEL_ABI = abi3
-WHEEL_PLATFORM = macosx_10_6_intel
+WHEEL_PLATFORM = macosx_10_13_intel
+WE_WHEEL_PLATFORM = macosx_10_13_intel
 QTDIR = $(HOME)/Qt/$(QT_VERSION)/clang_64
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
 WHEEL_ABI = abi3
-WHEEL_PLATFORM = manylinux1_x86_64
+WHEEL_PLATFORM = manylinux2014_x86_64
+WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 #QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/gcc_64
 QTDIR = $(HOME)/Qt/$(QT_VERSION)/gcc_64
 else ifeq ($(OS),Windows)
 BIN_PLATFORM = win.exe
 WHEEL_ABI = none
 WHEEL_PLATFORM = win_amd64
-QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2017_64
+WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2019_64
 endif
 BUILD_TAGS = $(QT_VERSION)-$(PYTHON_TAGS)-$(WHEEL_ABI)-$(WHEEL_PLATFORM)
+WE_BUILD_TAGS = $(QT_VERSION)-$(PYTHON_TAGS)-$(WHEEL_ABI)-$(WE_WHEEL_PLATFORM)
+
+BUNDLE_ARGS = --qt-dir $(QTDIR) --ignore-missing --no-openssl
+ifdef WIN32
+BUNDLE_ARGS += --no-msvc-runtime
+endif
 
 ifneq ($(PYQT_LICENSE),commercial)
 QT_WHEEL := PyQt5==$(PYQT_VERSION)
 WB_WHEEL := PyQtWebEngine==$(PYQT_VERSION)
 endif
-
-LICENSE_ARGS = --quiet --license pyqt-commercial.sip --qt $(QTDIR) --qt-version $(QT_VERSION) --no-openssl
-ifdef WIN32
-LICENSE_ARGS += --no-msvc-runtime
-endif
-PYQTLICENSE=pyqtlicense-$(PYQT_LICENSE_VERSION)-$(BIN_PLATFORM)
-
-export PATH := $(bindir):$(PATH)
 
 
 all:
@@ -90,16 +95,29 @@ ifeq ($(PYQT_LICENSE),commercial)
 	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(WB_WHEEL) .
 endif
 
-pyqt-commercial.sip:
-	# separate rsyncs due to bug in rsync 2.6.9 on Mac OS X
-	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial*-$(PYQT_VERSION)-*$(WHEEL_PLATFORM).whl-unlicensed .
-	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial*-$(PYQTWE_VERSION)-*$(WHEEL_PLATFORM).whl-unlicensed .
-	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/$(PYQTLICENSE) .
-	rsync -a $(REMOTE_DIR)/pyqt-commercial.sip .
+REMOTE_SOURCE =  \
+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial-$(PYQT_VERSION)-cp\*-$(WHEEL_PLATFORM).whl \
+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial-$(PYQTWE_VERSION)-cp\*-$(WE_WHEEL_PLATFORM).whl \
+		$(REMOTE_DIR)/pyqt-commercial.sip
 
-wheel: pyqt-commercial.sip
+pyqt-commercial.sip:
+ifeq ($(OS),Darwin)
+	# Due to bug in macOS's rsync 2.6.9, fetch files individually
+	for file in $(REMOTE_SOURCE); do \
+		rsync -av --copy-links $$file . ;\
+	done
+else
+	rsync -av --copy-links $(REMOTE_SOURCE) .
+endif
+	# remove finished wheels
+	rm -f *-$(PYQT_VERSION)-$(QT_VERSION)-* *-$(PYQTWE_VERSION)-$(QT_VERSION)-*
+
+wheels: pyqt-commercial.sip
+	$(PYTHON_EXE) -m pip install PyQt-Builder==$(BUILDER_VERSION) PyQt5-sip==$(SIP_VERSION)
 ifeq ($(OS),Linux)
-	# Only need to fix rpath in icu libraries in Qt 5.11.1,
+	# patch chrpath in pyqtbuild to preserve RPATH
+	patch --merge -p1 -d $(shell $(PYTHON_EXE) -c  "import os, pyqtbuild; print(os.path.dirname(pyqtbuild.__file__))") < pyqtbuild.patch
+	# Only needed to fix rpath in icu libraries in Qt 5.11.1,
 	# but make sure all are correct.
 	cd $(QTDIR)/lib && $(bindir)/chrpath -C -r '$$ORIGIN' *.so
 	# make sure other parts of Qt use RPATH instead of RUNPATH
@@ -107,10 +125,10 @@ ifeq ($(OS),Linux)
 	cd $(QTDIR)/qml && find . -name \*.so | xargs $(bindir)/chrpath -C
 	$(bindir)/chrpath -C $(QTDIR)/libexec/QtWebEngineProcess
 endif
-	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQt5_commercial*.whl-unlicensed
-	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQtWebEngine_commercial*.whl-unlicensed
+	pyqt-bundle $(BUNDLE_ARGS) $(BUNDLE_ARGS) PyQt5_commercial-$(PYQT_VERSION)-$(PYTHON_TAGS)-*.whl
+	pyqt-bundle $(BUNDLE_ARGS) $(BUNDLE_ARGS) PyQtWebEngine_commercial-$(PYQTWE_VERSION)-$(PYTHON_TAGS)-*.whl
 
-upload: wheel
+upload: wheels
 	rsync -av $(QT_WHEEL) $(WB_WHEEL) $(REMOTE_DIR)/$(PYQT_VERSION)/.
 
 clean:

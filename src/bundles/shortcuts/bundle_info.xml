@@ -127,26 +127,32 @@
       name="o3" display_name="Orthoplanes" icon="orthoplanes.png" description="Show 3 orthogonal planes"/>
     <Provider tab="Map" section="Subregions"
       name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
+    <Provider tab="Map" section="Subregions"
+      name="vz" display_name="Zone" icon="volzone.png" description="Show map near atoms"/>
+
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
+    <Provider tab="Map" section="Appearance"
+      name="cz" display_name="Color near atoms" icon="colorzone.png" description="Color map to match atoms"/>
+    <Provider tab="Map" section="Appearance"
+      name="hd" display_name="Hide dust" icon="dust.png" description="Hide small surface blobs"/>
+    <Provider tab="Map" section="Appearance" hidden="true"
+      name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 
     <Provider tab="Map" section="Calculations"
-      name="fT" display_name="Fit" icon="fitmap.png" description="Fit map in map"/>
+      name="fm" display_name="Fit" icon="fitmap.png" description="Fit atomic model or map in map"/>
     <Provider tab="Map" section="Calculations"
       name="sb" display_name="Subtract" icon="diffmap.png" description="Subtract map from map"/>
     <Provider tab="Map" section="Calculations"
       name="gf" display_name="Smooth" icon="smooth.png" description="Smooth map"/>
-
-    <Provider tab="Map" section="Image Display"
-      name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
-    <Provider tab="Map" section="Image Display"
-      name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
-    <Provider tab="Map" section="Image Display" hidden="true"
-      name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
-    <Provider tab="Map" section="Image Display" hidden="true"
-      name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
-    <Provider tab="Map" section="Image Display" hidden="true"
-      name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
-    <Provider tab="Map" section="Image Display"
-      name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 
     <Provider tab="Extras" section="Images" hidden="true"
       name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>

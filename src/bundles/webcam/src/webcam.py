@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation = 5,
-           flip_horizontal = True, size = None, framerate = 25, color_popup = False):
+           flip_horizontal = True, name = None, size = None, framerate = 25, color_popup = False):
 
     wc_list = session.models.list(type = WebCam)
     if enable:
@@ -22,12 +22,8 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
             wc = WebCam('webcam', session,
                         foreground_color = foreground_color, saturation = saturation,
                         flip_horizontal = flip_horizontal, color_popup = color_popup,
-                        size = size, framerate = framerate)
+                        camera_name = name, size = size, framerate = framerate)
             session.models.add([wc])
-            w,h = wc.size
-            msg = ('Web camera "%s", width %d, height %d, framerate %.4g'
-                   % (wc.camera_name, w, h, wc.framerate))
-            session.logger.info(msg)
         else:
             wc = wc_list[0]
             wc.foreground_color = foreground_color
@@ -44,12 +40,13 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
 #
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import BoolArg, Color8Arg, IntArg, FloatArg, Int2Arg
+    from chimerax.core.commands import BoolArg, Color8Arg, IntArg, FloatArg, Int2Arg, StringArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('foreground_color', Color8Arg),
                               ('saturation', IntArg),
                               ('flip_horizontal', BoolArg),
                               ('color_popup', BoolArg),
+                              ('name', StringArg),
                               ('size', Int2Arg),
                               ('framerate', FloatArg)],
                    synopsis = 'Turn on webcam rendering')
@@ -64,12 +61,14 @@ class WebCam (Model):
     casts_shadows = False
     SESSION_SAVE = False
     def __init__(self, name, session, foreground_color = (0,255,0,255), saturation = 10,
-                 color_popup = False, flip_horizontal = True, size = None, framerate = 25):
+                 color_popup = False, flip_horizontal = True,
+                 camera_name = None, size = None, framerate = 25):
         Model.__init__(self, name, session)
 
         self._camera = None		# QCamera
-        self.camera_name = ''
+        self.camera_name = camera_name
         self._capture = None		# VideoCapture instance
+        self._capture_started = False
         self.size = None		# Width, height in pixels
         self._requested_size = size
         self.framerate = None		# Frames per second, float
@@ -95,7 +94,24 @@ class WebCam (Model):
             self._camera = None
         
     def _start_video(self):
-        from PyQt5.QtMultimedia import QCameraInfo, QCamera, QVideoFrame
+        cam_info = self._find_camera()
+        from Qt.QtMultimedia import QCamera
+        cam = QCamera(cam_info)
+        self._camera = cam
+#        print('camera availability (0 = available):', cam.availability())
+        cam.setCaptureMode(QCamera.CaptureVideo)
+        cam.statusChanged.connect(self._camera_status_changed)
+        import sys
+        if sys.platform == 'linux':
+            # Ubuntu 18.04 with gstreamer and Qt 5.15.1 needs view finder
+            # to be set before starting camera.  Ticket #3976
+            capture = VideoCapture(self._new_frame)
+            self._capture = capture
+            cam.setViewfinder(capture)
+        cam.start()
+
+    def _find_camera(self):
+        from Qt.QtMultimedia import QCameraInfo
         cam_list = QCameraInfo.availableCameras()
         if len(cam_list) == 0:
             from chimerax.core.errors import UserError
@@ -103,42 +119,38 @@ class WebCam (Model):
         if len(cam_list) > 1:
             self.session.logger.info('Found multiple cameras: %s'
                                      % ', '.join(c.description() for c in cam_list))
-        cam_info = cam_list[0]
-        self.camera_name = cam_info.description()
-#        self.session.logger.info('Using camera "%s"' % cam_info.description())
+        cam_name = self.camera_name
+        if cam_name is None:
+            cam_info = cam_list[0]
+            self.camera_name = cam_info.description()
+        else:
+            cam_info = None
+            for cinfo in cam_list:
+                if cinfo.description() == cam_name:
+                    cam_info = cinfo
+                    break
+            if cam_info is None:
+                from chimerax.core.errors import UserError
+                raise UserError('Did not find camera named "%s"' % cam_name)
+        #self.session.logger.info('Using camera "%s"' % cam_info.description())
+        return cam_info
 
-        cam = QCamera(cam_info)
-        self._camera = cam
-#        print('camera availability (0 = available):', cam.availability())
-        cam.setCaptureMode(QCamera.CaptureVideo)
-        cam.stateChanged.connect(self._camera_state_changed)
-        cam.start()
+    def _camera_status_changed(self, status):
+#        print ('current camera status', status)
 
-#        self._start_capture()
-
-    def _camera_state_changed(self, state):
-#        print ('current camera state', state)
-
-        from PyQt5.QtMultimedia import QCamera
-        if state == QCamera.ActiveState and self._capture is None:
+        from Qt.QtMultimedia import QCamera
+        if status == QCamera.ActiveStatus and not self._capture_started:
             self._start_capture()
-
-#        cam = self._camera
-#        print ('capture mode (2=video)', int(cam.captureMode()))
-#        res = cam.supportedViewfinderResolutions()
-#        print ('supported resolutions', [(s.width(), s.height()) for s in res])
-#        frates = cam.supportedViewfinderFrameRateRanges()
-#        print ('supported framerate ranges', [(fr.minimumFrameRate, fr.maximumFrameRate) for fr in frates])
-#        pformats = cam.supportedViewfinderPixelFormats()
-#        print ('supported pixel formats', pformats)
-#        self._start_capture()
 
     def _start_capture(self):
         
         cam = self._camera
-        capture = VideoCapture(self._new_frame)
-        self._capture = capture
-        cam.setViewfinder(capture)
+        import sys
+        if sys.platform != 'linux':
+            capture = VideoCapture(self._new_frame)
+            self._capture = capture
+            cam.setViewfinder(capture)
+            print ('set view finder')
         # self._report_supported_pixel_formats()
         # Have to set camera pixel format after setting camera view finder
         # otherwise it does not seem to know the available pixel formats
@@ -149,6 +161,8 @@ class WebCam (Model):
             # Pixel format not offered by camera.
             self._close_camera()
             raise
+
+        self._capture_started = True
 
         # Need to stop the camera on macOS 10.15 laptop or a new
         # resolution is ignored.
@@ -163,12 +177,16 @@ class WebCam (Model):
         self.size = (w,h)
         self.framerate = settings.maximumFrameRate()
 
-        # Start acquiring images.
-        from PyQt5.QtMultimedia import QVideoSurfaceFormat
-        from PyQt5.QtCore import QSize
-        fmt = QVideoSurfaceFormat(QSize(w,h), settings.pixelFormat())
-        capture.start(fmt)
+        msg = ('Using web camera "%s", width %d, height %d, framerate %.4g'
+                       % (self.camera_name, w, h, self.framerate))
+        self.session.logger.info(msg)
 
+        # Start acquiring images.
+        from Qt.QtMultimedia import QVideoSurfaceFormat
+        from Qt.QtCore import QSize
+        fmt = QVideoSurfaceFormat(QSize(w,h), settings.pixelFormat())
+        self._capture.start(fmt)
+        
     def _choose_camera_settings(self):
         '''
         Choose camera pixel format, resolution and framerate.
@@ -244,7 +262,7 @@ class WebCam (Model):
         '''
         fg = self.foreground_color
         sat = int(2.55*self.saturation)  # Convert 0-100 scale to 0-255
-        from ._webcam import set_color_alpha
+        from .webcam_cpp import set_color_alpha
         set_color_alpha(rgba_image, fg, sat, 0)
         return
 
@@ -374,7 +392,7 @@ class WebCam (Model):
         if im is None:
             return None
 
-        from PyQt5.QtGui import QCursor
+        from Qt.QtGui import QCursor
         p = gw.mapFromGlobal(QCursor.pos())
         x,y = p.x(), p.y()
         ih, iw = im.shape[:2]
@@ -403,7 +421,7 @@ class ColorPick(Pick):
 
 # -----------------------------------------------------------------------------
 #
-from PyQt5.QtMultimedia import QAbstractVideoSurface, QVideoFrame
+from Qt.QtMultimedia import QAbstractVideoSurface, QVideoFrame
 class VideoCapture(QAbstractVideoSurface):
     
     supported_formats = (QVideoFrame.Format_ARGB32, QVideoFrame.Format_YUYV)
@@ -442,7 +460,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array' % pixel_format)
 
     # Map video frame into memory.
-    from PyQt5.QtMultimedia import QAbstractVideoBuffer
+    from Qt.QtMultimedia import QAbstractVideoBuffer
     f.map(QAbstractVideoBuffer.ReadOnly)
 
     # Check video frame size
@@ -471,7 +489,7 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     # Convert video frame data to rgba
     data = f.bits()		# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
-    from ._webcam import bgra_to_rgba, yuyv_to_rgba
+    from .webcam_cpp import bgra_to_rgba, yuyv_to_rgba
     if pixel_format == f.Format_ARGB32:
         a = bgra_to_rgba(pointer, rgba_image)
 #        a = _bgra_to_rgba(data, rgba_image)
@@ -554,7 +572,7 @@ _qt_pixel_format_names = {}
 def _qt_pixel_format_name(qt_pixel_format):
     global _qt_pixel_format_names
     if len(_qt_pixel_format_names) == 0:
-        from PyQt5.QtMultimedia import QVideoFrame    
+        from Qt.QtMultimedia import QVideoFrame    
         for name in dir(QVideoFrame):
             if name.startswith('Format_'):
                 value = getattr(QVideoFrame, name)

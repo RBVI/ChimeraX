@@ -1,9 +1,7 @@
-<BundleInfo name="ChimeraX-Atomic" version="1.6.1"
+<!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
+<BundleInfo name="ChimeraX-Atomic" version="1.13.2"
             package="chimerax.atomic"
             purePython="false"
-            installedDataDir="data"
-            installedIncludeDir="include"
-            installedLibraryDir="lib"
             customInit="true"
             minSessionVersion="1" maxSessionVersion="1">
 
@@ -12,26 +10,52 @@
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
   <Synopsis>Atomic-structure functionality</Synopsis>
-  <Description>Python and C++ support for handling atomic structures</Description>
-
-  <DataFiles>
-    <DataFile>data/*/*/*</DataFile>
-    <DataFile>include/*/*</DataFile>
-    <DataFile>include/*/*/*</DataFile>
-    <DataFile>lib/*</DataFile>
-    <DataFile>cymol.*</DataFile>
-    <DataFile>cytmpl.*</DataFile>
-    <DataFile>lib*.*</DataFile>
-    <DataFile>_ribbons.*</DataFile>
-  </DataFiles>
+  <Description>Python support for handling atomic structures</Description>
 
   <Categories>
     <Category name="Structure Analysis"/>
     <Category name="Structure Editing"/>
   </Categories>
 
+  <ExtraFiles>
+    <ExtraFile source="atomic_cpp/cymol.pyx">cymol.pyx</ExtraFile>
+    <ExtraFile source="atomic_cpp/cytmpl.pyx">cytmpl.pyx</ExtraFile>
+  </ExtraFiles>
+
+  <CLibrary name="molc" usesNumpy="true">
+    <SourceFile>atomic_cpp/molc.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+    <Library>arrays</Library>
+  </CLibrary>
+
+  <CModule name="cymol" usesNumpy="true">
+    <SourceFile>atomic_cpp/cymol.pyx</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+  </CModule>
+
+  <CModule name="cytmpl" usesNumpy="true">
+    <SourceFile>atomic_cpp/cytmpl.pyx</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+  </CModule>
+
+  <CModule name="_ribbons" usesNumpy="true">
+    <SourceFile>ribbon_cpp/normals.cpp</SourceFile>
+    <SourceFile>ribbon_cpp/parse.cpp</SourceFile>
+    <SourceFile>ribbon_cpp/ribbons.cpp</SourceFile>
+    <SourceFile>ribbon_cpp/spline.cpp</SourceFile>
+    <SourceFile>ribbon_cpp/xsection.cpp</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>arrays</Library>
+  </CModule>
+
+  <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.1"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
@@ -40,6 +64,10 @@
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
+
+  <Managers>
+    <Manager name="sequence features" autostart="false"/>
+  </Managers>
 
   <Providers manager="presets">
     <Provider category="Initial Styles" name="Original Look"
@@ -227,6 +255,7 @@
     <ChimeraXClassifier>Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ribose :: ribose</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: template-mismatch :: residues whose heavy atoms don't match the residue template</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>

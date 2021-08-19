@@ -10,37 +10,40 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../../..
+include $(TOP)/mk/config.make
+
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
+PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
 ifeq ($(OS),Darwin)
-PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.7
+PYTHON_BIN = $(CHIMERAX_APP)/Contents/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.7
+PYTHON_BIN = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
-PYLINT = $(PYTHON_EXE) -I -m flake8
+PYTHON_EXE = $(PYTHON_BIN) -I
+PYLINT = $(PYTHON_EXE) -m flake8
 
 BUNDLE_NAME = ChimeraX-BundleBuilder
-BUNDLE_VERSION = 1.0
+BUNDLE_VERSION = 1.1
 PKG_NAME = chimerax.bundle_builder
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py3-none-any.whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py${PYVER_NODOT}-none-any.whl
 
 wheel $(WHEEL): setup.py $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+	# $(PYTHON_EXE) setup.py --no-user-cfg test
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 install app-install: $(WHEEL)

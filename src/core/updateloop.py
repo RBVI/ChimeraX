@@ -23,7 +23,7 @@ class UpdateLoop:
         self.last_clip_time = 0
 
         # TODO: perhaps redraw interval should be 10 to reduce frame drops at 60 frames/sec
-        self.redraw_interval = 16.667  # milliseconds, 60 frames per second, can be 0.
+        self.redraw_interval = 16.667  # milliseconds, 60 frames per second, can be 0, only integer part used.
 
         self._minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
                                                    # of time since start of last drawing
@@ -116,11 +116,11 @@ class UpdateLoop:
     def start_redraw_timer(self):
         if self._timer is not None or not self.session.ui.is_gui:
             return
-        from PyQt5.QtCore import QTimer, Qt
+        from Qt.QtCore import QTimer, Qt
         self._timer = t = QTimer()
         t.timerType = Qt.PreciseTimer
         t.timeout.connect(self._redraw_timer_callback)
-        t.start(self.redraw_interval)
+        t.start(int(self.redraw_interval))
 
         # Stop the redraw timer when the app quits
         self.session.triggers.add_handler('app quit', self._app_quit)

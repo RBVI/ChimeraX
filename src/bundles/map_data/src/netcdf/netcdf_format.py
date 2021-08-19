@@ -33,8 +33,8 @@ class NetCDF_Data:
 
   def __init__(self, path):
 
-    from Scientific.IO import NetCDF
-    f = NetCDF.NetCDFFile(path, 'r')
+    from netCDF4 import Dataset
+    f = Dataset(path, 'r')
 
     self.path = path
     self.xyz_origin = self.read_xyz_origin(f)
@@ -85,7 +85,7 @@ class NetCDF_Data:
       vv = getattr(f, name)
       if len(vv) == 1:
         v = float(vv[0])
-    elif f.variables.has_key(name):       # or as a variable
+    elif name in f.variables:       # or as a variable
       vv = f.variables[name]
       if vv.shape == (1,):
         v = float(vv[0])
@@ -100,7 +100,7 @@ class NetCDF_Data:
       vv = tuple(getattr(f, name))
       if len(vv) == 3:
         v = vv
-    elif f.variables.has_key(name):       # or as a variable
+    elif name in f.variables:       # or as a variable
       vv = f.variables[name]
       if vv.shape == (3,):
         v = tuple(vv[:])
@@ -113,9 +113,9 @@ class NetCDF_Data:
     comp_name = ''
     if hasattr(f, 'component_name'):                    # global attribute
       comp_name = f.component_name
-    elif f.variables.has_key('component_name'):         # or as a variable
+    elif 'component_name' in f.variables:         # or as a variable
       v = f.variables['component_name']
-      if len(v.shape) == 1 and v.typecode() == 'c':
+      if len(v.shape) == 1 and v.dtype.kind == 'S':
         comp_name = v[:].tostring()
     return comp_name
     
@@ -152,7 +152,7 @@ class NetCDF_Data:
         sort_order[c] = order
         components.append(c)
 
-    components.sort(lambda c1, c2, so=sort_order: cmp(so[c1], so[c2]))
+    components.sort(key = lambda c, so=sort_order: so[c])
     
     grid_size = list(shape)
     grid_size.reverse()
@@ -205,7 +205,7 @@ class NetCDF_Data:
       color = tuple(var.rgba)
     else:
       cname = name + '_color'                   # or separate variable
-      if f.variables.has_key(cname):
+      if cname in f.variables:
         cv = f.variables[cname]
         if cv.shape == (4,):
           color = tuple(cv[:])
@@ -241,10 +241,10 @@ class NetCDF_Data:
       typecode = var.numpy_typecode
     else:
       tname = name + '_typecode'
-      if f.variables.has_key(tname):
+      if tname in f.variables:
         typecode = f.variables[tname].getValue().tostring()
       else:
-        typecode = var.typecode()
+        typecode = var.dtype.kind
     return typecode
     
 # -----------------------------------------------------------------------------
@@ -264,8 +264,8 @@ class NetCDF_Array:
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from Scientific.IO import NetCDF
-    f = NetCDF.NetCDFFile(self.path, 'r')
+    from netCDF4 import Dataset
+    f = Dataset(self.path, 'r')
     if progress:
       progress.close_on_cancel(f)
     v = f.variables[self.variable_name]
@@ -275,12 +275,9 @@ class NetCDF_Array:
     from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.dtype, ijk_step, progress)
     for k in range(k1,k2,kstep):
-      # Cast of istep and jstep to int works around ScientificPython/netcdf bug
-      # where numpy.int64 step gives wrong array size (as if step = 1 when
-      # step = 2), Chimera bug 8965.
-      m[(k-k1)/kstep,:,:] = v[k, j1:j2:int(jstep), i1:i2:int(istep)].view(self.dtype)
+      m[(k-k1)//kstep,:,:] = v[k, j1:j2:jstep, i1:i2:istep]
       if progress:
-        progress.plane((k-k1)/kstep)
+        progress.plane((k-k1)//kstep)
     f.close()
     return m
 
@@ -288,8 +285,8 @@ class NetCDF_Array:
 #
 def write_grid_as_netcdf(grid_data, outpath, options = {}, progress = None):
 
-  from Scientific.IO import NetCDF
-  f = NetCDF.NetCDFFile(outpath, 'w')
+  from netCDF4 import Dataset
+  f = Dataset(outpath, 'w')
   if progress:
     progress.close_on_cancel(f)
 
@@ -320,24 +317,24 @@ def write_grid_as_netcdf(grid_data, outpath, options = {}, progress = None):
     if progress:
       progress.plane(k)
     values = grid_data.matrix((0,0,k), (xsize,ysize,1))
-    v[k,:,:] = values.view(v.typecode())[0,:,:]
+    v[k,:,:] = values.view(v.dtype)[0,:,:]
     for cell_size, ssv in sarrays:
       kstep = cell_size[2]
       if k % kstep == 0:
         ssd = grid_data.available_subsamplings[cell_size]
         xs,ys,zs = ssd.size
-        ssk = k/kstep
+        ssk = k//kstep
         if ssk < zs:
           values = ssd.matrix((0,0,ssk), (xs,ys,1))
-          ssv[ssk,:,:] = values.view(ssv.typecode())[0,:,:]
+          ssv[ssk,:,:] = values.view(ssv.dtype)[0,:,:]
 
   # Subsample arrays may have an extra plane.
   for cell_size, ssv in sarrays:
     ssd = grid_data.available_subsamplings[cell_size]
     xs,ys,zs = ssd.size
-    for ssk in range(zsize/cell_size[2], zs):
+    for ssk in range(zsize//cell_size[2], zs):
       values = ssd.matrix((0,0,ssk), (xs,ys,1))
-      ssv[ssk,:,:] = values.view(ssv.typecode())[0,:,:]
+      ssv[ssk,:,:] = values.view(ssv.dtype)[0,:,:]
     
   f.close()
 
@@ -383,7 +380,7 @@ def subsample_arrays(grid_data, dname, f):
 #
 def save_unsigned_typecode(var, value_type):
 
-  if var.typecode() != value_type:
+  if var.dtype.kind != value_type:
     var.numpy_typecode = value_type
 
 # -----------------------------------------------------------------------------

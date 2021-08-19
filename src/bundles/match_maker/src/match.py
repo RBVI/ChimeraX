@@ -479,7 +479,6 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string, s2.name,
                 s2.structure.id_string, score), log=True)
             skip = set()
-            viewer = None
             if show_alignment:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
@@ -525,8 +524,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             continue
                 ref_atoms.append(ref_atom)
                 match_atoms.append(match_atom)
-                if viewer and cutoff_distance is not None:
-                    region_info[ref_atom] = (viewer, i)
+                if show_alignment and cutoff_distance is not None:
+                    for viewer in  alignment.viewers:
+                        region_info[ref_atom] = (viewer, i)
 
             if verbose:
                 seq_pairings.append((s1, s2))
@@ -589,14 +589,14 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         ss_fraction=defaults["ss_mixture"], matrix=defaults["matrix"], gap_open=defaults["gap_open"],
         hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
-        show_alignment=defaults['show_alignment'], compute_ss=defaults["compute_ss"],
-        keep_computed_ss=defaults['overwrite_ss'],
-        mat_hh=default_ss_matrix[('H', 'H')],
-        mat_ss=default_ss_matrix[('S', 'S')],
-        mat_oo=default_ss_matrix[('O', 'O')],
-        mat_hs=default_ss_matrix[('H', 'S')],
-        mat_ho=default_ss_matrix[('H', 'O')],
-        mat_so=default_ss_matrix[('S', 'O')]):
+        show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
+        keep_computed_s_s=defaults['overwrite_ss'],
+        mat_h_h=default_ss_matrix[('H', 'H')],
+        mat_s_s=default_ss_matrix[('S', 'S')],
+        mat_o_o=default_ss_matrix[('O', 'O')],
+        mat_h_s=default_ss_matrix[('H', 'S')],
+        mat_h_o=default_ss_matrix[('H', 'O')],
+        mat_s_o=default_ss_matrix[('S', 'O')]):
     """wrapper for command-line command (friendlier args)"""
 
     # 'to' only needed to sidestep problem with adjacent atom specs...
@@ -658,18 +658,18 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     else:
         match_items = (refs[0], matches)
     ss_matrix = {}
-    ss_matrix[('H', 'H')] = float(mat_hh)
-    ss_matrix[('S', 'S')] = float(mat_ss)
-    ss_matrix[('O', 'O')] = float(mat_oo)
-    ss_matrix[('H', 'S')] = ss_matrix[('S', 'H')] = float(mat_hs)
-    ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_ho)
-    ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_so)
+    ss_matrix[('H', 'H')] = float(mat_h_h)
+    ss_matrix[('S', 'S')] = float(mat_s_s)
+    ss_matrix[('O', 'O')] = float(mat_o_o)
+    ss_matrix[('H', 'S')] = ss_matrix[('S', 'H')] = float(mat_h_s)
+    ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_h_o)
+    ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_s_o)
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap,
-        compute_ss=compute_ss, keep_computed_ss=keep_computed_ss, verbose=verbose)
+        compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose)
     return ret_vals
 
 _dm_cleanup = []
@@ -725,9 +725,9 @@ def register_command(logger):
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
-            ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_ss', BoolArg),
-            ('mat_hh', FloatArg), ('mat_ss', FloatArg), ('mat_oo', FloatArg), ('mat_hs', FloatArg),
-            ('mat_ho', FloatArg), ('mat_so', FloatArg), ('keep_computed_ss', BoolArg)],
+            ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
+            ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
+            ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

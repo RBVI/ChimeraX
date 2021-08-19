@@ -12,17 +12,19 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-
-chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
+from chimerax.add_charge import ChargeMethodArg
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
-        padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0):
+        padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
+        charge_method=ChargeMethodArg.default_value, key=False):
     if map:
         session.logger.warning("Computing electrostatic volume map not yet supported")
-    session.logger.status("Computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
         cmap = BuiltinColormaps["red-white-blue"]
+    else:
+        cmap = palette
     if not cmap.values_specified:
         rmin, rmax = (-10.0, 10.0) if range is None else range
         cmap = cmap.linear_range(rmin, rmax)
@@ -67,7 +69,6 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
 
     # check whether the atoms have charges, and if not, that we know how to assign charges
     # to the requested atoms
-    problem_residues = set()
     needs_assignment = set()
     for surf_atoms, shown_atoms, srf in atoms_per_surf:
         for r in surf_atoms.unique_residues:
@@ -79,22 +80,15 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                     try:
                         a.charge + 1.0
                     except (AttributeError, TypeError):
-                        if r.name in chargeable_residues:
-                            needs_assignment.add(r)
-                        else:
-                            problem_residues.add(r.name)
+                        needs_assignment.add(r)
                         break
-    if problem_residues:
-        session.logger.status("")
-        from chimerax.core.commands import commas
-        raise UserError("Don't know how to assign charges to the following residue types: %s"
-            % commas(problem_residues, conjunction='and'))
-
     if needs_assignment:
         session.logger.status("Assigning charges", secondary=True)
-        from .coulombic import assign_charges, ChargeError
+        from .coulombic import assign_charges
+        from chimerax.add_charge import ChargeError
         try:
-            assign_charges(session, needs_assignment, his_scheme)
+            assign_charges(session, needs_assignment, his_scheme, charge_method,
+                status=session.logger.status)
         except ChargeError as e:
             session.logger.status("")
             raise UserError(str(e))
@@ -126,6 +120,8 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
             else:
                 target_points = target_surface.vertices + offset * target_surface.normals
             import numpy, os
+            # Make sure _esp can runtime link shared library libarrays.
+            from chimerax import arrays ; arrays.load_libarrays()
             from ._esp import potential_at_points
             cpu_count = os.cpu_count()
             vertex_values = potential_at_points(
@@ -133,15 +129,20 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                 numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
                 1 if cpu_count is None else cpu_count)
             rgba = cmap.interpolated_rgba(vertex_values)
-            from numpy import uint8
+            from numpy import uint8, amin, mean, amax
             rgba8 = (255*rgba).astype(uint8)
             target_surface.vertex_colors = rgba8
             undo_new_vals.append(rgba8)
+            session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
+                % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
     undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
     session.undo.register(undo_state)
+    if key:
+        from chimerax.color_key import show_key
+        show_key(session, cmap)
 
     session.logger.status("", secondary=True)
-    session.logger.status("Finished computing Coulombic charge surface%s" % ("/volume" if map else ""))
+    session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
 
 """
 def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):
@@ -164,8 +165,10 @@ def register_command(logger):
             ('map', BoolArg),
             ('palette', ColormapArg),
             ('range', ColormapRangeArg),
-            ('disp_dep', BoolArg),
+            ('dist_dep', BoolArg),
             ('dielectric', FloatArg),
+            ('charge_method', ChargeMethodArg),
+            ('key', BoolArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )

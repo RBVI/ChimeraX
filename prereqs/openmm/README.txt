@@ -1,6 +1,18 @@
 Build notes for OpenMM
 ----------------------
 
+Not sure where the 7.5 builds came from except for Linux.  On Linux,
+we need to build OpenMM with the same compiler environment as the rest
+of ChimeraX.  At this time, that is CentOS 7 with devtoolset-9.  And it is
+devtoolset-9 so OpenMM can use newer C++ constructs.  See ticket #3756.
+In the openmm_build3.zip file with a build script and a singularity
+definition file that is used to create the .tar.gz file.  And that
+.tar.gz is placed on the chimerax web site for downloading.
+
+
+Old Build notes for OpenMM
+--------------------------
+
 On Mac, Linux and Windows using the OpenMM builds from
 https://anaconda.org/omnia/openmm/files -- Version: 7.3.0 Label: main.
 
@@ -8,7 +20,8 @@ The files are renamed from PLATFORM/openmm-VERSION-PYVER.tar.bz2 to
 	openemm-VERSION-PLATFORM-PYVER.tar.bz where PLATFORM changes
 	{ win-64: windows, osx-64: mac, linux-64: linux }
 
-Details of older builds follow:
+Even Older Build notes for OpenMM
+---------------------------------
 
 Formerly used the OpenMM 7.0.1 binary installers on Mac and Linux that
 include precompiled C++ libraries.  The SWIG Python wrapper is compiled by

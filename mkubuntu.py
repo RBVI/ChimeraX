@@ -32,7 +32,7 @@ CHIMERAX_INSTALL = f"{app_name}.app"
 CHIMERAX_BIN = f"{CHIMERAX_INSTALL}/bin/{app_name}"
 
 # lintian(1) complains about files /opt
-#INST_DIR = "opt"
+# INST_DIR = "opt"
 INST_DIR = "usr/lib"
 
 UBUNTU_DEPENDENCIES = {
@@ -53,6 +53,7 @@ UBUNTU_DEPENDENCIES = {
         "libfreetype6": "2.6.1",
         "libgcc1": "6.0.1",
         "libgdk-pixbuf2.0-0": "2.32.2",
+        "libgfortran3": "5.4.0",
         "libgl1-mesa-glx": "17.2.8",
         "libglib2.0-0": "2.48.2",
         "libglu1-mesa": "9.0.0",
@@ -67,6 +68,7 @@ UBUNTU_DEPENDENCIES = {
         "libpangocairo-1.0-0": "1.38.1",
         "libpulse-mainloop-glib0": "8.0",
         "libpulse0": "8.0",
+        "libsqlite3-0": "3.11.0",
         "libssl1.0.0": "1.0.2g",
         "libstdc++6": "5.4.0",
         "libx11-6": "1.6.3",
@@ -104,6 +106,7 @@ UBUNTU_DEPENDENCIES = {
         "libfreetype6": "2.8.1",
         "libgcc1": "8-20180414",
         "libgdk-pixbuf2.0-0": "2.36.11",
+        "libgfortran4": "7.5.0",
         "libgl1": "1.0.0",
         "libglib2.0-0": "2.56.1",
         "libglu1-mesa": "9.0.0",
@@ -118,6 +121,7 @@ UBUNTU_DEPENDENCIES = {
         "libpangocairo-1.0-0": "1.40.14",
         "libpulse-mainloop-glib0": "11.1",
         "libpulse0": "11.1",
+        "libsqlite3-0": "3.22.0",
         "libssl1.1": "1.1.0g",
         "libstdc++6": "8-20180414",
         "libx11-6": "1.6.4",
@@ -156,6 +160,7 @@ UBUNTU_DEPENDENCIES = {
        "libfreetype6": "2.10.1",
        "libgcc-s1": "10-20200411",
        "libgdk-pixbuf2.0-0": "2.40.0+dfsg",
+       "libgfortran5": "10-20200411",
        "libgl1": "1.3.1",
        "libglib2.0-0": "2.64.2",
        "libglu1-mesa": "9.0.1",
@@ -173,6 +178,7 @@ UBUNTU_DEPENDENCIES = {
        "libpangocairo-1.0-0": "1.44.7",
        "libpulse-mainloop-glib0": "13.99.1",
        "libpulse0": "13.99.1",
+       "libsqlite3-0": "3.31.1",
        "libssl1.1": "1.1.1f",
        "libstdc++6": "10-20200411",
        "libtinfo6": "6.2",
@@ -198,6 +204,7 @@ UBUNTU_DEPENDENCIES = {
        "zlib1g": "1.2.11.dfsg",
     }
 }
+
 
 def main():
     """main program"""
@@ -242,8 +249,9 @@ def main():
         # release build
         version = version.base_version
     else:
-        # candiate build
-        version = f"{version.base_version}+rc{version_date}"
+        # candidate build
+        # version = f"{version.base_version}+rc{version_date}"
+        version = version.base_version
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
@@ -359,7 +367,7 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Description: molecular visualization
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
              molecular visualization program from the Resource for Biocomputing
-             Visualization, and Informatics (RBVI), following UCSF Chimera. 
+             Visualization, and Informatics (RBVI), following UCSF Chimera.
              ChimeraX can be downloaded free of charge for academic, government
              nonprofit, and personal use. Commercial users, please see licensing.
             Homepage: https://www.rbvi.ucsf.edu/chimerax/

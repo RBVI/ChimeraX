@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def set_attr(session, objects, target, attr_name, attr_value, create=False):
+from chimerax.core.commands import Color8Arg, IntArg, FloatArg, BoolArg, StringArg
+
+def set_attr(session, objects, target, attr_name, attr_value, create=False, type_=None):
     """set attributes on objects
 
     Parameters
@@ -29,6 +31,8 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       whatever type it "looks like": int, bool, float, string.
     create : bool
       Whether to create the attribute if the class doesn't already have it
+    type_ : Annotation (e.g. BoolArg) from chimerax.core.commands
+      If None, heuristics will be used to guess the type of the attr_value.
     """
     if objects is None:
         from chimerax.core.objects import all_objects
@@ -73,18 +77,41 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         return
     session.logger.info(match_msg)
 
-    if attr_name.lower().endswith("color"):
-        if not isinstance(attr_value, str):
-            raise UserError("Trouble parsing shortened color name; please use full name")
-        from chimerax.core.commands import ColorArg
-        try:
-            value = ColorArg.parse(attr_value, session)[0].uint8x4()
-        except Exception as e:
-            raise UserError(str(e))
+    # Use None as the "string parser", since we don't want to lose a level of embedded quotes by parsing
+    # the value a second time
+    if type_ is None:
+        if attr_name.lower().endswith("color"):
+            parsers = [Color8Arg]
+        elif attr_value in ('true', 'false'):
+            parsers = [BoolArg]
+        elif attr_value and attr_value[0] in ['"', "'"]:
+            # prevent the value '3' (originally typed as "'3'") from evaluating to integer
+            parsers = [None]
+        else:
+            parsers = [IntArg, FloatArg, None]
     else:
-        value = attr_value
+        if parser == StringArg:
+            parsers = [None]
+        else:
+            parsers = [type_]
+    for parser in parsers:
+        if parser is None:
+            value = attr_value
+            break
+        try:
+            val, cmd_text, remainder = parser.parse(attr_value, session)
+        except Exception as e:
+            if len(parsers) == 1:
+                raise UserError(str(e))
+        else:
+            if not remainder:
+                value = val
+                break
+    else:
+        raise UserError("Could not determine type of value '%s'" % attr_value)
 
     from chimerax.atomic.molarray import Collection
+    from chimerax.core.attributes import MANAGER_NAME
     if isinstance(items, Collection):
         from chimerax.core.commands import plural_of
         attr_names = plural_of(attr_name)
@@ -95,36 +122,40 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
             # Since 'create' is more to prevent accidental attribute creation due to typos than
             # to strictly enforce typing (especially since int and float "conflict") check
             # existence first and only create if non-existent
-            if not session.attr_registration.has_attribute(items.object_class, attr_name):
+            if not session.get_state_manager(MANAGER_NAME).has_attribute(items.object_class, attr_name):
                 if create:
                     register_attr(session, items.object_class, attr_name, type(value))
                 else:
                     raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
             for item in items:
                 setattr(item, attr_name, value)
+        if items.object_class in session.change_tracker.tracked_classes:
+            session.change_tracker.add_modified(items, attr_name + " changed")
     else:
-        class_ = items[0].__class__
-        if not session.attr_registration.has_attribute(class_, attr_name):
+        class_ = list(items)[0].__class__
+        from chimerax.core.attributes import type_attrs
+        if attr_name not in type_attrs(class_):
             if create:
                 register_attr(session, class_, attr_name, type(value))
             else:
                 raise UserError("Not creating attribute '%s'; use 'create true' to override" % attr_name)
         for item in items:
             attempt_set_attr(item, attr_name, value, attr_name, attr_value)
+        # only need to add to change tracker if attribute isn't builtin
+        if isinstance(item, tuple(session.change_tracker.tracked_classes)) \
+        and session.get_state_manager(MANAGER_NAME).has_attribute(class_, attr_name):
+            session.change_tracker.add_modified(items, attr_name + " changed")
 
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
     try:
         setattr(item, attr_name, value)
     except Exception:
-        try:
-            setattr(item, attr_name, value_string)
-        except Exception:
-            from chimerax.core.errors import UserError
-            raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
+        from chimerax.core.errors import UserError
+        raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
 
 def register_attr(session, class_obj, attr_name, attr_type):
     if hasattr(class_obj, 'register_attr'):
-        from chimerax.atomic.attr_registration import RegistrationConflict
+        from chimerax.core.attributes import RegistrationConflict
         try:
             class_obj.register_attr(session, attr_name, "setattr command", attr_type=attr_type)
         except RegistrationConflict as e:
@@ -137,12 +168,13 @@ def register_attr(session, class_obj, attr_name, attr_type):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, ObjectsArg
-    from chimerax.core.commands import EmptyArg, Or, StringArg, BoolArg, IntArg, FloatArg
+    from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, Or, EnumOf
     desc = CmdDesc(required=[('objects', Or(ObjectsArg, EmptyArg)),
                             ('target', StringArg),
                             ('attr_name', StringArg),
-                            ('attr_value', Or(IntArg, FloatArg, BoolArg, StringArg))],
-                   keyword=[('create', BoolArg)],
+                            ('attr_value', StringArg)],
+                   keyword=[('create', BoolArg),
+                            ('type_', EnumOf((Color8Arg, BoolArg, IntArg, FloatArg, StringArg),
+                                            ("color", "boolean", "integer", "float", "string")))],
                    synopsis="set attributes")
     register('setattr', desc, set_attr, logger=logger)

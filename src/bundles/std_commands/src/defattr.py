@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -11,30 +10,41 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+
+match_modes = ["any", "non-zero", "1-to-1"]
+
 def cmd_defattr(session, structures, file_name, *, log=False):
+    session.logger.warning("The 'defattr' command is deprecated."
+        "  Just use the 'open' command with your .defattr file.")
     try:
         defattr(session, file_name, log=log, restriction=structures)
     except SyntaxError as e:
-        from chimerax.core.errors import UserError
         raise UserError(str(e))
 
-def defattr(session, file_name, *, log=False, restriction=None):
+def defattr(session, data, *, log=False, restriction=None, file_name=None, summary=True):
     """define attributes on objects
 
     Parameters
     ----------
-    file_name : string
+    data : file name or stream
       Input file in 'defattr' format
     log : bool
       Whether to log assignment info
-    restriction : Structures Collection or None
+    restriction : list/Collection of Structures or None
       If not None, structures to restrict the assignments to
       (in addition to any restrictions in the defattr file)
+    file_name : string
+      If data is a stream, the original file name can be provided here
     """
 
     if restriction is None:
         from chimerax.atomic import all_structures
         restriction = all_structures(session)
+    else:
+        from chimerax.atomic import Collection, Structures
+        if not isinstance(restriction, Collection):
+            restriction = Structures(restriction)
 
     control_defaults = {
         'match mode': "any",
@@ -57,6 +67,8 @@ def defattr(session, file_name, *, log=False, restriction=None):
         'recipient': set(recipient_info.keys()),
         'none handling': set(["None", "string", "delete"])
     }
+    if file_name is None:
+        file_name = data if isinstance(data, str) else getattr(data, 'name', "unknown file")
     all_info = []
     def append_all_info(attr_info, data_info, line_num, *, ai=all_info, fn=file_name):
         if 'attribute' not in attr_info:
@@ -68,7 +80,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
     from chimerax.core.commands import AtomSpecArg, AttrNameArg, AnnotationError, NoneArg, ColorArg, commas
     from chimerax.core.commands import IntArg, FloatArg
     from chimerax.io import open_input
-    with open_input(file_name, encoding="utf-8") as f:
+    with open_input(data, encoding="utf-8") as f:
         data = []
         attrs = {}
         for lnum, raw_line in enumerate(f):
@@ -80,6 +92,8 @@ def defattr(session, file_name, *, log=False, restriction=None):
 
             if line[0] == '\t':
                 # data line
+                if 'attribute' not in attrs:
+                    raise SyntaxError("'attribute' control line must precede any data lines")
                 datum = line[1:].split('\t')
                 if len(datum) != 2:
                     raise SyntaxError("Data line %d in %s not of the form: <tab> atomspec <tab> value"
@@ -94,10 +108,9 @@ def defattr(session, file_name, *, log=False, restriction=None):
                     " or is missing initial tab" % (lnum+1, file_name))
             name = name.strip().lower()
             value = value.strip()
-            if name in attrs:
-                # presumably another set of control/data lines starting
+            if data:
+                # control change; stow current controls/data
                 append_all_info(attrs, data, lnum+1)
-                attrs = {}
                 data = []
             if name == 'attribute':
                 try:
@@ -117,6 +130,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
         append_all_info(attrs, data, lnum+1)
 
     for attr_info, data_info in all_info:
+        num_assignments = 0
         attr_name = attr_info['attribute']
         color_attr = attr_name.lower().endswith('color') or attr_name.lower().endswith('colour')
 
@@ -132,12 +146,13 @@ def defattr(session, file_name, *, log=False, restriction=None):
         recipient = attr_info.get('recipient', control_defaults['recipient'])
         recip_class, instance_fetch = recipient_info[recipient]
         seen_types = set()
+        is_builtin_attr = True
         try:
-            pre_existing_attr = getattr(recip_class, attr_name)
+            builtin_attr = getattr(recip_class, attr_name)
         except AttributeError:
-            pass
+            is_builtin_attr = False
         else:
-            if callable(pre_existing_attr):
+            if callable(builtin_attr):
                 raise ValueError("%s is a method of the %s class and cannot be redefined"
                     % (attr_name, recip_class.__name__))
             if attr_name[0].isupper():
@@ -164,6 +179,7 @@ def defattr(session, file_name, *, log=False, restriction=None):
             if len(matches) > 1 and match_mode == "1-to-1":
                 raise SyntaxError("Selector (%s) on line %d of %s matched multiple %s"
                     % (spec, line_num, file_name, recipient))
+            num_assignments += len(matches)
 
             if log:
                 session.logger.info("Selector %s matched %s"
@@ -227,23 +243,145 @@ def defattr(session, file_name, *, log=False, restriction=None):
                 if value is not None or none_handling == "None":
                     setattr(match, attr_name, value)
                 elif hasattr(match, attr_name):
-                    if pre_existing_attr:
+                    if is_builtin_attr:
                         raise RuntimeError("Cannot remove builtin attribute %s from class %s"
                             % (attr_name, recip_class.__name__))
                     else:
                         delattr(match, attr_name)
 
-            can_return_none = None in seen_types
-            seen_types.discard(None)
-            if len(seen_types) == 1:
-                seen_type = seen_types.pop()
-                attr_type = None if seen_type == "color" else seen_type
-            elif seen_types == set([int, float]):
-                attr_type = float
+        can_return_none = None in seen_types
+        seen_types.discard(None)
+        if len(seen_types) == 1:
+            seen_type = seen_types.pop()
+            attr_type = None if seen_type == "color" else seen_type
+        elif seen_types == set([int, float]):
+            attr_type = float
+        else:
+            attr_type = None
+        recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
+            can_return_none=can_return_none)
+
+        if summary:
+            session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
+                num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
+
+def parse_attribute_name(session, attr_name, *, allowable_types=None):
+    from chimerax.atomic import Atom, Residue, Structure
+    from chimerax.core.attributes import MANAGER_NAME, type_attrs
+    if len(attr_name) > 1 and attr_name[1] == ':':
+        attr_level = attr_name[0]
+        if attr_level not in "arm":
+            raise UserError("Unknown attribute level: '%s'" % attr_level)
+        attr_name = attr_name[2:]
+        class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
+        if allowable_types:
+            allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
+                class_obj, allowable_types, none_okay=True)
+        else:
+            allowable_attrs = type_attrs(class_obj)
+        if attr_name not in allowable_attrs:
+            raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
+    else:
+        # try to find the attribute, in the order Atom->Residue->Structure
+        for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
+            if allowable_types:
+                allowable_attrs = session.get_state_manager(MANAGER_NAME).attributes_returning(
+                    class_obj, allowable_types, none_okay=True)
             else:
-                attr_type = None
-            recip_class.register_attr(session, attr_name, "defattr command", attr_type=attr_type,
-                can_return_none=can_return_none)
+                allowable_attrs = type_attrs(class_obj)
+            if attr_name in allowable_attrs:
+                break
+        else:
+            raise UserError("No known/registered attribute %s" % attr_name)
+    return attr_name, class_obj
+
+def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1-to-1", model_ids=None,
+            selected_only=False):
+    """'attr_name' is the same as for "color byattr": it can be the plain attribute name or prefixed with
+       'a:', 'r:' or 'm:' to indicate what "level" (atom, residue, model/structure) to look for the
+       attribute.  If no prefix, then look in the order a->r->m until one is found.
+
+       'model_ids' indicates whether the atom specifiers written should include the model component.
+       'None' indicates that they should be included only if multiple structures are open.
+
+       'match_mode' will be written into the defattr header section.
+
+       If 'selected_only' is True, then only items that are also selected will be written.
+    """
+    if attr_name is None:
+        raise UserError("Must specify an attribute name to save")
+
+    from chimerax.atomic import Atom, Residue, Structure, concatenate
+    if models is None:
+        structures = session.models.list(type=Structure)
+    else:
+        structures = [m for m in models if isinstance(m, Structure)]
+
+    # gather items whose attributes will be saved
+    attr_name, class_obj = parse_attribute_name(session, attr_name)
+    recipient = {Atom: 'atoms', Residue: 'residues', Structure: 'structures'}[class_obj]
+    sources = []
+    if selected_only:
+        for s in structures:
+            if recipient == "structures":
+                if s.selected:
+                    sources.append(s)
+            else:
+                sources.extend(s.selected_items(recipient))
+    else:
+        if recipient == "structures":
+            sources = structures
+        else:
+            for s in structures:
+                sources.append(getattr(s, recipient))
+    if recipient != "structures":
+        if sources:
+            sources = concatenate(sources)
+
+    none_handling = None
+    type_warning_issued = False
+    from chimerax import io
+    num_saved = 0
+    with io.open_output(output, 'utf-8') as stream:
+        print("attribute: %s" % attr_name, file=stream)
+        print("recipient: %s" % recipient, file=stream)
+        print("match mode: %s" % match_mode, file=stream)
+        for source in sources:
+            try:
+                val = getattr(source, attr_name)
+            except AttributeError:
+                continue
+            if val is None:
+                if none_handling != "python":
+                    print("none handling: None", file=stream)
+                    none_handling = "python"
+                val = "None"
+            elif type(val) == str:
+                try:
+                    float(val)
+                except ValueError:
+                    # string can't be misinterpreted as numeric, check for none/None
+                    if (val == "none" or val == "None") and none_handling != "string":
+                        print("none handling: string", file=stream)
+                        none_handling = "string"
+                else:
+                    val = '"%s"' % val
+            elif not isinstance(val, (int, float)):
+                if not type_warning_issued:
+                    session.logger.warning("One or more attribute values aren't integer, floating-point,"
+                        " string or None (e.g. %s); skipping those" % repr(val))
+                    type_warning_issued = True
+                continue
+            if recipient == "structures":
+                spec = source.atomspec
+            else:
+                spec = source.string(style="command",
+                    omit_structure=(None if model_ids is None else not model_ids))
+            print("\t%s\t%s" % (spec, str(val)), file=stream)
+            num_saved += 1
+
+        session.logger.info("Saved attribute '%s' of %d %s using match mode: %s to %s" % (attr_name,
+            num_saved, (recipient if num_saved != 1 else recipient[:-1]), match_mode, output))
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc

@@ -34,7 +34,7 @@ class Plot(ToolInstance):
         parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
-        from PyQt5.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(c)
@@ -291,7 +291,7 @@ class Graph(Plot):
         self._last_mouse_xy = (event.x(), event.y())
         self._dragged = False
         b = event.button()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if b == Qt.LeftButton:
             if self.is_ctrl_key_pressed(event):
                 drag_mode = 'select'	# Click on object.
@@ -355,11 +355,11 @@ class Graph(Plot):
         pass
 
     def is_alt_key_pressed(self, event):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         return event.modifiers() & Qt.AltModifier
 
     def is_command_key_pressed(self, event):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         import sys
         if sys.platform == 'darwin':
             # Mac command-key gives Qt control modifier.
@@ -367,7 +367,7 @@ class Graph(Plot):
         return False
 
     def is_ctrl_key_pressed(self, event):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         import sys
         if sys.platform == 'darwin':
             # Mac ctrl-key gives Qt meta modifier and Mac Command key gives Qt ctrl modifier.
@@ -410,10 +410,10 @@ class Graph(Plot):
     def add_menu_entry(self, menu, text, callback, *args):
         '''Add menu item to context menu'''
         widget = self.tool_window.ui_area
-        from PyQt5.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         a = QAction(text, widget)
         #a.setStatusTip("Info about this menu entry")
-        a.triggered.connect(lambda checked, cb=callback, args=args: cb(*args))
+        a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
         menu.addAction(a)
 
 # ------------------------------------------------------------------------------

@@ -205,6 +205,5 @@ extern "C" PyObject *set_outside_volume_colors(PyObject *, PyObject *args)
 					   rgba_outside_volume, rgbav);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

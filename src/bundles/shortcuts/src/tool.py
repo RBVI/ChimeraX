@@ -33,9 +33,9 @@ class ShortcutPanel(ToolInstance):
         self.buttons = self.create_toolbar(parent)
 
     def create_toolbar(self, parent):
-        from PyQt5.QtWidgets import QAction, QToolBar
-        from PyQt5.QtGui import QIcon
-        from PyQt5.QtCore import Qt, QSize
+        from Qt.QtWidgets import QAction, QToolBar
+        from Qt.QtGui import QIcon
+        from Qt.QtCore import Qt, QSize
         tb = QToolBar(self.display_name, parent)
         tb.setStyleSheet('QToolBar{spacing:0px;}\n'
                          'QToolButton{padding:0px; margin:0px; background-color:white; border:none;}')
@@ -58,7 +58,7 @@ class ShortcutPanel(ToolInstance):
         tw = MainToolWindow(self, close_destroys=False)
         self.tool_window = tw
         p = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout
+        from Qt.QtWidgets import QVBoxLayout
         layout = QVBoxLayout(p)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -68,9 +68,9 @@ class ShortcutPanel(ToolInstance):
         tw.manage(placement="side")
 
     def create_panel_buttons(self, parent):
-        from PyQt5.QtWidgets import QAction, QFrame, QGridLayout, QToolButton, QActionGroup
-        from PyQt5.QtGui import QIcon
-        from PyQt5.QtCore import Qt, QSize
+        from Qt.QtWidgets import QAction, QFrame, QGridLayout, QToolButton, QActionGroup
+        from Qt.QtGui import QIcon
+        from Qt.QtCore import Qt, QSize
         tb = QFrame(parent)
         layout = QGridLayout(tb)
         layout.setContentsMargins(0,0,0,0)

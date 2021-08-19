@@ -155,7 +155,7 @@ cdef object _decode_ndarray(dict data):
         for d in dtype:
             tmp.append(tuple(str(t) for t in d))
         dtype = tmp
-    return numpy.fromstring(data[b'data'], numpy.dtype(dtype)).reshape(data[b'shape'])
+    return numpy.frombuffer(data[b'data'], numpy.dtype(dtype)).reshape(data[b'shape'])
 
 
 cdef bytes _encode_image(object img):
@@ -183,7 +183,7 @@ cdef dict _encode_numpy_number(object o):
 
 
 cdef object _decode_numpy_number(dict data):
-    return numpy.fromstring(data[b'data'], numpy.dtype(data[b'dtype']))[0]
+    return numpy.frombuffer(data[b'data'], numpy.dtype(data[b'dtype']))[0]
 
 
 cdef _decode_datetime(str data):

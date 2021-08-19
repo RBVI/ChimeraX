@@ -23,7 +23,7 @@ class HBondsTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox
+        from Qt.QtWidgets import QVBoxLayout, QDialogButtonBox
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -32,14 +32,17 @@ class HBondsTool(ToolInstance):
         self.gui = HBondsGUI(session, show_model_restrict=False)
         layout.addWidget(self.gui)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_hbonds)
         bbox.button(qbbox.Apply).clicked.connect(self.run_hbonds)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        reset_button = bbox.addButton("Reset", qbbox.ActionRole)
+        reset_button.setToolTip("Reset to initial-installation defaults")
+        reset_button.clicked.connect(lambda *args: self.gui.reset())
         layout.addWidget(bbox)
 
         tw.manage(placement=None)

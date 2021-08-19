@@ -42,6 +42,7 @@ def init(session):
     global settings
     settings = _CoreSettings(session, "chimerax.core")
     set_proxies(initializing=True)
+    _init_background_color(session)
 
 def set_proxies(*, initializing=False):
     import os
@@ -53,3 +54,11 @@ def set_proxies(*, initializing=False):
         elif environ_var in os.environ and not initializing:
             del os.environ[environ_var]
 
+def _init_background_color(session):
+    if hasattr(session, 'main_view'):
+        try:
+            from .core_settings import settings
+            session.main_view.background_color = settings.background_color.rgba
+        except ImportError:
+            # During ChimeraX build settings module may not yet be installed.
+            pass

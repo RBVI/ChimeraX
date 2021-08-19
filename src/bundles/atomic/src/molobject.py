@@ -28,30 +28,9 @@ cvec_property = _atomic_c_functions.cvec_property
 c_function = _atomic_c_functions.c_function
 c_array_function = _atomic_c_functions.c_array_function
 
-def has_custom_attrs(klass, inst):
-    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
-        if hasattr(inst, attr_name):
-            return True
-    return False
-
-def get_custom_attrs(klass, inst):
-    custom_attrs = []
-    from .attr_registration import NO_DEFAULT
-    for attr_name, attr_info in klass._attr_registration.reg_attr_info.items():
-        if hasattr(inst, attr_name):
-            registrant, default_value, attr_type = attr_info
-            val = getattr(inst, attr_name)
-            if default_value == NO_DEFAULT or val != default_value:
-                custom_attrs.append((attr_name, val))
-    return custom_attrs
-
-def set_custom_attrs(inst, ses_data):
-    for attr_name, val in ses_data.get('custom attrs', []):
-        setattr(inst, attr_name, val)
-
-def all_python_instances():
-    f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
-    return f()
+def python_instances_of_class(inst_class):
+    f = c_function('python_instances_of_class', args = (ctypes.py_object,), ret = ctypes.py_object)
+    return f(inst_class)
 
 # delay .cymol import until 'CFunctions' call above establishes lib path
 from .cymol import CyAtom
@@ -68,21 +47,24 @@ class Atom(CyAtom, State):
         ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
     ]
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Atom, self)
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyAtom because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_atom_to_id(self._c_pointer),
-                'custom attrs': get_custom_attrs(Atom, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         a = Atom.c_ptr_to_py_inst(data['structure'].session_id_to_atom(data['ses_id']))
-        set_custom_attrs(a, data)
+        a.set_custom_attrs(data)
         return a
 Atom.set_py_class(Atom)
 
@@ -92,7 +74,7 @@ class Bond(State):
     '''
     Bond connecting two atoms.
 
-    To create a Bond use the :class:`.AtomicStructure` new_bond() method.
+    To create a Bond use chimerax.atomic.struct_edit.add_bond()
     '''
     def __init__(self, bond_pointer):
         set_c_pointer(self, bond_pointer)
@@ -121,6 +103,7 @@ class Bond(State):
 
     @property
     def atomspec(self):
+        a1, a2 = self.atoms
         return a1.atomspec + a2.atomspec
 
     atoms = c_property('bond_atoms', cptr, 2, astype = convert.atom_pair, read_only = True,
@@ -172,11 +155,6 @@ class Bond(State):
         "Supported API. Delete this Bond from it's Structure"
         f = c_function('bond_delete', args = (ctypes.c_void_p, ctypes.c_size_t))
         c = f(self._c_pointer_ref, 1)
-
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Bond, self)
 
     def rings(self, cross_residue=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
@@ -232,13 +210,13 @@ class Bond(State):
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_bond_to_id(self._c_pointer),
-                'custom attrs': get_custom_attrs(Bond, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         b = Bond.c_ptr_to_py_inst(data['structure'].session_id_to_bond(data['ses_id']))
-        set_custom_attrs(b, data)
+        b.set_custom_attrs(data)
         return b
 
 # -----------------------------------------------------------------------------
@@ -326,15 +304,10 @@ class Pseudobond(State):
     _ses_id = c_property('pseudobond_get_session_id', int32, read_only = True,
         doc="Used by session save/restore internals")
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Pseudobond, self)
-
     def take_snapshot(self, session, flags):
         data = {'group': self.group,
                 'ses_id': self._ses_id,
-                'custom attrs': get_custom_attrs(Pseudobond, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
@@ -348,7 +321,7 @@ class Pseudobond(State):
             group, ses_id = data
         pb = Pseudobond.c_ptr_to_py_inst(f(group._c_pointer, ses_id))
         if isinstance(data, dict):
-            set_custom_attrs(pb, data)
+            pb.set_custom_attrs(data)
         return pb
 
 # -----------------------------------------------------------------------------
@@ -548,11 +521,6 @@ class PseudobondManager(StateManager):
             obj_map[cat] = obj
         return obj_map
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(PseudobondManager, self)
-
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
         f = c_function('pseudobond_global_manager_session_info',
@@ -571,7 +539,7 @@ class PseudobondManager(StateManager):
         data = {'version': version,
                 'mgr data':retvals,
                 'structure mapping': obj_map,
-                'custom attrs': get_custom_attrs(PseudobondManager, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
@@ -589,7 +557,7 @@ class PseudobondManager(StateManager):
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
         f(pbm._c_pointer, data['version'], ints, floats, misc)
-        set_custom_attrs(pbm, data)
+        pbm.set_custom_attrs(data)
         return pbm
 
     def reset_state(self, session):
@@ -620,25 +588,28 @@ class Residue(CyResidue, State):
     # property isn't obtainable until the end of the class definition, using this inelegant solution]
     _cython_property_return_info = [
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
-        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
-        ('phi', (float, None)), ('psi', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
+        ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
     ]
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Residue, self)
+    # possibly long-term hack for interoperation with ctypes;
+    # has to be here instead of CyResidue because super().__delattr__ doesn't work there
+    def __delattr__(self, name):
+        if name == "_c_pointer" or name == "_c_pointer_ref":
+            self._deleted = True
+        else:
+            super().__delattr__(name)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
                 'ses_id': self.structure.session_residue_to_id(self._c_pointer),
-                'custom attrs': get_custom_attrs(Residue, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
-        set_custom_attrs(r, data)
+        r.set_custom_attrs(data)
         return r
 
     # C++ class variables are problematic for Cython (particularly a map of maps # where the key type
@@ -659,6 +630,11 @@ class Residue(CyResidue, State):
     na_max_backbone_names = c_function('residue_na_max_backbone_names', args = (), ret = ctypes.py_object)()
     na_side_connector_names = c_function('residue_na_side_connector_names', args = (), ret = ctypes.py_object)()
     na_min_ordered_backbone_names = c_function('residue_na_min_ordered_backbone_names', args = (), ret = ctypes.py_object)()
+    def clear_hide_bits(self, bit_mask, atoms_only=False):
+        "Clear Residue's atoms' and bonds' hide bits in bit mask"
+        f = c_array_function('residue_clear_hide_bits', args=(uint32, npy_bool), per_object=False)
+        b_ref = ctypes.byref(self._c_pointer)
+        f(b_ref, 1, bit_mask, atoms_only)
 
 Residue.set_py_class(Residue)
 
@@ -669,8 +645,6 @@ class Ring:
     '''
     A ring in the structure.
     '''
-
-    has_custom_attrs = False
 
     def __init__(self, ring_pointer):
         set_c_pointer(self, ring_pointer)
@@ -770,6 +744,8 @@ class Sequence(State):
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
         self.numbering_start = None
+        self._features = {}
+        self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
@@ -835,6 +811,31 @@ class Sequence(State):
     append = extend
 
     @property
+    def feature_data_sources(self):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        return mgr.data_sources
+
+    def features(self, *, data_source="all", fetch=True):
+        from .seq_support import get_manager
+        mgr = get_manager()
+        if data_source == "all":
+            if fetch:
+                for ds in mgr.data_sources:
+                    if ds not in self._features:
+                        try:
+                            self._features[ds] = mgr.get_features(self.characters, ds)
+                        except mgr.DataSourceFailure:
+                            pass
+            return self._features
+        if data_source not in self._features:
+            if fetch:
+                self._features[data_source] = mgr.get_features(self.characters, data_source)
+            else:
+                return {}
+        return self._features[data_source]
+
+    @property
     def full_name(self):
         return self.name
 
@@ -850,11 +851,6 @@ class Sequence(State):
 
     def __getitem__(self, key):
         return self.characters[key]
-
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Sequence, self)
 
     def __hash__(self):
         return id(self)
@@ -877,6 +873,9 @@ class Sequence(State):
             ret = ctypes.py_object)
         return f(self._c_pointer, pattern.encode('utf-8'), case_sensitive)
 
+    def set_features(self, data_source, features):
+        self._features[data_source] = features
+
     def __setitem__(self, key, val):
         chars = self.characters
         if isinstance(key, slice):
@@ -886,7 +885,7 @@ class Sequence(State):
         else:
             self.characters = chars[:key] + val + chars[key+1:]
 
-    # no __str__, since it's confusing whether it should be self.name or self.characters
+    # no __str__, since it's unclear whether it should be self.name or self.characters
 
     def set_state_from_snapshot(self, session, data):
         self.name = data['name']
@@ -894,7 +893,9 @@ class Sequence(State):
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
         self.numbering_start = data.get('numbering_start', None)
-        set_custom_attrs(self, data)
+        self._features = data.get('features', {})
+        self.accession_id = data.get('accession_id', {})
+        self.set_custom_attrs(data)
 
     def ss_type(self, loc, loc_is_ungapped=False):
         try:
@@ -915,7 +916,8 @@ class Sequence(State):
     def take_snapshot(self, session, flags):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
-            'custom attrs': get_custom_attrs(Sequence, self)}
+            'custom attrs': self.custom_attrs, 'features': self._features,
+            'accession_id': self.accession_id }
         return data
 
     def ungapped(self):
@@ -1053,11 +1055,6 @@ class StructureSeq(Sequence):
             name_part = ""
         return "%s (#%s)%s" % (self.structure.name, self.structure.id_string, name_part)
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(Sequence, self) or has_custom_attrs(StructureSeq, self)
-
     def _get_numbering_start(self):
         if self._numbering_start == None:
             for i, r in enumerate(self.residues):
@@ -1115,7 +1112,7 @@ class StructureSeq(Sequence):
         sseq.description = data['description']
         sseq.bulk_set(data['residues'], sseq.characters)
         sseq.description = data.get('description', None)
-        set_custom_attrs(sseq, data)
+        sseq.set_custom_attrs(data)
         return sseq
 
     @property
@@ -1144,7 +1141,7 @@ class StructureSeq(Sequence):
             'description': self.description,
             'residues': self.residues,
             'structure': self.structure,
-            'custom attrs': get_custom_attrs(StructureSeq, self)
+            'custom attrs': self.custom_attrs
         }
         return data
 
@@ -1233,14 +1230,16 @@ class Chain(StructureSeq):
         if not chain:
             chain = Chain(ptr)
         chain.description = data.get('description', None)
-        set_custom_attrs(chain, data)
+        chain.set_custom_attrs(data)
         return chain
 
-    def string(self, style=None):
-        chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
+    def string(self, style=None, include_structure=None):
+        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
         from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1 \
-        or not chain_str:
+        if include_structure is not False and (
+        include_structure is True
+        or len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1
+        or not chain_str):
             struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
@@ -1251,9 +1250,23 @@ class Chain(StructureSeq):
             'description': self.description,
             'ses_id': self.structure.session_chain_to_id(self._c_pointer),
             'structure': self.structure,
-            'custom attrs': get_custom_attrs(StructureSeq, self)
+            'custom attrs': self.custom_attrs
         }
         return data
+
+import string
+chain_id_characters = string.ascii_uppercase + string.ascii_lowercase + '1234567890'
+_cid_index = { c:i for i,c in enumerate(chain_id_characters) }
+def next_chain_id(cid):
+    if not cid or cid.isspace():
+        return chain_id_characters[0]
+    try:
+        next_index = _cid_index[cid[-1]] + 1
+    except KeyError:
+        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
+    if next_index == len(chain_id_characters):
+        return cid + chain_id_characters[0]
+    return cid[:-1] + chain_id_characters[next_index]
 
 # -----------------------------------------------------------------------------
 #
@@ -1554,7 +1567,10 @@ class StructureData:
         return f(self._c_pointer, atom_name.encode('utf-8'), element._c_pointer)
 
     def new_bond(self, atom1, atom2):
-        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.'''
+        '''Supported API. Create a new :class:`.Bond` joining two :class:`Atom` objects.
+        In most cases one should use chimerax.atomic.struct_edit.add_bond() instead, which
+        does a lot of maintenance of data structures that new_bond() alone does not.
+        '''
         f = c_function('structure_new_bond',
                        args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
                        ret = ctypes.py_object)
@@ -1589,6 +1605,8 @@ class StructureData:
         '''
         if not insert:
             insert = ' '
+        if not chain_id:
+            chain_id = ' '
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char, ctypes.c_void_p),
                        ret = ctypes.py_object)
@@ -1852,20 +1870,15 @@ class CoordSet(State):
         f = c_function('coordset_xyzs', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return has_custom_attrs(CoordSet, self)
-
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure, 'cs_id': self.id,
-                'custom attrs': get_custom_attrs(CoordSet, self)}
+                'custom attrs': self.custom_attrs}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         cs = data['structure'].coordset(data['cs_id'])
-        set_custom_attrs(cs, data)
+        cs.set_custom_attrs(data)
         return cs
 
 # -----------------------------------------------------------------------------
@@ -1882,6 +1895,8 @@ class ChangeTracker:
             set_c_pointer(self, ct_pointer)
         f = c_function('set_changetracker_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, self)
+        self.tracked_classes = frozenset([Atom, Bond, Pseudobond, Residue, Chain, StructureData,
+            PseudobondGroupData, CoordSet])
 
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
@@ -1898,16 +1913,25 @@ class ChangeTracker:
         return not hasattr(self, '_c_pointer')
 
     def add_modified(self, modded, reason):
+        # So to avoid having all code test whether a structure is open or not,
+        # have this call use the structure's own change tracker rather than self
         f = c_function('change_tracker_add_modified',
-            args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
+            args = (ctypes.c_int, ctypes.c_void_p, ctypes.c_char_p))
         from .molarray import Collection
+        from collections.abc import Iterable
         if isinstance(modded, Collection):
             class_num = self._class_to_int(modded.object_class)
             for ptr in modded.pointers:
-                f(self._c_pointer, class_num, ptr, reason.encode('utf-8'))
+                f(class_num, int(ptr), reason.encode('utf-8'))
         else:
-            f(self._c_pointer, self._inst_to_int(modded), modded._c_pointer,
-                reason.encode('utf-8'))
+            try:
+                iterable_test = iter(modded)
+            except TypeError:
+                f(self._inst_to_int(modded), modded._c_pointer, reason.encode('utf-8'))
+            else:
+                for item in modded:
+                    f(self._inst_to_int(item), item._c_pointer, reason.encode('utf-8'))
+
     @property
     def changed(self):
         f = c_function('change_tracker_changed', args = (ctypes.c_void_p,), ret = ctypes.c_bool)
@@ -1943,11 +1967,6 @@ class ChangeTracker:
     def clear(self):
         f = c_function('change_tracker_clear', args = (ctypes.c_void_p,))
         f(self._c_pointer)
-
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        return False
 
     def _class_to_int(self, klass):
         # has to tightly coordinate wih change_track_add_modified

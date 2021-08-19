@@ -1,0 +1,161 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Unit Cell</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Unit Cell</h3>
+<p>
+<b>Unit Cell</b> builds crystallographic unit cells
+using symmetry information from the input coordinate file 
+(PDB or mmCIF, but not small-molecule CIF).
+It can regenerate the full unit cell, multiple unit cells,
+or only those parts defined by
+crystallographic symmetry or noncrystallographic symmetry.
+See also: 
+<a href="crystalcontacts.html"><b>Crystal Contacts</b></a>,
+<a href="../commands/sym.html"><b>sym</b></a>
+</p><p>
+The <b>Unit Cell</b> tool
+can be opened from the <b>Higher-Order Structure</b> section of the
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It is also implemented as the command
+<a href="../commands/unitcell.html"><b>unitcell</b></a>.
+</p><p>
+The <b>Atomic structure</b> of interest should be chosen from the list of
+current atomic models. The space group, unit cell parameters, 
+and numbers of transformation matrices (if available from the input file)
+are shown in the dialog. Buttons:
+</p>
+<ul>
+<li><b>Make Copies</b> &ndash; create additional copies of the atomic structure 
+and transform them as specified by the <a href="#options">options</a>
+<li><b>Outline</b> &ndash; show/hide a white outline box of the unit cell
+<li><b>Delete Copies</b> &ndash; remove the additional copies of the structure 
+<li><b>Options</b> &ndash; show/hide the <a href="#options">options</a>
+<li><b>Help</b> &ndash; open this page in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>
+</ul>
+<a name="options"></a>
+<p>
+Option descriptions are for PDB symmetry records, but the
+equivalent information from mmCIF is used in the same way:
+</p>
+<ul>
+<li><b>Use crystal symmetries from file</b>
+&ndash; apply crystallographic symmetry described by
+SMTRY1, SMTRY2, and SMTRY3 matrices in REMARK 290 lines of a PDB file
+<br><br>
+<li><b>Use space group if symmetries are missing</b>
+&ndash; for files without crystallographic symmetry matrices,
+use the space group name in the CRYST1 record of a PDB file
+to look up the crystallographic symmetry. Space group names are the full
+Hermann-Mauguin symbols, <i>e.g.</i>, P 1 21 1 rather than P 21
+(see <a href="https://en.wikipedia.org/wiki/List_of_space_groups"
+target="_blank">lists of names</a>).
+<br><br>
+<li><b>Use non-crystallographic symmetry</b>
+&ndash; apply noncrystallographic symmetry described by
+MTRIX1, MTRIX2, and MTRIX3 matrices in a PDB file.
+However, most MTRIX records describe how to transform one chain 
+to match closely another chain that is already present 
+in the PDB file, as indicated by a &ldquo;1&rdquo; in column 60; 
+these MTRIX records are ignored.
+Conversely, a blank space in column 60 indicates that
+the transformation will produce a new copy.
+There may be errors in MTRIX records, or they may be missing entirely.
+For example, 1cd3 has no MTRIX records, but the remarks describe how 
+to produce them from the BIOMT records. This is not handled by <b>Unit Cell</b>.
+<p>
+MTRIX records give coordinate transformations that are needed
+to make a complete asymmetric unit from the coordinates contained in the file.
+These are not crystallographic symmetries.
+Because the copies of the molecule occupy nonequivalent positions
+in the crystal, they usually have small structural differences due
+to differing crystal contacts.
+Thus, an independent set of coordinates is usually included for these copies,
+and MTRIX records are not needed.
+However, they are often used for icosahedral virus particles,
+where the size of the virus particle precludes independent refinement 
+of coordinates for each subunit.
+</p>
+<li><b>Pack structures in unit cell</b>
+&ndash; whether to pack the structures so that their centers fall within
+one unit cell box
+</p>
+<li><b>Cell origin</b> coordinates (default <b>0 0 0</b>)
+are in unit cell lengths and describe translations of the unit cell
+along its axes.
+Values of a coordinate that differ by integer amounts are equivalent;
+<i>e.g.</i>, (0.3 0 0) is equivalent to (-0.7 0 0) and (4.3 0 0).
+Changing the origin may rearrange the copies and shift the outline (if present).
+The shift will occur in the direction that maintains the center
+of the original copy within the box.
+<br><br>
+<li><b>Number of cells</b> (default <b>1 1 1</b>, a single unit cell)
+<b>offset</b> (default <b>0 0 0</b>) allows
+generating a block of multiple unit cells.
+The first three values specify dimensions in number of cells
+along the unit cell axes; the second three values specify the placement
+of the block relative to the cell containing the original structure.
+For example, number of cells <b>3 1 1</b> and offset <b>&ndash;1 0 0</b>
+would give a 3x1x1 block of cells with the original structure
+in the middle cell along the first axis.
+</ul>
+Changes in cell origin, number of cells, and/or offset
+can be applied by clicking the <b>Make Copies</b> button.
+</p>
+
+<a name="limitations"></a>
+<p class="nav">
+[<a href="#top">back to top: Unit Cell</a>]
+</p>
+<h3>Limitations</h3>
+<p>
+Many problems are due to information that is missing
+from (or incorrect within) the input file.
+One way to validate symmetry information is to identify steric clashes
+with the <a href="crystalcontacts.html"><b>Crystal
+Contacts</b></a> tool.
+</p><p>
+<b>Unit Cell</b> does not generate multimers defined by
+BIOMT matrices, but this can be done with the
+<a href="../commands/sym.html"><b>sym</b></a> command.
+</p><p>
+ChimeraX does not read small-molecule CIF files, and <b>Unit Cell</b>
+does not handle them.
+</p><p>
+Only the following mmCIF tables are used:
+<blockquote><pre>
+cell
+symmetry
+struct_ncs_oper
+pdbx_struct_oper_list
+atom_sites
+</pre></blockquote>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2021</address>
+</body></html>

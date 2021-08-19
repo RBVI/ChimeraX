@@ -44,7 +44,7 @@ class HtmlToolInstance(ToolInstance):
 
     def __init__(self, session, tool_name, size_hint=None,
                  show_http_in_help=True, log_errors=False):
-        from PyQt5.QtWidgets import QGridLayout
+        from Qt.QtWidgets import QGridLayout
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         from . import MainToolWindow
         from .widgets import HtmlView

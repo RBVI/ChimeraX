@@ -72,10 +72,9 @@ _class_class_init = {
     "Sequence": 'chimerax.atomic',
     "Structure": 'chimerax.atomic',
     "StructureSeq": 'chimerax.atomic',
-    "AttrRegistration": 'chimerax.atomic.attr_registration',
-    "CustomizedInstanceManager": 'chimerax.atomic.attr_registration',
-    "_NoDefault": 'chimerax.atomic.attr_registration',
-    "RegAttrManager": 'chimerax.atomic.attr_registration',
+    "AttrRegistration": '.attributes',
+    "_NoDefault": '.attributes',
+    "RegAttrManager": '.attributes',
     "XSectionManager": 'chimerax.atomic.ribbon',
 }
 
@@ -149,6 +148,5 @@ def is_daily_build():
     """Supported API. Return if ChimeraX Core is from a daily build."""
     # Daily builds are development releases
     from packaging.version import Version
-    from chimerax import core
-    ver = Version(core.version)
+    ver = Version(version)
     return ver.is_devrelease

@@ -320,8 +320,10 @@ def plane_table(dimension_order, nz, nt, nc, path, found_paths, tdata, log=None)
 
         a = td.attrib
         attrs = (('FirstC',0), ('FirstT',0), ('FirstZ',0), ('IFD',0), ('PlaneCount',1))
-        fc, ft, fz, ifd, pc = [int(a.get(attr,default_value)) for attr, default_value in attrs]
-        set_plane_table_entries(fc, ft, fz, fname, ifd, pc, nc, nt, nz, dimension_order, ptable)
+        has_attrs = [attr for attr, default_value in attrs if attr in a]
+        if has_attrs:
+            fc, ft, fz, ifd, pc = [int(a.get(attr,default_value)) for attr, default_value in attrs]
+            set_plane_table_entries(fc, ft, fz, fname, ifd, pc, nc, nt, nz, dimension_order, ptable)
 
     # Report missing files.
     missing = [fname for fname, found in file_found.items() if not found]

@@ -26,6 +26,7 @@ def preset_cmd(session, text1, text2=None):
         preset_text = text1
     else:
         # RestOfLine arg doesn't strip quoting; do it by hand
+        text2 = text2.strip()
         if text2[0] in ('"', "'") and text2[0] == text2[-1]:
             text2 = text2[1:-1]
         cat_text, preset_text = text1, text2

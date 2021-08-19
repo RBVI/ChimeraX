@@ -15,21 +15,22 @@ from chimerax.core.toolshed import ProviderManager
 class SchemesManager(ProviderManager):
     """Manager for html schemes used by all bundles"""
 
-    def __init__(self, session):
-        #  Just for good form.  Base class currently has no __init__.
-        super().__init__()
+    def __init__(self, session, name):
         self.schemes = set()
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("html schemes changed")
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, **kw):
+        if not bundle_info.installed:
+            return
         self.schemes.add(name)
 
         def is_true(value):
             return value and value.casefold() in ('true', '1', 'on')
 
-        from PyQt5.QtWebEngineCore import QWebEngineUrlScheme
+        from Qt.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
         port = kw.get('defaultPort', None)
         if port is not None:
@@ -58,6 +59,8 @@ class SchemesManager(ProviderManager):
             flags |= QWebEngineUrlScheme.ViewSourceAllowed
         if is_true(kw.get("ContentSecurityPolicyIgnored", None)):
             flags |= QWebEngineUrlScheme.ContentSecurityPolicyIgnored
+        if is_true(kw.get("CorsEnabled", None)):
+            flags |= QWebEngineUrlScheme.CorsEnabled
         if flags:
             scheme.setFlags(flags)
         QWebEngineUrlScheme.registerScheme(scheme)

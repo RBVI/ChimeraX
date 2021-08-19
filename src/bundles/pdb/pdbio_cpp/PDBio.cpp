@@ -85,11 +85,7 @@ canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
         --i;
         // strip embedded blanks
         if (aname[i] == ' ') {
-            int j = i;
-            do {
-                aname[j] = aname[j+1];
-                ++j;
-            } while (aname[j-1] != '\0');
+            aname.replace(i, 1, "");
             continue;
         }
         // use prime instead of asterisk
@@ -113,6 +109,23 @@ canonicalize_res_name(ResName& rname)
     }
 }
 
+void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
+{
+    if (res->chain_id().size() == 2) {
+        std::string adjusted_name;
+        int num_spaces = res->name().size() - 3;
+        if (num_spaces > 0)
+            adjusted_name.insert(0, num_spaces, ' ');
+        adjusted_name.append(res->name());
+        adjusted_name.append(1, res->chain_id()[0]);
+        strcpy(out_rn, adjusted_name.c_str());
+        *out_cid = res->chain_id()[1];
+    } else {
+        strcpy(out_rn, res->name().c_str());
+        *out_cid = res->chain_id()[0];
+    }
+}
+
 static void
 push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, int helix_num)
 {
@@ -123,12 +136,10 @@ push_helix(std::vector<Residue*>& cur_helix, std::vector<std::string>& helices, 
 
     hrec.helix.ser_num = helix_num;
     sprintf(hrec.helix.helix_id, "%3d", helix_num);
-    strncpy(hrec.helix.init.name, start->name().c_str(), 3);
-    hrec.helix.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, hrec.helix.init.name, &hrec.helix.init.chain_id);
     hrec.helix.init.seq_num = start->number();
     hrec.helix.init.i_code = start->insertion_code();
-    strncpy(hrec.helix.end.name, end->name().c_str(), 3);
-    hrec.helix.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, hrec.helix.end.name, &hrec.helix.end.chain_id);
     hrec.helix.end.seq_num = end->number();
     hrec.helix.end.i_code = end->insertion_code();
     hrec.helix.helix_class = 1;
@@ -148,12 +159,10 @@ push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, i
     srec.sheet.strand = sheet_num;
     sprintf(srec.sheet.sheet_id, "%3d", sheet_num);
     srec.sheet.num_strands = 1;
-    strncpy(srec.sheet.init.name, start->name().c_str(), 3);
-    srec.sheet.init.chain_id = start->chain_id().c_str()[0];
+    set_res_name_and_chain_id(start, srec.sheet.init.name, &srec.sheet.init.chain_id);
     srec.sheet.init.seq_num = start->number();
     srec.sheet.init.i_code = start->insertion_code();
-    strncpy(srec.sheet.end.name, end->name().c_str(), 3);
-    srec.sheet.end.chain_id = end->chain_id().c_str()[0];
+    set_res_name_and_chain_id(end, srec.sheet.end.name, &srec.sheet.end.chain_id);
     srec.sheet.end.seq_num = end->number();
     srec.sheet.end.i_code = end->insertion_code();
     srec.sheet.sense = 0;
@@ -200,12 +209,28 @@ push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
     strcpy(lrec.link.name[0], a1->name().c_str());
     strcpy(lrec.link.name[1], a2->name().c_str());
     lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
-    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
-    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    if (a1->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+        lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a1->residue()->name();
+        auto chain_id = a1->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[0].name, res_name.c_str(), 4);
+        lrec.link.res[0].chain_id = chain_id[1];
+    }
     lrec.link.res[0].seq_num = a1->residue()->number();
     lrec.link.res[0].i_code = a1->residue()->insertion_code();
-    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
-    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    if (a2->residue()->chain_id().size() < 2) {
+        strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+        lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    } else {
+        auto res_name = a2->residue()->name();
+        auto chain_id = a2->residue()->chain_id();
+        res_name[3] = chain_id[0];
+        strncpy(lrec.link.res[1].name, res_name.c_str(), 4);
+        lrec.link.res[1].chain_id = chain_id[1];
+    }
     lrec.link.res[1].seq_num = a2->residue()->number();
     lrec.link.res[1].i_code = a2->residue()->insertion_code();
     lrec.link.sym[0] = lrec.link.sym[1] = 1555;
@@ -250,12 +275,28 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             // SSBOND
             PDB srec(PDB::SSBOND);
             srec.ssbond.ser_num = ssbond_serial++;
-            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
-            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            if (r1->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+                srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            } else {
+                auto res_name = r1->name();
+                auto chain_id = r1->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[0].name, res_name.c_str(), 4);
+                srec.ssbond.res[0].chain_id = chain_id[1];
+            }
             srec.ssbond.res[0].seq_num = r1->number();
             srec.ssbond.res[0].i_code = r1->insertion_code();
-            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
-            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            if (r2->chain_id().size() < 2) {
+                strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+                srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            } else {
+                auto res_name = r2->name();
+                auto chain_id = r2->chain_id();
+                res_name[3] = chain_id[0];
+                strncpy(srec.ssbond.res[1].name, res_name.c_str(), 4);
+                srec.ssbond.res[1].chain_id = chain_id[1];
+            }
             srec.ssbond.res[1].seq_num = r2->number();
             srec.ssbond.res[1].i_code = r2->insertion_code();
             srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
@@ -278,6 +319,91 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
             if (r1 == r2)
                 continue;
             push_link(a1, a2, pb->length(), links);
+        }
+    }
+}
+
+typedef std::map<char, const char*> CharToResName;
+static CharToResName protein_name_map = {
+    {'A', "ALA"},
+    {'C', "CYS"},
+    {'D', "ASP"},
+    {'E', "GLU"},
+    {'F', "PHE"},
+    {'G', "GLY"},
+    {'H', "HIS"},
+    {'I', "ILE"},
+    {'K', "LYS"},
+    {'L', "LEU"},
+    {'M', "MET"},
+    {'N', "ASN"},
+    {'P', "PRO"},
+    {'Q', "GLN"},
+    {'R', "ARG"},
+    {'S', "SER"},
+    {'T', "THR"},
+    {'V', "VAL"},
+    {'W', "TRP"},
+    {'Y', "TYR"}
+};
+
+static void
+push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::string>& seqres)
+{
+    PDB sr_rec(PDB::SEQRES);
+    sr_rec.seqres.ser_num = record_num;
+    sr_rec.seqres.chain_id = chain->chain_id()[0];
+    sr_rec.seqres.num_res = chain->residues().size();
+    int is_rna = -1;
+    for (size_t i = 0; i < 13; ++i) {
+        size_t index = start_index + i;
+        if (index >= chain->residues().size())
+            break;
+        auto res = chain->residues()[index];
+        if (res == nullptr) {
+            auto seq_char = chain->characters()[index];
+            if (chain->polymer_type() == PT_AMINO) {
+                auto char_rn_i = protein_name_map.find(seq_char);
+                if (char_rn_i == protein_name_map.end()) {
+                    strcpy(sr_rec.seqres.res_name[i], "UNK");
+                } else {
+                    strcpy(sr_rec.seqres.res_name[i], (*char_rn_i).second);
+                }
+            } else {
+                if (is_rna == -1) {
+                    // need to try do figure out if it's RNA or DNA: look through actual residues
+                    is_rna = 1; // default to RNA if no residues exist
+                    for (auto r: chain->residues()) {
+                        if (r != nullptr) {
+                            is_rna = r->name().size() == 1 ? 1 : 0;
+                            break;
+                        }
+                    }
+                }
+                if (is_rna) {
+                    ResName rna_name;
+                    rna_name.append(1, seq_char);
+                    strcpy(sr_rec.seqres.res_name[i], rna_name.c_str());
+                } else {
+                    ResName dna_name("D");
+                    dna_name.append(1, seq_char);
+                    strcpy(sr_rec.seqres.res_name[i], dna_name.c_str());
+                }
+            }
+        } else {
+            strcpy(sr_rec.seqres.res_name[i], res->name().c_str());
+        }
+    }
+    seqres.push_back(sr_rec.c_str());
+}
+
+static void
+compile_seqres(const Structure* s, std::vector<std::string>& seqres)
+{
+    for (auto chain: s->chains()) {
+        int record_num = 1;
+        for (size_t i = 0; i < chain->characters().size(); i += 13) {
+                push_seqres(chain, i, record_num++, seqres);
         }
     }
 }
@@ -367,7 +493,8 @@ public:
     }
 };
 
-void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let)
+void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char second_chain_id_let,
+    bool *two_let_chains)
 {
     for (auto r: chain_residues) {
         auto name = r->name();
@@ -377,7 +504,13 @@ void correct_chain_ids(std::vector<Residue*>& chain_residues, unsigned char seco
         cid.insert(0, 1, second_chain_id_let);
         r->set_chain_id(cid);
     }
+    if (second_chain_id_let != '\0')
+        *two_let_chains = true;
 }
+
+#define MCS_FILL 0
+#define MCS_SKIP 1
+#define MCS_COMPACT 2
 
 #ifdef CLOCK_PROFILING
 #include <ctime>
@@ -395,8 +528,8 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     std::vector<PDB> *secondary_structure,
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB> *link_ssbond_records,
-    std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *py_logger, bool explode, bool *eof, std::set<Residue*>& het_res, bool segid_chains)
+    std::set<MolResId> *mod_res, bool *reached_end, PyObject *py_logger, bool explode, bool *eof,
+    std::set<Residue*>& het_res, bool segid_chains, int missing_coordsets, bool *two_let_chains)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -415,8 +548,8 @@ read_one_structure(std::pair<const char *, PyObject *> (*read_func)(void *),
     ChainID  seqres_cur_chain;
     int         seqres_cur_count;
     bool        dup_MODEL_numbers = false;
-    bool        second_chain_let_okay = true;
     std::vector<Residue*> chain_residues;
+    bool        second_chain_let_okay = true;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -424,6 +557,7 @@ start_t = clock();
 
     *reached_end = false;
     *eof = true;
+    *two_let_chains = false;
     PDB::reset_state();
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -529,13 +663,17 @@ start_t = end_t;
                 // make additional CoordSets same size as others
                 int cs_size = as->active_coord_set()->coords().size();
                 if (!explode && csid > as->active_coord_set()->id() + 1) {
-                    // fill in coord sets for Monte-Carlo
-                    // trajectories
-                    const CoordSet *acs = as->active_coord_set();
-                    for (int fill_in_ID = acs->id()+1; fill_in_ID < csid; ++fill_in_ID) {
-                        CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
-                        cs->fill(acs);
+                    if (missing_coordsets == MCS_FILL) {
+                        // fill in coord sets for Monte-Carlo trajectories
+                        const CoordSet *acs = as->active_coord_set();
+                        for (int fill_in_ID = acs->id()+1; fill_in_ID < csid; ++fill_in_ID) {
+                            CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
+                            cs->fill(acs);
+                        }
+                    } else if (missing_coordsets == MCS_COMPACT) {
+                        csid = as->active_coord_set()->id() + 1;
                     }
+                    // do nothing for MSC_SKIP
                 }
                 CoordSet *cs = as->new_coord_set(csid, cs_size);
                 as->set_active_coord_set(cs);
@@ -570,7 +708,7 @@ start_t = end_t;
             recent_TER = true;
             break_hets = false;
             if (second_chain_let_okay)
-                correct_chain_ids(chain_residues, second_chain_id_let);
+                correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
             second_chain_let_okay = true;
             second_chain_id_let = '\0';
             chain_residues.clear();
@@ -692,7 +830,7 @@ start_t = end_t;
                 }
                 if (start_connect) {
                     if (second_chain_let_okay)
-                        correct_chain_ids(chain_residues, second_chain_id_let);
+                        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
                     second_chain_let_okay = true;
                     second_chain_id_let = '\0';
                     chain_residues.clear();
@@ -813,7 +951,7 @@ start_t = end_t;
                 a->set_bfactor(record.atom.temp_factor);
                 a->set_occupancy(record.atom.occupancy);
             } else {
-                a = as->new_atom(aname, *e);
+                a = as->new_atom(aname.c_str(), *e);
                 if (record.atom.alt_loc)
                     a->set_alt_loc(record.atom.alt_loc, true);
                 cur_residue->add_atom(a);
@@ -909,7 +1047,7 @@ start_t = end_t;
                 auto r_id_code = record.obslte.r_id_code[i];
                 if (r_id_code[0] != '\0')
                     logger::warning(py_logger, "Entry ", record.obslte.id_code,
-                        " superceded by entry ", r_id_code);
+                        " superseded by entry ", r_id_code);
             }
             break;
         }
@@ -974,7 +1112,7 @@ start_t = clock();
     }
     as->pdb_version = record.pdb_input_version();
     if (second_chain_let_okay)
-        correct_chain_ids(chain_residues, second_chain_id_let);
+        correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
 
     if (redo_elements) {
         char test_name[3];
@@ -1002,6 +1140,7 @@ cum_postloop_t += clock() - start_t;
 #endif
     if (actual_structure)
         return input;
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -1043,7 +1182,7 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 static void
-assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger)
+assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *py_logger, bool two_let_chains)
 {
     std::vector<std::pair<Structure::Residues::const_iterator,
         Structure::Residues::const_iterator> > strand_ranges;
@@ -1067,6 +1206,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         auto chain_id = ChainID({init->chain_id});
         ResName name = init->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *init_res = as->find_residue(chain_id, init->seq_num,
             init->i_code, name);
         if (init_res == nullptr) {
@@ -1076,6 +1219,10 @@ assign_secondary_structure(Structure *as, const std::vector<PDB> &ss, PyObject *
         }
         chain_id = ChainID({end->chain_id});
         name = end->name;
+        if (two_let_chains && name.size() == 4) {
+            chain_id.insert(chain_id.begin(), name[3]);
+            name.pop_back();
+        }
         Residue *end_res = as->find_residue(chain_id, end->seq_num,
             end->i_code, name);
         if (end_res == nullptr) {
@@ -1185,9 +1332,17 @@ static Residue*
 pdb_res_to_chimera_res(Structure* as, PDB::Residue& pdb_res)
 {
     ResName rname = pdb_res.name;
+    auto orig_rname = rname;
     ChainID cid({pdb_res.chain_id});
     canonicalize_res_name(rname);
-    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    auto res = as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, rname);
+    if (res != nullptr || orig_rname.size() < 4)
+        return res;
+    // try two-letter chain ID
+    cid.insert(cid.begin(), orig_rname[3]);
+    orig_rname.pop_back();
+    canonicalize_res_name(orig_rname);
+    return as->find_residue(cid, pdb_res.seq_num, pdb_res.i_code, orig_rname);
 }
 
 static Atom*
@@ -1264,10 +1419,11 @@ read_fileno(void *f)
 }
 
 static PyObject *
-read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode, bool atomic, bool segid_chains,
+    int missing_coordsets)
 {
     std::vector<Structure *> file_structs;
-    bool reached_end;
+    bool reached_end, two_letter_chains;
     std::unordered_map<Structure *, std::vector<Residue *> > start_res_map, end_res_map;
     std::unordered_map<Structure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
@@ -1300,18 +1456,12 @@ clock_t start_t, end_t;
             "HTTPResponse class not found in http.client module");
         return nullptr;
     }
-    PyObject *compression_mod = PyImport_ImportModule("_compression");
-    if (compression_mod == nullptr)
-        return nullptr;
-    PyObject *compression_stream = PyObject_GetAttrString(compression_mod, "BaseStream");
-    if (compression_stream == nullptr) {
-        Py_DECREF(compression_mod);
-        PyErr_SetString(PyExc_AttributeError,
-            "BaseStream class not found in _compression module");
-        return nullptr;
-    }
-    bool is_inst = PyObject_IsInstance(pdb_file, http_conn) == 1 || 
-        PyObject_IsInstance(pdb_file, compression_stream) == 1;
+    // nowadays, the result of gzip.open() and open() are normally indistinguishable,
+    // and the gzip has a fileno of the original compressed file, which is unreadable,
+    // so look for the 'from_compressed_source' attribute, which the chimerax.io module sets
+    auto fcs = PyObject_GetAttrString(pdb_file, "from_compressed_source");
+    bool is_inst = (fcs != nullptr && PyBool_Check(fcs) && fcs == Py_True) || 
+        PyObject_IsInstance(pdb_file, http_conn) == 1;
     int fd;
     if (is_inst)
         // due to buffering issues, cannot handle a socket like it 
@@ -1354,9 +1504,9 @@ start_t = clock();
         else
             as = new Structure(py_logger);
         std::set<Residue*> het_res;
-        void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
-          &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof, het_res, segid_chains);
+        void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as], &start_res_map[as],
+            &end_res_map[as], &ss_map[as], &conect_map[as], &link_map[as], &mod_res_map[as], &reached_end,
+            py_logger, explode, &eof, het_res, segid_chains, missing_coordsets, &two_letter_chains);
         if (ret == nullptr) {
             for (std::vector<Structure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1463,7 +1613,7 @@ start_t = end_t;
                 }
             }
 
-            assign_secondary_structure(fs, ss_map[fs], py_logger);
+            assign_secondary_structure(fs, ss_map[fs], py_logger, two_letter_chains);
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
@@ -1529,23 +1679,6 @@ aniso_u_to_int(Real aniso_u_val)
 {
     return static_cast<int>(aniso_u_val < 0.0 ?
         10000.0 * aniso_u_val - 0.5 : 10000.0 * aniso_u_val + 0.5);
-}
-
-void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out_cid)
-{
-    if (res->chain_id().size() == 2) {
-        std::string adjusted_name;
-        int num_spaces = res->name().size() - 3;
-        if (num_spaces > 0)
-            adjusted_name.insert(0, num_spaces, ' ');
-        adjusted_name.append(res->name());
-        adjusted_name.append(1, res->chain_id()[0]);
-        strcpy(out_rn, adjusted_name.c_str());
-        *out_cid = res->chain_id()[1];
-    } else {
-        strcpy(out_rn, res->name().c_str());
-        *out_cid = res->chain_id()[0];
-    }
 }
 
 static void
@@ -1622,7 +1755,7 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
             if (displayed_only && !a->display())
                 continue;
             std::string aname = s->asterisks_translated ?
-                primes_to_asterisks(a->name()) : a->name().c_str();
+                primes_to_asterisks(a->name().c_str()) : a->name().c_str();
             if (strlen(a->element().name()) > 1) {
                 strcpy(*rec_name, aname.c_str());
             } else {
@@ -1645,11 +1778,15 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
             set_res_name_and_chain_id(r, res->name, &res->chain_id);
             auto seq_num = r->number();
             auto i_code = r->insertion_code();
+            // since H36 also works with the non-ATOM fields that require large residue numbers,
+            // don't use the hack below anymore
+#if 0
             if (seq_num > 9999) {
                 // usurp the insertion code...
                 i_code = '0' + (seq_num % 10);
                 seq_num = seq_num / 10;
             }
+#endif
             res->seq_num = seq_num;
             res->i_code = i_code;
             if (pqr) {
@@ -1906,7 +2043,7 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
-    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK");
+    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK"), Seqres("SEQRES");
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -1914,15 +2051,17 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // generate HELIX/SHEET records relevant to current structure
-            std::vector<std::string> helices, sheets, ssbonds, links;
+            std::vector<std::string> helices, sheets, ssbonds, links, seqres;
             compile_helices_sheets(s, helices, sheets);
             compile_links_ssbonds(s, links, ssbonds);
+            compile_seqres(s, seqres);
             // since we need to munge the headers, make a copy instead of using a const reference
             auto headers = s->metadata;
             headers[Helix] = helices;
             headers[Sheet] = sheets;
             headers[Ssbond] = ssbonds;
             headers[Link] = links;
+            headers[Seqres] = seqres;
             // write out known headers first
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")
@@ -1981,9 +2120,9 @@ write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool s
             }
         }
         write_conect(os, s, rev_asn, written, polymeric_res_names);
-        p.set_type(PDB::END);
-        os << p << "\n";
     }
+    p.set_type(PDB::END);
+    os << p << "\n";
 }
 
 static const char*
@@ -2008,10 +2147,11 @@ read_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *pdb_file;
     PyObject *py_logger;
-    int explode, atomic, segid_chains;
-    if (!PyArg_ParseTuple(args, "OOppp", &pdb_file, &py_logger, &explode, &atomic, &segid_chains))
+    int explode, atomic, segid_chains, missing_coordsets;
+    if (!PyArg_ParseTuple(args, "OOpppi", &pdb_file, &py_logger, &explode, &atomic, &segid_chains,
+            &missing_coordsets))
         return nullptr;
-    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains);
+    return read_pdb(pdb_file, py_logger, explode, atomic, segid_chains, missing_coordsets);
 }
 
 static const char*

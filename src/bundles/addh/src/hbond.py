@@ -13,7 +13,7 @@
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
 from chimerax.atomic import Atom, idatm, Ring
-from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
+from .cmd import find_nearest, roomiest, _tree_dist, vdw_radius, \
                 find_rotamer_nearest, h_rad, add_altloc_hyds
 from .util import bond_with_H_length, N_H
 from chimerax.geometry import distance_squared, angle, dihedral, distance, normalize_vector
@@ -81,7 +81,7 @@ def add_hydrogens(session, atom_list, *args):
         if atom.num_explicit_bonds >= substs:
             if atom.element.number == 7 and num_bonds == 3 and geom == planar:
                 for ring in atom.rings():
-                    if ring.aromatic:
+                    if aromatic(ring):
                         if ring in aro_N_rings:
                             aro_N_rings[ring].append(atom)
                         else:
@@ -121,7 +121,8 @@ def add_hydrogens(session, atom_list, *args):
                 aro_N_ring = None
                 if atom.element.number == 7:
                     for ring in atom.rings():
-                        if ring.aromatic:
+                        # ring.aromatic can result in computing IDATM types, so check aromaticity "by hand"
+                        if aromatic(ring):
                             aro_N_ring = ring
                             break
                 if aro_N_ring:
@@ -664,9 +665,10 @@ def add_hydrogens(session, atom_list, *args):
                 if not is_acc:
                     protonate.append(pos)
             # ... and the "roomiest" remaining positions.
-            rooms = roomiest(remaining, a, _room_dist, bonding_info)
             needed = hyds_to_position - len(protonate)
-            protonate.extend(rooms[:needed])
+            if needed:
+                rooms = roomiest(remaining, a, _room_dist, bonding_info)
+                protonate.extend(rooms[:needed])
             altloc_hpos_info.append((alt_loc, a.occupancy, protonate))
         # then the least sterically challenged...
         _attach_hydrogens(a, altloc_hpos_info, bonding_info)
@@ -1444,3 +1446,10 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
                     print("pruned hbond (tet check)", [str(a) for a in rel])
                 processed.add(rel)
                 pruned_by.setdefault(hbond, []).append(rel)
+
+def aromatic(ring):
+    # need this since ring.aromatic can cause IDATM type computation, which in turn can wipe out ring lists
+    for ring_atom in ring.atoms:
+        if idatm_type[ring_atom] == 'Car':
+            return True
+    return False

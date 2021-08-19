@@ -256,12 +256,6 @@ class ConfigFile:
     PROPERTY_INFO = {}
 
     def __init__(self, session, tool_name, version="1"):
-        import configparser
-        from packaging.version import Version
-        import os
-        if not isinstance(version, Version):
-            version = Version(version)
-        major_version = version.major
         self._session = session
         self._on_disk = False
         self._tool_name = tool_name
@@ -272,8 +266,20 @@ class ConfigFile:
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
                 self.PROPERTY_INFO[name] = Value(value)
+
+        global only_use_defaults
+        import chimerax
+        if not hasattr(chimerax, 'app_dirs_unversioned'):
+            only_use_defaults = True
         if only_use_defaults:
             return
+
+        import configparser
+        from packaging.version import Version
+        import os
+        if not isinstance(version, Version):
+            version = Version(version)
+        major_version = version.major
         # don't want all tools forgetting their settings when core version number changes,
         # so use unversioned appdirs
         from chimerax import app_dirs_unversioned
@@ -286,7 +292,11 @@ class ConfigFile:
         )
         if os.path.exists(self._filename):
             self._on_disk = True
-            self._config.read(self._filename, encoding='utf-8')
+            try:
+                self._config.read(self._filename, encoding='utf-8')
+            except configparser.Error as e:
+                session.logger.error('Could not read settings file for %s ("%s"); using default %s settings'
+                    % (tool_name, str(e), tool_name))
             # check that all values on disk are valid
             for name in self.PROPERTY_INFO:
                 getattr(self, name)

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PresetMgr" version="1.0" package="chimerax.preset_mgr"
+<BundleInfo name="ChimeraX-PresetMgr" version="1.0.1" package="chimerax.preset_mgr"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -18,7 +18,7 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
   </Dependencies>
 
   <Managers>

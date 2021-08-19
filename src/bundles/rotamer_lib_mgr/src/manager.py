@@ -26,7 +26,7 @@ from chimerax.core.toolshed import ProviderManager
 class RotamerLibManager(ProviderManager):
     """Manager for rotmer libraries"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self.rot_libs = None
         from chimerax.core.triggerset import TriggerSet
@@ -35,6 +35,7 @@ class RotamerLibManager(ProviderManager):
         self._library_info = {}
         self.settings = _RotamerManagerSettings(session, "rotamer lib manager")
         self._uninstalled_suffix = " [not installed]"
+        super().__init__(name)
 
     def library(self, name):
         try:
@@ -57,7 +58,7 @@ class RotamerLibManager(ProviderManager):
         return lib_names
 
     def library_name_menu(self, *, initial_lib=None, installed_only=False, callback=None):
-        from PyQt5.QtWidgets import QPushButton, QMenu
+        from Qt.QtWidgets import QPushButton, QMenu
         menu_button = QPushButton()
         if initial_lib is None:
             lib_name = self.settings.gui_lib_name
@@ -68,7 +69,7 @@ class RotamerLibManager(ProviderManager):
         menu_button.setText(lib_name)
         menu = QMenu()
         menu_button.setMenu(menu)
-        menu.aboutToShow.connect(lambda menu=menu, installed=installed_only:
+        menu.aboutToShow.connect(lambda *, menu=menu, installed=installed_only:
             self._menu_show_cb(menu, installed))
         menu.triggered.connect(lambda action, button=menu_button, cb=callback:
             self._menu_choose_cb(action, button, cb))

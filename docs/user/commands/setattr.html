@@ -29,6 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 &nbsp;<i>level</i> &nbsp;<i>attr-name</i>&nbsp; &nbsp;<i>value</i>&nbsp;
 [&nbsp;<b>create</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>type</b>&nbsp;&nbsp;color&nbsp;|&nbsp;boolean&nbsp;|&nbsp;integer&nbsp;|&nbsp;float&nbsp;|&nbsp;string&nbsp;]
 </h3>
 <p>
 <b>Setattr</b> is a general, multipurpose
@@ -38,10 +39,11 @@ of the specified items at the indicated <i>level</i>
 to a single user-supplied value.
 Following the usual convention, a blank specification means &ldquo;all.&rdquo;
 A new attribute will not be created unless <b>create</b> is true 
-(default <b>false</b>). 
-The related command <a href="defattr.html"><b>defattr</b></a> assigns
-many attribute values at once by reading a separately generated
-<a href="defattr.html#attrfile">attribute assignment file</a>.
+(default <b>false</b>).
+Whereas <b>setattr</b> assigns only a single value per command,
+many values can be assigned at once by reading a separately generated
+<a href="../formats/defattr.html">attribute assignment file</a>
+with the <a href="open.html#defattr"><b>open</b></a> command.
 See also: <a href="info.html"><b>info</b></a>,
 the <a href="../preferences.html#startup">custom preset example</a>
 </p><p>
@@ -67,17 +69,22 @@ The <i>attr-name</i> may include
 upper- and lower-case letters, numbers (digits), and underscores,
 but cannot start with a digit.
 </p><p>
-Regardless of whether the attribute already exists, 
-the data type is discerned as follows:
+If the <b>type</b> option is omitted, the data type will be guessed as follows:
 </p>
 <ol>
-<li> the value is parsed to identify data type in the order:
-integer, floating-point (real), Boolean, character string
-<li>if the data type is character string and 
-<i>attr-name</i> ends in &ldquo;color,&rdquo;
-the value is interpreted as a <a href="colornames.html">color specifier</a>
+<li>If <i>attr-name</i> ends in &ldquo;color,&rdquo; <i>value</i> 
+will be interpreted as a <a href="colornames.html">color specifier</a>.
+<li>If <i>value</i> is given as <b>true</b> or <b>false</b> (exactly as
+shown, not truncated), it will be interpreted as Boolean.
+<li>Otherwise, an attempt will be made to parse <i>value</i> first as
+an integer, then as a floating-point (real) number, then as a character string.
 </ol>
 <p>
+If the <b>type</b> is given as <b>boolean</b>,
+<i>value</i> can be truncated, with
+synonyms for <b>true</b>: <b>True</b>, <b>1</b>, and
+synonyms for <b>false</b>: <b>False</b>, <b>0</b>.
+</p><p>
 Although <b>setattr</b> does not restrict which attributes it can affect,
 using it for certain attributes may not make sense. For example,
 a simpler command may already exist to perform the same task:
@@ -98,5 +105,5 @@ evaluated before the attribute value is changed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+October 2020</address>
 </body></html>

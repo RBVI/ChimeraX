@@ -11,9 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
-from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex, pyqtSignal, QSortFilterProxyModel
-from PyQt5.QtGui import QFontDatabase, QBrush, QColor
+from Qt.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
+from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
+# Qt has no QVariant; None can be used in place of an invalid QVariant
+# from Qt.QtCore import QVariant
+from Qt.QtGui import QFontDatabase, QBrush, QColor
 
 class QCxTableModel(QAbstractTableModel):
     def __init__(self, item_table, **kw):
@@ -50,7 +52,7 @@ class QCxTableModel(QAbstractTableModel):
                 font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
             elif col.font is None:
                 if self._item_table._table_model is None:
-                    return QVariant()
+                    return None
                 font = self._item_table.font()
             else:
                 font = col.font
@@ -60,11 +62,11 @@ class QCxTableModel(QAbstractTableModel):
             return font
         if role == Qt.TextAlignmentRole:
             return self._convert_justification(col.justification)
-        return QVariant()
+        return None
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
-            return QVariant()
+            return None
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
@@ -89,7 +91,7 @@ class QCxTableModel(QAbstractTableModel):
         elif role == Qt.ToolTipRole and col.balloon:
             return col.balloon
 
-        return QVariant()
+        return None
 
     def rowCount(self, parent=None):
         return len(self._item_table._data)
@@ -146,7 +148,7 @@ class ItemTable(QTableView):
         items to the connected function.
     """
 
-    selection_changed = pyqtSignal(list, list)
+    selection_changed = Signal(list, list)
 
     DEFAULT_SETTINGS_ATTR = "item_table_info"
 
@@ -193,10 +195,10 @@ class ItemTable(QTableView):
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
-            from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
+            from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
-                from PyQt5.QtCore import Qt
+                from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
                 self._col_checkbox_layout = QGridLayout()
@@ -205,7 +207,7 @@ class ItemTable(QTableView):
                 main_layout.addLayout(self._col_checkbox_layout)
                 self._col_checkboxes = []
                 if column_control_info[-1]:
-                    from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+                    from Qt.QtWidgets import QDialogButtonBox as qbbox
                     buttons_widget = QWidget()
                     main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()

@@ -35,7 +35,7 @@ def interpolate_dihedrals(indices, coords0, coords1, f, coord_set):
                 interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set)
 
 # C++ optimized versions for interpolating.
-from ._morph import interpolate_linear, interpolate_dihedrals
+from .morph_cpp import interpolate_linear, interpolate_dihedrals
 
 def interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set):
         """

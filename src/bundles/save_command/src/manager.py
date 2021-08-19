@@ -14,24 +14,29 @@
 class NoSaverError(ValueError):
     pass
 
+class SaverNotInstalledError(NoSaverError):
+    pass
+
 class ProviderInfo:
-    def __init__(self, bundle_info, format_name, compression_okay):
+    def __init__(self, bundle_info, format_name, compression_okay, is_default):
         self.bundle_info = bundle_info
         self.format_name = format_name
         self.compression_okay = compression_okay
+        self.is_default = is_default
 
 from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
     """Manager for save command"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._savers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("save command changed")
+        super().__init__(name)
 
-    def add_provider(self, bundle_info, format_name, compression_okay=True, **kw):
+    def add_provider(self, bundle_info, format_name, compression_okay=True, is_default=True, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -45,14 +50,25 @@ class SaveManager(ProviderManager):
                 " format '%s'; skipping" % (bundle_name, format_name))
             return
         if data_format in self._savers:
-            logger.warning("Replacing file-saver for '%s' from %s bundle with that from"
-                " %s bundle" % (data_format.name, _readable_bundle_name(
-                self._savers[data_format].bundle_info), bundle_name))
+            if not bundle_info.installed:
+                return
+            prev_bundle = self._savers[data_format].bundle_info
+            if prev_bundle.installed:
+                logger.warning("Replacing file-saver for '%s' from %s bundle with that from %s bundle"
+                    % (data_format.name, _readable_bundle_name(prev_bundle), bundle_name))
         self._savers[data_format] = ProviderInfo(bundle_info, format_name,
-            bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"))
+            bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"),
+            bool_cvt(is_default, format_name, bundle_name, "is_default"))
 
     def end_providers(self):
         self.triggers.activate_trigger("save command changed", self)
+
+    def provider_info(self, data_format):
+        try:
+            return self._savers[data_format]
+        except KeyError:
+            raise NoSaverError("No file-saver registered for format '%s'"
+                % data_format.name)
 
     def save_args(self, data_format):
         try:
@@ -60,6 +76,8 @@ class SaveManager(ProviderManager):
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
+        if not provider_info.bundle_info.installed:
+            raise SaverNotInstalledError("File-saver for format '%s' not installed" % data_format.name)
         return provider_info.bundle_info.run_provider(self.session,
             provider_info.format_name, self).save_args
 
@@ -78,8 +96,10 @@ class SaveManager(ProviderManager):
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return provider_info.bundle_info.run_provider(self.session,
-            provider_info.format_name, self).save_args_widget(self.session)
+        bi = provider_info.bundle_info
+        if not bi.installed:
+            raise SaverNotInstalledError("File-saver for format '%s' not installed" % data_format.name)
+        return bi.run_provider(self.session, provider_info.format_name, self).save_args_widget(self.session)
 
     def save_args_string_from_widget(self, data_format, widget):
         try:
@@ -107,13 +127,6 @@ class SaveManager(ProviderManager):
         The names of data formats for which an saver function has been registered.
         """
         return list(self._savers.keys())
-
-    def save_info(self, data_format):
-        try:
-            return self._savers[data_format]
-        except KeyError:
-            raise NoSaverError("No file-saver registered for format '%s'"
-                % data_format.name)
 
 def _readable_bundle_name(bundle_info):
     name = bundle_info.name

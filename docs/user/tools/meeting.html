@@ -1,0 +1,109 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Meeting</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Meeting</h3>
+
+<p>
+<b>Meeting</b> allows sharing a scene between
+two or more ChimeraX instances running on different computers.
+Its main purpose is to allow multi-person
+<a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX.
+It can also be used without VR, but in that case,
+a desktop screen-sharing program may be a more reliable alternative.
+Each participant is represented by a head-position image and 
+hand-controller pointer cones
+so that participants can see each other pointing at objects in the scene.
+For non-VR participants, the camera view is synchronized, and
+the cone indicating the mouse pointer position of a non-VR user
+is displayed to others when the user pauses the mouse over a model,
+as for picking.
+</p><p>
+The <b>Meeting</b> tool allows changing some of the major 
+settings for ChimeraX meetings, a subset of those available via the
+<a href="../commands/meeting.html"><b>meeting</b></a> command.
+</p>
+
+<a name="dialog"></a>
+<p class="nav">
+[<a href="#top">back to top: Meeting</a>]
+</p>
+<h3>Dialog Settings and Buttons</h3>
+<p>
+The <b>Meeting</b> dialog can be opened
+from the <b>General</b> section of the 
+<b>Tools</b> menu and manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+Settings other than meeting name are remembered as
+<a href="../preferences.html#other">preferences</a>. 
+The current settings can be reported with the
+<a href="../commands/meeting.html#settings"><b>meeting settings</b></a> command.
+</p>
+<ul>
+<li><b>Meeting name</b>
+&ndash; a text identifier for the meeting, assigned by the person
+who creates the meeting and used by other participants to join the meeting. 
+Meeting names are not case-sensitive.
+<li><b>Participant name</b>
+&ndash; a text identifier for the individual within the meeting environment
+<li><b>Pointer color</b>
+&ndash; a color for the particant's hand-controller pointer cones in VR, 
+or mouse cursor position if not in VR
+(initial default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>)
+<li><b>Photo</b>
+&ndash; an image to represent the participant's headset position in VR
+</ul>
+<p>Buttons:</p>
+<ul>
+<li><b>Create</b>
+&ndash; start a ChimeraX meeting with the specified meeting name
+<li><b>Join</b>
+&ndash; join an existing ChimeraX meeting with the specified meeting name
+<li><b>Leave</b>
+&ndash; exit the meeting
+<li><b>Server...</b> show the server setting used when creating a new meeting, not used for joining a meeting:
+  <ul>
+  <li><b>chimeraxmeeting.net</b> (initial default)
+  &ndash; use this publicly available computer to forward connections
+  to the computer that started the meeting (needed when the latter cannot
+  be reached by participants because it is behind a firewall)
+  <li><b>direct</b> 
+  &ndash; connect directly to the computer that started the meeting
+  <li>To add a new private meeting server to this menu, see the
+  <a href="../commands/meeting.html#server"><b>meeting server</b></a> command. 
+  See also the <a href="../commands/meeting.html#setupserver">instructions</a>
+  for setting up a new meeting server. 
+  </ul>
+<li><b>Help</b>
+&ndash; show documentation in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+April 2021</address>
+</body></html>

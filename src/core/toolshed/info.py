@@ -30,8 +30,6 @@ class BundleInfo:
         List of tools registered for this bundle.
     installed : boolean
         True if this bundle is installed locally; False otherwise.
-    file_formats : list of :py:class:`DataInfo`
-        List of data formats that this bundle knows about.
     session_versions : range
         Given as the minimum and maximum session versions
         that this bundle can read.
@@ -42,6 +40,8 @@ class BundleInfo:
         Whether bundle has custom initialization code
     name : readonly str
         The internal name of the bundle.
+    short_name : readonly str
+        A short name for the bundle.  Typically the same as 'name' with 'ChimeraX-' omitted.
     synopsis : readonly str
         Short description of this bundle.
     version : readonly str
@@ -72,7 +72,7 @@ class BundleInfo:
                  managers=None,
                  providers=None,
                  inits=None,
-                 packages=[], supercedes=[]):
+                 packages=[], supersedes=[]):
         """Initialize instance.
 
         Parameters
@@ -121,7 +121,7 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
-        self.supercedes = supercedes
+        self.supersedes = supersedes
         self.package_name = api_package_name
         self.installed_data_dir = data_dir
         self.installed_include_dir = include_dir
@@ -137,8 +137,20 @@ class BundleInfo:
         self._synopsis = synopsis
 
     @property
+    def supercedes(self):
+        # deprecated in ChimeraX 1.2
+        return self.supersedes
+
+    @property
     def name(self):
         """Supported API. Return bundle name."""
+        return self._name
+    @property
+    def short_name(self):
+        """Supported API. Return bundle name."""
+        boilerplate = "ChimeraX-"
+        if self._name.startswith(boilerplate):
+            return self._name[len(boilerplate):]
         return self._name
 
     @property
@@ -190,7 +202,7 @@ class BundleInfo:
             "api_package_name": self.package_name,
             "packages": self.packages,
             "description": self.description,
-            "supercedes": self.supercedes,
+            "supersedes": self.supersedes,
             "data_dir": self.installed_data_dir,
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
@@ -216,6 +228,10 @@ class BundleInfo:
         instance of BundleInfo
         """
         args, kw, more = data
+        if 'supercedes' in kw:
+            # handle spelling mistake from ChimeraX 1.1 and earlier
+            kw['supersedes'] = kw['supercedes']
+            del kw['supercedes']
         kw['session_versions'] = range(*kw['session_versions'])
         kw['packages'] = [tuple(x) for x in kw['packages']]
         tools = [ToolInfo.from_cache_data(d) for d in more['tools']]
@@ -426,7 +442,9 @@ class BundleInfo:
 
     def imported(self):
         import sys
-        return self.package_name in sys.modules
+        # modules = ('.'.join(p) for p in self.packages)
+        modules = (p[0] for p in self.packages if len(p) == 1)
+        return any(m in sys.modules for m in modules)
 
     def get_class(self, class_name, logger):
         """Supported API. Return bundle's class with given name."""
@@ -463,14 +481,7 @@ class BundleInfo:
         import sys
         if sys.platform.startswith('win'):
             import os
-            try:
-                paths = os.environ['PATH'].split(';')
-            except KeyError:
-                paths = []
-            if libdir in paths:
-                return
-            paths.append(libdir)
-            os.environ['PATH'] = ';'.join(paths)
+            os.add_dll_directory(libdir)
             # _debug("  update_library_path: windows", paths)
 
     def _get_api(self, logger=None):
@@ -510,10 +521,8 @@ class BundleInfo:
 
         Raises
         ------
-        ToolshedUninstalledError
-            If the bundle is not installed.
         ToolshedError
-            If the tool cannot be started.
+            If the tool is not installed or cannot be started.
         """
         if not self.installed:
             raise ToolshedError("bundle \"%s\" is not installed"

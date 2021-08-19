@@ -70,10 +70,6 @@ class ToolUI(HtmlToolInstance):
             instance_name = _make_instance_name()
         _instance_map[instance_name] = self
         display_name = "%s [name: %s]" % (tool_name, instance_name)
-        from . import pdbinfo
-        # we depend on this ordering of infos (due to caching in the pdbinfo module)
-        self._pdbinfo_list = (pdbinfo.entry_info, pdbinfo.chain_info,
-                              pdbinfo.ligand_info)
 
         # Initialize base class.  ``size_hint`` is the suggested
         # initial tool size in pixels.  For debugging, add
@@ -101,7 +97,7 @@ class ToolUI(HtmlToolInstance):
 
     def handle_scheme(self, url):
         # Called when GUI sets browser URL location.
-        # ``url`` - ``PyQt5.QtCore.QUrl`` instance
+        # ``url`` - ``Qt.QtCore.QUrl`` instance
 
         # First check that the path is a real command
         command = url.path()
@@ -338,16 +334,14 @@ class ToolUI(HtmlToolInstance):
         self.html_view.runJavaScript(js)
 
     def _add_pdbinfo(self, pdb_chains):
+        from .pdbinfo import fetch_pdb_info
         chain_ids = pdb_chains.keys()
-        for info in self._pdbinfo_list:
-            # we depend on the fact that entry information
-            # is fetched before chain information
-            data = info.fetch_info(self.session, chain_ids)
-            for chain_id, hit in pdb_chains.items():
-                for k, v in data[chain_id].items():
-                    if isinstance(v, list):
-                        v = ", ".join([str(s) for s in v])
-                    hit[k] = v
+        data = fetch_pdb_info(self.session, chain_ids)
+        for chain_id, hit in pdb_chains.items():
+            for k, v in data[chain_id].items():
+                if isinstance(v, list):
+                    v = ", ".join([str(s) for s in v])
+                hit[k] = v
 
 
     def job_failed(self, job, error):

@@ -28,42 +28,49 @@ static void solve_tridiagonal(double *y, int64_t n, double *temp);
 // Match first and second derivatives at interval end-points and make second
 // derivatives zero at two ends of path.
 //
-static void natural_cubic_spline(float *path, int64_t n, int segment_subdivisions,
+static void natural_cubic_spline(float *path, int64_t n, int64_t dim,
+				 int fixed_segment_subdivisions, int *segment_subdivisions,
 				 float *spath, float *tangents)
 {
   if (n == 0)
     return;
   if (n == 1)
     {
-      spath[0] = path[0]; spath[1] = path[1]; spath[2] = path[2];
-      tangents[0] = tangents[1] = tangents[2] = 0;
+      for (int64_t a = 0 ; a < dim ; ++a)
+	{
+	  spath[a] = path[a];
+	  if (tangents)
+	    tangents[a] = 0;
+	}
       return;
     }
 
   // Solve tridiagonal system to calculate spline
   double *b = new double [n];
   double *temp = new double [n];
-  for (int a = 0 ; a < 3 ; ++a)
+  for (int64_t a = 0 ; a < dim ; ++a)
     {
       b[0] = 0;
       b[n-1] = 0;
       for (int64_t i = 1 ; i < n-1 ; ++i)
-	b[i] = path[3*(i+1)+a] -2*path[3*i+a] + path[3*(i-1)+a];
+	b[i] = path[dim*(i+1)+a] -2*path[dim*i+a] + path[dim*(i-1)+a];
       solve_tridiagonal(b,n,temp);
       int64_t k = 0;
-      int div = segment_subdivisions;
       for (int64_t i = 0 ; i < n-1 ; ++i)
 	{
+	  int div = (segment_subdivisions ?
+		     segment_subdivisions[i] : fixed_segment_subdivisions);
 	  int pc = (i < n-2 ? div + 1 : div + 2);
 	  for (int s = 0 ; s < pc ; ++s)
 	    {
 	      double t = s / (div + 1.0);
-	      double ct = path[3*(i+1)+a] - b[i+1];
-	      double c1t = path[3*i+a] - b[i];
+	      double ct = path[dim*(i+1)+a] - b[i+1];
+	      double c1t = path[dim*i+a] - b[i];
 	      double u = 1-t;
 	      spath[k+a] = b[i+1]*t*t*t + b[i]*u*u*u + ct*t + c1t*u;
-	      tangents[k+a] = 3*b[i+1]*t*t - 3*b[i]*u*u + ct - c1t;
-	      k += 3;
+	      if (tangents)
+		tangents[k+a] = 3*b[i+1]*t*t - 3*b[i]*u*u + ct - c1t;
+	      k += dim;
 	    }
 	}
     }
@@ -71,17 +78,25 @@ static void natural_cubic_spline(float *path, int64_t n, int segment_subdivision
   delete [] temp;
 
   // normalize tangent vectors.
-  int64_t ns = n + (n-1)*segment_subdivisions;
-  int64_t ns3 = 3*ns;
-  for (int64_t i = 0 ; i < ns3 ; i += 3)
+  if (tangents)
     {
-      float tx = tangents[i], ty = tangents[i+1], tz = tangents[i+2];
-      float tn = sqrt(tx*tx + ty*ty + tz*tz);
-      if (tn > 0)
+      int64_t ns = n;
+      if (segment_subdivisions)
+	for (int64_t i = 0 ; i < n-1 ; ++i)
+	  ns += segment_subdivisions[i];
+      else
+	ns += (n-1)*fixed_segment_subdivisions;
+      int64_t nsd = dim*ns;
+      for (int64_t i = 0 ; i < nsd ; i += dim)
 	{
-	  tangents[i] = tx/tn;
-	  tangents[i+1] = ty/tn;
-	  tangents[i+2] = tz/tn;
+	  float tx = tangents[i], ty = tangents[i+1], tz = tangents[i+2];
+	  float tn = sqrt(tx*tx + ty*ty + tz*tz);
+	  if (tn > 0)
+	    {
+	      tangents[i] = tx/tn;
+	      tangents[i+1] = ty/tn;
+	      tangents[i+2] = tz/tn;
+	    }
 	}
     }
 }
@@ -106,27 +121,82 @@ static void solve_tridiagonal(double *y, int64_t n, double *temp)
 
 // -----------------------------------------------------------------------------
 //
+static PyObject *natural_cubic_spline_subdivisions_array(PyObject *args, PyObject *keywds)
+{
+  FArray path;
+  IArray segment_subdiv;
+  int return_tangents = 1;
+  const char *kwlist[] = {"path", "segment_subdivisions", "tangents", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&|p"),
+				   (char **)kwlist,
+				   parse_float_2d_array, &path,
+				   parse_int_n_array, &segment_subdiv,
+				   &return_tangents))
+    return NULL;
+
+  // Check that subdivisions array has correct length.
+  if (path.size(0) > 0 && segment_subdiv.size(0)+1 != path.size(0))
+    {
+      PyErr_Format(PyExc_ValueError,
+		   "natural_cubic_spline(): segment subdivision array (%s)must have length one less than number of interpolated points (%s)",
+		   segment_subdiv.size_string(0).c_str(), path.size_string(0).c_str());
+      return NULL;
+    }
+
+					
+  IArray sdiv = segment_subdiv.contiguous_array();
+  int *segment_subdivisions = sdiv.values();
+  int fixed_segment_subdivisions = 0;	// Not used.
+
+  int64_t n = path.size(0), np = path.size(1);
+  FArray cpath = path.contiguous_array();
+  float *p = cpath.values();
+  float *spath, *tangents = NULL;
+  int64_t ns = n;
+  for (int64_t i = 0 ; i < n-1 ; ++i)
+    ns += segment_subdivisions[i];
+  PyObject *result;
+  PyObject *spath_py = python_float_array(ns, np, &spath);
+  if (return_tangents)
+    {
+      PyObject *tangents_py = python_float_array(ns, np, &tangents);
+      result = python_tuple(spath_py, tangents_py);
+    }
+  else
+    result = spath_py;
+
+  natural_cubic_spline(p, n, np, fixed_segment_subdivisions,
+		       segment_subdivisions, spath, tangents);
+      
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+//
 const char *natural_cubic_spline_doc =
   "natural_cubic_spline(path, segment_subdivisions) -> spath, tangents\n"
   "\n"
   "Supported API\n"
-  "Compute a natural cubic spline through path points in 3 dimensions,\n"
+  "Compute a natural cubic spline through path points in M dimensions,\n"
   "producing a finer set of points and tangent vectors at those points.\n"
   "Implemented in C++.\n"
   "\n"
   "Parameters\n"
   "----------\n"
-  "path : n by 3 float array\n"
-  "  points that spline will pass through.\n"
-  "segment_subdivisions : int\n"
+  "path : N by M float array\n"
+  "  N points in M-dimensions that spline will pass through.\n"
+  "segment_subdivisions : int or int array of length n-1\n"
   "  place this number of additional points between every two consecutive\n"
-  "  path points.\n"
+  "  path points.  If an array is given each pair of path points can have\n"
+  "  a different number of subdivisions.\n"
+  "tangents : bool\n"
+  "  whether spline path tangents are returned, default true.\n"
   "\n"
   "Returns\n"
   "-------\n"
-  "spath : m by 3 float array\n"
+  "spath : m by M float array\n"
   "  points on cubic spline including original points and subdivision points.\n"
-  "tangents : m by 3 float array\n"
+  "tangents : m by M float array\n"
   "  tangent vector at point of returned path.\n";
 
 // -----------------------------------------------------------------------------
@@ -136,22 +206,36 @@ PyObject *natural_cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray path;
   int segment_subdivisions;
-  const char *kwlist[] = {"path", "segment_subdivisions", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i"),
+  int return_tangents = 1;
+  const char *kwlist[] = {"path", "segment_subdivisions", "tangents", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i|p"),
 				   (char **)kwlist,
-				   parse_float_n3_array, &path,
-				   &segment_subdivisions))
-    return NULL;
+				   parse_float_2d_array, &path,
+				   &segment_subdivisions,
+				   &return_tangents))
+    {
+      PyErr_Clear();
+      return natural_cubic_spline_subdivisions_array(args, keywds);
+    }
 
-  int64_t n = path.size(0);
-  float *p = path.values();
-  float *spath, *tangents;
+  int64_t n = path.size(0), np = path.size(1);
+  FArray cpath = path.contiguous_array();
+  float *p = cpath.values();
+  int *segment_subdivisions_array = NULL;
+  float *spath, *tangents = NULL;
   int64_t ns = (n > 1 ? n + (n-1)*segment_subdivisions : n);
-  PyObject *spath_py = python_float_array(ns, 3, &spath);
-  PyObject *tangents_py = python_float_array(ns, 3, &tangents);
+  PyObject *result;
+  PyObject *spath_py = python_float_array(ns, np, &spath);
+  if (return_tangents)
+    {
+      PyObject *tangents_py = python_float_array(ns, np, &tangents);
+      result = python_tuple(spath_py, tangents_py);
+    }
+  else
+    result = spath_py;
 
-  natural_cubic_spline(p, n, segment_subdivisions, spath, tangents);
+  natural_cubic_spline(p, n, np, segment_subdivisions,
+		       segment_subdivisions_array, spath, tangents);
 
-  PyObject *pt = python_tuple(spath_py, tangents_py);
-  return pt;
+  return result;
 }

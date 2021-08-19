@@ -54,8 +54,8 @@ class AtomPairRestrictOption(Option):
     def _make_widget(self, *, display_value=None, **kw):
         if display_value is None:
             display_value = self.fixed_kw_menu_texts[0]
-        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
+        from Qt.QtCore import Qt
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(2)
@@ -65,7 +65,7 @@ class AtomPairRestrictOption(Option):
         self.__push_button.setMenu(menu)
         for label in self.fixed_kw_menu_texts + (self.atom_spec_menu_text,):
             action = QAction(label, self.__push_button)
-            action.triggered.connect(lambda arg, s=self, lab=label: self._menu_cb(lab))
+            action.triggered.connect(lambda *, s=self, lab=label: self._menu_cb(lab))
             menu.addAction(action)
         layout.addWidget(self.__push_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.__line_edit = QLineEdit()

@@ -9,9 +9,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .run import run, concise_model_spec, sel_or_all, NoneSelectedError
+from .run import run, concise_model_spec, sel_or_all, NoneSelectedError, JSONResult, ArrayJSONEncoder
 from .runscript import runscript
-from .logging import log_equivalent_command, residues_specifier, options_text
+from .logging import log_equivalent_command, residues_specifier, options_text, camel_case
+from .logging import enable_motion_commands, motion_commands_enabled, motion_command
 
 from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article
@@ -28,7 +29,7 @@ from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, Rest
 from .cli import FileNameArg, OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
 from .cli import AttrNameArg, PasswordArg
 
-from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
+from .colorarg import ColorArg, Color8Arg, Color8TupleArg, ColormapArg, ColormapRangeArg
 
 from .atomspec import AtomSpecArg, all_objects
 from .atomspec import register_selector, deregister_selector

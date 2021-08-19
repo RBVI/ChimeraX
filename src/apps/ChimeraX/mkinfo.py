@@ -24,7 +24,6 @@ import plistlib
 import datetime
 from distlib.version import NormalizedVersion as Version
 from chimerax.core import configfile
-from ChimeraX_main import init
 
 configfile.only_use_defaults = True
 
@@ -51,9 +50,9 @@ def utid(f):
     """convert ChimeraX type to its Apple Universal Type Identifier"""
     # look for a domain the fetch data
     from chimerax.core import io
-    for fetchInfo in io.fetch._fetchInfo:
-        dbname = fetchInfo[0]
-        homepage = fetchInfo[4]
+    for fetch_info in io.fetch._fetchInfo:
+        dbname = fetch_info[0]
+        homepage = fetch_info[4]
         if f == dbname:
             domain = homepage
             break
@@ -108,9 +107,11 @@ def dump_format(f):
 
 # Initialize ChimeraX to get all registered file types
 if 'session' in locals() or 'session' in globals():
-    formats = session.open_command.open_data_formats
+    formats = session.open_command.open_data_formats  # NOQA
     chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
 else:
+    sys.path.insert(0, '')
+    from ChimeraX_main import init
     init([app_name, "--safemode", "--nogui", "--exit"])
     formats = []
 
@@ -209,7 +210,7 @@ for f in formats:
             pl["UTExportedTypeDeclarations"] = type_info
 
         type_info = []
-        for f in session.data_formats.formats:
+        for f in session.data_formats.formats:  # NOQA
             if f.name in chimera_types:
                 continue
             d = dump_format(f)

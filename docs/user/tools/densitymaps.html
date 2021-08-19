@@ -145,8 +145,9 @@ to set orthoplanes with
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fullvolume.png" width="35px"></td>
-<td align="center">full region; assign right mouse button to
-<b>crop&nbsp;volume</b> <a href="mousemodes.html" title="Right Mouse Toolbar...">
+<td align="center">full region (uncrop, unzone, show dust);
+assign right mouse button to <b>crop&nbsp;volume</b>
+<a href="mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="mouse-icons/crop.png"></a></td>
 <td align="center">
 <b><a href="../commands/volume.html#dimensions">volume</a> region all 
@@ -155,13 +156,45 @@ to set orthoplanes with
 <b><a href="../commands/ui.html#mousemode">mousemode</a> right "crop volume"</b>
 </td>
 </tr><tr>
+<td align="center"><img src="shortcut-icons/volzone.png" width="35px"></td>
+<td align="center">zone map near atoms; use full region (above) to unzone</td>
+<td align="center">
+<b><a href="../commands/volume.html#zone">volume zone</a></b>
+map near displayed atomic models (using only
+<a href="../selection.html">selected</a> atoms, if any, otherwise all)
+within a distance <b>range</b> of
+6 times the maximum grid spacing along X,Y, or Z
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/colorzone.png" width="35px"></td>
+<td align="center">color map near atoms</td>
+<td align="center">
+<b><a href="../commands/color.html#zone">color zone</a></b>
+map near displayed atomic models (using only the 
+<a href="../selection.html">selected</a> atoms, if any, otherwise all)
+within a <b>distance</b> range of
+6 times the maximum grid spacing along X,Y, or Z
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/dust.png" width="35px"></td>
+<td align="center">hide dust; use full region (above) to show dust</td>
+<td align="center">
+<b><a href="../commands/surface.html#dust">surface dust</a></b> 
+the displayed maps (acting on 
+<a href="../selection.html">selected</a> maps only, if any, otherwise all)
+using a <b>size</b> limit of 10 times the maximum grid spacing along X,Y, or Z
+</td>
+</tr><tr>
 <td align="center"><img src="shortcut-icons/fitmap.png" width="35px"></td>
-<td align="center">fit map in map</td>
+<td align="center">fit in map</td>
 <td align="center">
 <b><a href="../commands/fitmap.html">fitmap</a> #<i>N</i> inMap #<i>M</i></b>
 <p style="margin-top:2px;margin-bottom:3px">
-(fitting the lower-model-number of two maps total or
-<a href="../selection.html">selected</a> into the other)</td>
+(fitting displayed models, either atomic into map or map into map,
+favoring <a href="../selection.html">selected</a> models when more than
+two are displayed; if only two map models are displayed, fitting the 
+<a href="../selection.html">selected</a> or lower-model-number one
+into the other)</td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/diffmap.png" width="35px"></td>
 <td align="center">difference map</td>
@@ -179,32 +212,9 @@ to set orthoplanes with
 <p style="margin-top:2px;margin-bottom:3px">
 (where <i>N</i> is the model number of a single 
 <a href="../selection.html">selected</a> map)</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/xyzslice.png" width="35px"></td>
-<td align="center">2D-XYZ projection for image display</td>
-<td align="center">
-<b><a href="../commands/volume.html#dispsolid">volume</a>
-projectionMode 2d-xyz</b>
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/perpslice.png" width="35px"></td>
-<td align="center">3D projection for image display</td>
-<td align="center">
-<b><a href="../commands/volume.html#dispsolid">volume</a>
-projectionMode 3d</b>
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/initialcurve.png" width="35px"></td>
-<td align="center">initial thresholds
-<a href="../dicom-quickref.html#presets">preset</a> for image display,
-<i>e.g.</i>, for single planes</td>
-<td align="center">
-<b><a href="../commands/volume.html#dispsolid">volume</a>
-<a href="../commands/volume.html#appearance">appearance</a> initial</b>
-</td>
 </tr>
 </table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+February 2021</address>
 </body></html>

@@ -68,6 +68,7 @@ class Model(State, Drawing):
     def __init__(self, name, session):
         self._name = name
         Drawing.__init__(self, name)
+        self.inherit_graphics_exemptions = False  # Don't copy lighting/clipping exemptions from parent
         self.session = session
         self._id = None
         self._added_to_session = False
@@ -327,6 +328,7 @@ class Model(State, Drawing):
             'positions': self.positions.array(),
             'display_positions': self.display_positions,
             'allow_depth_cue': self.allow_depth_cue,
+            'allow_clipping': self.allow_clipping,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
             'version': MODEL_STATE_VERSION,
@@ -365,7 +367,7 @@ class Model(State, Drawing):
         self.positions = Places(place_array=pa)
         self.display_positions = data['display_positions']
         for d in self.all_drawings():
-            for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+            for attr in ['allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow']:
                 if attr in data:
                     setattr(d, attr, data[attr])
 
@@ -739,11 +741,11 @@ class Models(StateManager):
     def _update_child_ids(self, model):
         id = model.id
         mt = self._models
-        for child in model.all_models():
-            if child is not model:
-                del mt[child.id]
-                child.id = id + child.id[len(id):]
-                mt[child.id] = child
+        for child in model.child_models():
+            del mt[child.id]
+            child.id = id + child.id[-1:]
+            mt[child.id] = child
+            self._update_child_ids(child)
             
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''

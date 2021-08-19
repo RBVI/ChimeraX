@@ -1,0 +1,48 @@
+<BundleInfo name="ChimeraX-PDBLibrary" version="1.0.1"
+	    package="chimerax.pdb_lib" purePython="false"
+		installedIncludeDir="include" installedLibraryDir="lib"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>C++ PDB support</Synopsis>
+  <Description>This provides a PDB-related C++ library.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <CLibrary name="pdbconnect">
+    <SourceFile>connect_cpp/connect.cpp</SourceFile>
+	<Library>atomstruct</Library>
+    <Library>element</Library>
+    <Library>pyinstance</Library>
+  </CLibrary>
+
+  <ExtraFiles>
+    <ExtraFile source="connect_cpp/connect.h">include/pdb/connect.h</ExtraFile>
+    <ExtraFile source="connect_cpp/imex.h">include/pdb/imex.h</ExtraFile>
+  </ExtraFiles>
+
+  <CModule name="_load_libs">
+    <SourceFile>connect_cpp/load_libs.cpp</SourceFile>
+	<IncludeDir>src/include</IncludeDir>
+	<LibraryDir>src/lib</LibraryDir>
+    <Library>atomstruct</Library>
+    <Library>pdbconnect</Library>
+  </CModule>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

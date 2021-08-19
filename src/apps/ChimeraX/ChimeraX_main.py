@@ -84,151 +84,145 @@ if sys.platform.startswith('win'):
                 pass
 
 
-def parse_arguments(argv):
-    """Initialize ChimeraX application."""
+class Opts:
+
+    def __init__(self):
+        self.help = False
+        self.commands = []
+        self.cmd = None   # Python's -c option
+        self.debug = False
+        self.devel = False
+        self.event_loop = True
+        self.gui = True
+        self.color = None
+        self.module = None  # Python's -m option
+        self.run_path = None  # Need to act like "python path args"
+        self.line_profile = False
+        self.list_io_formats = False
+        self.load_tools = True
+        self.offscreen = False
+        self.scripts = []
+        self.silent = False
+        self.start_tools = []
+        self.status = True
+        self.stereo = False
+        self.uninstall = False
+        self.use_defaults = False
+        self.version = -1
+        self.get_available_bundles = True
+        self.safe_mode = False
+        self.toolshed = None
+
+
+def _parse_python_args(argv, usage):
+    # ChimeraX can be invoked by pip thinking that it is Python.
+    # Treat all single letter arguments as Python arguments
+    # and make sure to cover all of the arguments that the
+    # subprocess package generates as well as -c, -m, and -u.
+    # Can't use getopt because -m short circuits argument parsing.
+
+    opts = Opts()
+    opts.gui = False
+    opts.event_loop = False
+    opts.get_available_bundles = False
+    opts.load_tools = False
+    opts.silent = True
+    opts.safe_mode = True
+
+    def next_arg(argv):
+        no_arg = "bdhiqvuBEIOSV"  # python option w/o argument
+        has_arg = "cmWX"          # python option w/argument
+        cur_index = 1
+        while len(argv) > cur_index and argv[cur_index][0] == '-':
+            cur_opts = argv[cur_index]
+            cur_index += 1
+            if cur_opts == '--':
+                yield None, argv[cur_index:]
+                return
+            for opt in cur_opts[1:]:
+                if opt in no_arg:
+                    yield f"-{opt}", None
+                elif opt in has_arg:
+                    if len(argv) <= cur_index:
+                        raise RuntimeError(f"Missing argument for '-{opt}'")
+                    if opt == 'm':
+                        # special case, eats rest of arguments
+                        yield '-m', argv[cur_index]
+                        yield None, argv[cur_index + 1:]
+                        return
+                    arg = argv[cur_index]
+                    cur_index += 1
+                    yield f"-{opt}", arg
+                else:
+                    raise RuntimeError(f"Unknown argument '-{opt}'")
+        yield None, argv[cur_index:]
+
+    args = []
+    try:
+        for opt, optarg in next_arg(argv):
+            if opt is None:
+                args = optarg
+                break  # last one anyway
+            # silently ignore options we don't use
+            if opt == "-c":
+                if not opts.cmd:
+                    opts.cmd = optarg
+            elif opt == "-m":
+                opts.module = optarg
+                opts.safe_mode = True
+            elif opt == "-u":
+                import io
+                sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), 'wb'),
+                                              write_through=True)
+                sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), 'wb'),
+                                              write_through=True)
+            elif opt == "-h":
+                opts.help = True
+            elif opt == "-d":
+                opts.debug = True
+                opts.devel = True
+                opts.silent = False
+            elif opt == "-v":
+                opts.silent = False
+            elif opt == "-V":
+                opts.version = 0
+    except RuntimeError as message:
+        print("%s: %s" % (argv[0], message), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
+        raise SystemExit(os.EX_USAGE)
+    return opts, args
+
+
+def _parse_chimerax_args(argv, arguments, usage):
     import getopt
 
-    if sys.platform.startswith('darwin'):
-        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
-        for i, arg in enumerate(argv):
-            if i > 0 and arg.startswith('-psn_'):
-                del argv[i]
-                break
-
-    class Opts:
-        pass
-    opts = Opts()
-    opts.commands = []
-    opts.cmd = None   # Python's -c option
-    opts.debug = False
-    opts.event_loop = True
-    opts.gui = True
-    opts.color = None
-    opts.module = None  # Python's -m option
-    opts.line_profile = False
-    opts.list_io_formats = False
-    opts.load_tools = True
-    opts.offscreen = False
-    opts.scripts = []
-    opts.silent = False
-    opts.start_tools = []
-    opts.status = True
-    opts.stereo = False
-    opts.uninstall = False
-    opts.use_defaults = False
-    opts.version = -1
-    opts.get_available_bundles = True
-    opts.safe_mode = False
-    opts.toolshed = None
-
-    # Will build usage string from list of arguments
-    arguments = [
-        "--debug",
-        "--exit",   # No event loop
-        "--nogui",
-        "--nocolor",
-        "--help",
-        "--lineprofile",
-        "--listioformats",
-        "--offscreen",
-        "--silent",
-        "--nostatus",
-        "--start <tool name>",
-        "--cmd <command>",
-        "--script <python script and arguments>",
-        "--notools",
-        "--safemode",
-        "--stereo",
-        "--uninstall",
-        "--usedefaults",
-        "--version",
-        "--qtscalefactor <factor>",
-        "--toolshed preview|<url>",
-    ]
-    if sys.platform.startswith("win"):
-        arguments += ["--console", "--noconsole"]
-    usage = '[' + "] [".join(arguments) + ']'
-    usage += " or -m module_name [args]"
-    usage += " or -c command [args]"
-    usage += " or -u -c command [args]"
-    # add in default argument values
-    arguments += [
-        "--nodebug",
-        "--noexit",
-        "--gui",
-        "--color",
-        "--nolineprofile",
-        "--nosilent",
-        "--nousedefaults",
-        "--nooffscreen",
-        "--status",
-        "--tools",
-        "--nousedefaults",
-    ]
-    if len(sys.argv) > 2 and sys.argv[1] == '-m':
-        # treat like Python's -m argument
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.module = sys.argv[2]
-        opts.load_tools = False
-        opts.safe_mode = True
-        return opts, sys.argv[2:]
-    if len(sys.argv) > 2 and sys.argv[1] == '-c':
-        # treat like Python's -c argument
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.cmd = sys.argv[2]
-        opts.load_tools = False
-        return opts, sys.argv[2:]
-    if len(sys.argv) > 2 and sys.argv[1:3] == ['-u', '-c']:
-        # treat like Python's -c argument
-        import io
-        sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), 'wb'),
-                                      write_through=True)
-        sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), 'wb'),
-                                      write_through=True)
-        opts.gui = False
-        opts.silent = True
-        opts.event_loop = False
-        opts.get_available_bundles = False
-        opts.cmd = sys.argv[3]
-        opts.load_tools = False
-        return opts, sys.argv[3:]
     try:
-        shortopts = ""
         longopts = []
         for a in arguments:
-            if a.startswith("--"):
-                i = a.find(' ')
-                if i == -1:
-                    longopts.append(a[2:])
-                else:
-                    longopts.append(a[2:i] + '=')
-            elif a.startswith('-'):
-                i = a.find(' ')
-                if i == -1:
-                    shortopts += a[1]
-                else:
-                    shortopts += a[1] + ':'
-        options, args = getopt.getopt(argv[1:], shortopts, longopts)
+            i = a.find(' ')
+            if i == -1:
+                longopts.append(a[2:])
+            else:
+                longopts.append(a[2:i] + '=')
+        options, args = getopt.getopt(argv[1:], "", longopts)
     except getopt.error as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
         print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
 
-    help = False
+    opts = Opts()
     for opt, optarg in options:
         if opt in ("--debug", "--nodebug"):
             opts.debug = opt[2] == 'd'
+            if opts.debug:
+                opts.devel = True
+        elif opt in ("--devel", "--nodevel"):
+            opts.devel = opt[2] == 'd'
         elif opt in ("--exit", "--noexit"):
             opts.event_loop = opt[2] != 'e'
             opts.get_available_bundles = False
         elif opt == "--help":
-            help = True
+            opts.help = True
         elif opt in ("--gui", "--nogui"):
             opts.gui = opt[2] == 'g'
         elif opt in ("--color", "--nocolor"):
@@ -268,11 +262,8 @@ def parse_arguments(argv):
             opts.toolshed = optarg
         else:
             print("Unknown option: ", opt)
-            help = True
+            opts.help = True
             break
-    if help:
-        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
-        raise SystemExit(os.EX_USAGE)
     if opts.version >= 0 or opts.list_io_formats:
         opts.gui = False
         opts.silent = True
@@ -280,8 +271,99 @@ def parse_arguments(argv):
     return opts, args
 
 
+def parse_arguments(argv):
+    """Initialize ChimeraX application."""
+    if sys.platform.startswith('darwin'):
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier and Mac OS X 10.12 on first launch
+        for i, arg in enumerate(argv):
+            if i > 0 and arg.startswith('-psn_'):
+                del argv[i]
+                break
+
+    if len(argv) <= 1:
+        return Opts(), []
+
+    # Will build usage string from list of arguments
+    arguments = [
+        "--debug",
+        "--devel",
+        "--exit",   # No event loop
+        "--nogui",
+        "--nocolor",
+        "--help",
+        "--lineprofile",
+        "--listioformats",
+        "--offscreen",
+        "--silent",
+        "--nostatus",
+        "--start <tool name>",
+        "--cmd <command>",
+        "--script <python script and arguments>",
+        "--notools",
+        "--safemode",
+        "--stereo",
+        "--uninstall",
+        "--usedefaults",
+        "--version",
+        "--qtscalefactor <factor>",
+        "--toolshed preview|<url>",
+    ]
+    if sys.platform.startswith("win"):
+        arguments += ["--console", "--noconsole"]
+    usage = '[' + "] [".join(arguments) + ']'
+    usage += " or Python command line arguments"
+    usage += " (e.g., -m module_name [args]"
+    usage += " or -c command [args])"
+    # add in default argument values
+    arguments += [
+        "--nodebug",
+        "--nodevel",
+        "--noexit",
+        "--gui",
+        "--color",
+        "--nolineprofile",
+        "--nosilent",
+        "--nousedefaults",
+        "--nooffscreen",
+        "--status",
+        "--tools",
+        "--nousedefaults",
+    ]
+
+    import pip
+    if argv[1].startswith(pip.__path__[0]):
+        # treat like recursive invokation of pip
+        opts = Opts()
+        opts.gui = False
+        opts.silent = True
+        opts.event_loop = False
+        opts.get_available_bundles = False
+        opts.run_path = argv[1]
+        opts.load_tools = False
+        opts.safe_mode = True
+        args = argv[1:]
+    elif argv[1][0:2] == '--':
+        # ChimeraX style options
+        opts, args = _parse_chimerax_args(argv, arguments, usage)
+    elif argv[1][0] == '-':
+        # Python style options
+        opts, args = _parse_python_args(argv, usage)
+    else:
+        # no options
+        opts = Opts()
+        args = argv[1:]
+
+    if opts.help:
+        print("usage: %s %s\n" % (argv[0], usage))
+        raise SystemExit(os.EX_USAGE)
+    return opts, args
+
+
 def init(argv, event_loop=True):
     import sys
+    # MacOS 10.12+ generates drop event for command-line argument before main()
+    # is even called; compensate
+    bad_drop_events = False
     if sys.platform.startswith('darwin'):
         paths = os.environ['PATH'].split(':')
         if '/usr/sbin' not in paths:
@@ -289,6 +371,8 @@ def init(argv, event_loop=True):
             paths.append('/usr/sbin')
             os.environ['PATH'] = ':'.join(paths)
         del paths
+        # ChimeraX is only distributed for 10.13+, so don't need to check version
+        bad_drop_events = True
 
     if sys.platform.startswith('linux'):
         # Workaround for #638:
@@ -312,7 +396,13 @@ def init(argv, event_loop=True):
     except AttributeError:
         pass
 
+    if len(argv) > 1 and argv[1].startswith('--'):
+        # MacOS doesn't generate these drop events for args after '--' flags
+        bad_drop_events = False
     opts, args = parse_arguments(argv)
+    if not opts.devel:
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     # install line_profile decorator, and install it before
     # initialize_ssl_cert_dir() in case the line profiling is in the
@@ -345,10 +435,7 @@ def init(argv, event_loop=True):
         from chimerax.core import configinfo
         configinfo.only_use_defaults = True
 
-    from chimerax import core
     if opts.offscreen:
-        # Flag to configure off-screen rendering before PyOpenGL imported
-        core.offscreen_rendering = True
         opts.gui = False
 
     if not opts.gui and opts.load_tools:
@@ -367,7 +454,7 @@ def init(argv, event_loop=True):
     # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/ChimeraX_main.py'
     # TODO: more robust way
     dn = os.path.dirname
-    rootdir = dn(dn(dn(dn(sys.argv[0]))))
+    rootdir = dn(dn(dn(dn(argv[0]))))
     if sys.platform.startswith('darwin'):
         rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
@@ -448,16 +535,13 @@ def init(argv, event_loop=True):
         chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
-    # inform the C++ layer of the appdirs paths
-    from chimerax.core import _appdirs
-    _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
-                        ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir,
-                        chimerax.app_data_dir, adu.user_cache_dir)
-
     from chimerax.core import session
     try:
-        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent, minimal=opts.safe_mode)
+        sess = session.Session(app_name,
+                               debug=opts.debug,
+                               silent=opts.silent,
+                               minimal=opts.safe_mode,
+                               offscreen_rendering=opts.offscreen)
     except ImportError as err:
         if opts.offscreen and 'OpenGL' in err.args[0]:
             if sys.platform.startswith("linux"):
@@ -471,7 +555,11 @@ def init(argv, event_loop=True):
     from chimerax.core import core_settings
     core_settings.init(sess)
 
-    session.common_startup(sess)
+    from chimerax.core.session import register_misc_commands
+    register_misc_commands(sess)
+
+    from chimerax.core import attributes
+    attributes.RegAttrManager(sess)
 
     if opts.uninstall:
         return uninstall(sess)
@@ -482,24 +570,17 @@ def init(argv, event_loop=True):
         initialize_qt()
 
     # initialize the user interface
+    # sets up logging
     if opts.gui:
+        sess.logger.clear()  # Remove nogui logging to stdout
         from chimerax.ui import gui
-        ui_class = gui.UI
-    else:
-        from chimerax.core import nogui
-        ui_class = nogui.UI
-        if opts.color is not None:
-            nogui._color_output = opts.color
-            if opts.color:
-                def t():
-                    return True
-                sys.stdout.isatty = t
-                sys.stderr.isatty = t
-    # sets up logging, splash screen if gui
-    # calls "sess.save_in_session(self)"
-    sess.ui = ui_class(sess)
+        sess.ui = gui.UI(sess)
+
+    # Set ui options
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
+    if not opts.gui:
+        sess.ui.initialize_color_output(opts.color)    # Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
@@ -509,27 +590,13 @@ def init(argv, event_loop=True):
         except Exception:
             pass
 
-    # splash screen
-    if opts.gui:
-        sess.ui.show_splash()
-    num_splash_steps = 2
-    if opts.gui:
-        num_splash_steps += 1
-    if not opts.gui and opts.load_tools:
-        num_splash_steps += 1
-    import itertools
-    splash_step = itertools.count()
-
     # common core initialization
     if not opts.silent:
-        sess.ui.splash_info("Initializing core",
-                            next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
     # Install any bundles before toolshed is initialized so
     # the new ones get picked up in this session
-    rebuild_cache = False
     from chimerax.core import toolshed
     inst_dir, restart_file = toolshed.restart_action_info()
     restart_action_msgs = []
@@ -547,10 +614,8 @@ def init(argv, event_loop=True):
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                sess.ui.splash_info("Restart action:\n%s" % line)
                 restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
-        rebuild_cache = True
 
     if opts.toolshed is None:
         # Default to whatever the restart actions needed
@@ -559,15 +624,13 @@ def init(argv, event_loop=True):
         toolshed_url = toolshed.preview_toolshed_url()
     else:
         toolshed_url = opts.toolshed
-    toolshed.init(sess.logger, debug=sess.debug, rebuild_cache=rebuild_cache,
+    toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles,
                   remote_url=toolshed_url, ui=sess.ui)
     sess.toolshed = toolshed.get_toolshed()
-    if opts.module != 'pip':
+    if opts.module != 'pip' and opts.run_path is None:
         # keep bugs in ChimeraX from preventing pip from working
         if not opts.silent:
-            sess.ui.splash_info("Initializing bundles",
-                                next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
         sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
@@ -619,8 +682,6 @@ def init(argv, event_loop=True):
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
         if not opts.silent:
-            sess.ui.splash_info("Starting main interface",
-                                next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Starting main interface", flush=True)
         sess.ui.build()
@@ -628,7 +689,6 @@ def init(argv, event_loop=True):
     if opts.start_tools:
         if not opts.silent:
             msg = 'Starting tools %s' % ', '.join(opts.start_tools)
-            sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         # canonicalize tool names
@@ -644,37 +704,56 @@ def init(argv, event_loop=True):
     if opts.commands:
         if not opts.silent:
             msg = 'Running startup commands'
-            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
         for cmd in opts.commands:
-            run(sess, cmd)
+            try:
+                run(sess, cmd)
+            except Exception:
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     if opts.scripts:
         if not opts.silent:
             msg = 'Running startup scripts'
-            # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
         for script in opts.scripts:
-            run(sess, 'runscript %s' % script)
+            try:
+                run(sess, 'runscript %s' % script)
+            except Exception:
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
+            except SystemExit as e:
+                return e.code
 
     if not opts.silent:
-        sess.ui.splash_info("Finished initialization",
-                            next(splash_step), num_splash_steps)
         if sess.ui.is_gui and opts.debug:
             print("Finished initialization", flush=True)
-
-    if opts.gui:
-        sess.ui.close_splash()
 
     if not opts.silent:
         from chimerax.core.logger import log_version
         log_version(sess.logger)  # report version in log
 
-    if opts.gui or hasattr(core, 'offscreen_rendering'):
+    if opts.gui or opts.offscreen:
         sess.update_loop.start_redraw_timer()
         sess.logger.info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                          is_html=True)
@@ -687,10 +766,10 @@ def init(argv, event_loop=True):
             else:
                 sess.logger.warning(msg)
 
-    if opts.module:
+    if opts.module or opts.run_path:
         import runpy
         import warnings
-        sys.argv[:] = args  # runpy will insert appropriate argv[0]
+        sys.argv = ['argv0'] + args
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -698,15 +777,23 @@ def init(argv, event_loop=True):
                 'session': sess
             }
             try:
-                runpy.run_module(opts.module, init_globals=global_dict,
-                                 run_name='__main__', alter_sys=True)
+                if opts.module:
+                    sys.argv[0] = opts.module
+                    runpy.run_module(opts.module, init_globals=global_dict,
+                                     run_name='__main__', alter_sys=True)
+                else:
+                    sys.argv[0] = opts.run_path
+                    runpy.run_path(opts.run_path)
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
             has_install = 'install' in sys.argv
             has_uninstall = 'uninstall' in sys.argv
             if has_install or has_uninstall:
-                per_user = '--user' in sys.argv
+                # TODO: --user is not given for uninstalls, so see
+                # where the packages were installed to determine if
+                # per_user should be true
+                per_user = has_uninstall or '--user' in sys.argv
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
             # Do not remove scripts anymore since we may be installing
@@ -722,8 +809,7 @@ def init(argv, event_loop=True):
     if opts.cmd:
         # Emulated Python's -c option.
         # This is needed for -m pip to work in some cases.
-        sys.argv = args
-        sys.argv[0] = '-c'
+        sys.argv = ['-c', opts.cmd]
         global_dict = {
             'session': sess,
             '__name__': '__main__',
@@ -732,7 +818,7 @@ def init(argv, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
-    from chimerax.core import errors, commands
+    from chimerax.core import commands
     for arg in args:
         if opts.safe_mode:
             # 'open' command unavailable; only open Python files
@@ -742,28 +828,36 @@ def init(argv, event_loop=True):
             from chimerax.core.scripting import open_python_script
             try:
                 open_python_script(sess, open(arg, 'rb'), arg)
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
         else:
             from chimerax.core.commands import StringArg
             try:
                 commands.run(sess, 'open %s' % StringArg.unparse(arg))
-            except (IOError, errors.NotABug) as e:
-                sess.logger.error(str(e))
-                return os.EX_SOFTWARE
             except Exception:
-                import traceback
-                traceback.print_exc()
-                return os.EX_SOFTWARE
+                if not sess.ui.is_gui:
+                    import traceback
+                    traceback.print_exc()
+                    return os.EX_SOFTWARE
+                # Allow GUI to start up despite errors;
+                if sess.debug:
+                    import traceback
+                    traceback.print_exc(file=sys.__stderr__)
+                else:
+                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     # Open files dropped on application
     if opts.gui:
-        sess.ui.open_pending_files(ignore_files=args)
+        sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
@@ -868,8 +962,8 @@ def restart_action(line, inst_dir, msgs):
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
     import sys
-    import os
     import subprocess
+    import os
     global _restart_toolshed_url
     parts = line.rstrip().split('\t')
     action = parts[0]
@@ -880,9 +974,11 @@ def restart_action(line, inst_dir, msgs):
             _restart_toolshed_url = toolshed.default_toolshed_url()
         bundles = parts[1]
         pip_args = parts[2:]
-        command = ["install", "--use-feature=2020-resolver", "--upgrade",
-                   "--extra-index-url", _restart_toolshed_url + "/pypi/",
-                   "--upgrade-strategy", "only-if-needed"]
+        command = [
+            "install", "--extra-index-url", _restart_toolshed_url + "/pypi/",
+            "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
+            "--upgrade",
+        ]
     elif action == "uninstall":
         bundles = parts[1]
         pip_args = parts[2:]

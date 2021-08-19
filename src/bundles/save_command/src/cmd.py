@@ -31,12 +31,19 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)]
         + [StringArg.unparse(token) for token in tokens])
 
+    more_log_info = None
     try:
-        from .manager import NoSaverError
+        from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
-        data_format= file_format(session, file_name, format_name)
+        data_format = file_format(session, file_name, format_name)
         try:
             provider_args = mgr.save_args(data_format)
+        except SaverNotInstalledError as e:
+            from chimerax.core import toolshed
+            bi = mgr.provider_info(data_format).bundle_info
+            more_log_info = '<a href="%s">Install the %s bundle</a> to save "%s" format files.' % (
+                toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, data_format.name)
+            raise LimitationError("%s; see log for more info" % e)
         except NoSaverError as e:
             raise LimitationError(str(e))
 
@@ -62,13 +69,15 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     except BaseException as e:
         # want to log command even for keyboard interrupts
         log_command(session, "save", provider_cmd_text, url=_main_save_CmdDesc.url)
+        if more_log_info:
+            session.logger.info(more_log_info, is_html=True)
         raise
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
     data_format = file_format(session, file_name, format)
-    provider_info = mgr.save_info(data_format)
+    provider_info = mgr.provider_info(data_format)
     path = _get_path(file_name, provider_info.compression_okay)
 
     # TODO: The following line does a graphics update so that if the save command is
@@ -80,7 +89,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
 
     # remember in file history if appropriate
     try:
-        session.open_command.open_info(data_format)
+        session.open_command.opener_info(data_format)
     except Exception:
         pass
     else:
@@ -102,8 +111,8 @@ def _get_path(file_name, compression_okay):
     if not compression_okay:
         from chimerax import io
         if io.remove_compression_suffix(expanded) != expanded:
-            raise UserError("File saver requires uncompressed output file;"
-                " '%s' would be compressed" % file_name)
+            raise UserError("File saver not capable of writing compressed output files;"
+                " '%s' implies compression" % file_name)
     return expanded
 
 def file_format(session, file_name, format_name):
@@ -129,6 +138,8 @@ def cmd_save_formats(session):
     titles = list(by_category.keys())
     titles.sort()
     lines = []
+    from chimerax.core import toolshed
+    ts = toolshed.get_toolshed()
     for title in titles:
         formats = by_category[title]
         if session.ui.is_gui:
@@ -141,21 +152,34 @@ def cmd_save_formats(session):
             session.logger.info(title)
             session.logger.info('File format, Short name(s), Suffixes:')
         formats.sort(key = lambda f: f.name.lower())
+        some_uninstalled = False
         for f in formats:
+            bundle_info = session.save_command.provider_info(f).bundle_info
             if session.ui.is_gui:
                 from html import escape
-                if f.reference_url:
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    descrip = '<a href="%s">%s</a><sup>*</sup>' % (ts.bundle_url(bundle_info.name),
+                        escape(f.synopsis))
+                elif f.reference_url:
                     descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
                 else:
                     descrip = escape(f.synopsis)
                 lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
                     escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
             else:
-                session.logger.info('    %s: %s: %s' % (f.synopsis,
-                    commas(f.nicknames), ', '.join(f.suffixes)))
+                if not bundle_info.installed:
+                    some_uninstalled = True
+                    session.logger.info('    %s (not installed): %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
+                else:
+                    session.logger.info('    %s: %s: %s' % (f.synopsis,
+                        commas(f.nicknames), ', '.join(f.suffixes)))
         if session.ui.is_gui:
             lines.append('</table>')
-            lines.append('<p></p>')
+            if some_uninstalled:
+                lines.append('<sup>*</sup>Not installed; click on link to install<br>')
+            lines.append('<br>')
     if session.ui.is_gui:
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
@@ -223,7 +247,10 @@ def cmd_usage_save_format(session, format):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(SaveFileNameArg)))
 
     provider_args = session.save_command.save_args(session.data_formats[format])
+    hidden_args = session.save_command.hidden_args(session.data_formats[format])
     for py_kw_name, arg in provider_args.items():
+        if py_kw_name in hidden_args:
+            continue
         kw_name = user_kw(py_kw_name)
         if isinstance(arg, type):
             # class, not instance

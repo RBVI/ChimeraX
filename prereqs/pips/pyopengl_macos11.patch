@@ -1,0 +1,19 @@
+*** OpenGL/platform/ctypesloader.py.orig	2020-09-18 18:04:20.000000000 -0700
+--- OpenGL/platform/ctypesloader.py	2020-09-22 17:31:38.000000000 -0700
+***************
+*** 85,90 ****
+--- 85,98 ----
+          _log.info( '''Failed on util.find_library( %r ): %s''', name, err )
+          # Should the call fail, we just try to load the base filename...
+          pass
++     if name == 'OpenGL':
++         import platform
++         if platform.system() == 'Darwin':
++             macos_version = platform.mac_ver()[0]
++             if macos_version.startswith('11.') or macos_version.startswith('10.16'):
++                 # Fix loading opengl library on macOS 11, Big Sur, ChimeraX bug #3746
++                 # TODO: Remove this when Python updates ctypes to fix the problem.
++                 name = '/System/Library/Frameworks/OpenGL.framework/OpenGL'
+      try:
+          return dllType( name, mode )
+      except Exception as err:

@@ -28,8 +28,7 @@ class _ToolbarAPI(BundleAPI):
                 session.toolbar.clear()
             else:
                 from .manager import ToolbarManager
-                session.toolbar = ToolbarManager(session)
-            return session.toolbar
+                session.toolbar = ToolbarManager(session, name)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

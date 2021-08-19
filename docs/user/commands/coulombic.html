@@ -31,6 +31,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>hisScheme</b>&nbsp;&nbsp;HID&nbsp;|&nbsp;HIE&nbsp;|&nbsp;HIP&nbsp;]
+[&nbsp;<b>chargeMethod</b>&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 <!-- not yet implemented
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -39,29 +41,38 @@ class="clRight" title="User Guide Index"/></a>
 -->
 </h3>
 <p>
-The <b>coulombic</b> command colors
-<a href="surface.html">molecular surfaces</a>
-by Coulombic electrostatic potential (ESP),
+The <b>coulombic</b> command calculates Coulombic electrostatic potential
+(ESP) on the fly (no input ESP file required)
+and uses it to color <a href="surface.html">molecular surfaces</a>,
+with default coloring
 ranging from <b>red</b> for negative potential through <b>white</b> 
 to <b>blue</b> for positive potential
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>.
 If the surfaces do not already exist, they will be generated.
 The calculation can handle structures with or without 
-explicit <a href="#hydrogens">hydrogens</a> 
-but currently assigns <a href="#charges">charges</a> only to standard residues.
+explicit <a href="#hydrogens">hydrogens</a>.
+The <a href="#charges">atomic charges</a> are looked up for standard residues,
+and in the rarer case they are needed for nonstandard residues, calculated 
+by <a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a>
+according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
+</blockquote>
 <!-- and a <a href="#volume">grid</a> of the values can be generated -->
 See also: 
+<a href="key.html"><b>key</b></a>,
 <a href="color.html#map"><b>color electrostatic</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
-tutorial</a>
+tutorial</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#coulombic"
+target="_blank">ChimeraX Coulombic ESP highlight</a>
 </p><p>
-The electrostatic potential is calculated from atomic partial charges 
-according to Coulomb's law:
+Coulombic electrostatic potential is calculated from atomic partial charges 
+and coordinates according to Coulomb's law:
 </p>
 <blockquote>
 <font size ="+1">
@@ -116,6 +127,12 @@ style="display:inline-block; vertical-align:middle"><tr>
 &nbsp;<a href="color.html#range">range</a> -10,10</b>
 </blockquote>
 <p>
+When <b>coulombic</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
+</p><p>
 By default,
 a <a href="surface.html">molecular surface</a> is generated as needed
 for each biopolymer chain that contains any of the specified atoms,
@@ -133,7 +150,8 @@ specified atoms only.
 The only way to use different atoms than enclosed by a surface
 to calculate the ESP for coloring that surface is to
 use both a non-blank <a href="atomspec.html"><i>atom-spec</i></a>
-and the <b>surfaces</b> option.
+and the <b>surfaces</b> option. In that case, care is needed to specify only 
+the intended set of atoms (see <a href="#charges">atomic charges</a>, below).
 </p>
 
 <a name="hydrogens"></a>
@@ -172,9 +190,9 @@ will be protonated accordingly.
 </p>
 <h3>Atomic Charges</h3>
 <p>
-Currently there is no choice of different charge sets. 
-The partial charge values are taken from the following files in
-<a href="http://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
+Currently there is no choice of different charge sets for standard residues.
+These charge values are taken from the following files in
+<a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
 all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
 These include standard amino acid and nucleic acid residues,
 MSE (selenomethionine), HOH (water),
@@ -182,10 +200,30 @@ ACE, NH2, NME (peptide-capping residues),
 ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
 </p><p>
 The presence of any other residues within the biopolymer surface
-will cause an error. Solvent, ligands, ions, and cofactors are normally
+will trigger a charge calculation with
+<a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a>
+according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
+Solvent, ligands, ions, and cofactors are normally
 not enclosed by <a href="surface.html">molecular surfaces</a>,
-so this type of error should be relatively rare.
+so this situation should be relatively rare.
+</p><p>
+When the <b>surfaces</b> option is used, however,
+the calculation is not automatically
+limited to the atoms enclosed by those surfaces.
+Thus, care is required to specify only
+the atoms desired for the calculation, so that ligands, solvent, <i>etc.</i>
+are not accidentally included and no unnecessary charge calculations are
+performed. The <a href="atomspec.html#builtin"><b>protein</b></a>
+specifier is often useful for this purpose,
+and can be restricted further by other specifiers such as
+model ID and chain number:
 </p>
+<blockquote>
+<b>coulombic protein surfaces #2</b>
+<br>
+<b>coulombic #1/A & protein surfaces #2</b>
+</blockquote>
 
 <!--
 <a name="map"></a>
@@ -212,5 +250,5 @@ the atoms in every direction (default <b>5.0</b> &Aring;).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+March 2021</address>
 </body></html>

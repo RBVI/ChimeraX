@@ -49,7 +49,7 @@ class BasicActionsTool(HtmlToolInstance):
         template_path = os.path.join(os.path.dirname(__file__), html_file)
         with open(template_path, "r") as f:
             template = f.read()
-        from PyQt5.QtCore import QUrl
+        from Qt.QtCore import QUrl
         qurl = QUrl.fromLocalFile(template_path)
         output = template.replace("URLBASE", qurl.url())
         self.html_view.setHtml(output, qurl)
@@ -248,7 +248,7 @@ class BasicActionsTool(HtmlToolInstance):
         # check for the presence of the key to be added,
         # but it does generalize if we want to call other
         # JS functions and get the value back synchronously.
-        from PyQt5.QtCore import QEventLoop
+        from Qt.QtCore import QEventLoop
         from threading import Semaphore
         event_loop = QEventLoop()
         js = "%s.get_state();" % self.CUSTOM_SCHEME

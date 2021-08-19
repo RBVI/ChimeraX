@@ -61,9 +61,11 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         Chain* chain()
         string chain_id()
         bool connects_to(Residue*)
+        void delete_alt_loc(char) except +
         Atom* find_atom(const char*)
         char insertion_code()
         bool is_helix()
+        bool is_missing_heavy_template_atoms(bool) except +
         bool is_strand()
         string mmcif_chain_id()
         string name()
@@ -81,7 +83,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool selected()
         bool  thin_rings()
         void set_alt_loc(char) except +
-        void set_chain_id(const char*)
+        void set_chain_id(const char*) except +
         void set_insertion_code(char)
         void set_is_helix(bool)
         void set_is_strand(bool)
@@ -103,6 +105,8 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_py_class(object)
         @staticmethod
         void set_templates_dir(string)
+        @staticmethod
+        void set_user_templates_dir(string)
 
 cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct::Atom":
     ctypedef enum IdatmGeometry:
@@ -141,6 +145,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         cycoord.Coord coord(CoordSet*) except +
         int coord_index()
         float default_radius()
+        void delete_alt_loc(char) except +
         bool display()
         DrawMode draw_mode()
         const cyelem.Element& element()
@@ -154,7 +159,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool is_side_connector()
         bool is_side_chain(bool)
         float maximum_bond_radius(float)
-        const char* name()
+        string name()
         const Neighbors& neighbors()
         int num_explicit_bonds()
         float occupancy()
@@ -162,6 +167,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         float radius()
         Residue* residue()
         const cycoord.Coord* ribbon_coord()
+        cycoord.Coord effective_coord()
         const Rings& rings(bool, int)
         cycoord.Coord scene_coord()
         cycoord.Coord scene_coord(char)
@@ -169,7 +175,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool selected()
         int serial_number()
         void set_alt_loc(char) except +
-        void set_alt_loc(char, bool, bool)
+        void set_alt_loc(char, bool, bool) except +
         void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
@@ -189,6 +195,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_ribbon_coord(const cycoord.Point&)
         void set_selected(bool)
         void set_serial_number(int)
+        Neighbors side_atoms(Atom*, Atom*) except +
         Structure* structure()
         StructCat structure_category()
         void use_default_radius()

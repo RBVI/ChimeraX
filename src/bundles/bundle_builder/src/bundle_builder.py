@@ -5,10 +5,10 @@
 import distutils  # noqa
 import setuptools
 from Cython.Build import cythonize
+from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
 from numpy.distutils.misc_util import get_numpy_include_dirs
-
 
 #
 # The compile process is initiated by setuptools and handled
@@ -37,6 +37,10 @@ else:
         def __init__(self, *args, **kw):
             super().__init__(*args, **kw)
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
+
+
+# Python version was 3.7 in ChimeraX 1.0
+CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
@@ -79,9 +83,16 @@ class BundleBuilder:
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
+        if self._is_pure_python():
+            setup_args.extend(["--python-tag", self.tag.interpreter])
+        else:
+            setup_args.extend(["--plat-name", self.tag.platform])
+            if self.limited_api:
+                setup_args.extend(["--py-limited-api", self.tag.interpreter])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
-            raise RuntimeError("Building wheel failed")
+            wheel = os.path.basename(self.wheel_path)
+            raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
             print("Distribution is in %s" % self.wheel_path)
 
@@ -102,7 +113,7 @@ class BundleBuilder:
         from chimerax.core import toolshed
         ts = toolshed.get_toolshed()
         bundle = ts.find_bundle(self.name, session.logger)
-        if bundle is not None:
+        if bundle is not None and bundle.version == self.version:
             cmd += " reinstall true"
         run(session, cmd)
 
@@ -173,7 +184,8 @@ class BundleBuilder:
         self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
-        from packaging.version import Version, InvalidVersion
+        # TODO: more syntax checking
+        from packaging.version import InvalidVersion
         self.name = bi.get("name", '')
         if '_' in self.name:
             self.name = self.name.replace('_', '-')
@@ -189,9 +201,16 @@ class BundleBuilder:
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
-        self.supercedes = bi.get("supercedes", '')
+        # "supercedes" is deprecated in ChimeraX 1.2
+        self.supersedes = bi.get("supersedes", '') or bi.get("supercedes", '')
         self.custom_init = bi.get("customInit", '')
         self.pure_python = bi.get("purePython", '')
+        self.limited_api = bi.get("limitedAPI", '')
+        if self.limited_api:
+            try:
+                self.limited_api = Version(self.limited_api)
+            except InvalidVersion as err:
+                raise ValueError("Invalid limitedAPI: %s line %d" % (err, bi.sourceline))
         self.installed_data_dir = bi.get("installedDataDir", '')
         self.installed_include_dir = bi.get("installedIncludeDir", '')
         self.installed_library_dir = bi.get("installedLibraryDir", '')
@@ -355,7 +374,8 @@ class BundleBuilder:
                 minor = 1
             uses_numpy = cm.get("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor,
-                         self.installed_library_dir)
+                         self.installed_library_dir,
+                         self.limited_api)
             self._add_c_options(c, cm)
             self.c_modules.append(c)
 
@@ -365,7 +385,8 @@ class BundleBuilder:
             c = _CLibrary(lib.get("name", ''),
                           lib.get("usesNumpy") == "true",
                           lib.get("static") == "true",
-                          self.installed_library_dir)
+                          self.installed_library_dir,
+                          self.limited_api)
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
 
@@ -373,7 +394,8 @@ class BundleBuilder:
         self.c_executables = []
         for lib in self._get_elements(bi, "CExecutable"):
             c = _CExecutable(lib.get("name", ''),
-                             self.installed_executable_dir)
+                             self.installed_executable_dir,
+                             self.limited_api)
             self._add_c_options(c, lib)
             self.c_executables.append(c)
 
@@ -406,6 +428,12 @@ class BundleBuilder:
             c.add_macro_define(*edef)
         for e in self._get_elements(ce, "Undefine"):
             c.add_macro_undef(self._get_element_text(e))
+        if self.limited_api:
+            v = self.limited_api
+            if v < CHIMERAX1_0_PYTHON_VERSION:
+                v = CHIMERAX1_0_PYTHON_VERSION
+            hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
+            c.add_macro_define("Py_LIMITED_API", hex_version)
 
     def _get_packages(self, bi):
         self.packages = []
@@ -439,7 +467,7 @@ class BundleBuilder:
         self.chimerax_classifiers = [
             ("ChimeraX :: Bundle :: " + ','.join(self.categories) +
              " :: " + self.min_session + "," + self.max_session +
-             " :: " + self.package + " :: " + self.supercedes +
+             " :: " + self.package + " :: " + self.supersedes +
              " :: " + self.custom_init)
         ]
         if self.installed_data_dir:
@@ -504,7 +532,12 @@ class BundleBuilder:
                 if kind == "file":
                     pkg_files.append(name)
                 elif kind == "dir":
-                    prefix = "src"
+                    for pknm, folder in self.packages:
+                        if pknm == pkg_name:
+                            prefix = folder
+                            break
+                    else:
+                        prefix = os.path.join(self.path, "src")
                     prefix_len = len(prefix) + 1
                     root = os.path.join(prefix, name)
                     for dirp, dns, fns in os.walk(root):
@@ -533,10 +566,21 @@ class BundleBuilder:
                 self.datafiles[self.package] = binary_files
             else:
                 data_files.extend(binary_files)
-        import sys
-        vi = sys.version_info
+        if self.limited_api:
+            # Limited API was first in Python 3.2
+            rel = self.limited_api.release
+            if rel < CHIMERAX1_0_PYTHON_VERSION.release:
+                rel = CHIMERAX1_0_PYTHON_VERSION.release
+        elif binary_files:
+            # Binary files are tied to the current version of Python
+            import sys
+            rel = sys.version_info[:2]
+        else:
+            # Python-only bundles default to the ChimeraX 1.0
+            # version of Python.
+            rel = CHIMERAX1_0_PYTHON_VERSION.release
         self.setup_arguments = {"name": self.name,
-                                "python_requires": f">={vi.major}.{vi.minor}"}
+                                "python_requires": f">={rel[0]}.{rel[1]}"}
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
         add_argument("long_description", self.description)
@@ -606,10 +650,10 @@ class BundleBuilder:
     def _make_paths(self):
         import os
         from .wheel_tag import tag
-        self.tag = tag(self._is_pure_python())
+        self.tag = tag(self._is_pure_python(), limited=self.limited_api)
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace('-', '_')
-        wheel = "%s-%s-%s.whl" % (bundle_wheel_name, self.version, self.tag)
+        wheel = f"{bundle_wheel_name}-{self.version}-{self.tag}.whl"
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
@@ -646,9 +690,14 @@ class BundleBuilder:
         self._used_elements.update(tagged_elements)
         elements = []
         for se in tagged_elements:
-            platform = se.get("platform")
-            if not platform or platform in self._platform_names:
+            platforms = se.get("platform")
+            if not platforms:
                 elements.append(se)
+            else:
+                for platform in platforms.split(','):
+                    if platform in self._platform_names:
+                        elements.append(se)
+                        break
         return elements
 
     def _get_element_text(self, e):
@@ -672,12 +721,12 @@ class BundleBuilder:
                 if not isinstance(node.tag, str):
                     # skip comments
                     continue
-                print("WARNING: unsupported element:", node.tag())
+                print("WARNING: unsupported element:", node.tag)
 
 
 class _CompiledCode:
 
-    def __init__(self, name, uses_numpy, install_dir):
+    def __init__(self, name, uses_numpy, install_dir, limited_api):
         self.name = name
         self.uses_numpy = uses_numpy
         self.requires = []
@@ -692,6 +741,7 @@ class _CompiledCode:
         self.macros = []
         self.install_dir = install_dir
         self.target_lang = None
+        self.limited_api = limited_api
 
     def add_require(self, req):
         self.requires.append(req)
@@ -702,8 +752,8 @@ class _CompiledCode:
     def add_include_dir(self, d):
         self.include_dirs.append(d)
 
-    def add_library(self, l):
-        self.libraries.append(l)
+    def add_library(self, lib):
+        self.libraries.append(lib)
 
     def add_library_dir(self, d):
         self.library_dirs.append(d)
@@ -865,8 +915,8 @@ class _CompiledCode:
 
 class _CModule(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, major, minor, libdir):
-        super().__init__(name, uses_numpy, libdir)
+    def __init__(self, name, uses_numpy, major, minor, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.major = major
         self.minor = minor
 
@@ -895,13 +945,14 @@ class _CModule(_CompiledCode):
                          library_dirs=lib_dirs,
                          libraries=libraries,
                          extra_link_args=extra_link_args,
-                         sources=self.source_files)
+                         sources=self.source_files,
+                         py_limited_api=not not self.limited_api)
 
 
 class _CLibrary(_CompiledCode):
 
-    def __init__(self, name, uses_numpy, static, libdir):
-        super().__init__(name, uses_numpy, libdir)
+    def __init__(self, name, uses_numpy, static, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
@@ -992,13 +1043,13 @@ class _CLibrary(_CompiledCode):
 
 class _CExecutable(_CompiledCode):
 
-    def __init__(self, name, execdir):
+    def __init__(self, name, execdir, limited_api):
         import sys
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
                 name = name[:-4]
-        super().__init__(name, False, execdir)
+        super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
         import sys

@@ -38,7 +38,6 @@ namespace logger {
 #endif
 enum class _LogLevel { INFO, WARNING, ERROR };
 
-LOGGER_IMEX
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level, bool is_html=false);
 template<typename T, typename... Args>
 void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level,

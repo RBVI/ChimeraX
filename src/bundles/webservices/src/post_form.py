@@ -21,7 +21,7 @@ Return the server's response page.
 """
     return post_multipart_formdata(host, selector, fields, ssl, **kw)[3]
 
-def post_multipart_formdata(host, url, fields, ssl=False, *, accept_type=None):
+def post_multipart_formdata(host, url, fields, ssl=False, *, accept_type=None, timeout=None):
     content_type, body = encode_multipart_formdata(fields)
     from urllib import request
     proxies = request.getproxies_environment()
@@ -31,9 +31,9 @@ def post_multipart_formdata(host, url, fields, ssl=False, *, accept_type=None):
         realhost = host
     from http.client import HTTPConnection, HTTPSConnection
     if ssl:
-        h = HTTPSConnection(realhost)
+        h = HTTPSConnection(realhost, timeout=timeout)
     else:
-        h = HTTPConnection(realhost)
+        h = HTTPConnection(realhost, timeout=timeout)
     headers = {'Content-type': content_type}
     if accept_type is not None:
         headers['Accept'] = accept_type

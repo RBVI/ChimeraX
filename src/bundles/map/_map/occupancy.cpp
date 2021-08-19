@@ -80,8 +80,7 @@ extern "C" PyObject *fill_occupancy_map(PyObject *, PyObject *args, PyObject *ke
 
   fill_occupancy_map(points, origin, step, map);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 }	// End namespace Map_Cpp

@@ -59,7 +59,10 @@ def _reSt_to_html(source):
 
 def _display_bundles(bi_list, toolshed, logger, use_html=False, full=True):
     def bundle_key(bi):
-        return bi.name
+        prefix = "ChimeraX-"
+        if bi.name.startswith(prefix):
+            return bi.name[len(prefix):].casefold()
+        return bi.name.casefold()
     info = ""
     if use_html:
         from html import escape
@@ -252,7 +255,7 @@ def toolshed_install(session, bundle_names, user_only=True,
 
     Parameters
     ----------
-    bundle_names : a bundle name or list of bundle names
+    bundle_names : sequence of bundle name or wheel filename
     user_only : bool
       Install for this user only, or install for all users.
     no_deps : bool
@@ -296,6 +299,9 @@ def toolshed_install(session, bundle_names, user_only=True,
     if reinstall is not None:
         kw["reinstall"] = reinstall
     ts.install_bundle(bundles, logger, **kw)
+    if getattr(session, 'is_gui', False):
+        from chimerax import help_viewer
+        help_viewer.reload_toolshed_tabs(session)
 
 
 toolshed_install_desc = CmdDesc(required=[("bundle_names", ListOf(Or(BundleNameArg, WheelArg)))],
@@ -313,7 +319,7 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
 
     Parameters
     ----------
-    bundle_names : list of bundle names
+    bundle_names : sequence of bundle names
     force_remove : boolean
     '''
     ts = session.toolshed
@@ -326,6 +332,9 @@ def toolshed_uninstall(session, bundle_names, force_remove=False):
             return
         bundles.add(bi)
     ts.uninstall_bundle(bundles, logger, session=session, force_remove=force_remove)
+    if getattr(session, 'is_gui', False):
+        from chimerax import help_viewer
+        help_viewer.reload_toolshed_tabs(session)
 
 
 toolshed_uninstall_desc = CmdDesc(required=[("bundle_names", ListOf(BundleNameArg))],

@@ -272,7 +272,11 @@ def _strptime(value):
         second = int(second)
         return datetime(year, month, day, hour, minute, second)
     except Exception:
-        raise ValueError("time data does not match format")
+        try:
+            # try current locale
+            return datetime.strptime(TimeFormat, value)
+        except Exception:
+            raise ValueError("time data does not match format")
 
 
 def _strftime(dt):

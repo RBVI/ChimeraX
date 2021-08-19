@@ -136,6 +136,11 @@ class ZoneColor(State):
         c.set_vertex_colors()
         return c
 
+# -----------------------------------------------------------------------------
+#
+def color_zoning(surface):
+    zc = surface.auto_recolor_vertices
+    return zc if isinstance(zc, ZoneColor) else None
         
 # -----------------------------------------------------------------------------
 #
@@ -167,6 +172,9 @@ def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
         surface._unsharp_geometry = (varray, narray, tarray, va, na, ta)
         surface.set_geometry(va, na, ta)
         surface.vertex_colors = ca
+        from . import unique_vertex_map
+        vmap = unique_vertex_map(va)
+        surface.joined_triangles = vmap[ta]
         
     return va, na, ta, ca
 
@@ -210,9 +218,9 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
         from chimerax.geometry import inner_product
-        f = inner_product(px, dp) / inner_product(dx, dp)
-        if f <= -0.1 or f >= 1.1:
-            raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
+        dxdp = inner_product(dx, dp)
+        f = 0 if dxdp == 0 else inner_product(px, dp) / dxdp
+        # Floating point precision limits can put f outside 0-1.
         if f < 0:
             f = 0
         elif f > 1:
@@ -354,7 +362,7 @@ def split_zones_by_color(volume, points, point_colors, radius):
   # Record colors.
   for color, m in ctable.items():
     grids[m].zone_color = color
-  grids[0].zone_color = volume.surfaces[0].rgba	# Outside zone color same as original map.
+  grids[0].zone_color = volume.surfaces[0].color	# Outside zone color same as original map.
   
   return grids
 

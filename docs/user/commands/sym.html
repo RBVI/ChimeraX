@@ -61,6 +61,8 @@ See also:
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="surface.html"><b>surface</b></a>,
+<a href="crystalcontacts.html"><b>crystalcontacts</b></a>,
+<a href="unitcell.html"><b>unitcell</b></a>,
 <a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>,
 <a href="open.html#fetch">fetching biological assemblies</a>
 </p>
@@ -90,7 +92,7 @@ See also:
 <p>
 Given without options, <b>sym</b> reports 
 any assemblies read from
-<a href="http://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
+<a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
 target="_blank">mmCIF</a> for the specified model
 as a table in the <a href="../tools/log.html"><b>Log</b></a>.
 Similar <a href="../modelinfo.html">information</a>
@@ -100,16 +102,18 @@ a character-string <i>identifier</i>, usually a number,
 that can be clicked to generate the assembly (with default options)
 and adjust the view to encompass it.
 </p><p>
-By default, the additional copies are simply graphical clones; 
-however, for detailed analyses such as 
-calculating <a href="hbonds.html">hydrogen bonds</a> for the whole assembly,
-the <b>sym</b> command should be used with 
-<a href="#copies"><b>copies true</b></a> to add full atomic copies instead.
-The <b>assembly</b> of interest
-is specified with the <i>identifier</i> mentioned above.
+By default,
+when the assembly contains more than 12 copies of the asymmetric unit
+(as in a viral capsid), the copies are added as graphical clones
+for efficient visualization.
+However, for any subsequent analyses that require atomic coordinates, 
+full atomic models should be added instead by creating the assembly with
+<a href="#copies"><b>copies true</b></a> (<a href="#copies">details...</a>).
+</p><p>
 Alternatively, the full atomic coordinates of a biological assembly can be
 <a href="open.html#fetch">fetched from online sources</a>
-instead of generated with <b>sym</b>.
+instead of generated with <b>sym</b>. The <b>assembly</b> of interest
+is specified with the <i>identifier</i> mentioned above.
 </p>
 
 <a name="symmetry"></a>
@@ -276,6 +280,25 @@ all of its atoms, regardless of whether they are displayed.
 </p>
 <h3>Copy Representation Options</h3>
 
+<b>copies</b> &nbsp;true&nbsp;|&nbsp;false
+<blockquote>
+The <b>copies</b> option indicates whether the additional copies needed
+to reconstitute the assembly should be opened as full atomic models 
+(<b>true</b>, default for assemblies with 12 or fewer copies) or as 
+graphical clones (<b>false</b>, default for assemblies of more than 12 copies).
+Graphical clones allow memory-efficient visualization of very large 
+assemblies such as viral capsids. However, full atomic models 
+are needed for any subsequent analyses that use atomic coordinates:
+<a href="distance.html">distance</a> and other 
+<a href="../measurements.html">measurements</a>,
+<a href="hbonds.html">hydrogen bonds</a>,
+<a href="clashes.html">contacts</a>,
+superposition and RMSD calculations with
+<a href="matchmaker.html">matchmaker</a> and
+<a href="align.html">align</a>, <i>etc.</i>
+Full atomic models are also needed to show the copies in different
+styles or colors from one another.
+</blockquote>
 <b>newModel</b> &nbsp;true&nbsp;|&nbsp;false
 <blockquote>
 The <b>newModel</b> option indicates whether to open the assembly as
@@ -290,19 +313,6 @@ of the original asymmetric unit that are not part of the specified assembly
 will be deleted from that model, not merely hidden as they would be
 with <b>newModel false</b>. Parts that are merely hidden could be 
 displayed inadvertently and cause confusion later.
-</blockquote>
-<b>copies</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<blockquote>
-The <b>copies</b> option indicates whether the additional copies needed
-to reconstitute the assembly should be opened as full atomic models (<b>true</b>)
-or as graphical clones (<b>false</b>, default).
-Graphical clones of an atomic model cannot be displayed in 
-different styles and colors than the original. 
-Generating full atomic models instead of graphical clones
-allows their independent control and is required for more detailed analyses
-such as calculating <a href="hbonds.html">hydrogen bonds</a>
-for the whole assembly.
-However, it requires more memory and may not be practical for larger assemblies.
 <p>
 With <b>newModel true</b> but <b>copies false</b>,
 the new model will contain at least one full
@@ -314,7 +324,8 @@ Even when both <b>copies</b> and <b>newModel</b> are <b>false</b>,
 one or more copies of the full atomic model may be added, namely
 when the assembly specifies different sets of matrices for different chains.
 In that case, restoring the original state may require not only using 
-<b>sym clear</b> but also <a href="close.html">closing</a> the added model(s)
+<a href="#top"><b>sym clear</b></a>
+but also <a href="close.html">closing</a> the added model(s)
 and <a href="show.html">showing</a> all chains of the original copy
 (some chains may have been hidden when the assembly was shown).
 </p>
@@ -353,5 +364,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+March 2021</address>
 </body></html>

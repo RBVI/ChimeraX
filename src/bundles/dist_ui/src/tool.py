@@ -23,7 +23,7 @@ class DistanceTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, \
+        from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, \
             QPushButton
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -139,7 +139,7 @@ class DistanceTool(ToolInstance):
             self.table.setRowCount(0)
             return
         fmt = self.session.pb_dist_monitor.distance_format
-        from PyQt5.QtWidgets import QTableWidgetItem
+        from Qt.QtWidgets import QTableWidgetItem
         pbs = dist_grp.pseudobonds
         update = len(pbs) == self.table.rowCount()
         if not update:

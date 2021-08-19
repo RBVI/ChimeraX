@@ -46,8 +46,7 @@ extern "C" PyObject *py_distances_from_origin(PyObject *, PyObject *args)
     Distances::distances_from_origin(parray, points.size(0), origin, darray);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -74,8 +73,7 @@ extern "C" PyObject *py_distances_perpendicular_to_axis(PyObject *,
 					       origin, axis, darray);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
@@ -101,8 +99,7 @@ extern "C" PyObject *py_distances_parallel_to_axis(PyObject *, PyObject *args)
 					  origin, axis, darray);
   Py_END_ALLOW_THREADS
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

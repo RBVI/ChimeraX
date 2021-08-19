@@ -296,6 +296,7 @@ class Logger(StatusLogger):
                 else:
                     self.session.ui.thread_safe(self.report_exception, exc_info=exc_info)
             sys.excepthook = ehook
+
         # non-exclusively collate any early log messages, so that they
         # can also be sent to the first "real" log to hit the stack
         self.add_log(_EarlyCollator())
@@ -695,7 +696,10 @@ error_text_format = '<font color="crimson"><b>%s</b></font>'
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
-    import html2text
+    try:
+        import html2text
+    except ModuleNotFoundError:
+        return html
     h = html2text.HTML2Text()
     h.unicode_snob = True
     # h.pad_tables = True  # 2018.1.9 is confused by multiline data in td

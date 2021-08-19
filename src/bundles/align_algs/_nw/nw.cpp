@@ -21,7 +21,7 @@
 #include <iostream>
 
 #include <align_algs/support.h>
-#include <arrays/pythonarray.h>
+#include <arrays/pythonarray.h>   // use array_from_python()
 #include <pysupport/convert.h>
 
 #ifndef PY_STUPID

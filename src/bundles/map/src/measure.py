@@ -48,15 +48,35 @@ def measure_map_stats(session, volumes = None, step = None, subregion = None):
         
     for v in volumes:
         # Get 3-d array of map values.
+        reg = _subregion_description(v, step, subregion)
+        if reg:
+            reg = ', ' + reg
         m = v.matrix(step = step, subregion = subregion)
         from numpy import float64, sqrt
         mean = m.mean(dtype=float64)
         sd = m.std(dtype=float64)
         rms = sqrt(sd*sd + mean*mean)
-        msg = ('Map %s, minimum %.4g, maximum %.4g, mean %.4g, SD %.4g, RMS %.4g'
-               % (v.name_with_id(), m.min(), m.max(), mean, sd, rms))
+        msg = ('Map %s%s, minimum %.4g, maximum %.4g, mean %.4g, SD %.4g, RMS %.4g'
+               % (v.name_with_id(), reg, m.min(), m.max(), mean, sd, rms))
         session.logger.status(msg, log=True)
 
+# -----------------------------------------------------------------------------
+#
+def _subregion_description(v, step = None, region = None):
+
+    dlist = []
+    ijk_min, ijk_max, ijk_step = [tuple(ijk) for ijk in v.subregion(step, region)]
+    if ijk_step != (1,1,1):
+        if ijk_step[1] == ijk_step[0] and ijk_step[2] == ijk_step[0]:
+            dlist.append('step %d' % ijk_step[0])
+        else:
+            dlist.append('step %d %d %d' % ijk_step)
+    dmax = tuple([s-1 for s in v.data.size])
+    if ijk_min != (0,0,0) or ijk_max != dmax:
+        dlist.append('subregion %d,%d,%d,%d,%d,%d' % (ijk_min+ijk_max))
+    if dlist:
+        return ', '.join(dlist)
+    return ''
 
 # -----------------------------------------------------------------------------
 #
@@ -71,3 +91,10 @@ def register_measure_mapstats_command(logger):
         synopsis = 'Report map statistics'
     )
     register('measure mapstats', desc, measure_map_stats, logger=logger)
+
+# -----------------------------------------------------------------------------
+# Menu entry acts on selected or displayed maps.
+#
+def show_map_stats(session):
+    from chimerax.shortcuts.shortcuts import run_on_maps
+    run_on_maps('measure mapstats %s')(session)

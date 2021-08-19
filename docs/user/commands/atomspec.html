@@ -157,7 +157,7 @@ are basically the same as atoms and bonds and can be specified in the same ways.
 </p><p>
 Chain IDs, residue names and numbers,
 and atom names are read from the input file.
-In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" target="_top">PDB format</a>, a
+In <a href="https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" target="_top">PDB format</a>, a
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
@@ -387,6 +387,12 @@ as in the <a href="../menu.html#select"><b>Select</b> menu</a>
 as in the <a href="../menu.html#select"><b>Select</b> menu</a>, except
 in lowercase and with hyphens instead of spaces in multiword names 
 (for example, <b>aromatic-ring</b>)
+<li><b>template-mismatch</b> &ndash; standard biopolymer residues and
+a few other commonly encountered residue types (water and peptide-capping
+groups) that differ from their respective templates in the number of atoms 
+of any element other than hydrogen; such a difference usually indicates missing 
+atoms (<i>e.g.</i>, a truncated sidechain), but occasionally extra ones
+(<i>e.g.</i>, a 5' nucleic acid residue with a phosphate group)
 <li><b>sel</b> &ndash; the current <a href="../selection.html">selection</a>
 <li><b>sel-residues</b> &ndash; residues with any
 <a href="../selection.html">selected</a> atoms
@@ -450,24 +456,6 @@ all remaining atoms
 </td></tr>
 </table>
 <p>
-<!--
-any of the terminal entries in the following sections of the
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide//menu.html#menuselect"><b>Select</b> menu</a>:
-   <ul>
-   <li><b>Chemistry</b> (element symbols, atom types, functional groups)
-   <li><b>Residue... <a href="http://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/resprop/resprop.html#aacat">amino acid category</a></b>
-   <li><b>Structure</b>
-   </ul>
-<blockquote>
-The same pattern of capitalization and spaces, if any, as shown in the menu
-should be used. 
-Where there is ambiguity, the parent menu should be included in the
-specification, for example, &ldquo;IDATM type.H&rdquo; or 
-&ldquo;element.H&rdquo; instead of &ldquo;H&rdquo; alone.
-The parent menu can be included in this manner even when not necessary.
-</blockquote>
-</p>
--->
 <p>Examples:</p>
 <blockquote>
 <b>helix &amp; :arg,lys</b>
@@ -527,7 +515,9 @@ Built-in classifications cannot be redefined by the user.
 specified by <a href="../attributes.html#attrnames">name</a> and value, 
 indicated with symbols:
 <b>@@</b> for <a href="../attributes.html#atom">atom attributes</a>,
-<b>::</b> for <a href="../attributes.html#residue">residue attributes</a>, and
+<b>::</b> for <a href="../attributes.html#residue">residue attributes</a>,
+<!-- <b>//</b> for <a href="../attributes.html#chain">chain attributes</a>, -->
+and
 <b>##</b> for <a href="../attributes.html#model">atomic-model attributes</a>.
 Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
 </p><p>
@@ -574,16 +564,7 @@ described <a href="#wildcards">above</a> for atom and residue names.
 <td>less than or equal to</td>
 </tr>
 </table>
-<ul>
-</ul>
-<!-- caret not implemented, tested on custom attr created with setattr
-When placed before an attribute name,
-the <b>caret ^</b> indicates that the atoms, residues, or models have
-not been assigned any value for the attribute.
-For example, <b>::^kdHydrophobicity</b> designates residues 
-(such as water or nucleic acids) that lack a 
-<a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html">Kyte-Doolittle hydrophobicity</a> assignment.
--->
+
 <a name="attr-examples"></a>
 <p>
 Examples include <b>&amp;</b> for intersection and <b>~</b> for negation, 
@@ -774,5 +755,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+April 2021</address>
 </body></html> 

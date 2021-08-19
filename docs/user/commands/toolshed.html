@@ -28,7 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">UCSF ChimeraX
 Toolshed</a> is a web repository of ChimeraX bundles hosted by the 
-<a href="http://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>.
 A <b><i>bundle</i></b> is a separately installable and updatable module
 that may include tools, commands, command-line specifiers, and/or file format 
@@ -49,7 +49,7 @@ manages bundle information.
 Typically &ldquo;the toolshed&rdquo; will be the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX
 Toolshed</a> hosted by the 
-<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>, but <a href="#url"><b>toolshed url</b></a>
 allows specifying a different instance instead.
 See also: <a href="../preferences.html#toolshed"><b>Toolshed</b> preferences</a>
@@ -73,7 +73,7 @@ Report the location of the bundle information cache.
 <a href="#top" class="nounder">&bull;</a>
 <a name="install"><b>toolshed install</b></a>
 &nbsp;<i>bundle-name</i> [&nbsp;<i>version</i>&nbsp;]
-[&nbsp;<b>noDeps</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>noDeps</b>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Install a bundle.  If <i>bundle-name</i> is a file name,
 the file will be installed using <b>pip</b>.  If <i>bundle-name</i>
@@ -81,7 +81,8 @@ is a name from the toolshed, the bundle will be fetched from
 the toolshed and installed, again using <b>pip</b>.  A specific
 <i>version</i> may be specified when installing from the toolshed.
 The <b>noDeps</b> option specifies whether bundle dependencies should
-be checked during installation.  If dependency checking is on (default)
+be checked during installation.  If dependency checking is on 
+(<b>noDeps false</b>, default)
 and the bundle being installed requires other bundles to run, then the
 dependent bundles will also be installed.
 </blockquote>
@@ -120,10 +121,11 @@ Reloading <b>all</b> will rebuild and reread both caches.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="show"><b>toolshed show</b></a>
+<a name="show"><b>toolshed show</b></a> [&nbsp;<i>bundle-name</i>&nbsp;]
 <blockquote>
 Show the toolshed in the <a href="../tools/helpviewer.html"><b>ChimeraX
 Browser</b></a>.
+If a bundle name is provided, the page for that bundle will be shown.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -154,5 +156,5 @@ See also the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+December 2020</address>
 </body></html>

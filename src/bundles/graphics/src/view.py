@@ -327,7 +327,8 @@ class View:
         self.redraw_needed = True
         if self.triggers:
             from chimerax.core.core_settings import settings
-            settings.background_color = color
+            from chimerax.core.colors import Color
+            settings.background_color = Color(rgba=color)
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
 

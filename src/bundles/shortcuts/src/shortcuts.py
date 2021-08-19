@@ -56,6 +56,13 @@ def standard_shortcuts(session):
     sep = True  # Add menu separator after entry.
 #    from ..files import opensave
 #    from .. import ui
+    def advise_key(func, cmd):
+        def func_plus_tip(session, *, func=func, cmd=cmd):
+            func(cmd + " %s")(session)
+            session.logger.info('<span style="color:blue">To also show corresponding color key,'
+                ' enter the above</span> <b>' + cmd + '</b> <span style="color:blue">command'
+                ' and add</span> <i>key true</i>', is_html=True)
+        return func_plus_tip
     shortcuts = [
         # Sessions
 #        ('op', ui.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
@@ -107,6 +114,7 @@ def standard_shortcuts(session):
         ('hM', run_on_maps('volume %s hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
+        ('fm', fit_in_map, 'Fit in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
@@ -122,16 +130,21 @@ def standard_shortcuts(session):
         ('s4', run_on_maps('volume %s step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
         ('pl', run_on_maps('volume %s plane z style image imageMode full ; mousemode right "move planes"'), 'Show one plane', mapcat, sesarg, mmenu),
-        ('pa', run_on_maps('volume %s region all imageMode full ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
+        ('pa', run_on_maps('volume %s region all imageMode full ; volume unzone %s ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('is', show_slab, 'Show slab', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
+        ('cz', color_zone, 'Color map to match atoms', mapcat, sesarg, mmenu),
+        ('vz', volume_zone, 'Show map near atoms', mapcat, sesarg, mmenu),
+        ('hd', hide_dust, 'Hide dust', mapcat, sesarg, mmenu),
+        
         ('aw', run_on_maps('volume %s appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
         ('as', run_on_maps('volume %s appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
         ('bc', run_on_maps('volume %s appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
         ('ch', run_on_maps('volume %s appearance chest'), 'Chest CT scan coloring', mapcat, sesarg, mmenu),
+
         ('dc', run_on_maps('volume %s appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', run_on_maps('volume %s projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', run_on_maps('volume %s projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
@@ -155,7 +168,7 @@ def standard_shortcuts(session):
 
         ('sB', run_on_atoms('show %s bonds'), 'Display bonds', molcat, sesarg, mlmenu),
         ('hB', run_on_atoms('hide %s bonds'), 'Hide bonds', molcat, sesarg, mlmenu),
-        ('hb', run_on_atoms('hbonds %s'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
+        ('hb', run_on_atoms('hbonds %s reveal true'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
         #        ('sq', run_on_atoms('sequence chain sel', 'seq chain all'), 'Show polymer sequence', molcat, sesarg, mlmenu),
         ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
@@ -173,8 +186,8 @@ def standard_shortcuts(session):
 
         ('ms', run_on_atoms('show %s surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
         ('sa', run_on_atoms('measure sasa %s'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
-        ('ep', run_on_atoms('coulombic %s'), 'Color surface by electrostatic potential', molcat, sesarg, mlmenu),
-        ('hp', run_on_atoms('mlp %s'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
+        ('ep', advise_key(run_on_atoms, 'coulombic'), 'Color surface by electrostatic potential', molcat, sesarg, mlmenu),
+        ('hp', advise_key(run_on_atoms, 'mlp'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
@@ -352,7 +365,7 @@ class Keyboard_Shortcuts:
       
     def key_pressed(self, event):
         k = event.key()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if k == Qt.Key_Escape:
             self.disable_shortcuts()
             return
@@ -437,9 +450,10 @@ def shortcut_maps(session, undisplayed = True, at_least = None):
     from chimerax.map import Volume
     return shortcut_models(session, Volume, undisplayed=undisplayed, at_least=at_least)
 
-def shortcut_molecules(session):
+def shortcut_molecules(session, undisplayed = False, at_least = None):
     from chimerax.atomic import AtomicStructure
-    return shortcut_models(session, AtomicStructure, undisplayed = False)
+    return shortcut_models(session, AtomicStructure,
+                           undisplayed = undisplayed, at_least = at_least)
 
 def shortcut_atoms(session):
     matoms = []
@@ -474,6 +488,23 @@ def shortcut_surfaces_and_maps(session):
         return sm
     sm = [m for m in session.models.list(type = (Surface, Volume)) if m.visible]
     return sm
+
+def sel_unsel_models(session, mclass = None, undisplayed = False):
+    sel = [m for m in session.selection.models()
+           if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))]
+    selset = set(sel)
+    usel = [m for m in session.models
+            if (undisplayed or m.display) and (mclass is None or isinstance(m,mclass))
+            and  not m in selset]
+    return sel, usel
+
+def sel_unsel_maps(session, undisplayed = False):
+    from chimerax.map import Volume
+    return sel_unsel_models(session, Volume, undisplayed=undisplayed)
+
+def sel_unsel_molecules(session, undisplayed = False):
+    from chimerax.atomic import AtomicStructure
+    return sel_unsel_models(session, AtomicStructure, undisplayed=undisplayed)
 
 def run(session, command, **kw):
   from chimerax.core.commands import run as run_command
@@ -695,30 +726,6 @@ def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
     m.bind_mouse_mode(button, ZoomMouseMode(m.session))
 
-def fit_molecule_in_map(session):
-    mols, maps = shortcut_molecules(session), shortcut_maps(session)
-    log = session.logger
-    if len(mols) != 1 or len(maps) != 1:
-        log.status('Fit molecule in map requires one '
-                   'displayed or selected molecule (got %d) and map (got %d).'
-                   % (len(mols), len(maps)))
-        return
-
-    mol, map = mols[0], maps[0]
-    points = mol.atoms.coords
-    point_weights = None        # Equal weight for each atom
-    data_array = map.full_matrix()
-    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
-    from chimerax.map_fit import locate_maximum
-    move_tf, stats = locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
-    mol.position = mol.position * move_tf
-
-    msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
-           % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
-    log.status(msg)
-    from chimerax.map_fit import fitmap
-    log.info(fitmap.atom_fit_message(mols, map, stats))
-
 def fit_subtract(session):
     models = session.models.list()
     from chimerax.map import Volume
@@ -748,6 +755,18 @@ def fit_subtract(session):
     fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
     print ('fit seq')
 
+def fit_molecule_in_map(session):
+    mols, maps = shortcut_molecules(session), shortcut_maps(session)
+    log = session.logger
+    if len(mols) != 1 or len(maps) != 1:
+        log.status('Fit molecule in map requires one '
+                   'displayed or selected molecule (got %d) and map (got %d).'
+                   % (len(mols), len(maps)))
+        return
+
+    mol, map = mols[0], maps[0]
+    run(session, 'fit #%s in #%s' % (mol.id_string, map.id_string))
+
 def fit_map_in_map(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)
     if len(maps) != 2:
@@ -759,6 +778,99 @@ def fit_map_in_map(session):
     map1, map2 = maps
     run(session, 'fit #%s in #%s' % (map1.id_string, map2.id_string))
 
+def fit_in_map(session):
+    smols,umols = sel_unsel_molecules(session)
+    nmols = len(smols) + len(umols)
+    smaps,umaps = sel_unsel_maps(session)
+    nmaps = len(smaps) + len(umaps)
+
+    if nmols == 1 and nmaps == 1:
+        # Exactly one atomic model and one map shown.
+        model, map = (smols + umols)[0], (smaps + umaps)[0]
+    elif nmols == 0 and nmaps == 2:
+        model, map = (smaps + umaps)
+    elif len(smols) == 0 and len(smaps) == 2:
+        model, map = smaps
+    elif len(smols) == 1 and nmaps == 1:
+        model, map = smols[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and len(smaps) == 1:
+        model, map = smols[0], smaps[0]
+    else:
+        log = session.logger
+        msg = ('Fit in map shortcut requires 1 displayed atomic model and 1 map '
+               'or two maps, got %d atomic models, %d maps.' % (nmols, nmaps))
+        log.warning(msg)
+        log.status(msg, color='red')
+        return
+
+    run(session, 'fit #%s in #%s' % (model.id_string, map.id_string))
+
+def atomic_model_and_map(session, shortcut_name):
+    smols,umols = sel_unsel_molecules(session)
+    nmols = len(smols) + len(umols)
+    smaps,umaps = sel_unsel_maps(session)
+    nmaps = len(smaps) + len(umaps)
+
+    if nmols == 1 and nmaps == 1:
+        # Exactly one atomic model and one map shown.
+        model, map = (smols + umols)[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and nmaps == 1:
+        model, map = smols[0], (smaps + umaps)[0]
+    elif len(smols) == 1 and len(smaps) == 1:
+        model, map = smols[0], smaps[0]
+    else:
+        log = session.logger
+        msg = ('%s shortcut requires 1 displayed atomic model and 1 map, '
+               'got %d atomic models, %d maps.' % (shortcut_name, nmols, nmaps))
+        log.warning(msg)
+        log.status(msg, color='red')
+        model, map = None, None
+
+    return model, map
+
+def color_zone(session):
+    model, map = atomic_model_and_map(session, 'Color zone')
+    if model is None:
+        return
+    atomsel = model.atoms.num_selected
+    atom_spec = ('sel & #%s' if atomsel else '#%s') % model.id_string
+    map_spec = '#%s' % map.id_string
+    dist = 6 * max(map.data.step)
+    cmd = 'color zone %s near %s distance %.3g' % (map_spec, atom_spec, dist)
+    run(session, cmd)
+
+def volume_zone(session):
+    model, map = atomic_model_and_map(session, 'Volume zone')
+    if model is None:
+        return
+    atomsel = model.atoms.num_selected
+    atom_spec = ('sel & #%s' if atomsel else '#%s') % model.id_string
+    map_spec = '#%s' % map.id_string
+    dist = 6 * max(map.data.step)
+    cmd = 'volume zone %s near %s range %.3g' % (map_spec, atom_spec, dist)
+    run(session, cmd)
+
+def hide_dust(session):
+    smaps,umaps = sel_unsel_maps(session)
+    sfmaps = [v for v in smaps if v.surface_shown]
+    ufmaps = [v for v in umaps if v.surface_shown]
+
+    if sfmaps:
+        maps = sfmaps
+    elif ufmaps:
+        maps = ufmaps
+    elif smaps or umaps:
+        log = session.logger
+        msg = 'Hide dust shortcut requires a displayed map surface'
+        log.warning(msg)
+        log.status(msg, color='red')
+        maps = []
+        
+    for map in maps:
+        size = 10 * max(map.data.step)
+        cmd = 'surface dust #%s size %.3g' % (map.id_string, size)
+        run(session, cmd)
+
 def subtract_maps(session):
     maps = shortcut_maps(session, undisplayed = False, at_least = 2)
     if len(maps) != 2:
@@ -768,7 +880,7 @@ def subtract_maps(session):
         return
 
     map1, map2 = maps
-    run(session, 'vop subtract #%s #%s minrms' % (map1.id_string, map2.id_string))
+    run(session, 'vop subtract #%s #%s minrms True' % (map1.id_string, map2.id_string))
 
 def smooth_map(session):
     maps = shortcut_maps(session, undisplayed = False)

@@ -36,11 +36,8 @@ class FitMapDialog(ToolInstance):
     self.tool_window = tw
     parent = tw.ui_area
 
-    from PyQt5.QtWidgets import QVBoxLayout, QLabel
-    layout = QVBoxLayout(parent)
-    layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(0)
-    parent.setLayout(layout)
+    from chimerax.ui.widgets import vertical_layout
+    layout = vertical_layout(parent, margins = (5,0,0,0))
         
     # Make menus to choose molecule and map for fitting
     mf = self._create_mol_map_menu(parent)
@@ -53,15 +50,16 @@ class FitMapDialog(ToolInstance):
     self._corr_label, self._ave_label = cl, al = cr.values
     cl.value = al.value = None	# Make fields blank
 
-    # Options panel
-    options = self._create_options_gui(parent)
-    layout.addWidget(options)
-
     # Fit, Undo, Redo buttons
     bf = self._create_action_buttons(parent)
     layout.addWidget(bf)
+
+    # Options panel
+    options = self._create_options_gui(parent)
+    layout.addWidget(options)
   
     # Status line
+    from Qt.QtWidgets import QLabel
     self._status_label = sl = QLabel(parent)
     layout.addWidget(sl)
         
@@ -84,7 +82,7 @@ class FitMapDialog(ToolInstance):
   #
   def _create_mol_map_menu(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -108,7 +106,6 @@ class FitMapDialog(ToolInstance):
       om.value = vlist[0]
     om.value_changed.connect(self._object_chosen)
     mlayout.addWidget(om)
-    # TODO: Add "selected atoms" as a choice for fitting.
 
     iml = QLabel('in map', mf)
     mlayout.addWidget(iml)
@@ -125,7 +122,7 @@ class FitMapDialog(ToolInstance):
   #
   def _create_correlation_gui(self, parent):
 
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         
     mf = QFrame(parent)
     mlayout = QHBoxLayout(mf)
@@ -157,13 +154,8 @@ class FitMapDialog(ToolInstance):
   def _create_options_gui(self, parent):
 
     from chimerax.ui.widgets import CollapsiblePanel
-    p = CollapsiblePanel(parent, 'Options')
+    self._options_panel = p = CollapsiblePanel(parent, title = None)
     f = p.content_area
-
-    from PyQt5.QtWidgets import QVBoxLayout
-    layout = QVBoxLayout(f)
-    layout.setContentsMargins(30,0,0,0)
-    layout.setSpacing(0)
 
     from chimerax.ui.widgets import EntriesRow, radio_buttons
     
@@ -203,31 +195,25 @@ class FitMapDialog(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
+  def _show_or_hide_options(self):
+    self._options_panel.toggle_panel_display()
+
+  # ---------------------------------------------------------------------------
+  #
   def _create_action_buttons(self, parent):
-    
-    from PyQt5.QtWidgets import QFrame, QHBoxLayout, QPushButton
-    bf = QFrame(parent)
-    blayout = QHBoxLayout(bf)
-    blayout.setContentsMargins(0,0,0,0)
-    blayout.setSpacing(10)
-    
-    sb = QPushButton('Fit', bf)
-    sb.clicked.connect(self._fit)
-    blayout.addWidget(sb)
-    
-    self._undo_button = ub = QPushButton('Undo', bf)
-    ub.clicked.connect(self._undo)
-    blayout.addWidget(ub)
-    
-    self._redo_button = rb = QPushButton('Redo', bf)
-    rb.clicked.connect(self._redo)
-    blayout.addWidget(rb)
-        
-    blayout.addStretch(1)    # Extra space at end
+    from chimerax.ui.widgets import button_row
+    f, buttons = button_row(parent,
+                            [('Fit', self._fit),
+                             ('Undo', self._undo),
+                             ('Redo', self._redo),
+                             ('Options', self._show_or_hide_options)],
+                            spacing = 10,
+                            button_list = True)
+    self._undo_button, self._redo_button = buttons[1], buttons[2]
 
     self._activate_undo_redo()
 
-    return bf
+    return f
 
   # ---------------------------------------------------------------------------
   #

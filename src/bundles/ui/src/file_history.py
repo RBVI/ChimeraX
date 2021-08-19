@@ -25,7 +25,7 @@ class FileHistory:
 
         self.file_history_window = fhw = HistoryWindow(session, parent, **kw)
 
-        from PyQt5.QtWidgets import QGridLayout
+        from Qt.QtWidgets import QGridLayout
         layout = QGridLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.file_history_window, 0, 0)
@@ -112,7 +112,7 @@ class HistoryWindow(ChimeraXHtmlView):
         event.accept()
         cm = getattr(self, 'context_menu', None)
         if cm is None:
-            from PyQt5.QtWidgets import QMenu
+            from Qt.QtWidgets import QMenu
             cm = self.context_menu = QMenu(self)
             cm.addAction("Remove deleted files", self.remove_missing_files)
         cm.popup(event.globalPos())

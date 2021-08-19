@@ -148,7 +148,7 @@ class Log(ToolInstance, HtmlLog):
                     self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
-                from PyQt5.QtWidgets import QAction
+                from Qt.QtWidgets import QAction
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -159,7 +159,7 @@ class Log(ToolInstance, HtmlLog):
         parent = self.tool_window.ui_area
         from chimerax.ui.widgets import ChimeraXHtmlView
 
-        from PyQt5.QtWebEngineWidgets import QWebEnginePage
+        from Qt.QtWebEngineWidgets import QWebEnginePage
         class MyPage(QWebEnginePage):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
@@ -187,7 +187,7 @@ class Log(ToolInstance, HtmlLog):
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
                 # defer context menu to parent
-                #from PyQt5.QtCore import Qt
+                #from Qt.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
             def link_intercept(self, request_info, *args, **kw):
@@ -195,7 +195,9 @@ class Log(ToolInstance, HtmlLog):
                 qurl = request_info.requestUrl()
                 scheme = qurl.scheme()
                 if scheme == 'cxcmd':
-                    cmd = qurl.url(qurl.None_)[6:].lstrip()  # skip cxcmd:
+                    from Qt.QtCore import QUrl
+                    no_formatting = QUrl.FormattingOptions(QUrl.None_)
+                    cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
                 from chimerax.ui.widgets.htmlview import chimerax_intercept
@@ -214,14 +216,14 @@ class Log(ToolInstance, HtmlLog):
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
-        from PyQt5.QtCore import QTimer
+        from Qt.QtCore import QTimer
         self.regulating_timer = QTimer()
         self.regulating_timer.timeout.connect(self._actually_show)
 
-        from PyQt5.QtWidgets import QGridLayout, QErrorMessage
+        from Qt.QtWidgets import QGridLayout, QErrorMessage
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
-                from PyQt5.QtCore import QSize
+                from Qt.QtCore import QSize
                 return QSize(600, 300)
         self.error_dialog = BiggerErrorDialog(parent)
         self._add_report_bug_button()
@@ -253,7 +255,7 @@ class Log(ToolInstance, HtmlLog):
         '''
         ed = self.error_dialog
         el = ed.layout()
-        from PyQt5.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
+        from Qt.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
         if isinstance(el, QGridLayout):
             i = 0
             while True:
@@ -435,6 +437,7 @@ class Log(ToolInstance, HtmlLog):
     # Override ToolInstance methods
     #
     def delete(self):
+        self.regulating_timer.stop()
         self.session.logger.remove_log(self)
         super().delete()
 
@@ -446,27 +449,48 @@ class Log(ToolInstance, HtmlLog):
     def set_state_from_snapshot(self, session, data):
         super().set_state_from_snapshot(session, data)
         log_data = data['log data']
-        prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
-            log_data['date'], log_data['contents'])
-        if self.settings.session_restore_clears:
-            # "retain" version info
-            class FakeLogger:
-                def __init__(self):
-                    self.msgs = []
-                def info(self, msg):
-                    self.msgs.append(msg)
-            fl = FakeLogger()
-            from chimerax.core.logger import log_version
-            log_version(fl)
-            version = "<br>".join(fl.msgs)
+        # don't blindly trust HTML in log_data
+        date = log_data['date']
+        if '<' in date:
+            session.logger.warning("Potentially malicious date found in session file's log data ignored")
+            date = "unknown"
+        from lxml import html
+        contents = log_data['contents']
+        tmp = html.fromstring(contents)
+        script_elements = tmp.findall(".//script")
+        if script_elements:
+            session.logger.warning("Potentially malicious HTML script elements found in session file's log data ignored")
+            for e in reversed(script_elements):
+                e.getparent().remove(e)
+            contents = html.tostring(tmp)
+        prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
+        if self.settings.session_restore_clears and session.restore_options['clear log']:
+            def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
+                if session.restore_options['error encountered']:
+                    # if the session did't restore successfully, don't clear the log
+                    self.page_source += prev_ses_html
+                else:
+                    # "retain" version info
+                    class FakeLogger:
+                        def __init__(self):
+                            self.msgs = []
+                        def info(self, msg):
+                            self.msgs.append(msg)
+                    fl = FakeLogger()
+                    from chimerax.core.logger import log_version
+                    log_version(fl)
+                    version = "<br>".join(fl.msgs)
 
-            # look for the command that restored the session and include it
-            index = self.page_source.rfind('<div class="cxcmd">')
-            if index == -1:
-                retain = version
-            else:
-                retain = version + '<br>' + self.page_source[index:]
-            self.page_source = retain + prev_ses_html
+                    # look for the command that restored the session and include it
+                    index = self.page_source.rfind('<div class="cxcmd">')
+                    if index == -1:
+                        retain = version
+                    else:
+                        retain = version + '<br>' + self.page_source[index:]
+                    self.page_source = retain + prev_ses_html
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            session.triggers.add_handler('end restore session', clear_log_unless_error)
         else:
             self.page_source += prev_ses_html
         #self.show_page_source()

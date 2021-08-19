@@ -22,7 +22,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     cdef cppclass Coord:
         Coord(double x, double y, double z)
 
-cdef extern from "search.h":
+cdef extern from "<atomsearch/search.h>" namespace "atomsearch":
     cdef cppclass CppAtomSearchTree "AtomSearchTree":
         CppAtomSearchTree(vector[Atom*], bool, double) except +
         vector[Atom*] search(Atom*, double)

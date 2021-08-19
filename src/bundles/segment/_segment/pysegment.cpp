@@ -390,8 +390,7 @@ extern "C"  PyObject *find_local_maxima(PyObject *, PyObject *args, PyObject *ke
   call_template_function(find_local_max, data.value_type(),
   			 (data, pos.values(), pos.size(0)));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------

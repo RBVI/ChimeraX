@@ -33,7 +33,7 @@ class NucleotidesTool(ToolInstance):
 
         # Create an HTML viewer for our user interface.
         # We can include other Qt widgets if we want to.
-        from PyQt5.QtWidgets import QGridLayout
+        from PySide2.QtWidgets import QGridLayout
         from chimerax.ui.widgets import HtmlView
         layout = QGridLayout()
         self.html_view = HtmlView(parent, size_hint=(575, 200))

@@ -31,7 +31,7 @@ class MarkerModeSettings(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
         
-        from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QSizePolicy, QCheckBox
+        from Qt.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QSizePolicy, QCheckBox
 
         playout = QVBoxLayout(parent)
         playout.setContentsMargins(0,0,0,0)
@@ -153,7 +153,7 @@ class MarkerModeSettings(ToolInstance):
         self._marker_radius.setText('%.3g' % s['marker radius'])
         self._link_color.set_color(self._settings['link color'])
         self._link_radius.setText('%.3g' % s['link radius'])
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.link_new_button.setChecked(Qt.Checked if s['link_new_markers'] else Qt.Unchecked)
         
     def show(self):

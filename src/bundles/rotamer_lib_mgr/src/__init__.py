@@ -23,8 +23,8 @@ class _RotLibMgrBundleAPI(BundleAPI):
         """Initialize rotamer library manager"""
         if name == "rotamers":
             from .manager import RotamerLibManager
-            session.rotamers = RotamerLibManager(session)
-            return session.rotamers
-        raise AssertionError("This bundle does not provide a '%s' manager" % name)
+            session.rotamers = RotamerLibManager(session, name)
+        else:
+            raise AssertionError("This bundle does not provide a '%s' manager" % name)
 
 bundle_api = _RotLibMgrBundleAPI()

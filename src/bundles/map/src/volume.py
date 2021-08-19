@@ -128,6 +128,23 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def info_string(self):
+    
+    px,py,pz = self.data.step
+    psize = '%.3g' % px if py == px and pz == px else '%.3g,%.3g,%.3g' % (px,py,pz)
+    info = ('grid size %d,%d,%d' % tuple(self.data.size) +
+            ', pixel %s' % psize +
+            ', shown at ')
+    if self.surface_shown:
+      info += 'level %s, ' % ','.join('%.3g' % s.level for s in self.surfaces)
+    sx,sy,sz = self.region[2]
+    step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
+    info += 'step %s' % step
+    info += ', values %s' % self.data.value_type.name
+    return info
+  
+  # ---------------------------------------------------------------------------
+  #
   def add_volume_change_callback(self, cb):
 
     self.change_callbacks.append(cb)
@@ -138,13 +155,17 @@ class Volume(Model):
 
     self.change_callbacks.remove(cb)
 
-
   # ---------------------------------------------------------------------------
   #
   def added_to_session(self, session):
+    if getattr(self, 'series', None) is None and self._channels is None:
+      msg = 'Opened %s as #%s, %s' % (self.name, self.id_string, self.info_string())
+      session.logger.info(msg)
+
+    # Use full lighting for initial map display
     if len(session.models.list()) == 1:
       from chimerax.std_commands.lighting import lighting
-      lighting(session, 'full')	# Use full lighting for initial map display
+      lighting(session, 'full')
 
   # ---------------------------------------------------------------------------
   #
@@ -999,9 +1020,9 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None, new_spacing = None):
+  def region_grid(self, r, value_type = None, new_spacing = None, clamp = True):
 
-    shape = self.matrix_size(region = r, clamp = False)
+    shape = self.matrix_size(region = r, clamp = clamp)
     if new_spacing is not None:
       d = self.data
       shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
@@ -1376,7 +1397,8 @@ class Volume(Model):
   # that is a multiple of the step.  The end of the region is the largest index equal
   # or less than ijk_max[axis] that is a multiple of the step, unless that index is
   # less than the origin in which case the end equals the origin.  The returned
-  # size is always a multiple of step.
+  # size is always a multiple of step unless clamp is true and size would extend
+  # beyond grid size.
   #
   def step_aligned_region(self, region, clamp = True):
 
@@ -1392,17 +1414,20 @@ class Volume(Model):
         origin[a] -= ijk_step[a]
 
     end = [max(s*(i//s),o) for i,s,o in zip(ijk_max, ijk_step, origin)]
+    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
+
     if clamp:
       origin = [max(i,0) for i in origin]
-      end = [min(i,lim-1) for i,lim in zip(end, self.data.size)]
-    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
+      size = [(s if o+s <= lim else max(0,lim-o))
+              for o,s,lim in zip(origin, size, self.data.size)]
 
     return tuple(origin), tuple(size), tuple(ijk_step)
 
   # ---------------------------------------------------------------------------
   # Applying point_xform to points gives Chimera world coordinates.  If the
   # point_xform is None then the points are in local volume coordinates.
-  # The returned values are float32.
+  # The returned values are float32.  The returned outside array contains
+  # integer index value for points outside the volume.
   #
   def interpolated_values(self, points, point_xform = None,
                           out_of_bounds_list = False, subregion = 'all',
@@ -2017,9 +2042,15 @@ class VolumeSurface(Surface):
   def set_color(self, color):
     if (color != self.color).any():
       Surface.set_color(self, color)
+      self._set_clip_cap_color(color)
       self.volume.call_change_callbacks('colors changed')
   color = property(get_color, set_color)
 
+  def _set_clip_cap_color(self, color):
+    for c in self.child_models():
+      if getattr(c, 'is_clip_cap', False):
+        c.set_color(color)
+        
   def _get_colors(self):
     return Surface.get_colors(self)
   def _set_colors(self, colors):
@@ -2327,6 +2358,8 @@ class PickedMap(Pick):
     return '%s %s %s' % (self.map.id_string, self.map.name, self.detail)
   def specifier(self):
     return '#%s' % self.map.id_string
+  def drawing(self):
+    return self.map
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':
@@ -3401,8 +3434,9 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
 # -----------------------------------------------------------------------------
 #
 def show_volume_dialog(session):
-  from .volume_viewer import show_volume_dialog
-  show_volume_dialog(session)
+  if hasattr(session, 'ui') and session.ui.is_gui:
+    from .volume_viewer import show_volume_dialog
+    show_volume_dialog(session)
 
 # -----------------------------------------------------------------------------
 #
@@ -3614,6 +3648,7 @@ def open_grids(session, grids, name, **kw):
     if maps and show_dialog:
       show_volume_dialog(session)
 
+    msg = ''
     if is_series and is_multichannel:
       cmaps = {}
       for m in maps:
@@ -3624,48 +3659,29 @@ def open_grids(session, grids, name, **kw):
       from chimerax.map_series import MapSeries
       ms = [MapSeries('channel %d' % c, cm, session) for c, cm in cmaps.items()]
       mc = MultiChannelSeries(name, ms, session)
-      msg = ('Opened multichannel map series %s, %d channels, %d images per channel'
-             % (name, len(ms), len(maps)//len(ms)))
       models = [mc]
     elif is_series:
       from chimerax.map_series import MapSeries
       ms = MapSeries(name, maps, session)
       ms.display = show
-      msg = 'Opened map series %s, %d images' % (name, len(maps))
       models = [ms]
     elif is_multichannel:
       mc = MapChannelsModel(name, maps, session)
       mc.display = show
       mc.show_n_channels(3)
-      msg = 'Opened multi-channel map %s, %d channels' % (name, len(maps))
       models = [mc]
     elif len(maps) == 0:
       msg = 'No map data opened'
       session.logger.warning(msg)
       models = maps
-      return models, msg
     else:
-      msg = 'Opened %s' % maps[0].name
       models = maps
 
     # Create surfaces before adding to session so that initial view can use corrrect bounds.
     for v in maps:
       if v.display:
         v.update_drawings()
-        
-    m0 = maps[0]
-    px,py,pz = m0.data.step
-    psize = '%.3g' % px if py == px and pz == px else '%.3g,%.3g,%.3g' % (px,py,pz)
-    msg += (', grid size %d,%d,%d' % tuple(m0.data.size) +
-            ', pixel %s' % psize +
-            ', shown at ')
-    if m0.surface_shown:
-      msg += 'level %s, ' % ','.join('%.3g' % s.level for s in m0.surfaces)
-    sx,sy,sz = m0.region[2]
-    step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
-    msg += 'step %s' % step
-    msg += ', values %s' % m0.data.value_type.name
-    
+
     return models, msg
 
 # -----------------------------------------------------------------------------
@@ -3737,6 +3753,14 @@ class MapChannelsModel(Model, MapChannels):
     self.add(maps)
     MapChannels.__init__(self, maps)
 
+  def added_to_session(self, session):
+    maps = self.maps
+    msg = ('Opened multi-channel map %s as #%s, %d channels'
+           % (self.name, self.id_string, len(maps)))
+    if maps:
+      msg += ', ' + maps[0].info_string()
+    session.logger.info(msg)
+
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     data = {'model state': Model.take_snapshot(self, session, flags),
@@ -3780,6 +3804,15 @@ class MultiChannelSeries(Model):
         mc = MapChannels(maps)
         for m in maps:
           m._channels = mc
+
+  def added_to_session(self, session):
+    ms = self.map_series
+    msg = ('Opened multichannel map series %s as #%s, %d channels'
+           % (self.name, self.id_string, len(ms)))
+    if ms and ms[0].maps:
+      maps = ms[0].maps
+      msg += ', %d images per channel, %s' % (len(maps), maps[0].info_string())
+    session.logger.info(msg)
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
@@ -3948,7 +3981,8 @@ class VolumeUpdateManager:
     # Only update displayed volumes.  Keep list or efficiency with time series.
     self._displayed_volumes_to_update = set()
     t = session.triggers
-    t.add_handler('graphics update', self._update_drawings)
+    if t.has_trigger('graphics update'):
+      t.add_handler('graphics update', self._update_drawings)
     t.add_handler('model display changed', self._display_change)
     
   def add(self, v):

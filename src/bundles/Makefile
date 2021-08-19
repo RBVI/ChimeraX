@@ -19,31 +19,32 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
-REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
-	  axes_planes basic_actions bild blastprotein \
-	  bond_rot bug_reporter build_structure \
+REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
+	  alignments amber_info arrays atom_search \
+	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
+	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
-	  color_globe connect_structure core_formats \
-	  coulombic crosslinks crystal data_formats \
+	  color_globe color_key connect_structure core_formats \
+	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dist_ui dssp \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces io label list_info log looking_glass \
+	  interfaces io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command \
-	  pdb pdb_bio pick_blobs positions preset_mgr pubchem \
+	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
 	  sdf segger segment seq_view sequences shape \
 	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
-	  tape_measure test toolbar tug ui uniprot \
+	  tape_measure test toolbar tug ui uniprot unit_cell \
 	  viewdockx vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
 
@@ -77,7 +78,7 @@ endif
 clean:
 	rm -rf __pycache__ Makefile.dependencies
 ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm */*.whl
+	cd $(SYNC_DIR) && rm -f */*.whl
 endif
 
 #

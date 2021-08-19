@@ -1,0 +1,164 @@
+<BundleInfo name="ChimeraX-AtomicLibrary" version="3.1.3"
+            package="chimerax.atomic_lib"
+            purePython="false"
+            installedDataDir="data"
+            installedIncludeDir="include"
+            installedLibraryDir="lib"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Atomic-structure C++ library</Synopsis>
+  <Description>C++ support for handling atomic structures</Description>
+
+  <DataFiles>
+    <DataFile>data/*/*/*</DataFile>
+    <DataFile>include/*/*</DataFile>
+    <DataFile>include/*/*/*</DataFile>
+    <DataFile>lib/*</DataFile>
+    <DataFile>*.so</DataFile>
+    <DataFile>*.pyd</DataFile>
+  </DataFiles>
+
+  <CLibrary name="pyinstance">
+    <SourceFile>atomic_cpp/pyinstance_cpp/PythonInstance.cpp</SourceFile>
+  </CLibrary>
+
+  <CLibrary name="element">
+    <SourceFile>atomic_cpp/element_cpp/Element.cpp</SourceFile>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
+    <Library>pyinstance</Library>
+  </CLibrary>
+
+  <CLibrary name="atomstruct_tmpl" static="true">
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/Atom.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/Bond.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/CoordSet.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/Molecule.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/Residue.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/TemplateCache.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/amino.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/camino.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/findres.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/general.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/ions.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/namino.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/tmpl/nucleic.cpp</SourceFile>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
+    <Library>pyinstance</Library>
+  </CLibrary>
+
+  <CLibrary name="atomstruct">
+    <SourceFile>atomic_cpp/atomstruct_cpp/Atom.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/AtomTypes.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/AtomicStructure.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Bond.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Chain.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/ChangeTracker.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/CompSS.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/CoordSet.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/MolResId.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/PBGroup.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/PBManager.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Point.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Pseudobond.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Residue.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Ring.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/RingCalc.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Sequence.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/Structure.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/StructureSeq.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/destruct.cpp</SourceFile>
+    <SourceFile>atomic_cpp/atomstruct_cpp/seq_assoc.cpp</SourceFile>
+    <IncludeDir>src/include</IncludeDir>
+    <LibraryDir>src/lib</LibraryDir>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
+    <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
+    <Library>pyinstance</Library>
+    <Library>element</Library>
+    <Library>atomstruct_tmpl</Library>
+    <Library>ioutil</Library>
+    <Library>chutil</Library>
+    <Library>logger</Library>
+    <Library>arrays</Library>
+  </CLibrary>
+
+  <ExtraFiles>
+    <ExtraFile source="atomic_cpp/pyinstance_cpp/PythonInstance.declare.h">include/pyinstance/PythonInstance.declare.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/pyinstance_cpp/PythonInstance.instantiate.h">include/pyinstance/PythonInstance.instantiate.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/pyinstance_cpp/imex.h">include/pyinstance/imex.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/pyinstance_cpp/imex.map.h">include/pyinstance/imex.map.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/element_cpp/Element.h">include/element/Element.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/element_cpp/imex.h">include/element/imex.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Atom.h">include/atomstruct/Atom.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/AtomicStructure.h">include/atomstruct/AtomicStructure.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Bond.h">include/atomstruct/Bond.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Chain.h">include/atomstruct/Chain.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/ChangeTracker.h">include/atomstruct/ChangeTracker.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Connection.h">include/atomstruct/Connection.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Coord.h">include/atomstruct/Coord.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/CoordSet.h">include/atomstruct/CoordSet.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/MolResId.h">include/atomstruct/MolResId.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/PBGroup.h">include/atomstruct/PBGroup.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/PBManager.h">include/atomstruct/PBManager.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Point.h">include/atomstruct/Point.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Pseudobond.h">include/atomstruct/Pseudobond.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Real.h">include/atomstruct/Real.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Residue.h">include/atomstruct/Residue.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Rgba.h">include/atomstruct/Rgba.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Ring.h">include/atomstruct/Ring.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Sequence.h">include/atomstruct/Sequence.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/Structure.h">include/atomstruct/Structure.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/StructureSeq.h">include/atomstruct/StructureSeq.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/backbone.h">include/atomstruct/backbone.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/destruct.h">include/atomstruct/destruct.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/polymer.h">include/atomstruct/polymer.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/seq_assoc.h">include/atomstruct/seq_assoc.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/session.h">include/atomstruct/session.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/string_types.h">include/atomstruct/string_types.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/imex.h">include/atomstruct/imex.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/Atom.h">include/atomstruct/tmpl/Atom.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/Bond.h">include/atomstruct/tmpl/Bond.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/Coord.h">include/atomstruct/tmpl/Coord.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/CoordSet.h">include/atomstruct/tmpl/CoordSet.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/Molecule.h">include/atomstruct/tmpl/Molecule.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/Residue.h">include/atomstruct/tmpl/Residue.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/TAexcept.h">include/atomstruct/tmpl/TAexcept.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/TemplateCache.h">include/atomstruct/tmpl/TemplateCache.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/resDescrip.h">include/atomstruct/tmpl/resDescrip.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/residues.h">include/atomstruct/tmpl/residues.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/resinternal.h">include/atomstruct/tmpl/resinternal.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/tmpl/restmpl.h">include/atomstruct/tmpl/restmpl.h</ExtraFile>
+    <ExtraDir source="atomic_cpp/atomstruct_cpp/tmpl/idatm/templates">data/idatm/templates</ExtraDir>
+  </ExtraFiles>
+
+  <CModule name="_load_libs">
+    <SourceFile>atomic_cpp/load_libs.cpp</SourceFile>
+	<IncludeDir>src/include</IncludeDir>
+	<LibraryDir>src/lib</LibraryDir>
+    <Library>atomstruct</Library>
+    <Library>element</Library>
+  </CModule>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

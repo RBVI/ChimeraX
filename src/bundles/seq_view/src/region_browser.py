@@ -33,7 +33,7 @@ from prefs import RB_LAST_USE
 class Region:
     def __init__(self, region_browser, name=None, init_blocks=[], shown=True,
             border_rgba=None, interior_rgba=None, name_prefix="",
-            cover_gaps=False, source=None):
+            cover_gaps=False, source=None, read_only=False):
         self._name = name
         self.name_prefix = name_prefix
         self.region_browser = region_browser
@@ -43,6 +43,7 @@ class Region:
         self._interior_rgba = interior_rgba
         self.cover_gaps = cover_gaps
         self.source = source
+        self.read_only = read_only
         self.highlighted = False
 
         self._items = []
@@ -142,7 +143,7 @@ class Region:
                 self.region_browser._region_size_changed_cb(self)
 
     def contains(self, x, y):
-        from PyQt5.QtCore import QPointF
+        from Qt.QtCore import QPointF
         for item in self.scene.items(QPointF(x, y)):
             if item in self._items:
                 return True
@@ -211,10 +212,10 @@ class Region:
         if not self._items:
             return
         brush = self._items[0].brush()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if rgba:
-            from PyQt5.QtGui import QColor
-            brush.setColor(QColor(*rgba))
+            from Qt.QtGui import QColor
+            brush.setColor(QColor(*[int(x*255.0 + 0.5) for x in rgba]))
             brush.setStyle(Qt.SolidPattern)
         else:
             brush.setStyle(Qt.NoBrush)
@@ -255,10 +256,10 @@ class Region:
 
     def _rect_kw(self):
         kw = {}
-        from PyQt5.QtGui import QBrush, QPen, QColor
+        from Qt.QtGui import QBrush, QPen, QColor
         kw['pen'] = pen = QPen()
         kw['brush'] = brush = QBrush()
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if self.interior_rgba is not None:
             brush.setColor(rgba_to_qcolor(self.interior_rgba))
             brush.setStyle(Qt.SolidPattern)
@@ -271,7 +272,12 @@ class Region:
             else:
                 pen.setStyle(Qt.SolidLine)
         else:
-            pen.setStyle(Qt.NoPen)
+            # no outline will not be filled so...
+            if self.interior_rgba is None:
+                pen.setStyle(Qt.NoPen)
+            else:
+                pen.setColor(rgba_to_qcolor(self.interior_rgba))
+                pen.setStyle(Qt.SolidLine)
         return kw
 
     def redraw(self):
@@ -306,6 +312,7 @@ class Region:
         self._active = state['_active']
         self.sequence = state['sequence']
         self.associated_with = state['associated_with']
+        self.read_only = state.get('read_only', self._name == "ChimeraX selection")
         self.add_blocks(state['blocks'], make_cb=False)
         return state
 
@@ -358,7 +365,7 @@ class Region:
     
     rmsd = property(get_rmsd)
 
-    def save_state(self):
+    def state(self):
         state = {}
         state['_name'] = self._name
         state['name_prefix'] = self.name_prefix
@@ -372,6 +379,7 @@ class Region:
         state['sequence'] = self.sequence
         state['associated_with'] = self.associated_with
         state['blocks'] = self.blocks
+        state['read_only'] = self.read_only
         return state
 
     def set_cover_gaps(self, cover):
@@ -509,8 +517,8 @@ class RegionBrowser:
             for r in region:
                 self.delete_region(r, rebuild_table=(r == region[-1]))
             return
-        if region == self.get_region("ChimeraX selection"):
-            self.seq_canvas.sv.status("Cannot delete ChimeraX selection region", color="red")
+        if region.read_only:
+            self.seq_canvas.sv.status("Cannot delete %s region" % region.name, color="red")
         else:
             assoc = region.associated_with
             if assoc:
@@ -802,12 +810,12 @@ class RegionBrowser:
             from chimerax.ui.open_save import OpenDialog
             dlg = OpenDialog(self.tool_window.ui_area, caption="Load Sequence Coloring File")
             dlg.setNameFilter("SCF files (*.scf *.seqsel)")
-            from PyQt5.QtWidgets import QCheckBox
+            from Qt.QtWidgets import QCheckBox
             cbox = QCheckBox("Also color associated structures")
             sv = self.seq_canvas.sv
             settings = sv.settings
             cbox.setChecked(settings.scf_colors_structures)
-            from PyQt5.QtWidgets import QHBoxLayout
+            from Qt.QtWidgets import QHBoxLayout
             layout = QHBoxLayout()
             layout.addWidget(cbox)
             dlg.custom_area.setLayout(layout)
@@ -946,9 +954,9 @@ class RegionBrowser:
     """
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
-            name_prefix="", select=False, assoc_with=None, shown=True,
-            cover_gaps=True, after="ChimeraX selection", rebuild_table=True,
-            session_restore=False, sequence=None, source=None):
+            name_prefix="", select=False, assoc_with=None, cover_gaps=True,
+            after="ChimeraX selection", rebuild_table=True,
+            session_restore=False, sequence=None, **kw):
         if not name and not name_prefix:
             # possibly first user-dragged region
             for reg in self.regions:
@@ -959,8 +967,8 @@ class RegionBrowser:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
         interior = get_rgba(fill)
         border = get_rgba(outline)
-        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix, shown=shown,
-                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, source=source)
+        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
+                border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1
         elif isinstance(after, str):
@@ -1046,10 +1054,9 @@ class RegionBrowser:
             for r in region:
                 self.renameRegion(r)
             return
-        if region == self.get_region("ChimeraX selection"):
+        if region.read_only:
             self.seq_canvas.sv.status(
-                "Cannot rename ChimeraX selection region",
-                color="red")
+                "Cannot rename %s region" % region.name, color="red")
             return
         if name == "ChimeraX selection":
             self.seq_canvas.sv.status("Cannot rename region as '%s'"
@@ -1087,11 +1094,11 @@ class RegionBrowser:
         self._prev_drag = None if pd is None else self.regions[pd]
         return state
 
-    def save_state(self):
+    def state(self):
         state = {}
         region_state = state['regions'] = []
         for region in self.regions:
-            region_state.append(region.save_state())
+            region_state.append(region.state())
         state['_highlighted_region'] = None if self._highlighted_region is None \
             else self.regions.index(self._highlighted_region)
         state['associated_regions'] = { k: [ self.regions.index(r) for r in v ]
@@ -1132,7 +1139,7 @@ class RegionBrowser:
 
     def show_chimerax_selection(self):
         sv = self.seq_canvas.sv
-        sel_region = self.get_region("ChimeraX selection", create=True,
+        sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
@@ -1342,7 +1349,7 @@ class RegionBrowser:
         cofr(sel)
 
     def _key_press_cb(self, event):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
             self.delete_region(self.selected())
             scene = self.seq_canvas.main_scene
@@ -1366,7 +1373,7 @@ class RegionBrowser:
                             hr.shown = False
 
     def _mouse_down_cb(self, event):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if event.button() == Qt.RightButton:
             """TODO
             if event.modifiers() & Qt.ShiftModifier:
@@ -1450,7 +1457,7 @@ class RegionBrowser:
                     self._after_id = None
         """
 
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         control_down = bool(event.modifiers() & Qt.ControlModifier)
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
@@ -1496,7 +1503,7 @@ class RegionBrowser:
                 lr_y += 1
                 if not prev_bbox:
                     create_line = self.seq_canvas.main_scene.addLine
-                    from PyQt5.QtGui import QPen
+                    from Qt.QtGui import QPen
                     pen = QPen(Qt.DotLine)
                     drag_lines = []
                     drag_lines.append(create_line(ul_x, ul_y, ul_x, lr_y, pen))
@@ -1716,16 +1723,17 @@ class RegionBrowser:
     def _select_on_structures(self, region=None):
         # highlight on chimerax structures
         self._sel_change_from_self = True
-        self.tool_window.session.selection.clear()
-        from chimerax.atomic import Residues
-        sel_atoms = Residues(self.region_residues(region)).atoms
-        sel_atoms.selecteds = True
-        sel_atoms.intra_bonds.selecteds = True
+        session = self.tool_window.session
+        sel_residues = self.region_residues(region)
+        if sel_residues:
+            from chimerax.atomic import concise_residue_spec
+            from chimerax.core.commands import run
+            run(session, "sel " + concise_residue_spec(session, sel_residues))
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
         settings = self.seq_canvas.sv.settings
-        sel_region = self.get_region("ChimeraX selection", create=True,
+        sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
             fill=settings.sel_region_interior, outline=settings.sel_region_border)
         if self._sel_change_from_self:
             sel_region.clear()
@@ -1837,5 +1845,5 @@ def get_rgba(color_info):
     return color_info
 
 def rgba_to_qcolor(rgba):
-    from PyQt5.QtGui import QBrush, QPen, QColor
+    from Qt.QtGui import QBrush, QPen, QColor
     return QColor(*[int(255*chan + 0.5) for chan in rgba])

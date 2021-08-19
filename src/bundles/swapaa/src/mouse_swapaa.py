@@ -36,7 +36,7 @@ class SwapAAMouseMode(MouseMode):
     
     def mouse_drag(self, event):
         r = self._residue
-        if r:
+        if r and not r.deleted:
             x,y = event.position()
             dy = y - self._last_y
             if abs(dy) >= self._step_pixels:
@@ -47,9 +47,10 @@ class SwapAAMouseMode(MouseMode):
     def mouse_up(self, event):
         self._unlabel()
         MouseMode.mouse_up(self, event)
-        _log_swapaa_command(self._residue)
+        r = self._residue
         self._residue = None
         self._last_y = None
+        _log_swapaa_command(r)
     
     def wheel(self, event):
         r = self._picked_residue(event)
@@ -121,7 +122,7 @@ class SwapAAMouseMode(MouseMode):
     
     def _unlabel(self):
         r = self._residue
-        if r is not None:
+        if r is not None and not r.deleted:
             objects, otype = self._label_objects(r)
             from chimerax.label.label3d import label_delete
             label_delete(self.session, objects, otype)
@@ -135,7 +136,7 @@ class SwapAAMouseMode(MouseMode):
 
     def vr_motion(self, event):
         r = self._residue
-        if r:
+        if r and not r.deleted:
             rstep = event.room_vertical_motion / self._step_meters
             if not self._swap_residue_step(r, rstep):
                 return 'accumulate drag'
@@ -143,11 +144,12 @@ class SwapAAMouseMode(MouseMode):
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._unlabel()
-        _log_swapaa_command(self._residue)
+        r = self._residue
         self._residue = None
+        _log_swapaa_command(r)
 
 def _log_swapaa_command(res):
-    if res is None:
+    if res is None or res.deleted:
         return
     ses = res.structure.session
     cmd = 'swapaa mousemode %s %s' % (res.string(style = 'command'), res.name)

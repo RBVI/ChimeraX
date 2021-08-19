@@ -32,7 +32,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: torsion :: Report or set torsion angle :: Report torsion angle of 4 atoms, or set it (middle two atoms much be bonded for setting)</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: torsion :: Report or set torsion angle :: Report torsion angle of 4 atoms, or set it (middle two atoms must be bonded for setting)</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

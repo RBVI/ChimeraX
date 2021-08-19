@@ -306,9 +306,14 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if not dt.path or include_maps:
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
-    from gzip import compress
-    from base64 import b64encode
-    s['array'] = b64encode(compress(dt.matrix().tobytes()))
+    compress_maps = False  # No advantage.  Ticket #4002
+    if compress_maps:
+      from gzip import compress
+      s['array_compression'] = 'gzip'
+      s['array'] = compress(dt.matrix().tobytes())
+    else:
+      s['array_compression'] = 'none'
+      s['array'] = dt.matrix().tobytes()
     save_position = True
   else:
     save_position = False
@@ -348,10 +353,19 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
 def grid_data_from_state(s, gdcache, session, file_paths):
 
   if 'array' in s:
+    compression = s.get('array_compression')
+    if compression == 'none':
+      bytes = s['array']
+    else:
+      from gzip import decompress
+      if compression == 'gzip':
+        bytes = decompress(s['array'])
+      else:
+        # Older sessions without array_compression attribute used gzip and base64 encoding.
+        from base64 import b64decode
+        bytes = decompress(b64decode(s['array']))
     from numpy import frombuffer, dtype
-    from gzip import decompress
-    from base64 import b64decode
-    a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    a = frombuffer(bytes, dtype = dtype(s['value_type']))
     if not a.flags.writeable:
       a = a.copy()
     array = a.reshape(s['size'][::-1])
@@ -406,7 +420,7 @@ def grid_data_from_state(s, gdcache, session, file_paths):
   if 'time' in s:
     for data in dlist:
       data.time = s['time']
-      
+
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
     from chimerax.map_data import SubsampledGrid
@@ -417,12 +431,14 @@ def grid_data_from_state(s, gdcache, session, file_paths):
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
-      dpath = absolute_path(dstate.path, file_paths, base_path = session.session_file_path)
+      dpath = absolute_path(dstate['path'], file_paths, base_path = session.session_file_path)
       if dpath != path:
-        # TODO: This looks wrong.  Don't we just recurse calling grid_data_from_state()?
-        ssdlist = dstate.create_object(gdcache)
-        for i,ssdata in enumerate(ssdlist):
-          dlist[i].add_subsamples(ssdata, cell_size)
+        ssdata = grid_data_from_state(dstate, gdcache, session, file_paths)
+        if len(ssdata) == 1:
+          for data in dlist:
+            data.add_subsamples(ssdata[0], cell_size)
+        elif len(ssdata) > 1:
+          raise ValueError('session restore of volume subsamples returned more than one subsample data set: %s' % dstate)
 
   return dlist
 

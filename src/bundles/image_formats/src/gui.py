@@ -16,10 +16,10 @@ SUPERSAMPLE_OPTIONS = (("None", 1),
                        ("3x", 3),
                        ("4x", 4))
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QComboBox, QLabel, QLineEdit, QCheckBox
-from PyQt5.QtCore import Qt
+from Qt.QtWidgets import QFrame, QHBoxLayout, QComboBox, QLabel, QLineEdit, QCheckBox
+from Qt.QtCore import Qt
 class SaveOptionsWidget(QFrame):
-    def __init__(self, session):
+    def __init__(self, session, fmt):
         super().__init__()
         layout = QHBoxLayout()
         layout.setContentsMargins(2, 0, 0, 0)
@@ -55,6 +55,13 @@ class SaveOptionsWidget(QFrame):
         supersample_layout.addWidget(supersamples, alignment=Qt.AlignLeft)
         self._supersample = supersamples
 
+        if fmt in ["PNG", "TIFF"]:
+            self._transparent = trans = QCheckBox('Transparent\nbackground')
+            trans.setChecked(False)
+            layout.addWidget(trans)
+        else:
+            self._transparent = None
+
         self._session = session
         gw = session.ui.main_window.graphics_window
         w, h = gw.width(), gw.height()
@@ -81,6 +88,8 @@ class SaveOptionsWidget(QFrame):
         cmd = "width %g height %g" % (w, h)
         if ss is not None:
             cmd += " supersample %g" % ss
+        if self._transparent is not None and self._transparent.isChecked():
+            cmd += " transparentBackground true"
         return cmd
 
     def _width_changed(self):

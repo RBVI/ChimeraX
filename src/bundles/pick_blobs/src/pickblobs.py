@@ -255,8 +255,8 @@ class PickBlobSettings(ToolInstance):
         self.tool_window = tw
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QCheckBox, QLabel, QPushButton, QSizePolicy
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QCheckBox, QLabel, QPushButton, QSizePolicy
+        from Qt.QtCore import Qt
 
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0,0,0,0)
@@ -328,7 +328,7 @@ class PickBlobSettings(ToolInstance):
 
     @property
     def color_blob(self):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         return self._color_blob.checkState() == Qt.Checked
     
     @property
@@ -337,7 +337,7 @@ class PickBlobSettings(ToolInstance):
 
     @property
     def change_color(self):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         return self._change_color.checkState() == Qt.Checked
         
     def new_color(self):
@@ -348,7 +348,7 @@ class PickBlobSettings(ToolInstance):
 
     @property
     def show_box(self):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         return self._show_box.checkState() == Qt.Checked
     
     @property

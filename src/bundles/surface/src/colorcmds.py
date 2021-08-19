@@ -12,6 +12,7 @@ def register_color_subcommand(command_name, logger):
     map_args = [('map', MapArg),
                 ('palette', ColormapArg),
                 ('range', ColormapRangeArg),
+                ('key', BoolArg),
                 ('offset', FloatArg),
                 ('transparency', FloatArg),
                 ('update', BoolArg),
@@ -21,6 +22,7 @@ def register_color_subcommand(command_name, logger):
                  ('coordinate_system', CoordSysArg),
                  ('palette', ColormapArg),
                  ('range', ColormapRangeArg),
+                 ('key', BoolArg),
                  ('update', BoolArg),
     ]
 

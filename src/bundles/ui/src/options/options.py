@@ -208,11 +208,11 @@ def make_optional(cls):
     def _make_widget(self, **kw):
         self._super_class._make_widget(self, **kw)
         self._orig_widget = self.widget
-        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
+        from Qt.QtWidgets import QCheckBox, QHBoxLayout, QLayout
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self._check_box = cb = QCheckBox()
         cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         def enable_and_call(s=self):
@@ -220,7 +220,7 @@ def make_optional(cls):
             s._super_class.enabled.fset(s, s._check_box.isChecked())
             s.widget, s._orig_widget = s._orig_widget, s.widget
             s.make_callback()
-        cb.clicked.connect(lambda state, s=self: enable_and_call(s))
+        cb.clicked.connect(lambda *args, s=self: enable_and_call(s))
         layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         if isinstance(self._orig_widget, QLayout):
             layout.addLayout(self._orig_widget, stretch=1)
@@ -249,13 +249,18 @@ class BooleanOption(Option):
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         self.widget.setCheckState(Qt.PartiallyChecked)
 
-    def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QCheckBox
-        self.widget = QCheckBox(**kw)
-        self.widget.clicked.connect(lambda state, s=self: s.make_callback())
+    def _make_widget(self, as_group=False, **kw):
+        from Qt.QtWidgets import QCheckBox, QGroupBox
+        if as_group:
+            self.widget = QGroupBox(self.name)
+            self.name = ""
+            self.widget.setCheckable(True)
+        else:
+            self.widget = QCheckBox(**kw)
+        self.widget.clicked.connect(self.make_callback)
 
 class EnumBase(Option):
     values = ()
@@ -281,9 +286,9 @@ class EnumBase(Option):
         if not self.__as_radio_buttons:
             self.widget.setText(self.multiple_value)
 
-    def remake_menu(self):
-        from PyQt5.QtWidgets import QAction, QRadioButton
-        from PyQt5.QtCore import Qt
+    def remake_menu(self, *, make_callback=True):
+        from Qt.QtWidgets import QAction, QRadioButton
+        from Qt.QtCore import Qt
         if isinstance(self, SymbolicEnumOption):
             labels = self.labels
         else:
@@ -304,15 +309,16 @@ class EnumBase(Option):
             for label, value in zip(labels, self.values):
                 menu_label = label.replace('&', '&&')
                 action = QAction(menu_label, self.widget)
-                action.triggered.connect(lambda arg, s=self, val=value: s._menu_cb(val))
+                action.triggered.connect(lambda *, s=self, val=value: s._menu_cb(val))
                 menu.addAction(action)
             if self.values and self.value not in self.values and self.value != self.multiple_value:
                 self.value = labels[0]
-                self.make_callback()
+                if make_callback:
+                    self.make_callback()
     remake_buttons = remake_menu
 
     def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from PyQt5.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
@@ -321,7 +327,7 @@ class EnumBase(Option):
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            self.__button_group.buttonClicked[int].connect(lambda arg: self.make_callback())
+            self.__button_group.buttonClicked[int].connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -333,7 +339,7 @@ class EnumBase(Option):
             self.widget.setAutoDefault(False)
             menu = QMenu(self.widget)
             self.widget.setMenu(menu)
-            self.remake_menu()
+            self.remake_menu(make_callback=False)
         return self.widget
 
     def _menu_cb(self, value):
@@ -341,7 +347,16 @@ class EnumBase(Option):
         self.make_callback()
 
 class EnumOption(EnumBase):
-    """Supported API. Option for enumerated values"""
+    """Supported API. Option for enumerated values.
+       The given values will be displayed in the interface and returned by the 'value' attribute.
+       If you want to display different text in the interface than the literal value, use the
+       SymbolicEnumOption.  You can specify values either by subclassing and overriding the 'values'
+       class attribute, or by supplying the 'values' keyword to the constructor.
+    """
+    def __init__(self, *args, values=None, **kw):
+        if values is not None:
+            self.values = values
+        super().__init__(*args, **kw)
 
 OptionalEnumOption = make_optional(EnumOption)
 
@@ -394,7 +409,7 @@ class FloatOption(Option):
                 self._float_widget.set_right_text(right_text)
             self.widget = self._float_widget
             return
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLabel
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -447,6 +462,17 @@ class FloatEnumOption(EnumBase):
         layout.addWidget(self._enum)
         self.widget.setLayout(layout)
 
+class FontOption(EnumOption):
+    # setting 'values' delayed until (first) constructor, so avoid the expense of querying the font database
+    # until someone actually uses this option
+    values = None
+    def __init__(self, *args, **kw):
+        if self.values is None:
+            from Qt.QtGui import QFontDatabase
+            fdb = QFontDatabase()
+            self.values = sorted(list(fdb.families()))
+            super().__init__(*args, **kw)
+
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
 
@@ -464,7 +490,7 @@ class InputFolderOption(Option):
     def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose Folder", **kw):
         """initial_text_width should be a string holding a "stylesheet-friendly"
            value, (e.g. '10em' or '7ch') or None"""
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
         self.widget = QWidget()
         self.widget.setContentsMargins(0,0,0,0)
         layout = QHBoxLayout()
@@ -482,7 +508,7 @@ class InputFolderOption(Option):
         layout.addWidget(button)
 
     def _launch_browser(self, *args):
-        from PyQt5.QtWidgets import QFileDialog
+        from Qt.QtWidgets import QFileDialog
         import os
         if self.start_folder is None or not os.path.exists(self.start_folder):
             start_folder = os.getcwd()
@@ -522,7 +548,7 @@ class IntOption(Option):
         if not left_text and not right_text:
             self.widget = self._spin_box
             return
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLabel
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -574,6 +600,8 @@ class ColorOption(RGBA8Option):
 
     value = property(get_value, RGBA8Option.set_value)
 
+OptionalColorOption = make_optional(ColorOption)
+OptionalColorOption.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 OptionalRGBA8Option = make_optional(RGBA8Option)
 OptionalRGBA8Option.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 
@@ -621,7 +649,7 @@ class OptionalRGBA8PairOption(Option):
 
     def _make_widget(self, **kw):
         from ..widgets import MultiColorButton
-        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QLabel
         labels = kw.pop('labels', (None, "  "))
         self.widget = QWidget()
         layout = QHBoxLayout()
@@ -634,7 +662,7 @@ class OptionalRGBA8PairOption(Option):
                 layout.addWidget(QLabel(label))
             cb = QCheckBox()
             self._check_box.append(cb)
-            cb.clicked.connect(lambda state, s=self: s.make_callback())
+            cb.clicked.connect(self.make_callback)
             layout.addWidget(cb)
             mcb = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
             self._color_button.append(mcb)
@@ -672,9 +700,9 @@ class StringOption(Option):
         self.widget.setText(self.multiple_value)
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QLineEdit
+        from Qt.QtWidgets import QLineEdit
         self.widget = QLineEdit(**kw)
-        self.widget.editingFinished.connect(lambda s=self: s.make_callback())
+        self.widget.editingFinished.connect(lambda *, s=self: s.make_callback())
 
 class PasswordOption(StringOption):
     """Supported API. Option for entering a password"""
@@ -712,14 +740,14 @@ class StringIntOption(Option):
             initial_text_width="10em", **kw):
         """initial_text_width should be a string holding a "stylesheet-friendly"
            value, (e.g. '10em' or '7ch') or None"""
-        from PyQt5.QtWidgets import QLineEdit
+        from Qt.QtWidgets import QLineEdit
         self._line_edit = QLineEdit()
-        self._line_edit.editingFinished.connect(lambda s=self: s.make_callback())
+        self._line_edit.editingFinished.connect(lambda *, s=self: s.make_callback())
         if initial_text_width:
             self._line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
         self._spin_box = _make_int_spinbox(min, max, **kw)
         self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLabel
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -734,7 +762,7 @@ class StringIntOption(Option):
 
 class StringsOption(Option):
     """Supported API. Option for list of plain text strings
-       There is no builtin way for the user to indicate that they are done wditing the text,
+       There is no builtin way for the user to indicate that they are done editing the text,
        so no callback will occur.  If such an indication is needed, another widget would have to
        provide it."""
 
@@ -749,15 +777,24 @@ class StringsOption(Option):
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
 
-    def _make_widget(self, initial_text_width="10em", **kw):
-        """initial_text_width should be a string holding a "stylesheet-friendly"
+    def _make_widget(self, initial_text_width="10em", initial_text_height="4em", **kw):
+        """initial_text_width/height should be a string holding a "stylesheet-friendly"
            value, (e.g. '10em' or '7ch') or None"""
-        from PyQt5.QtWidgets import QTextEdit
+        from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
         self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        sheet_info = ""
         if initial_text_width:
-            self.widget.setStyleSheet("* { width: %s }" % initial_text_width)
+            sheet_info = "width: %s" % initial_text_width
+        else:
+            sheet_info = ""
+        if initial_text_height:
+            if sheet_info:
+                sheet_info += "; "
+            sheet_info += "height: %s" % initial_text_height
+        if sheet_info:
+            self.widget.setStyleSheet("* { " + sheet_info + " }")
 
 class HostPortOption(StringIntOption):
     """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
@@ -766,22 +803,32 @@ class HostPortOption(StringIntOption):
 
 
 class SymbolicEnumOption(EnumOption):
-    """Supported API. Option for enumerated values with symbolic names"""
+    """Supported API. Option for enumerated values with symbolic names
+       The given values will be returned by the 'value' attribute and the corresponding symbolic names
+       will be displayed in the user interface.  If your values and symbolic names are the same, just
+       use EnumOption.  You can specify values and symbolic names either by subclassing and overriding
+       the 'values' and 'labels' class attributes, or by supplying the 'values' and 'labels' keywords
+       to the constructor.
+    """
     values = ()
     labels = ()
+    def __init__(self, *args, labels=None, **kw):
+        if labels is not None:
+            self.labels = labels
+        super().__init__(*args, **kw)
 
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import Qt, pyqtSignal
+from Qt.QtWidgets import QWidget
+from Qt.QtCore import Qt, Signal
 
 class FloatSlider(QWidget):
 
-    valueChanged = pyqtSignal(float)
+    valueChanged = Signal(float)
 
     def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
             ignore_wheel_event=False, **kw):
-        from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
+        from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
         super().__init__()
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -867,41 +914,83 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         if bound in ('positive', 'negative'):
             return 0.0
         return bound
-    default_minimum = -(2^31)
-    default_maximum = 2^31 - 1
+    default_minimum = -(2**31)
+    default_maximum = 2**31 - 1
     minimum = compute_bound(min, default_minimum)
     maximum = compute_bound(max, default_maximum)
     if step is None:
         step = 10 ** (0 - (decimal_places-1))
 
     if as_slider:
-        from PyQt5.QtWidgets import QSlider
+        from Qt.QtWidgets import QSlider
         return FloatSlider(minimum, maximum, step, decimal_places, continuous_callback, **kw)
     # as spinbox...
-    from PyQt5.QtWidgets import QDoubleSpinBox
+    from Qt.QtWidgets import QDoubleSpinBox
     class NZDoubleSpinBox(QDoubleSpinBox):
         def value(self):
             val = super().value()
             if val == 0.0 and self.non_zero:
-                step = singleStep()
-                if minimum() == 0.0:
+                step = self.singleStep()
+                if self.minimum() == 0.0:
                     val = step
                 else:
                     val = -step
             return val
+
+        def eventFilter(self, source, event):
+            # prevent scroll wheel from changing value (usually accidentally)
+            if event.type() == event.Wheel and source is self:
+                event.ignore()
+                return True
+            return super().eventFilter(source, event)
+
+        def validate(self, text, pos):
+            suffix_index = len(text)
+            while suffix_index > 0 and not text[suffix_index-1].isdigit():
+                suffix_index -= 1
+            if suffix_index == 0:
+                return super().validate(text, pos)
+            numeric_text = text[:suffix_index]
+            suffix = text[suffix_index:]
+            try:
+                fval = float(numeric_text)
+            except ValueError:
+                return super().validate(text, pos)
+            # drop trailing decimal zeros if possible until input it valid
+            from Qt.QtGui import QValidator
+            while super().validate("%s%s" % (numeric_text, suffix), pos)[0] == QValidator.Invalid:
+                if len(numeric_text) < 2 or numeric_text[-1] != '0':
+                    return super().validate(text, pos)
+                numeric_text = numeric_text[:-1]
+            return super().validate("%s%s" % (numeric_text, suffix), pos)
+
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
     spin_box.setDecimals(decimal_places)
     spin_box.setMinimum(minimum)
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
+    from Qt.QtCore import Qt
+    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.installEventFilter(spin_box)
     return spin_box
 
 def _make_int_spinbox(min, max, **kw):
-    from PyQt5.QtWidgets import QSpinBox
-    spin_box = QSpinBox(**kw)
-    default_minimum = -(2^31)
-    default_maximum = 2^31 - 1
+    from Qt.QtWidgets import QSpinBox
+    class NoScrollSpinBox(QSpinBox):
+        def eventFilter(self, source, event):
+            # prevent scroll wheel from changing value (usually accidentally)
+            if event.type() == event.Wheel and source is self:
+                event.ignore()
+                return True
+            return super().eventFilter(source, event)
+
+    spin_box = NoScrollSpinBox(**kw)
+    default_minimum = -(2**31)
+    default_maximum = 2**31 - 1
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
+    from Qt.QtCore import Qt
+    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.installEventFilter(spin_box)
     return spin_box

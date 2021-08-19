@@ -3,17 +3,28 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).8
-DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
-SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 20.2.2
-WHEEL_VERSION = 0.34.2
-SETUPTOOLS_VERSION = 49.4.0
+PIP_VERSION = 21.0.1
+WHEEL_VERSION = 0.36.0
+SETUPTOOLS_VERSION = 50.3.2
 
-ifdef WIN32
+ifeq ($(OS),Windows)
+DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
+DISTDIR = $(tmpdir)/python-$(PYTHON_PATCH_LEVEL)-win-amd64
+SOURCE = 
 DYNLOAD_DIR = $(bindir)/DLLs
-else
+endif
+ifeq ($(OS),Linux)
+DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
+DISTDIR =
+SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
+DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
+endif
+ifeq ($(OS),Darwin)
+DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+DISTDIR =
+SOURCE = 
 DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
@@ -47,6 +58,7 @@ export LD_LIBRARY_PATH=$(libdir)
 # Try reneabling with newer versions of Python after benchmarking it is worth it.
 # CONFIG_OPTIONS += --enable-optimizations
 endif
+
 ifeq ($(OS),Darwin)
 # -Wl,-rpath ends up in shared libraries in addition to executables,
 # which we do not want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
@@ -62,31 +74,9 @@ CONFIG_OPTIONS += --enable-shared
 else
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
+REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)
 endif
 endif
-
-ifeq ($(OS),Windows)
-ifeq ($(OSARCH),Windows64)
-REGTOOL = regtool -w
-CONFIG = Release
-PLATFORM = x64
-else
-REGTOOL = regtool
-CONFIG = Release
-PLATFORM = Win32
-endif
-CONFIG_PLATFORM = '$(CONFIG)|$(PLATFORM)'
-
-_PYDIR_MACHINE = /machine/SOFTWARE/Python/PythonCore/$(PYTHON_VERSION)/InstallPath/
-_PYDIR_USER = /user/SOFTWARE/Python/PythonCore/$(PYTHON_VERSION)/InstallPath/
-ifeq ($(shell $(REGTOOL) -q check $(_PYDIR_MACHINE) && echo found),found)
-	PYDIR   = $(shell cygpath -u '$(shell $(REGTOOL) get $(_PYDIR_MACHINE))')
-endif
-ifeq ($(shell $(REGTOOL) -q check $(_PYDIR_USER) && echo found),found)
-	PYDIR   = $(shell cygpath -u '$(shell $(REGTOOL) get $(_PYDIR_USER))')
-endif
-endif # Windows
 
 ifdef DEBUG
 CONFIG_OPTIONS += --with-pydebug
@@ -101,95 +91,32 @@ endif
 
 all:
 
-install: $(SOURCE)
+install: $(SOURCE) $(DISTRIBUTION) $(DISTDIR)
 ifeq ($(OS),Windows)
-	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
-	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
-	test -n '$(PYDIR)'
-	@if [ $(PYTHON_PATCH_LEVEL) != $(shell '$(PYDIR)'/python -c 'import sys; print(sys.version.split()[0])') ] ; \
-	then \
-		echo "Can not find Python $(PYTHON_PATCH_LEVEL)" ; \
-		exit 1 ; \
-	fi
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(PYDIR)'/DLLs \
-	  '$(PYDIR)'/Lib \
-	  '$(PYDIR)'/include \
-	  '$(PYDIR)'/libs \
-	  '$(PYDIR)'/python.exe \
-	  '$(PYDIR)'/pythonw.exe \
-	  '$(PYDIR)'/*.dll \
+	  '$(DISTDIR)'/DLLs \
+	  '$(DISTDIR)'/Lib \
+	  '$(DISTDIR)'/include \
+	  '$(DISTDIR)'/libs \
+	  '$(DISTDIR)'/python.exe \
+	  '$(DISTDIR)'/pythonw.exe \
+	  '$(DISTDIR)'/*.dll \
 	  '$(bindir)'
 	# Leave include and libs in bindir so pip/setuptools will work.
 	# Also copy include and lib directories to common locations for
 	# our source code.
-	$(RSYNC) --delete '$(PYDIR)'/include/* \
+	$(RSYNC) --delete '$(DISTDIR)'/include/* \
 		$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
-	$(RSYNC) '$(PYDIR)'/libs/* $(libdir)
+	$(RSYNC) '$(DISTDIR)'/libs/* $(libdir)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
-	cd $(SOURCE) && $(MAKE) EXTRA_CFLAGS=$(EXTRA_CFLAGS) && $(MAKE) -j1 EXTRA_CFLAGS=$(EXTRA_CFLAGS) install
-	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
+	tar xf $(DISTRIBUTION) -C $(frameworkdir)
 
-	# copy bin, include, lib, and share to common location and leave symbolic links
-	dir=$(PYTHON_FRAMEWORK)/bin; \
-	if [ ! -L $$dir ]; \
-	then \
-		cd $$dir ; for i in *; do \
-			rm -f $(bindir)/$$i; \
-		done; \
-		$(RSYNC) * $(bindir); \
-		cd ..; rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
-	fi
-	dir=$(PYTHON_FRAMEWORK)/include; \
-	if [ ! -L $$dir ]; \
-	then \
-		cp -r $$dir/* $(includedir); \
-		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
-	fi
-	dir=$(PYTHON_FRAMEWORK)/lib; \
-	if [ ! -L $$dir ]; \
-	then \
-		cp -r $$dir/* $(libdir); \
-		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
-	fi
-	dir=$(PYTHON_FRAMEWORK)/share; \
-	if [ ! -L $$dir ]; \
-	then \
-		cp -r $$dir/* $(datadir); \
-		rm -rf $$dir ; \
-		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
-	fi
-
-	# replace python executable with version that doesn't invoke Python.app
-	cp $(SOURCE)/python.exe $(PYTHON_EXE)
-	install_name_tool -add_rpath '@executable_path/../lib' $(PYTHON_EXE)
-	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(PYTHON_EXE)
-
-	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
-		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
-
-	chmod 644 $(PYTHON_FRAMEWORK)/Python
-	install_name_tool -id \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(PYTHON_FRAMEWORK)/Python
-	chmod 444 $(PYTHON_FRAMEWORK)/Python
-
-	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -add_rpath \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
-		$(pyappdir)/Python
-	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
-		$(pyappdir)/Python
-	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
-	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
+	# Link framework bin, lib, and include files to app directories
+	cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
+	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
+	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
 
 else
 	# Linux or Mac OS X without framework
@@ -200,16 +127,9 @@ ifeq ($(OS),Linux)
 	done
 	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
-	if objdump -p $(PYTHON_EXE) | grep RUNPATH > /dev/null; then \
-	       $(bindir)/chrpath -C $(PYTHON_EXE); \
+	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
+	       $(bindir)/chrpath -C $(PYTHON_BIN); \
 	fi
-endif
-ifeq ($(OS),Darwin)
-	install_name_tool -add_rpath '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
-	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
-		chmod 644 $(libdir)/$$pylib ;\
-		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
-		chmod 444 $(libdir)/$$pylib
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
@@ -229,26 +149,22 @@ endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*$(PYMOD_EXT)
 
-app-install:
-	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
+app-install: $(DISTDIR)
+	$(RSYNC) $(PYTHON_BIN) $(app_bindir)
 ifeq ($(OS),Windows)
 	# need include and libs so pip install will work
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(PYDIR)'/DLLs \
-	  '$(PYDIR)'/Lib \
-	  '$(PYDIR)'/include \
-	  '$(PYDIR)'/libs \
-	  '$(PYDIR)'/*.dll \
+	  '$(DISTDIR)'/DLLs \
+	  '$(DISTDIR)'/Lib \
+	  '$(DISTDIR)'/include \
+	  '$(DISTDIR)'/libs \
+	  '$(DISTDIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	# next line breaks code signing 1/22/16
-	#ln -nf $(app_bindir)/python$(PYTHON_VERSION) $(app_prefix)/MacOS/
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
-		$(PYTHON_LIBRARY_DIR) $(app_libdir)
-	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
-	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
-	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
+	ln -s $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
+	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
+	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
@@ -270,7 +186,8 @@ endif
 
 ifeq ($(OS),Windows)
 
-$(SOURCE):
+$(DISTDIR): $(DISTRIBUTION)
+	tar xf $(DISTRIBUTION) -C $(tmpdir)
 
 else
 
@@ -319,6 +236,15 @@ $(DISTRIBUTION):
 
 upload_new_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/python
+
+make_win_distribution:
+	# only needed for Windows
+	version="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/Version)" && \
+	exe_path="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/InstallPath/ExecutablePath)" && \
+	tar -jcf python-$$version-win-amd64.tar.bz2 --exclude __pycache__ --xform "s/^./python-$$version-win-amd64/" -C "$$exe_path"/.. .
+
+make_mac_distribution:
+	make -f Makefile.macos
 
 clean:
 	rm -rf $(SOURCE)

@@ -47,7 +47,7 @@ for example: <b>75,10,55</b>
 <!--
 <font style="background:#bfff199a8ccc">&nbsp;&nbsp;&nbsp;&nbsp;</font>
 -->
-<li><a href="http://www.w3schools.com/cssref/css_colors_legal.asp"
+<li><a href="https://www.w3schools.com/cssref/css_colors_legal.asp"
 target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
   <li><b>rgb(<i>red, green, blue</i>)</b>
@@ -88,7 +88,8 @@ See also:
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colortables.html#element">element colors</a>,
 <a href="palettes.html">palettes</a>,
-<a href="usageconventions.html">command usage conventions</a>
+<a href="usageconventions.html">command usage conventions</a>,
+<a href="#transparency-limitations">limitations of transparency</a>
 </p>
 
 <a name="builtin"></a>
@@ -866,7 +867,41 @@ gray(128)<br>
 gray(50%)
 </blockquote>
 
+<a name="transparency-limitations"></a>
+<p class="nav">
+[<a href="#top">back to top: Color Specification</a>]
+</p>
+<h3>Transparency and Its Limitations</h3>
+<p>
+Objects can be made transparent by including transparency (alpha &lt; 100%) in
+<a href="#top">command-line color specifications</a>.
+In addition, the <a href="transparency.html"><b>transparency</b></a> 
+command or the <a href="color.html"><b>color</b></a> command
+<a href="color.html#transparency"><b>transparency</b></a> option
+can be used, as well as the system color-editing dialog
+(<i>e.g.</i>, shown by using menu:
+<a href="../menu.html#actcolor"><b>Actions... Color...  From Editor</b></a>).
+</p><p>
+Unfortunately,
+ChimeraX does not correctly render transparency when there are 
+multiple transparent models, with the exception of 
+<a href="../tools/volumeviewer.html#multichannel">multichannel volume data</a>
+rendered in the <b>image</b> <a href="volume.html#style">display style</a>.
+</p><p>
+As in Chimera,
+ChimeraX does not correctly render the transparency of multiple models 
+because it draws one model at a time and only keeps track of the front-most
+as drawing occurs. When more than one model is transparent, ChimeraX shows 
+only the frontmost transparent model at each pixel position.  
+Any transparent models that are behind another transparent model
+will simply be invisible. An alternative to transparency for surfaces 
+is to show them in the <b>mesh</b> style.
+Since rendering is correct for opaque models behind transparent ones,
+another possibility is to make only the outermost surface transparent,
+keeping inner objects opaque.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2020</address>
+October 2020</address>
 </body></html>

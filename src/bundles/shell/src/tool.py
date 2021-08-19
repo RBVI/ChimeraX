@@ -13,6 +13,10 @@
 
 from chimerax.core.tools import ToolInstance
 
+# work around problem in ticket #3820
+import sys, asyncio
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 class ShellUI(ToolInstance):
 
@@ -47,7 +51,7 @@ class ShellUI(ToolInstance):
         self.shell.kernel_client = kernel_client
         IPythonKernel.user_ns = save_ns
 
-        from PyQt5.QtWidgets import QHBoxLayout
+        from Qt.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
         layout.addWidget(self.shell)
         layout.setStretchFactor(self.shell, 1)

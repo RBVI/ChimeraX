@@ -1,8 +1,19 @@
 PIP	= $(PYTHON_EXE) -m pip --log pip.log
-PIP_INSTALL = $(PIP) install --use-feature=2020-resolver --upgrade-strategy only-if-needed --no-warn-script-location
+PIP_INSTALL = $(PIP) install --upgrade-strategy only-if-needed --no-warn-script-location
 APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log
-APP_PIP_INSTALL = $(APP_PIP) install --use-feature=2020-resolver --upgrade-strategy only-if-needed --no-warn-script-location
+APP_PIP_INSTALL = $(APP_PIP) install --upgrade-strategy only-if-needed --no-warn-script-location
+
+#
+# lxml 4.6.2 binary wheel on macOS uses macOS SDK older than 10.9 which prevents
+# notarization of the macOS ChimeraX.  So build it from source.  ChimeraX ticket
+#    https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4129
+#
 ifeq ($(OS),Darwin)
-PIP_INSTALL	+= --no-binary lxml
 APP_PIP_INSTALL += --no-binary lxml
+endif
+
+# Windows PyOpenGL-accelerate 3.1.5 is missing numpy_formathandler
+# dynamic library so build it from source.
+ifeq ($(OS),Windows)
+APP_PIP_INSTALL += --no-binary PyOpenGL-accelerate
 endif

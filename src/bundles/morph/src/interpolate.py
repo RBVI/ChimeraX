@@ -176,7 +176,7 @@ def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f)
         xf.transform_points(ca, in_place = True)  # Apply rigid segment motion
         coordset[atom_indices] = ca
 # Use C++ optimized version
-from ._morph import apply_rigid_motion
+from .morph_cpp import apply_rigid_motion
 
 def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 0.1):
         '''

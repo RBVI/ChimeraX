@@ -83,9 +83,19 @@ class Redust(State):
         self.metric = metric
         self.limit = limit
 
+    # -------------------------------------------------------------------------
+    #
     def __call__(self):
         self.set_surface_mask()
 
+    # -------------------------------------------------------------------------
+    #
+    def active(self):
+        s = self.surface
+        return s is not None and s.auto_remask_triangles is self
+
+    # -------------------------------------------------------------------------
+    #
     def set_surface_mask(self):
         surf = self.surface
         hide_dust(surf, self.metric, self.limit, auto_update = False)
@@ -112,7 +122,13 @@ class Redust(State):
         c = cls(surf, data['metric'], data['limit'])
         c.set_surface_mask()
         return c
-        
+
+# -----------------------------------------------------------------------------
+#
+def dusting(surface):
+    rd = surface.auto_remask_triangles
+    return rd if isinstance(rd, Redust) else None
+
 # -----------------------------------------------------------------------------
 # Stop updating dust hiding.
 #

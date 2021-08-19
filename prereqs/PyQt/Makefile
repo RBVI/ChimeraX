@@ -5,12 +5,12 @@ include $(TOP)/mk/config.make
 # alternate method is "fromsrc"
 METHOD=wheel
 
-# PYQT_LICENSE can be "gpl" for gpl version
-PYQT_LICENSE = commercial
+# PYQT_LICENSE can be "commercial" for commercial version
+PYQT_LICENSE = gpl
 
-VERSION = 5.12
-PYQT_MINOR_VERSION = 3
-QT_MINOR_VERSION = 9
+VERSION = 5.15
+PYQT_MINOR_VERSION = 2
+QT_MINOR_VERSION = 2
 
 MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
 

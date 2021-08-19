@@ -56,6 +56,7 @@ on CPython.  However, developers are responsible
 for supplying a compatible compilation environment,
 e.g., installing Visual Studio 2015 on Microsoft Windows.
 
+.. _pro-tip:
 
 Pro Tip
 =======
@@ -68,6 +69,12 @@ run the command ``color red`` is::
     from chimerax.core.commands import run
     run(session, "color red")
 
+The ``run()`` call will return the result of the command,
+*e.g.* a list of opened models for the ``open`` command
+(in most cases a list of one) or a distance value for the
+``distance`` command.  If the "command" is actually a
+semi-colon-separated list of commands, the the returned
+value will be a list of the individual return values.
 
 What is a ChimeraX Bundle?
 ==========================
@@ -217,6 +224,7 @@ ChimeraX bundles.  Bundles containing code that
 compile against ChimeraX C++ APIs are only guaranteed
 to work with the exact version used in development.)
 
+.. _Seven Steps:
 
 Writing Bundles in Seven Easy Steps
 -----------------------------------

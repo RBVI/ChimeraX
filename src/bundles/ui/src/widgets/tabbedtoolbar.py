@@ -19,12 +19,12 @@ Note: This widget is under active development and the API may change.
 TODO: documnentation!
 """
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from Qt.QtCore import Qt
+from Qt.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
 )
-from PyQt5.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
+from Qt.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
 
 _debug = False   # DEBUG
 
@@ -282,7 +282,9 @@ class _Section(QWidgetAction):
             sizes = icon.availableSizes()
             sizes.sort(key=lambda s: s.width())
             pm = icon.pixmap(icon.actualSize(sizes[-1]))
-            with QPainter(pm) as p:
+#            with QPainter(pm) as p:
+            try:
+                p = QPainter(pm)
                 p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
                 if 1:
                     # draw filled
@@ -297,6 +299,8 @@ class _Section(QWidgetAction):
                     p.setPen(pen)
                     adj = pen_width / 2
                     p.drawRect(r.adjusted(adj, adj, -adj, -adj))
+            finally:
+                p.end()
         button_info.highlight_icon = QIcon(pm)
         if redo:
             self._redo_layout()
@@ -468,7 +472,7 @@ class TabbedToolbar(QTabWidget):
 
 if __name__ == "__main__":
     import sys
-    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QTextEdit
+    from Qt.QtWidgets import QApplication, QVBoxLayout, QTextEdit
     app = QApplication(sys.argv)
     app.setApplicationName("Tabbed Toolbar Demo")
     window = QWidget()
@@ -478,25 +482,25 @@ if __name__ == "__main__":
     ttb = TabbedToolbar()
     layout.addWidget(ttb)
     ttb.add_button(
-        'Graphics', 'Background', 'White', lambda e: print(e, 'white'),
+        'Graphics', 'Background', 'White', lambda: print('white'),
         None, 'Set white background')
     ttb.add_button(
-        'Graphics', 'Background', 'Black', lambda e: print('black'),
+        'Graphics', 'Background', 'Black', lambda: print('black'),
         None, 'Set black background')
     ttb.add_button(
-        'Graphics', 'Lighting', 'Soft', lambda e: print('soft'),
+        'Graphics', 'Lighting', 'Soft', lambda: print('soft'),
         None, 'Use ambient lighting')
     ttb.add_button(
-        'Graphics', 'Lighting', 'Full', lambda e: print('full'),
+        'Graphics', 'Lighting', 'Full', lambda: print('full'),
         None, 'Use full lighting')
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Sticks', lambda e: print('sticks'),
+        'Molecular Display', 'Styles', 'Sticks', lambda: print('sticks'),
         None, 'Display atoms in stick style')
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Spheres', lambda e: print('spheres'),
+        'Molecular Display', 'Styles', 'Spheres', lambda: print('spheres'),
         None, 'Display atoms in sphere style')
     ttb.add_button(
-        'Molecular Display', 'Styles', 'Ball and stick', lambda e: print('bs'),
+        'Molecular Display', 'Styles', 'Ball and stick', lambda: print('bs'),
         None, 'Display atoms in ball and stick style')
     layout.addWidget(QTextEdit())
     window.setLayout(layout)

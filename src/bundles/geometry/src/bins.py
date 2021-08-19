@@ -130,7 +130,7 @@ def outer_product(sets):
     if len(sets) == 0:
         op = []
     elif len(sets) == 1:
-        op = map(lambda c: (c,), sets[0])
+        op = [(c,) for c in sets[0]]
     else:
         op = []
         op1 = outer_product(sets[1:])

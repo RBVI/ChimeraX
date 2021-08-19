@@ -19,7 +19,7 @@ class MainSaveDialog:
         if parent is None:
             parent = session.ui.main_window
         from chimerax.ui.open_save import SaveDialog
-        dialog = SaveDialog(session, parent, "Save File")
+        dialog = SaveDialog(session, parent, "Save File", installed_only=False)
         self._customize_dialog(session, dialog)
         if format is not None:
             try:
@@ -39,12 +39,15 @@ class MainSaveDialog:
         if not dialog.exec():
             return
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
+        save_mgr = session.save_command
+        provider_info = save_mgr.provider_info(fmt)
         from chimerax.core.commands import run, SaveFileNameArg, StringArg
         fname = self._add_missing_file_suffix(dialog.selectedFiles()[0], fmt)
         cmd = "save %s" % SaveFileNameArg.unparse(fname)
-        if self._current_option != self._no_options_label:
-            cmd += ' ' + session.save_command.save_args_string_from_widget(fmt,
-                self._current_option)
+        if provider_info.bundle_info.installed and self._current_option != self._no_options_label:
+            cmd += ' ' + save_mgr.save_args_string_from_widget(fmt, self._current_option)
+        if not provider_info.is_default:
+            cmd += ' format ' + fmt.nicknames[0]
         run(session, cmd)
         if self._settings:
             self._settings.format_name = fmt.name
@@ -70,7 +73,7 @@ class MainSaveDialog:
                 pass
             else:
                 dialog.selectNameFilter(file_filter)
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel
+        from Qt.QtWidgets import QHBoxLayout, QLabel
         self._current_option = self._no_options_label = QLabel(
             "No user-settable options")
         self._options_layout = QHBoxLayout()
@@ -84,8 +87,19 @@ class MainSaveDialog:
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         if self._current_option:
             self._current_option.hide()
-        self._current_option = session.save_command.save_args_widget(fmt) or self._no_options_label
-        from PyQt5.QtWidgets import QLabel
+        from .manager import SaverNotInstalledError
+        save_mgr = session.save_command
+        try:
+            self._current_option = save_mgr.save_args_widget(fmt) or self._no_options_label
+        except SaverNotInstalledError:
+            from Qt.QtWidgets import QLabel
+            from chimerax.core import toolshed
+            bi = save_mgr.provider_info(fmt).bundle_info
+            self._current_option = QLabel('<a href="%s">Install the %s bundle</a> to save "%s" format files.'
+                % (toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, fmt.name))
+            from chimerax.core.commands import run
+            self._current_option.linkActivated.connect(lambda *args, run=run, name=bi.short_name,
+                ses=session, dlg=dialog: (dlg.reject(), run(ses, "toolshed show " + name)))
         self._options_layout.addWidget(self._current_option)
         self._current_option.show()
 

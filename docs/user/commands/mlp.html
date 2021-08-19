@@ -32,6 +32,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
 <p>
@@ -42,22 +43,23 @@ By default, the results are shown with coloring on the
 ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
 <b>dark goldenrod</b> (most lipophilic)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>.
+<img class="icon" 
+border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>.
 </p><p>
 See also: 
+<a href="key.html"><b>key</b></a>,
 <a href="color.html"><b>color</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="coulombic.html"><b>coulombic</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../preferences.html#startup">custom presets</a>,
-<a href="defattr.html"><b>defattr</b></a> and
-<a href="defattr.html#examples">example assignment files</a>,
+<a href="../formats/defattr.html#examples">attribute assignment examples</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
 target="_blank">ChimeraX MLP highlight</a>,
-<a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
+<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
 target="_blank">lipophilicity coloring comparisons</a>
 </p><p>
 The calculation is based on 
@@ -70,7 +72,7 @@ System of atomic contributions for the calculation of the
 Broto P, Moreau G, Vandycke C.
 <i>Eur J Med Chem.</i> 1984;19(1):71-78.
 <br><br>
-<a href="http://onlinelibrary.wiley.com/doi/10.1111/j.2042-7158.1997.tb00257.x/abstract" target="_blank">
+<a href="https://onlinelibrary.wiley.com/doi/10.1111/j.2042-7158.1997.tb00257.x/abstract" target="_blank">
 MLPP: A program for the calculation of molecular lipophilicity potential 
 in proteins.</a>
 Laguerre M, Saux M, Dubost JP, Carpy A.
@@ -89,7 +91,7 @@ Ghose AK, Viswanadhan VN, Wendoloski JJ.
 To allow MLP coloring without adding explicit hydrogens, 
 values for any attached hydrogens were &ldquo;collapsed&rdquo; onto those
 for the corresponding heavy atoms (see
-<a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/#update"
+<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/#update"
 target="_blank">details and comparisons</a> to the original values 
 from <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>).
 The resulting lookup table includes the standard amino acids plus
@@ -155,6 +157,11 @@ style="display:inline-block; vertical-align:middle"><tr>
 <p>
 Different choices of <b>method</b> and/or <b>maxDistance</b> can give very 
 different values, and the <b>range</b> may need to be adjusted.
+When <b>mlp</b> is run interactively (in gui mode and not via a
+<a href="usageconventions.html#cxc-files">script</a>),
+the <b>key true</b> option can be used to 
+start <a href="../tools/colorkey.html"><b>Color Key</b></a>
+and draw a color key with the corresponding colors and values.
 </p><p>
 With <b>color false</b>, a single MLP map will be calculated based on 
 the specified atoms (disregarding any nonprotein atoms),
@@ -167,36 +174,14 @@ opened as volume models. This allows
 subsequently coloring surfaces by the map values using 
 <a href="color.html#map"><b>color sample</b></a>
 without having to recalculate the map on the fly.
-The following example colors a <a href="surface.html#cap">surface cap</a> 
-(#1.1.1, from <a href="clip.html">clipping</a> surface #1.1) by MLP map #2
-with the same coloring parameters as used for the rest of the surface,
-except 30% transparent:
-</p>
-<blockquote>
-<b><a href="open.html">open</a> 1g74
-<br><a href="#top">mlp</a> map true
-<br><a href="show.html">hide</a> #2
-<br><a href="clip.html">clip</a>
-<br><a href="wait.html">wait</a> 1
-<br><a href="color.html#map">color sample</a> 
-#1.1.1 map #2 palette lipophilicity range -20,20 transparency 30
-<br><a href="clip.html#model">clip model</a> #!1 off
-<br><a href="show.html">hide</a> ~ligand targ ar
-</b>
-</blockquote>
-<p>
-The <b><a href="wait.html">wait</a></b> command is only needed in the context 
-of a script (<a href="usageconventions.html#cxc-files">command file</a>),
-to force drawing the graphics to create the surface cap
-before it is colored by the map values. 
-The wait can be omitted if the commands are entered one by one. 
-The subsequent commands color the cap,
-make clipping apply only to the surface (not to the atomic model),
-and hide ribbons and atoms not classified as
-<a href="atomspec.html#builtin">ligand</a>.
+The <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
+tutorial</a> includes an
+<a href="../tutorials/binding-sites.html#cap-example">example</a>
+of generating such a map and using it to color the planar cap
+where a surface is clipped.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+March 2021</address>
 </body></html>

@@ -174,6 +174,33 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             if not match_chains:
                 match_chains.append(chain)
 
+    if het_preserve or water_preserve:
+        for template_strings in templates_strings:
+            if len(template_strings) > 1:
+                session.logger.warning("Cannot preserve water/het with more than one template per target;"
+                    " not preserving")
+                het_preserve = water_preserve = False
+                break
+
+    if het_preserve or water_preserve:
+        # add water/het characters to strings
+        for i, target_string in enumerate(target_strings):
+            template_info = templates_info[i]
+            if template_info is None:
+                template = mm_chains[0]
+            else:
+                template = template_info[0]
+            template_string = templates_strings[i][0]
+            het_string = ('.' if het_preserve else '-') * count_hets(template)
+            target_string += het_string
+            template_string += het_string
+            if water_preserve:
+                water_string = 'w' * count_water(template)
+                target_string += water_string
+                template_string += water_string
+            target_strings[i] = target_string
+            templates_strings[i] = [template_string]
+
         target_name = target.name
 
     from .common import write_modeller_scripts, get_license_key
@@ -185,7 +212,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     # form the sequences to be written out as a PIR
     from chimerax.atomic import Sequence
-    pir_target = Sequence(name=target_name)
+    pir_target = Sequence(name=opal_safe_file_name(target_name))
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
     pir_seqs = [pir_target]
@@ -205,10 +232,15 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             while first_assoc_pos not in match_map:
                 first_assoc_pos += 1
             first_assoc_res = match_map[first_assoc_pos]
+            assoc_length = 0
+            for string in strings:
+                length = len(string.replace('-', ''))
+                if length > assoc_length:
+                    assoc_length = length
             pir_template = Sequence(name=chain_save_name(chain))
             pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
                 structure_save_name(chain.structure), first_assoc_res.number, first_assoc_res.insertion_code,
-                chain.chain_id, len(match_map), chain.chain_id)
+                chain.chain_id, assoc_length, chain.chain_id)
             structures_to_save.add(chain.structure)
         pir_template.characters = '/'.join(strings)
         pir_seqs.append(pir_template)
@@ -342,8 +374,11 @@ def find_affixes(chains, chain_info):
     s.in_seq_hets = het_set
     return prefixes, suffixes
 
+def opal_safe_file_name(fn):
+    return fn.replace(':', '_').replace(' ', '_').replace('|', '_')
+
 def structure_save_name(s):
-    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string
+    return opal_safe_file_name(s.name) + "_" + s.id_string
 
 def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
@@ -442,3 +477,41 @@ class ModellerJob(OpalJob):
             return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
         self.caller.process_ok_models(model_info, stdout, get_pdb_model)
         self.caller = None
+
+def count_hets(chain):
+    last_chain_res = chain.existing_residues[-1]
+    end_located = False
+    het_count = 0
+    for r in chain.structure.residues:
+        if end_located:
+            if r.chain:
+                break
+            if r.name in r.water_res_names:
+                break
+            het_count += 1
+        else:
+            if r == last_chain_res:
+                end_located = True
+    return het_count
+
+def count_water(chain):
+    last_chain_res = chain.existing_residues[-1]
+    end_located = past_hets = False
+    water_count = 0
+    for r in chain.structure.residues:
+        if end_located:
+            if r.chain:
+                break
+            if past_hets:
+                if r.name in r.water_res_names:
+                    water_count += 1
+                else:
+                    break
+            else:
+                if r.name in r.water_res_names:
+                    water_count += 1
+                    past_hets = True
+        else:
+            if r == last_chain_res:
+                end_located = True
+    return water_count

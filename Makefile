@@ -91,16 +91,17 @@ endif
 
 build-app-dirs:
 	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir) $(APP_PYSITEDIR)
+		$(app_includedir)
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)
+else
+	-mkdir -p $(APP_PYSITEDIR)
 endif
 
 distclean: clean
 	-$(MAKE) -C vdocs clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
-	$(MAKE) -C prereqs/PyQt distclean
 	$(MAKE) -C docs clean
 
 clean:
@@ -109,9 +110,6 @@ clean:
 build-from-scratch:
 	$(MAKE) distclean
 	$(MAKE) install
-
-prefetch:
-	$(MAKE) -C prereqs/PyQt -f Makefile.wheel prefetch
 
 # Linux debugging:
 
@@ -133,4 +131,3 @@ endif
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
 	git show --summary --date=iso $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
-	make -C $(SNAPSHOT_DIR) prefetch

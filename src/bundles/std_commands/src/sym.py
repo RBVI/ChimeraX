@@ -14,7 +14,8 @@
 def sym(session, structures,
         symmetry = None, center = None, axis = None, coordinate_system = None,
         contact = None, range = None, assembly = None,
-        copies = False, new_model = None, surface_only = False, resolution = None, grid_spacing = None):
+        copies = None, new_model = None, surface_only = False,
+        resolution = None, grid_spacing = None):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -45,7 +46,8 @@ def sym(session, structures,
       Whether to make copies of the molecule chains.  If copies are not made
       then graphical instances of the original molecule are used.  Copies are needed
       to give different colors or styles to each copy.  When copies are made a new model
-      with submodels for each copy are created.
+      with submodels for each copy are created.  The default is copies true for multimers
+      with 12 or fewer copies and false for larger multimers.
     new_model : bool
       Copy the structure to create the assembly.  Default is True if an assembly is specified
       and false if the symmetry option is given.  If the copies option is true then
@@ -87,6 +89,8 @@ def sym(session, structures,
             transforms = _contacting_transforms(structures, transforms, contact)
         if range is not None:
             transforms = _close_center_transforms(structures, transforms, range)
+        if copies is None and not surface_only:
+            copies = (len(transforms) <= 12)
         show_symmetry(structures, symmetry.group, transforms, copies, new_model, surface_only,
                       resolution, grid_spacing, session)
         return
@@ -105,7 +109,8 @@ def sym(session, structures,
                 raise UserError('Assembly "%s" not found, have %s'
                                 % (assembly, ', '.join(a.id for a in assem)))
             a = amap[assembly]
-            if copies:
+            mcopies = (a.num_copies <= 12) if copies is None and not surface_only else copies
+            if mcopies:
                 a.show_copies(m, surface_only, resolution, grid_spacing, session)
             elif surface_only:
                 a.show_surfaces(m, resolution, grid_spacing, new_model, session)
@@ -160,7 +165,8 @@ def register_command(logger):
 def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_only,
                   resolution, grid_spacing, session):
     name = '%s %s' % (','.join(s.name for s in structures), sym_name)
-    if copies and not new_model:
+    if copies:
+        # Copies true always behaves as if new_model is true.
         from chimerax.core.models import Model
         g = Model(name, session)
         for i, tf in enumerate(transforms):
@@ -344,6 +350,10 @@ class Assembly:
                 surface(session, m.atoms, grid_spacing = grid_spacing, resolution = resolution)
 
         mol.display = False
+
+    @property
+    def num_copies(self):
+        return sum([len(ops) for chain_ids, op_expr, ops in self.chain_ops], 0)
 
     def _partition_atoms(self, atoms, chain_ids):
         mmcif_cids = mmcif_chain_ids(atoms, self.from_mmcif)

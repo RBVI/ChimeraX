@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure C++ shared libs we need are linkable by us
+import chimerax.atomic_lib  # noqa
+import chimerax.pdb_lib  # noqa
+
 from ._pdbio import standard_polymeric_res_names  # this also gets shared lib loaded
 from .pdb import open_pdb, save_pdb
 from .pdb import process_chem_name, format_nonstd_res_info
@@ -18,9 +22,6 @@ from .pdb import process_chem_name, format_nonstd_res_info
 from chimerax.core.toolshed import BundleAPI
 
 class _PDBioAPI(BundleAPI):
-
-    from chimerax.core.commands import EnumOf
-    SerialNumberingArg = EnumOf(("amber","h36"))
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -34,7 +35,7 @@ class _PDBioAPI(BundleAPI):
 
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                        from chimerax.core.commands import BoolArg, IntArg, FloatArg, EnumOf
                         return {
                             'atomic': BoolArg,
                             'auto_style': BoolArg,
@@ -43,6 +44,7 @@ class _PDBioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                             'segid_chains': BoolArg,
+                            'missing_coordsets': EnumOf(('fill','ignore','renumber')),
                         }
             else:
                 from chimerax.open_command import FetcherInfo

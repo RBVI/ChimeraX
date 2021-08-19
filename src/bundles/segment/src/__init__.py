@@ -77,7 +77,7 @@
 # point.  The starting_positions array is required to be contiguous.
 #
 #   find_local_maxima(T *data, int *start_positions) -> None
-#
+ #
 # ----------------------------------------------------------------------------
 # This routine is intended to compute the midpoints along the axis of a filament
 # defined as a set of region points.  The midpoints are compute over bcount intervals
@@ -91,6 +91,10 @@
 #  crosssection_midpoints(float points[n,3], float axis[3], float b0, float bsize, int bcount)
 #     -> (bcount x 3 numpy float array, length bcount int array)
 #
+
+# Make sure _segment can runtime link shared library libarrays.
+from chimerax import arrays ; arrays.load_libarrays()
+
 from ._segment import watershed_regions, region_index_lists, region_contacts, region_bounds
 from ._segment import region_point_count, region_points, region_maxima, interface_values
 from ._segment import find_local_maxima, crosssection_midpoints

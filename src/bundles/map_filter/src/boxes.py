@@ -41,7 +41,8 @@ def boxes(session, volume, atoms, size = 0, isize = None, use_atom_size = False,
         else:
             mid = base_model_id + (i+1,)
         from chimerax.map import volume_from_grid_data
-        v = volume_from_grid_data(g, session, model_id = mid, show_dialog = False)
+        v = volume_from_grid_data(g, session, model_id = mid, show_dialog = False,
+                                  open_model = False)
         v.copy_settings_from(volume, copy_region = False,
                              copy_active = False, copy_zone = False)
         vlist.append(v)

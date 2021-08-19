@@ -24,8 +24,8 @@ from .options import StringOption, HostPortOption
 from chimerax.core.colors import color_name
 
 class UpdateIntervalOption(SymbolicEnumOption):
-    values = ("day", "week", "month")
-    labels = ("every day", "every week", "every month")
+    values = ("day", "week", "month", "never")
+    labels = ("every day", "every week", "every month", "never")
 
 class CoreSettingsPanel:
 
@@ -91,7 +91,7 @@ class CoreSettingsPanel:
     }
 
     def __init__(self, session, ui_area):
-        from PyQt5.QtWidgets import QBoxLayout
+        from Qt.QtWidgets import QBoxLayout
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel

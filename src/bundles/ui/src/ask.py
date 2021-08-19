@@ -19,7 +19,7 @@ UI-independent functions for asking users questions.
 """
 
 
-def ask(session, question, buttons=None, default=None, info=None, title=None):
+def ask(session, question, buttons=None, default=None, info=None, title=None, help_url=None):
     # Check/set button options
     if not buttons:
         buttons = ["yes", "no"]
@@ -27,13 +27,13 @@ def ask(session, question, buttons=None, default=None, info=None, title=None):
         default = buttons[0]
     # Invoke the appropriate UI
     if session.ui.is_gui:
-        return _ask_gui(session, question, buttons, default, info, title)
+        return _ask_gui(session, question, buttons, default, info, title, help_url)
     else:
-        return _ask_nogui(session, question, buttons, default, info, title)
+        return _ask_nogui(session, question, buttons, default, info, title, help_url)
 
 
-def _ask_nogui(session, question, buttons, default, info, title):
-    # title is ignored for nogui mode
+def _ask_nogui(session, question, buttons, default, info, title, help_url):
+    # title and help_url are ignored for nogui mode
     if info:
         print(info)
     print(question, end=" ")
@@ -47,8 +47,8 @@ def _ask_nogui(session, question, buttons, default, info, title):
                 return b
 
 
-def _ask_gui(session, question, buttons, default, info, title):
-    from PyQt5.QtWidgets import QMessageBox
+def _ask_gui(session, question, buttons, default, info, title, help_url):
+    from Qt.QtWidgets import QMessageBox
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Question)
     if title:
@@ -60,6 +60,10 @@ def _ask_gui(session, question, buttons, default, info, title):
         gb = msg.addButton(b.capitalize(), QMessageBox.AcceptRole)
         if b == default:
             msg.setDefaultButton(gb)
+    if help_url:
+        b = msg.addButton("Help", QMessageBox.HelpRole)
+        from chimerax.core.commands import run
+        b.clicked.connect(lambda *, run=run, ses=session: run(ses, "help " + help_url))
     answer_index = msg.exec_()
     return buttons[-1 - answer_index]
 
@@ -74,8 +78,8 @@ if __name__ == "__main__":
     while True:
         if ask(Session(False), "Really Quit") == "yes":
             break
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtWidgets import QWidget, QPushButton
+    from Qt.QtWidgets import QApplication
+    from Qt.QtWidgets import QWidget, QPushButton
     def do_test():
         if ask(Session(True), "Really Quit", ["oui", "non"], title="Ask") == "oui":
             QApplication.quit()

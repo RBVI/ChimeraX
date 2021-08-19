@@ -11,9 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# ensure atomic_libs C++ shared libs are linkable by us
+import chimerax.atomic_lib
+
 from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
     StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
+from .molobject import next_chain_id, chain_id_characters
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds
 from .pbgroup import interatom_pseudobonds, selected_pseudobonds
@@ -31,8 +35,33 @@ from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
 from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
 from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
-from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
+from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
+
+def initialize_atomic(session):
+    from . import settings
+    settings.settings = settings._AtomicSettings(session, "atomic")
+
+    from chimerax import atomic_lib
+    import os.path
+    res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
+    Residue.set_templates_dir(res_templates_dir)
+    
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
+
+    session.change_tracker = ChangeTracker()
+    session.pb_manager = PseudobondManager(session)
+
+    session._atomic_command_handler = session.triggers.add_handler("command finished",
+        lambda *args: check_for_changes(session))
+
+    if session.ui.is_gui:
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            _AtomicBundleAPI._add_gui_items(ses))
+        session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+            settings.register_settings_options(ses))
 
 
 from chimerax.core.toolshed import BundleAPI
@@ -40,11 +69,10 @@ from chimerax.core.toolshed import BundleAPI
 class _AtomicBundleAPI(BundleAPI):
 
     KNOWN_CLASSES = {
-        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Atom", "AtomicStructure", "AtomicShapeDrawing", "AtomicStructures", "Atoms", "Bond", "Bonds",
         "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
         "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
         "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
-        "AtomicShapeDrawing",
     }
 
     @staticmethod
@@ -55,34 +83,39 @@ class _AtomicBundleAPI(BundleAPI):
             return getattr(this_mod, class_name)
         elif class_name in ["AttrRegistration", "CustomizedInstanceManager", "_NoDefault",
                 "RegAttrManager"]:
-            from . import attr_registration
-            return getattr(attr_registration, class_name)
+            # attribute registration used to be here instead of core, so for session compatibility...
+            if class_name == "_NoDefault":
+                from chimerax.core.attributes import _NoDefault
+                return _NoDefault
+            from chimerax.core.session import State
+            class Fake(State):
+                def reset_state(self, session):
+                    pass
+                def take_snapshot(self, session, flags):
+                    return {}
+                def restore_snapshot(session, data, name=class_name):
+                    if name == "RegAttrManager":
+                        from chimerax.core.attributes import MANAGER_NAME
+                        session.get_state_manager(MANAGER_NAME)._restore_session_data(session, data)
+                    def remove_fakes(*args, ses=session, fake=Fake):
+                        for attr_name in dir(session):
+                            if isinstance(getattr(session, attr_name), fake):
+                                delattr(session, attr_name)
+                        from chimerax.core.triggerset import DEREGISTER
+                        return DEREGISTER
+                    session.triggers.add_handler('end restore session', remove_fakes)
+                    return Fake()
+            return Fake
         elif class_name == "XSectionManager":
             from . import ribbon
             return ribbon.XSectionManager
+        elif class_name in ["GenericSeqFeature", "SeqVariantFeature"]:
+            from . import seq_support
+            return getattr(seq_support, class_name)
 
     @staticmethod
     def initialize(session, bundle_info):
-        from . import settings
-        settings.settings = settings._AtomicSettings(session, "atomic")
-
-        Residue.set_templates_dir(bundle_info.data_dir())
-
-        session.change_tracker = ChangeTracker()
-        session.pb_manager = PseudobondManager(session)
-
-        from . import attr_registration
-        session.attr_registration = attr_registration.RegAttrManager()
-        session.custom_attr_preserver = attr_registration.CustomizedInstanceManager()
-
-        session._atomic_command_handler = session.triggers.add_handler("command finished",
-            lambda *args: check_for_changes(session))
-
-        if session.ui.is_gui:
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                _AtomicBundleAPI._add_gui_items(ses))
-            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-                settings.register_settings_options(ses))
+        initialize_atomic(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

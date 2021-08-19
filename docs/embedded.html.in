@@ -6,7 +6,7 @@ Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:
-http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
@@ -28,7 +28,7 @@ UCSF ChimeraX is built upon other great software.
 <h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="http://www.python.org/" target="_blank"> Python </a> version 3.7
+<dt><a href="https://www.python.org/" target="_blank"> Python </a> version 3.7
 <dd>&ldquo;The Python programming language and interpreter.&rdquo;
 <br>
 History and License: <a href="https://docs.python.org/3/license.html" target="_blank">open source</a>
@@ -37,12 +37,6 @@ ChimeraX is distributed as Python packages,
 either written in the Python language
 or as a binary package written in C or C++.
 
-<dt><a href="https://www.riverbankcomputing.com/software/pyqt/" target="_blank"> PyQt </a> version 5
-<dd>&ldquo;PyQt is a set of Python v2 and v3 bindings for <a href="http://www.qt.io" target="_blank">The Qt Company's</a> Qt application framework and runs on all platforms supported by Qt including Windows, OS X, Linux, iOS and Android.&rdquo;
-&ldquo;PyQt is dual licensed on all supported platforms under the GNU GPL v3 and the Riverbank Commercial License.&rdquo;
-<br>
-License: ChimeraX is develped with a commercial license for PyQt.
-See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq" target="_blank"> License FAQ </a> for more details.
 <p>
 <dt>Rotamer libraries (amino acid sidechain conformations and associated information) from the following sources:
 <dd>
@@ -52,7 +46,7 @@ See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license
 target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>,
 described in:
   <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
 A smoothed backbone-dependent rotamer library for proteins derived from 
 adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
@@ -62,7 +56,7 @@ Shapovalov MV, Dunbrack RL Jr.
 <li><a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dynameomics rotamer library</a>, described in:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations 
 and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
@@ -72,7 +66,7 @@ Scouras AD, Daggett V.
 <li><a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
 target="_blank">Richardson backbone-independent rotamer library</a>, described in:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
 The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
@@ -85,11 +79,11 @@ Lovell SC, Word JM, Richardson JS, Richardson DC.
 <!--openmm-->
 
 <p>
-<dt><a href="http://www.gnu.org/software/freefont/" target="_blank">
+<dt><a href="https://www.gnu.org/software/freefont/" target="_blank">
 GNU FreeFont </a>
 <dd>&ldquo;GNU FreeFont is a free family of scalable outline fonts, suitable for general use on computers and for desktop publishing. It is Unicode-encoded for compatibility with all modern operating systems.&rdquo;
 <br>
-License: <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a> or later and the following exception:
+License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a> or later and the following exception:
 <blockquote>
 "As a special exception, if you create a document which uses this font, and embed this font or unaltered portions of this font into the document, this font does not by itself cause the resulting document to be covered by the GNU General Public License. This exception does not however invalidate any other reasons why the document might be covered by the GNU General Public License.&rdquo;
 </blockquote>
@@ -98,8 +92,8 @@ GNU FreeFont is bundled as a convenience for users of ChimeraX.
 It is a separate product,
 and thus, its license does not affect ChimeraX's license.
 GNU FreeFont can be freely redistributed separately from ChimeraX.
-See the <a href="http://www.gnu.org/gpl-faq.html" target="_blank">GPL FAQ</a>
-and the <a href="http://www.gnu.org/software/freefont/FAQ.html" target="_blank">GNU FreeFont FAQ</a> for more details.
+See the <a href="https://www.gnu.org/licenses/gpl-faq.html" target="_blank">GPL FAQ</a>
+and the <a href="https://www.gnu.org/software/freefont/FAQ.html" target="_blank">GNU FreeFont FAQ</a> for more details.
 It can be found in the <code>bin/share/fonts/freefont</code> directory.
 
 <p>
@@ -111,18 +105,24 @@ License type: <a href="https://cgit.freedesktop.org/xdg/xdg-utils/tree/LICENSE" 
 Linux only.
 
 <p>
-<dt><a href="http://www.webalys.com/minicons" target="_blank"> Minicons Free Vector Icons Pack </a> (downloaded 28 November 2016)
+<dt><a href="https://www.webalys.com/minicons" target="_blank"> Minicons Free Vector Icons Pack </a> (downloaded 28 November 2016)
 <dd>The Minicons Free Vector Icon Pack is a free set of scalable icons.
 <br>
-License type: <a href="http://creativecommons.org/licenses/by/3.0/deed.en_US" target="_blank">Creative Commons Abbtributions 3.0 Unported</a>
+License type: <a href="https://creativecommons.org/licenses/by/3.0/deed.en_US" target="_blank">Creative Commons Abbtributions 3.0 Unported</a>
 <p>
 Linux only.
  
 <p>
-<dt><a href="http://basicproperty.sourceforge.net/" target="_blank"> BasicProperty (and BasicTypes) for Python </a> (downloaded 15 February 2018)
+<dt><a href="https://sourceforge.net/projects/basicproperty/" target="_blank"> BasicProperty (and BasicTypes) for Python </a> (downloaded 15 February 2018)
 <dd> The <b>flatten</b> function in <b>basictypes/latebind.py</b> is the basis for our <b>chimerax.core.utils.flattened</b> function.  The Python packages are not included.
 <br>
 License type: <a href="licenses/basictypes-license.txt" target="_blank">BSD license</a>
+ 
+<p>
+<dt><a href="https://ambermd.org" target="_blank">AmberTools</a>
+	<dd> Certain executables from the AmberTools package are included with ChimeraX in order to compute partial charges.  These executables are unmodified relative to their AmberTools versions, and are communicated with via their normal inputs and outputs.
+<br>
+License: Most of AmberTools is covered under the <a href="http://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU Public License v3</a>.
 
 </dl>
 

@@ -11,12 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Unless you need to add custom widgets to the dialog, you should use PyQt5.QtWidgets.QFileDialog
+# Unless you need to add custom widgets to the dialog, you should use Qt.QtWidgets.QFileDialog
 # for opening files, since that will have native look and feel.  The OpenDialog below is for
 # those situations where you do need to add widgets.
 try:
-    from PyQt5.QtWidgets import QFileDialog
-    from PyQt5.QtCore import Qt
+    from Qt.QtWidgets import QFileDialog
+    from Qt.QtCore import Qt
 except ImportError:
     # nogui
     pass
@@ -32,7 +32,7 @@ else:
             self.setFileMode(QFileDialog.AnyFile)
             self.setOption(QFileDialog.DontUseNativeDialog)
 
-            from PyQt5.QtWidgets import QWidget
+            from Qt.QtWidgets import QWidget
             self.custom_area = QWidget()
             layout = self.layout()
             row = layout.rowCount()
@@ -58,13 +58,13 @@ else:
     class OpenFolderDialog(OpenDialog):
         def __init__(self, parent, session):
             OpenDialog.__init__(self, parent=parent, caption='Open Folder')
-            from PyQt5.QtWidgets import QFileDialog
+            from Qt.QtWidgets import QFileDialog
             self.setFileMode(QFileDialog.Directory)
 
             self._customize_file_dialog(session)
 
         def _customize_file_dialog(self, session):
-            from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
+            from Qt.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
             options_panel = self.custom_area
             label = QLabel(options_panel)
             label.setText("Format:")
@@ -128,10 +128,10 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
     fmt_name2filter = dict(zip([fmt.name for fmt in openable_formats], file_filters[1:]))
     filter2fmt = dict(zip(file_filters[1:], openable_formats))
     filter2fmt[no_filter] = None
-    from PyQt5.QtWidgets import QFileDialog
+    from Qt.QtWidgets import QFileDialog
     qt_filter = ";;".join(file_filters)
     if _use_native_open_file_dialog:
-        from PyQt5.QtWidgets import QFileDialog
+        from Qt.QtWidgets import QFileDialog
         paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
     else:
@@ -144,7 +144,13 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
     if not paths:
         return
 
-    def _qt_safe(session=session, paths=paths, data_format=filter2fmt[file_filter]):
+    # Linux doesn't return a valid file_filter if none is chosen
+    if not file_filter:
+        data_format = None
+    else:
+        data_format = filter2fmt[file_filter]
+
+    def _qt_safe(session=session, paths=paths, data_format=data_format):
         from chimerax.core.commands import run, FileNameArg, StringArg
         run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]) + (""
             if data_format is None else " format " + StringArg.unparse(data_format.nicknames[0])))
@@ -153,7 +159,7 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
     # events correctly, nor tool tips.
     #
     # Using session.ui.thread_safe() doesn't help either(!)
-    from PyQt5.QtCore import QTimer
+    from Qt.QtCore import QTimer
     QTimer.singleShot(0, _qt_safe)
 
 _folder_dlg = None

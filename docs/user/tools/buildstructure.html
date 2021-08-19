@@ -25,9 +25,10 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Build Structure</h3>
 <p>
-The <b>Build Structure</b> tool is for building and modifying atomic structures.
-It is implemented as the
-<a href="../commands/build.html"><b>build</b></a> command.
+The <b>Build Structure</b> tool builds and modifies atomic structures.
+The equivalent commands are
+<a href="../commands/build.html"><b>build</b></a> and
+<a href="../commands/bond.html"><b>bond</b></a>.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
@@ -39,9 +40,10 @@ See also:
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
 Sections:
 </p>
-</ul>
+<ul>
 <li><a href="#start"><b>Start Structure</b></a>
 <li><a href="#modify"><b>Modify Structure</b></a>
+<li><a href="#bonds"><b>Adjust Bonds</b></a>
 </ul>
 
 <p class="nav">
@@ -52,10 +54,11 @@ Sections:
 <p>
 The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
 adds new atoms or molecules independent of any pre-existing atoms.
-See also:
-<a href="../commands/open.html#fetch"><b>open</b></a>
+See also: <a href="../commands/open.html#fetch"><b>open</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>
 </p><p>
-Options are to <b>Add</b>:
+Options to <b>Add</b>:
 <ul>
 <li> <b>atom</b> &ndash; a single atom of helium (used as the initial type
 since it exists as a singleton), with placement options:
@@ -72,21 +75,22 @@ subsequent <a href="#modify">modification</a>
 <p>
 Clicking <b>Apply</b>
 adds the atom(s) with the specified <b>Residue name</b>, in either
-<a name="startmodel"></a>
-an existing molecule model or a <b>new model</b> with a specified name.
+<a name="startmodel">an existing molecule model</a>
+or a <b>new model</b> with a specified name.
 </p>
-<!--
 <li><b>fragment</b> 
 &ndash; the specified fragment, placed in the center of view.
 Several planar ring systems are available; a small diagram of the
-chosen <b>Fragment</b> is displayed.
+chosen fragment is displayed.
 <br><br>
--->
+<li><b>nucleic double helix</b> 
+&ndash; a DNA, RNA, or DNA/RNA double helix specified by the sequence 
+of one strand (the DNA strand, in the case of a DNA/RNA hybrid;
+capitalization does not matter).
+A-form or B-form helical parameters can be used.
+<br><br>
 <li><b>peptide</b> &ndash; a peptide specified by
-one-letter amino acid codes (capitalization does not matter)
-<p>
-The peptide can be added to an existing molecule model or 
-generated as a <b>new model</b> with a specified name.
+one-letter amino acid codes (capitalization does not matter).
 </p><p>
 Clicking <b>Apply</b> brings up another dialog for specifying backbone
 &phi; (phi) and &psi; (psi) angles and other parameters.
@@ -151,15 +155,15 @@ The peptide will be assigned the specified <b>chain ID</b>.
 Clicking <b>OK</b> dismisses the dialog and creates the peptide.
 Hydrogen atoms are not included.
 Backbone bond lengths and angles are taken from the
-<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+<a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 ff99 parameters. Sidechain bond lengths and angles are taken from the
-<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+<a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>.
 </p>
 <li><b>PubChem CID</b> &ndash; a modeled structure from
 <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
 target="_blank"><b>PubChem3D</b></a>, specified by
-<a href="http://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+<a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID).
 <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
 target="_blank"><b>PubChem3D</b></a>
@@ -170,17 +174,17 @@ may be necessary to <a href="../commands/addh.html">add</a> or
 to generate the desired protonation state.
 <br><br>
 <li><b>SMILES string</b> &ndash; a 3D structure for the specified
-<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string. The structure is generated using the
-<a href="http://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+<a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
-<a href="http://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+<a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
 CADD group</a>, or if that does not produce a structure, the
 <i>smi23d</i> web service provided by the
 cheminformatics group at Indiana University.
 The <i>smi23d</i> service deploys the same procedure
 as described for <b>Pub3D</b> in
-<a href="http://www.biomedcentral.com/1471-2105/8/487"
+<a href="https://www.biomedcentral.com/1471-2105/8/487"
 target="_blank">Willighagen <i>et al.</i></a>, <i>BMC Bioinformatics</i>
 <b>8</b>:487 (2007).
 Hydrogens are included, although it
@@ -195,7 +199,8 @@ to generate the desired protonation state.
 </p>
 <h3>Modify Structure</h3>
 <p>
-The <b>Modify Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+The <b>Modify Structure</b> section of 
+<a href="#top"><b>Build Structure</b></a> 
 can change the element, valence (number of directly attached atoms),
 and/or geometry (spatial arrangement of attached atoms) of a single
 <a href="../selection.html">selected</a> atom at a time.
@@ -244,7 +249,7 @@ If the atom is already bonded to one (and only one) other nonhydrogen atom,
 the bond will be adjusted to an approximate length depending on
 the elements involved. No other atoms are moved.
 Bond lengths for X-H (X = C/N/O/S) are taken from the
-<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+<a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parm99 parameters.
 </p><p>
 <li style="list-style-type:none">Choices for atom name:
@@ -253,7 +258,7 @@ parm99 parameters.
   <li><b>Set atom name to [<i>name</i>]</b>
   </ul>
 <p>
-In <a href="http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
+In <a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
 an atom name can be up to four characters long and should be unique
 within a residue. An atom name normally starts with the element symbol.
 </p>
@@ -286,7 +291,7 @@ in a new residue named <i>resname</i>;
 otherwise, they will be included in the atom's current residue
   </ul>
 <p>
-In <a href="http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
+In <a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
 residue names are normally three characters long and chain identifiers a
 single character.
 </p>
@@ -300,7 +305,77 @@ See also command: <a href="../commands/delete.html"><b>delete</b></a>,
 menu: <a href="../menu.html#actions"><b>Actions... Delete</b></a>
 </p>
 
+<a name="bonds"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Adjust Bonds</h3>
+<p>
+The <b>Adjust Bonds</b> section of <a href="#top"><b>Build Structure</b></a> 
+allows adding and deleting covalent bonds.
+A bond can also be deleted using its 
+<a href="../selection.html#context">selection context menu</a>.
+See also: <a href="../commands/bond.html"><b>bond</b></a>,
+<a href="../commands/delete.html"><b>delete</b></a>
+</p>
+<ul>
+<li><b>Delete selected bonds</b>
+&ndash; remove bonds that are <a href="../selection.html">selected</a>
+and/or between pairs of <a href="../selection.html">selected</a> atoms
+<li><b>Add</b> [<i>option</i>] <b>bonds between selected atoms</b> 
+&ndash; add bonds between pairs of
+<a href="../selection.html">selected</a> atoms according to
+the <i>option</i> setting:
+ <ul>
+ <li><b>reasonable</b> (default) 
+&ndash; only if the atoms are no farther apart than the sum of their
+<a href="#covrad">covalent bond radii</a> + 0.4 &Aring;
+ <li><b>all possible</b>
+&ndash; all pairwise combinations regardless of distance
+ </ul>
+</ul>
+
+<a name="covrad"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Covalent Bond Radii</h3>
+<p>
+Approximate covalent bond radii are used to guess the connectivity
+of untemplated residues (when not specified in the input structure file)
+and to generate crude bond lengths for building atomic structures.
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr><th align="center" colspan="2">Selected covalent bond radii
+(&Aring;)</th></tr>
+<tr><td align=center>H</td> <td align=center>0.23</td></tr>
+<tr><td align=center>B</td> <td align=center>0.83</td></tr>
+<tr><td align=center>C</td> <td align=center>0.68</td></tr>
+<tr><td align=center>N</td> <td align=center>0.68</td></tr>
+<tr><td align=center>O</td> <td align=center>0.68</td></tr>
+<tr><td align=center>F</td> <td align=center>0.64</td></tr>
+<tr><td align=center>Si</td> <td align=center>1.20</td></tr>
+<tr><td align=center>P</td> <td align=center>1.05</td></tr>
+<tr><td align=center>S</td> <td align=center>1.02</td></tr>
+<tr><td align=center>Cl</td> <td align=center>0.99</td></tr>
+<tr><td align=center>Se</td> <td align=center>1.22</td></tr>
+<tr><td align=center>Br</td> <td align=center>1.21</td></tr>
+<tr><td align=center>I</td> <td align=center>1.40</td></tr>
+</table>
+
+<p>
+A complete list, obtained many years ago from documentation from the
+<a href="https://www.ccdc.cam.ac.uk"
+target="_blank">Cambridge Crystallographic Data Centre</a>,
+can be found in Table III of:
+<blockquote>
+<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716"
+target="_blank">Determination of molecular topology and atomic hybridization
+states from heavy atom coordinates.</a> Meng EC, Lewis RA.
+<i>J Comput Chem</i> <b>12</b>:891 (1991).
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+February 2021</address>
 </body></html>

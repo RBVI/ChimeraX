@@ -272,7 +272,7 @@ void pysequence_of_string_to_cvec(PyObject* pylist, std::vector<Contained>& cvec
         PyErr_Clear();
         throw ErrNotList(item_description);
     }
-    auto num_items = PySequence_Fast_GET_SIZE(seq);
+    auto num_items = PySequence_Fast_GET_SIZE(pylist);
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PySequence_Fast_GET_ITEM(pylist, i);
         cvec.emplace_back(pystring_to_cchar(item, item_description));

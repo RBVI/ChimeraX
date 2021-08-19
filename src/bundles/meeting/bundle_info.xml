@@ -11,20 +11,13 @@
 
   <DataFiles>
     <DataFile>face.png</DataFile>
-    <DataFile>server.pem</DataFile>
-    <DataFile>gui.html</DataFile>
   </DataFiles>
 
   <Categories>
     <Category name="General"/>
   </Categories>
 
-  <Providers>
-    <Provider name="conference" manager="url_schemes"/>
-  </Providers>
-
   <Dependencies>
-    <Dependency name="netifaces" version="~=0.10.9"/>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
@@ -34,14 +27,16 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: meeting :: General :: Show synchronized mouse or VR hand controllers between two ChimeraX instances (direct connection)</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: meeting close :: General :: Close meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Meeting :: General :: Multi-person sessions</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting start :: General :: Create a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting join :: General :: Join a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting :: General :: Same as meeting join</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting close :: General :: Close a ChimeraX meeting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting info :: General :: Report ChimeraX meeting info</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting settings :: General :: Report or set meeting default settings</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting server :: General :: Report or define meeting server names</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: meeting unname :: General :: Deregister a meeting name</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: meeting send :: General :: Copy my scene to all other meeting participants</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: conference :: General :: Show synchronized mouse or VR hand controllers between two ChimeraX instances (shared hub)</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: conference set :: General :: Set options for current conference</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: conference close :: General :: Close connection to conference</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: conference send :: General :: Copy my scene to all other conference participants</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Conference Call :: Utilities :: Show the same data set in multiple ChimeraX instances</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

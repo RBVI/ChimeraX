@@ -19,9 +19,7 @@ from chimerax.core.state import StateManager
 from chimerax.core.toolshed import ProviderManager
 class AlignmentsManager(StateManager, ProviderManager):
     """Manager for sequence alignments"""
-    def __init__(self, session, bundle_info):
-        # Just for good form.  Neither base class currently defines __init__.
-        super().__init__()
+    def __init__(self, session, name, bundle_info):
         self._alignments = {}
         # bundle_info needed for session save
         self.bundle_info = bundle_info
@@ -32,8 +30,9 @@ class AlignmentsManager(StateManager, ProviderManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("new alignment")
         self.triggers.add_trigger("destroy alignment")
-        self._installed_headers = {}
-        self._installed_viewers = {}
+        self._headers = {}
+        self._viewers = {}
+        super().__init__(name)
 
     def add_provider(self, bundle_info, name, *, type=None,
             synonyms=[], subcommand_name=None, sequence_viewer=True, alignment_viewer=True, **kw):
@@ -69,7 +68,7 @@ class AlignmentsManager(StateManager, ProviderManager):
             to view and should return the viewer instance.
         """
         if type == "header":
-            self._installed_headers[name] = bundle_info
+            self._headers[name] = bundle_info
         elif type == "viewer":
             if subcommand_name:
                 if subcommand_name in _builtin_subcommands:
@@ -88,7 +87,7 @@ class AlignmentsManager(StateManager, ProviderManager):
                 self.viewer_info['sequence'][name] = synonyms
             if alignment_viewer:
                 self.viewer_info['alignment'][name] = synonyms
-            self._installed_viewers[name] = bundle_info
+            self._viewers[name] = bundle_info
         elif type is None:
             raise ValueError("Provider failed to specify type to alignments manager")
         else:
@@ -109,31 +108,26 @@ class AlignmentsManager(StateManager, ProviderManager):
         alignment._destroy()
 
     def header(self, name):
-        if name in self._installed_headers:
-            bundle_info = self._installed_headers[name]
-            return bundle_info.run_provider(self.session, name, self)
-        # not installed
-        #TODO
+        if name in self._headers:
+            bundle_info = self._headers[name]
+            if bundle_info.installed:
+                return bundle_info.run_provider(self.session, name, self)
+            raise ValueError("Alignment header '%s' is not installed" % name)
+        raise ValueError("Unknown alignment header '%s'" % name)
 
-    def headers(self, *, installed_only=True):
+    def headers(self):
         hdrs = []
-        if installed_only:
-            for name, info in self._installed_headers.items():
-                hdrs.append(self.header(name))
-        else:
-            for name in self.header_names(installed_only=False):
-                hdrs.append(self.header(name))
+        for name, info in self._headers.items():
+            hdrs.append(self.header(name))
         return hdrs
 
     def header_names(self, *, installed_only=True):
         names = []
-        if installed_only:
-            for name, info in self._installed_headers.items():
-                bundle_info = info
-                names.append(name)
-        else:
-            #TODO
-            pass
+        for name, info in self._headers.items():
+            bundle_info = info
+            if installed_only and not bundle_info.installed:
+                continue
+            names.append(name)
         return names
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
@@ -240,8 +234,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         if identify_as:
             self._alignments[identify_as] = alignment
         if viewer_text:
-            self._installed_viewers[viewer_name].run_provider(self.session, viewer_name, self,
-                alignment=alignment)
+            self._viewers[viewer_name].run_provider(self.session, viewer_name, self, alignment=alignment)
         self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 

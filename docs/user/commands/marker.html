@@ -70,6 +70,7 @@ marker delete #2:3
 <a name="link"></a>
 <a name="segment"></a>
 <a name="fromMesh"></a>
+<a name="connected"></a>
 <p class="nav">
 [<a href="#top">back to top: marker</a>]
 </p>
@@ -94,12 +95,22 @@ marker delete #2:3
 &nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;
 <b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec1</i></a>&nbsp;
 <b>toPosition</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec2</i></a>&nbsp;
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>label</b>&nbsp;&nbsp;<i>label-text</i>&nbsp;]
 [&nbsp;<b>labelHeight</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
 [&nbsp;<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+<!-- needed for tapemeasure mode but does not play well with other options
+[&nbsp;<b>adjust</b>&nbsp;&nbsp;<a href="atomspec.html"><i>marker-pair</i></a>&nbsp;]
+-->
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker connected</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>markers</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>marker fromMesh</b>
@@ -150,14 +161,31 @@ The default <b>labelHeight</b> is <b>1.0</b> &Aring; and the default
 the <a href="set.html#bgColor">window background color</a>).
 See also: <a href="label.html"><b>label</b></a>
 </p><p>
+The <b>marker connected</b> command adds a marker at the center of each
+connected piece (blob) of the specified surface(s).
+Parts of the surface hidden with
+<a href="surface.html#dust"><b>surface dust</b></a>,
+<a href="surface.html#zone"><b>surface zone</b></a>, or
+<a href="volume.html#zone"><b>volume zone</b></a>
+are not marked and are not used to determine connectivity.
+When the command is used on 
+<a href="../trajectories.html#vseries">volume series</a> surfaces,
+the markers are assigned a
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+with value indicating the associated time step within the series.
+This allows synchronization during playback with
+<a href="vseries.html#play"><b>vseries play</b></a>.
+The <b>markers</b> option allows adding the new markers and links 
+to an existing marker model. See also:
+<a href="measure.html#blob"><b>measure blob</b></a>
+</p><p>
 The <b>marker fromMesh</b> command creates markers and links (shown as sticks)
 from a surface mesh, which can only be shown as lines.
 The <b>edgeRadius</b> option sets stick radius (default <b>1.0</b> 
-in physical distance units). The <b>color</b> default is the same as
+in physical distance units).
+In this case, the <b>color</b> default is the same as
 the surface model, where each marker gets the corresponding vertex color
 and each link (stick) is assigned the average color of its two endpoints.
-The <b>markers</b> option allows adding the new markers and links 
-to an existing marker model.
 See also: <a href="hkcage.html"><b>hkcage</b></a>,
 <a href="shape.html"><b>shape</b></a>,
 <a href="volume.html"><b>volume</b></a>
@@ -220,5 +248,5 @@ and marker models can be closed with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+October 2020</address>
 </body></html> 

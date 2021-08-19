@@ -33,9 +33,9 @@ class MapSeriesSlider(ToolInstance):
 
         self._slider_max = n = max((ser.number_of_times() for ser in series), default = 0)
         from os.path import dirname, join
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
-        from PyQt5.QtGui import QPixmap, QIcon
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton
+        from Qt.QtGui import QPixmap, QIcon
+        from Qt.QtCore import Qt
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(4)

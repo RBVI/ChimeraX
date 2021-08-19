@@ -16,14 +16,14 @@ class AtomZoneMouseMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        self._settings = None
         self._zone_center_residue = None
         self._residue_distance = 5
         self._label_distance = 4
         self._label_size = 64		# Pixels
         self._label_height = 0.7	# Scene units (Angstroms)
-        from chimerax.core.colors import BuiltinColors
-        self._label_color = BuiltinColors['yellow']
-        self._label_background = BuiltinColors['black']
+        self._label_color = self._defaults.label_color
+        self._label_background = self._defaults.label_background_color
         self._surface_distance = 8
         self._coil_width_scale = (0.2, 0.2)
         self._helix_width_scale = (0.6, 0.2)
@@ -36,7 +36,20 @@ class AtomZoneMouseMode(MouseMode):
         self._scale_step = 1.3			# Minimum scaling step factor
         self._original_atom_display = None	# Boolean mask of which atoms originally shown
         self._original_residue_display = None	# Boolean mask of which residues originally shown
-        
+
+    @property
+    def _defaults(self):
+        settings = self._settings
+        if settings is None:
+            from chimerax.core.settings import Settings
+            class _ZoneMouseModeSettings(Settings):
+                EXPLICIT_SAVE = {
+                    'label_color': 'auto',
+                    'label_background_color': 'none',
+                }
+            self._settings = settings = _ZoneMouseModeSettings(self.session, "zone_mouse_mode")
+        return settings
+    
     def _show_zone(self, residue, label=True, ribbon=True, log_command = True):
         '''Show nearby residues, labels, and surfaces.'''
 
@@ -285,12 +298,21 @@ def zone(session, atoms = None, residue_distance = None,
         lbl = True if label is None else label
         zm._show_zone(res[0], label=lbl, ribbon=ribbon, log_command = False)
 
+def zone_setting(session, label_color = None, label_background_color = None, save = True):
+    zm = session._atom_zone_mouse_mode
+    if label_color is not None:
+        zm._label_color = zm._defaults.label_color = label_color
+    if label_background_color is not None:
+        zm._label_background = zm._defaults.label_background_color = label_background_color
+    if save:
+        zm._defaults.save()
+
 def zone_clear(session):
     zm = session._atom_zone_mouse_mode
     zm._unzone(log_command = False)
          
 def register_zone_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, Color8TupleArg, Or, EnumOf
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
@@ -305,3 +327,11 @@ def register_zone_command(logger):
 
     desc = CmdDesc(synopsis = 'Show all atoms and full map')
     register('zone clear', desc, zone_clear, logger=logger)
+
+    desc = CmdDesc(
+        keyword = [('label_color', Or(EnumOf(['default','auto']), Color8TupleArg)),
+                   ('label_background_color', Or(EnumOf(["none"]), Color8TupleArg)),
+                   ('save', BoolArg)],
+        synopsis = 'Set zone mouse mode default settings'
+    )
+    register('zone setting', desc, zone_setting, logger=logger)

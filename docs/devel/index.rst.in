@@ -31,6 +31,7 @@ Tutorials and Examples
    :maxdepth: 1
 
    tutorials/introduction.rst
+   Command and Python recipes <https://rbvi.github.io/chimerax-recipes/>
 
 Developer Guide
 ===============
@@ -38,6 +39,7 @@ Developer Guide
 .. toctree::
    :maxdepth: 1
 
+   getcode.rst
    conventions.rst
    apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst

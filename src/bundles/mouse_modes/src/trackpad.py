@@ -76,7 +76,7 @@ class MultitouchTrackpad:
         '''
         Various attempts to enable touch events from Python in Qt 5.9 all failed.
         print('graphics window winId', wid, int(wid))
-        from PyQt5.Qt import Qt
+        from Qt.QtCore import Qt
         w = self.widget
         wwid = w.winId()
         # wwid != wid so touch events are not enabled on graphics window.
@@ -97,7 +97,7 @@ class MultitouchTrackpad:
 
         self._received_touch_event = True
 
-        from PyQt5.QtCore import QEvent
+        from Qt.QtCore import QEvent
         t = event.type()
         # For some unfathomable reason the QTouchEvent.modifiers() method always
         # returns zero (QTBUG-60389, unresolved since 2017). So we need to do a
@@ -218,11 +218,11 @@ class MultitouchTrackpad:
         if self._touch_handler is None:
             return False	# Multi-touch disabled
 
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         if event.source() == Qt.MouseEventNotSynthesized:
             return False	# Event is from a real mouse.
 
-        from PyQt5.QtGui import QTouchDevice
+        from Qt.QtGui import QTouchDevice
         if len(QTouchDevice.devices()) == 0:
             return False	# No trackpad devices
 

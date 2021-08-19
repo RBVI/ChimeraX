@@ -121,9 +121,9 @@ The <b>volume</b> command has many options, here grouped into categories:
 <br><a href="#dispsolid">Image Display Options</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/slab.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
@@ -140,6 +140,8 @@ The <b>volume</b> command has many options, here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
 
 <p>
@@ -507,6 +509,7 @@ regardless of which are specified:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
   Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
 See also:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>,
@@ -689,6 +692,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   <br>
   Specify center of symmetry in grid coordinates, given as a single 
   value or three values separated by commas only.
+  Grid indices start at zero.
   Fractional and negative values can be used.  If a single value is given, 
   it is used as the grid coordinate along all three axes.
   This option overrides <a href="#center"><b>center</b></a>.
@@ -1060,9 +1064,9 @@ is white or some other light color.
   generating planes perpendicular to the line of sight, spaced
   according to the <a href="#planeSpacing"><b>planeSpacing</b></a> option.
 See also:
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
 </blockquote>
 <blockquote>
@@ -1418,6 +1422,8 @@ and/or above a specified maximum
 &ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 &ndash; limit the display to a zone around specified atoms,
 or make a new map with values of zero at grid points within or beyond the zone
 </ul>
@@ -1479,6 +1485,7 @@ Note resampling causes some loss in resolution
    <i>j1&ndash;j2</i> along the Y axis, and
    <i>k1&ndash;k2</i> along the Z axis.
    Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
   </ul>
 The <i>value-type</i> defaults to the current type
 of the <b>onGrid</b> map (if any), otherwise the first in <i>volume-spec</i>,
@@ -1847,6 +1854,7 @@ See also:
 <a href="#multiply"><b>volume multiply</b></a>,
 <a href="shape.html"><b>shape</b></a>,
 <a href="segmentation.html"><b>segmentation</b></a>,
+<a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>,
 <a href="../tools/segment.html"><b>Segment Map</b></a>
 </p>
 </blockquote>
@@ -1915,9 +1923,11 @@ See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 [&nbsp;<b>addMode</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hideOriginalMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>interpolateColors</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>slider</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-Morph between two or more maps.
+Morph between two or more maps. The morph can be played back with the
+<a href="#slider">slider</a> graphical interface.
 For a reasonable result, the input maps should have the same grids:
 dimensions, spacing, and numbers of points.
 Note <a href="#resample"><b>volume resample</b></a>
@@ -1928,7 +1938,7 @@ There is smooth interpolation between each adjacent pair of maps.
 <p>
 The morph display will proceed from <i>start-fraction</i> (default <b>0.0</b>)
 in steps of <i>increment</i> (default <b>0.04</b>) for <i>N</i> <b>frames</b>
-(default <b>25</b>).  By default (<b>playDirection 1</b>),
+(default <b>25</b>). By default (<b>playDirection 1</b>),
 the initial direction of play is from low to high fractions.
 If the number of frames and step increment are more than needed to reach
 the <b>playRange</b> bounds (default is the entire range: <b>0.0,1.0</b>),
@@ -1947,6 +1957,13 @@ only applies when the maps have the same number of
 <a href="#general">thresholds</a>
 (contour levels for surface/mesh display,
 coloring control nodes for image display).
+</p><p>
+<a name="slider"></a>
+The <b>slider</b> option (default <b>true</b>) shows a graphical interface
+for volume morph playback.
+The slider can be dragged or a frame number entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie.
 </p><p>
 The morph is created as a new map (volume) model. However, if the
 <a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
@@ -2015,7 +2032,8 @@ See also: <a href="#onesmask"><b>volume onesmask</b></a>
 Erase values inside the positive octant
 (all grid points with X,Y,Z coordinates greater than the center).
 The center can be specified in physical units (such as &Aring;) with
-<b>center</b> or in grid units with <b>iCenter</b>.
+<b>center</b> or in grid units with <b>iCenter</b>,
+where grid indices start at zero.
 The default is the center of the volume data box.
 The coordinates should be separated by commas but not spaces, and the
 values can be fractional.
@@ -2390,7 +2408,10 @@ limit the surface display to a zone within <b>range</b> <i>r</i>
 (default <b>3.0</b> &Aring;) of any atom in 
 <a href="atomspec.html"><i>atom-spec</i></a> and restrict the
 <a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. 
+to the box containing the zoned surface. The corresponding
+<a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">
+uses a <b>range</b> value six times the grid spacing of the map.
 The full extent of the map can be restored with
 <a href="#unzone"><b>volume unzone</b></a>.
 The <b>invert</b> option is not available with <b>newMap false</b>.
@@ -2442,6 +2463,7 @@ the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.
   Grid indices must be integers separated by commas but not spaces.
+  Grid indices start at zero.
 </blockquote>
 <blockquote>
   <b>inPlace</b> true&nbsp;|&nbsp;<b>false</b>
@@ -2574,5 +2596,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+April 2021</address>
 </body></html>

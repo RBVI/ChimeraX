@@ -42,8 +42,8 @@ class Conservation(DynamicHeaderSequence):
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
-        from PyQt5.QtWidgets import QVBoxLayout
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout
+        from Qt.QtCore import Qt
         option_data = self.option_data()
         self._add_options(options_container, category, verbose_labels, option_data)
         if category is None:

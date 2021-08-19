@@ -23,6 +23,7 @@ trigger_info = {
     "app quit": True,
     "begin restore session": False,
     "begin save session": False,
+    "command failed": False,
     "command finished": False,
     "command started": False,
     "end restore session": False,

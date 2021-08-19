@@ -369,9 +369,11 @@ def create_centroid_path(session, name, xyz, radius, color):
 
     from chimerax.markers import MarkerSet, create_link
     mset = MarkerSet(session, name)
+    mset.save_marker_attribute_in_sessions('frame', int)
     mprev = None
-    for p in xyz:
+    for i,p in enumerate(xyz):
         m = mset.create_marker(p, color, radius)
+        m.frame = i
         if mprev:
             create_link(mprev, m, rgba = color, radius = radius/2)
         mprev = m

@@ -94,9 +94,9 @@ The main <b>swapaa</b> command uses
 several <a href="#criteria">criteria</a> to choose the best rotamer
 for a given type and position:
 lowest clash score, most H-bonds, best agreement with a density map,
-and/or highest probability according to the library.
+and/or highest prevalence according to the library.
 Bond lengths and angles are taken from the
-<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+<a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>, and hydrogens are not included.
 </p>
 
@@ -117,7 +117,7 @@ and <b>swapaa mousemode</b> does not have any options.
 <b>rotLib</b> &nbsp;<i>rotamer-library</i>
 <br>
 What rotamer library to use; the source of rotamer torsion angles and 
-probabilities. Possible values of <i>rotamer-library</i>
+prevalence values. Possible values of <i>rotamer-library</i>
 (capitalization optional):
 <ul>
   <li><b>Dunbrack</b> (default)
@@ -126,7 +126,7 @@ target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead):
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
 A smoothed backbone-dependent rotamer library for proteins derived from
 adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
@@ -149,7 +149,7 @@ will be used for what is incorporated into the structure.
 <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dyameomics rotamer library</a>:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations
 and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
@@ -172,7 +172,7 @@ will be used for what is incorporated into the structure.
 from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
 target="_blank">Richardson backbone-independent rotamer library</a>:
    <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
 The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
@@ -204,11 +204,11 @@ without spaces, of one or more of the following letters (default <b>dchp</b>):
   </ul>
 <li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
 <li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
-<li><b>p</b> &ndash; by highest probability according to the 
+<li><b>p</b> &ndash; by highest prevalence according to the 
 <a href="#rotLib">rotamer library</a> 
-(probabilities are simply taken from the library and are not
-affected by the structural environment,
-except by phi and psi angles when the Dunbrack library is used)
+(prevalence values are simply taken from the library and are <b><i>not</i></b>
+affected by the specific structural environment,
+except by phi and psi backbone angles when the Dunbrack library is used)
 </ul>
 <p>
 Each successive method is only used when the previous method(s) have
@@ -218,22 +218,23 @@ clashes will be evaluated; if the
 and more than one rotamer ties for the lowest number of clashes,
 H-bonds will be evaluated to break the tie; if the lowest-clashing
 rotamers also have equal numbers of H-bonds, the one with the highest
-probability will be used. 
+prevalence will be used. 
 <p>
-Only the sidechain atoms of a rotamer are evaluated.  For
+Only the sidechain atoms of a rotamer are evaluated. For
 <a href="#clash">clash</a> and <a href="#H-bond">H-bond</a> detection,
 interactions with other rotamers in the same set and the current residue at that
-position are disregarded, but all other atoms in the vicinity will be included
-unless <a href="#ignore"><b>ignoreOtherModels</b></a> is used.
-In addition, atoms in the same model that are unwanted
-for such calculations (for example, <a href="atomspec.html#builtin">solvent</a>)
+position are disregarded, but all other nearby atoms will be included
+(at least those in the same model; 
+see <a href="#ignore"><b>ignoreOtherModels</b></a>).
+Atoms in the same model that are unwanted for such calculations
+(for example, <a href="atomspec.html#builtin">solvent</a>)
 should be deleted beforehand.
 </p><p>
 Alternatively, an integer <i>N</i> can be given instead of the <i>method</i>.
-This indicates ignoring all criteria other than probability and
-choosing the rotamer with the Nth highest probability.
+This indicates ignoring all criteria other than prevalence and
+choosing the rotamer with the Nth highest prevalence.
 Specifying <i>N</i> as <b>0</b> (zero) indicates the rotamer 
-with the lowest probability.
+with the lowest prevalence.
 </p>
 </blockquote>
 <blockquote>
@@ -284,10 +285,10 @@ only the backbone angles are reported, since no swap has yet occurred when the
 </blockquote>
 <blockquote>
 <a name="ignore"></a>
-<b>ignoreOtherModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<b>ignoreOtherModels</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>In <a href="#clash">clash</a>
-and <a href="#H-bond">H-bond</a> detection, whether to include
-only atoms in the same model as the residue being swapped;
+and <a href="#H-bond">H-bond</a> detection, whether to ignore
+atoms that are not in the same model as the residue being swapped;
 useful for preventing superimposed related proteins
 or additional copies of the starting structure from affecting the results.
 </blockquote>
@@ -352,5 +353,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+March 2021</address>
 </body></html>

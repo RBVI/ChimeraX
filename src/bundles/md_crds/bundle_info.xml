@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MDcrds" version="2.0"
+<BundleInfo name="ChimeraX-MDcrds" version="2.2"
 	    package="chimerax.md_crds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -42,12 +42,18 @@
 		synopsis="Gromacs xtc format" reference_url="http://manual.gromacs.org/documentation/current/reference-manual/file-formats.html#xtc" />
     <Provider name="DCD coordinates" category="Molecular trajectory"
 		nicknames="dcd" suffixes=".dcd" encoding="utf-8" synopsis="DCD trajectory format" />
+    <Provider name="Amber netCDF coordinates" category="Molecular trajectory"
+		nicknames="amber" suffixes=".nc" synopsis="Amber netCDF format" />
+    <Provider name="Gromos87 coordinates" category="Molecular structure" encoding="utf-8"
+		nicknames="gro" suffixes=".gro" synopsis="Gromos87 structure" reference_url="http://gromos.net" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="trr" want_path="true" />
     <Provider name="xtc" want_path="true" />
     <Provider name="dcd" want_path="true" />
+    <Provider name="amber" want_path="true" />
+    <Provider name="gro" />
   </Providers>
 
   <Providers manager="save command">

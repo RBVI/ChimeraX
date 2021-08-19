@@ -164,9 +164,10 @@ def graphics_quality(session, quality = None, subdivision = None,
         msg = ('Quality %.3g, atom triangles %d, bond triangles %d' %
                (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na)))
         div = [lod.ribbon_divisions(s.num_ribbon_residues) for s in gu.structures]
-        dmin, dmax = min(div), max(div)
-        drange = '%d-%d' % (dmin, dmax) if dmin < dmax else '%d' % dmin
-        msg += ', ribbon divisions %s' % drange
+        if div:
+            dmin, dmax = min(div), max(div)
+            drange = '%d-%d' % (dmin, dmax) if dmin < dmax else '%d' % dmin
+            msg += ', ribbon divisions %s' % drange
         session.logger.status(msg, log = True)
 
 def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jump=None):

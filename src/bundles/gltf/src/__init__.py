@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .gltf import read_gltf, write_gltf
+
 from chimerax.core.toolshed import BundleAPI
 
 class _gltfBundle(BundleAPI):

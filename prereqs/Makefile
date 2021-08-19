@@ -27,25 +27,10 @@ ifdef WIN32
 SUBDIRS += win32
 endif
 
-ifeq ($(OS),Darwin)
-NEED_EXPAT=1
-# NEED_HDF5=1
-NEED_OPENSSL=1
-NEED_PKGCONFIG=1
-NEED_P7ZIP=1
-NEED_ZLIB=1
-endif
-
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
-ifndef CENTOS_DIST
-NEED_MESA=1
-endif
-ifeq ($(CENTOS_DIST),7)
-NEED_MESA=1
-endif
-# NEED_HDF5=1
+NEED_OSMESA=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 NEED_EXPAT=1
@@ -64,13 +49,16 @@ endif
 
 ifdef NEED_FFMPEG
 SUBDIRS += ffmpeg
-ifeq ($(OS),Darwin)
-NEED_LIBTOOL=1
-NEED_PKGCONFIG=1
-endif
 else
 ffmpeg.install:
 ffmpeg.app-install:
+endif
+
+ifdef NEED_OSMESA
+SUBDIRS += osmesa
+else
+osmesa.install:
+osmesa.app-install:
 endif
 
 ifdef NEED_MESA
@@ -93,13 +81,6 @@ llvm.install:
 llvm.app-install:
 endif
 
-ifdef NEED_LIBTOOL
-SUBDIRS += libtool
-else
-libtool.install:
-libtool.app-install:
-endif
-
 ifdef NEED_PKGCONFIG
 SUBDIRS += pkgconfig
 else
@@ -112,13 +93,6 @@ SUBDIRS += expat
 else
 expat.install:
 expat.app-install:
-endif
-
-ifdef NEED_HDF5
-SUBDIRS += hdf5
-else
-hdf5.install:
-hdf5.app-install:
 endif
 
 ifdef NEED_OPENSSL
@@ -146,10 +120,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= cxservices gdcm imex lineprofiler numpy openmm \
-	   pips \
-	   PyOpenGL PyQt Python \
-	   scipy
+SUBDIRS	+= ambertools cxservices imex lineprofiler openmm pips PyQt Python qtshim
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -216,31 +187,19 @@ endif
 
 cxservices.install: pips.install
 cxservices.app-install: pips.app-install
-ffmpeg.install: p7zip.install pkgconfig.install libtool.install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-hdf5.app-install: zlib.app-install chrpath.app-install
-hdf5.install: zlib.install chrpath.install
-libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install
 mesa.install: p7zip.install llvm.install pkgconfig.install
-numpy.app-install: Python.app-install pips.app-install
-numpy.install: Python.install numpy.install pips.install
-openmm.app-install: Python.app-install numpy.app-install pips.app-install
-openmm.install: Python.install numpy.install pips.install
+openmm.app-install: Python.app-install pips.app-install
+openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install pkgconfig.install
-pillow.app-install: Python.app-install zlib.app-install
-pillow.install: Python.install zlib.install
+osmesa.app-install: Python.app-install
+osmesa.install: Python.install
 pips.app-install: Python.app-install
 pips.install: Python.install
-PyOpenGL.app-install: Python.app-install pips.app-install
-PyOpenGL.install: Python.install pips.install
-PyQt.app-install: Python.app-install openssl.app-install zlib.app-install
-PyQt.install: Python.install openssl.install zlib.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
-scipy.app-install: Python.app-install numpy.app-install
-scipy.install: Python.install numpy.install

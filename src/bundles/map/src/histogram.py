@@ -115,8 +115,8 @@ class Markers:
     bs = self.box_size
     x0, y1, x1, y0 = self.canvas_box
 
-    from PyQt5.QtGui import QPen, QColor, QBrush
-    from PyQt5.QtCore import Qt
+    from Qt.QtGui import QPen, QColor, QBrush
+    from Qt.QtCore import Qt
     p = QPen(QColor('black'))
     b = QBrush()
 
@@ -254,7 +254,7 @@ class Markers:
     x0, y0, x1, y1 = self.canvas_box
     bs = self.box_size
 
-    from PyQt5.QtCore import QRectF
+    from Qt.QtCore import QRectF
     for m in self.markers:
       cxy = self.user_xy_to_canvas_xy(m.xy)
       x, y = self.clamp_canvas_xy(cxy)
@@ -273,7 +273,7 @@ class Markers:
     cxy_list = [self.clamp_canvas_xy(xy) for xy in cxy_list]
 
     s = self.scene
-    from PyQt5.QtGui import QPen, QColor
+    from Qt.QtGui import QPen, QColor
     p = QPen(QColor(self.connect_color))
 
     graphics_items = []
@@ -392,7 +392,7 @@ class Markers:
     dy = mouse_xy[1] - self.last_mouse_xy[1]
     self.last_mouse_xy = mouse_xy
 
-    from PyQt5.QtCore import Qt
+    from Qt.QtCore import Qt
     if event.modifiers() & Qt.ShiftModifier:
       dx = .1 * dx
       dy = .1 * dy
@@ -446,7 +446,7 @@ class Marker:
     gi = self.graphics_item
     if gi:
       color = hex_color_name(rgba[:3])
-      from PyQt5.QtGui import QColor, QBrush
+      from Qt.QtGui import QColor, QBrush
       gi.setBrush(QBrush(QColor(color)))
   
   # ---------------------------------------------------------------------------

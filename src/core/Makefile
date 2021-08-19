@@ -13,8 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
-SUBDIRS	+= appdirs_cpp _appdirs \
-	   chutil_cpp commands \
+SUBDIRS	+= chutil_cpp commands \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed
 
@@ -39,12 +38,12 @@ datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
-BUNDLE_VERSION = 1.1.1
+BUNDLE_VERSION = 1.2.5
 BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
 all: $(PYOBJS)
@@ -55,8 +54,19 @@ install: dir all
 		$(MAKE) app-install ;\
 	fi
 
+# newer versions of pip won't install over the same version number (which depends on the last commit
+# number), so to install something that hasn't been committed...
+reinstall: dir all
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+	if [ -d "$(app_prefix)" ]; then \
+		$(MAKE) app-reinstall ;\
+	fi
+
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
+
+app-reinstall: wheel
+	$(APP_BOOTSTRAP_PIP) install -U --force-reinstall --no-deps $(WHEEL)
 
 .PHONY: wheel
 wheel: setup.py
@@ -109,5 +119,5 @@ buildinfo.py: buildinfo.py.in mkbuildinfo
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
-
-_appdirs.install: appdirs_cpp.install
+	# fix package name to be consistent with how it is imported
+	sed -i -e 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp

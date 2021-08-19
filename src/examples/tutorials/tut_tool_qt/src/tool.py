@@ -66,7 +66,7 @@ class TutorialTool(ToolInstance):
         # We will use an editable single-line text input field (QLineEdit)
         # with a descriptive text label to the left of it (QLabel).  To
         # arrange them horizontally side by side we use QHBoxLayout
-        from PyQt5.QtWidgets import QLabel, QLineEdit, QHBoxLayout
+        from Qt.QtWidgets import QLabel, QLineEdit, QHBoxLayout
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Log this text:"))
         self.line_edit = QLineEdit()
@@ -97,7 +97,7 @@ class TutorialTool(ToolInstance):
         # The x,y args are the x() and y() values of QContextMenuEvent, in the rare case
         # where the items put in the menu depends on where in the tool interface the menu
         # was raised.
-        from PyQt5.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         clear_action = QAction("Clear", menu)
         clear_action.triggered.connect(lambda *args: self.line_edit.clear())
         menu.addAction(clear_action)

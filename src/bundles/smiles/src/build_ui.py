@@ -11,35 +11,37 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
-from PyQt5.QtWidgets import QCheckBox, QSizePolicy
-from PyQt5.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
+from Qt.QtWidgets import QCheckBox, QSizePolicy
+from Qt.QtCore import Qt
 from chimerax.core.errors import UserError
+from chimerax.build_structure import StartStructureProvider
 
-def fill_widget(widget):
-    layout = QGridLayout()
-    layout.setContentsMargins(0,0,0,5)
-    layout.setSpacing(0)
-    widget.setLayout(layout)
-    layout.setRowStretch(0, 1)
-    layout.setColumnStretch(1, 1)
-    layout.addWidget(QLabel("SMILES string:"), 1, 0, alignment=Qt.AlignRight)
-    smiles_edit = QLineEdit()
-    smiles_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-    layout.addWidget(smiles_edit, 1, 1)
-    smiles_edit.setObjectName("SMILES")
-    from .smiles import fetcher_info
-    providers = " or ".join(['<a href="%s">%s</a>' % (info[3], info[2]) for info in fetcher_info])
-    acknowledgement = QLabel('SMILES support courtesy of %s' % providers)
-    #acknowledgement.setWordWrap(True) -- perhaps the HTML confuses it?
-    acknowledgement.setOpenExternalLinks(True)
-    layout.addWidget(acknowledgement, 2, 0, 1, 2, alignment=Qt.AlignCenter)
-    layout.setRowStretch(3, 1)
+class SmilesProvider(StartStructureProvider):
+    def command_string(self, widget):
+        smiles_edit = widget.findChild(QLineEdit, "SMILES")
+        text = smiles_edit.text().strip()
+        if not text:
+            raise UserError("No SMILES given")
+        from chimerax.core.commands import StringArg
+        return "open %s from smiles" % StringArg.unparse(text)
 
-def process_widget(widget):
-    smiles_edit = widget.findChild(QLineEdit, "SMILES")
-    text = smiles_edit.text().strip()
-    if not text:
-        raise UserError("No SMILES given")
-    from chimerax.core.commands import StringArg
-    return "open %s from smiles" % StringArg.unparse(text)
+    def fill_parameters_widget(self, widget):
+        layout = QGridLayout()
+        layout.setContentsMargins(0,0,0,5)
+        layout.setSpacing(0)
+        widget.setLayout(layout)
+        layout.setRowStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+        layout.addWidget(QLabel("SMILES string:"), 1, 0, alignment=Qt.AlignRight)
+        smiles_edit = QLineEdit()
+        smiles_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(smiles_edit, 1, 1)
+        smiles_edit.setObjectName("SMILES")
+        from .smiles import fetcher_info
+        providers = " or ".join(['<a href="%s">%s</a>' % (info[3], info[2]) for info in fetcher_info])
+        acknowledgement = QLabel('SMILES support courtesy of %s' % providers)
+        #acknowledgement.setWordWrap(True) -- perhaps the HTML confuses it?
+        acknowledgement.setOpenExternalLinks(True)
+        layout.addWidget(acknowledgement, 2, 0, 1, 2, alignment=Qt.AlignCenter)
+        layout.setRowStretch(3, 1)

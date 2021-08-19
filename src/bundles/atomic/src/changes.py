@@ -24,6 +24,20 @@ def check_for_changes(session):
     try:
         global_changes, structure_changes = ct.changes
         ct.clear()
+        if 'selected changed' in global_changes['Atom'].reasons:
+            _update_sel_info(session)
+            session.selection.trigger_fire_needed = True
+        elif global_changes['Atom'].created.num_selected > 0:
+            _update_sel_info(session)
+            session.selection.trigger_fire_needed = True
+        elif global_changes['Structure'].created.atoms.num_selected > 0:
+            # For efficiency, atoms in new structures don't show up
+            # in changes['Atom'].created, so need this
+            _update_sel_info(session)
+            session.selection.trigger_fire_needed = True
+        elif 'selected changed' in global_changes['Bond'].reasons \
+        or 'selected changed' in global_changes['Pseudobond'].reasons:
+            session.selection.trigger_fire_needed = True
         from . import get_triggers
         global_triggers = get_triggers()
         global_triggers.activate_trigger("changes", Changes(global_changes))
@@ -163,3 +177,57 @@ class Changes:
         elif not new:
             return in_existing
         return concatenate([new, in_existing])
+
+def selected_atoms(session=None):
+    global _full_sel, _ordered_sel
+    check_for_changes(session)
+    from .molarray import Atoms
+    return _ordered_sel if _ordered_sel is not None else (_full_sel if _full_sel is not None else Atoms())
+
+_ordered_sel = None
+_full_sel = None
+
+def _update_sel_info(session):
+    from .structure import Structure
+    from .molarray import concatenate, Atoms
+    global _full_sel, _ordered_sel
+    alist = []
+    for m in session.models.list(type = Structure):
+        m_atoms = m.atoms
+        alist.append(m_atoms.filter(m.atoms.selecteds == True))
+    _full_sel = concatenate(alist, Atoms)
+    if _ordered_sel is None:
+        if len(_full_sel) == 1:
+            _ordered_sel = _full_sel
+    else:
+        len_full, len_ordered = len(_full_sel), len(_ordered_sel)
+        if len_full < len_ordered - 1 or len_full > len_ordered + 1:
+            # definitely not a single-atom change
+            if len_full == 1:
+                _ordered_sel = _full_sel
+            else:
+                _ordered_sel = None
+        else:
+            # might be a single-atom change; check
+            len_intersection = len(_full_sel & _ordered_sel)
+            # ensure the intersection size is within 1 of both
+            if len_full == len_intersection == len_ordered:
+                # no change (in atoms)
+                pass
+            elif len_full <= len_intersection < len_ordered:
+                # lost an atom
+                lost = _ordered_sel - _full_sel
+                # Collection subtraction doesn't preserve order, so need to do this "by hand":
+                import numpy
+                pointers = numpy.array([ptr for ptr in _ordered_sel.pointers if ptr not in lost.pointers],
+                    dtype=numpy.uintp)
+                _ordered_sel = Atoms(pointers)
+            elif len_full > len_intersection >= len_ordered:
+                # added an atom
+                added = _full_sel - _ordered_sel
+                _ordered_sel = concatenate([_ordered_sel, added])
+            else:
+                if len_full == 1:
+                    _ordered_sel = _full_sel
+                else:
+                    _ordered_sel = None

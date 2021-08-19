@@ -27,8 +27,8 @@ class ModellerLauncher(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         interface_layout = QVBoxLayout()
         interface_layout.setContentsMargins(0,0,0,0)
         interface_layout.setSpacing(0)
@@ -78,7 +78,7 @@ class ModellerLauncher(ToolInstance):
             "Number of model structures to generate.  Must be no more than %d.\n"
             "Warning: please consider the calculation time" % max_models))
         key = "" if settings.license_key is None else settings.license_key
-        panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
+        panel.add_option("Basic", PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller license key</a>', key, None, attr_name="license_key",
             settings=settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
         panel.add_option("Advanced", BooleanOption("Use fast/approximate mode (produces only one model)",
@@ -103,7 +103,7 @@ class ModellerLauncher(ToolInstance):
             settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
             "If enabled, all water molecules in the template\n"
             "structure(s) will be included in the generated models."))
-        from PyQt5.QtCore import Qt
+        from Qt.QtCore import Qt
         from chimerax.ui.widgets import Citation
         interface_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
@@ -115,7 +115,7 @@ class ModellerLauncher(ToolInstance):
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
 
@@ -204,7 +204,7 @@ class ModellerResultsViewer(ToolInstance):
         self.tool_window.fill_context_menu = self.fill_context_menu
         parent = self.tool_window.ui_area
 
-        from PyQt5.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
+        from Qt.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -237,7 +237,7 @@ class ModellerResultsViewer(ToolInstance):
             concise_model_spec(self.session, self.models), str(refresh).lower()))
 
     def fill_context_menu(self, menu, x, y):
-        from PyQt5.QtWidgets import QAction
+        from Qt.QtWidgets import QAction
         if self.scores_fetched:
             refresh_action = QAction("Refresh Scores", menu)
             refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
@@ -284,7 +284,7 @@ class ModellerResultsViewer(ToolInstance):
         self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:].replace('_', ' ')
             for attr_name in self.attr_names])
         self.table.setRowCount(len(self.models))
-        from PyQt5.QtWidgets import QTableWidgetItem
+        from Qt.QtWidgets import QTableWidgetItem
         for row, m in enumerate(self.models):
             item = QTableWidgetItem('#' + m.id_string)
             self.table.setItem(row, 0, item)

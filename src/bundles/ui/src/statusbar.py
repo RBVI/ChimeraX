@@ -33,7 +33,7 @@ class _StatusBarOpenGL:
         self._drawing2 = None	# Secondary status
         self.background_color = (0.85,0.85,0.85,1.0)
         self.text_color = (0,0,0,255)
-        self.font = 'Lucida Sans'	# Wider and clearer than Helvetica or Arial
+        self.font = 'Arial'
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
@@ -43,6 +43,7 @@ class _StatusBarOpenGL:
     def destroy(self):
         self.widget.destroy()
         self.widget = None
+        self._window = None
 
         for attr in ('_drawing', '_drawing2', '_opengl_context', '_renderer'):
             v = getattr(self, attr)
@@ -56,23 +57,21 @@ class _StatusBarOpenGL:
             w.setVisible(show)
             
     def _make_widget(self):
-        from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QWidget
+        from Qt.QtWidgets import QStatusBar, QSizePolicy
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        from PyQt5.QtGui import QWindow, QSurface
-        self._window = pw = QWindow()
-        pw.exposeEvent = self._expose_event
-        pw.resizeEvent = self._resize_event
-        pw.keyPressEvent = self.session.ui.forward_keystroke
-        pwidget = QWidget.createWindowContainer(pw, sb)
-        pw.setSurfaceType(QSurface.OpenGLSurface)
-        sb.addWidget(pwidget, stretch = 1)
+        w = StatusOpenGLWindow(parent = sb,
+                               expose_cb = self._expose_event,
+                               resize_cb = self._resize_event,
+                               key_press_cb = self.session.ui.forward_keystroke)
+        self._window = w
         return sb
 
     def _resize_event(self, event):
         r = self._renderer
-        if r:
-            s = event.size()
+        win = self._window
+        if r and win:
+            s = win.size()
             w,h = s.width(), s.height()
             r.set_default_framebuffer_size(w, h)
 
@@ -89,6 +88,11 @@ class _StatusBarOpenGL:
         
         # Create opengl context
         w = self._window
+        if w is None or _qwindow_deleted(w):
+            return False  # Window has been closed
+        if not w.isExposed():
+            return False  # Window has not yet created.
+        
         from chimerax.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         
@@ -119,7 +123,7 @@ class _StatusBarOpenGL:
             self._last_message = msg
             self._last_color = color
             
-        if not self._window.isExposed():
+        if self._window is None or not self._window.isExposed():
             return # TODO: Need to show the status message when window is mapped.
 
         # Need to preserve OpenGL context across processing events, otherwise
@@ -130,6 +134,7 @@ class _StatusBarOpenGL:
 
         if self._opengl_context is None:
             if not self._create_opengl_context():
+                self.session.logger.info(msg)
                 return	# OpenGL version is not sufficient
 
         r = self._renderer
@@ -184,6 +189,37 @@ class _StatusBarOpenGL:
         from chimerax.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
 
+def _qwindow_deleted(w):
+    from Qt import qt_object_is_deleted
+    return qt_object_is_deleted(w)
+
+from Qt.QtGui import QWindow
+class StatusOpenGLWindow(QWindow):
+    def __init__(self, parent, expose_cb = None, resize_cb = None, key_press_cb = None):
+        QWindow.__init__(self)
+        if expose_cb:
+            self.exposeEvent = expose_cb
+        if resize_cb:
+            self.resizeEvent = resize_cb
+        if key_press_cb:
+            self.keyPressEvent = key_press_cb
+        from Qt.QtWidgets import QWidget
+        self._widget = QWidget.createWindowContainer(self, parent)
+        from Qt.QtGui import QSurface
+        self.setSurfaceType(QSurface.OpenGLSurface)
+        parent.addWidget(self._widget, stretch = 1)
+
+    # Override QWindow size(), width() and height() to use widget values.
+    # In Qt 5.12.9 QWindow reports values that are half the correct size
+    # after main window is dragged from devicePixelRatio = 2 screen
+    # to a devicePixelRatio = 1 screen on Windows 10.
+    def size(self):
+        return self._widget.size()
+    def width(self):
+        return self._widget.width()
+    def height(self):
+        return self._widget.height()
+
 #
 # Status bar drawing that partially restricts Qt event processing.  Allows event related
 # callbacks to be invoked during status message display which leads to hard to reproduce
@@ -199,7 +235,7 @@ class _StatusBarQt:
         self.widget = None
         
     def _make_widget(self):
-        from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QLabel
+        from Qt.QtWidgets import QStatusBar, QSizePolicy, QLabel
         sb = QStatusBar()
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         sb._primary_status_label = QLabel()
@@ -247,7 +283,7 @@ class _StatusBarQt:
         ul = s.update_loop
         ul.block_redraw()	# Prevent graphics redraw. Qt timers can fire.
         self._in_status_event_processing = True
-        from PyQt5.QtCore import QEventLoop
+        from Qt.QtCore import QEventLoop
         s.ui.processEvents(QEventLoop.ExcludeUserInputEvents)
         self._in_status_event_processing = False
         ul.unblock_redraw()
@@ -275,7 +311,7 @@ class _StatusBarQt:
                 self._processing_deferred_events = False
 
         self._flush_timer_queued = True
-        from PyQt5.QtCore import QTimer
+        from Qt.QtCore import QTimer
         QTimer.singleShot(0, flush_pending_user_events)
 
 #_StatusBar = _StatusBarQt

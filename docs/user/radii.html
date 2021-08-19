@@ -36,14 +36,16 @@ VDW radii are assigned automatically based on
 (or read directly from the input file, if
 <a href="commands/open.html#atomic">PQR</a>) and can be changed
 with the <a href="commands/size.html"><b>size</b></a> command.
+The VDW radius of an atom may also change as a side effect of changing its
+<a href="atomtypes.html">atom type</a> or number of attached hydrogens.
 The values are stored as the atom <a href="attributes">attribute</a>
 named <b>radius</b>.
 See also:
 <a href="commands/surface.html"><b>surface</b></a>,
 <a href="commands/measure.html"><b>measure</b></a>,
 <a href="commands/interfaces.html"><b>interfaces</b></a>,
-<a href="commands/defattr.html"><b>defattr</b></a> and
-<a href="commands/defattr.html#examples">example assignment files</a>
+<a href="commands/setattr.html"><b>setattr</b></a>,
+<a href="formats/defattr.html#examples">attribute assignment examples</a>
 </p>
 
 <h3><a name="defaults">Default Assignments</a></h3>
@@ -57,14 +59,14 @@ VDW radii depend on whether explicit hydrogen atoms are present:
 based on the ProtOr set are used:
 <a name="protor-ref"></a>
 <blockquote>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
 The packing density in proteins: standard radii and volumes.</a>
 Tsai J, Taylor R, Chothia C, Gerstein M.
 <i>J Mol Biol.</i> 1999 Jul 2;290(1):253-66.
 </blockquote>
 <li>When there are <b>explicit hydrogens</b>, 
 <a href="#allatom">&ldquo;all-atom&rdquo; radii</a> 
-derived from the <a href="http://ambermd.org/index.html"
+derived from the <a href="https://ambermd.org"
 target="_blank">Amber</a> parm99 parameters
 are used for the filled-valence atoms.
 <a href="#united">United-atom radii</a>
@@ -90,41 +92,6 @@ in the context of molecules (as opposed to singleton ions), the
 The default VDW radii of any <b>remaining atoms</b> are twice their
 <a href="atomtypes.html#covrad">covalent bond radii</a>.
 </p>
-
-<!--
-<a name="changing"></a>
-<p class="nav">
-[<a href="#top">back to top: VDW Radii</a>]
-</p>
-<h3>Changing VDW Radii</h3>
-<p>
-Ways to change VDW radii directly:
-<ul>
-<li>with the command <b><A href="vdwdefine.html">vdwdefine</a></b>
-(<b><A href="vdwdefine.html">~vdwdefine</a></b> restores the default values)
-<li>by <a href="../selection.html">selecting</a> one or more atoms
-and then changing the <b>radius</b> value in the
-<a href="../inspection.html"><b>Selection Inspector</b></a>
-<li>reassigning <b>radius</b> values with
-<a href="../../ContributedSoftware/defineattrib/defineattrib.html">
-<b>Define Attribute</b></a> 
-or its command equivalent, <b><A href="defattr.html">defattr</a></b>
-(can assign multiple values simultaneously; see
-<a href="../../ContributedSoftware/defineattrib/midasrad.txt">example
-assignment file</a>) 
-<li>reassigning <b>radius</b> with the command 
-<b><A href="setattr.html">setattr</a></b> 
-(assigns one value at a time, although potentially to multiple atoms)
-<li>according to attribute values using
-<a href="../../ContributedSoftware/render/render.html#render">
-<b>Render by Attribute</b></a> (see the 
-<a href="../../ContributedSoftware/render/render.html#radii"><b>Radii</b></a>
-section)
-</ul>
-The VDW radius of an atom may also change as a side effect of changing its
-<a href="atomtypes.html">atom type</a> or number of attached hydrogens.
-</p>
--->
 
 <h3>Default VDW Radii</h3>
 
@@ -172,7 +139,7 @@ style="background-color:#cccccc">United-Atom Radii</th></tr>
 </table>
 <p>
 <a name="anote"><sup><b>a</b></sup></a>
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/10388571" target="_blank">
 Tsai <i>et al.</i></a>, <i>J Mol Biol</i> <b>290</b>:253 (1999)
 </p>
 
@@ -186,7 +153,7 @@ style="background-color:#cccccc">All-Atom Radii</th></tr>
 
 <TR><th class="shaded">atom description
 <br>(see also <a href="atomtypes.html">atom type</a>)</th>
-<th class="shaded"><a href="http://ambermd.org/index.html" 
+<th class="shaded"><a href="https://ambermd.org" 
 target="_blank">Amber</a> atom type</th>
 <th class="shaded">radius (&Aring;)<a href="#bnote"><sup>b</sup></a></th></tr>
 
@@ -225,11 +192,11 @@ target="_blank">Amber</a> atom type</th>
 </table>
 <p>
 <a name="bnote"><sup><b>b</b></sup></a> Derived from the
-<a href="http://ambermd.org/index.html" target="_blank">Amber</a>
+<a href="https://ambermd.org" target="_blank">Amber</a>
 parm99 parameters: R<sub>VDW</sub> = (R*)/(2<sup>1/6</sup>)
 <br>
 <a name="cnote"><sup><b>c</b></sup></a>
-<a href="http://ambermd.org/index.html" target="_blank">Amber</a>
+<a href="https://ambermd.org" target="_blank">Amber</a>
 parm99 includes many H types with VDW radii ranging from 
 0.0 to 1.325 &Aring;; smaller radii are assigned to hydrogens bonded to
 more electron-withdrawing moieties.  The <a href="atomtypes.html">atom 
@@ -412,5 +379,5 @@ ions) are also used as defaults in ChimeraX, but not listed above.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2018</address>
+October 2020</address>
 </body></html>

@@ -133,6 +133,5 @@ extern "C" PyObject *invert_vertex_normals(PyObject *, PyObject *args, PyObject 
 
   invert_vertex_normals(na, ta);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }

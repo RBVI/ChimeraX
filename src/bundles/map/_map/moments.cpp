@@ -152,8 +152,7 @@ extern "C" PyObject *affine_scale_py(PyObject *, PyObject *args, PyObject *keywd
   call_template_function(affine_scale, data.value_type(),
   			 (data, c, u, invert));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 } // end of namespace Map_Cpp

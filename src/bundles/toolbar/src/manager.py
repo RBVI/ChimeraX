@@ -17,9 +17,10 @@ from chimerax.core.toolshed import ProviderManager
 class ToolbarManager(ProviderManager):
     """Manager for application toolbar"""
 
-    def __init__(self, session):
+    def __init__(self, session, name):
         self.session = session
         self._toolbar = {}
+        super().__init__(name)
         return
         # TODO:
         from . import settings
@@ -37,6 +38,8 @@ class ToolbarManager(ProviderManager):
 
     def add_provider(self, bundle_info, name, **kw):
 
+        if not bundle_info.installed:
+            return
         def where():
             return 'for toolbar provider %r in bundle %r' % (name, bundle_info.name)
         # <Provider tab="Graphics" help="help:..."

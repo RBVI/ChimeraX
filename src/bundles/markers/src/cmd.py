@@ -11,15 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255), coordinate_system = None):
+def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255),
+           coordinate_system = None):
 
     mset = _create_marker_set(session, marker_set)
     center = position.scene_coordinates(coordinate_system)
-    m = mset.create_marker(center, color, radius)
+    xyz = mset.scene_position.inverse() * center
+    m = mset.create_marker(xyz, color, radius)
     return m
 
-def _create_marker_set(session, marker_set):
-    if isinstance(marker_set, tuple):
+def _create_marker_set(session, marker_set, name = 'markers'):
+    if marker_set is None:
+        from . import MarkerSet
+        marker_set = MarkerSet(session, name = name)
+    elif isinstance(marker_set, tuple):
         # Model id for creating a new marker set.
         model_id = marker_set
         if session.models.list(model_id = model_id):
@@ -86,19 +91,34 @@ def marker_link(session, markers, radius = 0.5, color = (255,255,0,255)):
     return link
 
 def marker_segment(session, marker_set, position, to_position,
-                   radius = 0.5, color = (255,255,0,255), coordinate_system = None,
-                   label = None, label_height = 1.0, label_color = 'default'):
+                   coordinate_system = None, radius = 0.5,
+                   color = (255,255,0,255),
+                   label = None, label_height = 1.0, label_color = 'auto',
+                   adjust = None):
 
     mset = _create_marker_set(session, marker_set)
     center1 = position.scene_coordinates(coordinate_system)
     center2 = to_position.scene_coordinates(coordinate_system)
 
-    m1 = mset.create_marker(center1, color, radius)
-    m2 = mset.create_marker(center2, color, radius)
-    from . import create_link
-    link = create_link(m1, m2, color, radius)
+    if adjust is None:
+        m1 = mset.create_marker(center1, color, radius)
+        m2 = mset.create_marker(center2, color, radius)
+        from . import create_link
+        link = create_link(m1, m2, color, radius)
+    elif len(adjust) != 2:
+        from chimerax.core.errors import UserError
+        raise UserError('marker segment adjust option requires exactly 2 markers, got %d' % len(adjust))
+    else:
+        m1, m2 = adjust
+        m1.coord, m2.coord = center1, center2
+        m1.color = m2.color = color
+        m1.radius =  m2.radius = radius
+        link = _bond_between_atoms(m1, m2)
+        if link:
+            link.color = color
+            link.radius = radius
 
-    if label is not None:
+    if label is not None and link is not None:
         from chimerax.label.label3d import label as make_label
         from chimerax.core.objects import Objects
         from chimerax.atomic import Bonds
@@ -108,19 +128,22 @@ def marker_segment(session, marker_set, position, to_position,
         
     return m1, m2
 
+def _bond_between_atoms(atom1, atom2):
+    for b in atom1.bonds:
+        if b.other_atom(atom1) is atom2:
+            return b
+    return None
+
 # -----------------------------------------------------------------------------
 # Create a marker model from a surface mesh.
 #
-def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
-                      markers = None):
+def markers_from_mesh(session, surfaces, edge_radius = 1, color = None, markers = None):
 
     if len(surfaces) == 0:
         from chimerax.core.errors import UserError
         raise UserError('marker fromMesh: no surfaces specified')
-    
-    if markers is None:
-        from . import MarkerSet
-        markers = MarkerSet(session, 'Mesh ' + surfaces[0].name)
+
+    mset = _create_marker_set(session, markers, name = 'Mesh ' + _surface_name(surfaces[0]))
 
     for s in surfaces:
         varray = s.vertices
@@ -138,7 +161,7 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
                 if not v in vmarker:
                     xyz = varray[v]
                     mcolor = color if vcolors is None else vcolors[v]
-                    vmarker[v] = markers.create_marker(xyz, mcolor, edge_radius)
+                    vmarker[v] = mset.create_marker(xyz, mcolor, edge_radius)
 
         from . import create_link
         ecolor = s.color if color is None else color
@@ -149,10 +172,10 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
                 ecolor = tuple((c1+c2)//2 for c1,c2 in zip(m1.color, m2.color))
             create_link(m1, m2, rgba=ecolor, radius=edge_radius)
 
-    if markers.id is None:
-        session.models.add([markers])
+    if mset.id is None:
+        session.models.add([mset])
         
-    return markers
+    return mset
 
 def _masked_edges(surface):
     tmask = surface.triangle_mask
@@ -177,6 +200,94 @@ def _masked_edges(surface):
                 if em & 0x4 and (v0,v2) not in edges:
                     edges.add((v2,v0))
     return edges
+
+def _surface_name(surface):
+    from chimerax.map import VolumeSurface
+    if isinstance(surface, VolumeSurface):
+        name = surface.volume.name
+    else:
+        name = surface.name
+    return name
+
+def marker_connected(session, surfaces, radius = 0.5, color = (255,255,0,255), markers = None,
+                     stats = False):
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('marker connected: no surfaces specified')
+
+    mset = _create_marker_set(session, markers, name = 'centers ' + _surface_name(surfaces[0]))
+    markers = []
+    lines = []
+    for surface in surfaces:
+        blobstats = surface_blob_measurements(surface)
+        centers = [bs['center'] for bs in blobstats]
+        if len(centers) > 0:
+            scene_centers = surface.scene_position * centers
+            surf_markers = [mset.create_marker(center, color, radius) for center in scene_centers]
+            _set_markers_frame_number(mset, surf_markers, surface)
+            markers.extend(surf_markers)
+        if stats:
+            lines.append('Surface %s #%s has %d visible blobs'
+                         % (surface.name, surface.id_string, len(blobstats)))
+            lines.append('# id, center xyz, surface area, enclosed volume, holes')
+            for i,bs in enumerate(blobstats):
+                lines.append('%5d' % (i+1) +
+                             ' %8.5g %8.5g %8.5g' % tuple(bs['center']) +
+                             ' %10.4g %10.4g %3d' % (bs['area'], bs['volume'], bs['holes']))
+
+    if mset.id is None:
+        session.models.add([mset])
+
+    session.logger.status('Found %d connected surface pieces' % len(markers), log = True)
+
+    if lines:
+        msg = '<pre>' + '\n'.join(lines) + '</pre>'
+        session.logger.info(msg, is_html=True)
+        
+    return markers
+
+def _set_markers_frame_number(mset, markers, surface):
+    from chimerax.map import VolumeSurface
+    if not isinstance(surface, VolumeSurface):
+        return
+    v = surface.volume
+    series = getattr(v, 'series', None)
+    if series is None:
+        return
+    from chimerax.map_series import MapSeries
+    if isinstance(series, MapSeries):
+        frame = series.maps.index(v)
+        for m in markers:
+            m.frame = frame
+        mset.save_marker_attribute_in_sessions('frame', int)
+
+def surface_blob_measurements(surface):
+    '''
+    Return a list of measurements for each blob. Each list element is
+    a dictionary for one blob including center, area, volume, and hole count.
+    A blob is a connected set of displayed triangles in the surface.
+    Centers are in surface coordinates.
+    A center is computed as average vertex position weighted by vertex area
+    where vertex area is 1/3 the area of the adjoining displayed triangles.
+    '''
+    # Get list of (vertex indices, triangle indices) for each connected piece
+    triangles = surface.masked_triangles
+    from chimerax.surface import connected_pieces, vertex_areas
+    blob_list = connected_pieces(triangles)
+    vertices = surface.vertices
+    varea = vertex_areas(vertices, triangles)
+    from chimerax.surface import enclosed_volume
+    blob_stats = []
+    for i, (vi,ti) in enumerate(blob_list):
+        blob_varea = varea[vi]
+        blob_area = blob_varea.sum()
+        center = blob_varea.dot(vertices[vi])/blob_area
+        blob_volume, blob_holes = enclosed_volume(vertices, triangles[ti])
+        blob_stats.append({'center': center,
+                           'area': blob_area,
+                           'volume': blob_volume,
+                           'holes': blob_holes})
+    return blob_stats
 
 from chimerax.atomic import AtomsArg
 class MarkersArg(AtomsArg):
@@ -203,8 +314,9 @@ class MarkerSetArg(AtomSpecArg):
 def register_marker_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, Color8Arg, BoolArg, StringArg
     from chimerax.core.commands import CenterArg, CoordSysArg, ModelIdArg, Or, EnumOf, SurfacesArg
+    MarkerSetOrIdArg = Or(MarkerSetArg, ModelIdArg)
     desc = CmdDesc(
-        required = [('marker_set', Or(MarkerSetArg, ModelIdArg))],
+        required = [('marker_set', MarkerSetOrIdArg)],
         keyword = [('position', CenterArg),
                    ('radius', FloatArg),
                    ('color', Color8Arg),
@@ -242,16 +354,18 @@ def register_marker_command(logger):
     register('marker link', desc, marker_link, logger=logger)
 
     desc = CmdDesc(
-        required = [('marker_set', Or(MarkerSetArg, ModelIdArg))],
+        required = [('marker_set', MarkerSetOrIdArg)],
         keyword = [('position', CenterArg),
                    ('to_position', CenterArg),
+                   ('coordinate_system', CoordSysArg),
                    ('radius', FloatArg),
                    ('color', Color8Arg),
-                   ('coordinate_system', CoordSysArg),
                    ('label', StringArg),
                    ('label_height', FloatArg),
-                   ('label_color', Or(EnumOf(['default']),Color8Arg))],
+                   ('label_color', Or(EnumOf(['auto','default']),Color8Arg)),
+                   ('adjust', MarkersArg)],
         required_arguments = ['position', 'to_position'],
+        hidden = ['adjust'],
         synopsis = 'Create two markers and a link between them'
     )
     register('marker segment', desc, marker_segment, logger=logger)
@@ -260,7 +374,17 @@ def register_marker_command(logger):
         required = [('surfaces', SurfacesArg)],
         keyword = [('edge_radius', FloatArg),
                    ('color', Color8Arg),
-                   ('markers', MarkerSetArg)],
+                   ('markers', MarkerSetOrIdArg)],
         synopsis = 'Create markers and links for surface mesh'
     )
     register('marker fromMesh', desc, markers_from_mesh, logger=logger)
+
+    desc = CmdDesc(
+        required = [('surfaces', SurfacesArg)],
+        keyword = [('radius', FloatArg),
+                   ('color', Color8Arg),
+                   ('markers', MarkerSetOrIdArg),
+                   ('stats', BoolArg)],
+        synopsis = 'Place markers at center of each connected surface blob'
+    )
+    register('marker connected', desc, marker_connected, logger=logger)

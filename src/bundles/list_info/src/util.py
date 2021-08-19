@@ -54,7 +54,7 @@ def spec(o):
         except AttributeError:
             return ""
 
-def report_models(logger, models, attr):
+def report_models(logger, models, attr, *, return_json=False):
     for m in models:
         try:
             value = attr_string(m, attr)
@@ -62,22 +62,72 @@ def report_models(logger, models, attr):
             value = "[undefined]"
         logger.info("model id %s type %s %s %s" % (spec(m), type(m).__name__,
                                                    attr, value))
+    if return_json:
+        model_infos = []
+        for model in models:
+            present = True
+            try:
+                val = getattr(model, attr)
+            except AttributeError:
+                present = False
+                val = None
+            model_infos.append({
+                'spec': model.atomspec,
+                'class': model.__class__.__name__,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(model_infos), None)
 
-def report_chains(logger, chains, attr):
+def report_chains(logger, chains, attr, *, return_json=False):
     for c in chains:
         try:
             value = attr_string(c, attr)
         except AttributeError:
             continue
         logger.info("chain id %s %s %s" % (spec(c), attr, value))
+    if return_json:
+        from chimerax.atomic import Residue
+        chain_infos = []
+        for chain in chains:
+            present = True
+            try:
+                val = getattr(chain, attr)
+            except AttributeError:
+                present = False
+                val = None
+            chain_infos.append({
+                'spec': chain.atomspec,
+                'attribute': attr,
+                'sequence': chain.characters,
+                'residues': [r.atomspec if r else None for r in chain.residues],
+                'polymer type': 'nucleic' if chain.polymer_type == Residue.PT_NUCLEIC else "protein",
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(chain_infos), None)
 
-def report_polymers(logger, polymers):
+def report_polymers(logger, polymers, *, return_json=False):
     for p in polymers:
         if len(p) < 2:
             continue
         logger.info("physical chain %s %s" % (spec(p[0]), spec(p[-1])))
+    if return_json:
+        polymer_infos = []
+        for polymer in polymers:
+            if len(polymer) < 2:
+                continue
+            polymer_infos.append([r.atomspec for r in polymer])
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(polymer_infos), None)
 
-def report_residues(logger, residues, attr):
+def report_residues(logger, residues, attr, *, return_json=False):
     for r in residues:
         try:
             value = attr_string(r, attr)
@@ -91,8 +141,26 @@ def report_residues(logger, residues, attr):
         else:
             info += " index %s" % index
         logger.info(info)
+    if return_json:
+        residue_infos = []
+        for r in residues:
+            present = True
+            try:
+                val = getattr(r, attr)
+            except AttributeError:
+                present = False
+                val = None
+            residue_infos.append({
+                'spec': r.atomspec,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(residue_infos), None)
 
-def report_atoms(logger, atoms, attr):
+def report_atoms(logger, atoms, attr, *, return_json=False):
     for a in atoms:
         try:
             value = attr_string(a, attr)
@@ -100,6 +168,24 @@ def report_atoms(logger, atoms, attr):
             pass
         else:
             logger.info("atom id %s %s %s" % (spec(a), attr, value))
+    if return_json:
+        atom_infos = []
+        for a in atoms:
+            present = True
+            try:
+                val = getattr(a, attr)
+            except AttributeError:
+                present = False
+                val = None
+            atom_infos.append({
+                'spec': a.atomspec,
+                'attribute': attr,
+                'present': present,
+                'value': val
+            })
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(atom_infos), None)
 
 def report_attr(logger, prefix, attr):
     logger.info("%sattr %s" % (prefix, attr))
@@ -117,18 +203,27 @@ def report_distmat(logger, atoms, distmat):
                                               distmat[dmi]))
     logger.info('\n'.join(msgs))
 
-def model_info(m):
-    disp = 'shown' if m.display else 'hidden'
-    line = '#%s, %s, %s' % (m.id_string, m.name, disp)
-    if m.triangles is not None:
-        line += ', %d triangles' % len(m.triangles)
-    npos = len(m.positions)
-    if npos > 1:
-        line += ', %d instances' % npos
+def model_info(m, *, info_dict=None):
+    '''If 'info_dict' is True, put JSON-able values into the given dictionary'''
+    if info_dict is None:
+        disp = 'shown' if m.display else 'hidden'
+        line = '#%s, %s, %s' % (m.id_string, m.name, disp)
+        if m.triangles is not None:
+            line += ', %d triangles' % len(m.triangles)
+        npos = len(m.positions)
+        if npos > 1:
+            line += ', %d instances' % npos
+        spos = m.selected_positions
+        if spos is not None and spos.sum() > 0:
+            line += ', %d selected instances' % spos.sum()
+        return line
+    info_dict['spec'] = '#' + m.id_string
+    info_dict['name'] = m.name
+    info_dict['shown'] = m.display
+    info_dict['num triangles'] = 0 if m.triangles is None else len(m.triangles)
+    info_dict['num instances'] = len(m.positions)
     spos = m.selected_positions
-    if spos is not None and spos.sum() > 0:
-        line += ', %d selected instances' % spos.sum()
-    return line
+    info_dict['num selected instances'] = 0 if spos is None else spos.sum()
 
 def bounds_description(bounds):
     if bounds is None:
@@ -138,53 +233,83 @@ def bounds_description(bounds):
                  '%.3g,%.3g,%.3g' % tuple(bounds.xyz_max))
     return bdesc
 
-def structure_info(m):
+def structure_info(m, *, info_dict=None):
     from chimerax.atomic import Structure
+    if info_dict is None:
+        if not isinstance(m, Structure):
+            return ''
+
+        line = ('\n%d atoms, %d bonds, %d residues, %d chains (%s)'
+                % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains,
+                   ','.join(m.residues.unique_chain_ids)))
+        ncs = m.num_coordsets
+        if ncs > 1:
+            line += ', %d coordsets' % ncs
+        pmap = m.pbg_map
+        if pmap:
+            line += '\n' + ', '.join('%d %s' % (pbg.num_pseudobonds, name)
+                                     for name, pbg in pmap.items())
+        return line
     if not isinstance(m, Structure):
-        return ''
+        return
+    info_dict['num atoms'] = m.num_atoms
+    info_dict['num_bonds'] = m.num_bonds
+    info_dict['num residues'] = m.num_residues
+    info_dict['chains'] = [c.chain_id for c in m.chains]
+    info_dict['num coordsets'] = m.num_coordsets
+    info_dict['pseudobond groups'] = pb_groups = []
+    for name, pbg in m.pbg_map.items():
+        pb_groups.append({ 'name': name, 'num pseudobonds': pbg.num_pseudobonds })
 
-    line = ('\n%d atoms, %d bonds, %d residues, %d chains (%s)'
-            % (m.num_atoms, m.num_bonds, m.num_residues, m.num_chains,
-               ','.join(m.residues.unique_chain_ids)))
-    ncs = m.num_coordsets
-    if ncs > 1:
-        line += ', %d coordsets' % ncs
-    pmap = m.pbg_map
-    if pmap:
-        line += '\n' + ', '.join('%d %s' % (pbg.num_pseudobonds, name)
-                                 for name, pbg in pmap.items())
-    return line
-
-def pseudobond_group_info(m):
+def pseudobond_group_info(m, *, info_dict=None):
     from chimerax.atomic import PseudobondGroup
-    if isinstance(m, PseudobondGroup):
-        line = ', %d pseudobonds' % m.num_pseudobonds
-    else:
-        line = ''
-    return line
+    if info_dict is None:
+        if isinstance(m, PseudobondGroup):
+            line = ', %d pseudobonds' % m.num_pseudobonds
+        else:
+            line = ''
+        return line
+    if not isinstance(m, PseudobondGroup):
+        return
+    info_dict['num pseudobonds'] = m.num_pseudobonds
 
-def volume_info(m):
+def volume_info(m, *, info_dict=None):
 
     from chimerax.map import Volume
-    if not isinstance(m, Volume):
-        return ''
+    if info_dict is None:
+        if not isinstance(m, Volume):
+            return ''
 
-    size = 'size %d,%d,%d' % tuple(m.data.size)
-    s0,s1,s2 = m.region[2]
-    step = ('step %d' % s0) if s1 == s0 and s2 == s0 else 'step %d,%d,%d' % (s0,s1,s2)
-    sx,sy,sz = m.data.step
-    vsize = ('voxel size %.5g' % sx) if sx == sy and sy == sz else ('voxel size %.5g,%.5g,%.5g' % (sx,sy,sz))
-    if m.surface_shown:
-        level = 'level ' + ', '.join(('%.4g' % s.level for s in m.surfaces))
-    else:
-        level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.image_levels))
-    line = ' %s, %s, %s, %s' % (size, step, vsize, level)
+        size = 'size %d,%d,%d' % tuple(m.data.size)
+        s0,s1,s2 = m.region[2]
+        step = ('step %d' % s0) if s1 == s0 and s2 == s0 else 'step %d,%d,%d' % (s0,s1,s2)
+        sx,sy,sz = m.data.step
+        vsize = ('voxel size %.5g' % sx) if sx == sy and sy == sz else ('voxel size %.5g,%.5g,%.5g'
+            % (sx,sy,sz))
+        if m.surface_shown:
+            level = 'level ' + ', '.join(('%.4g' % s.level for s in m.surfaces))
+        else:
+            level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.image_levels))
+        line = ' %s, %s, %s, %s' % (size, step, vsize, level)
+        ms = m.matrix_value_statistics()
+        line += ', value range %.5g - %.5g' % (ms.minimum, ms.maximum)
+        line += ', value type %s' % str(m.data.value_type)
+        sym = m.data.symmetries
+        line += ', %d symmetry operators' % (len(sym) if sym else 0)
+        return line
+    if not isinstance(m, Volume):
+        return
+    info_dict['size'] = list(m.data.size)
+    info_dict['step'] = list(m.region[2])
+    info_dict['voxel size'] = list(m.data.step)
+    info_dict['surface levels'] = [s.level for s in m.surfaces]
+    info_dict['image levels'] = [list(l) for l in m.image_levels]
     ms = m.matrix_value_statistics()
-    line += ', value range %.5g - %.5g' % (ms.minimum, ms.maximum)
-    line += ', value type %s' % str(m.data.value_type)
+    info_dict['minimum value'] = ms.minimum
+    info_dict['maximum value'] = ms.maximum
+    info_dict['value type'] = str(m.data.value_type)
     sym = m.data.symmetries
-    line += ', %d symmetry operators' % (len(sym) if sym else 0)
-    return line
+    info_dict['num symmetry operators'] = len(sym) if sym else 0
 
 # ==============================================================================
 # Code for sending REST request and waiting for response in a separate thread
@@ -236,7 +361,7 @@ class RESTTransaction(Task):
 class Notifier:
 
     SupportedTypes = ["models", "selection"]
-    # A TYPE is suppored when both _create_TYPE_handler
+    # A TYPE is supported when both _create_TYPE_handler
     # and _destroy_TYPE_handler methods are defined
 
     def __init__(self, what, client_id, session, prefix, url):

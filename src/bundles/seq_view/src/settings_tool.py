@@ -51,8 +51,8 @@ class SettingsTool:
                 appearance_panel.add_option(app_cat, opt)
             else:
                 settings_panel.add_option(category, opt)
-        from PyQt5.QtWidgets import QVBoxLayout
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout
+        from Qt.QtCore import Qt
         for hdr in self.sv.alignment.headers:
             container, header_panel = settings_panel.add_option_group("Headers",
                 group_label=hdr.ident.replace('_', ' ').title(), group_alignment=Qt.AlignLeft,
@@ -61,7 +61,7 @@ class SettingsTool:
             container.setLayout(layout)
             layout.addWidget(header_panel, alignment=Qt.AlignLeft)
             hdr.add_options(header_panel, verbose_labels=False)
-        from PyQt5.QtWidgets import QVBoxLayout
+        from Qt.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
         layout.addWidget(settings_panel)
         tool_window.ui_area.setLayout(layout)

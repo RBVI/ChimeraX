@@ -135,4 +135,14 @@ def show_url(session, url, *, new_tab=False, html=None):
             webbrowser.open(url)
 
 
+def reload_toolshed_tabs(session):
+    if not session.ui.is_gui:
+        return
+    from .tool import HelpUI
+    help_viewer = HelpUI.get_viewer(session, create=False)
+    if not help_viewer:
+        return
+    help_viewer.reload_toolshed_tabs()
+
+
 bundle_api = _MyAPI()

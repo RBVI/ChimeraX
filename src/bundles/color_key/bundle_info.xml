@@ -1,0 +1,32 @@
+<BundleInfo name="ChimeraX-ColorKey" version="1.2.1"
+	    package="chimerax.color_key"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Add color key to graphics</Synopsis>
+  <Description>Overlay color key on graphics scene.</Description>
+
+  <Categories>
+    <Category name="Depiction"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-Label" version="~=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
+    <Dependency name="ChimeraX-UI" version="~=1.7"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: key :: General :: add color key to graphics</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~key :: General :: remove color key</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Color Key :: Depiction :: add color key to graphics</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

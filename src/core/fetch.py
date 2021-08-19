@@ -94,10 +94,14 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 # -----------------------------------------------------------------------------
 #
 def cache_directories():
-    from os import path
-    from chimerax import app_dirs
     if len(_cache_dirs) == 0:
-        cache_dir = path.join('~', 'Downloads', app_dirs.appname)
+        try:
+            from chimerax import app_dirs
+            app_name = app_dirs.appname
+        except ImportError:
+            app_name = 'ChimeraX'
+        from os import path
+        cache_dir = path.join('~', 'Downloads', app_name)
         cache_dir = path.expanduser(cache_dir)
         _cache_dirs.append(cache_dir)
     return _cache_dirs
@@ -316,6 +320,13 @@ def html_user_agent(app_dirs):
         user_agent += "/%s" % token(app_version)
     import platform
     system = platform.system()
+    if system == "Darwin":
+        system = f"{system} {platform.mac_ver()}"
+    elif system == "Windows":
+        system = f"{system} {platform.win32_ver()[1]}"
+    elif system == "Linux":
+        import distro
+        system = f"{system} {' '.join(distro.linux_distribution())}"
     if system:
         user_agent += " (%s)" % comment(system)
     return user_agent

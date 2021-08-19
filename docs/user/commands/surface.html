@@ -45,7 +45,7 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><a href="#style"><b>surface style</b></a>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 (&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
 </h3>
 <p>
@@ -144,6 +144,10 @@ Surface display style (solid, mesh, or dot) can be adjusted with
   <ul>
   <li><a href="#cap"><b>surface cap</b></a>
   <li><a href="#dust"><b>surface dust</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
+  <li><a href="#showall"><b>surface showall</b></a>
+  <li><a href="#squaremesh"><b>surface squaremesh</b></a>
   <li><a href="#zone"><b>surface zone</b></a>
   </ul>
 <li><a href="#notes"><b>Technical Notes</b></a>
@@ -336,8 +340,7 @@ that encloses chains A-C
 <br>
 &ndash; display a surface that encloses each biopolymer chain in model 1 along
 with its respective HEM residue (for example, in PDB
-<a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=4hhb"
-target="_blank">4HHB</a>)
+<a href="https://www.rcsb.org/structure/4hhb" target="_blank">4HHB</a>)
 <br><br>
 <b>surface enclose #1 include :hem</b>
 <br>
@@ -352,7 +355,7 @@ and HEM residues in model 1
 <h3>Surface Style</h3>
 <blockquote><a href="usageconventions.html"><b>Usage</b></a>:
 <b>surface style</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 (&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
 </blockquote>
 <p>
@@ -362,6 +365,7 @@ This applies to surface models in general, including
 <a href="../tools/volumeviewer.html">volume</a> isosurfaces,
 and always applies to the entire model.
 See also:
+<a href="#squaremesh"><b>surface squaremesh</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="transparency.html"><b>transparency</b></a>
 </p>
@@ -380,7 +384,14 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <li><a href="#cap"><b>surface cap</b></a>
 &ndash; adjust capping of <a href="clip.html">clipped</a> surfaces
 <li><a href="#dust"><b>surface dust</b></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
 &ndash; hide small blobs (disconnected parts)
+<li><a href="#showall"><b>surface showall</b></a>
+&ndash; show all mesh lines and surface triangles
+except as hidden by <a href="clip.html">clipping</a>
+<li><a href="#squaremesh"><b>surface squaremesh</b></a>
+&ndash; hide diagonal mesh lines
 <li><a href="#zone"><b>surface zone</b></a>
 &ndash; show only surface parts within a cutoff distance of specified atoms
 </ul>
@@ -417,19 +428,19 @@ See also:
 <a name="dust"></a>
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface dust</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 [&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;area&nbsp;rank&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;size&nbsp;rank&nbsp;|&nbsp;volume&nbsp;|&nbsp;volume&nbsp;rank&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface undust</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
-Hide smaller blobs (disconnected parts) of a surface, 
-such as to simplify the display of noisy density.
-Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>)
-will be hidden. The size units depend on the <b>metric</b>, which 
+Hide smaller blobs (disconnected parts) of a surface to simplify 
+the display of noisy density. 
+Blobs smaller than <b>size</b> <i>s</i> (default <b>5</b>) will be hidden.
+The size units depend on the <b>metric</b>, which 
 can be any of the following (enclosed in single or double quotation marks 
 if it includes spaces):
   <ul>
@@ -441,21 +452,52 @@ if it includes spaces):
   <li><b>volume</b> &ndash; enclosed volume
   <li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
   </ul>
+The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+<img class="icon" border=1 src="../tools/shortcut-icons/dust.png">
+uses a <b>size</b> value ten times the grid spacing of the map.
+The graphical implementation,
+<a href="../tools/hidedust.html"><b>Hide Dust</b></a>, 
+includes a slider for adjusting the size limit.
+<p>
 Size measurements will include any blob parts that have been undisplayed
 or hidden by <a href="#zone">zoning</a> or <a href="clip.html">clipping</a>,
 and blobs at or above the cutoff size will be displayed completely
 (although possibly still clipped) even if they had been hidden beforehand.
 The <b>update</b> option (default <b>true</b>) indicates
 whether to update automatically when the shape of the surface changes.
-<p>
+</p><p>
 The <b>surface undust</b> command turns off hiding smaller blobs,
-as does using <a href="#zone"><b>surface zone</b></a>.
+as does using <a href="#showall"><b>surface showall</b></a> or
+<a href="#zone"><b>surface zone</b></a>.
+See also: <a href="marker.html#connected"><b>marker connected</b></a>
+</p>
+</blockquote>
+
+<a name="showall"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface showall</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+<blockquote>
+Show all mesh lines and triangles in the specified surface(s)
+except where hidden by <a href="clip.html">clipping</a>.
+</blockquote>
+
+<a name="squaremesh"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface squaremesh</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+<blockquote>
+In the specified surface(s),
+show only the mesh lines parallel to the X, Y, or Z axis.
+Return to showing all mesh lines with 
+<a href="#showall"><b>surface showall</b></a>.
+See also: <a href="#style"><b>surface style</b></a>
 </blockquote>
 
 <a name="zone"></a>
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface zone</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
   [&nbsp;<b>distance</b>&nbsp;<i>cutoff</i>&nbsp;]
   [&nbsp;<b>maxComponents</b>&nbsp;<i>N</i>&nbsp;]
@@ -464,7 +506,7 @@ as does using <a href="#zone"><b>surface zone</b></a>.
 <br>
 <a href="#sop" class="nounder">&bull;</a>
 <b>surface unzone</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
 Show only parts of the surface(s) within <i>cutoff</i> 
 (default <b>2.0</b> &Aring;) of
@@ -486,7 +528,12 @@ indicates whether to update automatically
 when the shape of the surface changes.
 <p>
 The <b>surface unzone</b> command turns off zoning,
-as does using <a href="#dust"><b>surface dust</b></a>.
+as does using <a href="#showall"><b>surface showall</b></a> or
+<a href="#dust"><b>surface dust</b></a>.
+</p><p>
+The graphical implementation,
+<a href="../tools/surfacezone.html"><b>Surface Zone</b></a>,
+includes a slider for adjusting the cutoff distance.
 See also: <a href="select.html#zone"><b>select zone</b></a>,
 <a href="volume.html#zone"><b>volume zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
@@ -524,5 +571,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+February 2021</address>
 </body></html>

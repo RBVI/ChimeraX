@@ -59,7 +59,8 @@ class HeaderSequence(list):
             self.reevaluate()
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
-        pass
+        self._add_options(options_container, category, verbose_labels, self.option_data())
+
 
     def align_change(self, left, right):
         """alignment changed in positions from 'left' to 'right'"""
@@ -341,6 +342,9 @@ class FixedHeaderSequence(HeaderSequence):
 
     def align_change(self, left, right):
         pass
+
+    def evaluate(self, pos):
+        return self.vals[pos]
 
     def get_state(self):
         state = {

@@ -26,8 +26,7 @@ class _SchemesBundleAPI(BundleAPI):
         """Initialize schemes manager"""
         if name == "url_schemes":
             from .manager import SchemesManager
-            session.url_schemes = SchemesManager(session)
-            return session.url_schemes
+            session.url_schemes = SchemesManager(session, name)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

@@ -25,10 +25,10 @@ class ColorActions(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
             QLabel, QCheckBox, QFrame, QGroupBox, QGridLayout, QScrollArea
-        from PyQt5.QtGui import QColor, QPixmap, QIcon
-        from PyQt5.QtCore import Qt, QTimer
+        from Qt.QtGui import QColor, QPixmap, QIcon
+        from Qt.QtCore import Qt, QTimer
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -56,7 +56,7 @@ class ColorActions(ToolInstance):
             pixmap.fill(color)
             icon = QIcon(pixmap)
             button = QPushButton(icon, spaced_name.title())
-            button.released.connect(lambda clr=spaced_name: self._color(clr))
+            button.released.connect(lambda *, clr=spaced_name: self._color(clr))
             button.setStyleSheet("QPushButton { text-align: left; }")
             fav_color_layout.addWidget(button)
 
@@ -177,7 +177,7 @@ class ColorActions(ToolInstance):
             pixmap.fill(color)
             icon = QIcon(pixmap)
             button = QPushButton(icon, spaced_name.title())
-            button.released.connect(lambda clr=spaced_name: self._color(clr))
+            button.released.connect(lambda *, clr=spaced_name: self._color(clr))
             button.setStyleSheet("QPushButton { text-align: left; }")
             all_colors_layout.addWidget(button, row, column)
             row += 1
@@ -187,11 +187,11 @@ class ColorActions(ToolInstance):
         self.all_colors_area.setWidget(all_colors_widget)
         main_layout.addWidget(self.all_colors_area)
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
         if self.help:
-            bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)

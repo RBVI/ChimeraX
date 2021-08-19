@@ -7,7 +7,7 @@
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
   <Synopsis>Compute/assign secondary structure</Synopsis>
-  <Description>Use Kabsch and Sander 'Define Secondary Struture of Proteins' algorithm to compute and assign secondary structure. See https://en.wikipedia.org/wiki/DSSP_(hydrogen_bond_estimation_algorithm)</Description>
+  <Description>Use Kabsch and Sander 'Define Secondary Structure of Proteins' algorithm to compute and assign secondary structure. See https://en.wikipedia.org/wiki/DSSP_(hydrogen_bond_estimation_algorithm)</Description>
 
   <Categories>
     <Category name="Structure Analysis"/>
@@ -20,13 +20,12 @@
     <Library>pyinstance</Library>
     <Library>arrays</Library>
     <Library>logger</Library>
-    <Library>appdirs</Library>
   </CModule>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
-    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=3.0"/>
   </Dependencies>
 
   <Classifiers>

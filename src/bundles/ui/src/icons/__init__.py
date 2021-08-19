@@ -16,7 +16,7 @@ def get_icon_path(icon_name):
     return join(dirname(__file__), icon_name + '.png')
 
 def get_qt_icon(icon_name):
-    from PyQt5.QtGui import QPixmap, QIcon
+    from Qt.QtGui import QPixmap, QIcon
     pixmap = QPixmap(get_icon_path(icon_name))
     icon = QIcon(pixmap)
     return icon

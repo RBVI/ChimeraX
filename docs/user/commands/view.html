@@ -43,6 +43,7 @@ including the positions of any models that have been moved separately
 </ul>
 <p>
 See also: 
+<a href="fly.html"><b>fly</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="camera.html"><b>camera</b></a>,
@@ -69,10 +70,10 @@ See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;<b>orient</b>&nbsp;]
-[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>cofr</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -119,7 +120,17 @@ X-axis horizontal increasing rightward, Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
-</p><p>
+Alternatively, the <b>zalign</b> option can be used to align two atoms 
+along the <a href="#screencoords">screen</a> Z-axis, with the first atom
+in front. If exactly two atoms are <a href="../selection.html">selected</a>,
+they can be <a href="atomspec.html#builtin">specified</a> collectively
+with the word <b>sel</b>; for example, to Z-align a selection of two atoms
+and center the view on the residue(s) containing them:
+</p>
+<blockquote>
+<b>view sel-residues zalign sel</b>
+</blockquote>
+<p>
 The <b>view initial</b> command removes rotations and translations of
 models relative to the scene (aligns individual model coordinates with
 <a href="#scenecoords">scene coordinates</a>).
@@ -177,6 +188,11 @@ in <a href="#screencoords">screen coordinates</a>
 to the center of rotation in the second view.
 At the same time, the positions of any models that have been moved
 relative to the scene are interpolated between the two views.
+</p><p>
+Whereas <b>view</b> only interpolates between a pair of views, the
+<a href="fly.html"><b>fly</b></a> command can smoothly traverse a series 
+of multiple views, generating a path that visits and leaves the intermediate 
+views without discontinuities in motion.
 </p>
 
 <a name="scenecoords"></a>
@@ -269,5 +285,5 @@ later applied from such a file.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+March 2021</address>
 </body></html>

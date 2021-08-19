@@ -22,7 +22,7 @@ Bundle Information XML Tags
 ChimeraX bundle information is stored in **bundle_info.xml**.
 XML elements in the file typically have *attributes* and either
 (a) *child elements*, or (b) *element text*.
-An attributes is used for a value that may be represented
+An attribute is used for a value that may be represented
 as a simple string, such as an identifiers or a version numbers.
 The element text is used for a more complex value, such as a
 file name which may contain spaces.
@@ -30,7 +30,7 @@ Child elements are used for multi-valued data, such as a
 list of file names, one element per value.
 
 The supported elements are listed below in alphabetical order.
-The root document elements is **BundleInfo**, which contains
+The root document element is **BundleInfo**, which contains
 all the information needed to build the bundle.
 
 NB: All elements except **BundleInfo** may have a **platform**
@@ -38,7 +38,7 @@ attribute.  If the **platform** attribute *is* present and its
 value does *not* matches the build platform, then the element and
 all its children are ignored.  Supported values for **platform**
 are: ``mac``, ``windows``, and ``linux``.  An example use for the
-**platform** attribute is in supporting the Space Navigator device.
+**platform** attribute is to support the Space Navigator device.
 On macOS, ChimeraX relies on a compiled C module, while on Windows
 and Linux, it uses pure Python with the ``ctypes`` module;
 in this case, the **CModule** element has a **platform** attribute
@@ -76,6 +76,13 @@ of ``mac``.
       relative to the bundle Python package directory
     - **installedDataDir**: name of directory containing data files, relative
       to the bundle Python package directory
+    - **limitedAPI**: set to Python stable ABI version; omit otherwise.
+      Typicaly used by binary bundles to declare that they can work with older versions of Python
+      via Python's `Stable Application Binary Interface <https://docs.python.org/3/c-api/stable.html>`_
+      but can also be used by pure-Python bundles that are using very new language features
+      to declare that they *can't* work with older Python versions.
+      In either case, the value is the oldest version that the bundle works with,
+      and is of the form "3.x" (e.g. 3.7).
     - **minSessionVersion**: version number of oldest supported Chimera session
     - **maxSessionVersion**: version number of newest supported Chimera session
     - **package**: Python package name corresponding to bundle
@@ -121,12 +128,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **ChimeraXClassifier**
 
@@ -159,12 +170,16 @@ of ``mac``.
 
   - Child elements:
 
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
 
 - **CModule**
 
@@ -183,12 +198,22 @@ of ``mac``.
 
   - Child elements:
     
+    - **CompileArgument** (zero or more)
+    - **Define** (zero or more)
     - **FrameworkDir** (zero or more)
     - **IncludeDir** (zero or more)
     - **Library** (zero or more)
     - **LibraryDir** (zero or more)
+    - **LinkArgument** (zero or more)
     - **Requires** (zero or more)
     - **SourceFile** (one or more)
+    - **Undefine** (zero or more)
+
+- **CompileArgument**
+
+  - Element text
+
+    - Additional argument to provide to the compiler when compiling.
 
 - **DataDir**
 
@@ -209,6 +234,14 @@ of ``mac``.
       source.  For example, because current package source is expected
       to be in folder **src**, a data file **datafile** in the
       same folder is referenced as ``datafile``, not ``src/datafile``.
+
+- **Define**
+
+  - Element text
+
+    - Symbolic name to be defined during compilation.  Can just be
+      the symbolic name itself, or the symbolic name plus *=value*, as
+      needed.
 
 - **DataFiles**
 
@@ -379,6 +412,12 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **LinkArgument**
+
+  - Element text
+
+    - Additional argument to provide to the linker when linking.
+
 - **Managers**
 
   - List of managers that bundle provides
@@ -392,24 +431,27 @@ of ``mac``.
 
   - Attribute:
 
-    - **name**: name of manager.  The bundle must implement the
-      ``init_manager`` method.  The two positional arguments to
+    - **name**: name of manager.  If **autostart** is true (see below), the bundle
+      must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
     - **uiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
+    - **autostart**: If true, the manager is started during Chimera startup.
+      Defaults to true.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
-    - ``init_manager`` should create and return an instance of a
+    - ``init_manager`` should create an instance of a
       subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
+      The ProviderManager constructor must be passed the **name** of the manager.
       The subclass must implement at least one method:
       ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
       name matches this manager (whether the bundle with the provider
-      is installed or not).  A second method:
-      ``end_providers()``
-      is optional.  ``end_providers`` is called after all calls
-      to ``add_provider`` have been made and is useful for finishing
-      manager initialization.
+      is installed or not).  To distinguish between installed and uninstalled
+      providers check ``bundle_info.installed``.
+      A second method: ``end_providers()`` is optional.
+      ``end_providers`` is called after all calls to ``add_provider`` have been made
+      and is useful for finishing manager initialization.
 
 - **Package**
 
@@ -476,6 +518,12 @@ of ``mac``.
   - Element text:
 
     - One line description of bundle (*e.g.*, as tool tip text)
+
+- **Undefine**
+
+  - Element text
+
+    - Symbolic name to be explictly undefined during compilation.
 
 - **URL**
 
@@ -564,6 +612,8 @@ data formats, and selectors.
     - Command registration is done via the
       ``bundle_api.register_command`` method.
     - Bundles may provide more than one command.
+    - Before deciding on your command name and syntax, you should peruse the
+      :doc:`command style guide <../command_style>`.
 
 
 *Data Format Metadata*
@@ -747,6 +797,12 @@ The other possible `Provider`_ attributes are:
         the provider does with the text), then specify *check_path* as "false" (which implies
         *want_path*\="true", you don't have to explicitly specify that).
 
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the open command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -810,11 +866,28 @@ The other possible `Provider`_ attributes are:
 - **Infrequently-Used** Attributes
 
     *compression_okay*
-        If the data you are writing out is *already* compressed and therefore it would probably
-        be bad to compress it again (likely slower with no space savings), specifying
-        *compression_okay* as "false" will prevent the ``save`` command from allowing this
-        format to be automatically compressed (which happens when the output file name also has
-        a compression suffix, *e.g.* "my_structure.pdb.gz").
+        *compression_okay* controls whether your format will be able to save directly as a compressed
+        file as implied by the user adding an additional compression suffix (*e.g.* ".gz") to
+        your file name.  There are two main reasons that you would change *compression_okay*
+        from its default value of "true" to "false":
+
+            1. For whatever reason your bundle cannot use
+            :py:meth:`~chimerax.io.io.open_output` to open the file, which
+            is the routine that handles the automatic compression.  This frequently happens for bundles
+            where compiled code opens the file and cannot handle being passed a Python stream.
+
+            2. If the data you are writing out is *already* compressed and therefore it would probably
+            be bad to compress it again (likely slower with no space savings).
+
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the save command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
+        `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
+        The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
+        produces the more commonly desired image file.  To get an ImageJ stack, the user would have
+        to add ``format imagej`` to the save command.
 
 For example::
 

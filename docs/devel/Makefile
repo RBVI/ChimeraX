@@ -16,19 +16,20 @@ include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
+SPHINX_EXE    = $(APP_PYTHON_EXE)
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(SPHINX_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   = $(SPHINX_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(bindir)/sphinx-build
+SPHINXBUILD   = $(SPHINX_EXE) $(bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
 DOCDIR        = $(app_datadir)/docs/devel
 
 # The short X.Y version extracted for core Makefile
-CHIMERAX_VERSION = $(shell grep ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
+CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
 # The full version, including alpha/beta/rc tags.
 CHX_FULL_VERSION = $(CHIMERAX_VERSION)
 

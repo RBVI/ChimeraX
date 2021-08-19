@@ -168,11 +168,15 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
 
 def handle_res_params(atoms, res_name, new_res):
     a = atoms[0]
+    if res_name == "auto":
+        res_name = unknown_res_name(a.residue)
     if res_name:
         if not new_res and a.residue.name == res_name:
             return
-    else:
+    elif new_res:
         res_name = unknown_res_name(a.residue)
+    else:
+        return
     if new_res:
         chain_id = a.residue.chain_id
         pos = 1
@@ -222,14 +226,16 @@ def bond_length(a1, geom, e2, *, a2_info=None):
 
 def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
     bond.structure.idatm_valid = False
-    if bond.rings(cross_residue=True):
-        if status:
-            status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
-        mid = sum([a.coord for a in bond.atoms]) / 2
-        factor = bond_length / bond.length
-        for a in bond.atoms:
-            a.coord = (a.coord - mid) * factor + mid
-        return
+    # use a simple test to avoid expensive cross-residue ring test in most cases
+    if len(bond.atoms[0].neighbors) > 1 and len(bond.atoms[1].neighbors) > 1:
+        if bond.rings(cross_residue=True):
+            if status:
+                status("Bond is involved in ring/cycle.\nMoved bonded atoms (only) equally.", color="blue")
+            mid = sum([a.coord for a in bond.atoms]) / 2
+            factor = bond_length / bond.length
+            for a in bond.atoms:
+                a.coord = (a.coord - mid) * factor + mid
+            return
 
     smaller = bond.smaller_side
     bigger = bond.other_atom(smaller)

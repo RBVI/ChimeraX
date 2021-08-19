@@ -13,11 +13,11 @@
 
 from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
 from chimerax.core.triggerset import TriggerSet
-from PyQt5.QtCore import pyqtSignal
+from Qt.QtCore import Signal
 
 class AlignmentListWidget(ItemListWidget):
 
-    alignments_changed = pyqtSignal([list])
+    alignments_changed = Signal([list])
 
     def __init__(self, session, **kw):
         self.session = session
@@ -35,7 +35,7 @@ class AlignmentListWidget(ItemListWidget):
 
 class AlignmentMenuButton(ItemMenuButton):
 
-    alignments_changed = pyqtSignal([list])
+    alignments_changed = Signal([list])
 
     def __init__(self, session, **kw):
         self.session = session

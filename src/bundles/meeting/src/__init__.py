@@ -15,17 +15,16 @@ from chimerax.core.toolshed import BundleAPI
 
 class _MeetingAPI(BundleAPI):
 
-    api_version = 1
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .gui import show_meeting_gui
+        ti = show_meeting_gui(session)
+        return ti
 
     @staticmethod
-    def start_tool(session, bi, ti):
-        from .tool import ConferenceUI
-        return ConferenceUI(session, ti.name)
-
-    @staticmethod
-    def register_command(bi, ci, logger):
+    def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import reg_cmd
-        reg_cmd.register_command(ci, logger)
+        from . import meeting
+        meeting.register_meeting_command(command_name, logger)
 
 bundle_api = _MeetingAPI()

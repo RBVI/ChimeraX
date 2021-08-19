@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
-from PyQt5.QtCore import Qt, pyqtSignal
+from Qt.QtCore import Qt, Signal
 
 class MatchMakerTool(ToolInstance):
 
@@ -26,8 +26,8 @@ class MatchMakerTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
-        from PyQt5.QtWidgets import QCheckBox
+        from Qt.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
+        from Qt.QtWidgets import QCheckBox
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
         overall_layout.setSpacing(0)
@@ -163,14 +163,14 @@ class MatchMakerTool(ToolInstance):
         bring_layout.addWidget(self.bring_model_list)
         self._match_value_change()
 
-        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_matchmaker)
         bbox.button(qbbox.Apply).clicked.connect(self.run_matchmaker)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         overall_layout.addWidget(bbox)
 
         self._pairing_change(cp_opt)
@@ -187,8 +187,8 @@ class MatchMakerTool(ToolInstance):
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
             ref_spec = "".join([rchain.atomspec for rchain, mchain in match_value])
         else:
-            ref_spec = ref_value.atomspec
-        if not ref_spec:
+            ref_spec = None if ref_value is None else ref_value.atomspec
+        if not ref_spec or not match_value:
             raise UserError("No reference and/or match structure/chain chosen")
         if self.ref_sel_restrict.isChecked():
             ref_spec = ref_spec + " & sel"
@@ -270,11 +270,11 @@ class MatchMakerTool(ToolInstance):
 
         compute_ss = settings.compute_ss
         if compute_ss != defaults['compute_ss']:
-            cmd += ' computeSs ' + BoolArg.unparse(compute_ss)
+            cmd += ' computeSS ' + BoolArg.unparse(compute_ss)
 
         overwrite_ss = settings.overwrite_ss
         if compute_ss and overwrite_ss != defaults['overwrite_ss']:
-            cmd += ' keepComputedSs ' + BoolArg.unparse(overwrite_ss)
+            cmd += ' keepComputedSS ' + BoolArg.unparse(overwrite_ss)
 
         ss_matrix = settings.ss_scores
         if ss_matrix != defaults['ss_scores']:
@@ -284,7 +284,7 @@ class MatchMakerTool(ToolInstance):
                     let1, let2 = key
                     if order.index(let1) > order.index(let2):
                         continue
-                    cmd += ' mat' + let1 + let2.lower() + ' ' + FloatArg.unparse(val)
+                    cmd += ' mat' + let1 + let2 + ' ' + FloatArg.unparse(val)
 
         run(self.session, cmd)
 
@@ -398,9 +398,9 @@ class SSScoringMatrixOption(Option):
         pass
 
     def _make_widget(self, **kw):
-        from PyQt5.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
-        from PyQt5.QtGui import QDoubleValidator
-        from PyQt5.QtCore import Qt
+        from Qt.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
+        from Qt.QtGui import QDoubleValidator
+        from Qt.QtCore import Qt
         self.widget = QFrame()
         self._cells = {}
         cell_order = ['H', 'S', 'O']
@@ -436,15 +436,15 @@ class SSScoringMatrixOption(Option):
                         grid.addWidget(text, ri, ci, alignment=Qt.AlignCenter)
         self.widget.setLayout(grid)
 
-from PyQt5.QtWidgets import QWidget
+from Qt.QtWidgets import QWidget
 class ChainListsWidget(QWidget):
 
-    value_changed = pyqtSignal()
+    value_changed = Signal()
 
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.__session = session
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
+        from Qt.QtWidgets import QVBoxLayout, QLabel, QWidget, QScrollArea
         self.__work_layout = QVBoxLayout()
         self.__work_layout.setSpacing(0)
         self.__work_layout.setContentsMargins(0,0,0,0)
@@ -472,13 +472,13 @@ class ChainListsWidget(QWidget):
             for widgets in self.__chain_list_mapping.values():
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
-                    widget.deleteLater()
+                    widget.destroy()
             self.__show_widget(self.__empty_label)
             self.value_changed.emit()
             return
         # rearranging widgets in an existing layout is nigh impossible so...
         self.__show_widget(self.__scroll_area)
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel
+        from Qt.QtWidgets import QVBoxLayout, QLabel
         next_layout = QVBoxLayout()
         next_layout.setSpacing(0)
         next_layout.setContentsMargins(0,0,0,0)
@@ -494,7 +494,7 @@ class ChainListsWidget(QWidget):
                 chain_list = ChainMenuButton(self.__session,
                     filter_func=lambda c, ref=chain: c.structure != ref.structure)
                 chain_list.value_changed.connect(self.value_changed.emit)
-            from PyQt5.QtCore import Qt
+            from Qt.QtCore import Qt
             if next_mapping:
                 next_layout.addSpacing(10)
             next_layout.addWidget(label, alignment=Qt.AlignBottom)
@@ -502,7 +502,7 @@ class ChainListsWidget(QWidget):
             next_mapping[chain] = (label, chain_list)
         for widgets in self.__chain_list_mapping.values():
             for widget in widgets:
-                widget.deleteLater()
+                widget.destroy()
         self.__chain_list_mapping = next_mapping
         self.__container_layout.takeAt(0)
         self.__container_layout.addLayout(next_layout)

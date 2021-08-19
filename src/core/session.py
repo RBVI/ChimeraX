@@ -32,7 +32,6 @@ Session data, ie., data that is archived, uses the :py:class:`State` and
 """
 
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, plural_form
 from .errors import UserError
 
 _builtin_open = open
@@ -45,6 +44,8 @@ ALIAS_STATE_VERSION = 1
 
 # List of type objects that are in bundle "builtins"
 BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int, float, list, range, set, slice, str, tuple))
+
+DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
 
 
 class _UniqueName:
@@ -338,7 +339,6 @@ class _RestoreManager:
                 else:
                     out_of_date_bundles.append((bundle_name, bundle_version, bi))
         if need_core_version is not None:
-            DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
             session.logger.info(
                 f'<blockquote>Get a new version of ChimeraX from <a href="{DOWNLOAD_URL}">'
                 f'{DOWNLOAD_URL}</a>.</blockquote>',
@@ -346,6 +346,7 @@ class _RestoreManager:
             raise UserError(f"your version of ChimeraX is too old, install version {need_core_version} or newer")
         if missing_bundles or out_of_date_bundles:
             msg = ""
+            from .commands import plural_form
             if missing_bundles:
                 msg += "need to install missing " + plural_form(missing_bundles, 'bundle')
             if out_of_date_bundles:
@@ -433,20 +434,31 @@ class Session:
         Default view.
     """
 
-    def __init__(self, app_name, *, debug=False, silent=False, minimal=False):
+    def __init__(self, app_name, *, debug=False, silent=False, minimal=False,
+                 offscreen_rendering=False):
+        self._snapshot_methods = {}     # For saving classes with no State base class.
+        self._state_containers = {}     # stuff to save in sessions.
+
         self.app_name = app_name
         self.debug = debug
         self.silent = silent
-        self._snapshot_methods = {}     # For saving classes with no State base class.
-        self._state_containers = {}     # stuff to save in sessions.
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
         self.session_file_path = None  # Last saved or opened session file.
 
         from . import logger
         self.logger = logger.Logger(self)
+        from . import nogui
+        self.ui = nogui.UI(self)
         from . import triggerset
         self.triggers = triggerset.TriggerSet()
+
+        from .core_triggers import register_core_triggers
+        register_core_triggers(self.triggers)
+
+        from .triggerset import set_exception_reporter
+        set_exception_reporter(lambda preface, logger=self.logger:
+                               logger.report_exception(preface=preface))
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -462,8 +474,23 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from chimerax.graphics.view import View
-        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
-                              trigger_set=self.triggers)
+        view = View(self.models.scene_root_model, window_size=(256, 256),
+                    trigger_set=self.triggers)
+        self.main_view = view
+        try:
+            from .core_settings import settings
+            self.main_view.background_color = settings.background_color.rgba
+        except ImportError:
+            pass
+        if offscreen_rendering:
+            self.ui.initialize_offscreen_rendering()
+
+        from .selection import Selection
+        self.selection = Selection(self)
+
+        from .updateloop import UpdateLoop
+        self.update_loop = UpdateLoop(self)
+
         self.user_aliases = UserAliases()
 
         from . import colors
@@ -532,9 +559,6 @@ class Session:
         for instance for primitive types.
         """
         cls = obj.__class__ if instance else obj
-        from .serialize import PRIMITIVE_TYPES
-        if cls in PRIMITIVE_TYPES:
-            return None
         if issubclass(cls, base_type):
             return cls
 
@@ -592,7 +616,7 @@ class Session:
             self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, path=None, resize_window=None, restore_camera=True,
-                metadata_only=False):
+                clear_log=True, metadata_only=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -605,9 +629,13 @@ class Session:
         else:
             raise RuntimeError('Could not peek at first byte of session file.')
         if use_pickle:
-            version = serialize.pickle_deserialize(stream)
+            try:
+                version = serialize.pickle_deserialize(stream)
+            except Exception:
+                # pickle.UnpickingError is a subclass of Exception
+                version = 0
             if version != 1:
-                raise UserError('not a ChimeraX session file')
+                raise UserError('either not a ChimeraX session file, or needs a newer version of ChimeraX to restore')
             raise UserError("session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
@@ -641,6 +669,8 @@ class Session:
         if resize_window is not None:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
+        self.restore_options['clear log'] = clear_log
+        self.restore_options['error encountered'] = False
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
@@ -689,6 +719,7 @@ class Session:
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
                             % traceback.format_exc())
             self.reset()
+            self.restore_options['error encountered'] = True
         finally:
             self.triggers.activate_trigger("end restore session", self)
             self.restore_options.clear()
@@ -742,7 +773,14 @@ def standard_metadata(previous_metadata={}):
     https://www.w3.org/TR/html5/document-metadata.html.
     """
     from .fetch import html_user_agent
-    from chimerax import app_dirs
+
+    import chimerax
+    if hasattr(chimerax, 'app_dirs'):
+        from chimerax import app_dirs
+        app_name = app_dirs.appname
+    else:
+        app_dirs = None
+        app_name = 'ChimeraX'
     from html import unescape
     import os
     import datetime
@@ -751,7 +789,7 @@ def standard_metadata(previous_metadata={}):
     metadata = {}
     if previous_metadata:
         metadata.update(previous_metadata)
-    generator = unescape(html_user_agent(app_dirs))
+    generator = unescape(html_user_agent(app_dirs)) if app_dirs else app_name
     generator += ", http://www.rbvi.ucsf.edu/chimerax/"
     metadata['generator'] = generator
     now = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -787,15 +825,20 @@ def standard_metadata(previous_metadata={}):
     metadata['dateCopyrighted'] = tmp
     # build information
     # version is in 'generator'
-    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
-    metadata['%s-date' % app_dirs.appname] = buildinfo.date
-    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
+    metadata['%s-commit' % app_name] = buildinfo.commit
+    metadata['%s-date' % app_name] = buildinfo.date
+    metadata['%s-branch' % app_name] = buildinfo.branch
     return metadata
 
 
-def save(session, path, version=3, uncompressed=True, include_maps=False):
-    """command line version of saving a session"""
-    my_open = None
+def save(session, path, version=3, compress='lz4', include_maps=False):
+    """
+    Command line version of saving a session.
+
+    Option compress can be lz4 (default), gzip, or None.
+    Tests saving 3j3z show lz4 is as fast as uncompressed and 4x smaller file size,
+    and gzip is 2.5 times slower with 7x smaller file size.
+    """
     if hasattr(path, 'write'):
         # called via export, it's really a stream
         output = path
@@ -805,19 +848,27 @@ def save(session, path, version=3, uncompressed=True, include_maps=False):
         if not path.endswith(SESSION_SUFFIX):
             path += SESSION_SUFFIX
 
-        if uncompressed:
+        if compress is None or compress == 'none':
             from .safesave import SaveBinaryFile
-            my_open = SaveBinaryFile
-        else:
-            # Save compressed files
+            open_func = SaveBinaryFile
+        elif compress == 'gzip':
             from .safesave import SaveFile
 
-            def my_open(path):
+            def gzip_open(path):
                 import gzip
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
+            open_func = gzip_open
+        elif compress == 'lz4':
+            from .safesave import SaveFile
+
+            def lz4_open(path):
+                import lz4.frame
+                f = SaveFile(path, open=lambda path: lz4.frame.open(path, 'wb'))
+                return f
+            open_func = lz4_open
         try:
-            output = my_open(path)
+            output = open_func(path)
         except IOError as e:
             raise UserError(e)
 
@@ -825,12 +876,12 @@ def save(session, path, version=3, uncompressed=True, include_maps=False):
     try:
         session.save(output, version=version, include_maps=include_maps)
     except Exception:
-        if my_open is not None:
+        if open_func is not None:
             output.close("exceptional")
         session.logger.report_exception()
         raise
     finally:
-        if my_open is not None:
+        if open_func is not None:
             output.close()
 
     # Associate thumbnail image with session file for display by operating system file browser.
@@ -858,6 +909,9 @@ def sdump(session, session_file, output=None):
     if is_gzip_file(session_file):
         import gzip
         stream = gzip.open(session_file, 'rb')
+    elif is_lz4_file(session_file):
+        import lz4.frame
+        stream = lz4.frame.open(session_file, 'rb')
     else:
         stream = _builtin_open(session_file, 'rb')
     if output is not None:
@@ -899,9 +953,9 @@ def sdump(session, session_file, output=None):
             name = fdeserialize(stream)
             if name is None:
                 break
+            print('==== name/uid:', name, file=output, flush=True)
             data = fdeserialize(stream)
             data = dereference_state(data, lambda x: x, _UniqueName)
-            print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 
 
@@ -916,6 +970,9 @@ def open(session, path, resize_window=None):
     if is_gzip_file(fname):
         import gzip
         stream = gzip.open(fname, 'rb')
+    elif is_lz4_file(fname):
+        import lz4.frame
+        stream = lz4.frame.open(fname, 'rb')
     else:
         stream = _builtin_open(fname, 'rb')
     # TODO: active trigger to allow user to stop overwritting
@@ -930,9 +987,16 @@ def open(session, path, resize_window=None):
 
 def is_gzip_file(filename):
     f = _builtin_open(filename, 'rb')
-    magic = f.read(2) + b'00'
+    magic = f.read(2)
     f.close()
-    return (magic[0] == 0x1f and magic[1] == 0x8b)
+    return magic == b'\x1f\x8b'
+
+
+def is_lz4_file(filename):
+    f = _builtin_open(filename, 'rb')
+    magic = f.read(4)
+    f.close()
+    return magic == b'\x04\x22\x4D\x18'
 
 
 def save_x3d(session, path, transparent_background=False):
@@ -955,7 +1019,8 @@ def save_x3d(session, path, transparent_background=False):
     for m in session.models.list():
         m.x3d_needs(x3d_scene)
 
-    with _builtin_open(path, 'w', encoding='utf-8') as stream:
+    from chimerax import io
+    with io.open_output(path, 'utf-8') as stream:
         x3d_scene.write_header(
             stream, 0, metadata, profile_name='Interchange',
             # TODO? Skip units since it confuses X3D viewers and requires version 3.3
@@ -1000,48 +1065,21 @@ def register_misc_commands(session):
     from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
 
-
-def common_startup(sess):
-    """Initialize session with common data containers"""
-
-    from .core_triggers import register_core_triggers
-    register_core_triggers(sess.triggers)
-
-    from .triggerset import set_exception_reporter
-    set_exception_reporter(lambda preface, logger=sess.logger:
-                           logger.report_exception(preface=preface))
-
+    from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
                 optional=[('output', SaveFileNameArg)],
                 synopsis="create human-readable session"),
         sdump,
-        logger=sess.logger
+        logger=session.logger
     )
     register(
         'debug exception',
         CmdDesc(synopsis="generate exception to test exception handling"),
         _gen_exception,
-        logger=sess.logger
+        logger=session.logger
     )
-
-    register_misc_commands(sess)
-
-    if not hasattr(sess, 'models'):
-        return  # Minimal session mode.
-
-    from .selection import Selection
-    sess.selection = Selection(sess)
-
-    try:
-        from .core_settings import settings
-        sess.main_view.background_color = settings.background_color.rgba
-    except ImportError:
-        pass
-
-    from .updateloop import UpdateLoop
-    sess.update_loop = UpdateLoop(sess)
 
 
 def _gen_exception(session):

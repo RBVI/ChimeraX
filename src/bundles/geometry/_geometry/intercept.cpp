@@ -98,8 +98,8 @@ PyObject *closest_triangle_intercept(PyObject *, PyObject *args, PyObject *keywd
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_tmin = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_tmin = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_tmin);
 
@@ -246,8 +246,8 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_snum = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_snum = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_snum);
 
@@ -269,7 +269,7 @@ static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cs
   dx /= d; dy /= d; dz /= d;
 
   float dc = 2*d;
-  int64_t sc;
+  int64_t sc = -1;
   for (int64_t s = 0 ; s < n ; ++s)
     {
       int64_t s3 = cstride0*s;
@@ -291,7 +291,7 @@ static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cs
 	    }
 	}
     }
-  if (dc > d)
+  if (sc == -1 || dc > d)
     return false;
 
   *fmin = dc/d;
@@ -452,8 +452,8 @@ PyObject *closest_cylinder_intercept(PyObject *, PyObject *args, PyObject *keywd
     }
   else
     {
-      py_fmin = Py_None; Py_INCREF(Py_None);
-      py_cnum = Py_None; Py_INCREF(Py_None);
+      py_fmin = python_none();
+      py_cnum = python_none();
     }
   PyObject *t = python_tuple(py_fmin, py_cnum);
 

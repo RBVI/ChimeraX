@@ -3,19 +3,25 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/omnia/openmm/files
-PYVER = py37_cuda101_rc_1
-VERSION = 7.4.1
+
+VERSION = 7.5.0
+OPENMM_REL = 1
+PYVER = py38
+
 ifeq ($(OS),Darwin)
 PLATFORM = mac
+CUDA_VERSION = nocuda
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
+CUDA_VERSION = cuda110
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
+CUDA_VERSION = cuda110
 endif
 
-DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER).tar.bz2
+DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER)_$(CUDA_VERSION)_$(OPENMM_REL).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
@@ -31,7 +37,7 @@ ifeq ($(OS),Windows)
 install: $(SOURCE)
 	cd $(SOURCE) ; \
 	  $(RSYNC) Lib/site-packages/simtk $(PYSITEDIR) ; \
-	  $(RSYNC) Lib/ --exclude site-packages $(OPENMM_LIB_INSTALL)
+	  $(RSYNC) Library/lib/ --exclude site-packages $(OPENMM_LIB_INSTALL)
 
 else
 
@@ -59,9 +65,10 @@ ifneq (,$(PATCHES))
 endif
 ifeq ($(OS),Windows)
 	cd $(SOURCE)/Lib ; \
-	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib ; \
 	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
 	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
+	cd $(SOURCE)/Library/lib ; \
+	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib
 endif
 
 $(DISTRIBUTION):
