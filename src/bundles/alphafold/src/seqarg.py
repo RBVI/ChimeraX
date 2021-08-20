@@ -63,7 +63,6 @@ class UniProtSequenceArg(Annotation):
                 raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
         else:
             uname = None
-        print ('uniprot id', uid, len(uid))
         if len(uid) not in (6, 10):
             raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
         from chimerax.uniprot.fetch_uniprot import fetch_uniprot_accession_info
