@@ -57,7 +57,7 @@ class SeqRegionArg(Annotation):
             align_seq_text, region_text = token.rsplit(':', 1)
         except ValueError:
             raise AnnotationError("Must include at least one ':' character")
-        align_seq, _text, _rest = AlignSeqPairArg.parse(align_seq_text, session)
+        align_seq, _text, _rest = AlignSeqPairArg.parse(align_seq_text, session, empty_okay=True)
         if _rest:
             raise AnnotationError("Unexpected text (%s) after alignment/sequence name and before range"
                 % _rest)
@@ -96,7 +96,7 @@ class AlignSeqPairArg(Annotation):
     _html_name = "[<i>alignment-id</i>:]<i>sequence-name-or-number</i>"
 
     @staticmethod
-    def parse(text, session):
+    def parse(text, session, empty_okay=False):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
             raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
@@ -143,6 +143,10 @@ class AlignmentArg(Annotation):
 class MissingSequence(AnnotationError):
     pass
 def get_alignment_sequence(alignment, seq_id):
+    if not seq_id:
+        if len(alignment.seqs) == 1:
+            return alignment.seqs[0]
+        raise MissingSequence("Sequence specifier omitted")
     try:
         sn = int(seq_id)
     except ValueError:

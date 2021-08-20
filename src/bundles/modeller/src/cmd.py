@@ -157,11 +157,12 @@ def register_command(logger):
         from .loops import special_region_values
 
     desc = CmdDesc(
-        required = [('targets', Or(LoopsRegionArg, EmptyArg))],
-        keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg), ('chains', UniqueChainsArg),
-            ('executable_location', OpenFileNameArg), ('license_key', PasswordArg), ('num_models', IntArg),
-            ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])), ('show_gui', BoolArg),
-            ('temp_path', OpenFolderNameArg),
+        required = [('targets', RepeatOf(LoopsRegionArg))],
+        keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg),
+            ('chains', UniqueChainsArg), ('executable_location', OpenFileNameArg),
+            ('license_key', PasswordArg), ('num_models', IntArg),
+            ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])),
+            ('show_gui', BoolArg), ('temp_path', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
