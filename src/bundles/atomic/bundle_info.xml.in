@@ -3,7 +3,7 @@
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
-            minSessionVersion="1" maxSessionVersion="1">
+            minSessionVersion="1" maxSessionVersion="2">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
