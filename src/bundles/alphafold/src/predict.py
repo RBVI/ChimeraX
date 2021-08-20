@@ -11,12 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def alphafold_predict(session, chain):
+def alphafold_predict(session, sequence):
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currenlty running.  Can only run one at a time.')
-    ar.start(chain)
+    ar.start(sequence)
 
 # ------------------------------------------------------------------------------
 #
@@ -27,7 +27,7 @@ class AlphaFoldRun(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self._running = False
-        self._chain = None
+        self._sequence = None	# Sequence instance or subclass such as Chain
         self._prediction_path = None
 
         from chimerax.ui import MainToolWindow
@@ -46,9 +46,9 @@ class AlphaFoldRun(ToolInstance):
 
         tw.manage(placement=None)
 
-    def start(self, chain):
-        colab_started = (self._chain is not None)
-        self._chain = chain
+    def start(self, sequence):
+        colab_started = (self._sequence is not None)
+        self._sequence = sequence
         if not colab_started:
             b = self._browser
             from Qt.QtCore import QUrl
@@ -73,7 +73,7 @@ class AlphaFoldRun(ToolInstance):
     def _set_colab_sequence(self):
         p = self._browser.page()
         set_seq_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
-                              % self._chain.characters + '; ' +
+                              % self._sequence.characters + '; ' +
                               'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
         p.runJavaScript(set_seq_javascript)
 
@@ -133,9 +133,13 @@ class AlphaFoldRun(ToolInstance):
         from chimerax.pdb import open_pdb
         models, msg = open_pdb(self.session, path)
         self.session.models.add(models)
-        for m in models:
+
+        from chimerax.atomic import Chain
+        if isinstance(self._sequence, Chain):
+            chain = self._sequence
             from .match import _align_to_chain
-            _align_to_chain(m, self._chain)
+            for m in models:
+                _align_to_chain(m, chain)
         
 # ------------------------------------------------------------------------------
 #
@@ -147,9 +151,9 @@ def show_alphafold_run(session):
 #
 def register_alphafold_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.atomic import ChainArg
+    from .seqarg import SequenceArg
     desc = CmdDesc(
-        required = [('chain', ChainArg)],
+        required = [('sequence', SequenceArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)
