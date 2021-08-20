@@ -13,7 +13,7 @@
 
 def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None, thorough_opt=False,
+    hydrogens=False, license_key=None, num_models=5, show_tool=True, temp_path=None, thorough_opt=False,
     water_preserve=False):
     '''
     Command to generate a comparative model of one or more chains
@@ -34,13 +34,13 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         comparative.model(session, targets, block=block, multichain=multichain,
             custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-            hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_gui,
+            hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_tool,
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
     except common.ModelingError as e:
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, show_gui=True, temp_path=None):
+    license_key=None, num_models=5, protocol=None, show_tool=True, temp_path=None):
     '''
     Command to model loops or refine structure regions
     '''
@@ -122,7 +122,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
             executable_location=executable_location, license_key=license_key, num_models=num_models,
-            protocol=protocol, show_gui=show_gui, temp_path=temp_path)
+            protocol=protocol, show_gui=show_tool, temp_path=temp_path)
     except common.ModelingError as e:
         raise UserError(e)
 
@@ -146,7 +146,7 @@ def register_command(logger):
         keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
             ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg),
             ('fast', BoolArg), ('het_preserve', BoolArg), ('hydrogens', BoolArg),
-            ('license_key', PasswordArg), ('num_models', IntArg), ('show_gui', BoolArg),
+            ('license_key', PasswordArg), ('num_models', IntArg), ('show_tool', BoolArg),
             ('temp_path', OpenFolderNameArg), ('thorough_opt', BoolArg), ('water_preserve', BoolArg)
         ],
         synopsis = 'Use Modeller to generate comparative model'
@@ -162,7 +162,7 @@ def register_command(logger):
             ('chains', UniqueChainsArg), ('executable_location', OpenFileNameArg),
             ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])),
-            ('show_gui', BoolArg), ('temp_path', OpenFolderNameArg),
+            ('show_tool', BoolArg), ('temp_path', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
