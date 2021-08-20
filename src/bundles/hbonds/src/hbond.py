@@ -664,8 +664,8 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                                 if angle(donor_atom._hb_coord, acc_atom._hb_coord,
                                         metal._hb_coord) < 90.0:
                                     if verbose:
-                                        session.logger.info("\tH-bond conflicts with"
-                                            " metal coordination to %s" % metal)
+                                        session.logger.info("\tH-bond between %s and %s conflicts with"
+                                            " metal coordination to %s" % (donor_atom, acc_atom, metal))
                                     conflict = True
                                     break
                             if conflict:
