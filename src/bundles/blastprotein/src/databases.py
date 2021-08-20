@@ -125,8 +125,12 @@ class AlphaFoldDb(Database):
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            uniprot_name = raw_desc.split('=')[0].split(' ')[0].split('|')[-1]
             matches[match]["title"] = hit_title
             matches[match]["chain_species"] = self._get_species(raw_desc)
+            # Move UniProt ID to the correct column
+            matches[match]["chain_sequence_id"] = matches[match]["name"]
+            matches[match]["name"] = uniprot_name
 
     def _get_species(self, raw_desc):
         """AlphaFold's BLAST output is polluted with lots of metadata in the
