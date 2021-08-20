@@ -83,7 +83,7 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
     from .search import alphafold_sequence_search, SearchError
     seq_strings = [seq.characters for seq in sequences]
     try:
-        seq_uids = alphafold_sequence_search(seq_strings, local = local, log = log)
+        seq_uids = alphafold_sequence_search(seq_strings, local = local, session = session)
     except SearchError as e:
         log.error(str(e))
         return {}

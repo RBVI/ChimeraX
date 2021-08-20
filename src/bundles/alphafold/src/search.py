@@ -14,7 +14,10 @@
 # -----------------------------------------------------------------------------
 # Search AlphaFold database for sequences
 #
-def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
+
+from chimerax.webservices.cxservices_job import CxServicesJob
+
+def alphafold_sequence_search(sequences, minlength=20, local=False, session):
     '''
     Search all AlphaFold database sequences using blat.
     Return best match uniprot ids.
@@ -23,68 +26,23 @@ def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
     if len(useqs) == 0:
         return [None] * len(sequences)
 
-    if log is not None:
-        log.status('Searching AlphaFold database for %d sequence%s'
+    if session is not None:
+        session.logger.log.status('Searching AlphaFold database for %d sequence%s'
                    % (len(useqs), _plural(useqs)))
-                          
-    if local:
-        seq_uniprot_ids = _search_sequences_local(useqs)
+
+    search_job = BlatJob(session, sequences, report_status_messages=False)
+
+    # seq_uids = [seq_uniprot_ids.get(seq) for seq in sequences]
+    try:
+        seq_uids = search_job.on_finish
+    except:
+        session.logger.bug("Failed to create chain_uids.")
+        return {}
     else:
-        seq_uniprot_ids = _search_sequences_web(useqs)
-    seq_uids = [seq_uniprot_ids.get(seq) for seq in sequences]
-    
-    return seq_uids
+        return seq_uids
 
 def _plural(seq):
     return 's' if len(seq) > 1 else ''
-
-seq_database = '/Users/goddard/ucsf/data/alphafold/sequences/ref_proteomes/alphafold.fasta'
-blat_exe = '/Users/goddard/ucsf/blat/bin/blat'
-def _search_sequences_local(sequences, database_path=seq_database, blat_exe=blat_exe):
-
-    # Make temporary directory for blat input and output files.
-    from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'AlphaFold_Blat')
-    dir = d.name
-    from os.path import join
-    query_path = join(dir, 'query.fasta')
-    blat_output = join(dir, 'blat.out')
-    
-    # Write FASTA query file
-    fq = open(query_path, 'w')
-    fq.write(_fasta(sequences))
-    fq.close()
-
-    # Run BLAT
-    args = (blat_exe, database_path, query_path, blat_output, '-out=blast8', '-prot')
-    from subprocess import run
-    status = run(args)
-    if status.returncode != 0:
-        raise RuntimeError('blat failed: %s' % ' '.join(args))
-
-    # Parse blat results
-    seq_uids = _parse_blat_output(blat_output, sequences)
-
-    return seq_uids
-
-def _parse_blat_output(blat_output, sequences):
-
-    f = open(blat_output, 'r')
-    out_lines = f.readlines()
-    f.close()
-    seq_uids = {}
-    for line in out_lines:
-        fields = line.split()
-        s = int(fields[0])
-        seq = sequences[s]
-        if seq not in seq_uids:
-            uniprot_id, uniprot_name = fields[1].split('|')[1:3]
-            qstart, qend, mstart, mend = [int(p) for p in fields[6:10]]
-            useq = UniprotSequence(uniprot_id, uniprot_name,
-                                   (mstart, mend), (qstart, qend))
-            seq_uids[seq] = useq
-
-    return seq_uids
 
 class UniprotSequence:
     def __init__(self, uniprot_id, uniprot_name,
@@ -98,38 +56,57 @@ class UniprotSequence:
         return UniprotSequence(self.uniprot_id, self.uniprot_name,
                                self.database_sequence_range, self.query_sequence_range)
 
-def _fasta(sequence_strings, LINELEN=60):
-    lines = []
-    for s,seq in enumerate(sequence_strings):
-        lines.append('>%d' % s)
-        for i in range(0, len(seq), LINELEN):
-            lines.append(seq[i:i+LINELEN])
-        lines.append('')
-    return '\n'.join(lines)
-
-sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
-def _search_sequences_web(sequences, url = sequence_search_url):
-    import json
-    request = json.dumps({'sequences': sequences})
-    import requests
-    try:
-        r = requests.post(url, data=request)
-    except requests.exceptions.ConnectionError:
-        raise SearchError('Unable to reach AlphaFold sequence search web service\n\n%s' % url)
-    
-    if r.status_code != 200:
-        raise SearchError('AlphaFold sequence search web service failed (%s) "%s"\n\n%s'
-                          % (r.status_code, r.reason, url))
-
-    results = r.json()
-    if 'error' in results:
-        raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
-                          % (url, results['error']))
-    seq_uids = {seq : UniprotSequence(u['uniprot id'], u['uniprot name'],
-                                      (u['dbseq start'], u['dbseq end']),
-                                      (u['query start'], u['query end']))
-                for seq, u in zip(sequences, results['sequences']) if u}
-    return seq_uids
-        
 class SearchError(RuntimeError):
     pass
+
+class BlatJob(CxServicesJob):
+
+    RESULTS_FILENAME = "blat.out"
+
+    def __init__(self, session, sequences, report_status_messages = True):
+        super().__init__(session)
+        self.sequences = sequences
+        self.report_status_messages = report_status_messages
+        self.params = {
+            "sequences": sequences,
+            "output_file": self.RESULTS_FILENAME
+        }
+        self.start("blat", self.params, report_jobid = self.report_status_messages)
+
+    def get_chain_ids(self, chains):
+        await self.on_finish
+        return [(chain, self.seq_uniprot_ids[chain.characters].copy(chain.chain_id))
+                for chain in chains if chain.characters in self.seq_uniprot_ids]
+
+    def parse_blat_output(self, blat_output):
+        seq_uids = {}
+        for line in blat_output.split('\n')[:-1]: # We don't want the final blank line
+            fields = line.split()
+            s = int(fields[0])
+            seq = self.sequences[s]
+            if seq not in seq_uids:
+                uniprot_id, uniprot_name = fields[1].split('|')[1:]
+                qstart, qend, mstart, mend = [int(float(p)) for p in fields[6:10]]
+                useq = UniprotSequence(None, uniprot_id, uniprot_name,
+                                       (mstart, mend), (qstart, qend))
+                seq_uids[seq] = useq
+        return seq_uids
+
+    async def on_finish(self):
+        # Modelled after BlastProteinJob.on_finish()
+        logger = self.session.logger
+        if self.report_status_messages:
+            logger.info("AlphaFold BLAT finished.")
+            out = self.get_stdout()
+            if out:
+                logger.error("Standard output:\n" + out)
+        if not self.exited_normally():
+            err = self.get_stderr()
+            if err:
+                logger.bug("Standard error:\n" + err)
+        else:
+            results = self.get_file(self.RESULTS_FILENAME)
+            try:
+                return self.parse_blat_output(results)
+            except Exception as e:
+                logger.bug("BLAT output parsing error: %s" % str(e))
