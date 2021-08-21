@@ -286,6 +286,11 @@ Element::get_element(int i)
     auto ei = _elements.find(i);
     if (ei != _elements.end())
         return *(*ei).second;
+    if (i < 0 || i >= NUM_SUPPORTED_ELEMENTS) {
+        std::stringstream err_msg;
+        err_msg << "Cannot create Element with atomic number " << i;
+        throw std::out_of_range(err_msg.str().c_str());
+    }
     Element* e = new Element((AS)i);
     _elements[i] = e;
     return *e;
