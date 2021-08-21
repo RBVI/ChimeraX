@@ -34,6 +34,17 @@ class AlignmentsManager(StateManager, ProviderManager):
         self._viewers = {}
         super().__init__(name)
 
+    def __getitem__(self, i):
+        '''index into models using square brackets (e.g. session.models[i])'''
+        return list(self.alignments)[i]
+
+    def __iter__(self):
+        '''iterator over models'''
+        return iter(self.alignments)
+
+    def __len__(self):
+        return len(self.alignments)
+
     def add_provider(self, bundle_info, name, *, type=None,
             synonyms=[], subcommand_name=None, sequence_viewer=True, alignment_viewer=True, **kw):
         """Register an alignment header, or an alignment/sequence viewer and its associated subcommand.

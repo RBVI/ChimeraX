@@ -552,7 +552,12 @@ current text
 
 Note that the :py:meth:`~chimerax.core.state.State.take_snapshot` method could return any type
 of data, but a dictionary is very flexible, in case additional state needs to be stored in later
-versions of the tool.
+versions of the tool.  In the rare event that you have to make a change to the data that is not
+backwards compatible with previous versions of the bundle, you will need to bump
+the ``maxSessionVersion`` number in the :ref:`BundleInfo <BundleInfo>` tag of your bundle's
+bundle_info.xml file.
+Similarly, if your bundle can no longer handle session data from old versions of your bundle, you
+would need to increase the ``minSessionVersion``.
 
 The `flags` argument of :py:meth:`~chimerax.core.state.State.take_snapshot` can be ignored.
 It is intended for use in the future to distinguish between snapshots saved for sessions vs. those
