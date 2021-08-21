@@ -128,6 +128,9 @@ class MaestroParser:
                 name = attrs.get("s_m_atom_name", "")
             name = name.strip()
             atomic_number = attrs.get("i_m_atomic_number", 6)
+            if atomic_number < 1:
+                # Negative element number in bug #5087 that causes delayed crash.
+                atomic_number = 1
             element = Element.get_element(atomic_number)
             if not name:
                 name = element.name

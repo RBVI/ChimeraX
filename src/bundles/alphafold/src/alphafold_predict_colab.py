@@ -116,19 +116,22 @@ def sequence_databases():
             'name': 'uniref90',
             'url': db_prefix + '/uniref90_2021_03.fasta',
             'num chunks':59,
+            'max hits': 10000,
             'z value': 135301051
         },
         {
             'name': 'smallbfd',
             'url': db_prefix + '/bfd-first_non_consensus_sequences.fasta',
             'num chunks': 17,
-            'z value': 65984053
+            'max hits': 10000,
+            'z value': 65984053,
         },
         {
             'name': 'mgnify',
             'url': db_prefix + '/mgy_clusters_2019_05.fasta',
             'num chunks': 71,
-            'z value': 304820129
+            'max hits': 500,
+            'z value': 304820129,
         },
     ]
     if fast_test:
@@ -138,6 +141,7 @@ def sequence_databases():
 
 # Find the fastest responding mirror for sequence databases
 def fastest_sequence_db_mirror(test_url_pattern = 'https://storage.googleapis.com/alphafold-colab{:s}/latest/uniref90_2021_03.fasta.1'):
+    print ('Finding fastest mirror for sequence databases', end = '')
     from concurrent import futures
     ex = futures.ThreadPoolExecutor(3)
     def fetch(source):
@@ -150,6 +154,8 @@ def fastest_sequence_db_mirror(test_url_pattern = 'https://storage.googleapis.co
       source = f.result()
       ex.shutdown()
       break
+    mirror = (source[1:] if source else 'united states')
+    print (' using', mirror)
     return source
 
 # Search against 1 Gbyte chunks of sequence databases streamed from the web.
@@ -171,18 +177,18 @@ def jackhmmer_sequence_search(seq_file, databases, jackhmmer_binary_path = '/usr
             num_streamed_chunks=db['num chunks'],
             streaming_callback = progress_cb,
             z_value=db['z value'])
-        dbs.append((db_name, jackhmmer_runner.query(seq_file)))
+        dbs.append((db_name, jackhmmer_runner.query(seq_file), db['max hits']))
         print ('')
 
     return dbs
 
 # Extract the multiple sequence alignments from the Stockholm files.
-def multiple_seq_align(dbs, mgnify_max_hits = 501):
+def multiple_seq_align(dbs):
     msas = []
     deletion_matrices = []
-    full_msa = []
+    seen_already = set()
     db_counts = []
-    for db_name, db_results in dbs:
+    for db_name, db_results, max_hits in dbs:
       unsorted_results = []
       for i, result in enumerate(db_results):
         from alphafold.data import parsers
@@ -196,18 +202,28 @@ def multiple_seq_align(dbs, mgnify_max_hits = 501):
         unsorted_results.extend(zipped_results)
       sorted_by_evalue = sorted(unsorted_results, key=lambda x: x[3])
       db_msas, db_deletion_matrices, _, _ = zip(*sorted_by_evalue)
+
+      # Remove duplicates
+      db_msas_uniq = []
+      db_deletion_matrices_uniq = []
+      for msa, dmat in zip(db_msas, db_deletion_matrices):
+          if msa not in seen_already:
+              seen_already.add(msa)
+              db_msas_uniq.append(msa)
+              db_deletion_matrices_uniq.append(dmat)
+      db_msas, db_deletion_matrices = db_msas_uniq, db_deletion_matrices_uniq
+
       if db_msas:
-        if db_name == 'mgnify':
-          db_msas = db_msas[:mgnify_max_hits]
-          db_deletion_matrices = db_deletion_matrices[:mgnify_max_hits]
-        full_msa.extend(db_msas)
+        if max_hits is not None:
+          db_msas = db_msas[:max_hits]
+          db_deletion_matrices = db_deletion_matrices[:max_hits]
         msas.append(db_msas)
         deletion_matrices.append(db_deletion_matrices)
-        db_counts.append((db_name, len(set(db_msas))))
+        db_counts.append((db_name, len(db_msas)))
 
-    total_msa_size = len(set(full_msa))
+    total = sum([count for name, count in db_counts], 0)
     counts = ', '.join('%d %s' % (count,name) for name, count in db_counts)
-    print('%d similar sequences found (%s)' % (total_msa_size, counts))
+    print('%d similar sequences found (%s)' % (total, counts))
     return msas, deletion_matrices
 
 # Predict the structures
@@ -391,7 +407,6 @@ def run_prediction(sequence, output_dir = 'prediction', INSTALL_LOG = 'install_l
         install_openmm(INSTALL_LOG = INSTALL_LOG)
 
     set_environment_variables()
-    print ('Finding fastest mirror for sequence databases')
     databases = sequence_databases()
 
     if fast_test:
