@@ -661,8 +661,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                             from chimerax.geometry import angle
                             conflict = False
                             for metal in metal_coord[acc_atom]:
-                                if angle(donor_atom._hb_coord, acc_atom._hb_coord,
-                                        metal._hb_coord) < 90.0:
+                                if angle(donor_atom._hb_coord, acc_atom._hb_coord, metal._hb_coord) < 45.0:
                                     if verbose:
                                         session.logger.info("\tH-bond between %s and %s conflicts with"
                                             " metal coordination to %s" % (donor_atom, acc_atom, metal))
