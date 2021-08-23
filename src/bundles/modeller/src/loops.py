@@ -144,7 +144,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         from .common import write_modeller_scripts, get_license_key
         script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
             num_models, True, True, False, False, (loop_mod_prefix, loop_data), None, temp_path, False,
-            None, version=3)
+            None)
 
         input_file_map = []
 
