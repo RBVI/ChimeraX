@@ -327,13 +327,12 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, match_chains, num_models, target_seq_name, targets):
         self.session = session
         self.match_chains = match_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
-        self.show_gui = show_gui
 
     def process_ok_models(self, ok_models_text, stdout_text, get_pdb_model):
         ok_models_lines = ok_models_text.rstrip().split('\n')
@@ -381,7 +380,7 @@ class RunModeller(State):
         for alignment in reset_alignments:
             alignment.auto_associate = True
 
-        if self.show_gui and self.session.ui.is_gui:
+        if self.session.ui.is_gui:
             from .tool import ModellerResultsViewer
             ModellerResultsViewer(self.session, "Modeller Results", models, attr_names)
 
@@ -392,7 +391,6 @@ class RunModeller(State):
             'num_models': self.num_models,
             'target_seq_name': self.target_seq_name,
             'targets': self.targets,
-            'show_gui': self.show_gui
         }
 
     def set_state_from_snapshot(self, data):
@@ -400,14 +398,13 @@ class RunModeller(State):
         self.num_models = data['num_models']
         self.target_seq_name = data['target_seq_name']
         self.target = data['targets']
-        self.show_gui = data['show_gui']
 
 class ModellerWebService(RunModeller):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-            targets, show_gui):
+            targets):
 
-        super().__init__(session, match_chains, num_models, target_seq_name, targets, show_gui)
+        super().__init__(session, match_chains, num_models, target_seq_name, targets)
         self.input_file_map = input_file_map
         self.config_name = config_name
 

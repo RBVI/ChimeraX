@@ -12,12 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 ALL_MISSING = "all-missing"
-NT_MISSING = "non-terminal-missing"
+INTERNAL_MISSING = "internal-missing"
 
-special_region_values = [ALL_MISSING, NT_MISSING]
+special_region_values = [ALL_MISSING, INTERNAL_MISSING]
 
 def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, show_gui=True, temp_path=None):
+    license_key=None, num_models=5, protocol=None, temp_path=None):
     """
     Model or remodel parts of structure, typically missing structure regions.
 
@@ -49,8 +49,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     protocol
         Loop-modeling refinement method.  One of: standard, DOPE, or DOPE-HR. The value of None is
         treated as "standard".
-    show_gui
-        If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
     """
@@ -73,7 +71,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         for chain in model_chains:
             if region_info == ALL_MISSING:
                 chain_indices[chain] = find_missing(chain, seq, False)
-            elif region_info == NT_MISSING:
+            elif region_info == INTERNAL_MISSING:
                 chain_indices[chain] = find_missing(chain, seq, True)
             else:
                 chain_indices[chain] = region_info
@@ -140,7 +138,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 while end < len(chain) and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
-                loop_data.append((start+offset+1, end+offset))
+                loop_data.append((start+offset, end+offset-1))
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
@@ -203,7 +201,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         if executable_location is None:
             from .common import ModellerWebService
             job_runner = ModellerWebService(session, model_chains, num_models,
-                pir_target.name, input_file_map, config_name, [t[:2] for t in targets], show_gui)
+                pir_target.name, input_file_map, config_name, [t[:2] for t in targets])
         else:
             #TODO: job_runner = ModellerLocal(...)
             from chimerax.core.errors import LimitationError
@@ -212,20 +210,20 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         job_runner.run(block=block)
     return
 
-def find_missing(chain, seq, terminal):
+def find_missing(chain, seq, internal_only):
     match_map = seq.match_maps[chain]
     missing = []
     start_missing = None
     for i in range(len(seq)):
         if i in match_map:
             if start_missing is not None:
-                if not terminal or start_missing == 0:
+                if not internal_only or start_missing > 0:
                     missing.append((start_missing, i))
                 start_missing = None
         else:
             if start_missing is None:
                 start_missing = i
-    if start_missing is not None:
+    if start_missing is not None and not internal_only:
         missing.append((start_missing, len(seq)))
     return missing
 

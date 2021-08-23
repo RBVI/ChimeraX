@@ -13,7 +13,7 @@
 
 def model(session, targets, *, block=True, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
+    hydrogens=False, license_key=None, num_models=5, temp_path=None,
     thorough_opt=False, water_preserve=False):
     """
     Generate comparative models for the target sequences.
@@ -49,8 +49,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
         Number of models to generate for each template sequence
-    show_gui
-        If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
     thorough_opt
@@ -288,7 +286,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             session.logger.warning("Thorough optimization only supported when executing locally")
         from .common import ModellerWebService
         job_runner = ModellerWebService(session, match_chains, num_models,
-            pir_target.name, input_file_map, config_name, targets, show_gui)
+            pir_target.name, input_file_map, config_name, targets)
     else:
         #TODO: job_runner = ModellerLocal(...)
         from chimerax.core.errors import LimitationError
