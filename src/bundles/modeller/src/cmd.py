@@ -13,7 +13,7 @@
 
 def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_tool=True, temp_path=None, thorough_opt=False,
+    hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
     water_preserve=False):
     '''
     Command to generate a comparative model of one or more chains
@@ -34,13 +34,13 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         comparative.model(session, targets, block=block, multichain=multichain,
             custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-            hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_tool,
+            hydrogens=hydrogens, license_key=license_key, num_models=num_models,
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
     except common.ModelingError as e:
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, show_tool=True, temp_path=None):
+    license_key=None, num_models=5, protocol=None, temp_path=None):
     '''
     Command to model loops or refine structure regions
     '''
@@ -51,7 +51,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
         raise UserError("'chains' argument doe not match any chains")
     #TODO: consider if we want the modeled region to be a separate argument, so you could omit
     # the alignment specifier and yet still control the modeling region
-    from .loops import ALL_MISSING, NT_MISSING
+    from .loops import ALL_MISSING, INTERNAL_MISSING
     if targets is None:
         structure = None
         seq = None
@@ -87,7 +87,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
                         state = 3
                         break
             if state == 3:
-                model_type = NT_MISSING
+                model_type = INTERNAL_MISSING
                 break
             if some_none:
                 model_type = ALL_MISSING
@@ -122,7 +122,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
             executable_location=executable_location, license_key=license_key, num_models=num_models,
-            protocol=protocol, show_gui=show_tool, temp_path=temp_path)
+            protocol=protocol, temp_path=temp_path)
     except common.ModelingError as e:
         raise UserError(e)
 
@@ -143,11 +143,14 @@ def register_command(logger):
     from chimerax.atomic import AtomicStructuresArg, UniqueChainsArg
     desc = CmdDesc(
         required = [('targets', RepeatOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
-            ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg),
+        keyword = [('block', BoolArg), ('multichain', BoolArg),
+            #('custom_script', OpenFileNameArg), ('dist_restraints', OpenFileNameArg),
+            #('executable_location', OpenFileNameArg),
             ('fast', BoolArg), ('het_preserve', BoolArg), ('hydrogens', BoolArg),
-            ('license_key', PasswordArg), ('num_models', IntArg), ('show_tool', BoolArg),
-            ('temp_path', OpenFolderNameArg), ('thorough_opt', BoolArg), ('water_preserve', BoolArg)
+            ('license_key', PasswordArg), ('num_models', IntArg),
+            ('temp_path', OpenFolderNameArg),
+            #('thorough_opt', BoolArg),
+            ('water_preserve', BoolArg)
         ],
         synopsis = 'Use Modeller to generate comparative model'
     )
@@ -159,10 +162,11 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('targets', RepeatOf(LoopsRegionArg))],
         keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg),
-            ('chains', UniqueChainsArg), ('executable_location', OpenFileNameArg),
+            ('chains', UniqueChainsArg),
+            #('executable_location', OpenFileNameArg),
             ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])),
-            ('show_tool', BoolArg), ('temp_path', OpenFolderNameArg),
+            ('temp_path', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
