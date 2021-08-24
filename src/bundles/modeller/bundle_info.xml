@@ -24,6 +24,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: modeller comparative :: Sequence :: Generate comparative model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: modeller loops :: Sequence :: Fill missing structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: modeller refine :: Sequence :: Fill missing structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: modeller scores :: Sequence :: Fetch Modeller scores for a model</ChimeraXClassifier>
    <ChimeraXClassifier>Tool :: Modeller Comparative :: Sequence :: Generate comparative models</ChimeraXClassifier>
   </Classifiers>
