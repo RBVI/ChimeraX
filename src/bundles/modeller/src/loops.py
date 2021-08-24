@@ -120,10 +120,11 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     template_chars.append(suffix)
                     target_chars.append(seq.characters)
                     target_offsets[r.chain] = offset_i
+                    # Modeller completely skips unmodelled chains for indexing purposes
+                    offset_i += len(r.chain)
                 if r.chain == s.chains[-1]:
                     break
                 i += r.chain.num_existing_residues
-                offset_i += len(r.chain)
 
         # find the actual loop-boundaries, which needs to account for flexible extension and
         # ensure that the bounding residues actually exist
