@@ -12,10 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 def alphafold_predict(session, sequence):
+    if not _is_alphafold_available(session):
+        return
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
-        raise UserError('AlphaFold prediction currenlty running.  Can only run one at a time.')
+        raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
     ar.start(sequence)
 
 # ------------------------------------------------------------------------------
@@ -28,7 +30,7 @@ class AlphaFoldRun(ToolInstance):
 
         self._running = False
         self._sequence = None	# Sequence instance or subclass such as Chain
-        self._prediction_path = None
+        self._download_directory = None
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -98,34 +100,38 @@ class AlphaFoldRun(ToolInstance):
     
     def _download_requested(self, item):
         # "item" is an instance of QWebEngineDownloadItem
-        if item.suggestedFileName().endswith('.pdb'):
-            path = self._unique_download_path()
-            self._prediction_path = path
-            from os.path import dirname, basename
-            item.setDownloadDirectory(dirname(path))
-            item.setDownloadFileName(basename(path))
-            item.finished.connect(self._download_finished)
+        filename = item.suggestedFileName()
+        dir = self._download_directory
+        if dir is None:
+            self._download_directory = dir = self._unique_download_directory()
+        item.setDownloadDirectory(dir)
+        if filename == 'best_model.pdb':
+            item.finished.connect(self._downloaded_best_model)
+        elif  filename == 'results.zip':
+            item.finished.connect(self._unzip_results)
         item.accept()
 
-    def _unique_download_path(self):
+    def _unique_download_directory(self):
         from os.path import expanduser, join, exists
         ddir = expanduser('~/Downloads')
         adir = join(ddir, 'ChimeraX', 'AlphaFold')
         from os import makedirs
         makedirs(adir, exist_ok = True)
-        for i in range(1,100000):
-            path = join(adir, 'prediction_%d.pdb' % i)
+        for i in range(1,1000000):
+            path = join(adir, 'prediction_%d' % i)
             if not exists(path):
                 break
+        makedirs(path, exist_ok = True)
         return path
     
-    def _download_finished(self, *args, **kw):
-        self.session.logger.info('AlphaFold prediction finished')
+    def _downloaded_best_model(self, *args, **kw):
+        self.session.logger.info('AlphaFold prediction finished\n' +
+                                 'Results in %s' % self._download_directory)
         self._open_prediction()
 
     def _open_prediction(self):
-        path = self._prediction_path
-        from os.path import exists
+        from os.path import join, exists
+        path = join(self._download_directory, 'best_model.pdb')
         if not exists(path):
             self.session.logger.warning('Downloaded prediction file not found: %s' % path)
             return
@@ -140,7 +146,30 @@ class AlphaFoldRun(ToolInstance):
             from .match import _align_to_chain
             for m in models:
                 _align_to_chain(m, chain)
-        
+    
+    def _unzip_results(self, *args, **kw):
+        from os.path import join, exists
+        path = join(self._download_directory, 'results.zip')
+        if exists(path):
+            import zipfile
+            with zipfile.ZipFile(path, 'r') as z:
+                z.extractall(self._download_directory)
+
+# ------------------------------------------------------------------------------
+#
+def _is_alphafold_available(session):
+    '''Check if the AlphaFold web service has been discontinued or is down.'''
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_v1.html'
+    import requests
+    try:
+        r = requests.get(url)
+    except requests.exceptions.ConnectionError:
+        return True
+    if r.status_code == 200:
+        session.logger.error(r.text, is_html = True)
+        return False
+    return True
+
 # ------------------------------------------------------------------------------
 #
 def show_alphafold_run(session):
