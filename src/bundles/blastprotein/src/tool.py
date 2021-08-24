@@ -349,7 +349,7 @@ class ToolUI(HtmlToolInstance):
         from urllib.parse import parse_qs
         query = parse_qs(url.query())
         for code in query["match"]:
-            models, chain_id = self._blast_results.load_model(self.session, code)
+            models, chain_id = self._blast_results.load_model(self.session, code, self._ref_atomspec)
             if not self._ref_atomspec:
                 run(self.session, "select clear")
             else:

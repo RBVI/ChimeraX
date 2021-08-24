@@ -28,7 +28,7 @@ class Database(ABC):
     name: str = ""
 
     @abstractmethod
-    def load_model(chimerax_session, match_code):
+    def load_model(chimerax_session, match_code, ref_atomspec):
         pass
 
     @staticmethod
@@ -54,7 +54,7 @@ class NCBIDB(Database):
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
 
     @staticmethod
-    def load_model(chimerax_session, match_code):
+    def load_model(chimerax_session, match_code, ref_atomspec):
         """
         url: Instance of Qt.QtCore.QUrl
         """
@@ -113,11 +113,12 @@ class AlphaFoldDb(Database):
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
     @staticmethod
-    def load_model(chimerax_session, match_code):
-        models = run(chimerax_session, "alphafold fetch %s" % match_code)[0]
-        if isinstance(models, AtomicStructure):
-            models = [models]
-        return models, None
+    def load_model(chimerax_session, match_code, ref_atomspec):
+        cmd = "alphafold fetch %s" % match_code
+        if ref_atomspec:
+            cmd += ' alignTo %s' % ref_atomspec
+        run(chimerax_session, cmd)
+        return [], None
 
     def add_info(self, session, matches):
         for match in matches:
