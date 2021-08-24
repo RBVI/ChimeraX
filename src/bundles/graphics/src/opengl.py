@@ -201,7 +201,7 @@ class OpenGLContext:
                 from chimerax.graphics import OpenGLVersionError
                 raise OpenGLVersionError(
                     'ChimeraX requires an OpenGL graphics core profile.\n' +
-                    'Your computer graphics driver a non-core profile (version %d.%d).\n'
+                    'Your computer graphics driver is a non-core profile (version %d.%d).\n'
                     % (major, minor) +
                     'Try updating your graphics driver.')
 

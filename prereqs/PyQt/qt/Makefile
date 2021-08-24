@@ -73,11 +73,7 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-ifeq ($(OS),Darwin)
-	tar -x -C $(tmpdir) -f $(DISTRIBUTION)
-else
-	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
-endif
+	tar -xf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p1) < $$p ; \
