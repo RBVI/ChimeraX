@@ -171,8 +171,9 @@ def register_command(logger):
         synopsis = 'Use Modeller to model loops or refine structure'
     )
     register('modeller loops', desc, model_loops, logger=logger)
-    create_alias('modeller refine', "%s $*" % 'modeller loops', logger=logger)
-    #create_alias('modeller refine', "%s $*" % 'modeller loops', logger=logger, url="help:user/commands/matchmaker.html")
+    create_alias('modeller refine', "modeller loops $*", logger=logger
+        #, url="help:user/commands/matchmaker.html"
+        )
 
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],
