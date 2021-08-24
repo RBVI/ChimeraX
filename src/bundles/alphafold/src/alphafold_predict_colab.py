@@ -415,12 +415,12 @@ def run_prediction(sequence, output_dir = 'prediction', INSTALL_LOG = 'install_l
         predict_and_save(sequence, databases, output_dir)
 
     # Make a zip file of the predictions
-#    !zip -q -r {output_dir}.zip {output_dir}
-
-    # Download predictions.  Does not work on Safari 14.1, macOS 10.15.7
+    !cd {output_dir} ; zip -q -r ../results.zip *
+    
+    # Download predictions.  Does not download on Safari 14.1, macOS 10.15.7
     from google.colab import files
+    files.download('results.zip')
     files.download(f'{output_dir}/best_model.pdb')
-#    files.download(f'{output_dir}.zip')
 
 # ================================================================================================
 # Predict a structure for a sequence.
