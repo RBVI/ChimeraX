@@ -115,10 +115,23 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                 else:
                     prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
-                    template_chars.append(prefix)
-                    template_chars.append(regularized_seq(seq, r.chain).characters)
-                    template_chars.append(suffix)
-                    target_chars.append(seq.characters)
+                    chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
+                    template_chars.append(chain_template_chars)
+                    # prevent Modeller from filling in unmodelled missing structure by using '-'
+                    chain_target_chars = []
+                    seq_chars = seq.characters
+                    modeled = set()
+                    for start, end in chain_indices[r.chain]:
+                        start = max(start - adjacent_flexible, 0)
+                        end = min(end + adjacent_flexible, len(r.chain))
+                        modeled.update(range(start, end))
+                    for seq_i in range(len(seq_chars)):
+                        if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
+                            target_char = '-'
+                        else:
+                            target_char = seq_chars[seq_i]
+                        chain_target_chars.append(target_char)
+                    target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
                     # Modeller completely skips unmodelled chains for indexing purposes
                     offset_i += len(r.chain)
