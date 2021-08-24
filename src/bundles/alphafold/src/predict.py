@@ -12,10 +12,12 @@
 # === UCSF ChimeraX Copyright ===
 
 def alphafold_predict(session, sequence):
+    if not _is_alphafold_available(session):
+        return
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
-        raise UserError('AlphaFold prediction currenlty running.  Can only run one at a time.')
+        raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
     ar.start(sequence)
 
 # ------------------------------------------------------------------------------
@@ -140,7 +142,22 @@ class AlphaFoldRun(ToolInstance):
             from .match import _align_to_chain
             for m in models:
                 _align_to_chain(m, chain)
-        
+
+# ------------------------------------------------------------------------------
+#
+def _is_alphafold_available(session):
+    '''Check if the AlphaFold web service has been discontinued or is down.'''
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_v1.html'
+    import requests
+    try:
+        r = requests.get(url)
+    except requests.exceptions.ConnectionError:
+        return True
+    if r.status_code == 200:
+        session.logger.error(r.text, is_html = True)
+        return False
+    return True
+
 # ------------------------------------------------------------------------------
 #
 def show_alphafold_run(session):
