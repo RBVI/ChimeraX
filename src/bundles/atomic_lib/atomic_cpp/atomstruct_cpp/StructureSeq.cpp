@@ -271,8 +271,8 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
         if (ischain) {
             if (DestructionCoordinator::destruction_parent() != _structure)
                 _structure->remove_chain(dynamic_cast<Chain*>(this));
-            demote_to_sequence();
         }
+        demote_to_sequence();
     } else {
         _res_map.clear();
         int i = 0;
