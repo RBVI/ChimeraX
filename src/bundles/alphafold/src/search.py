@@ -14,28 +14,26 @@
 # -----------------------------------------------------------------------------
 # Search AlphaFold database for sequences
 #
-def chain_sequence_search(chains, min_length=20, local=False):
+def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
     '''
     Search all AlphaFold database sequences using blat.
     Return best match uniprot ids.
     '''
-    sequences = list(set(chain.characters for chain in chains
-                         if len(chain.characters) >= min_length))
-    if len(sequences) == 0:
-        return {}
+    useqs = list(set(seq for seq in sequences if len(seq) >= min_length))
+    if len(useqs) == 0:
+        return [None] * len(sequences)
 
-    session = chains[0].structure.session
-    session.logger.status('Searching AlphaFold database for %d sequence%s'
-                          % (len(sequences), _plural(sequences)))
+    if log is not None:
+        log.status('Searching AlphaFold database for %d sequence%s'
+                   % (len(useqs), _plural(useqs)))
                           
     if local:
-        seq_uniprot_ids = _search_sequences_local(sequences)
+        seq_uniprot_ids = _search_sequences_local(useqs)
     else:
-        seq_uniprot_ids = _search_sequences_web(sequences)
-    chain_uids = [(chain, seq_uniprot_ids[chain.characters].copy(chain.chain_id))
-                  for chain in chains if chain.characters in seq_uniprot_ids]
+        seq_uniprot_ids = _search_sequences_web(useqs)
+    seq_uids = [seq_uniprot_ids.get(seq) for seq in sequences]
     
-    return chain_uids
+    return seq_uids
 
 def _plural(seq):
     return 's' if len(seq) > 1 else ''
@@ -82,24 +80,23 @@ def _parse_blat_output(blat_output, sequences):
         if seq not in seq_uids:
             uniprot_id, uniprot_name = fields[1].split('|')[1:3]
             qstart, qend, mstart, mend = [int(p) for p in fields[6:10]]
-            useq = UniprotSequence(None, uniprot_id, uniprot_name,
+            useq = UniprotSequence(uniprot_id, uniprot_name,
                                    (mstart, mend), (qstart, qend))
             seq_uids[seq] = useq
 
     return seq_uids
 
 class UniprotSequence:
-    def __init__(self, chain_id, uniprot_id, uniprot_name,
-                 database_sequence_range, chain_sequence_range):
-        self.chain_id = chain_id
+    def __init__(self, uniprot_id, uniprot_name,
+                 database_sequence_range, query_sequence_range):
         self.uniprot_id = uniprot_id        
         self.uniprot_name = uniprot_name
         self.database_sequence_range = database_sequence_range
-        self.chain_sequence_range = chain_sequence_range
+        self.query_sequence_range = query_sequence_range
         self.range_from_sequence_match = True
-    def copy(self, chain_id):
-        return UniprotSequence(chain_id, self.uniprot_id, self.uniprot_name,
-                            self.database_sequence_range, self.chain_sequence_range)
+    def copy(self):
+        return UniprotSequence(self.uniprot_id, self.uniprot_name,
+                               self.database_sequence_range, self.query_sequence_range)
 
 def _fasta(sequence_strings, LINELEN=60):
     lines = []
@@ -128,7 +125,7 @@ def _search_sequences_web(sequences, url = sequence_search_url):
     if 'error' in results:
         raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
                           % (url, results['error']))
-    seq_uids = {seq : UniprotSequence(None, u['uniprot id'], u['uniprot name'],
+    seq_uids = {seq : UniprotSequence(u['uniprot id'], u['uniprot name'],
                                       (u['dbseq start'], u['dbseq end']),
                                       (u['query start'], u['query end']))
                 for seq, u in zip(sequences, results['sequences']) if u}
