@@ -16,6 +16,11 @@ from chimerax.core.toolshed import BundleAPI
 class _AlphaFoldBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        from . import panel
+        return panel.show_alphafold_panel(session)
+
+    @staticmethod
     def register_command(command_name, logger):
         if command_name == 'alphafold match':
             from . import match

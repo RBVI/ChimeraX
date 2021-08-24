@@ -23,10 +23,10 @@ Thumbs.db
 # Ignore a top-level symlink created to get lsp-pyright
 # imports working
 chimerax
-# Emacs
+# Editors (Emacs, Vi{,m}, etc)
 .projectile
-# vim
 *.swp
+.vscode
 errs*
 build
 pip.log
@@ -94,11 +94,21 @@ src/core/commands/_atomspec.py
 src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
-prereqs/PyQt/*commercial*
-prereqs/Python/python-*.tar.bz2
 prereqs/ambertools/ambertools-*.tar.bz2
+prereqs/chrpath/*.tar.gz
 prereqs/openmm/openmm-*.tar.bz2
+prereqs/openssl/*.gz
+prereqs/osmesa/*.bz2
+prereqs/p7zip/*.bz2
+prereqs/p7zip/*.xz
+prereqs/p7zip/7za
 prereqs/pytables/tables-*.tar.gz
+prereqs/Python/Python-*/
+prereqs/Python/python-*.tar.bz2
+prereqs/Python/*.xz
+prereqs/PyQt/*commercial*
+prereqs/PyQt/qt/*.xz
+prereqs/zlib/*.gz
 docs/license.html
 docs/license.txt
 docs/embedded.html
