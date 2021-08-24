@@ -30,6 +30,7 @@
     <ChimeraXClassifier>Command :: alphafold fetch :: Structure Analysis :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold search :: Structure Analysis :: Search AlphaFold database using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold predict :: Structure Analysis :: Predict a structure using AlphaFold</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: AlphaFold :: Structure Analysis :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
