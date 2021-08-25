@@ -287,7 +287,7 @@ todo_include_todos = True
 # intersphinx configuration:
 intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/stable/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/stable/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'python': ('https://docs.python.org/PYTHON_VERSION', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
