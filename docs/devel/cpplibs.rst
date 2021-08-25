@@ -15,7 +15,3 @@
 C++ Libraries
 =============
 
-.. toctree::
-    :maxdepth: 1
-
-    core/appdirs_cpp/appdirs_cpp.rst
