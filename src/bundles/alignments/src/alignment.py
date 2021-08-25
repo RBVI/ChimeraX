@@ -174,7 +174,7 @@ class Alignment(State):
         # handled later)
         new_match_maps = []
         if seq:
-            if isinstance(seq, StructureSeq) and not isinstance(models, Sequence):
+            if isinstance(seq, StructureSeq) and not models:
                 # if the sequence we're being asked to set up an association for is a
                 # StructureSeq then we already know what structure it associates with and how...
                 structures = []

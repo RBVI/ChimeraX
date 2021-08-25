@@ -52,8 +52,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
 
     ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
     MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
-    of the preceding coord set), 'skip' (don't fill in; use MODEL number as is for coordset ID), and
-    'compact' (don't fill in and use the next available coordset ID).
+    of the preceding coord set), 'ignore' (don't fill in; use MODEL number as is for coordset ID), and
+    'renumber' (don't fill in and use the next available coordset ID).
     """
 
     if isinstance(stream, str):
