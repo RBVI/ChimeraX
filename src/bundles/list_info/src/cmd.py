@@ -18,49 +18,49 @@ from .util import report_residues, report_atoms, report_attr, report_distmat
 
 def info(session, models=None, *, return_json=False):
     '''
-    Report state of models, such as whether they are displayed, color, number of children,
-    number of instances...
+    Report state of models, such as whether they are displayed, color, number of children, number of instances, etc.
 
-    Parameters
-    ----------
-    models : list of models
+    :param models: A list of models
+    :param return_json: Whether to return a list of JSON objects.
 
-    If 'return_json' is True, the returned JSON will be a list of JSON objects, one per model.  Each object
-    will have at a minimum the following name/value pairs:
+    If :code:`return_json` is :code:`True`, the returned JSON will be a list of JSON objects, one per model.
 
-        spec:  the atom specifier for this model
-        name:  the name of the model
-        shown:  whether the model-level display attribute is true
-        num triangles:  if the model is a surface of some kind, how many triangles does it have; for
-            non-surface models, this will be 0
-        num instances:  how many graphical "instances" of the model are there, so at least 1
-        num selected instances:  how many of the graphical instances are selected
+    Each object will have at a minimum the following key-value pairs:
+
+    :spec:  the atom specifier for this model
+    :name:  the name of the model
+    :shown:  whether the model-level display attribute is true
+    :num triangles:  if the model is a surface of some kind, how many triangles does it have; for \
+                         non-surface models, this will be 0
+    :num instances:  how many graphical "instances" of the model are there, so at least 1
+    :num selected instances:  how many of the graphical instances are selected
 
     For Structure (or AtomicStructure) models, there will be these additional name/value pairs:
 
-        num atoms:  the number of atoms
-        num_bonds:  the number of bonds
-        num residues:  the number of residues
-        chains:  a list of chain IDs for polymeric chains in the structure
-        num coordsets:  the number of coordinate sets in the structure
-        pseudobond groups:  list of JSON, one per pseudobond subgroup; those objects will have the following
-            name/value pairs:
+        :num atoms:  the number of atoms
+        :num_bonds:  the number of bonds
+        :num residues:  the number of residues
+        :chains:  a list of chain IDs for polymeric chains in the structure
+        :num coordsets:  the number of coordinate sets in the structure
+        :pseudobond groups:  list of JSON, one per pseudobond subgroup
 
-            name: name of the pseudobond group
-            num pseudobonds:  number of pseudobonds in the group
+        Pseudobond group objects will have the following name/value pairs:
 
-    For global PseudobondGroup models (i.e. not a submodel of a structure), there will be this additional
+            :name: name of the pseudobond group
+            :num pseudobonds:  number of pseudobonds in the group
+
+    For global PseudobondGroup models (i.e. not a submodel of a structure), there will be this additional \
     name/value pair:
 
-            num pseudobonds:  number of pseudobonds in the group
+        :num pseudobonds:  number of pseudobonds in the group
 
-    For Volume models, there will be additional names: size, step, voxel size, surface levels, image levels,
-        minimum value, maximum value, value type, and num symmetry operators.
+    For Volume models, there will be additional names: size, step, voxel size, surface levels, image levels, \
+    minimum value, maximum value, value type, and num symmetry operators.
     '''
     m = session.models
     if models is None:
         models = m.list()
-    
+
     if return_json:
         model_infos = []
     else:
@@ -96,9 +96,7 @@ def info_bounds(session, models=None, *, return_json=False):
     Report bounds of displayed parts of models in scene coordinates.
     If not models are given the bounds for the entire scene is reported.
 
-    Parameters
-    ----------
-    models : list of models
+    :param models: list of models
 
     If 'return_json' is True, the JSON returned depends on if 'models' is None.  If models is None,
     then the bounds of the scene is returned (null if no bounds), as a list [min, max] where min and max
@@ -135,12 +133,12 @@ def info_models(session, atoms=None, type_=None, attribute="name", *, return_jso
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per model.  Each object
     will have the following name/value pairs:
 
-        spec:  the atom specifier for this model
-        class:  the Python class of the model
-        attribute:  the attribute being tested for
-        present:  whether the attribute is defined in the model instance
-        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
-            also be the value for some instances where the attribute *is* present.
+        :spec:  the atom specifier for this model
+        :class:  the Python class of the model
+        :attribute:  the attribute being tested for
+        :present:  whether the attribute is defined in the model instance
+        :value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+                 also be the value for some instances where the attribute *is* present.
     '''
     if atoms is None:
         from chimerax.core.commands import atomspec
@@ -162,13 +160,13 @@ def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False)
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per chain.  Each object
     will have the following name/value pairs:
 
-        spec:  the atom specifier for this chain
-        sequence: a string containing the chain sequence
-        residues: a list of residue specifiers in the chain; for residues with no structure the "specifier"
-            will be null
-        attribute:  the attribute being tested for
-        present:  whether the attribute is defined in the chain instance
-        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+        :spec:  the atom specifier for this chain
+        :sequence: a string containing the chain sequence
+        :residues: a list of residue specifiers in the chain; for residues with no structure the "specifier"
+                   will be null
+        :attribute:  the attribute being tested for
+        :present:  whether the attribute is defined in the chain instance
+        :value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
             also be the value for some instances where the attribute *is* present.
     '''
     if atoms is None:
@@ -218,11 +216,11 @@ def info_residues(session, atoms=None, attribute="name", *, return_json=False):
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per residue.  Each object
     will have the following name/value pairs:
 
-        spec:  the atom specifier for this residue
-        attribute:  the attribute being tested for
-        present:  whether the attribute is defined in the residue instance
-        value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
-            also be the value for some instances where the attribute *is* present.
+        :spec:  the atom specifier for this residue
+        :attribute:  the attribute being tested for
+        :present:  whether the attribute is defined in the residue instance
+        :value:  the value of the attribute.  If 'present' is false, this will be null, which could possibly
+                 also be the value for some instances where the attribute *is* present.
     '''
     if atoms is None:
         from chimerax.core.commands import atomspec
@@ -355,9 +353,9 @@ def info_distmat(session, atoms, *, return_json=False):
     '''
     If 'return_json' is True, the returned JSON will be a JSON object, with the following name/value pairs:
 
-        atoms:  a list of the specifiers for the atoms used when computing the distance matrix
-        distance matrix:  the "flattened" upper-right triangle of the distance matrix, as per
-            http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
+        :atoms:  a list of the specifiers for the atoms used when computing the distance matrix
+        :distance matrix:  the "flattened" upper-right triangle of the distance matrix, as per
+                           http://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
     '''
     from scipy.spatial.distance import pdist
     if atoms is None:

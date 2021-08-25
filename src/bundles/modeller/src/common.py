@@ -333,6 +333,7 @@ class RunModeller(State):
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
+        self.chain_ids = match_chains.chain_ids
 
     def process_ok_models(self, ok_models_text, stdout_text, get_pdb_model):
         ok_models_lines = ok_models_text.rstrip().split('\n')
@@ -356,6 +357,8 @@ class RunModeller(State):
             for attr_name, val in zip(attr_names, scores):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
+            if model.num_chains == len(self.chain_ids):
+                model.chains.chain_ids = self.chain_ids
             if model.num_chains == len(self.match_chains):
                 pairings = list(zip(self.match_chains, model.chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
@@ -387,6 +390,7 @@ class RunModeller(State):
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
+            'chain_ids': self.chain_ids,
             'match_chains': self.match_chains,
             'num_models': self.num_models,
             'target_seq_name': self.target_seq_name,
@@ -394,6 +398,7 @@ class RunModeller(State):
         }
 
     def set_state_from_snapshot(self, data):
+        self.chain_ids = data.get('chain_ids', None)
         self.match_chains = data['match_chains']
         self.num_models = data['num_models']
         self.target_seq_name = data['target_seq_name']
