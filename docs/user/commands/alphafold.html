@@ -24,28 +24,22 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: alphafold</h3>
-
-<a name="fetch"></a>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>alphafold fetch</b> &nbsp;<i>uniprot-id</i>&nbsp;
-[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</h3>
-<a name="match"></a>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>alphafold match</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
-[&nbsp;<a href="#search"><b>search</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</h3>
 <p>
-The <b>alphafold</b> command fetches theoretical protein structures
-predicted by the
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> AI system
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+is an artificial intelligence method for predicting protein structures
+that has been highly successful in recent tests.
+The <b>alphafold</b> command:
+<ul>
+<li><a href="#fetch">finds and retrieves existing predictions</a> from the
 from the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>. Users of this resource should cite:
+target="_blank">AlphaFold Database</a>
+<li><a href="#predict">runs new predictions</a> with
+<a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold</a> using
+<a href="https://colab.research.google.com/signup" 
+target="_blank">Google Colab</a>
+</ul>
+Users should cite:
 </p>
 <blockquote>
 <a href="https://pubmed.ncbi.nlm.nih.gov/34265844/" target="_blank">
@@ -54,69 +48,101 @@ Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
 </blockquote>
 <p>
-It is important to realize that the predicted structures vary in
+Note that the predicted structures vary in
 confidence levels and should be interpreted with caution.
 The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 system predicts structures for single chains, not complexes; 
 assembling the individual predictions into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
-See
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
+See <a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
 target="_blank">comparing AlphaFold and experimental structures</a>.
-</p><p>
+See also: <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
+<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
+</p>
+
+<a name="fetch"></a>
+<a name="match"></a>
+<a name="search"></a>
+<p class="nav">
+[<a href="#top">back to top: alphafold</a>]
+</p>
+<h3>Getting Predictions from the AlphaFold Database</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold fetch</b> &nbsp;<i>uniprot-id</i>&nbsp;
+<span class="nowrap">[&nbsp;<a href="#alignTo"><b>alignTo</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]]</span>
+[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<a href="#search"><b>search</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold search</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
+[&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
+[&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+</blockquote>
+<p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-does not cover all sequences in
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
-but it can be searched for sequences similar to a query with
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a>
-or the <a href="blastprotein.html"><b>blastprotein</b></a> command.
-See also:
-<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
-</p><p>
-Which structures to fetch can be specified in two main ways.
+contains predictions for
+<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
+including humans. It does not cover all of 
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 </p>
-<ol>
-<li><a name="by-uniprot"></a>
-by <a href="https://www.uniprot.org/help/accession_numbers"
-target="_blank">UniProt accession number</a> using <b>alphafold fetch</b>
-or <b><a href="open.html#fetch">open</a></b>,
-for example:
+<ul>
+<li>The <b>alphafold fetch</b> command retrieves the prediction (if available)
+for a specific UniProt name or accession number. It is equivalent to using the
+<b><a href="open.html#fetch">open</a></b> command to fetch
+<b>from alphafold</b>. Examples:
 <blockquote>
 <b>alphafold fetch p29474</b>
 <br>&ndash; OR &ndash; (equivalent)<br>
 <b><a href="open.html#fetch">open</a> p29474 from alphafold</b>
 </blockquote>
-<li><a name="by-model"></a>
-by chain(s) of an experimentally determined atomic model already open in
-ChimeraX, for example:
+<li>The <b>alphafold match</b> command retrieves predictions for sequences
+the same as or similar to those of experimentally determined protein structures
+already open in ChimeraX, or other sequences independent of structure.
+Giving the model number of an atomic structure already open in ChimeraX 
+specifies all of its protein chains. Examples with <i>sequence</i> given as a
+<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>:
 <blockquote>
 <b>alphafold match #1</b>
 <br>
 <b>alphafold match #3/B,D trim false</b>
-</blockquote>
 <!-- example structure 3p5b -->
+</blockquote>
+Alternatively, the <i>sequence</i> can be given as any of the following:
+  <ul>
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a UniProt name or accession number
+  <li>plain text pasted directly into the command line
+  </ul>
 <p>
-Giving a model number specifies all of its protein chains.
-For each chain, <b>alphafold match</b>:
-</p>
-  <ol>
-  <li>retrieves the prediction, if any, from the
+For a specified structure chain, a prediction is obtained for its exact entry
+in UniProt if available, otherwise the single top hit per chain identified by
+<a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
+target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-for that chain's <a href="https://www.uniprot.org/help/accession_numbers"
-target="_blank">UniProt accession number</a>
-identified according to the <a href="#search"><b>search</b></a> setting
-  <li>makes the chain ID of the predicted structure the same as the
-  corresponding chain of the existing model
-  <li>superimposes the predicted structure on the corresponding
-  chain of the model using
-  <a href="matchmaker.html"><b>matchmaker</b></a> defaults
-  </ol>
-<p>
-For each retrieved prediction, the following are reported in a table
-in the <a href="../tools/log.html"><b>Log</b></a>:
+(<a href="#search">details...</a>).
+For each prediction with a corresponding structure chain
+from the <b>alphafold match</b> command or the
+<a href="#alignTo"><b>alignTo</b></a> option of <b>alphafold fetch</b>:
 </p>
+<ol>
+<li>the chain ID of the predicted structure is made the same as the
+corresponding chain of the existing model
+<li>the predicted structure is superimposed onto the existing chain using
+<a href="matchmaker.html"><b>matchmaker</b></a> defaults
+and the following are reported in a table
+in the <a href="../tools/log.html"><b>Log</b></a>:
   <ul>
   <li><b>Chain</b> &ndash; chain ID
   <li><a href="https://www.uniprot.org/help/entry_name" 
@@ -128,11 +154,51 @@ in the <a href="../tools/log.html"><b>Log</b></a>:
   <li><b>Length</b> &ndash; number of residues in the predicted structure
   <li><b>Seen</b> &ndash; number of residues with atomic coordinates 
   in the experimental structure
-  <li><b>% Id</b> &ndash; percent identity in the sequence alignment 
-generated by <a href="matchmaker.html"><b>matchmaker</b></a> for superposition;
-the number of positions with identical residues
-divided by the length of the shorter sequence
+  <li><b>% Id</b> &ndash; percent identity in the sequence alignment generated 
+  by <a href="matchmaker.html"><b>matchmaker</b></a> for superposition;
+  the number of positions with identical residues
+  divided by the length of the shorter sequence
+  </ul>
 </ol>
+<br>
+<li>The <b>alphafold search</b> command uses 
+a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
+hosted by the
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>
+to search the 
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+It differs from <b>alphafold match</b> in that it uses BLAST instead of BLAT,
+accepts only a single chain or sequence as input,
+and returns a list of hits for the user to inspect, 
+rather than fetching the single top hit per chain automatically.
+The query <i>sequence</i> can be given as any of the following:
+  <ul>
+  <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  corresponding to a single chain in an atomic structure open in ChimeraX
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a UniProt name or accession number
+  <li>plain text pasted directly into the command line
+  </ul>
+<p>
+The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i>
+to use for scoring the hits (uppercase or lowercase can be used): BLOSUM45,
+BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
+or IDENTITY.
+The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
+expectation value needed to qualify as a hit (default <b>1e-3</b>).
+Results can also be limited with the <b>maxSeqs</b> option
+(default <b>100</b>); this is the
+maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence.
+</p><p>
+When results are returned, the hits are listed in a
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
+Clicking the name of a hit uses
+<a href="#fetch"><b>alphafold fetch</b></a> to retrieve the prediction.
+</ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -140,6 +206,14 @@ divided by the length of the shorter sequence
 </p>
 <h4>Options</h4>
 
+<blockquote>
+<a name="alignTo"></a>
+<b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+<br>
+Superimpose the predicted structure from <b>alphafold fetch</b> onto
+a single chain in an already-open structure, and make its chain ID the same
+as that chain's. See also the <a href="#trim"><b>trim</b></a> option. 
+</blockquote>
 <blockquote>
 <a name="colorConfidence"></a>
 <b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -231,9 +305,7 @@ If a file specified for opening is not found in this local cache or
 <br>
 When fetching predictions with <b>alphafold match</b>, whether to
 <a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
-target="_blank">BLAT</a>
-search <a href="https://alphafold.ebi.ac.uk/download"
-target="_blank">the 21 proteomes in the database</a> for the closest match 
+target="_blank">BLAT</a> search the database for the most similar sequence
 if the <a href="uniprot.org/help/accession_numbers"
 target="_blank">UniProt accession number</a>
 for a chain is not provided in the experimental structure's input file,
@@ -255,12 +327,13 @@ tables in mmCIF.
 <a name="trim"></a>
 <b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When fetching predictions with <b>alphafold match</b>, whether to
-trim the predicted protein structures. If <b>true</b> (default):
+Whether to trim a predicted protein structure to the same residue range
+as the corresponding experimental structure given with the 
+<b>alphafold match</b> command or the <b>alignTo</b> option
+of <b>alphafold fetch</b>. If <b>true</b> (default):
 <ul>
-<li>Predictions with <a href="uniprot.org/help/accession_numbers"
-target="_blank">UniProt accession number</a>
-taken from the experimental structure's input file will be
+<li>Predictions with UniProt identifier determined by <b>alphafold match</b>
+from the experimental structure's input file will be
 trimmed to the same residue ranges as used in the experiment.
 These ranges are given in 
 <a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect3.html" target="_blank">DBREF records</a>
@@ -268,7 +341,8 @@ in PDB format and in
 <a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref.html" target="_blank">struct_ref</a> and
 <a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref_seq.html" target="_blank">struct_ref_seq</a>
 tables in mmCIF.
-<li>Predictions found by searching for the top sequence match in the 
+<li>Predictions retrieved with <b>alphafold fetch</b> or
+found by <b>alphafold match</b> searching for similar sequences in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 will be trimmed to start and end with the first and last aligned positions
 in the sequence alignment calculated by 
@@ -281,6 +355,42 @@ for the <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 sequences, which could be longer.
 </p>
 </blockquote>
+
+<a name="predict"></a>
+<p class="nav">
+[<a href="#top">back to top: alphafold</a>]
+</p>
+<h3>Running an AlphaFold Prediction</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold predict</b> &nbsp;<i>sequence</i>&nbsp;
+</blockquote>
+<p>
+The protein <i>sequence</i> to predict can be given as any of the following:
+</p>
+<ul>
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+corresponding to a single chain in an atomic structure open in ChimeraX
+<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li>a UniProt name or accession number
+<li>plain text pasted directly into the command line
+</ul>
+<p>
+AlphaFold calculations are run using
+<a href="https://colab.research.google.com/signup" 
+target="_blank">Google Colab</a>. 
+Users will need to have a Google account and to sign into it via
+a browser. Once that is done, the sign-in may be remembered depending
+on the user's browser settings; it is not kept in the 
+<a href="../preferences.html">ChimeraX preferences</a>.
+The free version of Colab does not allow for much run time.
+Those who want to run longer and/or more frequent
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+calculations can sign up for one of the
+<a href="https://colab.research.google.com/signup" 
+target="_blank">paid Colab plans</a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
