@@ -143,8 +143,10 @@ class AlphaFoldRun(ToolInstance):
         from chimerax.atomic import Chain
         if isinstance(self._sequence, Chain):
             chain = self._sequence
+            from .fetch import _color_by_confidence
             from .match import _align_to_chain
             for m in models:
+                _color_by_confidence(m)
                 _align_to_chain(m, chain)
     
     def _unzip_results(self, *args, **kw):
