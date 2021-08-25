@@ -392,6 +392,13 @@ void
 StructureSeq::set_chain_id(ChainID chain_id)
 {
     if (chain_id != _chain_id) {
+        std::string std_name("chain ");
+        std_name += _chain_id;
+        if (name() == std_name) {
+            std::string new_name("chain ");
+            new_name += chain_id;
+            set_name(new_name);
+        }
         _chain_id = chain_id;
         if (is_chain()) {
             _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),

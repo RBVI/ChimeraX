@@ -89,6 +89,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         chain_id = None
         target_offsets = {}
         offset_i = 0
+        match_chains = []
         while i < len(residues):
             r = residues[i]
             if chain_id is None:
@@ -135,6 +136,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_offsets[r.chain] = offset_i
                     # Modeller completely skips unmodelled chains for indexing purposes
                     offset_i += len(r.chain)
+                    match_chains.append(r.chain)
                 if r.chain == s.chains[-1]:
                     break
                 i += r.chain.num_existing_residues
@@ -211,10 +213,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains
-        model_chains = Chains(model_chains)
+        match_chains = Chains(match_chains)
         if executable_location is None:
             from .common import ModellerWebService
-            job_runner = ModellerWebService(session, model_chains, num_models,
+            job_runner = ModellerWebService(session, match_chains, num_models,
                 pir_target.name, input_file_map, config_name, [t[:2] for t in targets])
         else:
             #TODO: job_runner = ModellerLocal(...)
