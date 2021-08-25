@@ -366,7 +366,7 @@ class ModelMenu:
                              special_items = special_items, parent = f)
         self._menu = sm
         
-        mlist = session.models.list(type = class_filter)
+        mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:
             sm.value = mdisp[0]
