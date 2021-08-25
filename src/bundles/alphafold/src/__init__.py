@@ -47,10 +47,11 @@ class _AlphaFoldBundle(BundleAPI):
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg, Or, EnumOf
+                    from chimerax.atomic import ChainArg
                     return {
                         'color_confidence': BoolArg,
+                        'align_to': ChainArg,
                         'trim': BoolArg,
-                        'search': Or(EnumOf(['local']), BoolArg),
                     }
             return Info()
 

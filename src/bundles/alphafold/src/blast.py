@@ -35,7 +35,7 @@ def register_alphafold_search_command(logger):
         required = [('sequence', SequenceArg)],
         keyword = [("cutoff", FloatArg),
                    ("matrix", EnumOf(Matrices)),
-                   ("maxSeqs", IntArg)],
+                   ("max_sequences", IntArg)],
         synopsis = 'Search AlphaFold database for a sequence using BLAST'
     )
     register('alphafold search', desc, alphafold_search, logger=logger)

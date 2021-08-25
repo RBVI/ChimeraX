@@ -32,17 +32,16 @@ class AlphaFoldGUI(ToolInstance):
         from chimerax.ui.widgets import vertical_layout
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
-        heading = ('<html>AlphaFold structure database and prediction'
+        heading = ('<html>'
+                   'AlphaFold database and structure prediction'
                    '<ul style="margin-top: 5;">'
                    '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
                    '<li><b>Fetch</b> - Open the database structure with the most similar sequence'
                    '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers'
                    '</ul></html>')
-        
         from Qt.QtWidgets import QLabel
-        dl = QLabel(heading)
-        dl.setWordWrap(True)
-        layout.addWidget(dl)
+        hl = QLabel(heading)
+        layout.addWidget(hl)
         
         # Make menu to choose sequence
         sm = self._create_sequence_menu(parent)

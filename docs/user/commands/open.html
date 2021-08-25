@@ -192,6 +192,16 @@ for analysis of docking results from
 <a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>)
 </td>
 </tr><tr>
+<td align="center">
+<a href="http://viperdb.scripps.edu/" target="_blank">VIPERdb
+(Virus Particle Explorer database)</a></td>
+<td align="center"><b>viperdb</b></td>
+<td align="center">.vdb</td>
+<td align="center">PDB-format asymmetric unit in the VIPERdb
+coordinate system; capsid built automatically using 
+<a href="sym.html#symmetry"><b>sym</b></a>
+with <b>i222</b> symmetry</td>
+</tr><tr>
 <td align="center"><a href="../pseudobonds.html#pbfiles">Pseudobond
 file</a></td>
 <td align="center" class="text"><b>pseudobonds</b></td>
@@ -847,6 +857,21 @@ If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
 </blockquote>
 <blockquote>
+<a name="alignTo"></a>
+<b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+When <a href="#fetch">fetching</a>
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
+superimpose the predicted structure onto the specified chain using 
+<a href="matchmaker.html"><b>matchmaker</b></a> defaults, and make the
+chain ID of the prediction the same as the specified chain's.
+If the <b>trim</b> option is <b>true</b> (default),
+the predicted structure will be trimmed to start and end with the first 
+and last aligned positions in the sequence alignment calculated by
+<a href="matchmaker.html"><b>matchmaker</b></a>
+as part of the superposition step.
+</blockquote>
+<blockquote>
 <a name="atomic"></a>
 <b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -938,7 +963,8 @@ allowing them to follow their parent models.
 <a name="colorConfidence"></a>
 <b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When <a href="alphafold.html#by-uniprot">fetching an AlphaFold prediction</a>, 
+When <a href="#fetch">fetching</a>
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
 whether to <a href="color.html#byattribute">color</a> it by the
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field (default <b>true</b>):
@@ -1455,6 +1481,8 @@ and possibly numbers are recommended.
 The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
 <b>alphafold</b> fetch and specifies whether to color the predicted structures
 by a confidence value (<a href="#colorConfidence">details...</a>).
+The <b>alignTo</b> and <b>trim</b> options also apply only to 
+<b>alphafold</b> fetch (<a href="#alignTo">details...</a>).
 See also: <a href="alphafold.html"><b>alphafold</b></a>
 </p><p>
 See also: 

@@ -197,6 +197,7 @@ def _align_to_chain(structure, chain):
             if range:
                 structure.seq_match_range = range
             structure.seq_identity = _sequence_identity(rseq, mseq, range)
+            _set_match_attributes(rseq, mseq)
 
 def _sequence_identity(seq1, seq2, range2 = None):
     if range2:
@@ -235,6 +236,37 @@ def _sequence_match_range(seq1, seq2):
     if rnum1 is None:
         return None
     return (rnum1, rnum2)
+
+def _set_match_attributes(expt_seq, alpha_seq):
+    '''
+    Set sequence_match, missing_structure and c_alpha_distance residue attributes.
+    '''
+    for c1, r1, c2, r2 in _paired_residues(expt_seq, alpha_seq):
+        if r1:
+            r1.same_sequence = (c1 == c2)
+        if r2:
+            r2.same_sequence = (c1 == c2)
+            r2.missing_structure = (r1 is None)
+        d = _c_alpha_distance(r1, r2)
+        if d is not None:
+            r1.c_alpha_distance = r2.c_alpha_distance = d
+
+def _paired_residues(seq1, seq2):
+    c1, c2 = seq1.characters, seq2.characters
+    r1 = {seq1.ungapped_to_gapped(i):r for i,r in enumerate(seq1.residues)}
+    r2 = {seq2.ungapped_to_gapped(i):r for i,r in enumerate(seq2.residues)}
+    pairs = [(c1, r1.get(i), c2, r2.get(i)) for i,(c1,c2) in enumerate(zip(c1,c2))]
+    return pairs
+
+def _c_alpha_distance(r1, r2):
+    if r1 is None or r2 is None:
+        return None
+    ca1, ca2 = r1.find_atom("CA"), r2.find_atom("CA")
+    if ca1 is None or ca2 is None:
+        return None
+    from chimerax.geometry import distance
+    d = distance(ca1.scene_coord, ca2.scene_coord)
+    return d
 
 def _sequence_uniprot_ids(sequences):
     seq_uids = []
