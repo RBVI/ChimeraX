@@ -182,7 +182,7 @@ def show_alphafold_run(session):
 #
 def register_alphafold_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from .seqarg import SequenceArg
+    from chimerax.atomic import SequenceArg
     desc = CmdDesc(
         required = [('sequence', SequenceArg)],
         synopsis = 'Predict a structure with AlphaFold'

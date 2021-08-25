@@ -29,7 +29,7 @@ def alphafold_search(session, sequence, cutoff=1.0e-3, max_sequences=100, matrix
 #
 def register_alphafold_search_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, EnumOf
-    from .seqarg import SequenceArg
+    from chimerax.atomic import SequenceArg
     from chimerax.blastprotein.cmd import Matrices
     desc = CmdDesc(
         required = [('sequence', SequenceArg)],
