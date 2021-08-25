@@ -136,6 +136,7 @@ def fetch_pdb_info(session, entry_chain_list):
         for entry_chain in entry_chain_list])
     from urllib.request import urlopen, Request
     from urllib.error import URLError, HTTPError
+    import json
     try:
         req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
              "Content-Type": "application/graphql"
@@ -147,8 +148,8 @@ def fetch_pdb_info(session, entry_chain_list):
         session.logger.warning("Fetching BLAST PDB info failed: %s" % str(e))
         return {}
     else:
-        data = data.decode('utf-8').replace(':null', ':None')
-        info = eval(data)
+        data = data.decode('utf-8')
+        info = json.loads(data)
     if 'errors' in info:
         session.logger.warning("Fetching BLAST PDB info had errors: %s" % info['errors'])
     by_entry = {}

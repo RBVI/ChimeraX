@@ -29,7 +29,8 @@ def set_user_agent(profile):
     profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
 
 
-def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                   storage_name=None):
     """
     Create a QWebEngineProfile.  The profile provides shared access to the
     files in the html directory in the chimerax.ui package by rewriting links
@@ -47,8 +48,14 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
                   of QWebEngineDownloadItem, invoked when download is
                   requested.  Default None.
     handlers :    a dictionary of scheme handlers.  Default None.
+    storage_name : a string giving a unique name for persistent cookie storage.
+                   if this is None then cookies are only stored in memory.
     """
-    profile = QWebEngineProfile(parent)
+    if storage_name is None:
+        profile = QWebEngineProfile(parent)
+    else:
+        profile = QWebEngineProfile(storage_name, parent)
+
     set_user_agent(profile)
 
     def _intercept(request_info, *args, interceptor=interceptor):
@@ -360,20 +367,19 @@ class ChimeraXHtmlView(HtmlView):
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
 
-def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                            storage_name=None):
     """
     Create QWebEngineProfile with ChimeraX-specific scheme support
 
     See :py:func:`create_profile` for argument types.  The interceptor should
     incorporate the :py:func:`chimerax_intercept` functionality.
     """
-    if interceptor is None:
-        raise ValueError("Excepted interceptor")
     if schemes is None:
         schemes = ('cxcmd', 'help')
     else:
         schemes += type(schemes)(('cxcmd', 'help'))
-    return create_profile(parent, schemes, interceptor, download, handlers)
+    return create_profile(parent, schemes, interceptor, download, handlers, storage_name)
 
 
 def chimerax_intercept(request_info, *args, session=None, view=None):

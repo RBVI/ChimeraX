@@ -390,8 +390,10 @@ class Alignment(State):
 
         aseq = self.associations[sseq]
         if self.intrinsic and len(aseq.match_maps) == 1:
-            self.session.alignments.destroy_alignment(self)
-            return
+            if demotion:
+                self.session.alignments.destroy_alignment(self)
+                return
+            self.intrinsic = False
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]
         del self.associations[sseq]

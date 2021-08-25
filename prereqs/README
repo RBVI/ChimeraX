@@ -83,8 +83,6 @@ openmm/
 	Molecular dynamics used by tug tool
 openssl/
 	used to build Python
-p7zip/
-	used to unpack source distributions (on Mac), might provide lz compression
 pcre/
 	used for C++ regular expressions
 pep8-naming

@@ -28,7 +28,7 @@ class Database(ABC):
     name: str = ""
 
     @abstractmethod
-    def load_model(chimerax_session, match_code):
+    def load_model(chimerax_session, match_code, ref_atomspec):
         pass
 
     @staticmethod
@@ -54,7 +54,7 @@ class NCBIDB(Database):
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
 
     @staticmethod
-    def load_model(chimerax_session, match_code):
+    def load_model(chimerax_session, match_code, ref_atomspec):
         """
         url: Instance of Qt.QtCore.QUrl
         """
@@ -113,11 +113,12 @@ class AlphaFoldDb(Database):
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
     @staticmethod
-    def load_model(chimerax_session, match_code):
-        models = run(chimerax_session, "alphafold fetch %s" % match_code)[0]
-        if isinstance(models, AtomicStructure):
-            models = [models]
-        return models, None
+    def load_model(chimerax_session, match_code, ref_atomspec):
+        cmd = "alphafold fetch %s" % match_code
+        if ref_atomspec:
+            cmd += ' alignTo %s' % ref_atomspec
+        run(chimerax_session, cmd)
+        return [], None
 
     def add_info(self, session, matches):
         for match in matches:
@@ -125,8 +126,12 @@ class AlphaFoldDb(Database):
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            uniprot_name = raw_desc.split('=')[0].split(' ')[0].split('|')[-1]
             matches[match]["title"] = hit_title
             matches[match]["chain_species"] = self._get_species(raw_desc)
+            # Move UniProt ID to the correct column
+            matches[match]["chain_sequence_id"] = matches[match]["name"]
+            matches[match]["name"] = uniprot_name
 
     def _get_species(self, raw_desc):
         """AlphaFold's BLAST output is polluted with lots of metadata in the

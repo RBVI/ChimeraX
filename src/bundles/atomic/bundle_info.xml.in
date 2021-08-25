@@ -1,9 +1,9 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.28.1"
+<BundleInfo name="ChimeraX-Atomic" version="1.28.2"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
-            minSessionVersion="1" maxSessionVersion="1">
+            minSessionVersion="1" maxSessionVersion="2">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

@@ -45,7 +45,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
-	  viewdockx vive volume_menu vtk wavefront_obj \
+	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
 
 ifneq ($(OSARCH),DarwinArm64)

@@ -913,6 +913,8 @@ cdef class Element:
         " corresponding Element instance."
         cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
+            if ident < 0 or ident > cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS:
+                raise ValueError("Cannot create element with atomic number %d" % ident)
             ele_ptr = Element._int_to_cpp_element(ident)
         else:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
