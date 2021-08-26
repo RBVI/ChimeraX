@@ -2938,6 +2938,12 @@ extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
     error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
+extern "C" EXPORT void set_residue_number(void *residues, size_t n, int32_t *num)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_number, num);
+}
+
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
 {
     Residue **r = static_cast<Residue **>(residues);
