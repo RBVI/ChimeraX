@@ -417,7 +417,7 @@ def _sel_chain_cmd(structure, chain_id):
     
 def register_alphafold_match_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg
-    from .seqarg import SequencesArg
+    from chimerax.atomic import SequencesArg
     desc = CmdDesc(
         required = [('sequences', SequencesArg)],
         keyword = [('color_confidence', BoolArg),
