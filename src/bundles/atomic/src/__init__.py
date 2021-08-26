@@ -34,7 +34,8 @@ from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
-from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, ChainArg
+from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg
 from .args import AtomicStructuresArg, StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
