@@ -27,10 +27,6 @@ interface is available; otherwise, the results are logged.</Description>
     <Dependency name="ChimeraX-AlphaFold" version="~=1.0"/>
   </Dependencies>
 
-  <Providers>
-    <Provider name="blastprotein" manager="url_schemes"/>
-  </Providers>
-
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

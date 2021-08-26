@@ -1,25 +1,36 @@
-# we depend on the fact that entry information
-# is fetched before chain information
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
+# Copyright 2021 Regents of the University of California.
+# All rights reserved. This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
+# duplication and use. For details see:
 # http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import json
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from chimerax.ui import HtmlToolInstance
-import sys
+from Qt.QtWidgets import QPushButton
+from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QFormLayout
+from Qt.QtWidgets import QComboBox, QLabel, QWidget
+from Qt.QtWidgets import QSpinBox, QAbstractSpinBox
 
+from chimerax.atomic.widgets import ChainMenuButton
+from chimerax.core.commands import run
+from chimerax.core.errors import UserError
+from chimerax.core.session import Session
+from chimerax.core.tools import ToolInstance
+from chimerax.ui import MainToolWindow
+from chimerax.ui.options import IntOption, OptionsPanel
+from chimerax.ui.options import Option
+
+from .databases import AvailableDBs, AvailableMatrices
 
 _default_instance_prefix = "bp"
-_instance_map = {}
-
+_instance_map = {} # Map of blastprotein results names to results instances
 
 def _make_instance_name():
     n = 1
@@ -29,17 +40,14 @@ def _make_instance_name():
             return instance_name
         n += 1
 
-
 def find(instance_name):
     return _instance_map.get(instance_name, None)
-
 
 def find_match(instance_name):
     if instance_name is None:
         if len(_instance_map) == 1:
             for name, inst in _instance_map.items():
                 return inst
-        from chimerax.core.errors import UserError
         if len(_instance_map) > 1:
             raise UserError("no name specified with multiple "
                             "active blastprotein instances")
@@ -48,320 +56,197 @@ def find_match(instance_name):
     try:
         return _instance_map[instance_name]
     except KeyError:
-        from chimerax.core.errors import UserError
         raise UserError("no blastprotein instance named \"%s\"" % instance_name)
 
 
-class ToolUI(HtmlToolInstance):
+class BlastProteinFormWidget(QWidget):
+    def __init__(self, label, input_widget):
+        super().__init__()
+        layout = QFormLayout()
+        self.__label = QLabel(label)
+        self.__input_widget = input_widget()
+        layout.setWidget(0, QFormLayout.LabelRole, self.__label)
+        layout.setWidget(0, QFormLayout.FieldRole, self.__input_widget)
+        self.setLayout(layout)
+
+    def input_widget(self) -> QWidget:
+        return self.__input_widget
+
+    def label(self) -> QLabel:
+        return self.__label
+
+class BlastProteinTool(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    CUSTOM_SCHEME = "blastprotein"
+    help = "help:/user/tools/blastprotein.html"
 
-    help = "help:user/tools/blastprotein.html"
+    def __init__(self, session: Session, tool_name: str, *
+                 , chain: Optional[str] = None, db: str = AvailableDBs[0]
+                 , seqs: Optional[int] = 100, matrix: str = AvailableMatrices[0]
+                 , cutoff: Optional[int] = -3, instance_name: Optional[str] = None):
+        super().__init__(session, tool_name)
 
-    def __init__(self, session, tool_name, blast_results=None, params=None, *,
-                 instance_name=None):
-        # ``session`` - ``chimerax.core.session.Session`` instance
-        # ``tool_name`` - ``str`` instance
-
-        # Set name displayed on title bar
         if instance_name is None:
             instance_name = _make_instance_name()
         _instance_map[instance_name] = self
-        display_name = "%s [name: %s]" % (tool_name, instance_name)
-
-        # Initialize base class.  ``size_hint`` is the suggested
-        # initial tool size in pixels.  For debugging, add
-        # "log_errors=True" to get Javascript errors logged
-        # to the ChimeraX log window.
-        super().__init__(session, display_name, size_hint=(575, 400),
-                         log_errors=True)
-        self._initialized = False
         self._instance_name = instance_name
-        self._params = params
-        self._chain_map = {}
+        self._instance_name_formatted = "[name: %s]" % instance_name
+        self._initialized = False
+        self._params = None
+        self._chain_map = None
         self._hits = None
         self._ref_atomspec = None
-        self._blast_results = blast_results
+        self._blast_results = None
         self._sequences = {}
         self._viewer_index = 1
+
+        self._protein_chain = chain
+        self._current_database = db
+        self._num_sequences = seqs
+        self._current_matrix = matrix
+        self._cutoff = cutoff
+
+        self.display_name = "Blastprotein" + " " + self._instance_name_formatted
+        self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
+        self.tool_window = MainToolWindow(self)
         self._build_ui()
 
     def _build_ui(self):
-        # Fill in html viewer with initial page in the module
-        import os.path
-        html_file = os.path.join(os.path.dirname(__file__), "gui.html")
-        import pathlib
-        self.html_view.setUrl(pathlib.Path(html_file).as_uri())
-
-    def handle_scheme(self, url):
         """
-        Called when GUI sets browser URL location.
-        url: Qt.QtCore.QUrl instance
+        Build the BlastProtein Qt GUI.
+
+        Args:
+            chain:
+            database:
+            num_sequences:
+            matrix:
+            cutoff:
+
+        Parameters are exposed from the start so that they may be correctly set
+        if the BlastProtein GUI is spawned as the result of a blastprotein command
+        being entered into the ChimeraX command line.
         """
+        main_layout = QVBoxLayout()
+        input_container_row1 = QWidget()
+        menu_layout_row1 = QHBoxLayout()
+        input_container_row2 = QWidget()
+        menu_layout_row2 = QHBoxLayout()
 
-        # First check that the path is a real command
-        command = url.path()
-        if command == "initialize":
-            self.initialize()
-        elif command == "search":
-            self.blast(url)
-        elif command == "load":
-            self.load(url)
-        elif command == "update_models":
-            self.update_models()
-        elif command == "show_mav":
-            from urllib.parse import parse_qs
-            query = parse_qs(url.query())
-            if 'ids' not in query:
-                self.session.logger.info("No sequences to show.")
-            else:
-                id_list = [int(n) for n in query["ids"][0].split(',')]
-                self.show_mav(id_list)
-        else:
-            from chimerax.core.errors import UserError
-            raise UserError("unknown blastprotein command: %s" % command)
+        self.menu_widgets['chain'] = ChainMenuButton(self.session, no_value_button_text = "No chain chosen")
 
+        self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox)
 
-    def update_models(self, trigger=None, trigger_data=None):
-        """
-        Update the <select> options in the web form with current
-        list of chains in all atomic structures.  Also enable/disable
-        submit buttons depending on whether there are any structures open.
-        """
+        self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox)
+        self.menu_widgets['sequences'].input_widget().setRange(1, 5000)
+        self.menu_widgets['sequences'].input_widget().setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-        # Get the list of atomic structures
-        if not self._initialized:
-            return
-        from chimerax.atomic import AtomicStructure, Residue
-        all_chains = []
-        for m in self.session.models.list(type=AtomicStructure):
-            all_chains.extend([chain for chain in m.chains
-                                     if chain.polymer_type == Residue.PT_AMINO])
-        self._chain_map = {chain.atomspec.replace('/', ' ').strip():chain
-                           for chain in all_chains}
+        self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox)
 
-        # Construct Javascript for updating <select> and submit buttons
-        if not self._chain_map:
-            chain_labels = []
-        else:
-            chain_labels = list(sorted(self._chain_map.keys()))
-        import json
-        js = "chains_update(%s);" % json.dumps(chain_labels)
-        self.html_view.runJavaScript(js)
+        self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox)
+        self.menu_widgets['cutoff'].input_widget().setRange(-100, 100)
+        self.menu_widgets['cutoff'].input_widget().setButtonSymbols(QAbstractSpinBox.NoButtons)
 
+        self.menu_widgets['start'] = QPushButton("BLAST")
+
+        # Lay the menu out
+        menu_layout_row1.addWidget(self.menu_widgets['chain'])
+        menu_layout_row1.addWidget(self.menu_widgets['database'])
+        menu_layout_row1.addWidget(self.menu_widgets['sequences'])
+
+        menu_layout_row2.addWidget(self.menu_widgets['matrices'])
+        menu_layout_row2.addWidget(self.menu_widgets['cutoff'])
+        menu_layout_row2.addWidget(self.menu_widgets['start'])
+
+        # Functionalize the menu
+        self.menu_widgets['database'].input_widget().addItems(AvailableDBs)
+        self.menu_widgets['matrices'].input_widget().addItems(AvailableMatrices)
+        self.menu_widgets['start'].clicked.connect(self._blast_pressed)
+
+        # Fill in blastprotein's default arguments
+        self.menu_widgets['database'].input_widget().setCurrentIndex(AvailableDBs.index(self._current_database))
+        self.menu_widgets['sequences'].input_widget().setValue(self._num_sequences)
+        self.menu_widgets['matrices'].input_widget().setCurrentIndex(AvailableMatrices.index(self._current_matrix))
+        self.menu_widgets['cutoff'].input_widget().setValue(self._cutoff)
+
+        input_container_row1.setLayout(menu_layout_row1)
+        input_container_row2.setLayout(menu_layout_row2)
+        main_layout.addWidget(input_container_row1)
+        main_layout.addWidget(input_container_row2)
+
+        self.tool_window.ui_area.setLayout(main_layout)
+        self.tool_window.manage('side')
 
     #
     # Initialize after GUI is ready
     #
-
-    def initialize(self):
-        self._initialized = True
-        self.update_models()
-        if self._params:
-            self._show_params(self._params)
-            for k, v in self._params:
-                if k == "chain":
-                    self._ref_atomspec = v
-        if self._blast_results:
-            self._show_results(self._ref_atomspec, self._blast_results)
-        elif self._hits:
-            self._show_hits()
-
+    #def initialize(self):
+    #    self._initialized = True
+    #    self.update_models()
+    #    if self._params:
+    #        self._show_params(self._params)
+    #        for k, v in self._params:
+    #            if k == "chain":
+    #                self._ref_atomspec = v
+    #    if self._blast_results:
+    #        self._show_results(self._ref_atomspec, self._blast_results)
+    #    elif self._hits:
+    #        self._show_hits()
 
     #
-    # Code for running BLAST search
+    # Data population and action callbacks for menu items
     #
+    def _run_blast_job(self) -> None:
+        try:
+            chain = self.menu_widgets['chain'].get_value().string().split(" ")[-1]
+        except:
+            err = "Cannot run BLAST without a chain."
+            if len(self.session.models) == 0:
+                err = err + " " + "Please open a model and select a chain."
+            raise UserError(err)
+        else:
+            cmd_text = [
+                "blastprotein"
+                # When two or more models are displayed the protein name is inserted
+                # before the Model #/Chain Name. Grabbing list[-1] always gets either
+                # the only element or the Model #/Chain Name since it comes last.
+                , chain
+                , "database", self.menu_widgets['database'].input_widget().currentText()
+                , "cutoff"
+                , "".join(["1e", str(self._cutoff)])
+                , "matrix", self.menu_widgets['matrices'].input_widget().currentText()
+                , "maxSeqs", str(self._num_sequences)
+                , "name", str(self._instance_name) # TODO: Is this necessary?
+            ]
+            run(self.session, " ".join(cmd_text))
 
-    def blast(self, url):
-        # Collect the optional parameters from URL query parameters
-        # and construct a command to execute
-        from urllib.parse import parse_qs
-        query = parse_qs(url.query())
-        chain = self._arg_chain(query["chain"])
-        database = self._arg_database(query["database"])
-        cutoff = self._arg_cutoff(query["cutoff"])
-        matrix = self._arg_matrix(query["matrix"])
-        max_seqs = self._arg_max_seqs(query["maxSeqs"])
-        cmd_text = ["blastprotein", chain,
-                    "database", database,
-                    "cutoff", cutoff,
-                    "matrix", matrix,
-                    "maxSeqs", max_seqs,
-                    "name", str(self._instance_name)]
-        cmd = ' '.join(cmd_text)
-        from chimerax.core.commands import run
-        run(self.session, cmd)
-        self.html_view.runJavaScript("status('Waiting for results');")
 
-    def _arg_chain(self, chains):
-        if len(chains) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("BlastProtein is limited to one chain only.")
-        chain = self._chain_map[chains[0]]
-        return chain.atomspec
+    def _blast_pressed(self) -> None:
+        self._run_blast_job()
 
-    def _arg_database(self, databases):
-        if len(databases) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("BlastProtein is limited to one database only.")
-        return databases[0]
+    def _on_num_sequences_changed(self, value) -> None:
+        self._num_sequences = value
 
-    def _arg_cutoff(self, cutoffs):
-        if len(cutoffs) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("BlastProtein is limited to one cutoff only.")
-        return "1e" + cutoffs[0]
-
-    def _arg_matrix(self, matrices):
-        if len(matrices) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("BlastProtein is limited to one matrix only.")
-        return matrices[0]
-
-    def _arg_max_seqs(self, max_seqs):
-        if len(max_seqs) != 1:
-            from chimerax.core.errors import UserError
-            raise UserError("BlastProtein is limited to one hit limit only.")
-        return max_seqs[0]
+    def _on_cutoff_value_changed(self, value) -> None:
+        self._cutoff = value
 
     #
-    # Code for displaying matches as multiple sequence alignment
+    # Uncategorized
     #
-
-    def show_mav_cmd(self, selected):
-        import json
-        js = "show_mav(%s);" % json.dumps(selected)
-        self.html_view.runJavaScript(js)
-
-    def show_mav(self, ids):
-        # Collect names and sequences of selected matches.
-        # All sequences should have the same length because
-        # they include gaps generated from BLAST alignment.
-        ids.insert(0, 0)
-        names = []
-        seqs = []
-        for sid in ids:
-            name, seq = self._sequences[sid]
-            names.append(name)
-            seqs.append(seq)
-        # Find columns that are gaps in all sequences and remove them.
-        all_gaps = set()
-        for i in range(len(seqs[0])):
-            for seq in seqs:
-                if seq[i].isalpha():
-                    break
-            else:
-                all_gaps.add(i)
-        if all_gaps:
-            for i in range(len(seqs)):
-                seq = seqs[i]
-                new_seq = ''.join([seq[n] for n in range(len(seq))
-                                   if n not in all_gaps])
-                seqs[i] = new_seq
-        # Generate multiple sequence alignment file
-        # Ask sequence viewer to display alignment
-        from chimerax.atomic import Sequence
-        seqs = [Sequence(name=name, characters=seqs[i])
-                for i, name in enumerate(names)]
-        name = "%s [%d]" % (self._instance_name, self._viewer_index)
-        self.session.alignments.new_alignment(seqs, name)
-
-    def _write_fasta(self, f, name, seq):
+    # TODO: Are these functions used?
+    def _write_fasta(self, f, name, seq) -> None:
         print(name, len(seq))
         print(">", name, file=f)
         block_size = 60
         for i in range(0, len(seq), block_size):
             print(seq[i:i+block_size], file=f)
 
-    #
-    # Callbacks for BlastProteinJob
-    #
-
-    def job_finished(self, job, blast_results, params):
-        self._params = params
-        self._show_params(params)
-        self._blast_results = blast_results
-        self._show_results(job.atomspec, self._blast_results)
-        self.html_view.runJavaScript("status('');")
-
-    def _show_results(self, atomspec, blast_results):
-        # blast_results is either None or a subclass of databases.Database
-        self._ref_atomspec = atomspec
-        hits = []
-        self._sequences = {}
-        if blast_results is not None:
-            query_match = blast_results.parser.matches[0]
-            if self._ref_atomspec:
-                name = self._ref_atomspec
-            else:
-                name = query_match.name
-            self._sequences[0] = (name, query_match.sequence)
-
-            match_chains = {}
-
-            for n, m in enumerate(blast_results.parser.matches[1:]):
-                sid = n + 1
-                hit = {"id":sid, "evalue":m.evalue, "score":m.score,
-                       "description":m.description}
-                if m.match:
-                    hit["name"] = m.match
-                    hit["url"] = "%s:load?match=%s" % (self.CUSTOM_SCHEME, m.match)
-                    match_chains[m.match] = hit
-                else:
-                    hit = blast_results.add_url(hit, m)
-                hits.append(hit)
-                self._sequences[sid] = (hit["name"], m.sequence)
-
-            # TODO: Make what this function does more explicit. It works on the
-            # hits that are in match_chain's hit dictionary, but that's not
-            # immediately clear.
-            blast_results.add_info(self.session, match_chains)
-
-        self._hits = hits
-        self._show_hits()
-
-    def _show_params(self, params):
-        import json
-        js = "params_update(%s)" % json.dumps(params)
-        self.html_view.runJavaScript(js)
-
-    def _show_hits(self):
-        import json
-        js = "table_update(%s);" % json.dumps(self._hits)
-        self.html_view.runJavaScript(js)
-
     def job_failed(self, job, error):
-        from chimerax.core.errors import UserError
         raise UserError("BlastProtein failed: %s" % error)
 
-
     #
-    # Code for loading (and spatially matching) a match entry
+    # Saving / Restoring Sessions
     #
-
-    def load(self, url) -> None:
-        """Load the model from the results database.
-        url: Instance of Qt.QtCore.QUrl
-        """
-        from chimerax.core.commands import run
-        from urllib.parse import parse_qs
-        query = parse_qs(url.query())
-        for code in query["match"]:
-            models, chain_id = self._blast_results.load_model(self.session, code, self._ref_atomspec)
-            if not self._ref_atomspec:
-                run(self.session, "select clear")
-            else:
-                for m in models:
-                    self._blast_results.display_model(self.session, self._ref_atomspec, m, chain_id)
-
-
-
-    #
-    # Code for saving and restoring session
-    #
-
     def take_snapshot(self, session, flags):
         data = {
             "version": 1,
@@ -375,7 +260,6 @@ class ToolUI(HtmlToolInstance):
             "_viewer_index": self._viewer_index,
         }
         return data
-
 
     @classmethod
     def restore_snapshot(cls, session, data):
