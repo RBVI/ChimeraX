@@ -327,13 +327,14 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, targets):
+    def __init__(self, session, match_chains, num_models, target_seq_name, targets, *, res_numberings=None):
         self.session = session
         self.match_chains = match_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
         self.chain_ids = match_chains.chain_ids
+        self.res_numberings = res_numberings
 
     def process_ok_models(self, ok_models_text, stdout_text, get_pdb_model):
         ok_models_lines = ok_models_text.rstrip().split('\n')
@@ -359,6 +360,12 @@ class RunModeller(State):
             model.name = self.target_seq_name
             if model.num_chains == len(self.chain_ids):
                 model.chains.chain_ids = self.chain_ids
+            if self.res_numberings is not None and len(self.res_numberings) == model.num_chains:
+                for chain, renumbering in zip(model.chains, self.res_numberings):
+                    new_numbers, new_inserts = renumbering
+                    existing = chain.existing_residues
+                    existing.numbers = new_numbers
+                    existing.insertion_codes = new_inserts
             if model.num_chains == len(self.match_chains):
                 pairings = list(zip(self.match_chains, model.chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
@@ -393,6 +400,7 @@ class RunModeller(State):
             'chain_ids': self.chain_ids,
             'match_chains': self.match_chains,
             'num_models': self.num_models,
+            'res_numberings': self.res_numberings,
             'target_seq_name': self.target_seq_name,
             'targets': self.targets,
         }
@@ -401,15 +409,16 @@ class RunModeller(State):
         self.chain_ids = data.get('chain_ids', None)
         self.match_chains = data['match_chains']
         self.num_models = data['num_models']
+        self.res_numberings = data.get('res_numberings', None)
         self.target_seq_name = data['target_seq_name']
         self.target = data['targets']
 
 class ModellerWebService(RunModeller):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-            targets):
+            targets, **kw):
 
-        super().__init__(session, match_chains, num_models, target_seq_name, targets)
+        super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
         self.input_file_map = input_file_map
         self.config_name = config_name
 

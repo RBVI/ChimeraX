@@ -1228,9 +1228,14 @@ cdef class CyResidue:
 
     @property
     def number(self):
-        "Supported API. Integer sequence position number from input data file. Read only."
+        "Supported API. Integer sequence position number from input data file."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.number()
+
+    @number.setter
+    def number(self, num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_number(num)
 
     @property
     def omega(self):
