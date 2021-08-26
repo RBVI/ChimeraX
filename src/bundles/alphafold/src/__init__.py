@@ -17,8 +17,12 @@ class _AlphaFoldBundle(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from . import panel
-        return panel.show_alphafold_panel(session)
+        if tool_name == 'AlphaFold':
+            from . import panel
+            return panel.show_alphafold_panel(session)
+        elif tool_name == 'AlphaFold Coloring':
+            from . import colorgui
+            return colorgui.show_alphafold_coloring_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):
