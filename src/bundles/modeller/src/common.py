@@ -373,6 +373,20 @@ class RunModeller(State):
                     cutoff_distance=mm.defaults['iter_cutoff'])
             else:
                 match_okay = False
+            # since the residue numbering was initially consecutive, no long bonds got converted to
+            # missing-structure pseudobonds, so we have to convert them by hand (simply by deleting them)
+            res_map = { r: i for i, r in enumerate(model.residues) }
+            for b in model.bonds[:]:
+                a1, a2 = b.atoms
+                r1, r2 = a1.residue, a2.residue
+                if abs(res_map[r1] - res_map[r2]) != 1:
+                    continue
+                if not r1.chain or r1.chain != r2.chain:
+                    continue
+                if abs(r1.number - r2.number) == 1:
+                    continue
+                if b.length > 4.0:
+                    b.structure.delete_bond(b)
             models.append(model)
         if not match_okay:
             self.session.logger.warning("The number of model chains does not match the number used from"
