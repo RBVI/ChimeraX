@@ -37,7 +37,9 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
     model_name = 'AlphaFold %s' % uniprot_id
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
                                                     name = model_name, **kw)
-
+    for m in models:
+        m.alphafold = True
+        
     if color_confidence:
         for s in models:
             # Set initial style so confidence coloring is not replaced.

@@ -133,6 +133,7 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
             missing[uid.uniprot_id] = [seq]
             models = []
         for alphafold_model in models:
+            alphafold_model.alphafold = True
             alphafold_model._log_info = False          # Don't log chain tables
             alphafold_model.uniprot_id = uid.uniprot_id
             alphafold_model.uniprot_name = uid.uniprot_name
@@ -361,6 +362,7 @@ def _group_chains_by_structure(seq_models):
     for structure, models in struct_models.items():
         from chimerax.core.models import Model
         group = Model('%s AlphaFold' % structure.name, structure.session)
+        group.alphafold = True
         group.added_to_session = lambda session, g=group: _log_alphafold_chain_info(g)
         group.add(models)
         mlist.append(group)

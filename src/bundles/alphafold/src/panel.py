@@ -160,6 +160,7 @@ class AlphaFoldGUI(ToolInstance):
                        [('Search', self._search),
                         ('Fetch', self._fetch),
                         ('Predict', self._predict),
+                        ('Coloring', self._coloring),
                         ('Help', self._show_help)],
                        spacing = 10)
         return f
@@ -178,6 +179,9 @@ class AlphaFoldGUI(ToolInstance):
         self._run_command('match')
     def _predict(self):
         self._run_command('predict')
+    def _coloring(self):
+        from . import colorgui
+        colorgui.show_alphafold_coloring_panel(self.session)
         
     # ---------------------------------------------------------------------------
     #

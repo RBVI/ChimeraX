@@ -422,7 +422,7 @@ def combine_operation(volumes, operation, subregion, step,
         v0 = volumes[0] if volumes else None
         if value_type is None:
             value_type = v0.data.value_type if volumes else gv.data.value_type
-        rg = gv.region_grid(r, value_type = value_type, new_spacing = spacing)
+        rg = gv.region_grid(r, value_type = value_type, new_spacing = spacing, clamp = False)
         if len(volumes) == 1:
             rg.name = v0.name + ' resampled'
         elif operation == 'subtract':
