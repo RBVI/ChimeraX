@@ -345,17 +345,21 @@ class _Section(QWidgetAction):
 
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
-
     def __init__(self, *args, show_section_titles=True, show_button_titles=True, **kw):
         super().__init__(*args, **kw)
         # TODO: self.tabs.setMovable(True)  # and save tab order in preferences
         self._buttons = {}  # { tab_title: { section_title: _Section() } }
         self.show_section_titles = show_section_titles
+        import platform 
         self.show_button_titles = show_button_titles
+        stylesheet = "* { padding: 0; margin: 0; }"
+        if platform.system() == 'Darwin':
+            # Remove the gray background from the tab pane on macOS, since it looks out of place in ChimeraX
+            stylesheet = " ".join([stylesheet, "QTabWidget::pane { background-color: transparent; qproperty-drawBase:0; }"])
         # self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
         # self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
-        self.setStyleSheet("* { padding: 0; margin: 0; }")
         # self.setStyleSheet("*::separator { width: 1px; }")
+        self.setStyleSheet(stylesheet)
         self._highlight_color = QColor("light green")
 
     # TODO: disable/enable button/section, remove button
