@@ -129,14 +129,16 @@ class AlphaFoldGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _menu_entries(self):
-        from chimerax.atomic import all_atomic_structures
+        from chimerax.atomic import all_atomic_structures, Residue
         slist = all_atomic_structures(self.session)
         values = []
         for s in slist:
             if len(s.chains) > 1:
                 for c in s.chains:
-                    values.append('#%s/%s' % (s.id_string, c.chain_id))
-            values.append('#%s' % (s.id_string))
+                    if c.polymer_type == Residue.PT_AMINO:
+                        values.append('#%s/%s' % (s.id_string, c.chain_id))
+            if len([c for c in s.chains if c.polymer_type == Residue.PT_AMINO]) > 0:
+                values.append('#%s' % (s.id_string))
         values.extend(['Paste', 'UniProt identifier'])
         return values
 
