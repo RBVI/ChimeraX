@@ -35,8 +35,8 @@ class AlphaFoldGUI(ToolInstance):
         heading = ('<html>'
                    'AlphaFold database and structure prediction'
                    '<ul style="margin-top: 5;">'
-                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
                    '<li><b>Fetch</b> - Open the database structure with the most similar sequence'
+                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
                    '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers'
                    '</ul></html>')
         from Qt.QtWidgets import QLabel
@@ -157,8 +157,8 @@ class AlphaFoldGUI(ToolInstance):
     def _create_action_buttons(self, parent):
         from chimerax.ui.widgets import button_row
         f = button_row(parent,
-                       [('Search', self._search),
-                        ('Fetch', self._fetch),
+                       [('Fetch', self._fetch),
+                        ('Search', self._search),
                         ('Predict', self._predict),
                         ('Coloring', self._coloring),
                         ('Help', self._show_help)],
