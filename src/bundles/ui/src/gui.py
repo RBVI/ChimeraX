@@ -816,6 +816,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.rapid_access_shown = len(self.session.models) == 0
 
     def showEvent(self, event):
+        """"""
         QMainWindow.showEvent(self, event)
         if not hasattr(self, '_already_shown'):
             self._already_shown = True
@@ -2199,16 +2200,14 @@ class MainToolWindow(ToolWindow):
     def create_child_window(self, title, *, window_class=None, **kw):
         """Supported API. Make additional tool window
 
-        Parameters
-        ----------
-        title : str
-            Text shown in the window's title bar.
-        window_class : :py:class:`ChildToolWindow` subclass, optional
-            Class to instantiate to create the child window.
-            Only needed if you want to override methods/attributes in
-            order to change behavior.
-            Defaults to :py:class:`ChildToolWindow`.
-        kw : Keywords to pass on to the tool window's constructor
+        :param str title: Text shown in the window's title bar.
+        :param object window_class: :py:class:`ChildToolWindow` subclass, optional
+                                     Class to instantiate to create the child window.
+                                     Only needed if you want to override methods/attributes in
+                                     order to change behavior.
+                                     Defaults to :py:class:`ChildToolWindow`.
+        :param kw: Keywords to pass on to the tool window's constructor
+
         """
 
         if window_class is None:
@@ -2366,13 +2365,13 @@ class _Qt:
         # once the main window shows, so comment out the optimization
         # until I can figure something out (showEvent and QTimer(0) both
         # seem to fire too early...)
-        """
-        if shown != self.dock_widget.isHidden():
-            if shown:
-                #ensure it's on top
-                self.dock_widget.raise_()
-            return
-        """
+        #
+        #if shown != self.dock_widget.isHidden():
+        #    if shown:
+        #        #ensure it's on top
+        #        self.dock_widget.raise_()
+        #    return
+        #
         if shown:
             self.dock_widget.show()
             #ensure it's on top

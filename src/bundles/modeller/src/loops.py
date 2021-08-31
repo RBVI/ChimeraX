@@ -89,6 +89,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         chain_id = None
         target_offsets = {}
         offset_i = 0
+        match_chains = []
+        renumberings = []
         while i < len(residues):
             r = residues[i]
             if chain_id is None:
@@ -115,13 +117,30 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                 else:
                     prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
-                    template_chars.append(prefix)
-                    template_chars.append(regularized_seq(seq, r.chain).characters)
-                    template_chars.append(suffix)
-                    target_chars.append(seq.characters)
+                    chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
+                    template_chars.append(chain_template_chars)
+                    # prevent Modeller from filling in unmodelled missing structure by using '-'
+                    chain_target_chars = []
+                    seq_chars = seq.characters
+                    modeled = set()
+                    for start, end in chain_indices[r.chain]:
+                        start = max(start - adjacent_flexible, 0)
+                        end = min(end + adjacent_flexible, len(r.chain))
+                        modeled.update(range(start, end))
+                    number = 1
+                    for seq_i in range(len(seq_chars)):
+                        if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
+                            target_char = '-'
+                        else:
+                            target_char = seq_chars[seq_i]
+                        chain_target_chars.append(target_char)
+                    renumberings.append(make_renumbering("".join(chain_target_chars), chain_template_chars,
+                        r.chain))
+                    target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
                     # Modeller completely skips unmodelled chains for indexing purposes
                     offset_i += len(r.chain)
+                    match_chains.append(r.chain)
                 if r.chain == s.chains[-1]:
                     break
                 i += r.chain.num_existing_residues
@@ -198,11 +217,12 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains
-        model_chains = Chains(model_chains)
+        match_chains = Chains(match_chains)
         if executable_location is None:
             from .common import ModellerWebService
-            job_runner = ModellerWebService(session, model_chains, num_models,
-                pir_target.name, input_file_map, config_name, [t[:2] for t in targets])
+            job_runner = ModellerWebService(session, match_chains, num_models,
+                pir_target.name, input_file_map, config_name, [t[:2] for t in targets],
+                res_numberings=renumberings)
         else:
             #TODO: job_runner = ModellerLocal(...)
             from chimerax.core.errors import LimitationError
@@ -268,3 +288,29 @@ def find_affixes(chains, chain_info):
     het_set.update(in_seq_hets)
     s.in_seq_hets = het_set
     return prefixes, suffixes
+
+def make_renumbering(target_chars, template_chars, chain):
+    new_nums = []
+    new_inserts = []
+    existing = chain.existing_residues
+    existing_index = -1
+    if template_chars[0] == '-':
+        num_dashes = len(template_chars) - len(template_chars.lstrip('-'))
+        template_res_num = existing[0].number - num_dashes - 1
+        template_insert = ''
+
+    for target_char, template_char in zip(target_chars, template_chars):
+        if template_char == '-':
+            template_res_num += 1
+            template_insert = ''
+        else:
+            existing_index += 1
+            template_res_num = existing[existing_index].number
+            template_insert = existing[existing_index].insertion_code
+
+        if target_char != '-':
+            new_nums.append(template_res_num)
+            new_inserts.append(template_insert)
+    return (new_nums, new_inserts)
+
+

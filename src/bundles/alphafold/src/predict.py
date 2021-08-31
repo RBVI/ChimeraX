@@ -138,13 +138,17 @@ class AlphaFoldRun(ToolInstance):
 
         from chimerax.pdb import open_pdb
         models, msg = open_pdb(self.session, path)
+        for m in models:
+            m.alphafold = True
         self.session.models.add(models)
 
         from chimerax.atomic import Chain
         if isinstance(self._sequence, Chain):
             chain = self._sequence
+            from .fetch import _color_by_confidence
             from .match import _align_to_chain
             for m in models:
+                _color_by_confidence(m)
                 _align_to_chain(m, chain)
     
     def _unzip_results(self, *args, **kw):
@@ -180,7 +184,7 @@ def show_alphafold_run(session):
 #
 def register_alphafold_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from .seqarg import SequenceArg
+    from chimerax.atomic import SequenceArg
     desc = CmdDesc(
         required = [('sequence', SequenceArg)],
         synopsis = 'Predict a structure with AlphaFold'

@@ -89,6 +89,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_is_helix(bool)
         void set_is_strand(bool)
         void set_name(const char*)
+        void set_number(int)
         void set_ribbon_adjust(float)
         void set_ribbon_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_ribbon_display(bool)

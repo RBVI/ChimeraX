@@ -869,6 +869,7 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
+                    v = str(v)
                     if not case_sensitive:
                         v = v.lower()
                     matches = fnmatchcase(v, attr_value)
@@ -881,7 +882,8 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
-                    if not case_sensitive:
+                    v = str(v)
+                    if not case_sensitive and isinstance(v, str):
                         v = v.lower()
                     matches = v == attr_value
                     return not matches if invert else matches
