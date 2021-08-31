@@ -204,7 +204,7 @@ class AlphaFoldColoringGUI(ToolInstance):
 # -----------------------------------------------------------------------------
 #
 def _is_alphafold_model(m):
-    return getattr(m, 'alphafold', False)
+    return getattr(m, 'alphafold', False) or m.name.endswith('AlphaFold')
 
 # ---------------------------------------------------------------------------
 #
