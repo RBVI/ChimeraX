@@ -138,8 +138,8 @@ class AlphaFoldRun(ToolInstance):
 
         from chimerax.pdb import open_pdb
         models, msg = open_pdb(self.session, path)
-        for m in models:
-            m.alphafold = True
+        from .match import _set_alphafold_model_attributes
+        _set_alphafold_model_attributes(models)
         self.session.models.add(models)
 
         from chimerax.atomic import Chain

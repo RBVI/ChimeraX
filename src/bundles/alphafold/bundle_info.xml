@@ -10,7 +10,7 @@
   <Description>Fetch structures from EBI AlphaFold database</Description>
 
   <Categories>
-    <Category name="Structure Analysis"/>
+    <Category name="Structure Prediction"/>
   </Categories>
 
   <Dependencies>
@@ -26,11 +26,11 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: alphafold match :: Structure Analysis :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Analysis :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: alphafold search :: Structure Analysis :: Search AlphaFold database using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: alphafold predict :: Structure Analysis :: Predict a structure using AlphaFold</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: AlphaFold :: Structure Analysis :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold match :: Structure Prediction :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Predictioo :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold search :: Structure Prediction :: Search AlphaFold database using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

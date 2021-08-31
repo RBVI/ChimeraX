@@ -35,8 +35,8 @@ class AlphaFoldGUI(ToolInstance):
         heading = ('<html>'
                    'AlphaFold database and structure prediction'
                    '<ul style="margin-top: 5;">'
-                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
                    '<li><b>Fetch</b> - Open the database structure with the most similar sequence'
+                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
                    '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers'
                    '</ul></html>')
         from Qt.QtWidgets import QLabel
@@ -129,14 +129,16 @@ class AlphaFoldGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _menu_entries(self):
-        from chimerax.atomic import all_atomic_structures
+        from chimerax.atomic import all_atomic_structures, Residue
         slist = all_atomic_structures(self.session)
         values = []
         for s in slist:
             if len(s.chains) > 1:
                 for c in s.chains:
-                    values.append('#%s/%s' % (s.id_string, c.chain_id))
-            values.append('#%s' % (s.id_string))
+                    if c.polymer_type == Residue.PT_AMINO:
+                        values.append('#%s/%s' % (s.id_string, c.chain_id))
+            if len([c for c in s.chains if c.polymer_type == Residue.PT_AMINO]) > 0:
+                values.append('#%s' % (s.id_string))
         values.extend(['Paste', 'UniProt identifier'])
         return values
 
@@ -157,8 +159,8 @@ class AlphaFoldGUI(ToolInstance):
     def _create_action_buttons(self, parent):
         from chimerax.ui.widgets import button_row
         f = button_row(parent,
-                       [('Search', self._search),
-                        ('Fetch', self._fetch),
+                       [('Fetch', self._fetch),
+                        ('Search', self._search),
                         ('Predict', self._predict),
                         ('Coloring', self._coloring),
                         ('Help', self._show_help)],
