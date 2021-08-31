@@ -33,16 +33,26 @@ The <b>alphafold</b> command:
 <li><a href="#fetch">finds and retrieves existing predictions</a> from the
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
+<br>&ndash; freely available for academic and commercial use under 
+<a href="https://creativecommons.org/licenses/by/4.0/" 
+target="_blank">CC BY 4.0</a>
+<br><br>
 <li><a href="#predict">runs new predictions</a> with
 <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold</a> using
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a>
+<br>&ndash; for noncommercial use only, as the
+<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
+target="_blank">AlphaFold-learned parameters</a> 
+needed to run the calculation are licensed under 
+<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+target="_blank">CC BY NC 4.0</a>
 </ul>
 Users should cite:
 </p>
 <blockquote>
-<a href="https://pubmed.ncbi.nlm.nih.gov/34265844/" target="_blank">
+<a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">
 Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
@@ -57,6 +67,9 @@ unphysical results where parts of the chains intersect or
 interact poorly with one another.
 See <a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
 target="_blank">comparing AlphaFold and experimental structures</a>.
+</p><p>
+The <b>alphafold</b> command is also implemented as the
+<a href="../tools/alphafold.html"><b>AlphaFold</b></a> tool.
 See also: <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
 </p>
@@ -77,7 +90,7 @@ See also: <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
-[&nbsp;<a href="#search"><b>search</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#search-option"><b>search</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -126,12 +139,12 @@ Alternatively, the <i>sequence</i> can be given as any of the following:
   <li>plain text pasted directly into the command line
   </ul>
 <p>
-For a specified structure chain, a prediction is obtained for its exact entry
-in UniProt if available, otherwise the single top hit per chain identified by
+For a specified structure chain, a prediction is obtained for its exact 
+UniProt entry if available, otherwise the single top hit identified by
 <a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
 target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-(<a href="#search">details...</a>).
+(<a href="#search-option">details...</a>).
 For each prediction with a corresponding structure chain
 from the <b>alphafold match</b> command or the
 <a href="#alignTo"><b>alignTo</b></a> option of <b>alphafold fetch</b>:
@@ -195,9 +208,10 @@ may be obtained because multiple structures or other sequence-database entries
 may have the same sequence.
 </p><p>
 When results are returned, the hits are listed in a
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
+<a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
 Clicking the name of a hit uses
 <a href="#fetch"><b>alphafold fetch</b></a> to retrieve the prediction.
+</p>
 </ul>
 
 <a name="options"></a>
@@ -279,7 +293,7 @@ or <a href="key.html"><b>key</b></a> command
 can be used to draw a corresponding color key, for example:
 </p>
   <blockquote>
-  <b>key</b> <b>red:low orange: yellow: cornflower blue: blue:high</b>
+  <b>key</b> <b>red:low orange: yellow: cornflowerblue: blue:high</b>
   &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
 <!--
 <br>
@@ -300,7 +314,7 @@ If a file specified for opening is not found in this local cache or
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
 </blockquote>
 <blockquote>
-<a name="search"></a>
+<a name="search-option"></a>
 <b>search</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 When fetching predictions with <b>alphafold match</b>, whether to
@@ -377,20 +391,58 @@ in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 <li>plain text pasted directly into the command line
 </ul>
 <p>
-AlphaFold calculations are run using
-<a href="https://colab.research.google.com/signup" 
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+calculations are run using <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a>. 
+A warning will appear saying that this Colab notebook is from github 
+(was not authored by Google), with a button to click to run anyway.
 Users will need to have a Google account and to sign into it via
 a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
+A single prediction run generally takes on the order of an hour or more.
+The process includes installing various software packages on a virtual machine,
+searching sequence databases, generating a multiple sequence alignment, and
+finally, predicting atomic coordinates.
+</p><p>
 The free version of Colab does not allow for much run time.
-Those who want to run longer and/or more frequent
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
-calculations can sign up for one of the
+Those who want to run longer and/or more frequent calculations 
+may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
-target="_blank">paid Colab plans</a>.
+target="_blank">Colab plans</a>.
+</p><p>
+<a name="caveats"></a>
+Please note the following caveats:
 </p>
+<ul>
+<li>Regardless of a user's 
+<a href="https://colab.research.google.com/signup" 
+target="_blank">Colab plan</a>, <b>alphafold predict</b> is for 
+<b>noncommercial use only</b>. Paid 
+<a href="https://colab.research.google.com/signup" 
+target="_blank">Colab plans</a> provide more computational resources,
+but they do not cover access to the 
+<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
+target="_blank">AlphaFold-learned parameters</a>
+needed to run the calculation. The parameters are licensed under 
+<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+target="_blank">CC BY NC 4.0</a>; the Colab itself is provided under the 
+<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 
+2.0</a> license.
+<br><br>
+<li>Prediction calculations run a <b>simplified implementation</b> of AlphaFold 
+that does not use structural templates and that
+searches a smaller set of protein sequences 
+(<a href="https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb" 
+target="_blank">details...</a>).
+The instance used by ChimeraX also limits the sequence length
+and the number of sequences in the multiple sequence alignment.
+For best reliability, it is recommended to use the 
+<a href="https://github.com/deepmind/alphafold/" target="_blank">full 
+open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
+<a href="#search"><b>alphafold search</b></a>) instead.
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
