@@ -141,7 +141,6 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
             if trim and not seq_match and uid.database_sequence_range:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             if isinstance(seq, Chain):
-                alphafold_model.observed_num_res = seq.num_existing_residues
                 _rename_chains(alphafold_model, seq)
                 _align_to_chain(alphafold_model, seq)
             if trim and seq_match:
@@ -199,6 +198,8 @@ def _align_to_chain(structure, chain):
                 structure.seq_match_range = range
             structure.seq_identity = _sequence_identity(rseq, mseq, range)
             _set_match_attributes(rseq, mseq)
+            structure.num_observed_residues = chain.num_existing_residues
+
 
 def _sequence_identity(seq1, seq2, range2 = None):
     if range2:
@@ -376,22 +377,27 @@ def _group_chains_by_structure(seq_models):
 def _log_alphafold_chain_info(alphafold_group_model):
     am = alphafold_group_model
     struct_name = am.name.rstrip(' AlphaFold')
+    _log_alphafold_chain_table(am.child_models(), struct_name)
+
+def _log_alphafold_chain_table(chain_models, match_to_name):
     from chimerax.core.logger import html_table_params
     lines = ['<table %s>' % html_table_params,
              '  <thead>',
-             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % match_to_name,
              '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
         ]
 
     rows = []
-    for m in am.child_models():
+    for m in chain_models:
         cid = ' '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
-        rows.append((cid, m.uniprot_name, m.uniprot_id, rmsd,
-                     m.num_residues, m.observed_num_res, pct_id))
+        uname = getattr(m, 'uniprot_name', '')
+        uid = getattr(m, 'uniprot_id', '')
+        rows.append((cid, uname, uid, rmsd,
+                     m.num_residues, m.num_observed_residues, pct_id))
 
     # Combine rows that are identical except chain id.
     row_cids = {}
