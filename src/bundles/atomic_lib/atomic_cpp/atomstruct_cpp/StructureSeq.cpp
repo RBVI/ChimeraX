@@ -83,6 +83,7 @@ StructureSeq::copy() const
 {
     StructureSeq* ss = new StructureSeq(_chain_id, _structure);
     ss->bulk_set(_residues, &_contents);
+    ss->_polymer_type = _polymer_type;
     return ss;
 }
 

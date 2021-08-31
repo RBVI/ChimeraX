@@ -158,7 +158,7 @@ Info.plist: mkinfo.py
 	$(APP_PYTHON_EXE) mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
 
 chimerax-icon.icns:	ChimeraX-icon512.png
-	mkdir chimerax-icon.iconset
+	-mkdir chimerax-icon.iconset
 	sips -z 16 16     ChimeraX-icon512.png --out chimerax-icon.iconset/icon_16x16.png
 	sips -z 32 32     ChimeraX-icon512.png --out chimerax-icon.iconset/icon_16x16@2x.png
 	sips -z 32 32     ChimeraX-icon512.png --out chimerax-icon.iconset/icon_32x32.png
