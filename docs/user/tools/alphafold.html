@@ -97,11 +97,9 @@ from the menu of currently open protein structure chains.
 <li>
 <a name="match"></a>
 <a name="fetch"></a>
-<b>Fetch</b> finds and
-automatically opens the predicted structure for the
-most similar sequence available from the
+<b>Fetch</b> gets the most sequence-similar prediction available from the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-for each specified chain,
+for each specified chain
 using <a href="../commands/alphafold.html#match"><b>alphafold match</b></a>.
 Specifying a whole model specifies all of its protein chains.
 For each chain, a prediction is obtained for the exact UniProt entry 
@@ -160,10 +158,10 @@ similarity score cutoff e-value <b>1e-3</b>,
 returning a maximum of <b>100</b> of unique sequences
 (however, more than 100 hits may be obtained because multiple structures 
 or other sequence-database entries may have the same sequence).
-It differs from <b>alphafold match</b> in that it uses BLAST instead of BLAT,
+It differs from <b>Fetch</b> in that it uses BLAST instead of BLAT,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect,
-rather than fetching the single top hit automatically.
+rather than fetching the single top hit per chain automatically.
 When results are returned, the hits are listed in a
 <a href="blastprotein.html#results"><b>Blast Protein</b></a> window.
 Clicking the name of a hit uses
@@ -230,7 +228,7 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 <b>Coloring</b> shows the <b>Alphafold Coloring</b>
 dialog for applying different color schemes to AlphaFold-predicted 
 protein structures, as well as hiding, showing, and 
-<a href="../select.html">selecting</b></a> their residues based
+<a href="../selection.html">selecting</b></a> their residues based
 on <a href="../attributes.html">attribute</a> value.
 <p>
 <a name="confidence"></a>
@@ -286,7 +284,7 @@ style="display:inline-block; vertical-align:middle">
      </ul>
 ...in other words, using
 <b><a href="../commands/color.html#bfactor"><b>color bfactor</b></a>
-<a href="color.html#palette-options">palette</a>
+<a href="../commands/color.html#palette-options">palette</a>
 0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
 <!-- 100,blue:90,cornflowerblue:70,yellow:50,orange:0,red</b> -->
 <br>
@@ -296,12 +294,12 @@ can be used to draw a corresponding color key, for example:
 </p>
   <blockquote>
   <b>key</b> <b>red:low orange: yellow: cornflowerblue: blue:high</b>
-  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+  &nbsp;[<a href="../commands/key.html#options"><i>other-key-options</i></a>]
 <!--
 <br>
   <b>key</b> <b>blue:100 cornflowerblue:90 yellow:70 orange:50 red:0</b>
   &nbsp;<b>numericLabelSpacing equal</b>
-  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+  &nbsp;[<a href="../commands/key.html#options"><i>other-key-options</i></a>]
 -->
   </blockquote>
 <p>
@@ -314,36 +312,44 @@ one of the following:
 &ndash; all residues
   <li><b>confidence below</b> [<i>N</i>]
 &ndash; based on the <b>bfactor</b>
+<a href="../attributes.html#residue">residue attribute</a>
 (the <a href="#confidence">confidence value</a> is read from the
 bfactor field of the PDB file)
   <li><b>C-alpha distance greater than</b> [<i>d</i>]
 &ndash; based on the <b>c_alpha_distance</b>
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>missing structure</b>
 &ndash; based on the <b>missing_structure</b> 
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain; 
 positions missing from the coordinates of the existing structure chain
   <li><b>different sequence</b>
 &ndash; based on the <b>same_sequence</b> 
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain; 
 positions with different residue types than the existing chain
   <li><b>confidence above</b> [<i>N</i>]
 &ndash; based on the <b>bfactor</b>
+<a href="../attributes.htmle">residue attribute</a>
 (the <a href="#confidence">confidence value</a> is read from the
 bfactor field of the PDB file)
   <li><b>C-alpha distance less than</b> [<i>d</i>]
-&ndash; based on the residue attribute <b>c_alpha_distance</b>
+&ndash; based on the <b>c_alpha_distance</b>
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>paired structure</b>
-&ndash; based on the residue attribute <b>missing_structure</b> 
+&ndash; based on the <b>missing_structure</b> 
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain; 
 positions present in the coordinates of the existing structure chain
   <li><b>same sequence</b>
-&ndash; based on the residue attribute <b>same_sequence</b> 
+&ndash; based on the <b>same_sequence</b> 
+<a href="../attributes.htmle">residue attribute</a>
 created for AlphaFold predictions fetched by existing structure chain; 
 positions with identical residue types as the existing chain
   </ul>
