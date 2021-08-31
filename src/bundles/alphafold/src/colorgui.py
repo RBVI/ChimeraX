@@ -113,7 +113,8 @@ class AlphaFoldColoringGUI(ToolInstance):
         c = ColorButton
         from chimerax.ui.widgets import EntriesRow
         er = EntriesRow(parent,
-                        ('Color', self._custom_color),
+                        'Color:',
+                        ('Custom', self._custom_color),
                         c,c,c,c,c,c,	# Color buttons
                         ' ',
                         ('Hide', self._hide),
