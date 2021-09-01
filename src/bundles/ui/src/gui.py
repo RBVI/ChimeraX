@@ -2262,6 +2262,7 @@ class _Qt:
             self.status_bar = None
         container.setLayout(layout)
         self.dock_widget.setWidget(container)
+        self._docked_window_flags = self.dock_widget.windowFlags()
 
     def destroy(self):
         if not self.tool_window:
@@ -2306,6 +2307,23 @@ class _Qt:
         if self.hide_title_bar:
             from Qt.QtWidgets import QWidget
             self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        import sys
+        if sys.platform == 'darwin':
+            # Allow undocked panels to stack below main window and iconify.
+            # This has only been tested on Mac.  Needs testing on Windows and Linux.
+            if floating:
+                dw = self.dock_widget
+                vis = dw.isVisible()
+                from Qt.QtCore import Qt
+                dw.setWindowFlags(Qt.CustomizeWindowHint |
+                                  Qt.Window | 
+                                  Qt.WindowMinimizeButtonHint |
+                                  Qt.WindowMaximizeButtonHint |
+                                  Qt.WindowCloseButtonHint)
+                if vis:
+                    dw.show()
+            else:
+                self.dock_widget.setWindowFlags(self._docked_window_flags)
         self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
