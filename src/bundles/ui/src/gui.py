@@ -1335,7 +1335,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             color_menu.addAction(action)
             action.triggered.connect(lambda *, run=run, ses=self.session,
                 cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        action = QAction("From Editor", self)
+        action = QAction("Custom...", self)
         color_menu.addAction(action)
         action.triggered.connect(self.color_by_editor)
         color_menu.addSeparator()

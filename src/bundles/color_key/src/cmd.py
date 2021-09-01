@@ -176,16 +176,19 @@ class ColorLabelPairArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % ColorLabelPairArg.name)
         token, text, rest = next_token(text)
-        if ':' in token:
-            color_token, label_token = token.split(':', 1)
-            if not color_token:
-                raise AnnotationError("No color before ':' in %s" % ColorLabelPairArg.name)
-            if label_token:
-                label = label_token
-            else:
-                label = None
+        while ':' not in token:
+            if not rest.lstrip():
+                raise AnnotationError("No ':' found")
+            token2, text2, rest = next_token(rest.lstrip())
+            token += ' ' + token2
+            text += ' ' + text2
+
+        color_token, label_token = token.split(':', 1)
+        if not color_token:
+            raise AnnotationError("No color before ':' in %s" % ColorLabelPairArg.name)
+        if label_token:
+            label = label_token
         else:
-            color_token = token
             label = None
         color, ignore, color_rest = ColorArg.parse(color_token, session)
         if color_rest:

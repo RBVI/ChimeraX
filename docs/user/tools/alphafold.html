@@ -83,8 +83,9 @@ See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
 </p>
 <h3>Dialog and Buttons</h3>
 <p>
-The <b>AlphaFold</b> tool can be opened from the <b>Tools</b> menu
-and manipulated like other panels (<a href="../window.html#panels">more...</a>).
+The <b>AlphaFold</b> tool can be opened from the <b>Structure Prediction</b>
+section of the <b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
 It is also implemented as the
 <a href="../commands/alphafold.html"><b>alphafold</b></a> command.
 </p><p>
@@ -96,11 +97,9 @@ from the menu of currently open protein structure chains.
 <ul>
 <li>
 <a name="match"></a>
-<a name="fetch"></a>
 <b>Fetch</b> gets the most sequence-similar prediction available from the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-for each specified chain
-using <a href="../commands/alphafold.html#match"><b>alphafold match</b></a>.
+for each specified chain. 
 Specifying a whole model specifies all of its protein chains.
 For each chain, a prediction is obtained for the exact UniProt entry 
 if available, otherwise the single top hit identified by
@@ -108,6 +107,8 @@ if available, otherwise the single top hit identified by
 target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="../commands/alphafold.html#search-option">details...</a>).
+The corresponding command is
+<a href="../commands/alphafold.html#match"><b>alphafold match</b></a>.
 If the sequence was specified by structure chain, then:
 </p>
 <ol>
@@ -135,6 +136,19 @@ in the <a href="log.html"><b>Log</b></a>:
   </ul>
 <li>the predicted structure is trimmed to the same residue range as the 
 existing chain (<a href="../commands/alphafold.html#trim">details...</a>)
+<li>the following <a href="../attributes.html">attributes</a>
+ are assigned to the residues of the predicted structure:
+  <ul>
+  <li><b>c_alpha_distance</b>
+&ndash; C&alpha; distance between corresponding positions of the predicted 
+and existing chains after their superposition (step 2 above) 
+  <li><b>missing_structure</b>
+&ndash; positions missing from the coordinates of the existing chain
+  <li><b>same_sequence</b>
+&ndash; positions with different residue types than the existing chain
+  </ul>
+These <a href="../attributes.html">attributes</a>
+can be used for <a href="#coloring">coloring</a> and other purposes.
 </ol>
 <p>
 The fetched predictions are stored locally in 
@@ -158,7 +172,9 @@ similarity score cutoff e-value <b>1e-3</b>,
 returning a maximum of <b>100</b> of unique sequences
 (however, more than 100 hits may be obtained because multiple structures 
 or other sequence-database entries may have the same sequence).
-It differs from <b>Fetch</b> in that it uses BLAST instead of BLAT,
+The corresponding command is
+<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>.
+<b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead of BLAT,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect,
 rather than fetching the single top hit per chain automatically.
@@ -197,7 +213,7 @@ Please note the following caveats:
 <ul>
 <li>Regardless of a user's 
 <a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plan</a>, <b>alphafold predict</b> is for 
+target="_blank">Colab plan</a>, <b>Predict</b> is for 
 <b>noncommercial use only</b>. Paid 
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a> provide more computational resources,
@@ -225,11 +241,13 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 </ul>
 <br>
 <li><a name="coloring"></a>
-<b>Coloring</b> shows the <b>Alphafold Coloring</b>
-dialog for applying different color schemes to AlphaFold-predicted 
-protein structures, as well as hiding, showing, and 
-<a href="../selection.html">selecting</b></a> their residues based
-on <a href="../attributes.html">attribute</a> value.
+Clicking the <b>Coloring</b> button 
+on the <a href="#top"><b>AlphaFold</b></a> tool 
+shows the <b>Alphafold Coloring</b> dialog 
+for applying different color schemes to the predicted structures,
+as well as hiding, showing, and 
+<a href="../selection.html">selecting</b></a> their residues based on 
+<a href="../attributes.html">attribute</a> value.
 <p>
 <a name="confidence"></a>
 When first opened, AlphaFold-predicted structures are automatically colored by 
@@ -282,18 +300,21 @@ style="display:inline-block; vertical-align:middle">
 </table>
 &ndash; should not be interpreted, may be disordered
      </ul>
+<p>
 ...in other words, using
+</p>
+<blockquote>
 <b><a href="../commands/color.html#bfactor"><b>color bfactor</b></a>
 <a href="../commands/color.html#palette-options">palette</a>
 0,red:50,orange:70,yellow:90,cornflowerblue:100,blue</b>
 <!-- 100,blue:90,cornflowerblue:70,yellow:50,orange:0,red</b> -->
-<br>
+</blockquote>
+<p>
 The <a href="colorkey.html"><b>Color Key</b></a> graphical interface
-or <a href="../commands/key.html"><b>key</b></a> command
-can be used to draw a corresponding color key, for example:
+or a command can be used to draw a corresponding color key, for example:
 </p>
   <blockquote>
-  <b>key</b> <b>red:low orange: yellow: cornflowerblue: blue:high</b>
+  <a href="../commands/key.html"><b>key</b></a> <b>red:low orange: yellow: cornflowerblue: blue:high</b>
   &nbsp;[<a href="../commands/key.html#options"><i>other-key-options</i></a>]
 <!--
 <br>
@@ -303,68 +324,90 @@ can be used to draw a corresponding color key, for example:
 -->
   </blockquote>
 <p>
-Which <b>Residues</b> to act on are specified by choosing an 
-AlphaFold-predicted model from the menu of current choices and 
-one of the following:
+In the <b>AlphaFold Coloring</b> dialog,
+the <b>Residues</b> to act on are specified by using the menus to choose an
+AlphaFold-predicted model and one of the following:
 </p>
   <ul>
   <li><b>all</b>
 &ndash; all residues
   <li><b>confidence below</b> [<i>N</i>]
 &ndash; based on the <b>bfactor</b>
-<a href="../attributes.html#residue">residue attribute</a>
+<a href="../attributes.html#atom">atom attribute</a>
 (the <a href="#confidence">confidence value</a> is read from the
-bfactor field of the PDB file)
+B-factor field of the PDB file)
   <li><b>C-alpha distance greater than</b> [<i>d</i>]
 &ndash; based on the <b>c_alpha_distance</b>
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain;
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>missing structure</b>
 &ndash; based on the <b>missing_structure</b> 
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain; 
-positions missing from the coordinates of the existing structure chain
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
+positions missing from the coordinates of the existing chain
   <li><b>different sequence</b>
 &ndash; based on the <b>same_sequence</b> 
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain; 
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
 positions with different residue types than the existing chain
   <li><b>confidence above</b> [<i>N</i>]
 &ndash; based on the <b>bfactor</b>
-<a href="../attributes.htmle">residue attribute</a>
+<a href="../attributes.html#atom">atom attribute</a>
 (the <a href="#confidence">confidence value</a> is read from the
-bfactor field of the PDB file)
+B-factor field of the PDB file)
   <li><b>C-alpha distance less than</b> [<i>d</i>]
 &ndash; based on the <b>c_alpha_distance</b>
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain;
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>paired structure</b>
 &ndash; based on the <b>missing_structure</b> 
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain; 
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
 positions present in the coordinates of the existing structure chain
   <li><b>same sequence</b>
 &ndash; based on the <b>same_sequence</b> 
-<a href="../attributes.htmle">residue attribute</a>
-created for AlphaFold predictions fetched by existing structure chain; 
+residue attribute of AlphaFold predictions 
+<a href="#match">fetched by existing structure chain</a>;
 positions with identical residue types as the existing chain
   </ul>
 <p>
-The color squares are buttons that can be clicked to apply the
-respective colors to the specified residues. Other buttons:
+Buttons act on the designated residues:
 </p>
   <ul>
-  <li><b>Color</b> &ndash; show the system color editor for choosing a
-color residues interactively
-  <li><b>Show</b> &ndash; show the specified residues
+  <li><b>Color</b> buttons:
+    <ul>
+    <li><b>Custom</b> for choosing a color interactively
+    using the system color picker
+    <li>a series of square buttons for specific colors:
+<table cellpadding="8px" cellspacing="5x"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lightgray width="1px" title="lightgray"></td>
+<td bgcolor=red width="1px" title="red"></td>
+<td bgcolor=magenta width="1px" title="magenta"></td>
+<td bgcolor=yellow width="1px" title="yellow"></td>
+<td bgcolor=lime width="1px" title="lime"></td>
+<td bgcolor=cyan width="1px" title="cyan"></td>
+</tr></table>
+    </ul>
   <li><b>Hide</b> &ndash; hide the specified residues
+  <li><b>Show</b> &ndash; show the specified residues
   <li><b>Select</b> &ndash; <a href="../selection.html">select</a>
 the specified residues
   </ul>
+<p>
+The <b>AlphaFold Coloring</b> dialog does not color continuously 
+along a gradient to show the attribute values. 
+For coloring along a gradient, see the commands
+<a href="../commands/color.html#bfactor"><b>color bfactor</b></a>
+(for the <a href="#confidence">confidence value</a>, which is read from the
+B-factor field of the PDB file) and
+<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
+(for other numerical <a href="../attributes.html">attributes</a>).
+</p>
 </ul>
 
 <hr>
