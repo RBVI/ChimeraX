@@ -613,7 +613,13 @@ class MainWindow(QMainWindow, PlainTextLog):
     def window_maximized(self):
         from Qt.QtCore import Qt
         return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
-    
+
+    def changeEvent(self, event):
+        t = event.type()
+        from Qt.QtCore import QEvent
+        if t == QEvent.WindowStateChange:
+            self.hide_floating_tools = self.isMinimized()
+        
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         self._is_quitting = True
