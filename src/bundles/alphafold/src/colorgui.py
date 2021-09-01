@@ -57,7 +57,8 @@ class AlphaFoldColoringGUI(ToolInstance):
     def _create_residues_menu(self, parent):
 
         from chimerax.ui.widgets import ModelMenuButton
-        sm = ModelMenuButton(self.session, filter_func = _is_alphafold_model)
+        sm = ModelMenuButton(self.session, filter_func = _is_alphafold_model,
+                             autoselect = ModelMenuButton.AUTOSELECT_FIRST_DISPLAYED)
         self._model_menu = sm
         mlist = [m for m in self.session.models.list() if _is_alphafold_model(m)]
         if mlist:
@@ -204,7 +205,7 @@ class AlphaFoldColoringGUI(ToolInstance):
 # -----------------------------------------------------------------------------
 #
 def _is_alphafold_model(m):
-    return getattr(m, 'alphafold', False)
+    return getattr(m, 'alphafold', False) or m.name.endswith('AlphaFold')
 
 # ---------------------------------------------------------------------------
 #

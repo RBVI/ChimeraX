@@ -37,9 +37,9 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
     model_name = 'AlphaFold %s' % uniprot_id
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
                                                     name = model_name, **kw)
-    for m in models:
-        m.alphafold = True
-        
+    from .match import _set_alphafold_model_attributes
+    _set_alphafold_model_attributes(models, uniprot_id)
+
     if color_confidence:
         for s in models:
             # Set initial style so confidence coloring is not replaced.
@@ -49,6 +49,7 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     if align_to is not None:
         _align_and_trim(models, align_to, trim)
+        _log_chain_info(models, align_to.name)
         
     if add_to_session:
         session.models.add(models)
@@ -72,6 +73,16 @@ def _align_and_trim(models, align_to_chain, trim):
             seq_range = getattr(alphafold_model, 'seq_match_range', None)
             if seq_range:
                 match._trim_sequence(alphafold_model, seq_range)
+
+def _log_chain_info(models, align_to_name):
+    for m in models:
+        def _show_chain_table(session, m=m):
+            from chimerax.atomic import AtomicStructure
+            AtomicStructure.added_to_session(m, session)
+            from .match import _log_alphafold_chain_table
+            _log_alphafold_chain_table([m], align_to_name)
+        m.added_to_session = _show_chain_table
+        m._log_info = False   # Don't show standard chain table
 
 def register_alphafold_fetch_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg

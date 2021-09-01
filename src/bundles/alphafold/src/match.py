@@ -132,16 +132,13 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
                 session.logger.warning(str(e))
             missing[uid.uniprot_id] = [seq]
             models = []
+        _set_alphafold_model_attributes(models, uid.uniprot_id, uid.uniprot_name)
         for alphafold_model in models:
-            alphafold_model.alphafold = True
             alphafold_model._log_info = False          # Don't log chain tables
-            alphafold_model.uniprot_id = uid.uniprot_id
-            alphafold_model.uniprot_name = uid.uniprot_name
             seq_match = getattr(uid, 'range_from_sequence_match', False)
             if trim and not seq_match and uid.database_sequence_range:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             if isinstance(seq, Chain):
-                alphafold_model.observed_num_res = seq.num_existing_residues
                 _rename_chains(alphafold_model, seq)
                 _align_to_chain(alphafold_model, seq)
             if trim and seq_match:
@@ -158,6 +155,19 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
                 seq_models[seq] = models
 
     return seq_models, missing
+
+def _set_alphafold_model_attributes(models, uniprot_id = None, uniprot_name = None):
+    for model in models:
+        model.alphafold = True
+        # Save attribute in sessions
+        from chimerax.atomic import AtomicStructure
+        AtomicStructure.register_attr(model.session, "alphafold", "AlphaFold", attr_type=bool)
+        if uniprot_id:
+            model.uniprot_id = uniprot_id
+            AtomicStructure.register_attr(model.session, "uniprot_id", "AlphaFold", attr_type=str)
+        if uniprot_name:
+            model.uniprot_name = uniprot_name
+            AtomicStructure.register_attr(model.session, "uniprot_name", "AlphaFold", attr_type=str)
 
 def _trim_sequence(structure, sequence_range):
     seq_start, seq_end = sequence_range
@@ -199,6 +209,8 @@ def _align_to_chain(structure, chain):
                 structure.seq_match_range = range
             structure.seq_identity = _sequence_identity(rseq, mseq, range)
             _set_match_attributes(rseq, mseq)
+            structure.num_observed_residues = chain.num_existing_residues
+
 
 def _sequence_identity(seq1, seq2, range2 = None):
     if range2:
@@ -251,6 +263,13 @@ def _set_match_attributes(expt_seq, alpha_seq):
         d = _c_alpha_distance(r1, r2)
         if d is not None:
             r1.c_alpha_distance = r2.c_alpha_distance = d
+
+    # Make attributes save in sessions
+    session = expt_seq.structure.session
+    from chimerax.atomic import Residue
+    Residue.register_attr(session, "same_sequence", "AlphaFold", attr_type=bool)
+    Residue.register_attr(session, "missing_structure", "AlphaFold", attr_type=bool)
+    Residue.register_attr(session, "c_alpha_distance", "AlphaFold", attr_type=float)
 
 def _paired_residues(seq1, seq2):
     c1, c2 = seq1.characters, seq2.characters
@@ -362,7 +381,6 @@ def _group_chains_by_structure(seq_models):
     for structure, models in struct_models.items():
         from chimerax.core.models import Model
         group = Model('%s AlphaFold' % structure.name, structure.session)
-        group.alphafold = True
         group.added_to_session = lambda session, g=group: _log_alphafold_chain_info(g)
         group.add(models)
         mlist.append(group)
@@ -376,22 +394,27 @@ def _group_chains_by_structure(seq_models):
 def _log_alphafold_chain_info(alphafold_group_model):
     am = alphafold_group_model
     struct_name = am.name.rstrip(' AlphaFold')
+    _log_alphafold_chain_table(am.child_models(), struct_name)
+
+def _log_alphafold_chain_table(chain_models, match_to_name):
     from chimerax.core.logger import html_table_params
     lines = ['<table %s>' % html_table_params,
              '  <thead>',
-             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % struct_name,
+             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % match_to_name,
              '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
         ]
 
     rows = []
-    for m in am.child_models():
+    for m in chain_models:
         cid = ' '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
-        rows.append((cid, m.uniprot_name, m.uniprot_id, rmsd,
-                     m.num_residues, m.observed_num_res, pct_id))
+        uname = getattr(m, 'uniprot_name', '')
+        uid = getattr(m, 'uniprot_id', '')
+        rows.append((cid, uname, uid, rmsd,
+                     m.num_residues, m.num_observed_residues, pct_id))
 
     # Combine rows that are identical except chain id.
     row_cids = {}
