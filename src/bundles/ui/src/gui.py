@@ -2315,17 +2315,20 @@ class _Qt:
             self.dock_widget.setTitleBarWidget(None if floating else QWidget())
         import sys
         if sys.platform == 'darwin':
-            # Allow undocked panels to stack below main window and iconify.
-            # This has only been tested on Mac.  Needs testing on Windows and Linux.
+            # Add iconify and maximize buttons to undocked tools.
             if floating:
                 dw = self.dock_widget
                 vis = dw.isVisible()
                 from Qt.QtCore import Qt
-                dw.setWindowFlags(Qt.CustomizeWindowHint |
-                                  Qt.Window | 
-                                  Qt.WindowMinimizeButtonHint |
-                                  Qt.WindowMaximizeButtonHint |
-                                  Qt.WindowCloseButtonHint)
+                # Changing window type allows undocked tool to stack
+                # below main window on but issues errors on macOS Big Sur.
+                # See ChimeraX bug #453 for details.
+                # window_flags = (Qt.CustomizeWindowHint | Qt.Window)
+                window_flags = dw.windowFlags()
+                button_flags = (Qt.WindowMinimizeButtonHint |
+                                Qt.WindowMaximizeButtonHint |
+                                Qt.WindowCloseButtonHint)
+                dw.setWindowFlags(window_flags | button_flags)
                 if vis:
                     dw.show()
             else:
