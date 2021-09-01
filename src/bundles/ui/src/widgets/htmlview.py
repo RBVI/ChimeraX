@@ -112,7 +112,9 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
 
 def delete_profile(profile):
     """Cleanup profiles created by create_profile"""
-    profile.downloadRequested.disconnect()
+    # Trying to disconnect gives an error Qt 5.15.3,
+    # "TypeError: disconnect() failed between 'downloadRequested' and all its connections"
+    #profile.downloadRequested.disconnect()
     if hasattr(profile, '_schemes'):
         profile.removeAllUrlSchemeHandlers()
         del profile._handlers
@@ -207,9 +209,9 @@ class HtmlView(QWebEngineView):
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
-        if self._private_profile:
+        if self._private_profile and self._profile:
             profile = self._profile
-            del self._profile
+            self._profile = None
             delete_profile(profile)
         super().deleteLater()
 
@@ -366,6 +368,8 @@ class ChimeraXHtmlView(HtmlView):
         profile_is_private = create_profile or (kw.get('profile_is_profile', None) == True)
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
+        # Delete widget to avoid QWebEngineProfile warnings on exit. ChimeraX bug #3761
+        session.triggers.add_handler('app quit', lambda *args, self=self: self.deleteLater())
 
 def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
                             storage_name=None):
