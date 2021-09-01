@@ -40,10 +40,17 @@ class AlphaFoldRun(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
 
+        # Avoid warning message from Qt when closing colab html panel.
+        # "WARNING: Release of profile requested but WebEnginePage still not deleted. Expect troubles !"
+        # After the html window is destroyed we remove the profile.
+        # Related to ChimeraX bug report #3761.
+        profile_parent = None
+        
         from chimerax.ui.widgets.htmlview import ChimeraXHtmlView, create_chimerax_profile
-        profile = create_chimerax_profile(parent, download = self._download_requested,
+        profile = create_chimerax_profile(profile_parent, download = self._download_requested,
                                           storage_name = 'AlphaFold')
         self._browser = b = ChimeraXHtmlView(session, parent, size_hint = (800,500), profile=profile)
+        b.destroyed.connect(lambda *,profile=profile: profile.deleteLater())
         layout.addWidget(b)
 
         tw.manage(placement=None)
