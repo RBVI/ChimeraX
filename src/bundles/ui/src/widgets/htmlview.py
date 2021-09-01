@@ -368,8 +368,13 @@ class ChimeraXHtmlView(HtmlView):
         profile_is_private = create_profile or (kw.get('profile_is_profile', None) == True)
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
-        # Delete widget to avoid QWebEngineProfile warnings on exit. ChimeraX bug #3761
-        session.triggers.add_handler('app quit', lambda *args, self=self: self.deleteLater())
+        # Delete widget on exit to avoid QWebEngineProfile warnings. ChimeraX bug #3761
+        session.triggers.add_handler('app quit', self._app_quit)
+
+    def _app_quit(self, *args):
+        import Qt
+        if not Qt.qt_object_is_deleted(self):
+            self.deleteLater()
 
 def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
                             storage_name=None):
