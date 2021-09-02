@@ -141,7 +141,7 @@ Alternatively, the <i>sequence</i> can be given as any of the following:
 <p>
 For a specified structure chain, a prediction is obtained for its exact 
 UniProt entry if available, otherwise the single top hit identified by
-<a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
+<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
 target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="#search-option">details...</a>).
@@ -190,10 +190,8 @@ and other purposes.
 <br>
 <li>The <b>alphafold search</b> command uses 
 a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
-hosted by the
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>
-to search the 
+hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a> to search the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 It differs from <b>alphafold match</b> in that it uses BLAST instead of BLAT,
 accepts only a single chain or sequence as input,
@@ -331,15 +329,18 @@ If a file specified for opening is not found in this local cache or
 <a name="search-option"></a>
 <b>search</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When fetching predictions with <b>alphafold match</b>, whether to
-<a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
-target="_blank">BLAT</a> search the database for the most similar sequence
+When fetching predictions with <b>alphafold match</b>, whether to search
+the database for the most similar sequence
 if the <a href="uniprot.org/help/accession_numbers"
 target="_blank">UniProt accession number</a>
 for a chain is not provided in the experimental structure's input file,
 or is provided but not found in the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<b>true</b>, default).
+The search uses a <a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
+target="_blank">BLAT</a> web service hosted by the 
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>.
 The closest sequence match for which a prediction is available
 will be retrieved, as long as the sequence identity is at least 25%.
 With <b>search false</b>, only the experimental structure's input file will
@@ -416,10 +417,10 @@ on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
 A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
-searching sequence databases, generating a multiple sequence alignment, and
-finally, predicting atomic coordinates.
+searching sequence databases, generating a multiple sequence alignment,
+predicting atomic coordinates, and energy-minimizing the best structure.
 </p><p>
-The free version of Colab does not allow for much run time.
+The free version of Google Colab does not allow for much run time.
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
@@ -460,5 +461,5 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+September 2021</address>
 </body></html>

@@ -103,7 +103,7 @@ for each specified chain.
 Specifying a whole model specifies all of its protein chains.
 For each chain, a prediction is obtained for the exact UniProt entry 
 if available, otherwise the single top hit identified by
-<a href="https://genome.ucsc.edu/goldenPath/help/blatSpec.html#blatUsage"
+<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
 target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="../commands/alphafold.html#search-option">details...</a>).
@@ -161,10 +161,8 @@ the file will be fetched and cached.
 <a name="search"></a>
 <b>Search</b>
 uses a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
-hosted by the
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>
-to search the 
+hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a> to search the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 using default parameters: <b>BLOSUM62</b>
 amino acid similarity matrix for scoring the hits,
@@ -190,6 +188,8 @@ to retrieve the prediction.
 runs an <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 calculation using <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a>. 
+The corresponding command is
+<a href="../commands/alphafold.html#predict"><b>alphafold predict</b></a>.
 A warning will appear saying that this Colab notebook is from github 
 (was not authored by Google), with a button to click to run anyway.
 Users will need to have a Google account and to sign into it via
@@ -198,10 +198,10 @@ on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
 A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
-searching sequence databases, generating a multiple sequence alignment, and
-finally, predicting atomic coordinates.
+searching sequence databases, generating a multiple sequence alignment,
+predicting atomic coordinates, and energy-minimizing the best structure.
 </p><p>
-The free version of Colab does not allow for much run time.
+The free version of Google Colab does not allow for much run time.
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
@@ -412,5 +412,5 @@ B-factor field of the PDB file) and
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+September 2021</address>
 </body></html>
