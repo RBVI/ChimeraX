@@ -18,7 +18,7 @@
 from chimerax.core.tools import ToolInstance
 class AlphaFoldColoringGUI(ToolInstance):
 
-    help = 'help:user/tools/alphafoldcoloring.html'
+    help = 'help:user/tools/alphafold.html#coloring'
 
     def __init__(self, session, tool_name):
 

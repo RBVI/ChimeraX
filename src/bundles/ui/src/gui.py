@@ -613,7 +613,13 @@ class MainWindow(QMainWindow, PlainTextLog):
     def window_maximized(self):
         from Qt.QtCore import Qt
         return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
-    
+
+    def changeEvent(self, event):
+        t = event.type()
+        from Qt.QtCore import QEvent
+        if t == QEvent.WindowStateChange:
+            self.hide_floating_tools = self.isMinimized()
+        
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         self._is_quitting = True
@@ -2262,6 +2268,7 @@ class _Qt:
             self.status_bar = None
         container.setLayout(layout)
         self.dock_widget.setWidget(container)
+        self._docked_window_flags = self.dock_widget.windowFlags()
 
     def destroy(self):
         if not self.tool_window:
@@ -2306,6 +2313,26 @@ class _Qt:
         if self.hide_title_bar:
             from Qt.QtWidgets import QWidget
             self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        import sys
+        if sys.platform == 'darwin':
+            # Add iconify and maximize buttons to undocked tools.
+            if floating:
+                dw = self.dock_widget
+                vis = dw.isVisible()
+                from Qt.QtCore import Qt
+                # Changing window type allows undocked tool to stack
+                # below main window on but issues errors on macOS Big Sur.
+                # See ChimeraX bug #453 for details.
+                # window_flags = (Qt.CustomizeWindowHint | Qt.Window)
+                window_flags = dw.windowFlags()
+                button_flags = (Qt.WindowMinimizeButtonHint |
+                                Qt.WindowMaximizeButtonHint |
+                                Qt.WindowCloseButtonHint)
+                dw.setWindowFlags(window_flags | button_flags)
+                if vis:
+                    dw.show()
+            else:
+                self.dock_widget.setWindowFlags(self._docked_window_flags)
         self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
