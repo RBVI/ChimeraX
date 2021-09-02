@@ -28,9 +28,24 @@ cvec_property = _atomic_c_functions.cvec_property
 c_function = _atomic_c_functions.c_function
 c_array_function = _atomic_c_functions.c_array_function
 
-def python_instances_of_class(inst_class):
+def python_instances_of_class(inst_class, *, open_only=True):
     f = c_function('python_instances_of_class', args = (ctypes.py_object,), ret = ctypes.py_object)
-    return f(inst_class)
+    instances = f(inst_class)
+    if not open_only:
+        return instances
+    if issubclass(inst_class, PseudobondGroupData):
+        filt = lambda x: (not x.structure) or x.structure.id
+    elif hasattr(inst_class, 'structure'):
+        filt = lambda x: x.structure.id
+    elif issubclass(inst_class, StructureData):
+        filt = lambda x: x.id
+    elif issubclass(inst_class, Pseudobond):
+        filt = lambda x: (not x.group.structure) or x.group.structure.id
+    elif issubclass(inst_class, (PseudobondManager, Sequence)):
+        filt = lambda x: True
+    else:
+        raise ValueError("Don't know how to determine open instances of class %s" % inst_class.__name__)
+    return [x for x in instances if filt(x)]
 
 # delay .cymol import until 'CFunctions' call above establishes lib path
 from .cymol import CyAtom
