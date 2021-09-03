@@ -223,6 +223,33 @@ paths:
         '500':
           $ref: '#/components/responses/ServerFailure'
 
+  /chimerax/newer:
+    parameters:
+      - name: platform
+        in: query
+        description: platform name
+        schema:
+          type: string
+      - name: version
+        in: query
+        description: ChimeraX version to compare with
+        schema:
+          type: string
+    get:
+      summary: Return list of newer ChimeraX releases (version, URL)
+      operationId: newerVersions
+      responses:
+        '200':
+          description: Return list of newer ChimeraX releases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: string
+
 
 components:
   schemas:
