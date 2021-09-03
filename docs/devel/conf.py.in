@@ -36,6 +36,8 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.extlinks',
     'sphinx.ext.napoleon',
+    # Must be loaded after napoleon
+    'sphinx_autodoc_typehints',
     'class_munger',
 ]
 # Add any paths that contain templates here, relative to this directory.
