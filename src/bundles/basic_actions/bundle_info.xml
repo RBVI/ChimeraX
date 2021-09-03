@@ -42,7 +42,7 @@ atoms, cartoons and surfaces.
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Basic Actions :: General :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Basic Actions :: Depiction :: show/hide atoms, ribbons and surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: name :: General :: Define specifier name as a string</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: name frozen :: General :: Define specifier name as atoms in current session matching a string</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: name delete :: General :: Remove user-defined specifier name</ChimeraXClassifier>
