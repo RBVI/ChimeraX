@@ -497,7 +497,10 @@ class Session:
         from . import colors
         self.user_colors = colors.UserColors()
         self.user_colormaps = colors.UserColormaps()
-        # tasks and bundles are initialized later
+
+        from .import tasks
+        sess.tasks = tasks.Tasks(sess, first=True)
+        # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
