@@ -748,24 +748,25 @@ class InScriptFlag:
 def standard_metadata(previous_metadata={}):
     """Fill in standard metadata for created files
 
-    Parameters
-    ----------
-    previous_metadata : dict
-        Optional dictionary of previous metadata.
+    Parameters:
+        previous_metadata: dict
+            Optional dictionary of previous metadata.
+
 
     The standard metadata consists of:
 
-    generator :
-        Application that created file in HTML User Agent format
-        (app name version (os))
-    created :
-        Date first created
-    modified :
-        Date last modified after being created
-    creator :
-        User name(s)
-    dateCopyrighted :
-        Copyright(s)
+    Parameters:
+        generator:
+            Application that created file in HTML User Agent format
+            (app name version (os))
+        created:
+            Date first created
+        modified:
+            Date last modified after being created
+        creator:
+            User name(s)
+        dateCopyrighted:
+            Copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.
