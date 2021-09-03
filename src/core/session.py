@@ -499,7 +499,7 @@ class Session:
         self.user_colormaps = colors.UserColormaps()
 
         from .import tasks
-        sess.tasks = tasks.Tasks(sess, first=True)
+        sess.tasks = tasks.Tasks(self, first=True)
         # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
