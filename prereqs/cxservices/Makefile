@@ -8,7 +8,9 @@ VERSION = 1.0.1
 SOURCE = client
 PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 
-SWAGGER_CODEGEN = swagger-codegen-cli.jar
+# From https://mvnrepository.com/artifact/io.swagger.codegen.v3/swagger-codegen-cli
+SWAGGER_VERSION=3.0.27
+SWAGGER_CODEGEN = swagger-codegen-cli-$(SWAGGER_VERSION).jar
 
 ifdef WIN32
 WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
