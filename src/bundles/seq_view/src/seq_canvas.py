@@ -423,9 +423,9 @@ class SeqCanvas:
         '''return coords that bound given lines and positions'''
         return self.lead_block.bbox_list(line1, line2, pos1, pos2, cover_gaps)
 
-    def bounded_by(self, x1, y1, x2, y2):
+    def bounded_by(self, x1, y1, x2, y2, *, exclude_headers=False):
         '''return lines and offsets bounded by given coords'''
-        return self.lead_block.bounded_by(x1, y1, x2, y2)
+        return self.lead_block.bounded_by(x1, y1, x2, y2, exclude_headers)
 
     """TODO
     def _attrsUpdateCB(self):
@@ -1729,11 +1729,11 @@ class SeqBlock:
             lrx -= overlap
         return ulx, uly-1, lrx, lry-1
 
-    def bounded_by(self, x1, y1, x2, y2):
+    def bounded_by(self, x1, y1, x2, y2, exclude_headers):
         end = self.bottom_y + self.block_gap
         if y1 > end and y2 > end:
             if self.next_block:
-                return self.next_block.bounded_by(x1, y1, x2, y2)
+                return self.next_block.bounded_by(x1, y1, x2, y2, exclude_headers)
             else:
                 return (None, None, None, None)
         rel_y1 = self.relative_y(y1)
@@ -1744,6 +1744,12 @@ class SeqBlock:
         else:
             hi_row = self.row_index(rel_y2, bound="top")
             low_row = self.row_index(rel_y1, bound="bottom")
+        if exclude_headers:
+            num_headers = len(self.lines) - len(self.alignment.seqs)
+            if hi_row < num_headers:
+                hi_row = num_headers
+                if hi_row > low_row:
+                    return (None, None, None, None)
         if hi_row is None or low_row is None:
             return (None, None, None, None)
 

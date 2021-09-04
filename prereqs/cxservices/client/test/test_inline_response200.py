@@ -15,7 +15,7 @@ from __future__ import absolute_import
 import unittest
 
 import cxservices
-from models.inline_response200 import InlineResponse200  # noqa: E501
+from cxservices.models.inline_response200 import InlineResponse200  # noqa: E501
 from cxservices.rest import ApiException
 
 

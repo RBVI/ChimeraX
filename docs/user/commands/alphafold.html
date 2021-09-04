@@ -58,20 +58,35 @@ Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
 </blockquote>
 <p>
-Note that the predicted structures vary in
+The
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+contains predictions for
+<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
+including humans. It does not cover all of
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>.
+The predicted structures vary in
 confidence levels and should be interpreted with caution.
 The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 system predicts structures for single chains, not complexes; 
 assembling the individual predictions into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
-See <a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
-target="_blank">comparing AlphaFold and experimental structures</a>.
 </p><p>
 The <b>alphafold</b> command is also implemented as the
 <a href="../tools/alphafold.html"><b>AlphaFold</b></a> tool.
-See also: <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
-<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
+See also:
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
+<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
+target="_blank">comparing AlphaFold and experimental structures</a>, and
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX videos</a>:
+<a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
+AlphaFold prediction,
+<a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
+an assembly, 
+<a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
+a new structure
 </p>
 
 <a name="fetch"></a>
@@ -101,14 +116,6 @@ See also: <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 </blockquote>
-<p>
-The
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-contains predictions for
-<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
-including humans. It does not cover all of 
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>.
-</p>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the prediction (if available)
 for a specific UniProt name or accession number. It is equivalent to using the
