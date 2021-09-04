@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
 NAME = cxservices
-VERSION = 1.0.1
+VERSION = 1.1
 SOURCE = client
 PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 
