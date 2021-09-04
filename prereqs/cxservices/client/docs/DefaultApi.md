@@ -11,6 +11,7 @@ Method | HTTP request | Description
 [**files_post**](DefaultApi.md#files_post) | **POST** /chimerax/files/{job_id} | Upload zip archive of job files to server
 [**job_delete**](DefaultApi.md#job_delete) | **DELETE** /chimerax/job/{job_id} | Delete job on server
 [**job_id**](DefaultApi.md#job_id) | **GET** /chimerax/job_id | Return a new job identifier
+[**newer_versions**](DefaultApi.md#newer_versions) | **GET** /chimerax/newer | Return list of newer ChimeraX releases (version, URL)
 [**sleep**](DefaultApi.md#sleep) | **POST** /chimerax/job/{job_id}/sleep | Sleep for a while and exit
 [**status**](DefaultApi.md#status) | **GET** /chimerax/job/{job_id} | Return status of job
 [**submit**](DefaultApi.md#submit) | **POST** /chimerax/job/{job_id}/{service_name} | Submit a job for execution
@@ -326,6 +327,54 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**InlineResponse201**](InlineResponse201.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **newer_versions**
+> list[list[str]] newer_versions(platform, version)
+
+Return list of newer ChimeraX releases (version, URL)
+
+### Example
+```python
+from __future__ import print_function
+import time
+import cxservices
+from cxservices.rest import ApiException
+from pprint import pprint
+
+# create an instance of the API class
+api_instance = cxservices.DefaultApi()
+platform = 'platform_example' # str | platform name
+version = 'version_example' # str | ChimeraX version to compare with
+
+try:
+    # Return list of newer ChimeraX releases (version, URL)
+    api_response = api_instance.newer_versions(platform, version)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling DefaultApi->newer_versions: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **platform** | **str**| platform name | 
+ **version** | **str**| ChimeraX version to compare with | 
+
+### Return type
+
+**list[list[str]]**
 
 ### Authorization
 

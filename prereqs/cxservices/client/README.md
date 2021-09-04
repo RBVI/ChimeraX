@@ -131,6 +131,18 @@ except ApiException as e:
 
 # create an instance of the API class
 api_instance = cxservices.DefaultApi(cxservices.ApiClient(configuration))
+platform = 'platform_example' # str | platform name
+version = 'version_example' # str | ChimeraX version to compare with
+
+try:
+    # Return list of newer ChimeraX releases (version, URL)
+    api_response = api_instance.newer_versions(platform, version)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling DefaultApi->newer_versions: %s\n" % e)
+
+# create an instance of the API class
+api_instance = cxservices.DefaultApi(cxservices.ApiClient(configuration))
 job_id = 'job_id_example' # str | Job identifier
 body = NULL # object | Length of time to sleep (optional)
 
@@ -177,6 +189,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**files_post**](docs/DefaultApi.md#files_post) | **POST** /chimerax/files/{job_id} | Upload zip archive of job files to server
 *DefaultApi* | [**job_delete**](docs/DefaultApi.md#job_delete) | **DELETE** /chimerax/job/{job_id} | Delete job on server
 *DefaultApi* | [**job_id**](docs/DefaultApi.md#job_id) | **GET** /chimerax/job_id | Return a new job identifier
+*DefaultApi* | [**newer_versions**](docs/DefaultApi.md#newer_versions) | **GET** /chimerax/newer | Return list of newer ChimeraX releases (version, URL)
 *DefaultApi* | [**sleep**](docs/DefaultApi.md#sleep) | **POST** /chimerax/job/{job_id}/sleep | Sleep for a while and exit
 *DefaultApi* | [**status**](docs/DefaultApi.md#status) | **GET** /chimerax/job/{job_id} | Return status of job
 *DefaultApi* | [**submit**](docs/DefaultApi.md#submit) | **POST** /chimerax/job/{job_id}/{service_name} | Submit a job for execution
