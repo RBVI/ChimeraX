@@ -32,9 +32,6 @@ USER_COLORS_STATE_VERSION = 1
 COLORMAP_STATE_VERSION = 1
 USER_COLORMAPS_STATE_VERSION = 1
 
-BuiltinColormaps = SortedDict()
-
-
 class UserColors(SortedDict, StateManager):
     """Support for per-session colors.
 
@@ -394,28 +391,35 @@ class Colormap(State):
         return c
 
 
-# Initialize built-in colormaps
-# Rainbow is blue to red instead of red to blue so that N-terminus to C-terminus rainbow coloring
-# produces the conventional blue to red.
-BuiltinColormaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
-BuiltinColormaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
-BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
-# BuiltinColormaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (.7, .7, .7, 1), (0, 0, 1, 1)))
-BuiltinColormaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
-BuiltinColormaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
-BuiltinColormaps['cyan-gray-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (.7, .7, .7, 1), (0.62, 0.125, 0.37, 1)))
-# BuiltinColormaps['lipophilicity'] = Colormap(None, ((.118, .565, 1, 1), (1, 1, 1, 1), (1, .271, 0, 1)))  # dodger blue, white, orange red
-BuiltinColormaps['lipophilicity'] = Colormap(None, ((0, 139 / 255, 139 / 255, 1), (1, 1, 1, 1), (184 / 255, 134 / 255, 11 / 255, 1)))  # dark cyan, white, dark goldenrod
+def _builtin_colormaps():
+    '''Define built-in colormaps'''
 
-# Add some aliases
-BuiltinColormaps['redblue'] = BuiltinColormaps['red-white-blue']
-BuiltinColormaps['bluered'] = BuiltinColormaps['blue-white-red']
-BuiltinColormaps['gray'] = BuiltinColormaps['grayscale']
-BuiltinColormaps['cyanmaroon'] = BuiltinColormaps['cyan-white-maroon']
+    cmaps = SortedDict()
+    # Rainbow is blue to red instead of red to blue so that N-terminus to C-terminus rainbow coloring
+    # produces the conventional blue to red.
+    cmaps['rainbow'] = Colormap(None, ((0, 0, 1, 1), (0, 1, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 0, 1)))
+    cmaps['grayscale'] = Colormap(None, ((0, 0, 0, 1), (1, 1, 1, 1)))
+    cmaps['red-white-blue'] = Colormap(None, ((1, 0, 0, 1), (1, 1, 1, 1), (0, 0, 1, 1)))
+    cmaps['blue-white-red'] = Colormap(None, ((0, 0, 1, 1), (1, 1, 1, 1), (1, 0, 0, 1)))
+    cmaps['cyan-white-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (1, 1, 1, 1), (0.62, 0.125, 0.37, 1)))
+    cmaps['cyan-gray-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (.7, .7, .7, 1), (0.62, 0.125, 0.37, 1)))
+    cmaps['lipophilicity'] = Colormap(None, ((0, 139 / 255, 139 / 255, 1), (1, 1, 1, 1), (184 / 255, 134 / 255, 11 / 255, 1)))  # dark cyan, white, dark goldenrod
+    _alphafold_colors = [BuiltinColors[name] for name in
+                         ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
+    cmaps['alphafold'] = Colormap((0, 50, 70, 90, 100), _alphafold_colors)
 
+    # Add some aliases
+    cmaps['redblue'] = cmaps['red-white-blue']
+    cmaps['bluered'] = cmaps['blue-white-red']
+    cmaps['gray'] = cmaps['grayscale']
+    cmaps['cyanmaroon'] = cmaps['cyan-white-maroon']
+
+    _read_colorbrewer(cmaps)
+
+    return cmaps
 
 # Add colorbrewer palettes
-def _read_colorbrewer():
+def _read_colorbrewer(colormaps):
     import json
     import os.path
     my_dir = os.path.dirname(__file__)
@@ -437,14 +441,11 @@ def _read_colorbrewer():
             for count, rgbs in ramps.items():
                 name = "%s-%s" % (scheme, count)
                 colors = tuple([eval(e, gs, ls) for e in rgbs])
-                BuiltinColormaps[name.casefold()] = Colormap(None, colors, name=name)
+                colormaps[name.casefold()] = Colormap(None, colors, name=name)
                 if ((s_type == "div" and count == "5") or
                         (s_type == "seq" and count == "5") or
                         (s_type == "qual" and count == "6")):
-                    BuiltinColormaps[scheme.casefold()] = Colormap(None, colors, name=scheme)
-
-
-_read_colorbrewer()
+                    colormaps[scheme.casefold()] = Colormap(None, colors, name=scheme)
 
 
 _df_state = {}
@@ -493,8 +494,9 @@ def contrast_with_background(session):
     """Contrast with the graphics-window background color"""
     return contrast_with(session.main_view.background_color)
 
-# CSS4 colors + multiword color names
-BuiltinColors = SortedDict({
+def _builtin_colors():
+    # CSS4 colors + multiword color names
+    colors = SortedDict({
     'aliceblue': (240, 248, 255, 255),
     'alice blue': (240, 248, 255, 255),
     'antiquewhite': (250, 235, 215, 255),
@@ -742,10 +744,15 @@ BuiltinColors = SortedDict({
     'yellow': (255, 255, 0, 255),
     'yellowgreen': (154, 205, 50, 255),
     'yellow green': (154, 205, 50, 255),
-})
-BuiltinColors['transparent'] = (0, 0, 0, 0)
+    })
+    colors['transparent'] = (0, 0, 0, 0)
 
-_color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
+    ctable = {}
+    for name, rgba in colors.items():
+        color = Color([x / 255 for x in rgba], mutable=False)
+        color.color_name = name
+        ctable[name] = color
+    return ctable
 
 def random_colors(n, opacity=255):
     from numpy import random, uint8
@@ -764,8 +771,12 @@ def most_common_color(colors):
         return None
     return colors[indices[max_index]]
 
+_color_names = None
 def color_name(color_or_rgba8):
     '''Return english color name or hex color string.'''
+    global _color_names
+    if _color_names is None:
+        _color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
     if isinstance(color_or_rgba8, Color):
         rgba8 = color_or_rgba8.uint8x4()
     else:
@@ -988,12 +999,6 @@ class ColorValue(configfile.Value):
             raise ValueError('value changed while saving it')
         return str_value
 
-def _init():
-    for name in BuiltinColors:
-        rgb = BuiltinColors[name]
-        color = Color([x / 255 for x in rgb], mutable=False)
-        color.color_name = name
-        BuiltinColors[name] = color
+BuiltinColors = _builtin_colors()
+BuiltinColormaps = _builtin_colormaps()
 
-
-_init()
