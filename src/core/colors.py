@@ -776,7 +776,8 @@ def color_name(color_or_rgba8):
     '''Return english color name or hex color string.'''
     global _color_names
     if _color_names is None:
-        _color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
+        _color_names = {tuple(color.uint8x4()):name
+                        for name, color in BuiltinColors.items()}
     if isinstance(color_or_rgba8, Color):
         rgba8 = color_or_rgba8.uint8x4()
     else:
