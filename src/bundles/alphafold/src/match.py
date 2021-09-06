@@ -300,6 +300,12 @@ def _c_alpha_distance(r1, r2):
     d = distance(ca1.scene_coord, ca2.scene_coord)
     return d
 
+def _set_same_sequence_attribute(chain_seq, seq):
+    c1, c2 = chain_seq.characters, seq.characters
+    for i, r in enumerate(chain_seq.residues):
+        ci = chain_seq.ungapped_to_gapped(i)
+        r.same_sequence = (c1[ci] == c2[ci])
+
 def _sequence_uniprot_ids(sequences):
     seq_uids = []
     from chimerax.atomic import uniprot_ids
@@ -477,6 +483,7 @@ def _log_alphafold_sequence_info(alphafold_model, seq):
 def _similarity_table_html(mseq, seq, mname):
     from chimerax.alignment_algs.NeedlemanWunsch import nw
     score, (mseq_gapped, seq_gapped) = nw(mseq, seq, return_seqs = True)
+    _set_same_sequence_attribute(mseq_gapped, seq_gapped)
     si = _sequence_identity(mseq_gapped, seq_gapped)
     sc = _sequence_coverage(mseq_gapped, seq_gapped)
     fields = [mname, _sequence_name(seq), '%.1f' % (100*si), '%.1f' % (100*sc)]
