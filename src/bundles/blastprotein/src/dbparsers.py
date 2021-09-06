@@ -283,7 +283,8 @@ class AlphaFoldParser(Parser):
             match_list.append(self._extract_hsp(hsp, uniprot_id, uniprot_id, desc))
         for uniprot_id, desc in id_list:
             for m in match_list:
-                self._copy_match(m, uniprot_id, uniprot_id, desc)
+                uniprot_name = desc.split('=')[0].split(' ')[0].split('|')[-1]
+                self._copy_match(m, uniprot_name, uniprot_name, desc)
 
 
 class Match:

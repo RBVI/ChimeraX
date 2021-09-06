@@ -34,10 +34,12 @@ class BlastProteinBase:
     RESULTS_FILENAME = "results.json"
 
     def setup(self, seq, atomspec, database="pdb", cutoff=1.0e-3,
-              matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None):
+              matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None,
+              sequence_name=None):
         from . import tool
         from . import databases
         self.seq = seq.replace('?', 'X')        # string
+        self.sequence_name = sequence_name	# string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self._database = databases.get_database(database) # object
@@ -82,7 +84,8 @@ class BlastProteinBase:
             results = self.get_file(self.RESULTS_FILENAME)
             try:
                 logger.info("Parsing BLAST results.")
-                self._database.parse("query", self.seq, results)
+                qname = self.sequence_name or 'query'
+                self._database.parse(qname, self.seq, results)
             except Exception as e:
                 if self.tool:
                     err = self.get_stderr()

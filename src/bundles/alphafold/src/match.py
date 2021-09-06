@@ -141,11 +141,14 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
             if isinstance(seq, Chain):
                 _rename_chains(alphafold_model, seq)
                 _align_to_chain(alphafold_model, seq)
+            else:
+                _log_sequence_similarity(alphafold_model, seq)
             if trim and seq_match:
                 seq_range = getattr(alphafold_model, 'seq_match_range', None)
                 if seq_range:
                     _trim_sequence(alphafold_model, seq_range)
-            alphafold_model.name = 'UniProt %s' % uid.uniprot_id
+            uname = getattr(uid, 'uniprot_name', '') or uid.uniprot_id
+            alphafold_model.name = 'AlphaFold %s' % uname
             if isinstance(seq, Chain):
                 alphafold_model.name += ' chain %s' % seq.chain_id
         if models:
@@ -234,6 +237,15 @@ def _sequence_identity(seq1, seq2, range2 = None):
         
     d = min(len1, len2)
     return m/d if d > 0 else 0.0
+
+def _sequence_coverage(seq1, seq2):
+    l2 = c = 0
+    for aa1, aa2 in zip(seq1.characters, seq2.characters):
+        if aa2 != '.':
+            l2 += 1
+            if aa1 != '.':
+                c += 1
+    return c/l2 if l2 > 0 else 0.0
 
 def _sequence_match_range(seq1, seq2):
     '''
@@ -393,7 +405,7 @@ def _group_chains_by_structure(seq_models):
 
 def _log_alphafold_chain_info(alphafold_group_model):
     am = alphafold_group_model
-    struct_name = am.name.rstrip(' AlphaFold')
+    struct_name = am.name.removesuffix(' AlphaFold')
     _log_alphafold_chain_table(am.child_models(), struct_name)
 
 def _log_alphafold_chain_table(chain_models, match_to_name):
@@ -404,7 +416,7 @@ def _log_alphafold_chain_table(chain_models, match_to_name):
              '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
-        ]
+    ]
 
     rows = []
     for m in chain_models:
@@ -439,6 +451,59 @@ def _log_alphafold_chain_table(chain_models, match_to_name):
 def _sel_chain_cmd(structure, chain_id):
     spec = '#%s/%s' % (structure.id_string, chain_id)
     return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (spec, chain_id)
+
+def _log_sequence_similarity(alphafold_model, seq):
+    def _log_info(session, am=alphafold_model, seq=seq):
+        _log_alphafold_sequence_info(am, seq)
+        from chimerax.atomic import AtomicStructure
+        AtomicStructure.added_to_session(alphafold_model, session)
+    alphafold_model.added_to_session = _log_info
+
+def _log_alphafold_sequence_info(alphafold_model, seq):
+    session = alphafold_model.session
+    same_sequence = ((hasattr(alphafold_model, 'uniprot_id')
+                      and hasattr(seq, 'uniprot_accession')
+                      and alphafold_model.uniprot_id == seq.uniprot_accession) or
+                     (hasattr(alphafold_model, 'uniprot_name')
+                      and hasattr(seq, 'uniprot_name')
+                      and alphafold_model.uniprot_name == seq.uniprot_name))
+    chains = alphafold_model.chains
+    if len(chains) == 1 and not same_sequence:
+        mseq = chains[0]
+        mname = alphafold_model.name.removeprefix('AlphaFold ')
+        msg = _similarity_table_html(mseq, seq, mname)
+        session.logger.info(msg, is_html = True)
+
+def _similarity_table_html(mseq, seq, mname):
+    from chimerax.alignment_algs.NeedlemanWunsch import nw
+    score, (mseq_gapped, seq_gapped) = nw(mseq, seq, return_seqs = True)
+    si = _sequence_identity(mseq_gapped, seq_gapped)
+    sc = _sequence_coverage(mseq_gapped, seq_gapped)
+    fields = [mname, _sequence_name(seq), '%.1f' % (100*si), '%.1f' % (100*sc)]
+    from chimerax.core.logger import html_table_params
+    lines = ['<table %s>' % html_table_params,
+             '  <thead>',
+             '    <tr><th colspan=4>Sequence Similarity',
+             '    <tr><th>AlphaFold Model<th>Query Sequence<th>Identity %<th>Coverage %',
+             '  </thead>',
+             '  <tbody>',
+             '\n'.join('    <td style="text-align:center">%s' % field for field in fields),
+             '  </tbody>',
+             '</table>']
+    msg = '\n'.join(lines)
+    return msg
+
+def _sequence_name(seq):
+    if seq.name and seq.name != 'query' and seq.name != 'sequence':
+        return seq.name
+    if hasattr(seq, 'uniprot_name'):
+        return seq.uniprot_name
+    if hasattr(seq, 'uniprot_accession'):
+        return seq.uniprot_accession
+    ug = seq.ungapped()
+    if len(ug) <= 10:
+        return ug
+    return ug[:5] + '...' + ug[-5:]
     
 def register_alphafold_match_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg
