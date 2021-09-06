@@ -305,6 +305,9 @@ def _set_same_sequence_attribute(chain_seq, seq):
     for i, r in enumerate(chain_seq.residues):
         ci = chain_seq.ungapped_to_gapped(i)
         r.same_sequence = (c1[ci] == c2[ci])
+    session = chain_seq.structure.session
+    from chimerax.atomic import Residue
+    Residue.register_attr(session, "same_sequence", "AlphaFold", attr_type=bool)
 
 def _sequence_uniprot_ids(sequences):
     seq_uids = []
