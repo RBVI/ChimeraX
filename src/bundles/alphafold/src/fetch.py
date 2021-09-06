@@ -21,12 +21,8 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
                     align_to=None, trim=True, ignore_cache=False,
                     add_to_session=True, **kw):
 
-    from chimerax.core.errors import UserError
-    if len(uniprot_id) not in (6, 10):
-        raise UserError('UniProt identifiers must be 6 or 10 characters long, got "%s"'
-                        % uniprot_id)
-
-    uniprot_id = uniprot_id.upper()
+    uniprot_name = uniprot_id if '_' in uniprot_id else None
+    uniprot_id = _parse_uniprot_id(uniprot_id)
     file_name = 'AF-%s-F1-model_v1.cif' % uniprot_id
     url = 'https://alphafold.ebi.ac.uk/files/' + file_name
 
@@ -34,11 +30,11 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
     filename = fetch_file(session, url, 'AlphaFold %s' % uniprot_id, file_name, 'AlphaFold',
                           ignore_cache=ignore_cache)
 
-    model_name = 'AlphaFold %s' % uniprot_id
+    model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
                                                     name = model_name, **kw)
     from .match import _set_alphafold_model_attributes
-    _set_alphafold_model_attributes(models, uniprot_id)
+    _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
 
     if color_confidence:
         for s in models:
@@ -55,6 +51,19 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
         session.models.add(models)
         
     return models, status
+
+def _parse_uniprot_id(uniprot_id):
+    from chimerax.core.errors import UserError
+    if '_' in uniprot_id:
+        from chimerax.uniprot import map_uniprot_ident
+        try:
+            return map_uniprot_ident(uniprot_id, return_value = 'entry')
+        except Exception:
+            raise UserError('UniProt name "%s" not found' % uniprot_id)
+    if len(uniprot_id) not in (6, 10):
+        raise UserError('UniProt identifiers must be 6 or 10 characters long, got "%s"'
+                        % uniprot_id)
+    return uniprot_id.upper()
 
 def _color_by_confidence(structure):
     from chimerax.core.colors import Colormap, BuiltinColors
