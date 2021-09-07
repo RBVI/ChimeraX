@@ -35,7 +35,7 @@ ifeq ($(OS),Windows)
 
 install: $(SOURCE)
 	cd $(SOURCE) ; \
-	  $(RSYNC) Lib/site-packages/simtk $(PYSITEDIR) ; \
+	  $(RSYNC) Lib/site-packages/openmm $(PYSITEDIR) ; \
 	  $(RSYNC) Library/lib/ --exclude site-packages $(OPENMM_LIB_INSTALL)
 
 else
@@ -64,8 +64,8 @@ ifneq (,$(PATCHES))
 endif
 ifeq ($(OS),Windows)
 	cd $(SOURCE)/Lib ; \
-	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
-	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
+	  chmod a+x site-packages/openmm/*.pyd ; \
+	  chmod a+x site-packages/openmm/app/internal/*.pyd
 	cd $(SOURCE)/Library/lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib
 endif
