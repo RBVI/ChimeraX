@@ -49,8 +49,6 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
         block = session.in_script or not session.ui.is_gui
     if chains is not None and not chains:
         raise UserError("'chains' argument doe not match any chains")
-    #TODO: consider if we want the modeled region to be a separate argument, so you could omit
-    # the alignment specifier and yet still control the modeling region
     from .loops import ALL_MISSING, INTERNAL_MISSING
     if targets is None:
         structure = None

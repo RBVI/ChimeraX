@@ -144,6 +144,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 if r.chain == s.chains[-1]:
                     break
                 i += r.chain.num_existing_residues
+        target_chars = ''.join(target_chars)
+        compact_target_chars = target_chars.replace('/', '')
 
         # find the actual loop-boundaries, which needs to account for flexible extension and
         # ensure that the bounding residues actually exist
@@ -158,7 +160,11 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 while end < len(chain) and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
-                loop_data.append((start+offset, end+offset-1))
+                # for residue indexing, unmodeled residues (target == '-') don't count...
+                unmodeled = compact_target_chars[:start+offset].count('-')
+
+                # Modeller residue_range()'s end index is the actual index, not index+1
+                loop_data.append((start+offset-unmodeled, end+offset-unmodeled-1))
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
@@ -173,7 +179,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         from chimerax.atomic import Sequence
         pir_target = Sequence(name=opal_safe_file_name(seq.name))
         pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
-        pir_target.characters = ''.join(target_chars)
+        pir_target.characters = target_chars
         pir_seqs = [pir_target]
 
         pir_template = Sequence(name=structure_save_name(s))
