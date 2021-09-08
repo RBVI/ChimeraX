@@ -715,45 +715,47 @@ class DefaultApi(object):
             _request_timeout=params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def newer_versions(self, platform, version, **kwargs):  # noqa: E501
+    def newer_versions(self, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
         """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
-        >>> thread = api.newer_versions(platform, version, async_req=True)
+        >>> thread = api.newer_versions(os, os_version, chimera_x_version, async_req=True)
         >>> result = thread.get()
 
         :param async_req bool
-        :param str platform: platform name (required)
-        :param str version: ChimeraX version to compare with (required)
+        :param str os: operating system name (required)
+        :param str os_version: operating system version (required)
+        :param str chimera_x_version: ChimeraX version to compare with (required)
         :return: list[list[str]]
                  If the method is called asynchronously,
                  returns the request thread.
         """
         kwargs['_return_http_data_only'] = True
         if kwargs.get('async_req'):
-            return self.newer_versions_with_http_info(platform, version, **kwargs)  # noqa: E501
+            return self.newer_versions_with_http_info(os, os_version, chimera_x_version, **kwargs)  # noqa: E501
         else:
-            (data) = self.newer_versions_with_http_info(platform, version, **kwargs)  # noqa: E501
+            (data) = self.newer_versions_with_http_info(os, os_version, chimera_x_version, **kwargs)  # noqa: E501
             return data
 
-    def newer_versions_with_http_info(self, platform, version, **kwargs):  # noqa: E501
+    def newer_versions_with_http_info(self, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
         """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
-        >>> thread = api.newer_versions_with_http_info(platform, version, async_req=True)
+        >>> thread = api.newer_versions_with_http_info(os, os_version, chimera_x_version, async_req=True)
         >>> result = thread.get()
 
         :param async_req bool
-        :param str platform: platform name (required)
-        :param str version: ChimeraX version to compare with (required)
+        :param str os: operating system name (required)
+        :param str os_version: operating system version (required)
+        :param str chimera_x_version: ChimeraX version to compare with (required)
         :return: list[list[str]]
                  If the method is called asynchronously,
                  returns the request thread.
         """
 
-        all_params = ['platform', 'version']  # noqa: E501
+        all_params = ['os', 'os_version', 'chimera_x_version']  # noqa: E501
         all_params.append('async_req')
         all_params.append('_return_http_data_only')
         all_params.append('_preload_content')
@@ -768,24 +770,30 @@ class DefaultApi(object):
                 )
             params[key] = val
         del params['kwargs']
-        # verify the required parameter 'platform' is set
-        if ('platform' not in params or
-                params['platform'] is None):
-            raise ValueError("Missing the required parameter `platform` when calling `newer_versions`")  # noqa: E501
-        # verify the required parameter 'version' is set
-        if ('version' not in params or
-                params['version'] is None):
-            raise ValueError("Missing the required parameter `version` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'os' is set
+        if ('os' not in params or
+                params['os'] is None):
+            raise ValueError("Missing the required parameter `os` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'os_version' is set
+        if ('os_version' not in params or
+                params['os_version'] is None):
+            raise ValueError("Missing the required parameter `os_version` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'chimera_x_version' is set
+        if ('chimera_x_version' not in params or
+                params['chimera_x_version'] is None):
+            raise ValueError("Missing the required parameter `chimera_x_version` when calling `newer_versions`")  # noqa: E501
 
         collection_formats = {}
 
         path_params = {}
 
         query_params = []
-        if 'platform' in params:
-            query_params.append(('platform', params['platform']))  # noqa: E501
-        if 'version' in params:
-            query_params.append(('version', params['version']))  # noqa: E501
+        if 'os' in params:
+            query_params.append(('OS', params['os']))  # noqa: E501
+        if 'os_version' in params:
+            query_params.append(('OSVersion', params['os_version']))  # noqa: E501
+        if 'chimera_x_version' in params:
+            query_params.append(('ChimeraXVersion', params['chimera_x_version']))  # noqa: E501
 
         header_params = {}
 

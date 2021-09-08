@@ -131,12 +131,13 @@ except ApiException as e:
 
 # create an instance of the API class
 api_instance = cxservices.DefaultApi(cxservices.ApiClient(configuration))
-platform = 'platform_example' # str | platform name
-version = 'version_example' # str | ChimeraX version to compare with
+os = 'os_example' # str | operating system name
+os_version = 'os_version_example' # str | operating system version
+chimera_x_version = 'chimera_x_version_example' # str | ChimeraX version to compare with
 
 try:
     # Return list of newer ChimeraX releases (version, URL)
-    api_response = api_instance.newer_versions(platform, version)
+    api_response = api_instance.newer_versions(os, os_version, chimera_x_version)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling DefaultApi->newer_versions: %s\n" % e)

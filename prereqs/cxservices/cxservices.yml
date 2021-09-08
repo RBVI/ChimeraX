@@ -225,14 +225,21 @@ paths:
 
   /chimerax/newer:
     parameters:
-      - name: platform
+      - name: OS
         in: query
         required: true
-        description: platform name
+        description: operating system name
         schema:
           type: string
         example: macosx
-      - name: version
+      - name: OSVersion
+        in: query
+        required: true
+        description: operating system version
+        schema:
+          type: string
+        example: macosx
+      - name: ChimeraXVersion
         in: query
         required: true
         description: ChimeraX version to compare with
