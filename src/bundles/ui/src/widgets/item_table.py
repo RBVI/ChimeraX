@@ -542,7 +542,6 @@ class _ItemColumn:
                 continue
             setattr(self, name, locals[name])
         self.display = True
-        #TODO: font is None and justification is "decimal" -- fixed-width font
 
     def display_value(self, instance):
         val = self.value(instance)
