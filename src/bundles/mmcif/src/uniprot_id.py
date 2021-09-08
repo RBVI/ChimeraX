@@ -36,9 +36,17 @@ def uniprot_ids(structure):
         uniprot_name, uniprot_id = db_codes.get(ref_id)
         if None in (uniprot_name, uniprot_id, db_seq_start, db_seq_end, chain_seq_start, chain_seq_end):
             continue
+        try:
+            db_seq_range = (int(db_seq_start), int(db_seq_end))
+        except:
+            db_seq_range = None
+        try:
+            chain_seq_range = (int(chain_seq_start), int(chain_seq_end))
+        except:
+            chain_seq_range = None
+            
         useq = UniprotSequence(chain_id, uniprot_id, uniprot_name,
-                               (int(db_seq_start), int(db_seq_end)),
-                               (int(chain_seq_start), int(chain_seq_end)))
+                               db_seq_range, chain_seq_range)
         useqs.append(useq)
 
     return useqs

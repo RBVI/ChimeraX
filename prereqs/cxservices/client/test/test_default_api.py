@@ -15,7 +15,7 @@ from __future__ import absolute_import
 import unittest
 
 import cxservices
-from api.default_api import DefaultApi  # noqa: E501
+from cxservices.api.default_api import DefaultApi  # noqa: E501
 from cxservices.rest import ApiException
 
 
@@ -23,7 +23,7 @@ class TestDefaultApi(unittest.TestCase):
     """DefaultApi unit test stubs"""
 
     def setUp(self):
-        self.api = api.default_api.DefaultApi()  # noqa: E501
+        self.api = DefaultApi()  # noqa: E501
 
     def tearDown(self):
         pass
@@ -74,6 +74,13 @@ class TestDefaultApi(unittest.TestCase):
         """Test case for job_id
 
         Return a new job identifier  # noqa: E501
+        """
+        pass
+
+    def test_newer_versions(self):
+        """Test case for newer_versions
+
+        Return list of newer ChimeraX releases (version, URL)  # noqa: E501
         """
         pass
 

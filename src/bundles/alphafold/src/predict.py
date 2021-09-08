@@ -108,13 +108,14 @@ class AlphaFoldRun(ToolInstance):
     def _download_requested(self, item):
         # "item" is an instance of QWebEngineDownloadItem
         filename = item.suggestedFileName()
+        if filename == 'best_model.pdb':
+            item.cancel()  # Historical.  Used to just download pdb file.
+            return
         dir = self._download_directory
         if dir is None:
             self._download_directory = dir = self._unique_download_directory()
         item.setDownloadDirectory(dir)
-        if filename == 'best_model.pdb':
-            item.finished.connect(self._downloaded_best_model)
-        elif  filename == 'results.zip':
+        if  filename == 'results.zip':
             item.finished.connect(self._unzip_results)
         item.accept()
 
@@ -130,11 +131,6 @@ class AlphaFoldRun(ToolInstance):
                 break
         makedirs(path, exist_ok = True)
         return path
-    
-    def _downloaded_best_model(self, *args, **kw):
-        self.session.logger.info('AlphaFold prediction finished\n' +
-                                 'Results in %s' % self._download_directory)
-        self._open_prediction()
 
     def _open_prediction(self):
         from os.path import join, exists
@@ -165,6 +161,10 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(self._download_directory)
+        self._open_prediction()
+        self.session.logger.info('AlphaFold prediction finished\n' +
+                                 'Results in %s' % self._download_directory)
+        self._download_directory = None  # Make next run go in a new directory
 
 # ------------------------------------------------------------------------------
 #

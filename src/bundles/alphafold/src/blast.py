@@ -21,9 +21,12 @@ def alphafold_search(session, sequence, cutoff=1.0e-3, max_sequences=100, matrix
         chain_spec = sequence.string(style = 'command', include_structure = True)
     else:
         chain_spec = None
+    seq_name = (getattr(sequence, 'uniprot_name', None)
+                or getattr(sequence, 'uniprot_accession', None))
     from chimerax.blastprotein import BlastProteinJob
     BlastProteinJob(session, sequence.ungapped(), chain_spec, database='alphafold',
-                    cutoff=cutoff, matrix=matrix, max_seqs=max_sequences)
+                    cutoff=cutoff, matrix=matrix, max_seqs=max_sequences,
+                    sequence_name = seq_name)
     
 # -----------------------------------------------------------------------------
 #

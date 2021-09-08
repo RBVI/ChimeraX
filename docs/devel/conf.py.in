@@ -35,14 +35,11 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.autosummary',
     'sphinx.ext.extlinks',
-    'numpydoc',
+    'sphinx.ext.napoleon',
+    # Must be loaded after napoleon
+    'sphinx_autodoc_typehints',
     'class_munger',
 ]
-
-# Need the following to avoid warnings for every class method
-# of the form "WARNING: toctree references unknown document ..."
-numpydoc_show_class_members = False
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -291,7 +288,7 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'python': ('https://docs.python.org/PYTHON_VERSION', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master', None),
 }
 
 # -- Options for extlinks --------------------------------------------
