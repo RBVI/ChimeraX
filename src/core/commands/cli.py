@@ -2880,7 +2880,7 @@ class Command:
                             if not self._ci.self_logging:
                                 session.logger.info("Command cancelled by user")
                             raise
-                        results.append(result)
+                        results.extend(result)
 
             self.command_name = None
             self._ci = None
