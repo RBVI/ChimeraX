@@ -156,34 +156,46 @@ class ItemTable(QTableView):
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
 
-    def __init__(self, *, auto_multiline_headers=True, column_control_info=None, allow_user_sorting=True,
-            settings_attr=None):
-        """ 'auto_multiline_headers' controls whether header titles can be split into multiple
-            lines on word boundaries.
-
-            'allow_user_sorting' controls whether mouse clicks on column headers will sort the
-            columns.
-
-            'column_control_info', if provided, is used to populate either a menu or widget with
+    def __init__(self, *, auto_multiline_headers: bool = True,
+                 # TODO: Should this be a NamedTuple?
+                 column_control_info = None,
+                 allow_user_sorting: bool = True,
+                 settings_attr=None):
+        """
+        Parameters:
+            auto_multiline_headers: controls whether header titles can be split into multiple
+                                    lines on word boundaries.
+            allow_user_sorting: controls whether mouse clicks on column headers will sort the
+                                columns.
+            column_control_info: If provided, used to populate either a menu or widget with
             check box entries or check boxes (respectively) to control which columns are displayed.
-            For a menu the value should be:
+
+        Notes:
+           For a menu the value of column_control_info should be:
                 (QMenu instance, chimerax.core.settings.Settings instance, defaults dictionary,
                   fallback default [, optional display callback])
             For a widget the value is:
                 (QWidget instance, chimerax.core.settings.Settings instance, defaults dictionary,
                   fallback default, display callback, number of check box columns, show global buttons)
-            The Settings instance will be used to remember the displayed column preferences (as
-            an attribute given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR and which
-            should be declared as 'EXPLICIT_SAVE').  The defaults dictionary controls whether the
-            column is shown by default, with column titles as keys and booleans as values (True =
-            displayed).  The fallback default (a boolean) is for columns missing from the defaults
-            dictionary.  The display callback, if not None, is called when a column is configured
-            in/out of the table.  It is called with a single argument: the ItemColumn instance (whose
-            'display' attribute corresponds to the state _after_ the change).  Widget-style control
-            areas have an additional field, which is the number of check box columns.  If None,
-            the number will be determined automatically (approx. square root of number of check buttons,
-            'show global buttons' determines whether the "Show All", etc.. buttons are added.  Typically
-            should be set to True for tables with a fixed set of columns and False for variable sets.
+
+            The parameters for column_control_info are:
+
+                Settings instance: used to remember the displayed column preferences (as an attribute
+                                   given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR
+                                   and which should be declared as 'EXPLICIT_SAVE').
+                defaults dictionary: controls whether the column is shown by default, with column
+                                     titles as keys and booleans as values (True = displayed).
+                fallback default: A boolean used for columns missing from the defaults dictionary.
+                display callback: if not None, called when a column is configured in/out of the table.
+                                  It is called with a single argument: the ItemColumn instance (whose
+                                  'display' attribute corresponds to the state _after_ the change).
+                show global buttons: determines whether the "Show All", etc... buttons are added. Should
+                                     typically be set to True for tables with a fixed set of columns and
+                                     False for variable sets.
+
+            Widget-style control areas have an additional field, which is the number of check box columns.
+            If None, the number will be determined automatically (approx. square root of number of check
+            buttons). This field comes before 'show global buttons'.
         """
         self._table_model = None
         self._columns = []
@@ -317,8 +329,10 @@ class ItemTable(QTableView):
 
     @data.setter
     def data(self, data):
-        """ Should just be a sequence of instances (rows) from which the table data can be retrieved by
-            applying the 'data_fetch' function from each column.
+        """
+        Parameters:
+            data: A sequence of objects that act as the model for a row. Information will be
+                  retrieved from the object using the data_fetch function supplied to add_column.
         """
         if not self._table_model:
             self._data = data[:]
