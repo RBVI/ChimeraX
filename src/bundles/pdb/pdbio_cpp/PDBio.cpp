@@ -362,7 +362,16 @@ push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::s
 {
     PDB sr_rec(PDB::SEQRES);
     sr_rec.seqres.ser_num = record_num;
-    sr_rec.seqres.chain_id = chain->chain_id()[0];
+    std::string chain_id(chain->chain_id());
+    if (chain_id.size() > 1) {
+        sr_rec.seqres.chain_id[0] = chain_id[0];
+        sr_rec.seqres.chain_id[1] = chain_id[1];
+        sr_rec.seqres.chain_id[2] = '\0';
+    } else {
+        sr_rec.seqres.chain_id[0] = ' ';
+        sr_rec.seqres.chain_id[1] = chain_id[0];
+        sr_rec.seqres.chain_id[2] = '\0';
+    }
     sr_rec.seqres.num_res = chain->residues().size();
     int is_rna = -1;
     for (size_t i = 0; i < 13; ++i) {
@@ -1048,7 +1057,7 @@ start_t = end_t;
         }
 
         case PDB::SEQRES: {
-            auto chain_id = ChainID({record.seqres.chain_id});
+            auto chain_id = ChainID(record.seqres.chain_id);
             if (chain_id != seqres_cur_chain) {
                 seqres_cur_chain = chain_id;
                 seqres_cur_count = 0;
