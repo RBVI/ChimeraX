@@ -586,9 +586,11 @@ def init(argv, event_loop=True):
     # initialize the user interface
     # sets up logging
     if opts.gui:
-        sess.logger.clear()  # Remove nogui logging to stdout
         from chimerax.ui import gui
         sess.ui = gui.UI(sess)
+    else:
+        from chimerax.core.nogui import NoGuiLog
+        sess.logger.add_log(NoGuiLog())
 
     # Set ui options
     sess.ui.stereo = opts.stereo
@@ -650,8 +652,6 @@ def init(argv, event_loop=True):
         sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
-        from chimerax.core import tasks
-        sess.tasks = tasks.Tasks(sess, first=True)
         from chimerax.core import undo
         sess.undo = undo.Undo(sess, first=True)
 

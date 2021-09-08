@@ -67,10 +67,10 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: ViewDockX :: General :: display docking results</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdockx :: General :: specify models as docking results </ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdockx down :: General :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdockx up :: General :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: ViewDockX :: Binding Analysis :: display docking results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx :: Binding Analysis :: specify models as docking results </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx down :: Binding Analysis :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx up :: Binding Analysis :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

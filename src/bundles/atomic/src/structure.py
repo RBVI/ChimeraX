@@ -117,6 +117,16 @@ class Structure(Model, StructureData):
 
     deleted = Model.deleted
 
+    def combine(self, s, chain_id_mapping, ref_xform):
+        '''
+        Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
+        dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        'ref_xform' is the scene_position of the reference model.
+        '''
+        totals = self._get_instance_totals()
+        StructureData._combine(self, s, chain_id_mapping, ref_xform)
+        self._copy_custom_attrs(s, totals)
+
     def copy(self, name = None):
         '''
         Return a copy of this structure with a new name.
@@ -125,10 +135,34 @@ class Structure(Model, StructureData):
         '''
         if name is None:
             name = self.name
-        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = self.__class__(self.session, name = name,
+            c_pointer = StructureData._copy(self), auto_style = False, log_info = False)
         m.positions = self.positions
+        m._copy_custom_attrs(self)
         return m
+
+    def _get_instance_totals(self):
+        return {
+            'atoms': self.num_atoms,
+            'bonds': self.num_bonds,
+            'residues': self.num_residues,
+            'chains': self.num_chains
+        }
+
+    def _copy_custom_attrs(self, source, totals=None):
+        from .molobject import Chain
+        for class_obj in [Atom, Bond, Chain, Residue]:
+            py_objs = [py_obj for py_obj in python_instances_of_class(class_obj)
+                if (not py_obj.deleted) and py_obj.structure == source and py_obj.has_custom_attrs]
+            if not py_objs:
+                continue
+            class_attr = class_obj.__name__.lower() + 's'
+            index_lookup = { obj:i for i, obj in enumerate(getattr(source, class_attr)) }
+            base_index = 0 if totals is None else totals[class_attr]
+            collection = getattr(self, class_attr)
+            for py_obj in py_objs:
+                collection[base_index + index_lookup[py_obj]].set_custom_attrs(
+                    {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
         if not self.scene_position.is_identity():
@@ -1450,31 +1484,45 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
+        uids = {u.chain_id:u.uniprot_name for u in uniprot_ids(self)}
+        have_uniprot_ids = len([chain for chains in descripts.values()
+                                for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
-            self.name if is_ensemble else self)
-        summary += '    </tr>\n'
-        summary += '    <tr>\n'
-        summary += '      <th>Chain</th>\n'
-        summary += '      <th>Description</th>\n'
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        struct_name = self.name if is_ensemble else str(self)
+        lines = ['<table %s>' % html_table_params,
+                 '  <thead>',
+                 '    <tr>',
+                 '      <th colspan="%d">Chain information for %s</th>'
+                   % ((3 if have_uniprot_ids else 2), struct_name),
+                 '    </tr>',
+                 '    <tr>',
+                 '      <th>Chain</th>',
+                 '      <th>Description</th>',
+                 '      <th>UniProt</th>' if have_uniprot_ids else '',
+                 '    </tr>',
+                 '  </thead>',
+                 '  <tbody>',
+        ]
         for key, chains in descripts.items():
             description, characters = key
-            summary += '    <tr>\n'
-            summary += '      <td style="text-align:center">'
-            summary += ' '.join([chain_text(chain) for chain in chains])
-            summary += '      </td>'
-            summary += '      <td>'
-            summary += descript_text(description, chains)
-            summary += '      </td>'
-            summary += '    </tr>\n'
-        summary += '  </tbody>\n'
-        summary += '</table>'
+            cids = ' '.join([chain_text(chain) for chain in chains])
+            cdescrip = descript_text(description, chains)
+            if have_uniprot_ids:
+                uidset = set(uids.get(chain.chain_id) for chain in chains
+                             if chain.chain_id in uids)
+                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+                cuids = ','.join(ucmd % (uname,uname) for uname in uidset)
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">' + cids + '</td>',
+                '      <td>' + cdescrip + '</td>',
+                (('      <td style="text-align:center">' + cuids + '</td>')
+                 if have_uniprot_ids else ''),
+                '    </tr>',
+            ])
+        lines.extend(['  </tbody>',
+                      '</table>'])
+        summary = '\n'.join(lines)
         session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
@@ -2255,12 +2303,22 @@ def selected_residues(session):
 # -----------------------------------------------------------------------------
 #
 def structure_residues(structures):
-    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues
     res = Residues()
     for m in structures:
         res = res | m.residues
     return res
+
+# -----------------------------------------------------------------------------
+#
+def uniprot_ids(structure):
+    from chimerax.mmcif.uniprot_id import uniprot_ids
+    uids = uniprot_ids(structure)
+    if len(uids) == 0:
+        from chimerax.pdb.uniprot_id import uniprot_ids
+        uids = uniprot_ids(structure)
+    return uids
 
 def _residue_mouse_hover(pick, log):
     res = getattr(pick, 'residue', None)

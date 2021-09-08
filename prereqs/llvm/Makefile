@@ -45,7 +45,7 @@ install: $(SOURCE)
 app-install:;
 
 $(SOURCE): $(DISTRIBUTION)
-	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
+	tar -xf $(DISTRIBUTION) -C $(tmpdir)
 
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/llvm/$(DISTRIBUTION)

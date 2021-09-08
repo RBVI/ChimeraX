@@ -207,6 +207,11 @@ public:
         Real    length;
     } Link_;
     typedef struct {
+        Atom    name[2];
+        char    alt_loc[2];
+        Residue res[2];
+    } Linkr_;
+    typedef struct {
         int num_remark;
         int num_ftnote;
         int num_het;
@@ -282,7 +287,7 @@ public:
     } Seqadv_;
     typedef struct {
         int ser_num;
-        char    chain_id;
+        char    chain_id[3];
         int num_res;
         ResidueName res_name[13];
     } Seqres_;
@@ -382,7 +387,7 @@ public:
         CAVEAT, CISPEP, COMPND, CONECT, CRYST1,
         DBREF, DBREF1, DBREF2, END, ENDMDL, EXPDTA, FORMUL, FTNOTE,
         HEADER, HELIX, HET, HETATM, HETNAM, HETSYN, HYDBND,
-        JRNL, KEYWDS, LINK,
+        JRNL, KEYWDS, LINK, LINKR,
         MASTER, MDLTYP, MODEL, MODRES, MTRIX, NUMMDL,
         OBSLTE, ORIGX, REMARK, REVDAT,
         SCALE, SEQADV, SEQRES, SHEET, SIGATM, SIGUIJ, SITE, SLTBRG,
@@ -424,6 +429,7 @@ public:
         Jrnl_   jrnl;
         Keywds_ keywds;
         Link_   link;
+        Linkr_  linkr;
         Master_ master;
         Mdltyp_ mdltyp;
         Model_  model;

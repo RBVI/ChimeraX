@@ -86,6 +86,16 @@ class SaverInfo:
         """
         raise NotImplementedError("Saver did not implement 'save_args_string_from_widget' method")
 
+    @property
+    def in_file_history(self):
+        """
+        Set this to False in the rare case that the file should not appear in the file history.
+        Note that saved files that ChimeraX does not know how to open are automatically excluded
+        from the file history, so only files that are in a format that ChimeraX knows how to open
+        but that would not be appropriate to open need to be excluded by setting this to False.
+        """
+        return True
+
 from .manager import NoSaverError
 from .dialog import show_save_file_dialog
 from .options import SaveModelOptionWidget

@@ -1,0 +1,24 @@
+PREREQ_MAKE = 1
+TOP	= ../..
+include $(TOP)/mk/config.make
+
+#
+# Currently (July 14, 2021) there is no PyQt5 Mac arm64 distribution from Riverbank.
+# Copy PyQt5 from Homebrew installation obtained with "brew install pyqt@5".
+# The Homebrew PyQt5 does not currently include QtWebEngine.
+#
+
+PYQT_MODULE = /opt/homebrew/lib/python$(PYTHON_VERSION)/site-packages/PyQt5
+
+all:
+
+install:
+	$(RSYNC) --copy-links $(PYQT_MODULE) $(PYSITEDIR)
+
+app-install:
+	$(RSYNC) --copy-links $(PYQT_MODULE) $(APP_PYSITEDIR)
+
+clean:
+
+distclean: clean
+

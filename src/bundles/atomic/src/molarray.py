@@ -1172,11 +1172,11 @@ class Residues(Collection):
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
-    numbers = cvec_property('residue_number', int32, read_only = True, doc =
+    numbers = cvec_property('residue_number', int32, doc =
     '''
     Returns a :mod:`numpy` array of residue sequence numbers, as provided by
     whatever data source the structure came from, so not necessarily consecutive,
-    or starting from 1, *etc.* Read only.
+    or starting from 1, *etc.*.
     ''')
     polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')

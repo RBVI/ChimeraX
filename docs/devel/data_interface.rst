@@ -78,11 +78,6 @@ Graphics-related Modules
 C++ helper Modules
 ~~~~~~~~~~~~~~~~~~
 
-.. toctree::
-    :maxdepth: 2
-
-    core/appdirs_cpp/appdirs_cpp.rst
-
 .. seealso::
 
     :doc:`Readcif <bundles/mmcif/mmcif_cpp/readcif_cpp/docs/api>`

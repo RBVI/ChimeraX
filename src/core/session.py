@@ -497,7 +497,10 @@ class Session:
         from . import colors
         self.user_colors = colors.UserColors()
         self.user_colormaps = colors.UserColormaps()
-        # tasks and bundles are initialized later
+
+        from .import tasks
+        self.tasks = tasks.Tasks(self, first=True)
+        # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
@@ -745,24 +748,25 @@ class InScriptFlag:
 def standard_metadata(previous_metadata={}):
     """Fill in standard metadata for created files
 
-    Parameters
-    ----------
-    previous_metadata : dict
-        Optional dictionary of previous metadata.
+    Parameters:
+        previous_metadata: dict
+            Optional dictionary of previous metadata.
+
 
     The standard metadata consists of:
 
-    generator :
-        Application that created file in HTML User Agent format
-        (app name version (os))
-    created :
-        Date first created
-    modified :
-        Date last modified after being created
-    creator :
-        User name(s)
-    dateCopyrighted :
-        Copyright(s)
+    Parameters:
+        generator:
+            Application that created file in HTML User Agent format
+            (app name version (os))
+        created:
+            Date first created
+        modified:
+            Date last modified after being created
+        creator:
+            User name(s)
+        dateCopyrighted:
+            Copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.

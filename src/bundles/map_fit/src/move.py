@@ -108,9 +108,9 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
     position_history.record_position(models, atoms, base_model)
     for m in models:
         # TODO: Handle case where parent of volume has non-identity position.  tf is in scene coords.
-        m.position = tf * m.position
+        m.scene_position = tf * m.scene_position
     if len(atoms) > 0:
-        atoms.coords = tf * atoms.coords
+        atoms.scene_coords = tf * atoms.scene_coords
     position_history.record_position(models, atoms, base_model)
 
 # -----------------------------------------------------------------------------

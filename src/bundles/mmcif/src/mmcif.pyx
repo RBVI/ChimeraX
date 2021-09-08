@@ -48,6 +48,8 @@ _additional_categories = (
     "reflns",
     "em_3d_reconstruction",
     "exptl",
+    "struct_ref",	# Uniprot data base id
+    "struct_ref_seq",	# Sequence range for uniprot id
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"
@@ -523,20 +525,19 @@ def citations(model, only=None):
 def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=None):
     """Add citation to model's mmCIF metadata
 
-    Parameters
-    ----------
-    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
-        The model.
-    citation_id : string
-        The citation identifier.
-    info : dictionary
-        Information about citation
-    authors : sequence
-        Optional sequence of the authors.
-    editors : sequence
-        Optional sequence of book or book chapter editors.
-    metadata : optional metadata dictonary
-        Allow reuse of existing metadata dictionary.
+    Parameters:
+        model: instance of a :py:class:`~chimerax.atomic.AtomicStructure`
+             The model.
+        citation_id: string
+            The citation identifier.
+        info: dictionary
+            Information about citation
+        authors: sequence
+            Optional sequence of the authors.
+        editors: sequence
+            Optional sequence of book or book chapter editors.
+        metadata: optional metadata dictonary
+            Allow reuse of existing metadata dictionary.
 
     Update the mmCIF 'citation', 'citation_author', and 'citation_editor' tables
     with the given informaiton.  If the `citation_id` is already present in the
@@ -547,9 +548,11 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
     except for the citation `id` which is given as an argument to this function.
     The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
+
         'title', 'journal_abbrev', 'journal_volume', 'year',
         'page_first', 'page_last', 'journal_issue',
         'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'
+
     """
     tables = _add_citation(model, citation_id, info, authors, editors, metadata=metadata)
 
@@ -645,14 +648,13 @@ def _add_citation(model, citation_id, info, authors=(), editors=(),
 def add_software(model, name, info, *, metadata=None):
     """Add citation to model's mmCIF metadata
 
-    Parameters
-    ----------
-    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
-        The model.
-    info : dictionary
-        Information about software
-    metadata : optional metadata dictonary
-        Allow reuse of existing metadata dictionary.
+    Parameters:
+        model: instance of a :py:class:`~chimerax.atomic.AtomicStructure`
+            The model.
+        info: dictionary
+            Information about software
+        metadata: optional metadata dictonary
+            Allow reuse of existing metadata dictionary.
 
     Update the mmCIF 'software' table with the given informaiton.  If the `name` is
     already present in the software table, then nothing is done.
@@ -662,8 +664,10 @@ def add_software(model, name, info, *, metadata=None):
     except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
     which is computed.  The capitalization should match that in the mmCIF dictionary.
     In particular, the following data items are supported:
+
         'name', 'version', 'location', 'classification',
         'os', 'type', 'citation_id'
+
     """
     software = _add_software(model, name, info, metadata=metadata)
 
@@ -855,11 +859,10 @@ cdef class CIFTable:
     def mapping(self, key_names, value_names, foreach_names=None):
         """Supported API. Return a dictionary for subset of the table
 
-        Parameters
-        ----------
-        key_names : a field name or list of field names
-        value_names : a field name or list of field names
-        foreach_names : optional field name or list of field names
+        Parameters:
+            key_names: a field name or list of field names
+            value_names: a field name or list of field names
+            foreach_names: optional field name or list of field names
 
         If foreach_names is not given, then the resulting dictionary is whose
         keys are the values of the key field(s) and the values are the values
@@ -915,11 +918,10 @@ cdef class CIFTable:
     def fields(self, field_names, *, int allow_missing_fields=False, missing_value=''):
         """Supported API. Return subset of rows of the table for the given fields
 
-        Parameters
-        ----------
-        field_names : a sequence of the field names
-        allow_missing_fields : optional boolean (default False)
-        missing_value : optional missing_value object (default '')
+        Parameters:
+            field_names: a sequence of the field names
+            allow_missing_fields: optional boolean (default False)
+            missing_value: optional missing_value object (default '')
 
         A list of tuples is return where each tuple's items are the values
         corresponding to the given field names in the given order.  If
@@ -1021,10 +1023,11 @@ cdef class CIFTable:
     def print(self, file=None, *, int fixed_width=False):
         """Supported API. Print contents of table to given file
 
-        Parameters
-        ----------
-        file : CIFTable to add on to current table
-        fixed_width : true if fixed width columns should be used
+        Parameters:
+            file: 
+                CIFTable to add on to current table
+            fixed_width: 
+                true if fixed width columns should be used
 
         The fixed width column output matches the PDBx/mmCIF style syntax.
         If fixed_width is asked for and it is not possible to have

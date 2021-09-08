@@ -69,7 +69,7 @@ class EntriesRow:
         self.frame = f
 
         from .color_button import ColorButton
-        from Qt.QtWidgets import QLabel, QPushButton
+        from Qt.QtWidgets import QLabel, QPushButton, QWidget
         self.values = values = []
         self.labels = labels = []
         for a in args:
@@ -132,6 +132,8 @@ class EntriesRow:
                 cb = ColorButton(f, max_size = (20,20))
                 layout.addWidget(cb)
                 values.append(cb)
+            elif isinstance(a, QWidget):
+                layout.addWidget(a)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -224,7 +226,10 @@ class MenuEntry:
         b.setText(values[0])
         m = QMenu(b)
         for value in values:
-            m.addAction(value)
+            if value == '-':
+                m.addSeparator()
+            else:
+                m.addAction(value)
         b.setMenu(m)
         m.triggered.connect(self._menu_selection_cb)
     def _menu_selection_cb(self, action):
@@ -366,7 +371,7 @@ class ModelMenu:
                              special_items = special_items, parent = f)
         self._menu = sm
         
-        mlist = session.models.list(type = class_filter)
+        mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:
             sm.value = mdisp[0]

@@ -15,7 +15,7 @@ from __future__ import absolute_import
 import unittest
 
 import cxservices
-from models.error import Error  # noqa: E501
+from cxservices.models.error import Error  # noqa: E501
 from cxservices.rest import ApiException
 
 

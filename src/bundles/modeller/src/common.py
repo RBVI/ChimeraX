@@ -11,12 +11,54 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class ModelingError(ValueError):
+    pass
+
 def modeller_copy(seq):
 	from copy import copy
 	mseq = copy(seq)
 	mseq.name = mseq.name[:16].replace(' ', '_')
 	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
 	return mseq
+
+def opal_safe_file_name(fn):
+    return fn.replace(':', '_').replace(' ', '_').replace('|', '_')
+
+def structure_save_name(s):
+    return s.name.replace(':', '_').replace(' ', '_') + "_" + s.id_string
+
+def chain_save_name(chain):
+    return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
+
+def regularized_seq(aseq, chain):
+    mmap = aseq.match_maps[chain]
+    rseq = modeller_copy(aseq)
+    rseq.description = "structure:" + chain_save_name(chain)
+    seq_chars = list(rseq.characters)
+    from chimerax.atomic import Sequence
+    from chimerax.pdb import standard_polymeric_res_names as std_res_names
+    in_seq_hets = []
+    num_res = 0
+    for ungapped in range(len(aseq.ungapped())):
+        gapped = aseq.ungapped_to_gapped(ungapped)
+        if ungapped not in mmap:
+            seq_chars[gapped] = '-'
+        else:
+            r = mmap[ungapped]
+            num_res += 1
+            if r.name not in std_res_names:
+                in_seq_hets.append(r.name)
+                seq_chars[gapped] = '.'
+            else:
+                seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
+    s = chain.structure
+    het_set = getattr(s, 'in_seq_hets', set())
+    # may want to preserve all-HET chains, so don't auto-exclude them
+    if num_res != len(in_seq_hets):
+        het_set.update(in_seq_hets)
+    s.in_seq_hets = het_set
+    rseq.characters = "".join(seq_chars)
+    return rseq
 
 def get_license_key(session, license_key):
     from .settings import get_settings
@@ -31,8 +73,8 @@ def get_license_key(session, license_key):
             " Get a license key by registering at the Modeller web site.")
     return license_key
 
-def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve, hydrogens, fast, loop_info,
-        custom_script, temp_path, thorough_opt, dist_restraints_path):
+def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve, hydrogens, fast,
+        loop_info, custom_script, temp_path, thorough_opt, dist_restraints_path, *, version=2):
     """Function to prepare the Modeller scripts.
 
     Returns (path-to-Modeller-script, path-to-Modeller-XML-config-file,
@@ -56,14 +98,14 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<modeller9v8>\n'
             '\t<key>%s</key>\n'
-            '\t<version>2</version>\n'
+            '\t<version>%d</version>\n'
             '\t<numModel>%s</numModel>\n'
             '\t<hetAtom>%s</hetAtom>\n'
             '\t<water>%s</water>\n'
             '\t<allHydrogen>%s</allHydrogen>\n'
             '\t<veryFast>%s</veryFast>\n'
             '\t<loopInfo>%s</loopInfo>\n'
-            '</modeller9v8>' % (license_key, num_models, int(het_preserve),
+            '</modeller9v8>' % (license_key, version, num_models, int(het_preserve),
                 int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
 
     if custom_script:
@@ -285,13 +327,14 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, match_chains, num_models, target_seq_name, targets, *, res_numberings=None):
         self.session = session
         self.match_chains = match_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
-        self.show_gui = show_gui
+        self.chain_ids = match_chains.chain_ids
+        self.res_numberings = res_numberings
 
     def process_ok_models(self, ok_models_text, stdout_text, get_pdb_model):
         ok_models_lines = ok_models_text.rstrip().split('\n')
@@ -315,6 +358,14 @@ class RunModeller(State):
             for attr_name, val in zip(attr_names, scores):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
+            if model.num_chains == len(self.chain_ids):
+                model.chains.chain_ids = self.chain_ids
+            if self.res_numberings is not None and len(self.res_numberings) == model.num_chains:
+                for chain, renumbering in zip(model.chains, self.res_numberings):
+                    new_numbers, new_inserts = renumbering
+                    existing = chain.existing_residues
+                    existing.numbers = new_numbers
+                    existing.insertion_codes = new_inserts
             if model.num_chains == len(self.match_chains):
                 pairings = list(zip(self.match_chains, model.chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
@@ -322,6 +373,20 @@ class RunModeller(State):
                     cutoff_distance=mm.defaults['iter_cutoff'])
             else:
                 match_okay = False
+            # since the residue numbering was initially consecutive, no long bonds got converted to
+            # missing-structure pseudobonds, so we have to convert them by hand (simply by deleting them)
+            res_map = { r: i for i, r in enumerate(model.residues) }
+            for b in model.bonds[:]:
+                a1, a2 = b.atoms
+                r1, r2 = a1.residue, a2.residue
+                if abs(res_map[r1] - res_map[r2]) != 1:
+                    continue
+                if not r1.chain or r1.chain != r2.chain:
+                    continue
+                if abs(r1.number - r2.number) == 1:
+                    continue
+                if b.length > 4.0:
+                    b.structure.delete_bond(b)
             models.append(model)
         if not match_okay:
             self.session.logger.warning("The number of model chains does not match the number used from"
@@ -339,23 +404,121 @@ class RunModeller(State):
         for alignment in reset_alignments:
             alignment.auto_associate = True
 
-        if self.show_gui and self.session.ui.is_gui:
+        if self.session.ui.is_gui:
             from .tool import ModellerResultsViewer
             ModellerResultsViewer(self.session, "Modeller Results", models, attr_names)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
+            'chain_ids': self.chain_ids,
             'match_chains': self.match_chains,
             'num_models': self.num_models,
+            'res_numberings': self.res_numberings,
             'target_seq_name': self.target_seq_name,
             'targets': self.targets,
-            'show_gui': self.show_gui
         }
 
     def set_state_from_snapshot(self, data):
+        self.chain_ids = data.get('chain_ids', None)
         self.match_chains = data['match_chains']
         self.num_models = data['num_models']
+        self.res_numberings = data.get('res_numberings', None)
         self.target_seq_name = data['target_seq_name']
         self.target = data['targets']
-        self.show_gui = data['show_gui']
+
+class ModellerWebService(RunModeller):
+
+    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
+            targets, **kw):
+
+        super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
+        self.input_file_map = input_file_map
+        self.config_name = config_name
+
+        self.job = None
+
+    def run(self, *, block=False):
+        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map, block)
+
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        return {
+            'base data': super().take_snapshot(session, flags),
+            'input_file_map': self.input_file_map,
+            'config_name': self.config_name,
+        }
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
+            None, None)
+        inst.set_state_from_snapshot(data['base data'])
+
+from chimerax.webservices.opal_job import OpalJob
+class ModellerJob(OpalJob):
+
+    OPAL_SERVICE = "Modeller9v8Service"
+    SESSION_SAVE = True
+
+    def __init__(self, session, caller, command, input_file_map, block):
+        super().__init__(session)
+        self.caller = caller
+        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
+
+    def monitor(self):
+        super().monitor()
+        stdout = self.get_file("stdout.txt")
+        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
+        status = self.session.logger.status
+        tsafe = self.session.ui.thread_safe
+        if not num_done:
+            tsafe(status, "No models generated yet")
+        else:
+            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
+
+    def next_check(self):
+        return 15
+
+    def on_finish(self):
+        logger = self.session.logger
+        logger.info("Modeller job ID %s finished" % self.job_id)
+        if not self.exited_normally():
+            err = self.get_file("stderr.txt")
+            if self.fail_callback:
+                self.fail_callback(self, err)
+                return
+            if err:
+                raise RuntimeError("Modeller failure; standard error:\n" + err)
+            else:
+                raise RuntimeError("Modeller failure with no error output")
+        try:
+            model_info = self.get_file("ok_models.dat")
+        except KeyError:
+            try:
+                stdout = self.get_file("stdout.txt")
+                stderr = self.get_file("stderr.txt")
+            except KeyError:
+                raise RuntimeError("No output from Modeller")
+            logger.info("<br><b>Modeller error output</b>", is_html=True)
+            logger.info(stderr)
+            logger.info("<br><b>Modeller run output</b>", is_html=True)
+            logger.info(stdout)
+            from chimerax.core.errors import NonChimeraError
+            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
+        try:
+            stdout = self.get_file("stdout.txt")
+        except KeyError:
+            raise RuntimeError("No standard output from Modeller job")
+        def get_pdb_model(fname):
+            from io import StringIO
+            try:
+                pdb_text = self.get_file(fname)
+            except KeyError:
+                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+            from chimerax.pdb import open_pdb
+            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+        self.caller.process_ok_models(model_info, stdout, get_pdb_model)
+        self.caller = None
+

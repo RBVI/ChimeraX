@@ -120,7 +120,7 @@ yasm $(YASM_EXE): $(YASM_SOURCE)
 	cd $(YASM_SOURCE) ; ./configure --prefix=$(build_prefix); $(MAKE) install
 
 $(YASM_SOURCE): $(YASM_DISTRIB)
-	tar jxf $(YASM_DISTRIB) -C $(tmpdir)
+	tar -xf $(YASM_DISTRIB) -C $(tmpdir)
 
 $(YASM_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(YASM_DISTRIB)
@@ -131,7 +131,7 @@ libx264 $(LIBX264): $(LIBX264_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) lib-static install install-lib-static install-lib-dev
 
 $(LIBX264_SOURCE): $(LIBX264_DISTRIB)
-	$(bindir)/7za e -so $(LIBX264_DISTRIB) | tar xf - -C $(tmpdir)
+	tar -xf $(LIBX264_DISTRIB) -C $(tmpdir)
 
 $(LIBX264_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBX264_DISTRIB)
@@ -142,7 +142,7 @@ libogg $(LIBOGG): $(LIBOGG_SOURCE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBOGG_SOURCE): $(LIBOGG_DISTRIB)
-	$(bindir)/7za e -so $(LIBOGG_DISTRIB) | tar xf - -C $(tmpdir)
+	tar -xf $(LIBOGG_DISTRIB) -C $(tmpdir)
 
 $(LIBOGG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBOGG_DISTRIB)
@@ -165,7 +165,7 @@ ifeq ($(OS),Darwin)
 endif
 
 $(LIBTHEORA_SOURCE): $(LIBTHEORA_DISTRIB)
-	$(bindir)/7za e -so $(LIBTHEORA_DISTRIB) | tar xf - -C $(tmpdir)
+	tar -xf $(LIBTHEORA_DISTRIB) -C $(tmpdir)
 
 $(LIBTHEORA_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBTHEORA_DISTRIB)
@@ -176,7 +176,7 @@ libvpx $(LIBVPX): $(LIBVPX_SOURCE) $(YASM_EXE)
 	env PATH=$(bindir):$(PATH) $(MAKE) install
 
 $(LIBVPX_SOURCE): $(LIBVPX_DISTRIB)
-	$(bindir)/7za e -so $(LIBVPX_DISTRIB) | tar xf - -C $(tmpdir)
+	tar -xf $(LIBVPX_DISTRIB) -C $(tmpdir)
 
 $(LIBVPX_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(LIBVPX_DISTRIB)

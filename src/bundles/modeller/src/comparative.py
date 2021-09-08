@@ -11,12 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class ModelingError(ValueError):
-    pass
-
 def model(session, targets, *, block=True, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None,
+    hydrogens=False, license_key=None, num_models=5, temp_path=None,
     thorough_opt=False, water_preserve=False):
     """
     Generate comparative models for the target sequences.
@@ -28,7 +25,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         list of (alignment, sequence) tuples.  Each sequence will be modelled.
     block
         If True, wait for modelling job to finish before returning and return list of
-        (opened) models.  Otherwise return immediately.  Also see 'show_gui' option.
+        (opened) models.  Otherwise return immediately.
     multichain
         If True, the associated chains of each structure are used individually to generate
         chains in the resulting models (i.e. the models will be multimers).  If False, all
@@ -52,8 +49,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
         Number of models to generate for each template sequence
-    show_gui
-        If True, show user interface for Modeller results (if ChimeraX is in gui mode).
     temp_path
         If provided, folder to use for temporary files
     thorough_opt
@@ -63,7 +58,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
     """
 
     from chimerax.core.errors import LimitationError, UserError
-    from .common import modeller_copy
+    from .common import modeller_copy, opal_safe_file_name, regularized_seq, structure_save_name
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
         # That structure is used as the multimer template.  Chains from other structures are used
@@ -124,9 +119,9 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         # of '-' characters
         prefixes, suffixes = find_affixes(mm_chains, chain_info)
         target_strings = []
-        for prefix, suffix, mm_target in zip(prefixes, suffixes, mm_targets):
+        for prefix, suffix, mm_target, mm_chain in zip(prefixes, suffixes, mm_targets, mm_chains):
             if mm_target is None:
-                target_strings.append('-')
+                target_strings.append('-' * len(mm_chain))
                 continue
             target_strings.append('-' * len(prefix) + mm_target.characters + '-' * len(suffix))
         templates_strings = []
@@ -136,7 +131,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             try:
                 aseq, target = chain_info[chain]
             except KeyError:
-                mm_template_strings.append('-')
+                mm_template_strings.append("".join([c if r else '-'
+                    for c, r in zip(chain.characters, chain.residues)]))
                 continue
             mm_template_strings.append(prefix + regularized_seq(aseq, chain).characters + suffix)
         templates_strings.append(mm_template_strings)
@@ -211,6 +207,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
     # form the sequences to be written out as a PIR
     from chimerax.atomic import Sequence
+    from .common import opal_safe_file_name, structure_save_name, chain_save_name
     pir_target = Sequence(name=opal_safe_file_name(target_name))
     pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
     pir_target.characters = '/'.join(target_strings)
@@ -221,8 +218,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         if info is None:
             # multimer template
             pir_template = Sequence(name=structure_save_name(multimer_template))
-            pir_template.description = "structure:%s:FIRST:%s::::::" % (
-                pir_template.name, multimer_template.chains[0].chain_id)
+            pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (pir_template.name,
+                multimer_template.chains[0].chain_id, multimer_template.chains[-1].chain_id)
             structures_to_save.add(multimer_template)
         else:
             # single-chain template
@@ -287,8 +284,9 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             raise LimitationError("Distance restraints only supported when executing locally")
         if thorough_opt:
             session.logger.warning("Thorough optimization only supported when executing locally")
+        from .common import ModellerWebService
         job_runner = ModellerWebService(session, match_chains, num_models,
-            pir_target.name, input_file_map, config_name, targets, show_gui)
+            pir_target.name, input_file_map, config_name, targets)
     else:
         #TODO: job_runner = ModellerLocal(...)
         from chimerax.core.errors import LimitationError
@@ -300,37 +298,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             shutil.copy(script_path, temp_dir.name)
 
     return job_runner.run(block=block)
-
-def regularized_seq(aseq, chain):
-    mmap = aseq.match_maps[chain]
-    from .common import modeller_copy
-    rseq = modeller_copy(aseq)
-    rseq.description = "structure:" + chain_save_name(chain)
-    seq_chars = list(rseq.characters)
-    from chimerax.atomic import Sequence
-    from chimerax.pdb import standard_polymeric_res_names as std_res_names
-    in_seq_hets = []
-    num_res = 0
-    for ungapped in range(len(aseq.ungapped())):
-        gapped = aseq.ungapped_to_gapped(ungapped)
-        if ungapped not in mmap:
-            seq_chars[gapped] = '-'
-        else:
-            r = mmap[ungapped]
-            num_res += 1
-            if r.name not in std_res_names:
-                in_seq_hets.append(r.name)
-                seq_chars[gapped] = '.'
-            else:
-                seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
-    s = chain.structure
-    het_set = getattr(s, 'in_seq_hets', set())
-    # may want to preserve all-HET chains, so don't auto-exclude them
-    if num_res != len(in_seq_hets):
-        het_set.update(in_seq_hets)
-    s.in_seq_hets = het_set
-    rseq.characters = "".join(seq_chars)
-    return rseq
 
 def find_affixes(chains, chain_info):
     from chimerax.pdb import standard_polymeric_res_names as std_res_names
@@ -372,110 +339,6 @@ def find_affixes(chains, chain_info):
     het_set.update(in_seq_hets)
     s.in_seq_hets = het_set
     return prefixes, suffixes
-
-def opal_safe_file_name(fn):
-    return fn.replace(':', '_').replace(' ', '_').replace('|', '_')
-
-def structure_save_name(s):
-    return opal_safe_file_name(s.name) + "_" + s.id_string
-
-def chain_save_name(chain):
-    return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
-
-from .common import RunModeller
-class ModellerWebService(RunModeller):
-
-    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-            targets, show_gui):
-
-        super().__init__(session, match_chains, num_models, target_seq_name, targets, show_gui)
-        self.input_file_map = input_file_map
-        self.config_name = config_name
-
-        self.job = None
-
-    def run(self, *, block=False):
-        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map, block)
-
-    def take_snapshot(self, session, flags):
-        """For session/scene saving"""
-        return {
-            'base data': super().take_snapshot(session, flags),
-            'input_file_map': self.input_file_map,
-            'config_name': self.config_name,
-        }
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
-            None, None)
-        inst.set_state_from_snapshot(data['base data'])
-
-from chimerax.webservices.opal_job import OpalJob
-class ModellerJob(OpalJob):
-
-    OPAL_SERVICE = "Modeller9v8Service"
-    SESSION_SAVE = True
-
-    def __init__(self, session, caller, command, input_file_map, block):
-        super().__init__(session)
-        self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
-
-    def monitor(self):
-        super().monitor()
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        status = self.session.logger.status
-        tsafe = self.session.ui.thread_safe
-        if not num_done:
-            tsafe(status, "No models generated yet")
-        else:
-            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
-
-    def next_check(self):
-        return 15
-
-    def on_finish(self):
-        logger = self.session.logger
-        logger.info("Modeller job ID %s finished" % self.job_id)
-        if not self.exited_normally():
-            err = self.get_file("stderr.txt")
-            if self.fail_callback:
-                self.fail_callback(self, err)
-                return
-            if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err)
-            else:
-                raise RuntimeError("Modeller failure with no error output")
-        try:
-            model_info = self.get_file("ok_models.dat")
-        except KeyError:
-            try:
-                stdout = self.get_file("stdout.txt")
-                stderr = self.get_file("stderr.txt")
-            except KeyError:
-                raise RuntimeError("No output from Modeller")
-            logger.info("<br><b>Modeller error output</b>", is_html=True)
-            logger.info(stderr)
-            logger.info("<br><b>Modeller run output</b>", is_html=True)
-            logger.info(stdout)
-            from chimerax.core.errors import NonChimeraError
-            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
-        try:
-            stdout = self.get_file("stdout.txt")
-        except KeyError:
-            raise RuntimeError("No standard output from Modeller job")
-        def get_pdb_model(fname):
-            from io import StringIO
-            try:
-                pdb_text = self.get_file(fname)
-            except KeyError:
-                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-            from chimerax.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
-        self.caller.process_ok_models(model_info, stdout, get_pdb_model)
-        self.caller = None
 
 def count_hets(chain):
     last_chain_res = chain.existing_residues[-1]

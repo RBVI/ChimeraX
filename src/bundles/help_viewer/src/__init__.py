@@ -103,6 +103,8 @@ class _MyAPI(toolshed.BundleAPI):
                 def open_args(self):
                     from chimerax.core.commands import BoolArg
                     return {'new_tab': BoolArg}
+
+                in_file_history = False
         else:  # help: / http: / https:
             from chimerax.open_command import FetcherInfo
 
@@ -119,6 +121,9 @@ class _MyAPI(toolshed.BundleAPI):
                     from chimerax.core.commands import BoolArg
                     return {'new_tab': BoolArg}
 
+                in_file_history = False
+
+        print("provider in_file_history:", HelpViewerInfo().in_file_history)
         return HelpViewerInfo()
 
 

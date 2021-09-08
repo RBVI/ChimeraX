@@ -2242,9 +2242,7 @@ class VolumeSurface(Surface):
   #
   def _set_surface(self, va, na, ta, hidden_edges):
     
-    self.set_geometry(va, na, ta)
-
-    self.edge_mask = hidden_edges
+    self.set_geometry(va, na, ta, edge_mask = hidden_edges)
 
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     v = self.volume
@@ -3850,63 +3848,62 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     Supported API.
     Save a density map file having any of the known density map formats.
 
-    Parameters
-    ----------
-    session : :class:`~chimerax.core.session.Session`
-       The session containing the Volume models.
-    path : string
-       File path on disk.  For saving multiple volumes to multiple files
-       the path can contain a C-style integer format specifier like "%d" or "%03d"
-       which will have be replaced by integer values starting at parameter base_index
-       for each of the volumes specified in parameter models.
-    format_name : string or None
-       Name of the file format.  The available formats can be listed
-       with ChimeraX command "save formats".  If None, then the format
-       is derived from the file suffix.
-    models : list of :class:`.Volume`
-       Volume models to save.  Some formats allow saving multiple volumes
-       in one file and some do not.  It is an error to specify multiple
-       models if the format only supports saving one volume and the path
-       does not contain a "%d" style integer substitution.
-    region : 6 integers or None
-       Save only the subregion imin,jmin,kmin,imax,jmax,kmax.  If None
-       the current volume region is saved.
-    step : 3 integers
-       Save only subsampled data using this step.
-    mask_zone : bool
-       If only a zone is shown near atoms or markers write zeros outside
-       that zone in the saved file if this option is True, otherwise save
-       original data values outside zone.  Default True
-    base_index : int
-       When saving multiple files with a C-style integer substitution like "%d"
-       in the path this will be the first integer used.  Default 1.
+    Parameters:
+        session: :class:`~chimerax.core.session.Session`
+            The session containing the Volume models.
+        path: string 
+            File path on disk.  For saving multiple volumes to multiple files
+            the path can contain a C-style integer format specifier like "%d" or "%03d"
+            which will have be replaced by integer values starting at parameter base_index
+            for each of the volumes specified in parameter models.
+        format_name: string or None
+            Name of the file format.  The available formats can be listed
+            with ChimeraX command "save formats".  If None, then the format
+            is derived from the file suffix.
+        models: list of :class:`.Volume`
+            Volume models to save.  Some formats allow saving multiple volumes
+            in one file and some do not.  It is an error to specify multiple
+            models if the format only supports saving one volume and the path
+            does not contain a "%d" style integer substitution.
+        region: 6 integers or None
+            Save only the subregion imin,jmin,kmin,imax,jmax,kmax.  If None
+            the current volume region is saved.
+        step: 3 integers
+            Save only subsampled data using this step.
+        mask_zone: bool
+            If only a zone is shown near atoms or markers write zeros outside
+            that zone in the saved file if this option is True, otherwise save
+            original data values outside zone.  Default True
+        base_index: int
+            When saving multiple files with a C-style integer substitution like "%d"
+            in the path this will be the first integer used.  Default 1.
 
-    ------------------------------------------------------------------------------------------------
-    Parameters below only supported by Chimera Map format (*.cmap)
-    ------------------------------------------------------------------------------------------------
 
-    subsamples : list of tuples of 3 integers or None
-       For file formats that support saving multiple subsampled copies of
-       the data , this lists the specific subsamples to save.
-       Chimera map format will automatically determine subsamples to
-       save if this is not specified.
-    chunk_shapes : list of 'xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'
-       Axis order for laying out the data in the file.
-       Can save multiple axis orders for faster performance access
-       of data slices from disk.
-    append : bool
-       Whether to append this volume to an existing file.  Default False.
-    compress : bool
-       Whether to compress the data in the file.  Default False.
-    compress_method : string
-       Compression method to use.  Default zlib.
-       Some HDF5 compression methods are 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz',
-       'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'.
-    compress_level : integer 1 to 9
-       Level of compression.  Default 5.
-       Higher compression levels take longer.  Not all compression methods use level.
-    compress_shuffle : bool
-       Option to blosc compression.  Default False.
+    Parameters below only supported by Chimera Map format (\*.cmap)
+    
+    Parameters:
+        subsamples: list of tuples of 3 integers or None
+            For file formats that support saving multiple subsampled copies of
+            the data , this lists the specific subsamples to save.
+            Chimera map format will automatically determine subsamples to
+            save if this is not specified.
+        chunk_shapes: list of 'xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'
+            Axis order for laying out the data in the file.
+            Can save multiple axis orders for faster performance access
+            of data slices from disk.
+        append: bool
+            Whether to append this volume to an existing file.  Default False.
+        compress: bool
+            Whether to compress the data in the file.  Default False.
+        compress_method: string
+            Compression method to use.  Default zlib.
+            Some HDF5 compression methods are 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz',
+            'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'.
+        compress_level: integer 1 to 9
+            Level of compression.  Default 5.
+            Higher compression levels take longer.  Not all compression methods use level.
+        compress_shuffle: bool
+            Option to blosc compression.  Default False.
     '''
     if models is None:
         vlist = session.models.list(type = Volume)

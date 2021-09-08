@@ -29,7 +29,8 @@ def set_user_agent(profile):
     profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
 
 
-def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                   storage_name=None):
     """
     Create a QWebEngineProfile.  The profile provides shared access to the
     files in the html directory in the chimerax.ui package by rewriting links
@@ -47,8 +48,14 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
                   of QWebEngineDownloadItem, invoked when download is
                   requested.  Default None.
     handlers :    a dictionary of scheme handlers.  Default None.
+    storage_name : a string giving a unique name for persistent cookie storage.
+                   if this is None then cookies are only stored in memory.
     """
-    profile = QWebEngineProfile(parent)
+    if storage_name is None:
+        profile = QWebEngineProfile(parent)
+    else:
+        profile = QWebEngineProfile(storage_name, parent)
+
     set_user_agent(profile)
 
     def _intercept(request_info, *args, interceptor=interceptor):
@@ -105,7 +112,9 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
 
 def delete_profile(profile):
     """Cleanup profiles created by create_profile"""
-    profile.downloadRequested.disconnect()
+    # Trying to disconnect gives an error Qt 5.15.3,
+    # "TypeError: disconnect() failed between 'downloadRequested' and all its connections"
+    #profile.downloadRequested.disconnect()
     if hasattr(profile, '_schemes'):
         profile.removeAllUrlSchemeHandlers()
         del profile._handlers
@@ -200,9 +209,9 @@ class HtmlView(QWebEngineView):
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
-        if self._private_profile:
+        if self._private_profile and self._profile:
             profile = self._profile
-            del self._profile
+            self._profile = None
             delete_profile(profile)
         super().deleteLater()
 
@@ -359,21 +368,27 @@ class ChimeraXHtmlView(HtmlView):
         profile_is_private = create_profile or (kw.get('profile_is_profile', None) == True)
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
+        # Delete widget on exit to avoid QWebEngineProfile warnings. ChimeraX bug #3761
+        session.triggers.add_handler('app quit', self._app_quit)
 
-def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+    def _app_quit(self, *args):
+        import Qt
+        if not Qt.qt_object_is_deleted(self):
+            self.deleteLater()
+
+def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                            storage_name=None):
     """
     Create QWebEngineProfile with ChimeraX-specific scheme support
 
     See :py:func:`create_profile` for argument types.  The interceptor should
     incorporate the :py:func:`chimerax_intercept` functionality.
     """
-    if interceptor is None:
-        raise ValueError("Excepted interceptor")
     if schemes is None:
         schemes = ('cxcmd', 'help')
     else:
         schemes += type(schemes)(('cxcmd', 'help'))
-    return create_profile(parent, schemes, interceptor, download, handlers)
+    return create_profile(parent, schemes, interceptor, download, handlers, storage_name)
 
 
 def chimerax_intercept(request_info, *args, session=None, view=None):

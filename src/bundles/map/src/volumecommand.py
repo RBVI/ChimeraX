@@ -220,121 +220,120 @@ def volume(session,
     '''
     Control the display of density maps.
 
-    Parameters
-    ----------
-    volumes : list of maps
-    style : "surface", "mesh", or "image"
-    change : "surface" or "image"
-      Determines if level, color, brightness, transparency options apply to surface style or image style.
-      If this option is not specified then the currently shown style is used.
-    show : bool
-    hide : bool
-    toggle : bool
-    close: "surface" or "image"
-    level : sequence of 1 or 2 floats
-      In image style 2 floats are used the first being a density level and second 0-1 brightness value.
-    enclose_volume : float
-    fast_enclose_volume : float
-    color : Color
-    brightness : float
-    transparency : float
-    step : sequence of 3 integers
-    region : sequence of 6 integers
-      3 minimum grid indices and 3 maximum grid indices for x,y,z axes.
-    name_region : string
-    expand_single_plane : bool
-    origin : sequence of 3 floats
-    origin_index : sequence of 3 floats
-    voxel_size : sequence of 3 floats
-    planes : tuple of (axis, start, end, increment, depth), last 3 are optional
+    Parameters:
+        volumes: list of maps
+        style: "surface", "mesh", or "image"
+        change: "surface" or "image"
+            Determines if level, color, brightness, transparency options apply to surface style or image style.
+            If this option is not specified then the currently shown style is used.
+        show: bool
+        hide: bool
+        toggle: bool
+        close: "surface" or "image"
+        level: sequence of 1 or 2 floats
+            In image style 2 floats are used the first being a density level and second 0-1 brightness value.
+        enclose_volume: float
+        fast_enclose_volume: float
+        color: Color
+        brightness: float
+        transparency: float
+        step: sequence of 3 integers
+        region: sequence of 6 integers
+            3 minimum grid indices and 3 maximum grid indices for x,y,z axes.
+        name_region: string
+        expand_single_plane: bool
+        origin: sequence of 3 floats
+        origin_index: sequence of 3 floats
+        voxel_size: sequence of 3 floats
+        planes: tuple of (axis, start, end, increment, depth), last 3 are optional
 
-    ------------------------------------------------------------------------------------------------
+
     Symmetry assignment options
-    ------------------------------------------------------------------------------------------------
 
-    symmetry : string
-    center : string
-      Parsed as 3 comma-separated floats, or an atom specifier
-    center_index : sequence of 3 floats
-    axis : sequence of 3 floats
-    coordinate_system : Place
-      Coordinate system for axis and center symmetry options
+    Parameters:
+        symmetry: string
+        center: string
+            Parsed as 3 comma-separated floats, or an atom specifier
+        center_index: sequence of 3 floats
+        axis: sequence of 3 floats
+        coordinate_system: Place
+            Coordinate system for axis and center symmetry options
 
-    ------------------------------------------------------------------------------------------------
+
     Global options
-    ------------------------------------------------------------------------------------------------
 
-    data_cache_size : float
-      In Mbytes
-    show_on_open : bool
-    voxel_limit_for_open : float
-    show_plane : bool
-    voxel_limit_for_plane : float
+    Parameters:
+        data_cache_size: float
+            In Mbytes
+        show_on_open: bool
+        voxel_limit_for_open: float
+        show_plane: bool
+        voxel_limit_for_plane: float
 
-    ------------------------------------------------------------------------------------------------
+
     Rendering options
-    ------------------------------------------------------------------------------------------------
 
-    show_outline_box : bool
-    outline_box_rgb : Color
-    outline_box_linewidth : float
-    limit_voxel_count : bool
-      Auto-adjust step size.
-    voxel_limit : float (Mvoxels)
-    color_mode : string
-      Image rendering pixel formats: 'auto4', 'auto8', 'auto12', 'auto16',
-      'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16',
-      'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16'
-    colormap_on_gpu : bool
-      Whether colormapping is done on gpu or cpu for image rendering.
-    colormap_size : integer
-      Size of colormap to use for image rendering.
-    backing_color : Color or None
-      Draw this color behind transparent image data if different from the background color.
-    blend_on_gpu : bool
-      Whether image blending is done on gpu or cpu.
-    projection_mode : string
-      One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
-    plane_spacing : "min", "max", "mean" or float
-      Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
-      minimum, maximum or average grid spacing along x,y,z axes.
-    full_region_on_gpu : bool
-      Whether to cache data on GPU for fast cropping.
-    bt_correction : bool
-      Brightness and transparency view angle correction for image rendering mode.
-    minimal_texture_memory : bool
-      Reduce graphics memory use for image rendering at the expense of rendering speed.
-    maximum_intensity_projection : bool
-    linear_interpolation : bool
-      Interpolate gray levels in image style rendering.
-    dim_transparency : bool
-      Makes transparent surfaces dimmer
-    dim_transparent_voxels : bool
-      For image rendering.
-    line_thickness : float
-    smooth_lines : bool
-    mesh_lighting : bool
-    two_sided_lighting : bool
-    flip_normals : bool
-    subdivide_surface : bool
-    subdivision_levels : integer
-    surface_smoothing : bool
-    smoothing_iterations : integer
-    smoothing_factor : float
-    square_mesh : bool
-    cap_faces : bool
-    box_faces : bool
-    orthoplanes : One of 'xyz', 'xy', 'xz', 'yz', 'off'
-    position_planes : sequence of 3 integers
-      Intersection grid point of orthoplanes display
-    tilted_slab : bool
-    tilted_slab_axis : sequence of 3 floats
-    tilted_slab_offset : float
-    tilted_slab_spacing : float
-    tilted_slab_plane_count : int
-    image_mode : 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
-    calculate_surfaces : bool
-      Whether to calculate surfaces immediately instead of waiting until they are drawn.
+    Parameters:
+        show_outline_box: bool
+        outline_box_rgb: Color
+        outline_box_linewidth: float
+        limit_voxel_count: bool
+            Auto-adjust step size.
+        voxel_limit: float (Mvoxels)
+        color_mode: string
+            Image rendering pixel formats: 'auto4', 'auto8', 'auto12', 'auto16',
+            'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16',
+            'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16'
+        colormap_on_gpu: bool
+            Whether colormapping is done on gpu or cpu for image rendering.
+        colormap_size: integer
+            Size of colormap to use for image rendering.
+        backing_color: Color or None
+            Draw this color behind transparent image data if different from the background color.
+        blend_on_gpu: bool
+            Whether image blending is done on gpu or cpu.
+        projection_mode: string
+            One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
+        plane_spacing: "min", "max", "mean" or float
+            Spacing between planes when using 3d projection mode.  "min", "max", "mean" use
+            minimum, maximum or average grid spacing along x,y,z axes.
+        full_region_on_gpu: bool
+            Whether to cache data on GPU for fast cropping.
+        bt_correction: bool
+            Brightness and transparency view angle correction for image rendering mode.
+        minimal_texture_memory: bool
+            Reduce graphics memory use for image rendering at the expense of rendering speed.
+        maximum_intensity_projection: bool
+        linear_interpolation: bool
+            Interpolate gray levels in image style rendering.
+        dim_transparency: bool
+            Makes transparent surfaces dimmer
+        dim_transparent_voxels: bool
+            For image rendering.
+        line_thickness: float
+        smooth_lines: bool
+        mesh_lighting: bool
+        two_sided_lighting: bool
+        flip_normals: bool
+        subdivide_surface: bool
+        subdivision_levels: integer
+        surface_smoothing: bool
+        smoothing_iterations: integer
+        smoothing_factor: float
+        square_mesh: bool
+        cap_faces: bool
+        box_faces: bool
+        orthoplanes: One of 'xyz', 'xy', 'xz', 'yz', 'off'
+        position_planes: sequence of 3 integers
+            Intersection grid point of orthoplanes display
+        tilted_slab: bool
+        tilted_slab_axis: sequence of 3 floats
+        tilted_slab_offset: float
+        tilted_slab_spacing: float
+        tilted_slab_plane_count: int
+        image_mode: 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
+        calculate_surfaces: bool
+            Whether to calculate surfaces immediately instead of waiting until they are drawn.
     '''
     if volumes is None:
         from . import Volume

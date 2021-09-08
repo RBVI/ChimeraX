@@ -174,7 +174,7 @@ class Alignment(State):
         # handled later)
         new_match_maps = []
         if seq:
-            if isinstance(seq, StructureSeq) and not isinstance(models, Sequence):
+            if isinstance(seq, StructureSeq) and not models:
                 # if the sequence we're being asked to set up an association for is a
                 # StructureSeq then we already know what structure it associates with and how...
                 structures = []
@@ -388,10 +388,12 @@ class Alignment(State):
         if sseq not in self.associations or self._in_destroy:
             return
 
-        if self.intrinsic:
-            self.session.alignments.destroy_alignment(self)
-            return
         aseq = self.associations[sseq]
+        if self.intrinsic and len(aseq.match_maps) == 1:
+            if demotion:
+                self.session.alignments.destroy_alignment(self)
+                return
+            self.intrinsic = False
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]
         del self.associations[sseq]

@@ -1,5 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
+:orphan:
+
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2016 Regents of the University of California.
@@ -187,6 +189,7 @@ For each class, here are the changes that are tracked:
 |                 | ribbon_mode          |
 |                 | scene_coord          |
 +-----------------+----------------------+
+
 .. _python_attributes:
 
 Python-Level Atomic Attributes

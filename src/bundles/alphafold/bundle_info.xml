@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-AlphaFold" version="1.0"
+	    package="chimerax.alphafold"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Fetch structures from EBI AlphaFold database</Synopsis>
+  <Description>Fetch structures from EBI AlphaFold database</Description>
+
+  <Categories>
+    <Category name="Structure Prediction"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="open command">
+      <Provider name="alphafold" type="fetch" format_name="mmCIF"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: alphafold match :: Structure Prediction :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Predictioo :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold search :: Structure Prediction :: Search AlphaFold database using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

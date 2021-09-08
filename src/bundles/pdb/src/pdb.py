@@ -52,8 +52,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
 
     ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
     MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
-    of the preceding coord set), 'skip' (don't fill in; use MODEL number as is for coordset ID), and
-    'compact' (don't fill in and use the next available coordset ID).
+    of the preceding coord set), 'ignore' (don't fill in; use MODEL number as is for coordset ID), and
+    'renumber' (don't fill in and use the next available coordset ID).
     """
 
     if isinstance(stream, str):
@@ -113,15 +113,7 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
                 coordset_slider(session, mc)
     if models:
         m = models[0]
-        title_recs = m.metadata.get('TITLE', None)
-        if title_recs:
-            text = collate_records_text(title_recs)
-            m.html_title = process_chem_name(text.strip(), sentences=True)
-            m.has_formatted_metadata = lambda ses: True
-            from types import MethodType
-            from weakref import proxy
-            m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
-            m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
+        set_logging_info(m)
 
     return models, info
 
@@ -188,11 +180,11 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
             file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
                 displayed_only, [xform], all_coordsets,
-                pqr, (serial_numbering == "h36"), polymeric_res_names)
+                pqr, (serial_numbering == "h36"), polymeric_res_names, session.logger)
     else:
         _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,
             displayed_only, xforms, all_coordsets, pqr,
-            (serial_numbering == "h36"), polymeric_res_names)
+            (serial_numbering == "h36"), polymeric_res_names, session.logger)
 
 _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
@@ -481,6 +473,18 @@ def _process_chem_word(word, use_greek, probable_abbrs):
         else:
             segs.append(word)
     return '-'.join(segs)
+
+def set_logging_info(m):
+    # also used by Chimera->ChimeraX exporter
+    title_recs = m.metadata.get('TITLE', None)
+    if title_recs:
+        text = collate_records_text(title_recs)
+        m.html_title = process_chem_name(text.strip(), sentences=True)
+        m.has_formatted_metadata = lambda ses: True
+        from types import MethodType
+        from weakref import proxy
+        m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
+        m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
 
 def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params

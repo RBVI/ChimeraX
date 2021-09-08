@@ -35,14 +35,11 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.autosummary',
     'sphinx.ext.extlinks',
-    'numpydoc',
+    'sphinx.ext.napoleon',
+    # Must be loaded after napoleon
+    'sphinx_autodoc_typehints',
     'class_munger',
 ]
-
-# Need the following to avoid warnings for every class method
-# of the form "WARNING: toctree references unknown document ..."
-numpydoc_show_class_members = False
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -147,6 +144,7 @@ html_logo = '../../src/apps/ChimeraX/ChimeraX-icon.svg'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_css_files = ["devdocs.css"]
 html_js_files = ["cxlinks.js"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
@@ -286,10 +284,11 @@ todo_include_todos = True
 
 # intersphinx configuration:
 intersphinx_mapping = {
-    'matplotlib': ('https://matplotlib.org', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'matplotlib': ('https://matplotlib.org/stable/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'python': ('https://docs.python.org/PYTHON_VERSION', None),
-    'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master', None),
 }
 
 # -- Options for extlinks --------------------------------------------

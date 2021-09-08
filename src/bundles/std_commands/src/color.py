@@ -1050,7 +1050,8 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
 
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range=None, no_value_color=None,
-                  transparency=None, undo_name="color byattribute", key=False):
+                  transparency=None, undo_name="color byattribute", key=False,
+                  log_info = True):
     '''
     Color atoms by attribute value using a color palette.
 
@@ -1073,7 +1074,9 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     key : boolean
-      Whether to also show a color key
+      Whether to also show a color key.
+    log_info: boolean
+      Whether to log number of atoms, residues and attribute value range.  Default True.
     '''
 
     from chimerax.core.errors import UserError
@@ -1150,6 +1153,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                 non_none_colors = _value_colors(palette, range, non_none_attr_vals)
             else:
                 non_none_colors = None
+                session.logger.warning("All '%s' values are None" % attr_name)
             acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
             if 'c' in target or 'f' in target:
                 if class_obj == Atom:
@@ -1239,7 +1243,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         if msg:
             r = 'atom %s range' if average is None else 'residue average %s range'
             m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min_val, max_val)
-            session.logger.status(m, log=True)
+            if log_info:
+                session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
 #
