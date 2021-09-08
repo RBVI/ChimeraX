@@ -340,7 +340,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **newer_versions**
-> list[list[str]] newer_versions(platform, version)
+> list[list[str]] newer_versions(os, os_version, chimera_x_version)
 
 Return list of newer ChimeraX releases (version, URL)
 
@@ -354,12 +354,13 @@ from pprint import pprint
 
 # create an instance of the API class
 api_instance = cxservices.DefaultApi()
-platform = 'platform_example' # str | platform name
-version = 'version_example' # str | ChimeraX version to compare with
+os = 'os_example' # str | operating system name
+os_version = 'os_version_example' # str | operating system version
+chimera_x_version = 'chimera_x_version_example' # str | ChimeraX version to compare with
 
 try:
     # Return list of newer ChimeraX releases (version, URL)
-    api_response = api_instance.newer_versions(platform, version)
+    api_response = api_instance.newer_versions(os, os_version, chimera_x_version)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling DefaultApi->newer_versions: %s\n" % e)
@@ -369,8 +370,9 @@ except ApiException as e:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **platform** | **str**| platform name | 
- **version** | **str**| ChimeraX version to compare with | 
+ **os** | **str**| operating system name | 
+ **os_version** | **str**| operating system version | 
+ **chimera_x_version** | **str**| ChimeraX version to compare with | 
 
 ### Return type
 
