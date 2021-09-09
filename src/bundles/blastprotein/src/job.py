@@ -59,7 +59,6 @@ class BlastProteinBase:
         return ''.join(data)
 
     def _params(self):
-        # Keys must match HTML element ids
         return [
             ( "chain", self.atomspec ),
             ( "database", self.database ),
