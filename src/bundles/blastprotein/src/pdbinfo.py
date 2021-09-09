@@ -95,9 +95,9 @@ query_template = """{
 }"""
 
 entry_attr_name_mapping = [
-    ("structureId", ['rcsb_id']),
+    ("structure_id", ['rcsb_id']),
     ("title", ['struct', 'title']),
-    ("expMethod", ['exptl', 'method']),
+    ("exp_method", ['exptl', 'method']),
     ("resolution", ['rcsb_entry_info', 'resolution_combined']),
     ("keywords", ['struct_keywords', 'pdbx_keywords']),
     ("nr_entities", ['rcsb_entry_info', 'polymer_entity_count']),
@@ -107,21 +107,21 @@ entry_attr_name_mapping = [
     ("publish_date", ['rcsb_accession_info', 'initial_release_date']),
     ("revision_date", ['rcsb_accession_info', 'revision_date']),
     ("structure_authors", ['audit_author', 'name']),
-    ("pubmedId", ['rcsb_primary_citation', 'pdbx_database_id_PubMed']),
+    ("pubmed_id", ['rcsb_primary_citation', 'pdbx_database_id_PubMed']),
     ("citation_authors", ['rcsb_primary_citation', 'rcsb_authors']),
     ("status", ['pdbx_database_status', 'status_code']),
     ("replaces", ['pdbx_database_PDB_obs_spr', 'replace_pdb_id']),
-    ('ligandFormulas', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
-    ('ligandNames', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'name']),
-    ('ligandSmiles', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'SMILES']),
-    ('ligandSymbols', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_id']),
-    ('ligandWeights', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula_weight'])
+    ('ligand_formulas', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
+    ('ligand_names', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'name']),
+    ('ligand_smiles', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'SMILES']),
+    ('ligand_symbols', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_id']),
+    ('ligand_weights', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula_weight'])
 ]
 
 chain_attr_name_mapping = [
     ('chain_names', False, ['rcsb_polymer_entity', 'pdbx_description']),
     ('chain_copies', True, ["entity_poly", "pdbx_strand_id", lambda v: len(v.split(','))]),
-    ('npolymers', False, [len]),
+    ('num_polymers', False, [len]),
     ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
     ('chain_species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
         ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
