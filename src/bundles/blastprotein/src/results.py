@@ -16,7 +16,7 @@ from typing import Dict, NamedTuple
 from Qt.QtCore import QThread, Signal, Slot
 
 from Qt.QtWidgets import QWidget, QVBoxLayout, QAbstractItemView
-from Qt.QtWidgets import QPushButton, QAction
+from Qt.QtWidgets import QPushButton, QAction, QLabel
 
 from chimerax.atomic.molobject import Sequence
 from chimerax.core.commands import run
@@ -62,12 +62,15 @@ class BlastProteinResults(ToolInstance):
         self.control_widget = QWidget()
         self.seqview_button = QPushButton("Show in Sequence Viewer")
         self.align_button = QPushButton("Load and Align Selection")
+        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params])
+        self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]))
         self.control_widget.setVisible(False)
         self.table = BlastResultsTable(self.control_widget, _settings)
 
         self.progress_bar = LabelledProgressBar()
 
         self.main_layout.addWidget(self.control_widget)
+        self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
         self.main_layout.addWidget(self.progress_bar)
 
