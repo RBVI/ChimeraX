@@ -225,7 +225,10 @@ class BlastProteinResults(ToolInstance):
         # Ask sequence viewer to display alignment
         seqs = [Sequence(name=name, characters=seqs[i])
                 for i, name in enumerate(names)]
-        name = "%s [%d]" % (self._instance_name, self._viewer_index)
+        inst_name = "None"
+        if self._instance_name:
+            inst_name = self._instance_name
+        name = "%s [%d]" % (inst_name, self._viewer_index)
         self.session.alignments.new_alignment(seqs, name)
 
 
