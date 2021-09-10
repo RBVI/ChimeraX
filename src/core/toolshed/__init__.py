@@ -1420,3 +1420,16 @@ def restart_action_info():
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file
+
+
+def chimerax_uuid():
+    # Return anonymous unique string that represents
+    # the current user for accessing ChimeraX toolshed
+    from getpass import getuser
+    import uuid
+    node = uuid.getnode()   # Locality
+    name = getuser()
+    dn = "CN=%s, L=%s" % (name, node)
+    # and now make it anonymous
+    # (uuid is based on the first 16 bytes of a 20 byte SHA1 hash)
+    return uuid.uuid5(uuid.NAMESPACE_X500, dn)
