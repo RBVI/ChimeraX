@@ -148,6 +148,8 @@ class SequencesArg(Annotation):
                     return [value], used, rest
                 except Exception:
                     continue
+        if len(text) == 0:
+              raise AnnotationError('Sequences argument is empty.')
         from chimerax.core.commands import next_token
         token, text, rest = next_token(text)
         raise AnnotationError('Sequences argument "%s" is not a chain specifier, ' % token +
@@ -175,6 +177,8 @@ def is_uniprot_id(text):
     # Name and accession format described here.
     # https://www.uniprot.org/help/accession_numbers
     # https://www.uniprot.org/help/entry_name
+    if len(text) == 0:
+        return False
     from chimerax.core.commands import next_token
     id, text, rest = next_token(text)
     if '_' in id:
@@ -183,7 +187,8 @@ def is_uniprot_id(text):
         if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
             f2.isalnum() and len(f2) <= 5):
             return True
-    elif id.isalnum() and id[0].isalpha() and id[1].isdigit and id[5].isdigit():
+    elif (len(id) >= 6 and id.isalnum() and
+          id[0].isalpha() and id[1].isdigit() and id[5].isdigit()):
         if len(id) == 6:
             return True
         elif len(id) == 10 and id[6].isalpha() and id[9].isdigit():
