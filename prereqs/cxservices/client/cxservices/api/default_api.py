@@ -715,15 +715,16 @@ class DefaultApi(object):
             _request_timeout=params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def newer_versions(self, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
+    def newer_versions(self, uuid, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
         """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
-        >>> thread = api.newer_versions(os, os_version, chimera_x_version, async_req=True)
+        >>> thread = api.newer_versions(uuid, os, os_version, chimera_x_version, async_req=True)
         >>> result = thread.get()
 
         :param async_req bool
+        :param str uuid: anonymous unique user id (required)
         :param str os: operating system name (required)
         :param str os_version: operating system version (required)
         :param str chimera_x_version: ChimeraX version to compare with (required)
@@ -733,20 +734,21 @@ class DefaultApi(object):
         """
         kwargs['_return_http_data_only'] = True
         if kwargs.get('async_req'):
-            return self.newer_versions_with_http_info(os, os_version, chimera_x_version, **kwargs)  # noqa: E501
+            return self.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, **kwargs)  # noqa: E501
         else:
-            (data) = self.newer_versions_with_http_info(os, os_version, chimera_x_version, **kwargs)  # noqa: E501
+            (data) = self.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, **kwargs)  # noqa: E501
             return data
 
-    def newer_versions_with_http_info(self, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
+    def newer_versions_with_http_info(self, uuid, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
         """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
-        >>> thread = api.newer_versions_with_http_info(os, os_version, chimera_x_version, async_req=True)
+        >>> thread = api.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, async_req=True)
         >>> result = thread.get()
 
         :param async_req bool
+        :param str uuid: anonymous unique user id (required)
         :param str os: operating system name (required)
         :param str os_version: operating system version (required)
         :param str chimera_x_version: ChimeraX version to compare with (required)
@@ -755,7 +757,7 @@ class DefaultApi(object):
                  returns the request thread.
         """
 
-        all_params = ['os', 'os_version', 'chimera_x_version']  # noqa: E501
+        all_params = ['uuid', 'os', 'os_version', 'chimera_x_version']  # noqa: E501
         all_params.append('async_req')
         all_params.append('_return_http_data_only')
         all_params.append('_preload_content')
@@ -770,6 +772,10 @@ class DefaultApi(object):
                 )
             params[key] = val
         del params['kwargs']
+        # verify the required parameter 'uuid' is set
+        if ('uuid' not in params or
+                params['uuid'] is None):
+            raise ValueError("Missing the required parameter `uuid` when calling `newer_versions`")  # noqa: E501
         # verify the required parameter 'os' is set
         if ('os' not in params or
                 params['os'] is None):
@@ -788,6 +794,8 @@ class DefaultApi(object):
         path_params = {}
 
         query_params = []
+        if 'uuid' in params:
+            query_params.append(('uuid', params['uuid']))  # noqa: E501
         if 'os' in params:
             query_params.append(('OS', params['os']))  # noqa: E501
         if 'os_version' in params:
