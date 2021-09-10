@@ -159,7 +159,7 @@ class ModelPanel(ToolInstance):
         if len(self.session.models) == 0:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
-            self._fill_tree(always_rebuild=always_rebuild)
+            self._fill_tree(always_rebuild=True)
         elif self._frame_drawn_handler is None:
             self._frame_drawn_handler = self.session.triggers.add_handler("new frame",
                 lambda *args, ft=self._fill_tree, ar=always_rebuild: ft(always_rebuild=ar))

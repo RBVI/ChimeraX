@@ -115,6 +115,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     existing = "".join([c for c, r in zip(r.chain.characters, r.chain.residues) if r])
                     template_chars.append(existing)
                     target_chars.append('-' * len(existing))
+                    offset_i += len(existing)
                 else:
                     prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
                     chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
@@ -138,7 +139,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                         r.chain))
                     target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
-                    # Modeller completely skips unmodelled chains for indexing purposes
                     offset_i += len(r.chain)
                     match_chains.append(r.chain)
                 if r.chain == s.chains[-1]:

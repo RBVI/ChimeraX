@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .results import BlastProteinResults
 from chimerax.webservices.opal_job import OpalJob
 from chimerax.webservices.cxservices_job import CxServicesJob
 from cxservices.rest import ApiException
@@ -58,7 +59,6 @@ class BlastProteinBase:
         return ''.join(data)
 
     def _params(self):
-        # Keys must match HTML element ids
         return [
             ( "chain", self.atomspec ),
             ( "database", self.database ),
@@ -70,48 +70,37 @@ class BlastProteinBase:
     def on_finish(self):
         logger = self.session.logger
         logger.info("BlastProtein finished.")
-        out = self.get_stdout()
-        if out:
-            logger.error("Standard output:\n" + out)
-        if not self.exited_normally():
-            err = self.get_stderr()
-            if self.tool:
-                self.tool.job_failed(self, err)
-            else:
+        if self.session.ui.is_gui:
+            BlastProteinResults(session = self.session
+                                , tool_name = self.tool_inst_name
+                                , job=self
+                                , params=self._params())
+        else:
+            out = self.get_stdout()
+            if out:
+                logger.error("Standard output:\n" + out)
+            if not self.exited_normally():
+                err = self.get_stderr()
                 if err:
                     logger.bug("Standard error:\n" + err)
-        else:
-            results = self.get_file(self.RESULTS_FILENAME)
-            try:
-                logger.info("Parsing BLAST results.")
-                qname = self.sequence_name or 'query'
-                self._database.parse(qname, self.seq, results)
-            except Exception as e:
-                if self.tool:
-                    err = self.get_stderr()
-                    self.tool.job_failed(self, err + str(e))
-                else:
-                    logger.bug("BLAST output parsing error: %s" % str(e))
             else:
-                if self.tool:
-                    self.tool.job_finished(self, self._database, self._params())
+                results = self.get_file(self.RESULTS_FILENAME)
+                try:
+                    logger.info("Parsing BLAST results.")
+                    self._database.parse("query", self.seq, results)
+                except Exception as e:
+                    logger.bug("BLAST output parsing error: %s" % str(e))
                 else:
-                    if self.session.ui.is_gui:
-                        from .tool import ToolUI
-                        ToolUI(self.session, "BlastProtein",
-                               blast_results=self._database, params=self._params(),
-                               instance_name=self.tool_inst_name)
-                if self.log or (self.log is None and
-                                not self.session.ui.is_gui):
-                    msgs = ["BLAST results for:"]
-                    for name, value in self._params():
-                        msgs.append("  %s: %s" % (name, value))
-                    for m in self._database.parser.matches:
-                        name = m.match if m.match else m.name
-                        msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                               str(m.score),
-                                               m.description]))
-                    logger.info('\n'.join(msgs))
+                    if self.log or (self.log is None and not self.session.ui.is_gui):
+                        msgs = ["BLAST results for:"]
+                        for name, value in self._params():
+                            msgs.append("  %s: %s" % (name, value))
+                        for m in self._database.parser.matches:
+                            name = m.match if m.match else m.name
+                            msgs.append('\t'.join([name, "%.1e" % m.evalue,
+                                                   str(m.score),
+                                                   m.description]))
+                        logger.info('\n'.join(msgs))
 
 
 class OpalBlastProteinJob(BlastProteinBase, OpalJob):

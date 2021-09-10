@@ -49,6 +49,7 @@ class Database(ABC):
 class NCBIDB(Database):
     name: str = ""
     parser_factory: object = dbparsers.PDBParser
+    fetchable_col: str = "name"
     NCBI_IDS: tuple[str, str] = ("ref", "gi")
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
@@ -109,6 +110,8 @@ class NRDB(NCBIDB):
 class AlphaFoldDb(Database):
     name: str = "alphafold"
     pretty_name: str = "AlphaFold Database"
+    # The title of the data column that can be used to fetch the model
+    fetchable_col: str = "chain_sequence_id"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
@@ -130,16 +133,21 @@ class AlphaFoldDb(Database):
 
         return [], None
 
-    def add_info(self, session, matches):
+    @staticmethod
+    def add_info(session, matches):
         for match in matches:
             raw_desc = matches[match]["description"]
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
-            matches[match]["chain_species"] = self._get_species(raw_desc)
+            matches[match]["chain_species"] = AlphaFoldDb._get_species(raw_desc)
+            # Move UniProt ID to the correct column
+            matches[match]["chain_sequence_id"] = uniprot_id
 
-    def _get_species(self, raw_desc):
+    @staticmethod
+    def _get_species(raw_desc):
         """AlphaFold's BLAST output is polluted with lots of metadata in the
         form XY=Z, in the order OS OX GN PE SV, some of which may be missing.
         This is some ugly string hacking to return the species if it exists."""
@@ -154,13 +162,17 @@ class AlphaFoldDb(Database):
             # second XY parameter
             return raw_desc[species_loc+3:][:next_attr_start-3]
 
-def get_database(db):
+
+AvailableDBsDict = {
+    'pdb': PDB,
+    'nr': NRDB,
+    'alphafold': AlphaFoldDb,
+}
+AvailableDBs = list(AvailableDBsDict.keys())
+AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90", "PAM30", "PAM70", "PAM250", "IDENTITY"]
+
+def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
-    db: A supported database e.g 'alphafold', 'nr', 'pdb'
+    :param db: A supported database e.g 'alphafold', 'nr', 'pdb'
     """
-    dbs = {
-        'alphafold': AlphaFoldDb,
-        'nr': NRDB,
-        'pdb': PDB
-    }
-    return dbs[db]() # Instantiate the class so it can access 'self'
+    return AvailableDBsDict[db]() # Instantiate the class before returning

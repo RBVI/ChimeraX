@@ -287,7 +287,7 @@ public:
     } Seqadv_;
     typedef struct {
         int ser_num;
-        char    chain_id;
+        char    chain_id[3];
         int num_res;
         ResidueName res_name[13];
     } Seqres_;

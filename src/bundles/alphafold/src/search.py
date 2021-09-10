@@ -26,13 +26,13 @@ def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
     if log is not None:
         log.status('Searching AlphaFold database for %d sequence%s'
                    % (len(useqs), _plural(useqs)))
-                          
+
     if local:
         seq_uniprot_ids = _search_sequences_local(useqs)
     else:
         seq_uniprot_ids = _search_sequences_web(useqs)
     seq_uids = [seq_uniprot_ids.get(seq) for seq in sequences]
-    
+
     return seq_uids
 
 def _plural(seq):
@@ -49,7 +49,7 @@ def _search_sequences_local(sequences, database_path=seq_database, blat_exe=blat
     from os.path import join
     query_path = join(dir, 'query.fasta')
     blat_output = join(dir, 'blat.out')
-    
+
     # Write FASTA query file
     fq = open(query_path, 'w')
     fq.write(_fasta(sequences))
@@ -89,7 +89,7 @@ def _parse_blat_output(blat_output, sequences):
 class UniprotSequence:
     def __init__(self, uniprot_id, uniprot_name,
                  database_sequence_range, query_sequence_range):
-        self.uniprot_id = uniprot_id        
+        self.uniprot_id = uniprot_id
         self.uniprot_name = uniprot_name
         self.database_sequence_range = database_sequence_range
         self.query_sequence_range = query_sequence_range
@@ -116,7 +116,7 @@ def _search_sequences_web(sequences, url = sequence_search_url):
         r = requests.post(url, data=request)
     except requests.exceptions.ConnectionError:
         raise SearchError('Unable to reach AlphaFold sequence search web service\n\n%s' % url)
-    
+
     if r.status_code != 200:
         raise SearchError('AlphaFold sequence search web service failed (%s) "%s"\n\n%s'
                           % (r.status_code, r.reason, url))
@@ -130,6 +130,6 @@ def _search_sequences_web(sequences, url = sequence_search_url):
                                       (u['query start'], u['query end']))
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
-        
+
 class SearchError(RuntimeError):
     pass
