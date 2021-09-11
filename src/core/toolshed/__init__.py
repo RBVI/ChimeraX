@@ -389,7 +389,7 @@ class Toolshed:
             need_check = need_to_check(
                 settings.newer_last_check, settings.newer_update_interval, now)
             if session and need_check:
-                if session.ui.main_window:
+                if not session.ui.is_gui or session.ui.main_window:
                     NewerVersionQuery(session)
                 else:
                     session.ui.triggers.add_handler(
