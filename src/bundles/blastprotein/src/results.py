@@ -149,34 +149,44 @@ class BlastProteinResults(ToolInstance):
         self._set_progress_bar_progress_text("Hits", 0)
 
     def _on_finished_processing_rows(self):
-        self.progress_bar.setVisible(False)
+        self._unload_progress_bar()
 
     def _on_report_sequences_signal(self, sequences):
         self._sequences = sequences
 
     def _on_report_hits_signal(self, items):
-        columns = list(items[0].keys())[::-1]
-        unwanted_columns = ['id']
-        for string in columns:
-            oldstr = string
-            # Remove columns we don't want
-            if oldstr in unwanted_columns:
-                continue
-            string = capwords(" ".join(string.split('_')))
-            string = string.replace('Id', 'ID')
-            kwdict = {}
-            kwdict['header_justification'] = 'center'
-            self.table.add_column(string, data_fetch=lambda x, i=oldstr: x[i], **kwdict)
-        # Convert dicts to objects (they're hashable)
-        self.table.data = [BlastResultsRow(item) for item in items]
-        self.table.launch()
-        self.control_widget.setVisible(True)
+        try:
+            columns = list(items[0].keys())[::-1]
+        except IndexError:
+            self.session.logger.warning("BlastProtein returned no results")
+            self._unload_progress_bar()
+        else:
+            unwanted_columns = ['id']
+            for string in columns:
+                oldstr = string
+                # Remove columns we don't want
+                if oldstr in unwanted_columns:
+                    continue
+                string = capwords(" ".join(string.split('_')))
+                string = string.replace('Id', 'ID')
+                kwdict = {}
+                kwdict['header_justification'] = 'center'
+                self.table.add_column(string, data_fetch=lambda x, i=oldstr: x[i], **kwdict)
+            # Convert dicts to objects (they're hashable)
+            self.table.data = [BlastResultsRow(item) for item in items]
+            self.table.launch()
+            self.control_widget.setVisible(True)
 
     def _set_progress_bar_progress_text(self, itype, curr_value):
         self._update_progress_bar_text(" ".join(["Processing", itype, '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)]))
 
     def _update_progress_bar_text(self, text):
         self.progress_bar.text = text
+
+    def _unload_progress_bar(self):
+        self.main_layout.removeWidget(self.progress_bar)
+        self.progress_bar.deleteLater()
+        self.progress_bar = None
 
     #
     # Code for loading (and spatially matching) a match entry
@@ -316,4 +326,3 @@ class BlastResultsWorker(QThread):
         self._hits = hits
         self.report_hits.emit(self._hits)
         self.report_sequences.emit(self._sequences)
-        self.finished_adding_rows.emit()
