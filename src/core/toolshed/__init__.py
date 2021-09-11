@@ -364,12 +364,12 @@ class Toolshed:
             check_remote = True
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
         from datetime import datetime
+        from ..core_settings import settings
         now = datetime.now()
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
             from . import available
-            from ..core_settings import settings
             if not available.has_cache_file(self._cache_dir):
                 need_check = True
             else:
