@@ -1115,7 +1115,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_action = QAction("Add A Preset...", self)
         from chimerax.core.commands import run
         help_action.triggered.connect(lambda *, run=run, ses=session: run(ses,
-            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
+            "help help:user/preferences.html#startup"))
         if not preset_info:
             self.presets_menu.addAction(help_action)
             return
