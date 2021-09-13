@@ -62,7 +62,7 @@ def regularized_seq(aseq, chain):
 
 def get_license_key(session, license_key):
     from .settings import get_settings
-    settings = get_settings(session)
+    settings = get_settings(session, "license")
     if license_key is None:
         license_key = settings.license_key
     else:
