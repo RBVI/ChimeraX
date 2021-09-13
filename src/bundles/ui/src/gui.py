@@ -897,11 +897,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtCore import QUrl
         import os.path
         from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
         fn = os.path.join(os.path.dirname(__file__), "about.html")
         with open(fn) as f:
             content = f.read()
-        content = content.replace("VERSION", ad.version)
+        content = content.replace("VERSION", buildinfo.version)
         content = content.replace("DATE", buildinfo.date.split()[0])
         self._about_dialog = QWebEngineView()
         self._about_dialog.setHtml(content, QUrl.fromLocalFile(
