@@ -351,6 +351,14 @@ class UI(QApplication):
 
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
+        # get garbage collection to break callback loops in deleted tools
+        # that might be triggered by live tools (e.g. settings changes)
+        # particularly since WA_DeleteOnClose can nuke the Qt side
+        def _cleanup(s=self):
+            import gc
+            gc.collect()
+            delattr(s, '_kludge_cleanup_timer')
+        self._kludge_cleanup_timer = self.timer(100, _cleanup)
 
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
