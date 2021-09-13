@@ -642,7 +642,7 @@ def init(argv, event_loop=True):
         toolshed_url = opts.toolshed
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles,
-                  remote_url=toolshed_url, ui=sess.ui)
+                  remote_url=toolshed_url, session=sess)
     sess.toolshed = toolshed.get_toolshed()
     if opts.module != 'pip' and opts.run_path is None:
         # keep bugs in ChimeraX from preventing pip from working

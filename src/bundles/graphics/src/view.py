@@ -195,6 +195,8 @@ class View:
         offscreen = r.offscreen if r.offscreen.enabled else None
         if highlight_drawings and r.outline.offscreen_outline_needed:
             offscreen = r.offscreen
+        if offscreen and r.current_framebuffer() is not r.default_framebuffer():
+            offscreen = None  # Already using an offscreen framebuffer
             
         silhouette = self.silhouette
 

@@ -225,6 +225,12 @@ paths:
 
   /chimerax/newer:
     parameters:
+      - name: uuid
+        in: query
+        required: true
+        description: anonymous unique user id
+        schema:
+          type: string
       - name: OS
         in: query
         required: true

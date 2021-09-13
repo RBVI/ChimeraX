@@ -207,10 +207,11 @@ def _check_usage(session):
     if not nagged and days > GracePeriod and session is not None:
         _ask_to_register(session, usage["count"], days)
 
-def _ask_to_register(session, times_used, days_used, wait_for_main_window = True):
+
+def _ask_to_register(session, times_used, days_used, wait_for_main_window=True):
     if wait_for_main_window:
         def _delayed_ask(*args, session=session, times_used=times_used, days_used=days_used):
-            _ask_to_register(session, times_used, days_used, wait_for_main_window = False)
+            _ask_to_register(session, times_used, days_used, wait_for_main_window=False)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         session.triggers.add_handler('new frame', _delayed_ask)
@@ -222,6 +223,7 @@ def _ask_to_register(session, times_used, days_used, wait_for_main_window = True
         from chimerax.core.commands import run
         run(session, 'ui tool show Registration')
 
+
 def _get_usage():
     usage_file = _usage_file()
     usage = {"count": 0, "dates": []}
@@ -230,6 +232,9 @@ def _get_usage():
         # and dates (first usage datetime on any day)
         with open(usage_file, encoding='utf-8') as f:
             for line in f:
+                if ':' not in line:
+                    # protect against corrupted files
+                    continue
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
                     usage["dates"].append(_strptime(value))
