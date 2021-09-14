@@ -40,7 +40,7 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, temp_path=None):
+    fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
     '''
     Command to model loops or refine structure regions
     '''
@@ -119,8 +119,8 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
     from . import loops, common
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
-            executable_location=executable_location, license_key=license_key, num_models=num_models,
-            protocol=protocol, temp_path=temp_path)
+            executable_location=executable_location, fast=fast, license_key=license_key,
+            num_models=num_models, protocol=protocol, temp_path=temp_path)
     except common.ModelingError as e:
         raise UserError(e)
 
@@ -157,13 +157,14 @@ def register_command(logger):
     class LoopsRegionArg(SeqRegionArg):
         from .loops import special_region_values
 
+    from .loops import protocols
     desc = CmdDesc(
         required = [('targets', RepeatOf(LoopsRegionArg))],
         keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg),
             ('chains', UniqueChainsArg),
             #('executable_location', OpenFileNameArg),
-            ('license_key', PasswordArg), ('num_models', IntArg),
-            ('protocol', EnumOf(['standard', 'DOPE', 'DOPE-HR'])),
+            ('fast', BoolArg), ('license_key', PasswordArg), ('num_models', IntArg),
+            ('protocol', EnumOf(protocols)),
             ('temp_path', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'

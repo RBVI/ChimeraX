@@ -31,7 +31,7 @@ _settings = None
 
 class SeqId(NamedTuple):
     hit_name: str
-    sequence: Sequence
+    sequence: str
 
 class BlastProteinResults(ToolInstance):
 
@@ -45,9 +45,11 @@ class BlastProteinResults(ToolInstance):
         self.display_name = "BlastProtein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
-        self.job = kw.pop('job')
-        self.params = kw.pop('params')
-        self._sequences: Dict[int, SeqId] = None
+        self.job = kw.pop('job', None)
+        self.params = kw.pop('params', None)
+        self._hits = kw.pop('hits', None)
+        self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
+        self._from_restore = kw.pop('from_restore', False)
         super().__init__(session, self.display_name, **kw)
         self._build_ui()
 
@@ -74,25 +76,29 @@ class BlastProteinResults(ToolInstance):
         self.main_layout.addWidget(self.table)
         self.main_layout.addWidget(self.progress_bar)
 
-        self.worker = BlastResultsWorker(self.session, self.job)
+        if not self._from_restore:
+            self.worker = BlastResultsWorker(self.session, self.job)
 
-        self.worker.parsing_results.connect(self.parsing_results)
-        self.worker.standard_output.connect(self.stdout_to_report)
-        self.worker.job_failed.connect(self.job_failed)
+            self.worker.parsing_results.connect(self.parsing_results)
+            self.worker.standard_output.connect(self.stdout_to_report)
+            self.worker.job_failed.connect(self.job_failed)
 
-        self.worker.set_progress_maxval.connect(self._set_progress_bar_maxval)
-        self.worker.finished_processing_hits.connect(self._on_finished_processing_hits)
-        self.worker.processed_result.connect(self._increment_progress_bar_results)
-        self.worker.waiting_for_info.connect(self._update_progress_bar_text)
-        self.worker.processed_row.connect(self._increment_progress_bar_hits)
-        self.worker.finished_adding_rows.connect(self._on_finished_processing_rows)
-        self.worker.report_hits.connect(self._on_report_hits_signal)
-        self.worker.report_sequences.connect(self._on_report_sequences_signal)
+            self.worker.set_progress_maxval.connect(self._set_progress_bar_maxval)
+            self.worker.finished_processing_hits.connect(self._on_finished_processing_hits)
+            self.worker.processed_result.connect(self._increment_progress_bar_results)
+            self.worker.waiting_for_info.connect(self._update_progress_bar_text)
+            self.worker.processed_row.connect(self._increment_progress_bar_hits)
+            self.worker.finished_adding_rows.connect(self._on_finished_processing_rows)
+            self.worker.report_hits.connect(self._on_report_hits_signal)
+            self.worker.report_sequences.connect(self._on_report_sequences_signal)
+            self.worker.start()
+
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.get_selection.connect(self.load)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
-        self.worker.start()
+        if self._from_restore:
+            self._on_report_hits_signal(self._hits)
 
         self.tool_window.ui_area.setLayout(self.main_layout)
         self.tool_window.manage('side')
@@ -155,10 +161,12 @@ class BlastProteinResults(ToolInstance):
         self._sequences = sequences
 
     def _on_report_hits_signal(self, items):
+        self._hits = items
         try:
             columns = list(items[0].keys())[::-1]
         except IndexError:
-            self.session.logger.warning("BlastProtein returned no results")
+            if not self._from_restore:
+                self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
             unwanted_columns = ['id']
@@ -176,6 +184,7 @@ class BlastProteinResults(ToolInstance):
             self.table.data = [BlastResultsRow(item) for item in items]
             self.table.launch()
             self.control_widget.setVisible(True)
+            self._unload_progress_bar()
 
     def _set_progress_bar_progress_text(self, itype, curr_value):
         self._update_progress_bar_text(" ".join(["Processing", itype, '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)]))
@@ -244,6 +253,38 @@ class BlastProteinResults(ToolInstance):
         name = "%s [%d]" % (inst_name, self._viewer_index)
         self.session.alignments.new_alignment(seqs, name)
 
+
+    #
+    # Snapshots
+    #
+    @classmethod
+    def from_snapshot(cls, session, data):
+        """Initializer to be used when restoring ChimeraX sessions."""
+        sequences = data['sequences']
+        sequences_dict = {}
+        for (key, hit_name, sequence) in sequences:
+            sequences_dict[key] = SeqId(hit_name, sequence)
+        return cls(session, data['tool_name'], hits = data['results'], sequences = sequences_dict, params = data['params'], from_restore=True)
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return BlastProteinResults.from_snapshot(session, data)
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'ToolUI': ToolInstance.take_snapshot(self, session, flags),
+            'params': self.params,
+            'tool_name': self.tool_name,
+            'results': self._hits,
+            # TODO: This is a BIG hack. Ideally we should find a way to
+            # register custom NamedTuples with the snapshot restore
+            # machinery.
+            'sequences': [(key
+                           , self._sequences[key][0]
+                           , self._sequences[key][1]
+                           ) for key in self._sequences.keys()]
+        }
+        return data
 
 class BlastResultsWorker(QThread):
     standard_output = Signal()

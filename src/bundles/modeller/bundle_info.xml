@@ -28,7 +28,7 @@
     <ChimeraXClassifier>Command :: modeller refine :: Sequence, Structure Prediction :: Fill missing structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: modeller scores :: Sequence, Structure Prediction :: Fetch Modeller scores for a model</ChimeraXClassifier>
    <ChimeraXClassifier>Tool :: Modeller Comparative :: Sequence, Structure Prediction :: Generate comparative models</ChimeraXClassifier>
-   <ChimeraXClassifier>Tool :: Model Loops / Refine Structure :: Sequence, Structure Prediction :: Model/remodel structure segments</ChimeraXClassifier>
+   <ChimeraXClassifier>Tool :: Model Loops :: Sequence, Structure Prediction :: Model/remodel structure segments</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

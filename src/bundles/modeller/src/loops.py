@@ -15,9 +15,10 @@ ALL_MISSING = "all-missing"
 INTERNAL_MISSING = "internal-missing"
 
 special_region_values = [ALL_MISSING, INTERNAL_MISSING]
+protocols = ['standard', 'DOPE', 'DOPE-HR']
 
 def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, temp_path=None):
+    fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
     """
     Model or remodel parts of structure, typically missing structure regions.
 
@@ -42,6 +43,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     executable_location
         If provided, the path to the locally installed Modeller executable.  If not provided, use the
         web service.
+    fast
+        Whether to use fast but crude generation of models
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
@@ -169,7 +172,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
         from .common import write_modeller_scripts, get_license_key
         script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
-            num_models, True, True, False, False, (loop_mod_prefix, loop_data), None, temp_path, False,
+            num_models, True, True, False, fast, (loop_mod_prefix, loop_data), None, temp_path, False,
             None)
 
         input_file_map = []

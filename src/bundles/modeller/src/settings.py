@@ -31,6 +31,7 @@ class _ModellerLoopsSettings(Settings):
 
     AUTO_SAVE = {
         'adjacent_flexible': 1,
+        'fast': False,
         'num_models': 5,
         'protocol': "standard",
         'region': ALL_MISSING,
