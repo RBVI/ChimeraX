@@ -40,7 +40,7 @@ class SeqRegionArg(Annotation):
        (truncation allowed), the full value text is returned instead of the region list.
 
 
-       Return value is (alignment, seq, list of (start,end) Python-like indices into sequence.
+       Return value is (alignment, seq, list of (start,end) zero-based indices into sequence).
     '''
 
     name = "[alignment-id]:sequence-name-or-number:[sequence-positions-or-ranges]"
@@ -78,14 +78,17 @@ class SeqRegionArg(Annotation):
                     else:
                         start = end = segment
                     try:
-                        start, end = int(start)-1, int(end)
+                        start, end = int(start)-1, int(end)-1
                     except ValueError:
                         raise AnnotationError("Sequence position is not a comma-separated list of integer"
                             " positions or position ranges")
                     if start < 0:
                         raise AnnotationError("Sequence position is less than one")
-                    elif end > len(seq):
-                        raise AnnotationError("Sequence position (%d) is past end of sequence" % end)
+                    elif end >= len(seq):
+                        raise AnnotationError("Sequence position (%d) is past end of sequence" % end+1)
+                    elif end < start:
+                        raise AnnotationError("End sequence position (%d) is less than start position"
+                            % (end+1, start+1))
                     regions.append((start, end))
         return (align, seq, regions), text, rest
 

@@ -86,7 +86,7 @@ class ModellerLauncher(ToolInstance):
                 "Use fast/approximate mode (produces only one model)",
                 settings.fast, None, attr_name="fast", settings=settings, balloon=
                 "If enabled, use a fast approximate method to generate a single model.\n"
-                "Typically use to get a rough idea what the model will look like or\n"
+                "Typically used to get a rough idea what the model will look like or\n"
                 "to check that the alignment is reasonable."))
         if hasattr(settings, "het_preserve"):
             panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
@@ -140,6 +140,7 @@ class ModellerLauncher(ToolInstance):
 
     def launch_modeller(self):
         from chimerax.core.commands import run, FileNameArg, StringArg
+        from chimerax.atomic import UniqueChainsArg
         from chimerax.core.errors import UserError
         alignments = self.alignment_list.value
         if not alignments:
@@ -153,12 +154,12 @@ class ModellerLauncher(ToolInstance):
             aln_seq_arg = "%s:%d" % (aln.ident, aln.seqs.index(seq)+1)
             if hasattr(self.settings, "region"):
                 from .loops import ALL_MISSING, INTERNAL_MISSING
-                if settings.region in (ALL_MISSING, INTERNAL_MISSING):
-                    reg_arg = settings.region
+                if self.settings.region in (ALL_MISSING, INTERNAL_MISSING):
+                    reg_arg = self.settings.region
                 else:
                     active_region = None
                     for viewer in aln.viewers:
-                        r = getattr(viewer, 'active_region', None) #TODO
+                        r = getattr(viewer, 'active_region', None)
                         if r is not None:
                             if active_region is not None:
                                 raise UserError("Multiple active regions for alignment %s" % aln)
@@ -170,21 +171,30 @@ class ModellerLauncher(ToolInstance):
                     if aln.seqs.index(line1) > seq_index or aln.seqs.index(line2) < seq_index:
                         raise UserError("Active region for alignment %s does not include target sequence"
                             % aln)
-                    #TODO: blocks to sequence indices
+                    sub_ranges = []
+                    for l1, l2, start, end in active_region.blocks:
+                        if start == end:
+                            sub_ranges.append(str(start+1))
+                        else:
+                            sub_ranges.append("%d-%d" % (start+1, end+1))
+                    reg_arg = ','.join(sub_ranges)
                 aln_seq_arg += ':' + reg_arg
             aln_seq_args.append(StringArg.unparse(aln_seq_arg))
-        #TODO: limit args to ones appropriate to command
-        run(self.session, "modeller comparative %s multichain %s numModels %d fast %s hetPreserve %s"
-            " hydrogens %s%s waterPreserve %s"% (
-            " ".join(aln_seq_args),
-            repr(self.settings.multichain).lower(),
-            self.settings.num_models,
-            repr(self.settings.fast).lower(),
-            repr(self.settings.het_preserve).lower(),
-            repr(self.settings.hydrogens).lower(),
-            " tempPath %s" % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else "",
-            repr(self.settings.water_preserve).lower()
-            ))
+        #TODO: 'chains' loop option
+        if hasattr(self.settings, "region"):
+            sub_cmd = "refine"
+            specific_args = "adjacentFlexible %d protocol %s" % (self.settings.adjacent_flexible,
+                StringArg.unparse(self.settings.protocol))
+        else:
+            sub_cmd = "comparative"
+            specific_args = "multichain %s fast %s hetPreserve %s hydrogens %s waterPreserve %s" % (
+                repr(self.settings.multichain).lower(),
+                repr(self.settings.fast).lower(),
+                repr(self.settings.het_preserve).lower(),
+                repr(self.settings.hydrogens).lower())
+        run(self.session, ("modeller %s %s numModels %d " % (sub_cmd,  " ".join(aln_seq_args),
+            self.settings.num_models)) + specific_args + (" tempPath %s"
+            % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else ""))
         self.delete()
 
     def _list_selection_cb(self):
