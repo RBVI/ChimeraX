@@ -81,7 +81,7 @@ A Modeller <a href="../tools/modeller.html#key">license key</a>
 must be specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
 command option or entered in the
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
-or <a href="../tools/modeller.html"><b>Modeller Loops</b></a> dialog,
+or <a href="../tools/modelloops.html"><b>Model Loops</b></a> dialog,
 but this only has to be done once; the key is saved in the 
 <a href="../preferences.html">preferences</a>.
 </p><p>
@@ -189,13 +189,14 @@ The corresponding graphical interface is the
 <a href="../tools/modeller.html"><b>Modeller&nbsp;Loops</b></a> tool.
 -->
 Missing segments can be built <i>de novo</i>, 
-or existing segments refined by generating additional possible conformations
+or existing segments refined by generating additional possible conformations.
 The following are required:
 <ol>
-<li>The atomic structure of at least part of a protein.
+<li>The atomic structure of at least part of the protein, open in ChimeraX.
 <br><br>
 <li>A sequence that includes the segments to be filled in or refined, open 
-in ChimeraX (as a single sequence or within a multiple sequence alignment) and 
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+(as a single sequence or within a multiple sequence alignment) and 
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with the protein structure.
 <blockquote>
@@ -227,11 +228,12 @@ positions in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 starting with 1 and including gaps 
 (frequently different from the residue numbers in associated structures)
-<li><b>all-missing</b> (or <b>all</b>) &ndash; all missing segments
-of the structure relative to the
+<li><b>all-missing</b> (or <b>all</b>) 
+&ndash; all missing segments of the structure relative to the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
 <li><b>internal-missing</b> (or <b>internal</b>) 
-&ndash; all non-terminal missing segments
+&ndash; all non-terminal missing segments of the structure relative to the
+<a href="../tools/sequenceviewer.html#association">associated</a> sequence
 </ul>
 <p>
 Examples:
@@ -373,7 +375,7 @@ For <a href="#loops">loop</a> modeling only:
 <b>adjacentFlexible</b>&nbsp;&nbsp;<i>N</i>
 <br>
 How many additional residues at each end of the missing segment or
-sepcified region to remodel relative to the input structure 
+specified region to remodel relative to the input structure 
 (zero or an integer, default <b>1</b>). 
 If the residues designated as flexible are different types in the sequence
 than in the structure, the residue types in the sequence will be used.
@@ -421,5 +423,5 @@ after making modifications that are expected to improve the scores.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2021</address>
+September 2021</address>
 </body></html>
