@@ -40,8 +40,8 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf sel_inspector segger segment seq_view sequences shape \
-	  shell shortcuts show_attr sideview sim_matrices smiles \
+	  sdf sel_inspector segger segment seq_view shape \
+	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
