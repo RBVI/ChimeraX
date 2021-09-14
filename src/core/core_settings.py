@@ -36,6 +36,8 @@ class _CoreSettings(Settings):
     AUTO_SAVE = {
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
+        'newer_update_interval': 'week',
+        'newer_last_check': '',
     }
 
 def init(session):

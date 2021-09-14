@@ -7,6 +7,10 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
+ifeq (,$(CENTOS))
+CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID)
+endif
+
 install: centos
 	# assume ". /opt/rh/devtoolset-3/enable" has been done already
 	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)

@@ -34,8 +34,9 @@ class AvailableBundleCache(list):
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
         from chimerax import app_dirs
         from urllib.parse import urljoin, urlencode
+        from . import chimerax_uuid
         params = [
-            ("uuid", self.uuid()),
+            ("uuid", chimerax_uuid()),
             ("format_version", FORMAT_VERSION),
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
@@ -102,16 +103,6 @@ class AvailableBundleCache(list):
             installable = okay and require.specifier.contains(my_version, prereleases=True)
             break
         return installable
-
-    def uuid(self):
-        # Return a mostly unrecognizable string representing
-        # current user for accessing ChimeraX toolshed
-        from getpass import getuser
-        import uuid
-        node = uuid.getnode()   # Locality
-        name = getuser()
-        dn = "CN=%s, L=%s" % (name, node)
-        return uuid.uuid5(uuid.NAMESPACE_X500, dn)
 
 
 def has_cache_file(cache_dir):

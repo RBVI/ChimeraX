@@ -460,6 +460,8 @@ class Session:
         from .triggerset import set_exception_reporter
         set_exception_reporter(lambda preface, logger=self.logger:
                                logger.report_exception(preface=preface))
+        from .import tasks
+        self.tasks = tasks.Tasks(self, first=True)
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -498,8 +500,6 @@ class Session:
         self.user_colors = colors.UserColors()
         self.user_colormaps = colors.UserColormaps()
 
-        from .import tasks
-        self.tasks = tasks.Tasks(self, first=True)
         # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes

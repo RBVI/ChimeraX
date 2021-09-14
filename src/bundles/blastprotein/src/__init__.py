@@ -13,16 +13,27 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+# Expose all of our important modules so they can be imported
+# from chimerax.blastprotein instead of chimerax.blastprotein.X
+
+from .cmd import *
+from .databases import *
+from .dbparsers import *
+from .job import *
+from .results import *
+from .tool import *
+
 class _MyAPI(BundleAPI):
 
     api_version = 1
 
     @staticmethod
     def get_class(class_name):
-        if class_name == 'ToolUI':
-            from . import tool
-            return tool.BlastProteinTool
-        return None
+        class_names = {
+            'BlastProteinTool': BlastProteinTool,
+            'BlastProteinResults': BlastProteinResults
+        }
+        return class_names.get(class_name, None)
 
     @staticmethod
     def start_tool(session, bi, ti):
