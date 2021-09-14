@@ -157,6 +157,8 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['database'].input_widget().addItems(AvailableDBs)
         self.menu_widgets['matrices'].input_widget().addItems(AvailableMatrices)
         self.menu_widgets['start'].clicked.connect(self._blast_pressed)
+        self.menu_widgets['sequences'].input_widget().valueChanged.connect(self._on_num_sequences_changed)
+        self.menu_widgets['cutoff'].input_widget().valueChanged.connect(self._on_cutoff_value_changed)
 
         # Fill in blastprotein's default arguments or snapshot values
         self.menu_widgets['chain'].value = self._protein_chain
