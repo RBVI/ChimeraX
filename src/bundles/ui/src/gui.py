@@ -351,6 +351,14 @@ class UI(QApplication):
 
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
+        # get garbage collection to break callback loops in deleted tools
+        # that might be triggered by live tools (e.g. settings changes)
+        # particularly since WA_DeleteOnClose can nuke the Qt side
+        def _cleanup(s=self):
+            import gc
+            gc.collect()
+            delattr(s, '_kludge_cleanup_timer')
+        self._kludge_cleanup_timer = self.timer(100, _cleanup)
 
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
@@ -897,11 +905,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtCore import QUrl
         import os.path
         from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
         fn = os.path.join(os.path.dirname(__file__), "about.html")
         with open(fn) as f:
             content = f.read()
-        content = content.replace("VERSION", ad.version)
+        content = content.replace("VERSION", buildinfo.version)
         content = content.replace("DATE", buildinfo.date.split()[0])
         self._about_dialog = QWebEngineView()
         self._about_dialog.setHtml(content, QUrl.fromLocalFile(
@@ -1115,7 +1122,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_action = QAction("Add A Preset...", self)
         from chimerax.core.commands import run
         help_action.triggered.connect(lambda *, run=run, ses=session: run(ses,
-            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
+            "help help:user/preferences.html#startup"))
         if not preset_info:
             self.presets_menu.addAction(help_action)
             return

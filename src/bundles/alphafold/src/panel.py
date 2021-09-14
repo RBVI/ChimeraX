@@ -147,12 +147,15 @@ class AlphaFoldGUI(ToolInstance):
     def _sequence_specifier(self, action):
         e = self._seq_button.text()
         if e == 'Paste':
-            return _remove_whitespace(self._sequence_entry.toPlainText())
+            seq = _remove_whitespace(self._sequence_entry.toPlainText())
         elif e == 'UniProt identifier':
-            return _remove_whitespace(self._uniprot_entry.text())
+            seq = _remove_whitespace(self._uniprot_entry.text())
         else:
             # Chain specifier
-            return e
+            seq = e
+        if len(seq) == 0:
+            seq = None
+        return seq
         
     # ---------------------------------------------------------------------------
     #

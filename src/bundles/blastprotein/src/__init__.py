@@ -13,6 +13,15 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+# Expose all of our important modules so they can be imported
+# from chimerax.blastprotein instead of chimerax.blastprotein.X
+
+from .cmd import *
+from .databases import *
+from .dbparsers import *
+from .job import *
+from .results import *
+
 class _MyAPI(BundleAPI):
 
     api_version = 1

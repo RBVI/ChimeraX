@@ -17,11 +17,11 @@ include $(TOP)/mk/config.make
 # You can set these variables from the command line.
 SPHINXOPTS    =
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(bindir)/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
