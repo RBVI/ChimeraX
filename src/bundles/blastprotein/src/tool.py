@@ -93,12 +93,7 @@ class BlastProteinTool(ToolInstance):
         self._instance_name = instance_name
         self._instance_name_formatted = "[name: %s]" % instance_name
         self._initialized = False
-        self._params = None
-        self._chain_map = None
-        self._hits = None
-        self._ref_atomspec = None
         self._blast_results = None
-        self._sequences = {}
         self._viewer_index = 1
 
         self._protein_chain = chain
@@ -163,7 +158,8 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['matrices'].input_widget().addItems(AvailableMatrices)
         self.menu_widgets['start'].clicked.connect(self._blast_pressed)
 
-        # Fill in blastprotein's default arguments
+        # Fill in blastprotein's default arguments or snapshot values
+        self.menu_widgets['chain'].value = self._protein_chain
         self.menu_widgets['database'].input_widget().setCurrentIndex(AvailableDBs.index(self._current_database))
         self.menu_widgets['sequences'].input_widget().setValue(self._num_sequences)
         self.menu_widgets['matrices'].input_widget().setCurrentIndex(AvailableMatrices.index(self._current_matrix))
@@ -176,22 +172,6 @@ class BlastProteinTool(ToolInstance):
 
         self.tool_window.ui_area.setLayout(main_layout)
         self.tool_window.manage('side')
-
-    #
-    # Initialize after GUI is ready
-    #
-    #def initialize(self):
-    #    self._initialized = True
-    #    self.update_models()
-    #    if self._params:
-    #        self._show_params(self._params)
-    #        for k, v in self._params:
-    #            if k == "chain":
-    #                self._ref_atomspec = v
-    #    if self._blast_results:
-    #        self._show_results(self._ref_atomspec, self._blast_results)
-    #    elif self._hits:
-    #        self._show_hits()
 
     #
     # Data population and action callbacks for menu items
@@ -216,7 +196,7 @@ class BlastProteinTool(ToolInstance):
                 , "".join(["1e", str(self._cutoff)])
                 , "matrix", self.menu_widgets['matrices'].input_widget().currentText()
                 , "maxSeqs", str(self._num_sequences)
-                , "name", str(self._instance_name) # TODO: Is this necessary?
+                , "name", str(self._instance_name)
             ]
             run(self.session, " ".join(cmd_text))
 
@@ -247,34 +227,34 @@ class BlastProteinTool(ToolInstance):
     #
     # Saving / Restoring Sessions
     #
+    @classmethod
+    def from_snapshot(cls, session, data):
+        instance_name = data.get("instance_name", _make_instance_name())
+        tmp = cls(
+            session
+            , instance_name
+            , chain = data['_protein_chain']
+            , db = data["_current_database"]
+            , seqs = data["_num_sequences"]
+            , matrix = data["_current_matrix"]
+            , cutoff = data["_cutoff"]
+        )
+        tmp._viewer_index = data.get("_viewer_index", 1)
+
     def take_snapshot(self, session, flags):
         data = {
             "version": 1,
             "_super": super().take_snapshot(session, flags),
-            "_chain_map": self._chain_map,
-            "_hits": self._hits,
-            "_params": self._params,
-            "_ref_atomspec": self._ref_atomspec,
-            "_sequences": self._sequences,
             "_instance_name": self._instance_name,
             "_viewer_index": self._viewer_index,
+            "_protein_chain": self._protein_chain,
+            "_current_database": self._current_database,
+            "_num_sequences": self._num_sequences,
+            "_current_matrix": self._current_matrix,
+            "_cutoff": self._cutoff
         }
         return data
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        inst = super().restore_snapshot(session, data["_super"])
-        inst._initialized = False
-        inst._chain_map = data["_chain_map"]
-        inst._hits = data["_hits"]
-        inst._params = data["_params"]
-        inst._ref_atomspec = data["_ref_atomspec"]
-        inst._blast_results = None
-        inst._sequences = data["_sequences"]
-        try:
-            inst._instance_name = data["_instance_name"]
-        except KeyError:
-            inst._instance_name = _make_instance_name()
-        inst._viewer_index = data.get("_viewer_index", 1)
-        inst._build_ui()
-        return inst
+        return BlastProteinTool.from_snapshot(session, data)
