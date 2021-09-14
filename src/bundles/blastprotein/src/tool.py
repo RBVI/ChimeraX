@@ -242,6 +242,7 @@ class BlastProteinTool(ToolInstance):
             , cutoff = data["_cutoff"]
         )
         tmp._viewer_index = data.get("_viewer_index", 1)
+        return tmp
 
     def take_snapshot(self, session, flags):
         data = {
