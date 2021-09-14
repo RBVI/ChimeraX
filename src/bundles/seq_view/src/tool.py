@@ -575,9 +575,9 @@ class SequenceViewer(ToolInstance):
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         tools_menu.addAction(comp_model_action)
-        loops_model_action = QAction("Model Loops / Refine Structure...", tools_menu)
+        loops_model_action = QAction("Model Loops...", tools_menu)
         loops_model_action.triggered.connect(lambda: run(self.session,
-            "ui tool show 'Model Loops / Refine Structure'"))
+            "ui tool show 'Model Loops'"))
         if not self.alignment.associations:
             loops_model_action.setEnabled(False)
         tools_menu.addAction(loops_model_action)
