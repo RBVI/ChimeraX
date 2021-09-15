@@ -42,7 +42,7 @@ class BlastProteinResults(ToolInstance):
     def __init__(self, session, tool_name, **kw):
         self.tool_name = tool_name
         self._instance_name = tool_name
-        self.display_name = "BlastProtein Results [name: %s]" % self._instance_name
+        self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
         self.job = kw.pop('job', None)
