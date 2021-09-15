@@ -83,7 +83,9 @@ class BlastProteinTool(ToolInstance):
 
     def __init__(self, session: Session, tool_name: str, *
                  , chain: Optional[str] = None, db: str = AvailableDBs[0]
-                 , seqs: Optional[int] = 100, matrix: str = AvailableMatrices[0]
+                 , seqs: Optional[int] = 100
+                 # Guards against changes in list order
+                 , matrix: str = AvailableMatrices[AvailableMatrices.index("BLOSUM62")]
                  , cutoff: Optional[int] = -3, instance_name: Optional[str] = None):
         super().__init__(session, tool_name)
 
