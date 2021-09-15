@@ -118,6 +118,10 @@ class ViewState:
     def reset_state(view, session):
         pass
 
+    @staticmethod
+    def include_state(view):
+        return True
+
 
 class CameraState:
 

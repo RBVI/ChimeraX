@@ -590,12 +590,15 @@ class Toolshed:
         app_name = bundle_name.casefold().replace('-', '').replace('_', '')
         return f"{self.remote_url}/apps/{app_name}"
 
-    def bundle_link(self, bundle_name):
+    def bundle_link(self, bundle_name, if_available=True):
         from html import escape
         if bundle_name.startswith("ChimeraX-"):
             short_name = bundle_name[len("ChimeraX-"):]
         else:
             short_name = bundle_name
+        if self._available_bundle_info is None or not self._available_bundle_info.find_by_name(bundle_name):
+            # not available, so link would not work
+            return escape(short_name)
         return f'<a href="{self.bundle_url(bundle_name)}">{escape(short_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):

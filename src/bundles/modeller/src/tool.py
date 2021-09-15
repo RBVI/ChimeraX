@@ -17,7 +17,6 @@ from chimerax.seqalign.widgets import AlignmentListWidget, AlignSeqMenuButton
 class ModellerLauncher(ToolInstance):
     """Generate the inputs needed by Modeller for comparative modeling"""
 
-    help = "help:user/tools/modeller.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
@@ -29,6 +28,8 @@ class ModellerLauncher(ToolInstance):
 
         from .settings import get_settings
         self.settings = settings = get_settings(session, tool_name)
+        self.help = "help:user/tools/modeller.html" if hasattr(settings, "multichain") \
+            else "help:user/tools/modelloops.html"
         license_settings = get_settings(session, "license")
         from Qt.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -63,7 +64,7 @@ class ModellerLauncher(ToolInstance):
         interface_layout.setStretchFactor(options_area, 2)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption,\
             OutputFolderOption, SymbolicEnumOption, EnumOption
-        panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
+        panel = CategorizedSettingsPanel(category_sorting=False, option_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         if hasattr(settings, "multichain"):
             panel.add_option("Basic", BooleanOption("Make multichain model from multichain template",
@@ -78,11 +79,6 @@ class ModellerLauncher(ToolInstance):
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
             "Number of model structures to generate.  Must be no more than %d.\n"
             "Warning: please consider the calculation time" % max_models))
-        if hasattr(settings, "adjacent_flexible"):
-            panel.add_option("Basic", IntOption("Flexible adjacent residues", settings.adjacent_flexible,
-                None, attr_name="adjacent_flexible", settings=settings, min=0, max=100, balloon= 
-                "Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
-                "(i.e. remodel as needed)."))
         key = "" if license_settings.license_key is None else license_settings.license_key
         panel.add_option("Basic", PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller license key</a>', key, None, attr_name="license_key", settings=license_settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
@@ -114,6 +110,11 @@ class ModellerLauncher(ToolInstance):
                 )
             panel.add_option("Basic", RegionOption("Model", settings.region, None, attr_name="region",
                 settings=settings, balloon="Parts of the structure(s) to remodel/refine"))
+        if hasattr(settings, "adjacent_flexible"):
+            panel.add_option("Basic", IntOption("Adjacent flexible residues", settings.adjacent_flexible,
+                None, attr_name="adjacent_flexible", settings=settings, min=0, max=100, balloon= 
+                "Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
+                "(i.e. remodel as needed)."))
         if hasattr(settings, "protocol"):
             from .loops import protocols
             class ProtocolOption(EnumOption):

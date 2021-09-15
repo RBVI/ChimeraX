@@ -42,13 +42,14 @@ class BlastProteinResults(ToolInstance):
     def __init__(self, session, tool_name, **kw):
         self.tool_name = tool_name
         self._instance_name = tool_name
-        self.display_name = "BlastProtein Results [name: %s]" % self._instance_name
+        self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
         self.job = kw.pop('job', None)
         self.params = kw.pop('params', None)
         self._hits = kw.pop('hits', None)
         self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
+        self._table_session_data = kw.pop('table_session_data', None)
         self._from_restore = kw.pop('from_restore', False)
         super().__init__(session, self.display_name, **kw)
         self._build_ui()
@@ -182,7 +183,10 @@ class BlastProteinResults(ToolInstance):
                 self.table.add_column(string, data_fetch=lambda x, i=oldstr: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
-            self.table.launch()
+            if self._from_restore:
+                self.table.launch(session_info=self._table_session_data)
+            else:
+                self.table.launch()
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
@@ -264,7 +268,9 @@ class BlastProteinResults(ToolInstance):
         sequences_dict = {}
         for (key, hit_name, sequence) in sequences:
             sequences_dict[key] = SeqId(hit_name, sequence)
-        return cls(session, data['tool_name'], hits = data['results'], sequences = sequences_dict, params = data['params'], from_restore=True)
+        return cls(session, data['tool_name'], hits = data['results']
+                   , sequences = sequences_dict, params = data['params']
+                   , table_session_data = data['table_session'], from_restore=True)
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -272,14 +278,15 @@ class BlastProteinResults(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            'ToolUI': ToolInstance.take_snapshot(self, session, flags),
-            'params': self.params,
-            'tool_name': self.tool_name,
-            'results': self._hits,
+            'ToolUI': ToolInstance.take_snapshot(self, session, flags)
+            , 'table_session': self.table.session_info()
+            , 'params': self.params
+            , 'tool_name': self.tool_name
+            , 'results': self._hits
             # TODO: This is a BIG hack. Ideally we should find a way to
             # register custom NamedTuples with the snapshot restore
             # machinery.
-            'sequences': [(key
+            , 'sequences': [(key
                            , self._sequences[key][0]
                            , self._sequences[key][1]
                            ) for key in self._sequences.keys()]
