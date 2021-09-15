@@ -25,6 +25,7 @@ class AvailableBundleCache(list):
         self.uninstallable = []
         self.toolshed_url = None
         self.format_version = 1
+        self._index = {}  # provide access by bundle name
 
     def load(self, logger, toolshed_url):
         #
@@ -90,6 +91,7 @@ class AvailableBundleCache(list):
                     self.append(b)
                 else:
                     self.uninstallable.append(b)
+                self._index[b.name] = b
 
     def _installable(self, b, my_version):
         installable = False
@@ -104,6 +106,11 @@ class AvailableBundleCache(list):
             break
         return installable
 
+    def find_by_name(self, name):
+        try:
+            return self._index[name]
+        except KeyError:
+            return None
 
 def has_cache_file(cache_dir):
     if cache_dir is None:
