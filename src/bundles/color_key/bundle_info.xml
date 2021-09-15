@@ -26,7 +26,7 @@
   </Dependencies>
 
   <Providers manager="toolbar">
-    <Provider tab="Right Mouse" section="Annotation" name="color key" after="Move Label"
+    <Provider tab="Right Mouse" section="Annotation" name="color key" after="Move label"
 	  display_name="Key" icon="ckiconvertical.png" description="Draw color key"/>
   </Providers>
 
