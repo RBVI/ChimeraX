@@ -1532,6 +1532,7 @@ class AtomicStructure(Structure):
         if html:
             session.logger.info(html, is_html=True)
 
+# also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
     from chimerax import mmcif
