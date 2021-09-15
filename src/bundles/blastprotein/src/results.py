@@ -313,13 +313,14 @@ class BlastResultsWorker(QThread):
 
     @Slot()
     def run(self):
-        self._get_results()
+        self._get_and_process_results()
 
     @Slot()
     def stop(self):
         pass
 
-    def _get_results(self):
+    def _get_and_process_results(self):
+        """Fetch results from plato and process them for BlastProteinResults."""
         out = self.job.get_stdout()
         if out:
             # Originally sent to logger.error
@@ -337,40 +338,37 @@ class BlastResultsWorker(QThread):
                 err = self.job.get_stderr()
                 self.job_failed.emit(err + str(e))
             else:
-                self._process_results(self.job.atomspec, self.job._database)
-
-    def _process_results(self, atomspec, blast_results):
-        self._ref_atomspec = atomspec
-        hits = []
-        self._sequences = {}
-        if blast_results is not None:
-            query_match = blast_results.parser.matches[0]
-            if self._ref_atomspec:
-                name = self._ref_atomspec
-            else:
-                name = query_match.name
-            self._sequences[0] = (name, query_match.sequence)
-
-            match_chains = {}
-            self.set_progress_maxval.emit(len(blast_results.parser.matches))
-            for n, m in enumerate(blast_results.parser.matches[1:]):
-                sid = n + 1
-                hit = {"id":sid, "evalue":m.evalue, "score":m.score,
-                       "description":m.description}
-                if m.match:
-                    hit["name"] = m.match
-                    match_chains[m.match] = hit
-                else:
-                    hit = blast_results.add_url(hit, m)
-                hits.append(hit)
-                self._sequences[sid] = SeqId(hit["name"], m.sequence)
-                self.processed_result.emit()
-            # TODO: Make what this function does more explicit. It works on the
-            # hits that are in match_chain's hit dictionary, but that's not
-            # immediately clear.
-            self.waiting_for_info.emit("Postprocessing Hits")
-            blast_results.add_info(self.session, match_chains)
-            self.finished_processing_hits.emit()
-        self._hits = hits
-        self.report_hits.emit(self._hits)
-        self.report_sequences.emit(self._sequences)
+                self._ref_atomspec = self.job.atomspec
+                blast_results = self.job._database
+                hits = []
+                self._sequences = {}
+                if blast_results is not None:
+                    query_match = blast_results.parser.matches[0]
+                    if self._ref_atomspec:
+                        name = self._ref_atomspec
+                    else:
+                        name = query_match.name
+                    self._sequences[0] = (name, query_match.sequence)
+                    match_chains = {}
+                    self.set_progress_maxval.emit(len(blast_results.parser.matches))
+                    for n, m in enumerate(blast_results.parser.matches[1:]):
+                        sid = n + 1
+                        hit = {"id":sid, "evalue":m.evalue, "score":m.score,
+                               "description":m.description}
+                        if m.match:
+                            hit["name"] = m.match
+                            match_chains[m.match] = hit
+                        else:
+                            hit = blast_results.add_url(hit, m)
+                        hits.append(hit)
+                        self._sequences[sid] = SeqId(hit["name"], m.sequence)
+                        self.processed_result.emit()
+                    # TODO: Make what this function does more explicit. It works on the
+                    # hits that are in match_chain's hit dictionary, but that's not
+                    # immediately clear.
+                    self.waiting_for_info.emit("Postprocessing Hits")
+                    blast_results.add_info(self.session, match_chains)
+                    self.finished_processing_hits.emit()
+                self._hits = hits
+                self.report_hits.emit(self._hits)
+                self.report_sequences.emit(self._sequences)
