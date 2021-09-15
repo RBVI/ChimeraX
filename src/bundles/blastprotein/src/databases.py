@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2021 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -10,16 +10,26 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from chimerax.atomic import AtomicStructure
-from chimerax.core.commands import run
 
-from . import dbparsers
+# Python/All
+import re
 
+# Python/Specific
 from typing import Callable, Optional
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
-import re
+# ChimeraX/Core
+from chimerax.core.commands import run
+
+# ChimeraX/Bundles
+from chimerax.alphafold.match import _log_alphafold_sequence_info
+from chimerax.atomic import AtomicStructure
+from chimerax.atomic import Sequence
+
+# Local Imports
+from . import dbparsers
+from .pdbinfo import fetch_pdb_info
 
 @dataclass
 class Database(ABC):
@@ -86,7 +96,6 @@ class NCBIDB(Database):
 
     @staticmethod
     def add_info(session, matches):
-        from .pdbinfo import fetch_pdb_info
         chain_ids = matches.keys()
         data = fetch_pdb_info(session, chain_ids)
         for chain_id, hit in matches.items():
@@ -107,7 +116,7 @@ class NRDB(NCBIDB):
     pretty_name: str = "NRDB"
 
 @dataclass
-class AlphaFoldDb(Database):
+class AlphaFoldDB(Database):
     name: str = "alphafold"
     pretty_name: str = "AlphaFold Database"
     # The title of the data column that can be used to fetch the model
@@ -124,13 +133,11 @@ class AlphaFoldDb(Database):
         # Log sequence similarity info
         if not ref_atomspec:
             query_name = self.parser.true_name or 'query'
-            from chimerax.atomic import Sequence
             query_seq = Sequence(name = query_name,
                                  characters = self.parser.query_seq)
-            from chimerax.alphafold.match import _log_alphafold_sequence_info
             for m in models:
                 _log_alphafold_sequence_info(m, query_seq)
-
+        # Hack around the fact that we use run(...) to load the model
         return [], None
 
     @staticmethod
@@ -142,7 +149,7 @@ class AlphaFoldDb(Database):
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
             uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
-            matches[match]["chain_species"] = AlphaFoldDb._get_species(raw_desc)
+            matches[match]["chain_species"] = AlphaFoldDB._get_species(raw_desc)
             # Move UniProt ID to the correct column
             matches[match]["chain_sequence_id"] = uniprot_id
 
@@ -166,7 +173,7 @@ class AlphaFoldDb(Database):
 AvailableDBsDict = {
     'pdb': PDB,
     'nr': NRDB,
-    'alphafold': AlphaFoldDb,
+    'alphafold': AlphaFoldDB,
 }
 AvailableDBs = list(AvailableDBsDict.keys())
 AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90", "PAM30", "PAM70", "PAM250", "IDENTITY"]

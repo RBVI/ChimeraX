@@ -268,7 +268,9 @@ class BlastProteinResults(ToolInstance):
         sequences_dict = {}
         for (key, hit_name, sequence) in sequences:
             sequences_dict[key] = SeqId(hit_name, sequence)
-        return cls(session, data['tool_name'], hits = data['results'], sequences = sequences_dict, params = data['params'], table_session_data = data['table_session'], from_restore=True)
+        return cls(session, data['tool_name'], hits = data['results']
+                   , sequences = sequences_dict, params = data['params']
+                   , table_session_data = data['table_session'], from_restore=True)
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -276,15 +278,15 @@ class BlastProteinResults(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            'ToolUI': ToolInstance.take_snapshot(self, session, flags),
-            'table_session': self.table.session_info(),
-            'params': self.params,
-            'tool_name': self.tool_name,
-            'results': self._hits,
+            'ToolUI': ToolInstance.take_snapshot(self, session, flags)
+            , 'table_session': self.table.session_info()
+            , 'params': self.params
+            , 'tool_name': self.tool_name
+            , 'results': self._hits
             # TODO: This is a BIG hack. Ideally we should find a way to
             # register custom NamedTuples with the snapshot restore
             # machinery.
-            'sequences': [(key
+            , 'sequences': [(key
                            , self._sequences[key][0]
                            , self._sequences[key][1]
                            ) for key in self._sequences.keys()]
