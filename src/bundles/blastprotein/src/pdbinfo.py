@@ -100,9 +100,9 @@ entry_attr_name_mapping = [
     ("exp_method", ['exptl', 'method']),
     ("resolution", ['rcsb_entry_info', 'resolution_combined']),
     ("keywords", ['struct_keywords', 'pdbx_keywords']),
-    ("nr_entities", ['rcsb_entry_info', 'polymer_entity_count']),
-    ("nr_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
-    ("nr_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
+    ("#_entities", ['rcsb_entry_info', 'polymer_entity_count']),
+    ("#_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
+    ("#_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
     ("deposition_date", ['rcsb_accession_info', 'deposit_date']),
     ("publish_date", ['rcsb_accession_info', 'initial_release_date']),
     ("revision_date", ['rcsb_accession_info', 'revision_date']),
@@ -121,9 +121,9 @@ entry_attr_name_mapping = [
 chain_attr_name_mapping = [
     ('chain_names', False, ['rcsb_polymer_entity', 'pdbx_description']),
     ('chain_copies', True, ["entity_poly", "pdbx_strand_id", lambda v: len(v.split(','))]),
-    ('num_polymers', False, [len]),
+    ('#_polymers', False, [len]),
     ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
-    ('chain_species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
+    ('species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
         ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
     ('chain_sequence_id', True, ["rcsb_polymer_entity_container_identifiers",
         "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
@@ -250,4 +250,3 @@ def get_val(init_val, mmcif_keys):
         if val is None:
             break
     return val
-
