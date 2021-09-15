@@ -12,30 +12,49 @@ PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 SWAGGER_VERSION=3.0.27
 SWAGGER_CODEGEN = swagger-codegen-cli-$(SWAGGER_VERSION).jar
 
+RBVI_SERVER := http:\/\/webservices.rbvi.ucsf.edu\/cxservices\/api\/v1\/
+RBVI_DESC := Production server
+
+LOCAL_SERVER := http:\/\/localhost:8000\/
+LOCAL_DESC := Local test server
+
 ifdef WIN32
 WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
 else
 WHEEL = $(SOURCE)/dist/*.whl
 endif
 
-all:
+.PHONY: app-install app-reinstall cxservices.config cxservices.yml production local-test
 
-install:
-
-app-install: install
+app-install: $(SOURCE)
 	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py $(SETUP_ARGS) bdist_wheel
 	$(APP_PYTHON_EXE) -m pip install $(PIPINSTALL_ARGS) $(WHEEL)
+
+app-reinstall: $(SOURCE)
+	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py $(SETUP_ARGS) bdist_wheel
+	$(APP_PYTHON_EXE) -m pip install $(PIPINSTALL_ARGS) $(WHEEL) --force-reinstall
 
 clean:
 	rm -rf $(SOURCE)/build
 
+confclean:
+	-rm -f cxservices.config
+	-rm -f cxservices.yml
+
 distclean:	clean
 	rm -rf $(SOURCE)/dist $(SOURCE)/$(NAME).egg-info
 
-# Must have Java installed and on PATH
+local-test: distclean confclean
+	LOCAL_ENV=1 $(MAKE) $(SOURCE)
+	$(MAKE) app-reinstall
 
+production: distclean confclean
+	$(MAKE) $(SOURCE)
+	$(MAKE) app-reinstall
+
+# Must have Java installed and on PATH
 $(SOURCE): $(SWAGGER_CODEGEN) cxservices.yml cxservices.config cxservices.patch
-	rm -rf $(SOURCE)
+	-rm -rf $(SOURCE)
 	java -jar $(SWAGGER_CODEGEN) generate \
 		-DpackageName=$(NAME) \
 		--input-spec cxservices.yml \
@@ -44,9 +63,18 @@ $(SOURCE): $(SWAGGER_CODEGEN) cxservices.yml cxservices.config cxservices.patch
 		--output $(SOURCE)
 	cd $(SOURCE) && patch -p1 < ../cxservices.patch
 
-cxservices.config:	cxservices.config.in
+cxservices.config: cxservices.config.in
 	sed -e 's/VERSION/$(VERSION)/' \
 	    -e 's/PACKAGE/$(NAME)/' cxservices.config.in > cxservices.config
+
+cxservices.yml: cxservices.yml.in
+ifdef LOCAL_ENV
+	sed -e 's/SERVER_URL/$(LOCAL_SERVER)/' \
+	    -e 's/SERVER_DESC/$(LOCAL_DESC)/' $< > $@
+else
+	sed -e 's/SERVER_URL/$(RBVI_SERVER)/' \
+	    -e 's/SERVER_DESC/$(RBVI_DESC)/' $< > $@
+endif
 
 # "-DpackageName=cxservices" is needed to set the package name
 # because "packageName" in cxservices.config does nothing
