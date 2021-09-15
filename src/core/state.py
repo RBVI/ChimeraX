@@ -110,6 +110,10 @@ class StateManager(State, metaclass=abc.ABCMeta):
         """Reset state to data-less state"""
         pass
 
+    def include_state(self):
+        """Return if state manager's state should be included in session"""
+        return True
+
 
 class FinalizedState:
     """Used for efficiency if state data is known to be nothing but Python simple primitives"""
