@@ -83,7 +83,9 @@ class BlastProteinTool(ToolInstance):
 
     def __init__(self, session: Session, tool_name: str, *
                  , chain: Optional[str] = None, db: str = AvailableDBs[0]
-                 , seqs: Optional[int] = 100, matrix: str = AvailableMatrices[0]
+                 , seqs: Optional[int] = 100
+                 # Guards against changes in list order
+                 , matrix: str = AvailableMatrices[AvailableMatrices.index("BLOSUM62")]
                  , cutoff: Optional[int] = -3, instance_name: Optional[str] = None):
         super().__init__(session, tool_name)
 
@@ -102,7 +104,7 @@ class BlastProteinTool(ToolInstance):
         self._current_matrix = matrix
         self._cutoff = cutoff
 
-        self.display_name = "Blastprotein" + " " + self._instance_name_formatted
+        self.display_name = "Blast Protein" + " " + self._instance_name_formatted
         self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
         self.tool_window = MainToolWindow(self)
         self._build_ui()
@@ -242,6 +244,7 @@ class BlastProteinTool(ToolInstance):
             , cutoff = data["_cutoff"]
         )
         tmp._viewer_index = data.get("_viewer_index", 1)
+        return tmp
 
     def take_snapshot(self, session, flags):
         data = {
