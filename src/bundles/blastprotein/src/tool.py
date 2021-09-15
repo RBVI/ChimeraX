@@ -104,7 +104,7 @@ class BlastProteinTool(ToolInstance):
         self._current_matrix = matrix
         self._cutoff = cutoff
 
-        self.display_name = "Blastprotein" + " " + self._instance_name_formatted
+        self.display_name = "Blast Protein" + " " + self._instance_name_formatted
         self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
         self.tool_window = MainToolWindow(self)
         self._build_ui()
