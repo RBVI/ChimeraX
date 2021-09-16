@@ -15,8 +15,8 @@
 import re
 
 # Python/Specific
-from typing import Callable, Optional
-from dataclasses import dataclass
+from typing import Callable, List, Optional
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 # ChimeraX/Core
@@ -33,9 +33,17 @@ from .pdbinfo import fetch_pdb_info
 
 @dataclass
 class Database(ABC):
+    """Base class for defining blast protein databases; used to model the
+    results of blast queries."""
     parser_factory: Callable[[dbparsers.Parser], object]
-    parser: Optional[object] = None
+    parser: dbparsers.Parser = field(init=False)
+    fetchable_col: str = ""
     name: str = ""
+    default_cols: tuple = ("Name", "Evalue", "Description")
+    # In BlastProteinWorker._process_results each hit's dict is created
+    # and assigned an ID number, but we don't want to display it. It's
+    # also used in BlastProteinResults._show_mav to retrieve selections.
+    excluded_cols: tuple = ("id",)
 
     @abstractmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -63,6 +71,7 @@ class NCBIDB(Database):
     NCBI_IDS: tuple[str, str] = ("ref", "gi")
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
+    default_cols: tuple = ("Name", "Evalue", "Description", "Resolution", "Ligand Symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):

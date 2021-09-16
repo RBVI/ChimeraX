@@ -10,6 +10,8 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from chimerax.blastprotein import AvailableDBsDict
+
 from string import capwords
 from typing import Dict, NamedTuple
 
@@ -46,7 +48,7 @@ class BlastProteinResults(ToolInstance):
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
         self.job = kw.pop('job', None)
-        self.params = kw.pop('params', None)
+        self.params: Dict = kw.pop('params', None)
         self._hits = kw.pop('hits', None)
         self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
         self._table_session_data = kw.pop('table_session_data', None)
@@ -170,17 +172,22 @@ class BlastProteinResults(ToolInstance):
                 self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
-            unwanted_columns = ['id']
+            db = AvailableDBsDict[self.params['database']]
             for string in columns:
-                oldstr = string
                 # Remove columns we don't want
-                if oldstr in unwanted_columns:
+                if string in db.excluded_cols:
                     continue
-                string = capwords(" ".join(string.split('_')))
-                string = string.replace('Id', 'ID')
+                # Decide how the title should be formatted
+                if string not in db.default_cols:
+                    ...
                 kwdict = {}
                 kwdict['header_justification'] = 'center'
-                self.table.add_column(string, data_fetch=lambda x, i=oldstr: x[i], **kwdict)
+                # Format the title for display
+                newstr = string
+                newstr = capwords(" ".join(newstr.split('_')))
+                newstr = newstr.replace('Id', 'ID')
+
+                self.table.add_column(newstr, data_fetch=lambda x, i=string: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
             if self._from_restore:
