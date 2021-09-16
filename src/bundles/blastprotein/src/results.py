@@ -22,6 +22,7 @@ from Qt.QtWidgets import QPushButton, QAction, QLabel
 
 from chimerax.atomic.molobject import Sequence
 from chimerax.core.commands import run
+from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
@@ -124,7 +125,6 @@ class BlastProteinResults(ToolInstance):
         self.session.logger.error(output)
 
     def job_failed(self, error):
-        from chimerax.core.errors import UserError
         raise UserError("BlastProtein failed: %s" % error)
 
     #

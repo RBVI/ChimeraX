@@ -137,7 +137,7 @@ class AlphaFoldDB(Database):
         cmd = "alphafold fetch %s" % match_code
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
-        models, status = run(chimerax_session, cmd)
+        models, _ = run(chimerax_session, cmd)
 
         # Log sequence similarity info
         if not ref_atomspec:
@@ -189,6 +189,8 @@ AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
 
 def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
-    :param db: A supported database e.g 'alphafold', 'nr', 'pdb'
+
+    Parameters:
+        db: A supported database e.g 'alphafold', 'nr', 'pdb'
     """
-    return AvailableDBsDict[db]() # Instantiate the class before returning
+    return AvailableDBsDict[db]()

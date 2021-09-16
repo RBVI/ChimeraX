@@ -17,6 +17,7 @@ from cxservices.rest import ApiException
 from . import tool
 
 from .datatypes import BlastParams
+from .databases import Database, get_database
 from .results import BlastProteinResults
 
 class CCDJob(OpalJob):
@@ -36,19 +37,17 @@ class BlastProteinBase:
     QUERY_FILENAME = "query.fa"
     RESULTS_FILENAME = "results.json"
 
-    def setup(self, seq, atomspec, database="pdb", cutoff=1.0e-3,
-              matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None,
+    def setup(self, seq, atomspec, database: str ="pdb", cutoff: float = 1.0e-3,
+              matrix: str="BLOSUM62", max_seqs: int=500, log=None, tool_inst_name=None,
               sequence_name=None):
-        from . import tool
-        from . import databases
-        self.seq = seq.replace('?', 'X')        # string
-        self.sequence_name = sequence_name	# string
-        self.atomspec = atomspec                # string (atom specifier)
-        self.database = database                # string
-        self._database = databases.get_database(database) # object
-        self.cutoff = cutoff                    # float
-        self.matrix = matrix                    # string
-        self.max_seqs = max_seqs                # int
+        self.seq = seq.replace('?', 'X')                  # string
+        self.sequence_name = sequence_name                # string
+        self.atomspec = atomspec                          # string (atom specifier)
+        self.database = database                          # string
+        self._database: Database = get_database(database) # object
+        self.cutoff = cutoff                              # float
+        self.matrix = matrix                              # string
+        self.max_seqs = max_seqs                          # int
         self.log = log
         self.tool_inst_name = tool_inst_name
         self.tool = tool.find(tool_inst_name)
