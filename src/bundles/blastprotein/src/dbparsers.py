@@ -18,15 +18,14 @@ from typing import Callable
 
 class Parser(ABC):
     """Abstract base class for BLAST JSON parsers. To define a parser for a new
-    type of database, create a subclass that implements _extract_hit and pass it
-    to the superclass constructor."""
-    def __init__(self, query_title, query_seq, output, extract_hit):
+    type of database, create a subclass that implements _extract_hit"""
+    def __init__(self, query_title, query_seq, output):
         self.true_name = query_title
         self.query_seq = query_seq
         self.output = output
-        self._parse(extract_hit)
+        self._parse()
 
-    def _parse(self, extract_hit: Callable[[dict], None]) -> None:
+    def _parse(self) -> None:
         """
         extract_hit: A function that will parse the hits from BLAST output.
         """
@@ -68,7 +67,7 @@ class Parser(ABC):
         elif num_results == 0:
             raise ValueError("No iteration data in BLAST output")
         for hit in self.res_data["results"]["search"]["hits"]:
-            extract_hit(hit)
+            self._extract_hit(hit)
         self._extract_stats(self.res_data["results"]["search"]["stat"])
         self._append_query()
 
@@ -238,7 +237,7 @@ class Parser(ABC):
 
 class PDBParser(Parser):
     def __init__(self, query_title, query_seq, output):
-        super().__init__(query_title, query_seq, output, self._extract_hit)
+        super().__init__(query_title, query_seq, output)
 
     def _extract_hit(self, hit):
         id_list = []
@@ -270,7 +269,7 @@ class PDBParser(Parser):
 
 class AlphaFoldParser(Parser):
     def __init__(self, query_title, query_seq, output):
-        super().__init__(query_title, query_seq, output, self._extract_hit)
+        super().__init__(query_title, query_seq, output)
 
     def _extract_hit(self, hit):
         id_list = []
