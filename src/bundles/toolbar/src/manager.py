@@ -140,7 +140,7 @@ class ToolbarManager(ProviderManager):
             self.session.logger.warning('Overriding existing toolbar provider %s' % where())
         section_dict[display_name] = (name, bundle_info, icon, description, kw)
         if before is not None or after is not None:
-            self._add_layout(section_dict, name, before, after)
+            self._add_layout(section_dict, display_name, before, after)
 
     def _add_layout(self, dict_, name, before, after):
         # layouts are an DAG
