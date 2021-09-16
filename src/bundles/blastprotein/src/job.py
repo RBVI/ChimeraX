@@ -20,18 +20,6 @@ from .datatypes import BlastParams
 from .databases import Database, get_database
 from .results import BlastProteinResults
 
-class CCDJob(OpalJob):
-
-    OPAL_SERVICE = "CCDService"
-
-    def __init__(self, session, name):
-        super().__init__(session)
-        self.start(self.OPAL_SERVICE, name)
-
-    def on_finish(self):
-        self.session.logger.info("Standard output:\n" + self.get_stdout())
-
-
 class BlastProteinBase:
 
     QUERY_FILENAME = "query.fa"
