@@ -77,7 +77,7 @@ class ModelPanel(ToolInstance):
         buttons_layout.setSpacing(0)
         button_area.setLayout(buttons_layout)
         self._items = []
-        for model_func in [close, hide, info, show, view]:
+        for model_func in [close, hide, show, view, info]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
             button.clicked.connect(lambda *, self=self, mf=model_func, ses=session:
@@ -369,7 +369,14 @@ def info(models, session):
         from chimerax.core.errors import UserError
         raise UserError("No atomic structure models chosen")
     spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
-    run(session, "sym %s; log metadata %s; log chains %s" % (spec, spec, spec))
+    from chimerax.atomic.structure import assembly_html_table
+    for s in structures:
+        if assembly_html_table(s):
+            base_cmd = "sym %s; " % spec
+            break
+    else:
+        base_cmd = ""
+    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
 
 _mp = None
 def model_panel(session, tool_name):
