@@ -67,6 +67,8 @@ class BlastProteinFormWidget(QWidget):
         self.__input_widget = input_widget()
         layout.setWidget(0, QFormLayout.LabelRole, self.__label)
         layout.setWidget(0, QFormLayout.FieldRole, self.__input_widget)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         self.setLayout(layout)
 
     def input_widget(self) -> QWidget:
@@ -174,6 +176,8 @@ class BlastProteinTool(ToolInstance):
         main_layout.addWidget(input_container_row1)
         main_layout.addWidget(input_container_row2)
 
+        main_layout.setContentsMargins(0,0,0,0)
+        main_layout.setSpacing(0)
         self.tool_window.ui_area.setLayout(main_layout)
         self.tool_window.manage('side')
 
