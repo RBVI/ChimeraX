@@ -80,3 +80,129 @@ class AtomPairRestrictOption(Option):
         else:
             self.value = self.__line_edit.text()
         self.make_callback()
+
+class StructureOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from .widgets import StructureMenuButton
+        self.widget = StructureMenuButton(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
+
+class StructuresOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        pass
+
+    def _make_widget(self, **kw):
+        from .widgets import StructureListWidget
+        self.widget = StructureListWidget(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
+
+class AtomicStructureOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from .widgets import AtomicStructureMenuButton
+        self.widget = AtomicStructureMenuButton(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
+
+class AtomicStructuresOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        pass
+
+    def _make_widget(self, **kw):
+        from .widgets import AtomicStructureListWidget
+        self.widget = AtomicStructureListWidget(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
+
+class ChainOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from .widgets import ChainMenuButton
+        self.widget = ChainMenuButton(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
+
+class ChainsOption(Option):
+    def __init__(self, session, *args, **kw):
+        self.session = session
+        super().__init__(*args, **kw)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, value):
+        self.widget.value = value
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        pass
+
+    def _make_widget(self, **kw):
+        from .widgets import ChainListWidget
+        self.widget = ChainListWidget(self.session, **kw)
+        self.widget.value_changed.connect(self.make_callback)
