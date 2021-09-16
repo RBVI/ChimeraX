@@ -26,8 +26,7 @@ from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
-from .labelledbar import LabelledProgressBar
-from .table import BlastResultsTable, BlastResultsRow
+from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
 _settings = None
 
