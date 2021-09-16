@@ -10,12 +10,14 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
-from .results import BlastProteinResults
 from chimerax.webservices.opal_job import OpalJob
 from chimerax.webservices.cxservices_job import CxServicesJob
 from cxservices.rest import ApiException
 
+from . import tool
+
+from .datatypes import BlastParams
+from .results import BlastProteinResults
 
 class CCDJob(OpalJob):
 
@@ -59,13 +61,7 @@ class BlastProteinBase:
         return ''.join(data)
 
     def _params(self):
-        return [
-            ( "chain", self.atomspec ),
-            ( "database", self.database ),
-            ( "cutoff", self.cutoff ),
-            ( "maxSeqs", self.max_seqs ),
-            ( "matrix", self.matrix ),
-        ]
+        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix)
 
     def on_finish(self):
         logger = self.session.logger
@@ -93,7 +89,7 @@ class BlastProteinBase:
                 else:
                     if self.log or (self.log is None and not self.session.ui.is_gui):
                         msgs = ["BLAST results for:"]
-                        for name, value in self._params():
+                        for name, value in self._params()._asdict():
                             msgs.append("  %s: %s" % (name, value))
                         for m in self._database.parser.matches:
                             name = m.match if m.match else m.name

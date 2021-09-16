@@ -13,7 +13,7 @@
 from chimerax.blastprotein import AvailableDBsDict
 
 from string import capwords
-from typing import Dict, NamedTuple
+from typing import Dict
 
 from Qt.QtCore import QThread, Signal, Slot
 
@@ -26,13 +26,10 @@ from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
+from .datatypes import BlastParams, SeqId
 from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
 _settings = None
-
-class SeqId(NamedTuple):
-    hit_name: str
-    sequence: str
 
 class BlastProteinResults(ToolInstance):
 
@@ -47,7 +44,7 @@ class BlastProteinResults(ToolInstance):
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
         self.job = kw.pop('job', None)
-        self.params: Dict = kw.pop('params', None)
+        self.params: BlastParams = kw.pop('params', None)
         self._hits = kw.pop('hits', None)
         self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
         self._table_session_data = kw.pop('table_session_data', None)
@@ -66,7 +63,7 @@ class BlastProteinResults(ToolInstance):
         self.control_widget = QWidget()
         self.seqview_button = QPushButton("Show in Sequence Viewer")
         self.align_button = QPushButton("Load and Align Selection")
-        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params])
+        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()])
         self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]))
         self.control_widget.setVisible(False)
         self.table = BlastResultsTable(self.control_widget, _settings)
@@ -171,7 +168,7 @@ class BlastProteinResults(ToolInstance):
                 self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
-            db = AvailableDBsDict[self.params['database']]
+            db = AvailableDBsDict[self.params.database]
             for string in columns:
                 # Remove columns we don't want
                 if string in db.excluded_cols:
@@ -274,6 +271,7 @@ class BlastProteinResults(ToolInstance):
         sequences_dict = {}
         for (key, hit_name, sequence) in sequences:
             sequences_dict[key] = SeqId(hit_name, sequence)
+        data['params'] = BlastParams(*list(data['params'].values()))
         return cls(session, data['tool_name'], hits = data['results']
                    , sequences = sequences_dict, params = data['params']
                    , table_session_data = data['table_session'], from_restore=True)
@@ -286,12 +284,9 @@ class BlastProteinResults(ToolInstance):
         data = {
             'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
-            , 'params': self.params
+            , 'params': self.params._asdict()
             , 'tool_name': self.tool_name
             , 'results': self._hits
-            # TODO: This is a BIG hack. Ideally we should find a way to
-            # register custom NamedTuples with the snapshot restore
-            # machinery.
             , 'sequences': [(key
                            , self._sequences[key][0]
                            , self._sequences[key][1]
