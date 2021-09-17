@@ -129,7 +129,7 @@ class AlphaFoldDB(Database):
     name: str = "alphafold"
     pretty_name: str = "AlphaFold Database"
     # The title of the data column that can be used to fetch the model
-    fetchable_col: str = "chain_sequence_id"
+    fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
