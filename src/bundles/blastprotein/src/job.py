@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from urllib3.exceptions import MaxRetryError
 from chimerax.webservices.opal_job import OpalJob
 from chimerax.webservices.cxservices_job import CxServicesJob
 from cxservices.rest import ApiException
@@ -118,8 +119,10 @@ class RestBlastProteinJob(BlastProteinBase, CxServicesJob):
                   "blimit": str(self.max_seqs),
                   "input_seq": self.seq,
                   "output_file": self.RESULTS_FILENAME}
-        self.start("blast", params)
-
+        try:
+            self.start("blast", params)
+        except MaxRetryError as e:
+            session.logger.warning("Could not start BLAST job. Please check your internet connection and try again.")
 
 ServiceMap = {
     "opal": OpalBlastProteinJob,
