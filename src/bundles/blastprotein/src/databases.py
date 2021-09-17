@@ -15,7 +15,7 @@
 import re
 
 # Python/Specific
-from typing import Callable, List, Optional
+from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
@@ -23,9 +23,7 @@ from abc import ABC, abstractmethod
 from chimerax.core.commands import run
 
 # ChimeraX/Bundles
-from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.atomic import AtomicStructure
-from chimerax.atomic import Sequence
 
 # Local Imports
 from . import dbparsers
@@ -133,19 +131,13 @@ class AlphaFoldDB(Database):
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
-    def load_model(self, chimerax_session, match_code, ref_atomspec):
+    @staticmethod
+    def load_model(chimerax_session, match_code, ref_atomspec):
         cmd = "alphafold fetch %s" % match_code
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)
 
-        # Log sequence similarity info
-        if not ref_atomspec:
-            query_name = self.parser.true_name or 'query'
-            query_seq = Sequence(name = query_name,
-                                 characters = self.parser.query_seq)
-            for m in models:
-                _log_alphafold_sequence_info(m, query_seq)
         # Hack around the fact that we use run(...) to load the model
         return [], None
 

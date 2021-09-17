@@ -10,8 +10,6 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from chimerax.blastprotein import AvailableDBsDict
-
 from string import capwords
 from typing import Dict
 
@@ -20,13 +18,15 @@ from Qt.QtCore import QThread, Signal, Slot
 from Qt.QtWidgets import QWidget, QVBoxLayout, QAbstractItemView
 from Qt.QtWidgets import QPushButton, QAction, QLabel
 
-from chimerax.atomic.molobject import Sequence
+from chimerax.atomic import Sequence
+from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
+from .databases import AvailableDBsDict
 from .datatypes import BlastParams, SeqId
 from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
@@ -210,14 +210,28 @@ class BlastProteinResults(ToolInstance):
     def load(self, selections: list['BlastResultsRow']) -> None:
         """Load the model from the results database.
         """
+        db = AvailableDBsDict[self.params.database]
         for row in selections:
-            code = row[self.job._database.fetchable_col]
-            models, chain_id = self.job._database.load_model(self.session, code, self.job.atomspec)
-            if not self.job.atomspec:
+            code = row[db.fetchable_col]
+            models, chain_id = db.load_model(
+                self.session, code, self.params.chain
+            )
+            if not self.params.chain:
                 run(self.session, "select clear")
             else:
-                for m in models:
-                    self.job._database.display_model(self.session, self.job.atomspec, m, chain_id)
+                if db.name == 'alphafold':
+                    ...
+                #    self._log_alphafold(models)
+                else:
+                    for m in models:
+                        db.display_model(self.session, self.params.chain, m, chain_id)
+
+    def _log_alphafold(self, models):
+        if not self.params.chain:
+            query_name = self.parser.true_name or 'query'
+            query_seq = Sequence(name = query_name, characters = self.parser.query_seq)
+            for m in models:
+                _log_alphafold_sequence_info(m, query_seq)
 
     #
     # Code for displaying matches as multiple sequence alignment
