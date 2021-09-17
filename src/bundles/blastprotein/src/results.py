@@ -54,22 +54,22 @@ class BlastProteinResults(ToolInstance):
         self._build_ui()
 
     def _build_ui(self):
+        self.tool_window = MainToolWindow(self)
+        parent = self.tool_window.ui_area
         global _settings
         if _settings is None:
             class _BlastProteinResultsSettings(Settings):
                 EXPLICIT_SAVE = { BlastResultsTable.DEFAULT_SETTINGS_ATTR: {} }
             _settings = _BlastProteinResultsSettings(self.session, "Blastprotein")
-        self.tool_window = MainToolWindow(self)
         self.main_layout = QVBoxLayout()
-        self.control_widget = QWidget()
-        self.seqview_button = QPushButton("Show in Sequence Viewer")
-        self.align_button = QPushButton("Load and Align Selection")
+        self.control_widget = QWidget(parent)
+        #self.align_button = QPushButton("Load and Align Selection", parent)
         param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()])
-        self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]))
+        self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]), parent)
         self.control_widget.setVisible(False)
-        self.table = BlastResultsTable(self.control_widget, _settings)
+        self.table = BlastResultsTable(self.control_widget, _settings, parent)
 
-        self.progress_bar = LabelledProgressBar()
+        self.progress_bar = LabelledProgressBar(parent)
 
         self.main_layout.addWidget(self.control_widget)
         self.main_layout.addWidget(self.param_report)
