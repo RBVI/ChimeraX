@@ -342,7 +342,7 @@ class FloatSlider(QWidget):
         self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
         shrink_font(self._right_text)
         layout.addWidget(self._right_text, 1, 2)
-        self._format = "%%.%df" % decimal_places
+        self._decimal_places = decimal_places
         self._slider.valueChanged.connect(self._slider_value_changed)
         self._slider.sliderReleased.connect(self._slider_released)
         layout.setColumnStretch(0, 1)
@@ -364,6 +364,8 @@ class FloatSlider(QWidget):
     def setValue(self, float_val):
         fract = (float_val - self._minimum) / (self._maximum - self._minimum)
         self._slider.setValue(int(5000 * fract + 0.5))
+        if self._slider.signalsBlocked():
+            self.set_text(self._value_to_text(float_val))
 
     def special_value_shown(self):
         # effectively always False, unlike a SpinBox, the option's value is always accurate
@@ -382,7 +384,11 @@ class FloatSlider(QWidget):
 
     def _slider_value_changed(self, int_val):
         float_val = self._int_val_to_float(int_val)
-        self._value_text.setText(self._format % float_val)
+        self._value_text.setText(self._value_to_text(float_val))
         if self._continuous:
             self.valueChanged.emit(float_val)
 
+    def _value_to_text(self, val):
+        std_text = "%.*f" % (self._decimal_places, val)
+        # for %.Xg, X is the total number of significant digits, both before and after the decimal
+        return "%.*g" % (len(std_text)-1, val)
