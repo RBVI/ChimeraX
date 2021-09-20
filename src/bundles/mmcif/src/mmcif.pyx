@@ -69,7 +69,7 @@ def _initialize(session):
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True, slider=True):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -109,7 +109,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         for m in models:
             num_cs += m.num_coordsets
         info = '%s has %d coordinate sets' % (file_name, num_cs)
-        if session.ui.is_gui:
+        if slider and session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
