@@ -89,7 +89,7 @@ class CoreSettingsPanel:
             'How frequently to check toolshed for new updates<br>',
             True),
         'newer_update_interval': (
-            "Newer update interval",
+            "New version check interval",
             "Toolshed",
             UpdateIntervalOption,
             None,

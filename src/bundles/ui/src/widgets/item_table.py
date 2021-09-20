@@ -156,11 +156,12 @@ class ItemTable(QTableView):
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
 
-    def __init__(self, *, auto_multiline_headers: bool = True,
+    def __init__(self, *, auto_multiline_headers: bool = True
                  # TODO: Should this be a NamedTuple?
-                 column_control_info = None,
-                 allow_user_sorting: bool = True,
-                 settings_attr=None):
+                 , column_control_info = None
+                 , allow_user_sorting: bool = True
+                 , settings_attr=None
+                 , parent=None):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
@@ -233,7 +234,7 @@ class ItemTable(QTableView):
                     bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
                     bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
         self._highlighted = set()
-        super().__init__()
+        super().__init__(parent)
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,

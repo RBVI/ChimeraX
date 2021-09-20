@@ -15,17 +15,15 @@
 import re
 
 # Python/Specific
-from typing import Callable, Optional
-from dataclasses import dataclass
+from typing import Callable
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 # ChimeraX/Core
 from chimerax.core.commands import run
 
 # ChimeraX/Bundles
-from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.atomic import AtomicStructure
-from chimerax.atomic import Sequence
 
 # Local Imports
 from . import dbparsers
@@ -33,9 +31,17 @@ from .pdbinfo import fetch_pdb_info
 
 @dataclass
 class Database(ABC):
+    """Base class for defining blast protein databases; used to model the
+    results of blast queries."""
     parser_factory: Callable[[dbparsers.Parser], object]
-    parser: Optional[object] = None
+    parser: dbparsers.Parser = field(init=False)
+    fetchable_col: str = ""
     name: str = ""
+    default_cols: tuple = ("Name", "Evalue", "Description")
+    # In BlastProteinWorker._process_results each hit's dict is created
+    # and assigned an ID number, but we don't want to display it. It's
+    # also used in BlastProteinResults._show_mav to retrieve selections.
+    excluded_cols: tuple = ("id",)
 
     @abstractmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -63,6 +69,7 @@ class NCBIDB(Database):
     NCBI_IDS: tuple[str, str] = ("ref", "gi")
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
+    default_cols: tuple = ("Name", "Evalue", "Description", "Resolution", "Ligand Symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -120,23 +127,17 @@ class AlphaFoldDB(Database):
     name: str = "alphafold"
     pretty_name: str = "AlphaFold Database"
     # The title of the data column that can be used to fetch the model
-    fetchable_col: str = "chain_sequence_id"
+    fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
-    def load_model(self, chimerax_session, match_code, ref_atomspec):
+    @staticmethod
+    def load_model(chimerax_session, match_code, ref_atomspec):
         cmd = "alphafold fetch %s" % match_code
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
-        models, status = run(chimerax_session, cmd)
+        models, _ = run(chimerax_session, cmd)
 
-        # Log sequence similarity info
-        if not ref_atomspec:
-            query_name = self.parser.true_name or 'query'
-            query_seq = Sequence(name = query_name,
-                                 characters = self.parser.query_seq)
-            for m in models:
-                _log_alphafold_sequence_info(m, query_seq)
         # Hack around the fact that we use run(...) to load the model
         return [], None
 
@@ -180,6 +181,8 @@ AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
 
 def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
-    :param db: A supported database e.g 'alphafold', 'nr', 'pdb'
+
+    Parameters:
+        db: A supported database e.g 'alphafold', 'nr', 'pdb'
     """
-    return AvailableDBsDict[db]() # Instantiate the class before returning
+    return AvailableDBsDict[db]()
