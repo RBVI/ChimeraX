@@ -18,8 +18,8 @@ from chimerax.core.toolshed import BundleAPI
 from .cmd import *
 from .databases import *
 from .dbparsers import *
-from .job import *
 from .results import *
+from .job import *
 from .tool import *
 
 class _MyAPI(BundleAPI):

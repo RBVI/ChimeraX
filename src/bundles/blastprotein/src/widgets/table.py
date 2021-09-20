@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from typing import Union
+from typing import Optional, Union
 from Qt.QtCore import Signal
 from Qt.QtWidgets import QMenu, QWidget
 from chimerax.ui.widgets.item_table import ItemTable
@@ -33,8 +33,8 @@ class BlastResultsRow:
 class BlastResultsTable(ItemTable):
     get_selection = Signal(list)
 
-    def __init__(self, control_widget: Union[QMenu, QWidget], settings: 'BlastProteinResultsSettings'):
-        super().__init__(column_control_info=(control_widget, settings, {}, True, None, None, False))
+    def __init__(self, control_widget: Union[QMenu, QWidget], settings: 'BlastProteinResultsSettings', parent = Optional[QWidget]):
+        super().__init__(column_control_info=(control_widget, settings, {}, True, None, None, False), parent=parent)
         self.doubleClicked.connect(self.doubleclicked)
 
     def doubleclicked(self, _) -> list:

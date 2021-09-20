@@ -10,17 +10,18 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from typing import Optional
 from Qt.QtWidgets import QWidget, QHBoxLayout, QProgressBar, QLabel
 
 class LabelledProgressBar(QWidget):
     """Provide a labelled progress bar on all platforms, as the default QProgressBar
     does not display text, ever, on macOS."""
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent: Optional[QWidget]):
+        super().__init__(parent)
         # Reach into the widget
         layout = QHBoxLayout()
-        self._label = QLabel("Waiting for Results")
-        self._progress_bar = QProgressBar()
+        self._label = QLabel("Waiting for Results", self)
+        self._progress_bar = QProgressBar(self)
         # Don't show the progress bar's text because we're going to handle it
         # with the QLabel
         self._progress_bar.setTextVisible(False)
