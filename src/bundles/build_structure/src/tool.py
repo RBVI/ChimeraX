@@ -65,15 +65,35 @@ class BuildStructureTool(ToolInstance):
             handler.remove()
         super().delete()
 
+    def _ab_len_cb(self, opt):
+        self.bond_len_slider.blockSignals(True)
+        self.bond_len_slider.setValue(opt.value)
+        self.bond_len_slider.blockSignals(False)
+        if not self._initial_bond_lengths:
+            raise UserError("No bonds selected")
+        if self.bond_len_side_button.text() == "larger side":
+            arg = " move large"
+        else:
+            arg = ""
+        from chimerax.core.commands import run
+        for b in self._initial_bond_lengths.keys():
+            run(self.session, ("bond length %s %g" + arg) % (b.atomspec, opt.value))
+
     def _ab_sel_changed(self, *args):
-        from chimerax.atomic import selected_bonds
-        sel_bonds = selected_bonds(self.session)
+        seen = set()
+        for bonds in self.session.selection.items('bonds'):
+            seen.update(bonds)
+        from chimerax.atomic import Atoms, Bonds
+        for atoms in self.session.selection.items('atoms'):
+            if not isinstance(atoms, Atoms):
+                atoms = Atoms(atoms)
+            seen.update(atoms.intra_bonds)
         from weakref import WeakKeyDictionary
-        self._initial_bond_lengths = WeakKeyDictionary({b:b.length for b in sel_bonds})
-        if not sel_bonds:
+        self._initial_bond_lengths = WeakKeyDictionary({b:b.length for b in seen})
+        if not seen:
             return
         import numpy
-        val = numpy.mean(sel_bonds.lengths)
+        val = numpy.mean(Bonds(seen).lengths)
         self.bond_len_opt.value = val
         self.bond_len_slider.blockSignals(True)
         self.bond_len_slider.setValue(val)
@@ -367,23 +387,6 @@ class BuildStructureTool(ToolInstance):
         layout.addWidget(apply_but, alignment=Qt.AlignCenter)
 
         layout.addStretch(1)
-
-    def _ab_len_cb(self, opt):
-        self.bond_len_slider.blockSignals(True)
-        self.bond_len_slider.setValue(opt.value)
-        self.bond_len_slider.blockSignals(False)
-        if self.bond_len_side_button.text() == "larger side":
-            arg = " move large"
-        else:
-            arg = ""
-        from chimerax.core.commands import run
-        some_bonds = False
-        for bonds in self.session.selection.items('bonds'):
-            for b in bonds:
-                run(self.session, ("bond length %s %g" + arg) % (b.atomspec, opt.value))
-                some_bonds = True
-        if not some_bonds:
-            raise UserError("No bonds selected")
 
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms

@@ -22,7 +22,7 @@ def cmd_bond(session, *args, **kw):
     from chimerax.core.commands import plural_form
     session.logger.info("Created %d %s" % (len(created), plural_form(created, "bond")))
 
-def cmd_bond_length(session, bond, *, length=None, move="small"):
+def cmd_bond_length(session, bond, length=None, *, move="small"):
     if length is None:
         session.logger.info(("Bond length for %s is " + session.pb_dist_monitor.distance_format)
             % (bond, bond.length))
@@ -94,7 +94,8 @@ def register_command(command_name, logger):
 
     desc = CmdDesc(
         required=[('bond', BondArg)],
-        keyword = [('length', PositiveFloatArg), ('move', EnumOf(("large", "small")))],
+        optional = [('length', PositiveFloatArg)],
+        keyword = [('move', EnumOf(("large", "small")))],
         synopsis = 'set bond length'
     )
     register('bond length', desc, cmd_bond_length, logger=logger)
