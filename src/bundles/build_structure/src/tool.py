@@ -65,17 +65,39 @@ class BuildStructureTool(ToolInstance):
             handler.remove()
         super().delete()
 
+    def _ab_len_cb(self, opt):
+        self.bond_len_slider.blockSignals(True)
+        self.bond_len_slider.setValue(opt.value)
+        self.bond_len_slider.blockSignals(False)
+        if not self._initial_bond_lengths:
+            raise UserError("No bonds selected")
+        if self.bond_len_side_button.text() == "larger side":
+            arg = " move large"
+        else:
+            arg = ""
+        from chimerax.core.commands import run
+        for b in self._initial_bond_lengths.keys():
+            run(self.session, ("bond length %s %g" + arg) % (b.atomspec, opt.value))
+
     def _ab_sel_changed(self, *args):
-        from chimerax.atomic import selected_bonds
-        sel_bonds = selected_bonds(self.session)
+        seen = set()
+        for bonds in self.session.selection.items('bonds'):
+            seen.update(bonds)
+        from chimerax.atomic import Atoms, Bonds
+        for atoms in self.session.selection.items('atoms'):
+            if not isinstance(atoms, Atoms):
+                atoms = Atoms(atoms)
+            seen.update(atoms.intra_bonds)
         from weakref import WeakKeyDictionary
-        self._initial_bond_lengths = WeakKeyDictionary({b:b.length for b in sel_bonds})
-        if not sel_bonds:
+        self._initial_bond_lengths = WeakKeyDictionary({b:b.length for b in seen})
+        if not seen:
             return
         import numpy
-        val = numpy.mean(sel_bonds.lengths)
+        val = numpy.mean(Bonds(seen).lengths)
         self.bond_len_opt.value = val
+        self.bond_len_slider.blockSignals(True)
         self.bond_len_slider.setValue(val)
+        self.bond_len_slider.blockSignals(False)
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -125,41 +147,53 @@ class BuildStructureTool(ToolInstance):
         group_layout.setContentsMargins(0,0,0,0)
         group_layout.setSpacing(0)
         len_group.setLayout(group_layout)
+        numeric_area = QWidget()
+        group_layout.addWidget(numeric_area, alignment=Qt.AlignCenter)
         numeric_layout = QHBoxLayout()
-        group_layout.addLayout(numeric_layout)
+        numeric_layout.setContentsMargins(0,0,0,0)
+        numeric_layout.setSpacing(0)
+        numeric_area.setLayout(numeric_layout)
         from chimerax.ui.options import OptionsPanel, FloatOption
-        self.bond_len_opt = FloatOption("Set length of selected bonds to", 1.5, self._len_cb,
-            min="positive", max=99, decimal_places=2)
+        precision = 3
+        self.bond_len_opt = FloatOption("Set length of selected bonds to", 1.5, self._ab_len_cb,
+            min="positive", max=99, decimal_places=precision)
         panel = OptionsPanel(scrolled=False)
         numeric_layout.addWidget(panel, alignment=Qt.AlignRight)
         panel.add_option(self.bond_len_opt)
         from chimerax.ui.widgets import FloatSlider
-        self.bond_len_slider = FloatSlider(0.5, 4.5, 0.1, 2, True)
+        self.bond_len_slider = FloatSlider(0.5, 4.5, 0.1, precision, True)
         self.bond_len_slider.set_left_text("0.5")
         self.bond_len_slider.set_right_text("4.5")
         self.bond_len_slider.setValue(1.5)
         numeric_layout.addWidget(self.bond_len_slider)
         self.bond_len_slider.valueChanged.connect(
             lambda val, *, opt=self.bond_len_opt: setattr(opt, "value", val) or opt.make_callback())
+        side_area = QWidget()
+        group_layout.addWidget(side_area, alignment=Qt.AlignCenter)
         side_layout = QHBoxLayout()
-        group_layout.addLayout(side_layout)
-        side_layout.addWidget(QLabel("(move atoms on"), alignment=Qt.AlignRight)
+        side_layout.setContentsMargins(0,0,0,0)
+        side_layout.setSpacing(0)
+        side_area.setLayout(side_layout)
+        side_layout.addWidget(QLabel("Move atoms on"), alignment=Qt.AlignRight)
         self.bond_len_side_button = QPushButton()
         menu = QMenu()
         self.bond_len_side_button.setMenu(menu)
         menu.addAction("smaller side")
         menu.addAction("larger side")
         menu.triggered.connect(lambda act, *, but=self.bond_len_side_button: but.setText(act.text()))
-        self.bond_len_side_button.setText("smaller")
+        self.bond_len_side_button.setText("smaller side")
         side_layout.addWidget(self.bond_len_side_button)
-        side_layout.addWidget(QLabel(")"), alignment=Qt.AlignLeft)
+        revert_area = QWidget()
+        group_layout.addWidget(revert_area, alignment=Qt.AlignCenter)
         revert_layout = QHBoxLayout()
-        group_layout.addLayout(revert_layout)
+        revert_layout.setContentsMargins(0,0,0,0)
+        revert_layout.setSpacing(0)
+        revert_area.setLayout(revert_layout)
         but = QPushButton()
         but.setText("Revert")
         but.clicked.connect(self._revert_lengths)
         revert_layout.addWidget(but, alignment=Qt.AlignRight)
-        revert_layout.addWidget(QLabel("bond lengths to their original values"), alignment=Qt.AlignLeft)
+        revert_layout.addWidget(QLabel("lengths"), alignment=Qt.AlignLeft)
 
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed))
@@ -353,21 +387,6 @@ class BuildStructureTool(ToolInstance):
         layout.addWidget(apply_but, alignment=Qt.AlignCenter)
 
         layout.addStretch(1)
-
-    def _len_cb(self, opt):
-        from chimerax.atomic import selected_bonds
-        sbonds = selected_bonds(self.session)
-        if not sbonds:
-            raise UserError("No bonds selected")
-        self.bond_len_slider.blockSignals(True)
-        self.bond_len_slider.setValue(opt.value)
-        self.bond_len_slider.blockSignals(False)
-        if self.bond_len_side_button.text() == "larger side":
-            arg = " move large"
-        else:
-            arg = ""
-        from chimerax.core.commands import run
-        run(self.session, ("bond length sel %g" + arg) % opt.value)
 
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms

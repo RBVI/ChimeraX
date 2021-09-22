@@ -22,10 +22,13 @@ def cmd_bond(session, *args, **kw):
     from chimerax.core.commands import plural_form
     session.logger.info("Created %d %s" % (len(created), plural_form(created, "bond")))
 
-def cmd_bond_length(session, bonds, length, *, move="small"):
-    from chimerax.atomic.struct_edit import set_bond_length
-    for b in bonds:
-        set_bond_length(b, length, move_smaller_side=(move=="small"))
+def cmd_bond_length(session, bond, length=None, *, move="small"):
+    if length is None:
+        session.logger.info(("Bond length for %s is " + session.pb_dist_monitor.distance_format)
+            % (bond, bond.length))
+    else:
+        from chimerax.atomic.struct_edit import set_bond_length
+        set_bond_length(bond, length, move_smaller_side=(move=="small"))
 
 def cmd_modify_atom(session, *args, **kw):
     from .mod import modify_atom, ParamError
@@ -59,7 +62,7 @@ def cmd_start_structure(session, method, model_info, subargs):
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, IntArg, EnumOf, StringArg
     from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias, PositiveFloatArg
-    from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondsArg
+    from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondArg
     from chimerax.atomic.bond_geom import geometry_name
     desc = CmdDesc(
         required=[('atom', AtomArg), ('element', ElementArg), ('num_bonds', IntArg)],
@@ -90,8 +93,9 @@ def register_command(command_name, logger):
     create_alias("~bond", "delete bonds $*", logger=logger)
 
     desc = CmdDesc(
-        required=[('bonds', BondsArg), ('length', PositiveFloatArg)],
+        required=[('bond', BondArg)],
+        optional = [('length', PositiveFloatArg)],
         keyword = [('move', EnumOf(("large", "small")))],
-        synopsis = 'set bond length(s)'
+        synopsis = 'set bond length'
     )
     register('bond length', desc, cmd_bond_length, logger=logger)

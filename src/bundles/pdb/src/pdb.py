@@ -20,7 +20,7 @@ Read Protein DataBank (PDB) files.
 
 def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
-             missing_coordsets="renumber"):
+             slider=True, missing_coordsets="renumber"):
     """Read PDB data from a file or stream and return a list of models and status information.
 
     ``stream`` is either a string a string with a file system path to a PDB file, or an open input
@@ -49,6 +49,9 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
 
     ``segid_chains`` controls whether the chain ID should come from the normal chain ID columns or from
     the "segment ID" columns.
+
+    ``slider`` controls whether a slider tool is shown when a multi-model PDB file is opened as a
+    trajectory.
 
     ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
     MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
@@ -106,7 +109,7 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         for m in models:
             num_cs += m.num_coordsets
         info = '%s has %d coordinate sets' % (file_name, num_cs)
-        if session.ui.is_gui:
+        if slider and session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
