@@ -1259,20 +1259,21 @@ Width in physical units of distance (&Aring;) for the
 </p>
 <h3>Trajectory Options</h3>
 <p>
-A <a href="coordset.html#slider">slider</a> graphical interface is only
-shown automatically for <a href="../trajectories.html">trajectories</a>
-read from multi-model mmCIF or PDB format with the option
-<a href="#coordsets"><b>coordsets true</b></a>.
-Sliders can be shown for trajectories opened from other formats by first 
-opening the trajectory and then using a separate
-<a href="coordset.html#slider"><b>coordset slider</b></a> command.
-Only one frame (coordinate set) of a trajectory can be viewed at a time;
-different frames can be accessed or played back sequentially with the
-<a href="coordset.html"><b>coordset</b></a> command or
-the <a href="coordset.html#slider">slider interface</a>.
+Only one frame (coordinate set) of a 
+<a href="../trajectories.html">trajectory</a> can be viewed at a time.
+Different frames can be accessed or played back sequentially with the
+<a href="coordset.html"><b>coordset</b></a> command or the 
+<a href="#slider">slider interface</a>.
 </p><p>
 Only multi-model mmCIF or PDB files provide all of the trajectory information 
-in a single file. Otherwise, the trajectory topology and coordinates come 
+in a single file. The <a href="#coordsets"><b>coordsets</b></a> option 
+indicates reading the file as a trajectory instead of as multiple models,
+for example:  
+<ul class="none">
+<li><b>open 1plx.cif coordsets true</b>
+</ul>
+<p>
+Otherwise, the trajectory topology and coordinates come 
 from two different files, either:
 </p>
 <ul>
@@ -1380,6 +1381,17 @@ starting with frame number <i>start</i> and proceeding with steps of
 (the second one in the file), 7 (the seventh), 12, 17, and 22. 
 These options take integer values only, and they do not apply to 
 reading trajectories from multi-model mmCIF or PDB files.
+</blockquote>
+<blockquote>
+<a name="slider"></a>
+<b>slider</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show a graphical interface for 
+<a href="../trajectories.html">trajectory</a> playback (default <b>true</b>).
+The slider can be dragged or a frame number entered directly.
+The interface also includes a play/pause button and another
+(marked with a red dot) for recording a movie.
+See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
 <a name="url"></a>
@@ -1867,5 +1879,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+September 2021</address>
 </body></html>

@@ -98,22 +98,29 @@ maximum number of unique sequences to return; more hits than this number
 may be obtained because multiple structures or other sequence-database entries
 may have the same sequence.
 </p><p>
-When results are returned, the hits are listed in a
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
-The names of hits from structure databases are links that can be clicked to
-<a href="../commands/open.html#fetch">fetch</a> the structure,
-and if a structure chain was used as the query,
-to automatically superimpose the hit and query structures with
-<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
-The names of other hits are GI numbers that can be clicked to show the
-corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
-target="_blank">NCBI Protein</a> database.
-Checkboxes allow designating one or more hit sequences to show as a
-<a href="../tools/blastprotein.html#notes">multiple alignment</a>
-with the query.
+When the search completes, results are shown in a
+<a href="../tools/blastprotein.html#results">separate window</a>.
 Many other types of information can be shown and used to sort the hits:
 alignment scores, structure resolution, ligand residue names, <i>etc.</i>
 (<a href="../tools/blastprotein.html#results">details...</a>)
+</p><p>
+Double-clicking a row with an associated structure (AlphaFold or PDB)
+<a href="../commands/open.html#fetch">fetches</a> the structure,
+and if a structure chain was used as the query,
+automatically superimposes the hit and query structures with
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+AlphaFold-predicted structures are
+<a href="alphafold.html#colorConfidence">colored by confidence value</a>.
+<!-- CHECK THIS 
+Double-clicking rows for sequence-only hits shows the
+corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
+target="_blank">NCBI Protein</a> database.
+-->
+One or more hits can be chosen (highlighted) in the list and
+the panel's <a href="../window.html#context-menu">context menu</a>
+used to fetch and superimpose all of the corresponding structures, or to
+show their <a href="../tools/blastprotein.html#notes">multiple 
+sequence alignment</a> with the query.
 </p><p>
 The <b>log</b> option indicates whether to also list the results in the
 <a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
@@ -127,5 +134,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+September 2021</address>
 </body></html>
