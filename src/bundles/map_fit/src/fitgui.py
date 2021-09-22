@@ -605,15 +605,10 @@ class FitMapDialog(ToolInstance):
 
     self._report_average(amv)
 
-    if log:
-      msg = 'Average map value = %.4g for %d atoms' % (amv, npts)
-      if not aoc is None:
+    msg = 'Average map value = %.4g for %d atoms' % (amv, npts)
+    if aoc is not None:
         msg += ', %d outside contour' % (aoc,)
-      self.session.logger.info(msg)
-
-    if not aoc is None:
-      msg = '%d of %d atoms outside contour' % (aoc, npts)
-    self.status(msg)
+    self.status(msg, log=log)
     
   # ---------------------------------------------------------------------------
   #
