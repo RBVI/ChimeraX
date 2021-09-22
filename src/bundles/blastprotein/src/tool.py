@@ -237,7 +237,7 @@ class BlastProteinTool(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            "version": 1,
+            "version": 2,
             "_super": super().take_snapshot(session, flags),
             "_instance_name": self._instance_name,
             "_viewer_index": self._viewer_index,
