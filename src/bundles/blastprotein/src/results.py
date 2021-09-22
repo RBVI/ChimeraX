@@ -327,7 +327,7 @@ class BlastProteinResults(ToolInstance):
 
 class BlastResultsWorker(QThread):
     standard_output = Signal()
-    job_failed = Signal()
+    job_failed = Signal(str)
     parsing_results = Signal()
     set_progress_maxval = Signal(object)
     processed_result = Signal()
