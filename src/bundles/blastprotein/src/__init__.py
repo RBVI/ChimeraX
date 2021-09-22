@@ -18,8 +18,8 @@ from chimerax.core.toolshed import BundleAPI
 from .cmd import *
 from .databases import *
 from .dbparsers import *
-from .job import *
 from .results import *
+from .job import *
 from .tool import *
 
 class _MyAPI(BundleAPI):
@@ -29,8 +29,9 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         class_names = {
-            'BlastProteinTool': BlastProteinTool,
-            'BlastProteinResults': BlastProteinResults
+            'BlastProteinTool': BlastProteinTool
+            , 'BlastProteinResults': BlastProteinResults
+            , 'ToolUI': BlastProteinResults
         }
         return class_names.get(class_name, None)
 

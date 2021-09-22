@@ -72,10 +72,3 @@ def blastprotein_mav(session, name=None, selected=True):
     tool.find_match(name).show_mav_cmd(selected)
 blastprotein_mav_desc = CmdDesc(optional=[("name", StringArg)],
                                 keyword=[("selected", BoolArg)])
-
-
-def ccd(session, name):
-    from .job import CCDJob
-    CCDJob(session, name)
-ccd_desc = CmdDesc(required=[("name", StringArg),],
-                   synopsis="Get Chemical Component Dictionary template")

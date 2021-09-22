@@ -112,8 +112,9 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from chimerax.atomic import StructureArg
                         from chimerax.core.commands import BoolArg, PositiveIntArg
                         return {
-                            'replace': BoolArg,
                             'end': PositiveIntArg,
+                            'replace': BoolArg,
+                            'slider': BoolArg,
                             'start': PositiveIntArg,
                             'step': PositiveIntArg,
                             'structure_model': StructureArg,

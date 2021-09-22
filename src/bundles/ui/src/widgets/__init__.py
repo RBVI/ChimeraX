@@ -24,4 +24,4 @@ from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, Item
 from .item_table import ItemTable
 from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame
 from .composite import EntriesRow, CollapsiblePanel, ModelMenu
-from .slider import Slider, LogSlider
+from .slider import Slider, LogSlider, FloatSlider

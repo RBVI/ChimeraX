@@ -28,6 +28,7 @@ from chimerax.ui.options import IntOption, OptionsPanel
 from chimerax.ui.options import Option
 
 from .databases import AvailableDBs, AvailableMatrices
+from .widgets import BlastProteinFormWidget
 
 _default_instance_prefix = "bp"
 _instance_map = {} # Map of blastprotein results names to results instances
@@ -58,22 +59,6 @@ def find_match(instance_name):
     except KeyError:
         raise UserError("no blastprotein instance named \"%s\"" % instance_name)
 
-
-class BlastProteinFormWidget(QWidget):
-    def __init__(self, label, input_widget):
-        super().__init__()
-        layout = QFormLayout()
-        self.__label = QLabel(label)
-        self.__input_widget = input_widget()
-        layout.setWidget(0, QFormLayout.LabelRole, self.__label)
-        layout.setWidget(0, QFormLayout.FieldRole, self.__input_widget)
-        self.setLayout(layout)
-
-    def input_widget(self) -> QWidget:
-        return self.__input_widget
-
-    def label(self) -> QLabel:
-        return self.__label
 
 class BlastProteinTool(ToolInstance):
 
@@ -106,7 +91,6 @@ class BlastProteinTool(ToolInstance):
 
         self.display_name = "Blast Protein" + " " + self._instance_name_formatted
         self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
-        self.tool_window = MainToolWindow(self)
         self._build_ui()
 
     def _build_ui(self):
@@ -124,27 +108,30 @@ class BlastProteinTool(ToolInstance):
         if the BlastProtein GUI is spawned as the result of a blastprotein command
         being entered into the ChimeraX command line.
         """
+        self.tool_window = MainToolWindow(self)
+        parent = self.tool_window.ui_area
+
         main_layout = QVBoxLayout()
-        input_container_row1 = QWidget()
+        input_container_row1 = QWidget(parent)
+        input_container_row2 = QWidget(parent)
         menu_layout_row1 = QHBoxLayout()
-        input_container_row2 = QWidget()
         menu_layout_row2 = QHBoxLayout()
 
-        self.menu_widgets['chain'] = ChainMenuButton(self.session, no_value_button_text = "No chain chosen")
+        self.menu_widgets['chain'] = ChainMenuButton(self.session, no_value_button_text = "No chain chosen", parent=input_container_row1)
 
-        self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox)
+        self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox, input_container_row1)
 
-        self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox)
+        self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox, input_container_row1)
         self.menu_widgets['sequences'].input_widget().setRange(1, 5000)
         self.menu_widgets['sequences'].input_widget().setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-        self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox)
+        self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox, input_container_row1)
 
-        self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox)
+        self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, input_container_row2)
         self.menu_widgets['cutoff'].input_widget().setRange(-100, 100)
         self.menu_widgets['cutoff'].input_widget().setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-        self.menu_widgets['start'] = QPushButton("BLAST")
+        self.menu_widgets['start'] = QPushButton("BLAST", input_container_row2)
 
         # Lay the menu out
         menu_layout_row1.addWidget(self.menu_widgets['chain'])
@@ -174,6 +161,8 @@ class BlastProteinTool(ToolInstance):
         main_layout.addWidget(input_container_row1)
         main_layout.addWidget(input_container_row2)
 
+        main_layout.setContentsMargins(0,0,0,0)
+        main_layout.setSpacing(0)
         self.tool_window.ui_area.setLayout(main_layout)
         self.tool_window.manage('side')
 
@@ -248,7 +237,7 @@ class BlastProteinTool(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            "version": 1,
+            "version": 2,
             "_super": super().take_snapshot(session, flags),
             "_instance_name": self._instance_name,
             "_viewer_index": self._viewer_index,

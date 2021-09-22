@@ -906,97 +906,6 @@ class SymbolicEnumOption(EnumOption):
 
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
-from Qt.QtWidgets import QWidget
-from Qt.QtCore import Qt, Signal
-
-class FloatSlider(QWidget):
-
-    valueChanged = Signal(float)
-
-    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
-            ignore_wheel_event=False, **kw):
-        from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
-        super().__init__()
-        layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
-        self.setLayout(layout)
-        if ignore_wheel_event:
-            class Slider(QSlider):
-                def wheelEvent(self, event):
-                    event.ignore()
-        else:
-            Slider = QSlider
-        self._slider = Slider(**kw)
-        self._slider.setOrientation(Qt.Horizontal)
-        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self._minimum = minimum
-        self._maximum = maximum
-        self._continuous = continuous_callback
-        # slider are only integer, so have to do conversions
-        self._slider.setMinimum(0)
-        self._slider.setMaximum(5000)
-        int_step = max(1, int(5000 * step / (maximum - minimum)))
-        self._slider.setSingleStep(int_step)
-        layout.addWidget(self._slider, 0, 0, 1, 3)
-        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
-        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
-        # line wrapping
-        from chimerax.ui import shrink_font
-        self._left_text = QLabel()
-        self._left_text.setWordWrap(True)
-        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        shrink_font(self._left_text)
-        layout.addWidget(self._left_text, 1, 0)
-        self._value_text = QLabel()
-        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
-        layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
-        self._right_text = QLabel()
-        self._right_text.setWordWrap(True)
-        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
-        shrink_font(self._right_text)
-        layout.addWidget(self._right_text, 1, 2)
-        self._format = "%%.%df" % decimal_places
-        self._slider.valueChanged.connect(self._slider_value_changed)
-        self._slider.sliderReleased.connect(self._slider_released)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
-
-    def set_left_text(self, text):
-        self._left_text.setText(text)
-
-    def set_right_text(self, text):
-        self._right_text.setText(text)
-
-    def set_text(self, text):
-        self._value_text.setText(text)
-
-    def setValue(self, float_val):
-        fract = (float_val - self._minimum) / (self._maximum - self._minimum)
-        self._slider.setValue(int(5000 * fract + 0.5))
-
-    def special_value_shown(self):
-        # effectively always False, unlike a SpinBox, the option's value is always accurate
-        return False
-
-    def value(self):
-        return self._int_val_to_float(self._slider.value())
-
-    def _int_val_to_float(self, int_val):
-        fract = int_val / 5000
-        return (1-fract) * self._minimum + fract * self._maximum
-
-    def _slider_released(self):
-        if not self._continuous:
-            self.valueChanged.emit(self.value())
-
-    def _slider_value_changed(self, int_val):
-        float_val = self._int_val_to_float(int_val)
-        self._value_text.setText(self._format % float_val)
-        if self._continuous:
-            self.valueChanged.emit(float_val)
-
 def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, continuous_callback=False, **kw):
     def compute_bound(bound, default_bound):
         if bound is None:
@@ -1012,7 +921,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         step = 10 ** (0 - (decimal_places-1))
 
     if as_slider:
-        from Qt.QtWidgets import QSlider
+        from chimerax.ui.widgets import FloatSlider
         return FloatSlider(minimum, maximum, step, decimal_places, continuous_callback, **kw)
     # as spinbox...
     from Qt.QtWidgets import QDoubleSpinBox
