@@ -29,8 +29,9 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         class_names = {
-            'BlastProteinTool': BlastProteinTool,
-            'BlastProteinResults': BlastProteinResults
+            'BlastProteinTool': BlastProteinTool
+            , 'BlastProteinResults': BlastProteinResults
+            , 'ToolUI': BlastProteinResults
         }
         return class_names.get(class_name, None)
 

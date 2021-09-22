@@ -281,14 +281,30 @@ class BlastProteinResults(ToolInstance):
     @classmethod
     def from_snapshot(cls, session, data):
         """Initializer to be used when restoring ChimeraX sessions."""
-        sequences = data['sequences']
+        # Data from version 1 snapshots is prefixed by _, so need to add it in
+        # for backwards compatibility.
+
         sequences_dict = {}
-        for (key, hit_name, sequence) in sequences:
-            sequences_dict[key] = SeqId(hit_name, sequence)
-        data['params'] = BlastParams(*list(data['params'].values()))
-        return cls(session, data['tool_name'], hits = data['results']
-                   , sequences = sequences_dict, params = data['params']
-                   , table_session_data = data['table_session'], from_restore=True)
+        # We use get with a default value of 2 because for a few weeks in August and
+        # September 2021 the daily builds did not save snapshots with a version number.
+        # We can remove this when sufficient time has passed.
+        if data.get('version', 2) == 1:
+            sequences_dict = data['_sequences']
+            data['params'] = BlastParams(*[x[1] for x in data['_params']])
+            data['tool_name'] = data['_instance_name'] + str(data['_viewer_index'])
+            data['results'] = data['_hits']
+            data['table_session'] = None
+        else:
+            sequences = data['sequences']
+            for (key, hit_name, sequence) in sequences:
+                sequences_dict[key] = SeqId(hit_name, sequence)
+            data['params'] = BlastParams(*list(data['params'].values()))
+
+        return cls(
+            session, data['tool_name'], hits = data['results']
+            , sequences = sequences_dict, params = data['params']
+            , table_session_data = data['table_session'], from_restore=True
+        )
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -296,7 +312,8 @@ class BlastProteinResults(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            'ToolUI': ToolInstance.take_snapshot(self, session, flags)
+            'version': 2
+            , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
             , 'tool_name': self.tool_name
@@ -310,7 +327,7 @@ class BlastProteinResults(ToolInstance):
 
 class BlastResultsWorker(QThread):
     standard_output = Signal()
-    job_failed = Signal()
+    job_failed = Signal(str)
     parsing_results = Signal()
     set_progress_maxval = Signal(object)
     processed_result = Signal()

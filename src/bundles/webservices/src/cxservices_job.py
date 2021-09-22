@@ -18,13 +18,13 @@ CxServicesJob - Run ChimeraX REST job and monitor status
 CxServicesJob is a class that runs a web service via
 the ChimeraX REST server and monitors its status.
 """
-
+import time
 from chimerax.core.tasks import Job
 from cxservices.rest import ApiException
 
 
 class CxServicesJob(Job):
-    """Launch an ChimeraX REST web service request and monitor its status.
+    """Launch a ChimeraX REST web service request and monitor its status.
 
     CxServicesJob derives from chimerax.core.tasks.Job and
     offers the same API.
@@ -68,14 +68,13 @@ class CxServicesJob(Job):
     #
     # Define chimerax.core.tasks.Job ABC methods
     #
-
     def launch(self, service_name, params):
         """Launch the background process.
 
         Arguments
         ---------
         service_name : str
-            Name of Opal service
+            Name of REST service
         params : dictionary
             Dictionary of parameters to send to REST server
 
@@ -91,8 +90,7 @@ class CxServicesJob(Job):
         """
         if self.launch_time is not None:
             from chimerax.core.tasks import JobError
-            raise JobError("Opal job has already been launched")
-        import time
+            raise JobError("REST job has already been launched")
         self.launch_time = time.time()
 
         # Launch job
@@ -127,7 +125,6 @@ class CxServicesJob(Job):
             raise JobMonitorError(str(e))
         self._status = status
         if status in ["complete","failed","deleted"] and self.end_time is None:
-            import time
             self.end_time = time.time()
 
     def exited_normally(self):
@@ -169,15 +166,15 @@ class CxServicesJob(Job):
         self.api = None
 
     #
-    # Other Opal-specific methods
+    # Other helper methods
     #
     def get_file(self, filename, *, encoding='utf-8'):
-        """Return the contents of file on Opal server.
+        """Return the contents of file on REST server.
 
         Argument
         --------
         filename : str
-            Name of file on Opal server.
+            Name of file on REST server.
         encoding : str or None
             Encoding to use to decode the file contents (default: utf-8).
             If None, return the raw bytes object.
