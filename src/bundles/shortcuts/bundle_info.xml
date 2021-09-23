@@ -53,6 +53,8 @@
     <Provider tab="Molecule Display" section="Coloring"
       name="cc" display_name="chain" icon="colorbychain.png" description="Color by chain"/>
     <Provider tab="Molecule Display" section="Coloring"
+      name="cp" display_name="polymer" icon="polymer.png" description="Color by polymer"/>
+    <Provider tab="Molecule Display" section="Coloring"
       name="rB" display_name="rainbow" icon="rainbow.png" description="Rainbow color N to C-terminus"/>
     <Provider tab="Molecule Display" section="Coloring"
       name="ep" display_name="electrostatic" icon="esp.png" description="Color surface by electrostatic potential"/>
