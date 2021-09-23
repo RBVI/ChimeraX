@@ -36,10 +36,10 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
         chains = results.atoms.residues.unique_chains
         if len(chains) == 0:
             from chimerax.core.errors import UserError
-            raise UserError("no chain was specified")
+            raise UserError("Cannot start BLAST job: no chain was specified or no model is open.")
         elif len(chains) > 1:
             from chimerax.core.errors import UserError
-            raise UserError("please choose exactly one chain (%d were specified)" %
+            raise UserError("Cannot start BLAST job: please choose exactly one chain (%d were specified)" %
                             len(chains))
         str_chain = chain = chains[0]
     if not str_chain:
