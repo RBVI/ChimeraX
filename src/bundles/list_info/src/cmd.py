@@ -30,8 +30,7 @@ def info(session, models=None, *, return_json=False):
     :spec:  the atom specifier for this model
     :name:  the name of the model
     :shown:  whether the model-level display attribute is true
-    :num triangles:  if the model is a surface of some kind, how many triangles does it have; for \
-                         non-surface models, this will be 0
+    :num triangles:  if the model is a surface of some kind, how many triangles does it have; for non-surface models, this will be 0
     :num instances:  how many graphical "instances" of the model are there, so at least 1
     :num selected instances:  how many of the graphical instances are selected
 
@@ -54,8 +53,8 @@ def info(session, models=None, *, return_json=False):
 
         :num pseudobonds:  number of pseudobonds in the group
 
-    For Volume models, there will be additional names: size, step, voxel size, surface levels, image levels, \
-    minimum value, maximum value, value type, and num symmetry operators.
+    For Volume models, there will be additional names: size, step, voxel size, surface levels,
+    image levels, minimum value, maximum value, value type, and num symmetry operators.
     '''
     m = session.models
     if models is None:
