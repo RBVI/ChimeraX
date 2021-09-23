@@ -174,8 +174,8 @@ class BlastProteinResults(ToolInstance):
                 # Remove columns we don't want
                 if string in db.excluded_cols:
                     continue
-                if string not in db.default_cols:
-                    kwdict['display'] = False
+                #if string not in db.default_cols:
+                #    kwdict['display'] = False
                 # Decide how the title should be formatted
                 kwdict['header_justification'] = 'center'
                 # Format the title for display
