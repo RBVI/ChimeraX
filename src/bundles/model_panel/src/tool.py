@@ -33,7 +33,7 @@ class ModelPanel(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from Qt.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QFrame, QPushButton, QSizePolicy
+            QFrame, QPushButton, QSizePolicy, QScrollArea, QWidget
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
                 from Qt.QtCore import QSize
@@ -69,15 +69,21 @@ class ModelPanel(ToolInstance):
         self.tree.setUniformRowHeights(True)
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
+        scrolled_button_area = QScrollArea()
+        layout.addWidget(scrolled_button_area)
+        button_area = QWidget()
         buttons_layout = QVBoxLayout()
-        layout.addLayout(buttons_layout)
+        buttons_layout.setContentsMargins(0,0,0,0)
+        buttons_layout.setSpacing(0)
+        button_area.setLayout(buttons_layout)
         self._items = []
-        for model_func in [close, hide, show, view]:
+        for model_func in [close, hide, show, view, info]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
             button.clicked.connect(lambda *, self=self, mf=model_func, ses=session:
                 mf([self.models[row] for row in [self._items.index(i)
                     for i in self.tree.selectedItems()]] or self.models, ses))
+        scrolled_button_area.setWidget(button_area)
         self.simply_changed_models = set()
         self.check_model_list = True
         self.countdown = 1
@@ -355,6 +361,22 @@ def close(models, session):
 def hide(models, session):
     _mp.self_initiated = True
     run(session, "hide %s target m" % concise_model_spec(session, models))
+
+def info(models, session):
+    from chimerax.atomic import AtomicStructure
+    structures = [m for m in models if isinstance(m, AtomicStructure)]
+    if not structures:
+        from chimerax.core.errors import UserError
+        raise UserError("No atomic structure models chosen")
+    spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
+    from chimerax.atomic.structure import assembly_html_table
+    for s in structures:
+        if assembly_html_table(s):
+            base_cmd = "sym %s; " % spec
+            break
+    else:
+        base_cmd = ""
+    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
 
 _mp = None
 def model_panel(session, tool_name):

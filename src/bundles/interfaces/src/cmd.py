@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
-             interface_residue_area_cutoff = 15):
+def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
+               interface_residue_area_cutoff = 15):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -20,7 +20,13 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
     Parameters
     ----------
     atoms : Atoms
+      Which atoms to compute interfaces for.
     probe_radius : float
+      Probe radius uses for buried area calculations. Default 1.4 Angstroms.
+    area_cutoff: float
+      Minimum buried area between two chains to consider them as neighbors.
+    interface_residue_area_cutoff: float
+      Minimum buried area for a residue to consider it in contact.
     '''
     sg = chain_spheres(atoms, session)			# List of SphereGroup
     ba = buried_areas(sg, probe_radius, area_cutoff)	# List of Contact
@@ -44,17 +50,85 @@ def contacts(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
     else:
         log.warning("unable to show graph without GUI")
 
-        
+
+def interfaces_select(session, atoms = None, contacting = None,
+                      both_sides = False,
+                      probe_radius = 1.4, area_cutoff = 300,
+                      interface_residue_area_cutoff = 15):
+    '''
+    Select residues from one chain in contact with residues from
+    another chain using buried solvent accessible surface areas to
+    determine if they contact.
+
+    Parameters
+    ----------
+    atoms : Atoms
+      Which atoms to find contacts for and select
+    contacting : Atoms
+      The atoms to consider contacts with.
+    both_sides : boolean
+      Whether to select residues from both sets of atoms or only the first set.
+      Default False (only first set).
+    probe_radius : float
+      Probe radius uses for buried area calculations. Default 1.4 Angstroms.
+    area_cutoff: float
+      Minimum buried area between two chains to consider them as neighbors.
+      Default 300 square Angstroms.
+    interface_residue_area_cutoff: float
+      Minimum buried area for a residue to consider it in contact.
+      Default 15 square Angstroms.
+    '''
+    other_atoms = contacting - atoms
+    sg = chain_spheres(atoms, session)			# List of SphereGroup
+    osg = chain_spheres(other_atoms, session)		# List of SphereGroup
+    contacts = buried_areas(sg + osg, probe_radius, area_cutoff) # List of Contact
+
+    res_list = []
+    sel_groups, other_groups = set(sg), set(osg)
+    min_area = interface_residue_area_cutoff
+    for c in contacts:
+        g1, g2 = c.group1, c.group2
+        if g1 in sel_groups and g2 in other_groups:
+            gsel = [g1, g2] if both_sides else [g1]
+        elif g2 in sel_groups and g1 in other_groups:
+            gsel = [g1, g2] if both_sides else [g2]
+        else:
+            gsel = []
+        for g in gsel:
+            res_list.append(c.contact_residues(g, min_area))
+
+    from chimerax.atomic import concatenate, Residues
+    cres = concatenate(res_list, Residues)
+
+    # Select contacting atoms
+    session.selection.clear()
+    cres.atoms.selected = True
+
+    # Report result
+    msg = '%d contacting residues' % len(cres)
+    session.logger.status(msg, log=True)
+
+    return cres
+
 def register_interfaces(logger):
-    from chimerax.core.commands import register, CmdDesc, FloatArg
+    from chimerax.core.commands import register, CmdDesc, FloatArg, BoolArg
     from chimerax.atomic import AtomsArg
+    param_args = [('probe_radius', FloatArg),
+                  ('area_cutoff', FloatArg),
+                  ('interface_residue_area_cutoff', FloatArg),]
     desc = CmdDesc(
-        optional = [('atoms', AtomsArg),],
-        keyword = [('probe_radius', FloatArg),
-                   ('area_cutoff', FloatArg),
-                   ('interface_residue_area_cutoff', FloatArg),],
+        optional = [('atoms', AtomsArg)],
+        keyword = param_args,
         synopsis = 'Display network of contacting molecular chains')
-    register('interfaces', desc, contacts, logger=logger)
+    register('interfaces', desc, interfaces, logger=logger)
+
+    desc = CmdDesc(
+        required = [('atoms', AtomsArg)],
+        keyword = [('contacting', AtomsArg),
+                   ('both_sides', BoolArg)] + param_args,
+        required_arguments = ['contacting'],
+        synopsis = 'Select contacting residues between chains')
+    register('interfaces select', desc, interfaces_select, logger=logger)
 
 from .graph import Node
 class SphereGroup(Node):

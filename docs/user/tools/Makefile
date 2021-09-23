@@ -23,6 +23,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
 		$(TOP)/src/bundles/dist_ui/src/distance.png \
 		$(TOP)/src/bundles/label/src/label.png \
+		$(TOP)/src/bundles/color_key/src/icons/ckiconvertical.png \
 		$(TOP)/src/bundles/label/src/movelabel.png \
 		$(TOP)/src/bundles/map/src/icons/*.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \

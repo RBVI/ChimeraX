@@ -13,7 +13,7 @@
 
 from chimerax.core.settings import Settings
 
-class _ModellerSettings(Settings):
+class _ModellerComparativeSettings(Settings):
 
     AUTO_SAVE = {
         'fast': False,
@@ -26,9 +26,27 @@ class _ModellerSettings(Settings):
         'water_preserve': False
     }
 
-settings = None
-def get_settings(session):
-    global settings
-    if settings is None:
-        settings = _ModellerSettings(session, "modeller")
+from .loops import ALL_MISSING
+class _ModellerLoopsSettings(Settings):
+
+    AUTO_SAVE = {
+        'adjacent_flexible': 1,
+        'fast': False,
+        'num_models': 5,
+        'protocol': "standard",
+        'region': ALL_MISSING,
+        'temp_path': "",
+    }
+
+_comparative_settings = _loops_settings = None
+def get_settings(session, settings_type):
+    global _loops_settings, _comparative_settings
+    if settings_type == "Modeller Comparative" or settings_type == "license":
+        if _comparative_settings is None:
+            _comparative_settings = _ModellerComparativeSettings(session, "modeller")
+        settings = _comparative_settings
+    else:
+        if _loops_settings is None:
+            _loops_settings = _ModellerLoopsSettings(session, "modeller loops")
+        settings = _loops_settings
     return settings

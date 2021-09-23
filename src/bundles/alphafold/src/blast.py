@@ -33,11 +33,11 @@ def alphafold_search(session, sequence, cutoff=1.0e-3, max_sequences=100, matrix
 def register_alphafold_search_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, EnumOf
     from chimerax.atomic import SequenceArg
-    from chimerax.blastprotein.cmd import Matrices
+    from chimerax.blastprotein.databases import AvailableMatrices
     desc = CmdDesc(
         required = [('sequence', SequenceArg)],
         keyword = [("cutoff", FloatArg),
-                   ("matrix", EnumOf(Matrices)),
+                   ("matrix", EnumOf(AvailableMatrices)),
                    ("max_sequences", IntArg)],
         synopsis = 'Search AlphaFold database for a sequence using BLAST'
     )

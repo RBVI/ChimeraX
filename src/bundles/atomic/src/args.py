@@ -66,23 +66,39 @@ class ResiduesArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
+        orig_text = text
         aspec, text, rest = super().parse(text, session)
         evaled = aspec.evaluate(session)
         from .molarray import concatenate, Atoms, Residues
-        atoms = concatenate((evaled.atoms,) + evaled.bonds.atoms, Atoms)
+        # inter-residue bonds don't select either residue
+        atoms1, atoms2 = evaled.bonds.atoms
+        bond_atoms = atoms1.filter(atoms1.residues.pointers == atoms2.residues.pointers)
+        atoms = concatenate((evaled.atoms, bond_atoms), Atoms)
         residues = atoms.residues.unique()
         if aspec.outermost_inversion:
-            # the outermost operator was '~', so weed out partially-selected residues
-            explicit = aspec.evaluate(session, add_implied=False)
-            unselected = residues.atoms - explicit.atoms
-            residues = residues - unselected.residues.unique()
-            # trickier to screen out partial bond selection, go residue by residue...
-            remaining = []
-            for r in residues:
-                res_bonds = r.atoms.intra_bonds
-                if len(res_bonds & explicit.bonds) == len(res_bonds):
-                    remaining.append(r)
-            residues = Residues(remaining)
+            # the outermost operator was '~', so weed out partially-selected residues,
+            # but generically weeding them out is very slow, so try a shortcut if possible...
+            spec_text = orig_text[:len(orig_text) - len(rest)]
+            if spec_text.count('~') == 1 or spec_text.strip().startswith('~'):
+                uninverted_spec = spec_text.replace('~', '', 1)
+                ui_aspec, *args = super().parse(uninverted_spec, session)
+                ui_evaled = ui_aspec.evaluate(session)
+                ui_atoms1, ui_atoms2 = ui_evaled.bonds.atoms
+                ui_bond_atoms = ui_atoms1.filter(ui_atoms1.residues.pointers == ui_atoms2.residues.pointers)
+                ui_atoms = concatenate((ui_evaled.atoms, ui_bond_atoms), Atoms)
+                ui_residues = ui_atoms.residues.unique()
+                residues -= ui_residues
+            else:
+                explicit = aspec.evaluate(session, add_implied=False)
+                unselected = residues.atoms - explicit.atoms
+                residues = residues - unselected.residues.unique()
+                # trickier to screen out partial bond selection, go residue by residue...
+                remaining = []
+                for r in residues:
+                    res_bonds = r.atoms.intra_bonds
+                    if len(res_bonds & explicit.bonds) == len(res_bonds):
+                        remaining.append(r)
+                residues = Residues(remaining)
         residues.spec = str(aspec)
         return residues, text, rest
 
@@ -148,6 +164,8 @@ class SequencesArg(Annotation):
                     return [value], used, rest
                 except Exception:
                     continue
+        if len(text) == 0:
+              raise AnnotationError('Sequences argument is empty.')
         from chimerax.core.commands import next_token
         token, text, rest = next_token(text)
         raise AnnotationError('Sequences argument "%s" is not a chain specifier, ' % token +
@@ -175,6 +193,8 @@ def is_uniprot_id(text):
     # Name and accession format described here.
     # https://www.uniprot.org/help/accession_numbers
     # https://www.uniprot.org/help/entry_name
+    if len(text) == 0:
+        return False
     from chimerax.core.commands import next_token
     id, text, rest = next_token(text)
     if '_' in id:
@@ -183,7 +203,8 @@ def is_uniprot_id(text):
         if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
             f2.isalnum() and len(f2) <= 5):
             return True
-    elif id.isalnum() and id[0].isalpha() and id[1].isdigit and id[5].isdigit():
+    elif (len(id) >= 6 and id.isalnum() and
+          id[0].isalpha() and id[1].isdigit() and id[5].isdigit()):
         if len(id) == 6:
             return True
         elif len(id) == 10 and id[6].isalpha() and id[9].isdigit():

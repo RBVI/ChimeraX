@@ -54,7 +54,9 @@ ifeq ($(OS),Darwin)
 # -n flag means open a new instance even if another already exists
 	open -n $(CHIMERAX_APP)
 endif
-
+ifeq ($(OS),Linux)
+	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+endif
 
 sync:
 ifneq (,$(wildcard dist/*-py*-none-any.whl))

@@ -485,7 +485,8 @@ class SurfaceColorGUI(ToolInstance):
         if win_xy == self._last_mouse_xy:
             return
         self._last_mouse_xy = win_xy
-        _report_surface_value(self.session, win_x, win_y)
+        reported = _report_surface_value(self.session, win_x, win_y)
+        self.session.logger._next_hover_chain_info = not reported
         
     # ---------------------------------------------------------------------------
     #
@@ -513,11 +514,11 @@ def _report_surface_value(session, win_x, win_y):
 
     pick = session.main_view.picked_object(win_x, win_y)
     if pick is None:
-        return
+        return False
     # For PickedMap surface pick is pick.triangle_pick
     surf_pick = pick.triangle_pick if hasattr(pick, 'triangle_pick') else pick
     if not hasattr(surf_pick, 'drawing'):
-        return
+        return False
     surf = surf_pick.drawing()
     sc = _surface_color_updater(surf)
     p = pick.position
@@ -530,14 +531,15 @@ def _report_surface_value(session, win_x, win_y):
         transform_to_scene_coords = Place()
         v, outside = sc.vertex_values(p.reshape((1,3)), transform_to_scene_coords)
         if len(outside) > 0:
-            return
+            return False
     else:
-        return
+        return False
     value = v[0]
     m = pick.drawing()
     mname = '%s (#%s)' % (m.name, m.id_string)
     msg = 'Value %.5g at %.4g,%.4g,%.4g of %s' % (value, p[0],p[1],p[2], mname)
     session.logger.status(msg)
+    return True
 
 # -----------------------------------------------------------------------------
 #

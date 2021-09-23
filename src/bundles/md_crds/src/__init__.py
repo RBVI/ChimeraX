@@ -33,6 +33,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                             'auto_style': BoolArg,
                             'coords': OpenFileNameArg,
                             'end': PositiveIntArg,
+                            'slider': BoolArg,
                             'start': PositiveIntArg,
                             'step': PositiveIntArg,
                         }
@@ -48,7 +49,7 @@ class _MDCrdsBundleAPI(BundleAPI):
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,
-                            md_type=name, replace=True, start=1, step=1, end=None, **kw):
+                            md_type=name, replace=True, slider=True, start=1, step=1, end=None, **kw):
                         if structure_model is None:
                             from chimerax.core.errors import UserError, CancelOperation
                             from chimerax.atomic import Structure
@@ -98,6 +99,9 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from .read_coords import read_coords
                         num_coords = read_coords(session, data, structure_model, md_type,
                             replace=replace, start=start, step=step, end=end)
+                        if slider and session.ui.is_gui:
+                            from chimerax.std_commands.coordset import coordset_slider
+                            coordset_slider(session, [structure_model])
                         if replace:
                             return [], "Replaced existing frames of %s with %d new frames" \
                                 % (structure_model, num_coords)
@@ -108,8 +112,9 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from chimerax.atomic import StructureArg
                         from chimerax.core.commands import BoolArg, PositiveIntArg
                         return {
-                            'replace': BoolArg,
                             'end': PositiveIntArg,
+                            'replace': BoolArg,
+                            'slider': BoolArg,
                             'start': PositiveIntArg,
                             'step': PositiveIntArg,
                             'structure_model': StructureArg,

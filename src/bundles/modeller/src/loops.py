@@ -15,9 +15,10 @@ ALL_MISSING = "all-missing"
 INTERNAL_MISSING = "internal-missing"
 
 special_region_values = [ALL_MISSING, INTERNAL_MISSING]
+protocols = ['standard', 'DOPE', 'DOPE-HR']
 
 def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
-    license_key=None, num_models=5, protocol=None, temp_path=None):
+    fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
     """
     Model or remodel parts of structure, typically missing structure regions.
 
@@ -27,7 +28,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     targets
         What parts of the structures associated with a sequence (or sequences) to remodel.  It should
         be a list of (alignment, sequence, indices) tuples.  The indices should be a list of two-tuples
-        of (start, end) Python-style indices into the ungapped sequence.  Alternatively, "indices" can
+        of (start, end) zero-based indices into the ungapped sequence.  Alternatively, "indices" can
         be one of the string values from special_region_values above to remodel all missing structure
         or non-terminal missing structure associated with the sequence.
     adjacent_flexible
@@ -42,6 +43,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
     executable_location
         If provided, the path to the locally installed Modeller executable.  If not provided, use the
         web service.
+    fast
+        Whether to use fast but crude generation of models
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
     num_models
@@ -125,9 +128,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     seq_chars = seq.characters
                     modeled = set()
                     for start, end in chain_indices[r.chain]:
-                        start = max(start - adjacent_flexible, 0)
-                        end = min(end + adjacent_flexible, len(r.chain))
-                        modeled.update(range(start, end))
+                        start_range = max(start - adjacent_flexible, 0)
+                        end_range = min(end+1 + adjacent_flexible, len(r.chain))
+                        modeled.update(range(start_range, end_range))
                     number = 1
                     for seq_i in range(len(seq_chars)):
                         if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
@@ -156,7 +159,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 start = max(start - adjacent_flexible, 0)
                 while start > 0 and start-1 not in mmap:
                     start -= 1
-                end = min(end + adjacent_flexible, len(chain))
+                end = min(end+1 + adjacent_flexible, len(chain))
                 while end < len(chain) and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
@@ -169,7 +172,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
         from .common import write_modeller_scripts, get_license_key
         script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
-            num_models, True, True, False, False, (loop_mod_prefix, loop_data), None, temp_path, False,
+            num_models, True, True, False, fast, (loop_mod_prefix, loop_data), None, temp_path, False,
             None)
 
         input_file_map = []
@@ -245,13 +248,13 @@ def find_missing(chain, seq, internal_only):
         if i in match_map:
             if start_missing is not None:
                 if not internal_only or start_missing > 0:
-                    missing.append((start_missing, i))
+                    missing.append((start_missing, i-1))
                 start_missing = None
         else:
             if start_missing is None:
                 start_missing = i
     if start_missing is not None and not internal_only:
-        missing.append((start_missing, len(seq)))
+        missing.append((start_missing, len(seq)-1))
     return missing
 
 def find_affixes(chains, chain_info):

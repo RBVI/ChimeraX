@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2021 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -10,22 +10,38 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from chimerax.atomic import AtomicStructure
-from chimerax.core.commands import run
 
-from . import dbparsers
+# Python/All
+import re
 
-from typing import Callable, Optional
-from dataclasses import dataclass
+# Python/Specific
+from typing import Callable
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-import re
+# ChimeraX/Core
+from chimerax.core.commands import run
+
+# ChimeraX/Bundles
+from chimerax.atomic import AtomicStructure
+
+# Local Imports
+from . import dbparsers
+from .pdbinfo import fetch_pdb_info
 
 @dataclass
 class Database(ABC):
+    """Base class for defining blast protein databases; used to model the
+    results of blast queries."""
     parser_factory: Callable[[dbparsers.Parser], object]
-    parser: Optional[object] = None
+    parser: dbparsers.Parser = field(init=False)
+    fetchable_col: str = ""
     name: str = ""
+    default_cols: tuple = ("Name", "Evalue", "Description")
+    # In BlastProteinWorker._process_results each hit's dict is created
+    # and assigned an ID number, but we don't want to display it. It's
+    # also used in BlastProteinResults._show_mav to retrieve selections.
+    excluded_cols: tuple = ("id",)
 
     @abstractmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -49,9 +65,11 @@ class Database(ABC):
 class NCBIDB(Database):
     name: str = ""
     parser_factory: object = dbparsers.PDBParser
+    fetchable_col: str = "name"
     NCBI_IDS: tuple[str, str] = ("ref", "gi")
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
     NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
+    default_cols: tuple = ("Name", "Evalue", "Description", "Resolution", "Ligand Symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -85,7 +103,6 @@ class NCBIDB(Database):
 
     @staticmethod
     def add_info(session, matches):
-        from .pdbinfo import fetch_pdb_info
         chain_ids = matches.keys()
         data = fetch_pdb_info(session, chain_ids)
         for chain_id, hit in matches.items():
@@ -106,40 +123,39 @@ class NRDB(NCBIDB):
     pretty_name: str = "NRDB"
 
 @dataclass
-class AlphaFoldDb(Database):
+class AlphaFoldDB(Database):
     name: str = "alphafold"
     pretty_name: str = "AlphaFold Database"
+    # The title of the data column that can be used to fetch the model
+    fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
 
-    def load_model(self, chimerax_session, match_code, ref_atomspec):
+    @staticmethod
+    def load_model(chimerax_session, match_code, ref_atomspec):
         cmd = "alphafold fetch %s" % match_code
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
-        models, status = run(chimerax_session, cmd)
+        models, _ = run(chimerax_session, cmd)
 
-        # Log sequence similarity info
-        if not ref_atomspec:
-            query_name = self.parser.true_name or 'query'
-            from chimerax.atomic import Sequence
-            query_seq = Sequence(name = query_name,
-                                 characters = self.parser.query_seq)
-            from chimerax.alphafold.match import _log_alphafold_sequence_info
-            for m in models:
-                _log_alphafold_sequence_info(m, query_seq)
-
+        # Hack around the fact that we use run(...) to load the model
         return [], None
 
-    def add_info(self, session, matches):
+    @staticmethod
+    def add_info(session, matches):
         for match in matches:
             raw_desc = matches[match]["description"]
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
-            matches[match]["chain_species"] = self._get_species(raw_desc)
+            matches[match]["chain_species"] = AlphaFoldDB._get_species(raw_desc)
+            # Move UniProt ID to the correct column
+            matches[match]["chain_sequence_id"] = uniprot_id
 
-    def _get_species(self, raw_desc):
+    @staticmethod
+    def _get_species(raw_desc):
         """AlphaFold's BLAST output is polluted with lots of metadata in the
         form XY=Z, in the order OS OX GN PE SV, some of which may be missing.
         This is some ugly string hacking to return the species if it exists."""
@@ -154,13 +170,19 @@ class AlphaFoldDb(Database):
             # second XY parameter
             return raw_desc[species_loc+3:][:next_attr_start-3]
 
-def get_database(db):
+
+AvailableDBsDict = {
+    'pdb': PDB,
+    'nr': NRDB,
+    'alphafold': AlphaFoldDB,
+}
+AvailableDBs = list(AvailableDBsDict.keys())
+AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90", "PAM30", "PAM70", "PAM250", "IDENTITY"]
+
+def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
-    db: A supported database e.g 'alphafold', 'nr', 'pdb'
+
+    Parameters:
+        db: A supported database e.g 'alphafold', 'nr', 'pdb'
     """
-    dbs = {
-        'alphafold': AlphaFoldDb,
-        'nr': NRDB,
-        'pdb': PDB
-    }
-    return dbs[db]() # Instantiate the class so it can access 'self'
+    return AvailableDBsDict[db]()

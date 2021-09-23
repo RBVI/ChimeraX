@@ -1532,6 +1532,7 @@ class AtomicStructure(Structure):
         if html:
             session.logger.info(html, is_html=True)
 
+# also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
     from chimerax import mmcif
@@ -2325,12 +2326,18 @@ def _residue_mouse_hover(pick, log):
     if res is None:
         return
     from .molobject import Residue
-    if isinstance(res, Residue):
-        chain = res.chain
-        if chain and chain.description:
-            log.status("chain %s: %s" % (chain.chain_id, chain.description))
-        elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
-            log.status(res.structure._hetnam_descriptions[res.name])
+    if not isinstance(res, Residue):
+        return
+    if not getattr(log, '_next_hover_chain_info', True):
+        # Supress status message if another mouse mode such
+        # as surface color value reporting is issuing status messages.
+        log._next_hover_chain_info = True
+        return
+    chain = res.chain
+    if chain and chain.description:
+        log.status("chain %s: %s" % (chain.chain_id, chain.description))
+    elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+        log.status(res.structure._hetnam_descriptions[res.name])
             
 def _register_hover_trigger(session):
     if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:

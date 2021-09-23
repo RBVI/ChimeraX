@@ -63,6 +63,8 @@ def map_uniprot_ident(ident, *, return_value="identifier"):
     if not page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
     lines = page.splitlines()
+    if len(lines) < 2:
+        raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
     if return_value == "both":
         return lines[1].split()
     return lines[1].split()[1 if return_value == "entry" else 0]

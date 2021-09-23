@@ -1314,6 +1314,12 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color zone: No surfaces specified.')
+    if len(near) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color zone: No atoms specified.')
     atoms = near
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges

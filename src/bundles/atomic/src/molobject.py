@@ -538,6 +538,9 @@ class PseudobondManager(StateManager):
             obj_map[cat] = obj
         return obj_map
 
+    def include_state(self):
+        return bool(self.group_map)
+
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
         f = c_function('pseudobond_global_manager_session_info',

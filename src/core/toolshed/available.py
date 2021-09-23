@@ -25,6 +25,7 @@ class AvailableBundleCache(list):
         self.uninstallable = []
         self.toolshed_url = None
         self.format_version = 1
+        self._index = {}  # provide access by bundle name
 
     def load(self, logger, toolshed_url):
         #
@@ -34,8 +35,9 @@ class AvailableBundleCache(list):
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
         from chimerax import app_dirs
         from urllib.parse import urljoin, urlencode
+        from . import chimerax_uuid
         params = [
-            ("uuid", self.uuid()),
+            ("uuid", chimerax_uuid()),
             ("format_version", FORMAT_VERSION),
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
@@ -89,6 +91,7 @@ class AvailableBundleCache(list):
                     self.append(b)
                 else:
                     self.uninstallable.append(b)
+                self._index[b.name] = b
 
     def _installable(self, b, my_version):
         installable = False
@@ -103,16 +106,11 @@ class AvailableBundleCache(list):
             break
         return installable
 
-    def uuid(self):
-        # Return a mostly unrecognizable string representing
-        # current user for accessing ChimeraX toolshed
-        from getpass import getuser
-        import uuid
-        node = uuid.getnode()   # Locality
-        name = getuser()
-        dn = "CN=%s, L=%s" % (name, node)
-        return uuid.uuid5(uuid.NAMESPACE_X500, dn)
-
+    def find_by_name(self, name):
+        try:
+            return self._index[name]
+        except KeyError:
+            return None
 
 def has_cache_file(cache_dir):
     if cache_dir is None:

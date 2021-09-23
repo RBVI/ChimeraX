@@ -238,7 +238,7 @@ class _SaveManager:
 
     def discovery(self, containers):
         for key, value in containers.items():
-            sm = self.session.snapshot_methods(value)
+            sm = self.session.snapshot_methods(value, base_type=StateManager)
             if sm is None and len(value) == 0:
                 continue
             try:
@@ -246,6 +246,8 @@ class _SaveManager:
                     self.processed[key] = self.process(value, (key,))
                     self.graph[key] = self._found_objs
                 else:
+                    if not sm.include_state(value):
+                        continue
                     self.unprocessed.append((value, (key,)))
                     uid = _UniqueName.from_obj(self.session, value)
                     self.processed[key] = uid
@@ -460,6 +462,8 @@ class Session:
         from .triggerset import set_exception_reporter
         set_exception_reporter(lambda preface, logger=self.logger:
                                logger.report_exception(preface=preface))
+        from .import tasks
+        self.tasks = tasks.Tasks(self, first=True)
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -498,8 +502,6 @@ class Session:
         self.user_colors = colors.UserColors()
         self.user_colormaps = colors.UserColormaps()
 
-        from .import tasks
-        self.tasks = tasks.Tasks(self, first=True)
         # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
@@ -545,9 +547,12 @@ class Session:
         object.__delattr__(self, name)
 
     def add_state_manager(self, tag, container):
-        sm = self.snapshot_methods(container)
+        sm = self.snapshot_methods(container, base_type=StateManager)
         if sm is None and not hasattr(container, 'clear'):
             raise ValueError('container "%s" of type "%s" does not have snapshot methods and does not have clear method' % (tag, str(type(container))))
+        if sm and not isinstance(container, StateManager):
+            if not hasattr(sm, 'include_state'):
+                raise RuntimeError(f"'{tag}' state manager is missing include_state method")
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):

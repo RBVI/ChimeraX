@@ -48,8 +48,8 @@ It is also implemented as the
 <h3>Search Parameters</h3>
 
 <ul class="none">
-<li><b>Chain</b>
-&ndash; protein chain of a structure open in ChimeraX to use as the query
+<li>the first menu allows choosing a protein chain from the currently open 
+atomic structures to use as the query
 <br>
 *Note: the <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
 command additionally allows using a sequence
@@ -93,7 +93,7 @@ may have the same sequence
 only hits with E-values no larger than the specified value will be returned
 </ul>
 <p>
-Clicking the <b>Blast</b> button initiates the search.
+Clicking the <b>BLAST</b> button initiates the search.
 </p>
 
 <a name="results"></a>
@@ -102,16 +102,29 @@ Clicking the <b>Blast</b> button initiates the search.
 </p>
 <h3>BLAST Protein Results</h3>
 <p>
-When results are returned, the hits are listed in a table below the
-<a href="#parameters">search parameters</a> in the <b>Blast Protein</b> window.
-The <b>Blast Protein</b> tool including search results
-(but not window size or location) is saved in
+When results are returned, the table of hits is shown in a separate window.
+These results are saved in 
 <a href="../commands/save.html#session">ChimeraX sessions</a>.
 </p><p>
-A text-search box allows finding hits that contain terms of interest.
-Pull-down menus to the right of the search box allow adjusting the number
-of hits shown at a time and which columns of information are shown
+The checkboxes control which columns of information are shown
 in the table. Clicking a column header sorts by the values in that column.
+</p><p>
+Double-clicking a row with a corresponding structure 
+<a href="../commands/open.html#fetch">fetches</a> it,
+and if a structure chain was used as the query,
+automatically superimposes the hit chain onto the query chain
+using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+AlphaFold-predicted structures are
+<a href="../commands/alphafold.html#colorConfidence">colored by
+confidence value</a>.
+</p><p>
+One or more hits can be chosen (highlighted) in the list
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen.
+The panel's <a href="../window.html#context-menu">context menu</a> can be
+used to fetch and superimpose all of the corresponding structures, or to
+show their <a href="#notes">multiple sequence alignment</a> with the query.
 </p><p>
 Some columns are available for NR sequences
 regardless of whether they are in the PDB subset:
@@ -124,19 +137,10 @@ when <b>Show in sequence viewer</b> is clicked
 <li><b>ID</b> &ndash; an index number, simply N for the Nth hit listed
 <li><b>Name</b>
   <ul>
-  <li>for PDB sequences, the corresponding PDB identifier, including the chain;
-clicking it <a href="../commands/open.html#fetch">fetches</a> the
-structure, and if a structure chain was used as the query,
-automatically superimposes the hit chain onto the query chain
-using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+  <li>for PDB sequences, the corresponding PDB identifier, including the chain 
   <li>for AlphaFold predictions, the corresponding
 <a href="https://www.uniprot.org/help/accession_numbers"
-target="_blank">UniProt accession number</a>;
-clicking it <a href="../commands/alphafold.html#fetch">fetches</a>
-and <a href="../commands/alphafold.html#colorConfidence">colors</a>
-the prediction, and if a structure chain was used as the query,
-automatically superimposes the hit chain onto the query chain
-using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+target="_blank">UniProt accession number</a>
   <li>otherwise, sequence GI number; clicking it opens the web page for
 that sequence in the <a href="https://www.ncbi.nlm.nih.gov/protein"
 target="_blank">NCBI Protein</a> database
@@ -215,5 +219,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2021</address>
+September 2021</address>
 </body></html>

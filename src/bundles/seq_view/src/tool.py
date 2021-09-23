@@ -446,6 +446,10 @@ class SequenceViewer(ToolInstance):
         """
         self.tool_window.manage('side')
 
+    @property
+    def active_region(self):
+        return self.region_browser.cur_region()
+
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
@@ -571,6 +575,12 @@ class SequenceViewer(ToolInstance):
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         tools_menu.addAction(comp_model_action)
+        loops_model_action = QAction("Model Loops...", tools_menu)
+        loops_model_action.triggered.connect(lambda: run(self.session,
+            "ui tool show 'Model Loops'"))
+        if not self.alignment.associations:
+            loops_model_action.setEnabled(False)
+        tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
             blast_action = QAction("Blast Protein...", tools_menu)
             blast_action.triggered.connect(lambda: run(self.session,
