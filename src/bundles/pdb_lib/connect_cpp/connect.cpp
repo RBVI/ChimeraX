@@ -415,11 +415,13 @@ find_missing_structure_bonds(Structure *as)
         }
     }
     if (long_bonds.size() > 0) {
-        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
-            AS_PBManager::GRP_NORMAL);
+        auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         for (auto lb: long_bonds) {
             // the new "smart" missing-structure code will automatically make the pseudobond across
-            // the gap when the bond is deleted, so no need to explictly make a (duplicate) one
+            // the gap when the bond is deleted _if_ it identifies it as a backbone bond, so no need
+            // to explictly make a (duplicate) one in that case
+            if (!lb->is_backbone())
+                pbg->new_pseudobond(lb->atoms());
             as->delete_bond(lb);
         }
     }
