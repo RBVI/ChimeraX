@@ -394,17 +394,6 @@ def init(argv, event_loop=True):
     import certifi
     os.environ["SSL_CERT_FILE"] = certifi.where()
 
-    # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
-    # metadata classifier, but jurko 0.6 (SOAP package) claims to be
-    # Metadata-Version 2.1 but specifies Obsolete.  Hack below makes
-    # Obsolete not cause a traceback.
-    from distlib import metadata
-    try:
-        if "Obsoletes" not in metadata._566_FIELDS:
-            metadata._566_FIELDS = metadata._566_FIELDS + ("Obsoletes",)
-    except AttributeError:
-        pass
-
     if len(argv) > 1 and argv[1].startswith('--'):
         # MacOS doesn't generate these drop events for args after '--' flags
         bad_drop_events = False
@@ -498,11 +487,9 @@ def init(argv, event_loop=True):
         setdlldir.restype = ctypes.c_bool
         setdlldir(os.path.join(rootdir, 'bin'))
 
-    from distlib.version import NormalizedVersion as Version
-    epoch, ver, *_ = Version(version).parse(version)
-    if len(ver) == 1:
-        ver += (0,)
-    partial_version = '%s.%s' % (ver[0], ver[1])
+    from packaging.version import Version
+    ver = Version(version)
+    partial_version = f"{ver.major}.{ver.minor}"
 
     import chimerax
     import appdirs
