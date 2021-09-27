@@ -79,10 +79,15 @@ class BlastProteinResults(ToolInstance):
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
         #self.align_button = QPushButton("Load and Align Selection", parent)
-        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()])
+
+        param_str = ", ".join(
+            [": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()]
+        )
         self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]), parent)
         self.control_widget.setVisible(False)
-        self.table = BlastResultsTable(self.control_widget, _settings, parent)
+
+        default_cols = {key: True for key in AvailableDBsDict[self.params.database].default_cols}
+        self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
 
         self.progress_bar = LabelledProgressBar(parent)
 
@@ -248,17 +253,13 @@ class BlastProteinResults(ToolInstance):
     #
     # Code for displaying matches as multiple sequence alignment
     #
-    def _show_mav(self, selected:bool=True, selections:List=None) -> None:
+    def _show_mav(self, selections) -> None:
         """
         Collect the names and sequences of selected matches. All sequences
         should have the same length because they include the gaps inserted by
         the BLAST alignment.
         """
-        if not selected:
-            # Show all hits
-            ids = [hit['id'] for hit in self.table.data]
-        else:
-            ids = [hit['id'] for hit in selections]
+        ids = [hit['id'] for hit in selections]
         ids.insert(0,0)
         names = []
         seqs = []
@@ -288,6 +289,9 @@ class BlastProteinResults(ToolInstance):
         if self._instance_name:
             inst_name = self._instance_name
         name = "%s [%d]" % (inst_name, self._viewer_index)
+        # Ensure that the next time the user launches the same command that a
+        # unique index gets shown.
+        self._viewer_index += 1
         self.session.alignments.new_alignment(seqs, name)
 
 
