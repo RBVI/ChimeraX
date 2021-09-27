@@ -29,36 +29,7 @@ from chimerax.ui.options import Option
 
 from .databases import AvailableDBs, AvailableMatrices
 from .widgets import BlastProteinFormWidget
-
-_default_instance_prefix = "bp"
-_instance_map = {} # Map of blastprotein results names to results instances
-
-def _make_instance_name():
-    n = 1
-    while True:
-        instance_name = _default_instance_prefix + str(n)
-        if instance_name not in _instance_map:
-            return instance_name
-        n += 1
-
-def find(instance_name):
-    return _instance_map.get(instance_name, None)
-
-def find_match(instance_name):
-    if instance_name is None:
-        if len(_instance_map) == 1:
-            for name, inst in _instance_map.items():
-                return inst
-        if len(_instance_map) > 1:
-            raise UserError("no name specified with multiple "
-                            "active blastprotein instances")
-        else:
-            raise UserError("no active blastprotein instance")
-    try:
-        return _instance_map[instance_name]
-    except KeyError:
-        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
-
+from .utils import make_instance_name
 
 class BlastProteinTool(ToolInstance):
 
@@ -66,22 +37,14 @@ class BlastProteinTool(ToolInstance):
     SESSION_SAVE = True
     help = "help:/user/tools/blastprotein.html"
 
-    def __init__(self, session: Session, tool_name: str, *
+    def __init__(self, session: Session, str, *
                  , chain: Optional[str] = None, db: str = AvailableDBs[0]
                  , seqs: Optional[int] = 100
                  # Guards against changes in list order
                  , matrix: str = AvailableMatrices[AvailableMatrices.index("BLOSUM62")]
                  , cutoff: Optional[int] = -3, instance_name: Optional[str] = None):
-        super().__init__(session, tool_name)
-
-        if instance_name is None:
-            instance_name = _make_instance_name()
-        _instance_map[instance_name] = self
-        self._instance_name = instance_name
-        self._instance_name_formatted = "[name: %s]" % instance_name
-        self._initialized = False
-        self._blast_results = None
-        self._viewer_index = 1
+        self.display_name = "Blast Protein"
+        super().__init__(session, self.display_name)
 
         self._protein_chain = chain
         self._current_database = db
@@ -89,7 +52,6 @@ class BlastProteinTool(ToolInstance):
         self._current_matrix = matrix
         self._cutoff = cutoff
 
-        self.display_name = "Blast Protein" + " " + self._instance_name_formatted
         self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
         self._build_ui()
 
@@ -189,7 +151,7 @@ class BlastProteinTool(ToolInstance):
                 , "".join(["1e", str(self._cutoff)])
                 , "matrix", self.menu_widgets['matrices'].input_widget().currentText()
                 , "maxSeqs", str(self._num_sequences)
-                , "name", str(self._instance_name)
+                , "name", make_instance_name()
             ]
             run(self.session, " ".join(cmd_text))
 
@@ -222,25 +184,20 @@ class BlastProteinTool(ToolInstance):
     #
     @classmethod
     def from_snapshot(cls, session, data):
-        instance_name = data.get("instance_name", _make_instance_name())
         tmp = cls(
             session
-            , instance_name
             , chain = data['_protein_chain']
             , db = data["_current_database"]
             , seqs = data["_num_sequences"]
             , matrix = data["_current_matrix"]
             , cutoff = data["_cutoff"]
         )
-        tmp._viewer_index = data.get("_viewer_index", 1)
         return tmp
 
     def take_snapshot(self, session, flags):
         data = {
             "version": 2,
             "_super": super().take_snapshot(session, flags),
-            "_instance_name": self._instance_name,
-            "_viewer_index": self._viewer_index,
             "_protein_chain": self._protein_chain,
             "_current_database": self._current_database,
             "_num_sequences": self._num_sequences,
