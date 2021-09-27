@@ -52,7 +52,7 @@ class AvailableBundleCache(list):
         data.insert(0, ['toolshed_url', toolshed_url])
         import os
         if self.cache_dir is not None:
-            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
+            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w', encoding='utf-8') as f:
                 import json
                 json.dump(data, f, indent=0)
         try:
@@ -68,7 +68,7 @@ class AvailableBundleCache(list):
         if self.cache_dir is None:
             raise FileNotFoundError("no bundle cache")
         import os
-        with open(os.path.join(self.cache_dir, _CACHE_FILE)) as f:
+        with open(os.path.join(self.cache_dir, _CACHE_FILE), encoding='utf-8') as f:
             import json
             data = json.load(f)
         self._build_bundles(data)
@@ -111,6 +111,7 @@ class AvailableBundleCache(list):
             return self._index[name]
         except KeyError:
             return None
+
 
 def has_cache_file(cache_dir):
     if cache_dir is None:
@@ -231,7 +232,6 @@ def _build_bundle(d, format_version=1):
         # No managers defined
         pass
     else:
-        from .info import FormatInfo
         for manager_name, md in manager_d.items():
             # _debug("processing manager: %s" % manager_name)
             bi.managers[manager_name] = md

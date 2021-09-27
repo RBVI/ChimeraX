@@ -167,12 +167,10 @@ class PDBParser(Parser):
         id_list = []
         # Unlike XML output, JSON output doesn't separate out the first PDBID.
         for entry in hit["description"]:
-            eid = entry["id"].split("|")
             # We only want to keep PDB hits e.g. pdb|6P5N|B
-            if eid[0] != "pdb":
+            if not entry["id"].startswith("pdb"):
                 continue
-            name = eid[1]
-            chain = eid[2]
+            _, name, chain = entry["id"].split("|")
             desc = entry["title"]
             if desc.startswith("Chain"):
                 # Strip the chain information up to the first comma, but since
@@ -180,6 +178,8 @@ class PDBParser(Parser):
                 # back together at the end
                 desc = (','.join(desc.split(',')[1:])).strip()
             id_list.append((name, chain, desc))
+        if not len(id_list):
+            return # No PDB hits in that entry
         name = pdb = id_list[0][0] + '_' + id_list[0][1]
         desc = id_list[0][2]
         match_list = []

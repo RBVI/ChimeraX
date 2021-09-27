@@ -6,7 +6,6 @@
 appdirs==1.4.4
 colorama==0.4.4
 Cython==0.29.24
-distlib==0.3.2
 filelock==3.0.12
 grako==3.16.5
 html2text==2020.1.16

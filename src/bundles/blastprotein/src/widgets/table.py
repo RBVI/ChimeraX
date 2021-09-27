@@ -33,8 +33,18 @@ class BlastResultsRow:
 class BlastResultsTable(ItemTable):
     get_selection = Signal(list)
 
-    def __init__(self, control_widget: Union[QMenu, QWidget], settings: 'BlastProteinResultsSettings', parent = Optional[QWidget]):
-        super().__init__(column_control_info=(control_widget, settings, {}, True, None, None, False), parent=parent)
+    def __init__(self, control_widget: Union[QMenu, QWidget], default_cols, settings: 'BlastProteinResultsSettings', parent = Optional[QWidget]):
+        super().__init__(
+            column_control_info=(
+                control_widget
+                , settings
+                , default_cols
+                , False          # fallback default for column display
+                , None           # display callback
+                , None           # number of checkbox columns
+                , False          # Whether to show global buttons
+            )
+            , parent=parent)
         self.doubleClicked.connect(self.doubleclicked)
 
     def doubleclicked(self, _) -> list:

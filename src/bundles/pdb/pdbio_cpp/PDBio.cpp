@@ -187,7 +187,7 @@ compile_helices_sheets(const Structure* s, std::vector<std::string>& helices, st
     int helix_num = 1, sheet_num = 1;
     std::vector<Residue*> cur_helix, cur_sheet;
     for (auto r: s->residues()) {
-        if (prev_res && prev_res->connects_to(r)) {
+        if (prev_res && prev_res->connects_to(r, true)) {
             if (cur_helix.size() > 0 && (!r->is_helix() || prev_res->ss_id() != r->ss_id()))
                 push_helix(cur_helix, helices, helix_num++);
             if (cur_sheet.size() > 0 && (!r->is_strand() || prev_res->ss_id() != r->ss_id()))
