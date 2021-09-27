@@ -10,7 +10,7 @@ distlib==0.3.2
 filelock==3.0.12
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.20
+ihm==0.21
 imagecodecs==2021.4.28 ; platform_machine != 'arm64'
 ipykernel==5.5.5
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
