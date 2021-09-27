@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from string import capwords
-from typing import Dict
+from typing import Dict, List
 
 from Qt.QtCore import QThread, Signal, Slot
 
@@ -32,6 +32,21 @@ from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
 _settings = None
 
+_instance_map = {} # Map of blastprotein results names to results instances
+
+def find_match(instance_name):
+    if instance_name is None:
+        if len(_instance_map) == 1:
+            return instance_map.values()[0]
+        if len(_instance_map) > 1:
+            raise UserError("no name specified with multiple active blastprotein instances")
+        else:
+            raise UserError("no active blastprotein instance")
+    try:
+        return _instance_map[instance_name]
+    except KeyError:
+        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
+
 class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
@@ -39,8 +54,8 @@ class BlastProteinResults(ToolInstance):
     help = "help:/user/tools/blastprotein.html"
 
     def __init__(self, session, tool_name, **kw):
-        self.tool_name = tool_name
         self._instance_name = tool_name
+        _instance_map[self._instance_name] = self
         self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
@@ -116,7 +131,7 @@ class BlastProteinResults(ToolInstance):
         self.session.logger.info(params)
 
     #
-    # Worker->Logger Callbacks
+    # Worker Callbacks
     #
     def parsing_results(self):
         self.session.logger.info("Parsing BLAST results.")
@@ -127,9 +142,6 @@ class BlastProteinResults(ToolInstance):
     def job_failed(self, error):
         raise UserError("BlastProtein failed: %s" % error)
 
-    #
-    # Worker->Progress Bar Callbacks
-    #
     def _increment_progress_bar_results(self):
         self._increment_progress_bar("Results")
 
@@ -236,13 +248,17 @@ class BlastProteinResults(ToolInstance):
     #
     # Code for displaying matches as multiple sequence alignment
     #
-    def _show_mav(self, selections) -> None:
+    def _show_mav(self, selected:bool=True, selections:List=None) -> None:
         """
         Collect the names and sequences of selected matches. All sequences
         should have the same length because they include the gaps inserted by
         the BLAST alignment.
         """
-        ids = [hit['id'] for hit in selections]
+        if not selected:
+            # Show all hits
+            ids = [hit['id'] for hit in self.table.data]
+        else:
+            ids = [hit['id'] for hit in selections]
         ids.insert(0,0)
         names = []
         seqs = []
@@ -316,7 +332,7 @@ class BlastProteinResults(ToolInstance):
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
-            , 'tool_name': self.tool_name
+            , 'tool_name': self.tool_instance_name
             , 'results': self._hits
             , 'sequences': [(key
                            , self._sequences[key][0]

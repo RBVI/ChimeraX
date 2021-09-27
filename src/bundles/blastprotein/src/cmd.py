@@ -16,6 +16,7 @@ from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf,
 from chimerax.seqalign import AlignSeqPairArg
 
 from .databases import AvailableDBs, AvailableMatrices
+from .results import find_match
 
 # Use camel-case variable names for displaying keywords in help/usage
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
@@ -68,7 +69,7 @@ blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
 
 
 def blastprotein_mav(session, name=None, selected=True):
-    from . import tool
-    tool.find_match(name).show_mav_cmd(selected)
+    find_match(name)._show_mav(selected)
+
 blastprotein_mav_desc = CmdDesc(optional=[("name", StringArg)],
                                 keyword=[("selected", BoolArg)])
