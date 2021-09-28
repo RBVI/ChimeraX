@@ -210,11 +210,6 @@ is some string identifying the source of the registration (used in registration-
 error messages) -- frequently your bundle name.  :code:`register_attr()` has a few optional
 keyword arguments:
 
-default_value
-    The value returned for the attribute in objects where the attribute hasn't been
-    explicitly set (instead of raising :code:`AttributeError`).  Only specify this if there
-    really is a reasonable default value.
-
 attr_type
     If the attribute is always either a particular type (*e.g.* float) or :code:`None`, then specify this.
     This helps interfaces and commands that categorize attributes by type (*e.g.* "color byattr").

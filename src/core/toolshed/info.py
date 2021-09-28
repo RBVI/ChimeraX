@@ -589,17 +589,17 @@ class BundleInfo:
             Dependent bundles.
         """
         from . import get_toolshed
-        from distlib.database import DistributionPath
+        from pkg_resources import working_set
         keep = set()
-        for d in DistributionPath().get_distributions():
-            for req in d.run_requires:
-                if req.split()[0] == self.name:
+        for d in working_set:
+            for req in d.requires():
+                if req.name == self.name:
                     keep.add(d)
                     break
         ts = get_toolshed()
         deps = set()
         for d in keep:
-            bi = ts.find_bundle(d.name, logger)
+            bi = ts.find_bundle(d.project_name, logger)
             if bi:
                 deps.add(bi)
         return deps

@@ -238,7 +238,7 @@ class _SaveManager:
 
     def discovery(self, containers):
         for key, value in containers.items():
-            sm = self.session.snapshot_methods(value, base_type=StateManager)
+            sm = self.session.snapshot_methods(value)
             if sm is None and len(value) == 0:
                 continue
             try:
@@ -246,7 +246,7 @@ class _SaveManager:
                     self.processed[key] = self.process(value, (key,))
                     self.graph[key] = self._found_objs
                 else:
-                    if not sm.include_state(value):
+                    if hasattr(sm, 'include_state') and not sm.include_state(value):
                         continue
                     self.unprocessed.append((value, (key,)))
                     uid = _UniqueName.from_obj(self.session, value)
@@ -547,12 +547,15 @@ class Session:
         object.__delattr__(self, name)
 
     def add_state_manager(self, tag, container):
-        sm = self.snapshot_methods(container, base_type=StateManager)
+        # container should be subclassed from StateManager, but we didn't require it before,
+        # so we can't require it now.
+        sm = self.snapshot_methods(container)
         if sm is None and not hasattr(container, 'clear'):
             raise ValueError('container "%s" of type "%s" does not have snapshot methods and does not have clear method' % (tag, str(type(container))))
         if sm and not isinstance(container, StateManager):
-            if not hasattr(sm, 'include_state'):
-                raise RuntimeError(f"'{tag}' state manager is missing include_state method")
+            from . import is_daily_build
+            if is_daily_build() and not hasattr(sm, 'include_state'):
+                self.logger.info(f'developer warning: container "{tag}" snapshot methods are missing include_state method')
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):

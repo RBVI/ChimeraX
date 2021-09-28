@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from string import capwords
-from typing import Dict
+from typing import Dict, List
 
 from Qt.QtCore import QThread, Signal, Slot
 
@@ -32,6 +32,21 @@ from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
 _settings = None
 
+_instance_map = {} # Map of blastprotein results names to results instances
+
+def find_match(instance_name):
+    if instance_name is None:
+        if len(_instance_map) == 1:
+            return instance_map.values()[0]
+        if len(_instance_map) > 1:
+            raise UserError("no name specified with multiple active blastprotein instances")
+        else:
+            raise UserError("no active blastprotein instance")
+    try:
+        return _instance_map[instance_name]
+    except KeyError:
+        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
+
 class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
@@ -39,8 +54,8 @@ class BlastProteinResults(ToolInstance):
     help = "help:/user/tools/blastprotein.html"
 
     def __init__(self, session, tool_name, **kw):
-        self.tool_name = tool_name
         self._instance_name = tool_name
+        _instance_map[self._instance_name] = self
         self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
@@ -64,10 +79,15 @@ class BlastProteinResults(ToolInstance):
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
         #self.align_button = QPushButton("Load and Align Selection", parent)
-        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()])
+
+        param_str = ", ".join(
+            [": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()]
+        )
         self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]), parent)
         self.control_widget.setVisible(False)
-        self.table = BlastResultsTable(self.control_widget, _settings, parent)
+
+        default_cols = {key: True for key in AvailableDBsDict[self.params.database].default_cols}
+        self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
 
         self.progress_bar = LabelledProgressBar(parent)
 
@@ -116,7 +136,7 @@ class BlastProteinResults(ToolInstance):
         self.session.logger.info(params)
 
     #
-    # Worker->Logger Callbacks
+    # Worker Callbacks
     #
     def parsing_results(self):
         self.session.logger.info("Parsing BLAST results.")
@@ -127,9 +147,6 @@ class BlastProteinResults(ToolInstance):
     def job_failed(self, error):
         raise UserError("BlastProtein failed: %s" % error)
 
-    #
-    # Worker->Progress Bar Callbacks
-    #
     def _increment_progress_bar_results(self):
         self._increment_progress_bar("Results")
 
@@ -174,8 +191,8 @@ class BlastProteinResults(ToolInstance):
                 # Remove columns we don't want
                 if string in db.excluded_cols:
                     continue
-                if string not in db.default_cols:
-                    kwdict['display'] = False
+                #if string not in db.default_cols:
+                #    kwdict['display'] = False
                 # Decide how the title should be formatted
                 kwdict['header_justification'] = 'center'
                 # Format the title for display
@@ -272,6 +289,9 @@ class BlastProteinResults(ToolInstance):
         if self._instance_name:
             inst_name = self._instance_name
         name = "%s [%d]" % (inst_name, self._viewer_index)
+        # Ensure that the next time the user launches the same command that a
+        # unique index gets shown.
+        self._viewer_index += 1
         self.session.alignments.new_alignment(seqs, name)
 
 
@@ -316,7 +336,7 @@ class BlastProteinResults(ToolInstance):
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
-            , 'tool_name': self.tool_name
+            , 'tool_name': self.tool_instance_name
             , 'results': self._hits
             , 'sequences': [(key
                            , self._sequences[key][0]
