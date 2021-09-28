@@ -45,7 +45,7 @@ class AvailableBundleCache(list):
         from urllib.request import urlopen, Request
         from ..fetch import html_user_agent
         headers = {"User-Agent": html_user_agent(app_dirs)}
-        request = Request(url, headers=headers)
+        request = Request(url, unverifiable=True, headers=headers)
         with urlopen(request) as f:
             import json
             data = json.loads(f.read())
