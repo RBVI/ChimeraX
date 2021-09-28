@@ -114,14 +114,17 @@ includes <b>nr</b>, <b>ng</b>, <b>nb</b>, and <b>frame</b> attributes:
 </pre>
 <a name="frame"></a>
 <p>
-The <b>frame</b> number is
+The <a href="attributes.html#atom"><b>frame</b> attribute</a>
 is used for markers on <a href="trajectories.html#vseries">volume series</a>;
 it gives the associated time step for synchronized playback with
 <a href="commands/vseries.html#play"><b>vseries play</b></a>.
-Extra XML attributes (those other than note and note color) are
-are kept in a Python dictionary called <b>marker_extra_attributes</b>,
-remembered in <a href="commands/save.html#session">sessions</a>,
-and included if a new marker file is <a href="commands/save.html">saved</a>.
+Whereas <b>frame</b> and <b>radius</b> are assigned as
+<a href="attributes.html#atom">atom attributes</a> and notes are currently
+ignored, the remaining XML attributes are not assigned as atom attributes
+but kept in a Python dictionary called <b>marker_extra_attributes</b>.
+These extra attributes are remembered in 
+<a href="commands/save.html#session">sessions</a>
+and included when a marker file is <a href="commands/save.html">saved</a>.
 </p>
 
 <hr>

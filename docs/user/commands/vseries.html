@@ -163,7 +163,7 @@ Display the specified markers to trace spatial and temporal paths.
 (A <a href="../markers.html">marker</a> is implemented as an atom and can be
 <a href="atomspec.html">specified</a> similarly by model number, <i>etc.</i>)
 For marker display to be synchronized with playback, each marker should have a
-<a href="../markers.html#frame"><b>frame</b> number</a> with value 
+<a href="../attributes.html#atom"><b>frame</b> attribute</a> with value 
 corresponding to the <a href="#time">time</a>
 of the data set on which it was placed (0, 1, 2, <i>etc.</i>).
 This attribute is assigned when
@@ -186,7 +186,7 @@ Whether to color volume contour surfaces to match
 a specified distance <i>cutoff</i> (regardless of whether the markers are
 <a href="#markers">shown</a>). 
 All of the markers with
-<a href="../markers.html#frame"><b>frame</b> number</a>
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
 matching the current <a href="#time">time</a>
 are used to color the current surface.
 The coloring does not apply to <b>solid</b> displays.
@@ -294,7 +294,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=#aaaaaa width="10px" title="#aaaaaa"></td></tr></table>).
 Successive markers are linked.
 The markers are assigned a 
-<a href="../markers.html#frame"><b>frame</b> number</a>
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
 with value indicating the associated time step (0, 1, 2, <i>etc.</i>)
 in the series, allowing synchronization during playback with
 <a href="#play"><b>vseries play</b></a>.
@@ -425,5 +425,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+October 2020</address>
 </body></html>
