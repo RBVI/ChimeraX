@@ -112,22 +112,19 @@ includes <b>nr</b>, <b>ng</b>, <b>nb</b>, and <b>frame</b> attributes:
 &lt;marker id="3" x="195.43" y="166.62" z="174.03" r="1" g="1" b="0" radius="5"
  note="cap domain" nr="1" ng="1" nb="0" frame="5"/&gt;
 </pre>
+<a name="frame"></a>
 <p>
-The <a href="attributes.html#atom"><b>frame</b> attribute</a>
+The <b>frame</b> number is
 is used for markers on <a href="trajectories.html#vseries">volume series</a>;
-it gives the associated time step to allow synchronized playback with
+it gives the associated time step for synchronized playback with
 <a href="commands/vseries.html#play"><b>vseries play</b></a>.
-Only the <b>x</b>, <b>y</b>, <b>z</b>, <b>radius</b>, <b>r</b>, <b>b</b>,
-<b>g</b>, and <b>frame</b> values are saved in
-<a href="commands/save.html#session">sessions</a>.
-Any other XML attributes read from input marker files, including notes, 
-are retained and included in files written back out (without exiting ChimeraX 
-in between), but are not actually assigned as marker
-<a href="attributes.html">attributes</a> in ChimeraX or saved in 
-<a href="commands/save.html#session">sessions</a>.
+Extra XML attributes (those other than note and note color) are
+are kept in a Python dictionary called <b>marker_extra_attributes</b>,
+remembered in <a href="commands/save.html#session">sessions</a>,
+and included if a new marker file is <a href="commands/save.html">saved</a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2020</address>
+September 2021</address>
 </body></html>
