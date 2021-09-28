@@ -71,10 +71,12 @@ class ColorButton(QPushButton):
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
-        self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
         self._pause_timer = None
         self._pause_delay = pause_delay 	# Seconds before color_pause signal is issued.
+
+    def __del__(self):
+        _check_color_chooser(id(self))
 
     def get_color(self):
         return self._color
