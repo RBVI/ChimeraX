@@ -37,7 +37,7 @@ _instance_map = {} # Map of blastprotein results names to results instances
 def find_match(instance_name):
     if instance_name is None:
         if len(_instance_map) == 1:
-            return instance_map.values()[0]
+            return _instance_map.values()[0]
         if len(_instance_map) > 1:
             raise UserError("no name specified with multiple active blastprotein instances")
         else:
