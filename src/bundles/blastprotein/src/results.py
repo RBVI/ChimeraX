@@ -13,7 +13,7 @@
 from string import capwords
 from typing import Dict, List
 
-from Qt.QtCore import QThread, Signal, Slot
+from Qt.QtCore import Qt, QThread, Signal, Slot
 
 from Qt.QtWidgets import QWidget, QVBoxLayout, QAbstractItemView
 from Qt.QtWidgets import QPushButton, QAction, QLabel
@@ -201,6 +201,7 @@ class BlastProteinResults(ToolInstance):
                 self.table.add_column(newstr, data_fetch=lambda x, i=string: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
+            self.table.sortByColumn(columns.index('score'), Qt.DescendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data)
             else:
