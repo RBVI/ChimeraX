@@ -176,6 +176,11 @@ class BlastProteinResults(ToolInstance):
     def _on_report_sequences_signal(self, sequences):
         self._sequences = sequences
 
+    def _format_table_title(self, title: str):
+        new_title = capwords(" ".join(title.split('_')))
+        new_title = new_title.replace('Id', 'ID')
+        return new_title
+
     def _on_report_hits_signal(self, items):
         self._hits = items
         db = AvailableDBsDict[self.params.database]
@@ -187,20 +192,11 @@ class BlastProteinResults(ToolInstance):
                 self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
-            for string in columns:
-                kwdict = {}
-                #if string not in db.default_cols:
-                #    kwdict['display'] = False
-                # Decide how the title should be formatted
-                kwdict['header_justification'] = 'center'
-                # Format the title for display
-                newstr = string
-                newstr = capwords(" ".join(newstr.split('_')))
-                newstr = newstr.replace('Id', 'ID')
-
-                self.table.add_column(newstr, data_fetch=lambda x, i=string: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
+            for string in columns:
+                title = self._format_table_title(string)
+                self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
             self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data)
