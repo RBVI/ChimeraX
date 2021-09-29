@@ -91,9 +91,9 @@ class BlastProteinResults(ToolInstance):
 
         self.progress_bar = LabelledProgressBar(parent)
 
-        self.main_layout.addWidget(self.control_widget)
         self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
+        self.main_layout.addWidget(self.control_widget)
         self.main_layout.addWidget(self.progress_bar)
 
         if not self._from_restore:
