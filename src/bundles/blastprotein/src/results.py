@@ -212,11 +212,13 @@ class BlastProteinResults(ToolInstance):
                 self.table.launch(session_info=self._table_session_data)
             else:
                 self.table.launch()
+
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
     def _set_progress_bar_progress_text(self, itype, curr_value):
-        self._update_progress_bar_text(" ".join(["Processing", itype, '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)]))
+        prog_text = '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)
+        self._update_progress_bar_text(" ".join(["Processing", itype, prog_text]))
 
     def _update_progress_bar_text(self, text):
         self.progress_bar.text = text
