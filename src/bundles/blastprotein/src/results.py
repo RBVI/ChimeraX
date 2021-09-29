@@ -201,7 +201,7 @@ class BlastProteinResults(ToolInstance):
                 self.table.add_column(newstr, data_fetch=lambda x, i=string: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
-            self.table.sortByColumn(columns.index('score'), Qt.DescendingOrder)
+            self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data)
             else:
