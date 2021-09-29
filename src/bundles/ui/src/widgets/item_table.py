@@ -516,6 +516,10 @@ class ItemTable(QTableView):
         setattr(settings, self._settings_attr, shown)
         settings.save(setting=self._settings_attr)
 
+    def _hide_all_columns(self):
+        for col in self._columns:
+            self.update_column(col, display=False)
+
     def _show_all_columns(self):
         for col in self._columns:
             self.update_column(col, display=True)
