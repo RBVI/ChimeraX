@@ -345,7 +345,7 @@ class BlastProteinResults(ToolInstance):
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
-            , 'tool_name': self.tool_instance_name
+            , 'tool_name': self._instance_name
             , 'results': self._hits
             , 'sequences': [(key
                            , self._sequences[key][0]
