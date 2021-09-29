@@ -211,6 +211,7 @@ class ItemTable(QTableView):
             from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
+                widget, settings, defaults, fallback = self._column_control_info[:4]
                 from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
@@ -291,7 +292,12 @@ class ItemTable(QTableView):
         if display is None:
             if self._column_control_info:
                 widget, settings, defaults, fallback = self._column_control_info[:4]
-                display = getattr(settings, self._settings_attr).get(title, fallback)
+                settings_valid = hasattr(settings, self._settings_attr) \
+                    and getattr(settings, self._settings_attr)
+                if settings_valid:
+                    display = getattr(settings, self._settings_attr).get(title, fallback)
+                else:
+                    display = defaults.get(title, fallback)
             else:
                 display = True
         if header_justification is None:
@@ -413,6 +419,9 @@ class ItemTable(QTableView):
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
+        for col in self._columns:
+            if not col.display:
+                self.hideColumn(self._columns.index(col))
         self.resizeColumnsToContents()
 
     def scroll_to(self, datum):
@@ -440,6 +449,8 @@ class ItemTable(QTableView):
     def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
         changes = column._update(**kw)
+        if display_change and self._column_control_info:
+            self._checkables[column.title].setChecked(kw['display'])
         if not self._table_model:
             return
         if display_change:
@@ -447,8 +458,6 @@ class ItemTable(QTableView):
                 self.showColumn(self._columns.index(column))
             else:
                 self.hideColumn(self._columns.index(column))
-            if self._column_control_info:
-                self._checkables[column.title].setChecked(kw['display'])
         if not changes:
             return
         top_left = self._table_model.index(0, self._columns.index(column))
