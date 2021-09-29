@@ -68,6 +68,12 @@ class BlastProteinResults(ToolInstance):
         super().__init__(session, self.display_name, **kw)
         self._build_ui()
 
+    def _make_settings_dict(self, db):
+        defaults = {
+            self._format_table_title(title): True for title in db.default_cols
+        }
+        return defaults
+
     def _build_ui(self):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -86,7 +92,7 @@ class BlastProteinResults(ToolInstance):
         self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]), parent)
         self.control_widget.setVisible(False)
 
-        default_cols = {key: True for key in AvailableDBsDict[self.params.database].default_cols}
+        default_cols = self._make_settings_dict(AvailableDBsDict[self.params.database])
         self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
 
         self.progress_bar = LabelledProgressBar(parent)
@@ -185,8 +191,12 @@ class BlastProteinResults(ToolInstance):
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
-            columns = list(items[0].keys())[::-1]
+            # Sort the columns so that defaults come first
+            columns = list(items[0].keys())
             columns = list(filter(lambda x: x not in db.excluded_cols, columns))
+            nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
+            columns = list(db.default_cols)
+            columns.extend(nondefault_cols)
         except IndexError:
             if not self._from_restore:
                 self.session.logger.warning("BlastProtein returned no results")

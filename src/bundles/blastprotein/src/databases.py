@@ -46,7 +46,7 @@ class Database(ABC):
     parser: dbparsers.Parser = field(init=False)
     fetchable_col: str = ""
     name: str = ""
-    default_cols: tuple = ("Name", "Evalue", "Description")
+    default_cols: tuple = ("name", "evalue", "score", "description")
     # In BlastProteinWorker._process_results each hit's dict is created
     # and assigned an ID number, but we don't want to display it. It's
     # also used in BlastProteinResults._show_mav to retrieve selections.
@@ -76,7 +76,7 @@ class NCBIDB(Database):
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    default_cols: tuple = ("Name", "Evalue", "Description", "Resolution", "Ligand Symbols")
+    default_cols: tuple = ("name", "evalue", "score", "description", "resolution", "ligand_symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -132,6 +132,8 @@ class AlphaFoldDB(Database):
     fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
+    default_cols: tuple = ("name", "evalue", "score", "title", "chain_species")
+    excluded_cols: tuple = ("id", "url", "chain_sequence_id")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -139,7 +141,6 @@ class AlphaFoldDB(Database):
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)
-
         # Hack around the fact that we use run(...) to load the model
         return [], None
 
@@ -154,7 +155,7 @@ class AlphaFoldDB(Database):
             uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
             matches[match]["chain_species"] = AlphaFoldDB._get_attr(raw_desc, 'OS')
-            matches[match]["taxonomic_identifier"] = AlphaFoldDB._get_attr(raw_desc, 'OX')
+            matches[match]["taxonomic_id"] = AlphaFoldDB._get_attr(raw_desc, 'OX')
             matches[match]["gene"] = AlphaFoldDB._get_attr(raw_desc, 'GN')
             protein_existence = AlphaFoldDB._get_attr(raw_desc, 'PE')
             matches[match]["protein_existence"] = experimental_evidence[int(protein_existence)]
