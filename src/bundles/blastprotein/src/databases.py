@@ -18,6 +18,7 @@ import re
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
+from itertools import filterfalse
 
 # ChimeraX/Core
 from chimerax.core.commands import run
@@ -49,7 +50,7 @@ class Database(ABC):
     # In BlastProteinWorker._process_results each hit's dict is created
     # and assigned an ID number, but we don't want to display it. It's
     # also used in BlastProteinResults._show_mav to retrieve selections.
-    excluded_cols: tuple = ("id",)
+    excluded_cols: tuple = ("id", "url")
 
     @abstractmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -74,9 +75,7 @@ class NCBIDB(Database):
     name: str = ""
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
-    NCBI_IDS: tuple[str, str] = ("ref", "gi")
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    NCBI_ID_PAT = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
     default_cols: tuple = ("Name", "Evalue", "Description", "Resolution", "Ligand Symbols")
 
     @staticmethod
@@ -85,6 +84,9 @@ class NCBIDB(Database):
         url: Instance of Qt.QtCore.QUrl
         """
         # If there are two underscores only split on the first
+        if len(match_code) > 4:
+            chimerax_session.logger.warn("Cannot open sequence-only hit \"%s\" in model viewer" % match_code)
+            return None, None
         parts = match_code.split('_', 1)
         try:
             pdb_id, chain_id = parts
@@ -95,29 +97,21 @@ class NCBIDB(Database):
             models = [models]
         return models, chain_id
 
-    def add_url(self, hit, m):
-        mdb = None
-        mid = None
-        match = self.NCBI_ID_PAT.search(m.name)
-        if match:
-            mdb = match.group(1)
-            mid = match.group(2)
-            hit["name"] = "%s (%s)" % (mid, mdb)
-            hit["url"] = self.NCBI_ID_URL % mid
-        else:
-            hit["name"] = m.name
-            hit["url"]= ""
-        return hit
-
     @staticmethod
-    def add_info(session, matches):
+    def add_info(session, matches, sequences):
+        #_pdb_filter = lambda x: x.find('_') >= 0
+        # chain_ids = list(filter(_pdb_filter, matches.keys()))
         chain_ids = matches.keys()
+        # non_pdb_entries = list(filterfalse(_pdb_filter, matches.keys()))
         data = fetch_pdb_info(session, chain_ids)
         for chain_id, hit in matches.items():
             for k, v in data[chain_id].items():
                 if isinstance(v, list):
                     v = ", ".join([str(s) for s in v])
                 hit[k] = v
+        for hit in sequences.values():
+            hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
+
 
 @dataclass
 class PDB(NCBIDB):
@@ -150,7 +144,8 @@ class AlphaFoldDB(Database):
         return [], None
 
     @staticmethod
-    def add_info(session, matches):
+    def add_info(session, matches, sequences):
+        # We do not ever expect to receive sequence only hits
         for match in matches:
             raw_desc = matches[match]["description"]
             # Splitting by = then spaces lets us cut out the X=VAL attributes
@@ -182,7 +177,7 @@ class AlphaFoldDB(Database):
             attr: One of 'OS', 'OX', 'GN', 'PE', 'SV'
         """
         try:
-            attr_loc = raw_desc.index(attr)
+            attr_loc = raw_desc.index("".join([attr, '=']))
         except:
             # No such attr
             return ""

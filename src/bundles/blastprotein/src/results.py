@@ -178,19 +178,17 @@ class BlastProteinResults(ToolInstance):
 
     def _on_report_hits_signal(self, items):
         self._hits = items
+        db = AvailableDBsDict[self.params.database]
         try:
             columns = list(items[0].keys())[::-1]
+            columns = list(filter(lambda x: x not in db.excluded_cols, columns))
         except IndexError:
             if not self._from_restore:
                 self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
-            db = AvailableDBsDict[self.params.database]
             for string in columns:
                 kwdict = {}
-                # Remove columns we don't want
-                if string in db.excluded_cols:
-                    continue
                 #if string not in db.default_cols:
                 #    kwdict['display'] = False
                 # Decide how the title should be formatted
@@ -233,6 +231,8 @@ class BlastProteinResults(ToolInstance):
             models, chain_id = db.load_model(
                 self.session, code, self.params.chain
             )
+            if not models:
+                return
             if not self.params.chain:
                 run(self.session, "select clear")
             else:
@@ -402,6 +402,7 @@ class BlastResultsWorker(QThread):
                         name = query_match.name
                     self._sequences[0] = (name, query_match.sequence)
                     match_chains = {}
+                    sequence_only_hits = {}
                     self.set_progress_maxval.emit(len(blast_results.parser.matches))
                     for n, m in enumerate(blast_results.parser.matches[1:]):
                         sid = n + 1
@@ -411,7 +412,8 @@ class BlastResultsWorker(QThread):
                             hit["name"] = m.match
                             match_chains[m.match] = hit
                         else:
-                            hit = blast_results.add_url(hit, m)
+                            hit["name"] = m.name
+                            sequence_only_hits[m.name] = hit
                         hits.append(hit)
                         self._sequences[sid] = SeqId(hit["name"], m.sequence)
                         self.processed_result.emit()
@@ -419,7 +421,7 @@ class BlastResultsWorker(QThread):
                     # hits that are in match_chain's hit dictionary, but that's not
                     # immediately clear.
                     self.waiting_for_info.emit("Postprocessing Hits")
-                    blast_results.add_info(self.session, match_chains)
+                    blast_results.add_info(self.session, match_chains, sequence_only_hits)
                     self.finished_processing_hits.emit()
                 self._hits = hits
                 self.report_hits.emit(self._hits)
