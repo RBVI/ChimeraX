@@ -42,7 +42,7 @@ class BlastResultsTable(ItemTable):
                 , False          # fallback default for column display
                 , None           # display callback
                 , None           # number of checkbox columns
-                , False          # Whether to show global buttons
+                , True          # Whether to show global buttons
             )
             , parent=parent)
         self.doubleClicked.connect(self.doubleclicked)
