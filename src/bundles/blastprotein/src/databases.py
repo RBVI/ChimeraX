@@ -132,8 +132,8 @@ class AlphaFoldDB(Database):
     fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
-    default_cols: tuple = ("name", "evalue", "score", "title", "chain_species")
-    excluded_cols: tuple = ("id", "url", "chain_sequence_id")
+    default_cols: tuple = ("name", "evalue", "score", "title", "species")
+    excluded_cols: tuple = ("id", "url", "sequence_id")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -154,7 +154,7 @@ class AlphaFoldDB(Database):
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
             uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
-            matches[match]["chain_species"] = AlphaFoldDB._get_attr(raw_desc, 'OS')
+            matches[match]["species"] = AlphaFoldDB._get_attr(raw_desc, 'OS')
             matches[match]["taxonomic_id"] = AlphaFoldDB._get_attr(raw_desc, 'OX')
             matches[match]["gene"] = AlphaFoldDB._get_attr(raw_desc, 'GN')
             protein_existence = AlphaFoldDB._get_attr(raw_desc, 'PE')
