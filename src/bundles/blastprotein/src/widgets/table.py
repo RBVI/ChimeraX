@@ -42,10 +42,15 @@ class BlastResultsTable(ItemTable):
                 , False          # fallback default for column display
                 , None           # display callback
                 , None           # number of checkbox columns
-                , False          # Whether to show global buttons
+                , True          # Whether to show global buttons
             )
             , parent=parent)
         self.doubleClicked.connect(self.doubleclicked)
 
     def doubleclicked(self, _) -> list:
         self.get_selection.emit(self.selected)
+
+    def resizeColumns(self, max_size:int = 0):
+        for col in self._columns:
+            if self.columnWidth(self._columns.index(col)) > max_size:
+                self.setColumnWidth(self._columns.index(col), max_size)

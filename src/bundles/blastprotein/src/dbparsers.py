@@ -163,14 +163,27 @@ class PDBParser(Parser):
     def __init__(self, query_title, query_seq, output):
         super().__init__(query_title, query_seq, output)
 
+    @staticmethod
+    def _get_id_info(pdb_id, chain_id, hit_desc):
+        name = None
+        pdb = None
+        desc = None
+        if chain_id == "":
+            name = pdb_id
+            pdb = None
+        else:
+            name = pdb = '_'.join([pdb_id, chain_id])
+        desc = hit_desc
+        return name, pdb, desc
+
     def _extract_hit(self, hit):
         id_list = []
         # Unlike XML output, JSON output doesn't separate out the first PDBID.
         for entry in hit["description"]:
-            # We only want to keep PDB hits e.g. pdb|6P5N|B
-            if not entry["id"].startswith("pdb"):
-                continue
-            _, name, chain = entry["id"].split("|")
+            if entry["id"].startswith("pdb"):
+                _, name, chain = entry["id"].split("|")
+            else:
+                name, chain = entry["accession"], ""
             desc = entry["title"]
             if desc.startswith("Chain"):
                 # Strip the chain information up to the first comma, but since
@@ -178,15 +191,12 @@ class PDBParser(Parser):
                 # back together at the end
                 desc = (','.join(desc.split(',')[1:])).strip()
             id_list.append((name, chain, desc))
-        if not len(id_list):
-            return # No PDB hits in that entry
-        name = pdb = id_list[0][0] + '_' + id_list[0][1]
-        desc = id_list[0][2]
+        name, pdb, desc = PDBParser._get_id_info(*id_list[0])
         match_list = []
         for hsp in hit["hsps"]:
             match_list.append(self._extract_hsp(hsp, name, pdb, desc))
         for pdbid, chain, desc in id_list:
-            name = pdb = (pdbid + '_' + chain)
+            name, pdb, _ = PDBParser._get_id_info(pdbid, chain, desc)
             for m in match_list:
                 self._copy_match(m, name, pdb, desc)
 
