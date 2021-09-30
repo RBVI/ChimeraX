@@ -209,10 +209,10 @@ class BlastProteinResults(ToolInstance):
                 self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
             self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
             if self._from_restore:
-                self.table.launch(session_info=self._table_session_data)
+                self.table.launch(session_info=self._table_session_data, suppress_resize=True)
             else:
-                self.table.launch()
-
+                self.table.launch(suppress_resize=True)
+            self.table.resizeColumns(max_size = 100) # pixels
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
