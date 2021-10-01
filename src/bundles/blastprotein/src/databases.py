@@ -85,7 +85,7 @@ class NCBIDB(Database):
         """
         # If there are two underscores only split on the first
         parts = match_code.split('_', 1)
-        if len(parts) == 1 and len(parts[0]) > 4:
+        if len(parts) == 1 or len(parts[0]) != 4:
             chimerax_session.logger.warning("Cannot open sequence-only hit \"%s\" in model viewer" % match_code)
             return None, None
         try:
