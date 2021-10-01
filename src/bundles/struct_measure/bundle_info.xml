@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-DistUI" version="1.0" package="chimerax.dist_ui"
+<BundleInfo name="ChimeraX-StructMeasure" version="1.0" package="chimerax.struct_measure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -8,8 +8,8 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Distance measurement user interface</Synopsis>
-  <Description>Distance measurement tool, mouse mode, and context-menu entry</Description>
+  <Synopsis>Structure measurement user interface</Synopsis>
+  <Description>Structure measurement tool, mouse mode, and context-menu entry</Description>
 
   <DataFiles>
     <DataFile>distance.png</DataFile>
@@ -33,6 +33,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Distances :: Structure Analysis :: inter-atomic distances</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Angles/Torsions :: Structure Analysis :: report angle/torsion values</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
