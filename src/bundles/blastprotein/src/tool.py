@@ -181,7 +181,7 @@ class BlastProteinTool(ToolInstance):
 
     def _run_and_close(self) -> None:
         self._run_blast_job()
-        self.delete
+        self.delete()
 
     def _on_num_sequences_changed(self, value) -> None:
         self._num_sequences = value
