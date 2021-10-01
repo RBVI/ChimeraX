@@ -183,6 +183,8 @@ class BlastProteinResults(ToolInstance):
         self._sequences = sequences
 
     def _format_table_title(self, title: str):
+        if title == 'e-value':
+            return 'E-Value'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
@@ -207,7 +209,7 @@ class BlastProteinResults(ToolInstance):
             for string in columns:
                 title = self._format_table_title(string)
                 self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-            self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
+            self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data, suppress_resize=True)
             else:
@@ -415,7 +417,7 @@ class BlastResultsWorker(QThread):
                     self.set_progress_maxval.emit(len(blast_results.parser.matches))
                     for n, m in enumerate(blast_results.parser.matches[1:]):
                         sid = n + 1
-                        hit = {"id":sid, "evalue":m.evalue, "score":m.score,
+                        hit = {"id":sid, "e-value":m.evalue, "score":m.score,
                                "description":m.description}
                         if m.match:
                             hit["name"] = m.match
