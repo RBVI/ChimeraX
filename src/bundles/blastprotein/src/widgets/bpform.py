@@ -17,16 +17,18 @@ class BlastProteinFormWidget(QWidget):
     def __init__(self, label, input_widget, parent):
         super().__init__()
         layout = QFormLayout()
-        self.__label = QLabel(label)
-        self.__input_widget = input_widget(parent)
-        layout.setWidget(0, QFormLayout.LabelRole, self.__label)
-        layout.setWidget(0, QFormLayout.FieldRole, self.__input_widget)
+        self._label = QLabel(label)
+        self._input_widget = input_widget(parent)
+        layout.setWidget(0, QFormLayout.LabelRole, self._label)
+        layout.setWidget(0, QFormLayout.FieldRole, self._input_widget)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         self.setLayout(layout)
 
+    @property
     def input_widget(self) -> QWidget:
-        return self.__input_widget
+        return self._input_widget
 
+    @property
     def label(self) -> QLabel:
-        return self.__label
+        return self._label

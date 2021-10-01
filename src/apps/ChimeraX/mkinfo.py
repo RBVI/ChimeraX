@@ -22,7 +22,7 @@ import os
 import sys
 import plistlib
 import datetime
-from distlib.version import NormalizedVersion as Version
+from packaging.version import Version
 from chimerax.core import configfile
 
 configfile.only_use_defaults = True
@@ -130,7 +130,7 @@ else:
     raise SystemExit(1)
 
 version = line.split()[2]
-epoch, release, *_ = Version(version).parse(version)
+release = Version(version).release
 if len(release) == 1:
     release += (0,)
 if len(release) < 4:

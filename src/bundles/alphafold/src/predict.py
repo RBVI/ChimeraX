@@ -143,16 +143,18 @@ class AlphaFoldRun(ToolInstance):
         models, msg = open_pdb(self.session, path)
         from .match import _set_alphafold_model_attributes
         _set_alphafold_model_attributes(models)
-        self.session.models.add(models)
 
         from chimerax.atomic import Chain
         if isinstance(self._sequence, Chain):
             chain = self._sequence
-            from .fetch import _color_by_confidence
+            from .fetch import _color_by_confidence, _log_chain_info
             from .match import _align_to_chain
             for m in models:
                 _color_by_confidence(m)
                 _align_to_chain(m, chain)
+            _log_chain_info(models, chain.name)
+
+        self.session.models.add(models)
     
     def _unzip_results(self, *args, **kw):
         from os.path import join, exists
@@ -170,7 +172,7 @@ class AlphaFoldRun(ToolInstance):
 #
 def _is_alphafold_available(session):
     '''Check if the AlphaFold web service has been discontinued or is down.'''
-    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_v1.html'
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_v2.html'
     import requests
     try:
         r = requests.get(url)

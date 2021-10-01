@@ -13,14 +13,16 @@
 
 from chimerax.core.commands import CmdDesc, AtomSpecArg
 from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or
+from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
 from .databases import AvailableDBs, AvailableMatrices
+from .job import BlastProteinJob
+from .results import find_match
 
 # Use camel-case variable names for displaying keywords in help/usage
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
                  matrix="BLOSUM62", maxSeqs=500, log=None, *, name=None):
-    from .job import BlastProteinJob
     if isinstance(atoms, tuple):
         # Must be alignment:seq
         alignment, chain = atoms
@@ -35,11 +37,9 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
         results = atoms.evaluate(session)
         chains = results.atoms.residues.unique_chains
         if len(chains) == 0:
-            from chimerax.core.errors import UserError
-            raise UserError("no chain was specified")
+            raise UserError("Cannot start BLAST job: no chain was specified or no model is open.")
         elif len(chains) > 1:
-            from chimerax.core.errors import UserError
-            raise UserError("please choose exactly one chain (%d were specified)" %
+            raise UserError("Cannot start BLAST job: please choose exactly one chain (%d were specified)" %
                             len(chains))
         str_chain = chain = chains[0]
     if not str_chain:
@@ -65,10 +65,3 @@ blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                  ("name", StringArg),
                                  ],
                         synopsis="Search PDB/NR using BLAST")
-
-
-def blastprotein_mav(session, name=None, selected=True):
-    from . import tool
-    tool.find_match(name).show_mav_cmd(selected)
-blastprotein_mav_desc = CmdDesc(optional=[("name", StringArg)],
-                                keyword=[("selected", BoolArg)])

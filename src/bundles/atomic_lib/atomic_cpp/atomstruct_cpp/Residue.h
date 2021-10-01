@@ -90,9 +90,7 @@ public:
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
-    bool  connects_to(const Residue* other_res) const {
-        return !bonds_between(other_res, true).empty();
-    }
+    bool  connects_to(const Residue* other_res, bool check_pseudobonds=false) const;
     void  clean_alt_locs();
     int  count_atom(const AtomName&) const;
     void  delete_alt_loc(char al);

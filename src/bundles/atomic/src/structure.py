@@ -1275,10 +1275,18 @@ class AtomicStructure(Structure):
             lighting = {'preset': 'full'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
                 lighting['multi_shadow'] = MULTI_SHADOW
-            from .colors import chain_colors, element_colors
+            from .colors import chain_colors, element_colors, polymer_colors
             residues = self.residues
-            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
-            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            nseq = len(residues.unique_sequences[0])
+            if nseq <= 2:
+                # Only one polymer sequence.  Sequence 0 is for non-polymers.
+                rcolors = chain_colors(residues.chain_ids)
+                acolors = chain_colors(atoms.residues.chain_ids)
+            else:
+                rcolors = polymer_colors(residues)[0]
+                acolors = polymer_colors(atoms.residues)[0]
+            residues.ribbon_colors = residues.ring_colors = rcolors
+            atoms.colors = acolors
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
             ligand_atoms.draw_modes = Atom.STICK_STYLE

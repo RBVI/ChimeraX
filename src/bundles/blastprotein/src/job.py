@@ -19,6 +19,7 @@ from . import tool
 from .datatypes import BlastParams
 from .databases import Database, get_database
 from .results import BlastProteinResults
+from .utils import make_instance_name
 
 class BlastProteinJob(CxServicesJob):
     QUERY_FILENAME = "query.fa"
@@ -26,6 +27,10 @@ class BlastProteinJob(CxServicesJob):
 
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
+        if 'tool_inst_name' not in kw:
+            kw['tool_inst_name'] = make_instance_name()
+        if kw['tool_inst_name'] is None:
+            kw['tool_inst_name'] = make_instance_name()
         self.setup(seq, atomspec, **kw)
         params = {"db": self.database,
                   "evalue": str(self.cutoff),
@@ -51,7 +56,6 @@ class BlastProteinJob(CxServicesJob):
         self.max_seqs = max_seqs                          # int
         self.log = log
         self.tool_inst_name = tool_inst_name
-        self.tool = tool.find(tool_inst_name)
 
     def _seq_to_fasta(self, seq, title):
         data = ["> %s\n" % title]

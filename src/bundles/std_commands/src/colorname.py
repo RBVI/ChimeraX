@@ -61,15 +61,23 @@ def show_color(session, name):
         return ((x * 10000) % 10000) / 100
     red, green, blue, alpha = color.rgba
     if alpha >= 1:
+        if red == green == blue:
+            text = "gray(%.3g%%) hex: %s" % (percent(red), color.hex())
+        else:
+            text = "rgb(%.3g%%, %.3g%%, %.3g%%) hex: %s" % (
+                percent(red), percent(green), percent(blue), color.hex())
+    else:
+        text = "rgba(%.3g%%, %.3g%%, %.3g%%, %.3g%%) hex: %s" % (
+            percent(red), percent(green), percent(blue), percent(alpha), color.hex_with_alpha())
+
+    if alpha >= 1:
         transmit = 'opaque'
     elif alpha <= 0:
         transmit = '100% transparent'
     else:
         transmit = '%.4g%% transparent' % percent(1 - alpha)
 
-    msg = 'Color %r is %s, %.4g%% red, %.4g%% green, and %.4g%% blue' % (
-        real_name, transmit, percent(red), percent(green),
-        percent(blue))
+    msg = 'Color %r is %s: %s' % (real_name, transmit, text)
     if session is None:
         print(msg)
         return

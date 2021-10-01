@@ -211,6 +211,7 @@ class ItemTable(QTableView):
             from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
+                widget, settings, defaults, fallback = self._column_control_info[:4]
                 from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
@@ -291,7 +292,12 @@ class ItemTable(QTableView):
         if display is None:
             if self._column_control_info:
                 widget, settings, defaults, fallback = self._column_control_info[:4]
-                display = getattr(settings, self._settings_attr).get(title, fallback)
+                settings_valid = hasattr(settings, self._settings_attr) \
+                    and getattr(settings, self._settings_attr)
+                if settings_valid:
+                    display = getattr(settings, self._settings_attr).get(title, fallback)
+                else:
+                    display = defaults.get(title, fallback)
             else:
                 display = True
         if header_justification is None:
@@ -387,7 +393,7 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
-    def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None):
+    def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None, suppress_resize=False):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = NumSortingProxyModel()
@@ -413,7 +419,11 @@ class ItemTable(QTableView):
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
-        self.resizeColumnsToContents()
+        for col in self._columns:
+            if not col.display:
+                self.hideColumn(self._columns.index(col))
+        if not suppress_resize:
+            self.resizeColumnsToContents()
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
@@ -440,6 +450,8 @@ class ItemTable(QTableView):
     def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
         changes = column._update(**kw)
+        if display_change and self._column_control_info:
+            self._checkables[column.title].setChecked(kw['display'])
         if not self._table_model:
             return
         if display_change:
@@ -447,8 +459,6 @@ class ItemTable(QTableView):
                 self.showColumn(self._columns.index(column))
             else:
                 self.hideColumn(self._columns.index(column))
-            if self._column_control_info:
-                self._checkables[column.title].setChecked(kw['display'])
         if not changes:
             return
         top_left = self._table_model.index(0, self._columns.index(column))
@@ -515,6 +525,10 @@ class ItemTable(QTableView):
         settings = self._column_control_info[1]
         setattr(settings, self._settings_attr, shown)
         settings.save(setting=self._settings_attr)
+
+    def _hide_all_columns(self):
+        for col in self._columns:
+            self.update_column(col, display=False)
 
     def _show_all_columns(self):
         for col in self._columns:

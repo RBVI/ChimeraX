@@ -34,6 +34,8 @@ different sets of items:
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
 &ndash; atomic models,
@@ -130,29 +132,30 @@ The <a name="colorname"><i>colorname</i></a> can be:
 <li>a <a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 &ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
 &ndash; color other <a href="#target">targets</a> in atomic models
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
-<li><a name="bynucleotide"><b>bynucleotide</b></a> &ndash; a built-in scheme 
-<a href="colortables.html#residue">by nucleotide base type</a>
+<li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
+&ndash; a built-in scheme 
+<a href="colortables.html#residue">by nucleotide base type</a>
 <li><a name="bychain"><b>bychain</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
 also used for the initial colors of per-chain
 <a href="surface.html">molecular surfaces</a>
+<li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-<li><a name="bymodel"><b>bymodel</b></a>
-&ndash; the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="bypolymer"><b>bypolymer</b></a> or <b>byidentity</b>
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -160,6 +163,9 @@ so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
+<li><a name="bymodel"><b>bymodel</b></a>
+&ndash; the <a href="colortables.html#autocolors">initial colors</a> 
+of atomic models
 <li><a name="random"><b>random</b></a>
 &ndash; random color per atom and residue
 </ul>

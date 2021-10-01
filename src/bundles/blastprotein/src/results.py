@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from string import capwords
-from typing import Dict
+from typing import Dict, List
 
-from Qt.QtCore import QThread, Signal, Slot
+from Qt.QtCore import Qt, QThread, Signal, Slot
 
 from Qt.QtWidgets import QWidget, QVBoxLayout, QAbstractItemView
 from Qt.QtWidgets import QPushButton, QAction, QLabel
@@ -32,6 +32,21 @@ from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
 _settings = None
 
+_instance_map = {} # Map of blastprotein results names to results instances
+
+def find_match(instance_name):
+    if instance_name is None:
+        if len(_instance_map) == 1:
+            return _instance_map.values()[0]
+        if len(_instance_map) > 1:
+            raise UserError("no name specified with multiple active blastprotein instances")
+        else:
+            raise UserError("no active blastprotein instance")
+    try:
+        return _instance_map[instance_name]
+    except KeyError:
+        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
+
 class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
@@ -39,8 +54,8 @@ class BlastProteinResults(ToolInstance):
     help = "help:/user/tools/blastprotein.html"
 
     def __init__(self, session, tool_name, **kw):
-        self.tool_name = tool_name
         self._instance_name = tool_name
+        _instance_map[self._instance_name] = self
         self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
         # TODO When and how does this need to be incremented?
         self._viewer_index = 1
@@ -53,6 +68,12 @@ class BlastProteinResults(ToolInstance):
         super().__init__(session, self.display_name, **kw)
         self._build_ui()
 
+    def _make_settings_dict(self, db):
+        defaults = {
+            self._format_table_title(title): True for title in db.default_cols
+        }
+        return defaults
+
     def _build_ui(self):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -64,16 +85,21 @@ class BlastProteinResults(ToolInstance):
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
         #self.align_button = QPushButton("Load and Align Selection", parent)
-        param_str = ", ".join([": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()])
+
+        param_str = ", ".join(
+            [": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()]
+        )
         self.param_report = QLabel("".join(["Query Parameters: {", param_str, "}"]), parent)
         self.control_widget.setVisible(False)
-        self.table = BlastResultsTable(self.control_widget, _settings, parent)
+
+        default_cols = self._make_settings_dict(AvailableDBsDict[self.params.database])
+        self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
 
         self.progress_bar = LabelledProgressBar(parent)
 
-        self.main_layout.addWidget(self.control_widget)
         self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
+        self.main_layout.addWidget(self.control_widget)
         self.main_layout.addWidget(self.progress_bar)
 
         if not self._from_restore:
@@ -116,7 +142,7 @@ class BlastProteinResults(ToolInstance):
         self.session.logger.info(params)
 
     #
-    # Worker->Logger Callbacks
+    # Worker Callbacks
     #
     def parsing_results(self):
         self.session.logger.info("Parsing BLAST results.")
@@ -127,9 +153,6 @@ class BlastProteinResults(ToolInstance):
     def job_failed(self, error):
         raise UserError("BlastProtein failed: %s" % error)
 
-    #
-    # Worker->Progress Bar Callbacks
-    #
     def _increment_progress_bar_results(self):
         self._increment_progress_bar("Results")
 
@@ -159,42 +182,43 @@ class BlastProteinResults(ToolInstance):
     def _on_report_sequences_signal(self, sequences):
         self._sequences = sequences
 
+    def _format_table_title(self, title: str):
+        new_title = capwords(" ".join(title.split('_')))
+        new_title = new_title.replace('Id', 'ID')
+        return new_title
+
     def _on_report_hits_signal(self, items):
         self._hits = items
+        db = AvailableDBsDict[self.params.database]
         try:
-            columns = list(items[0].keys())[::-1]
+            # Sort the columns so that defaults come first
+            columns = list(items[0].keys())
+            columns = list(filter(lambda x: x not in db.excluded_cols, columns))
+            nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
+            columns = list(db.default_cols)
+            columns.extend(nondefault_cols)
         except IndexError:
             if not self._from_restore:
                 self.session.logger.warning("BlastProtein returned no results")
             self._unload_progress_bar()
         else:
-            db = AvailableDBsDict[self.params.database]
-            for string in columns:
-                kwdict = {}
-                # Remove columns we don't want
-                if string in db.excluded_cols:
-                    continue
-                if string not in db.default_cols:
-                    kwdict['display'] = False
-                # Decide how the title should be formatted
-                kwdict['header_justification'] = 'center'
-                # Format the title for display
-                newstr = string
-                newstr = capwords(" ".join(newstr.split('_')))
-                newstr = newstr.replace('Id', 'ID')
-
-                self.table.add_column(newstr, data_fetch=lambda x, i=string: x[i], **kwdict)
             # Convert dicts to objects (they're hashable)
             self.table.data = [BlastResultsRow(item) for item in items]
+            for string in columns:
+                title = self._format_table_title(string)
+                self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
+            self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
             if self._from_restore:
-                self.table.launch(session_info=self._table_session_data)
+                self.table.launch(session_info=self._table_session_data, suppress_resize=True)
             else:
-                self.table.launch()
+                self.table.launch(suppress_resize=True)
+            self.table.resizeColumns(max_size = 100) # pixels
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
     def _set_progress_bar_progress_text(self, itype, curr_value):
-        self._update_progress_bar_text(" ".join(["Processing", itype, '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)]))
+        prog_text = '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)
+        self._update_progress_bar_text(" ".join(["Processing", itype, prog_text]))
 
     def _update_progress_bar_text(self, text):
         self.progress_bar.text = text
@@ -216,6 +240,8 @@ class BlastProteinResults(ToolInstance):
             models, chain_id = db.load_model(
                 self.session, code, self.params.chain
             )
+            if not models:
+                return
             if not self.params.chain:
                 run(self.session, "select clear")
             else:
@@ -272,6 +298,9 @@ class BlastProteinResults(ToolInstance):
         if self._instance_name:
             inst_name = self._instance_name
         name = "%s [%d]" % (inst_name, self._viewer_index)
+        # Ensure that the next time the user launches the same command that a
+        # unique index gets shown.
+        self._viewer_index += 1
         self.session.alignments.new_alignment(seqs, name)
 
 
@@ -316,7 +345,7 @@ class BlastProteinResults(ToolInstance):
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
-            , 'tool_name': self.tool_name
+            , 'tool_name': self._instance_name
             , 'results': self._hits
             , 'sequences': [(key
                            , self._sequences[key][0]
@@ -382,6 +411,7 @@ class BlastResultsWorker(QThread):
                         name = query_match.name
                     self._sequences[0] = (name, query_match.sequence)
                     match_chains = {}
+                    sequence_only_hits = {}
                     self.set_progress_maxval.emit(len(blast_results.parser.matches))
                     for n, m in enumerate(blast_results.parser.matches[1:]):
                         sid = n + 1
@@ -391,7 +421,8 @@ class BlastResultsWorker(QThread):
                             hit["name"] = m.match
                             match_chains[m.match] = hit
                         else:
-                            hit = blast_results.add_url(hit, m)
+                            hit["name"] = m.name
+                            sequence_only_hits[m.name] = hit
                         hits.append(hit)
                         self._sequences[sid] = SeqId(hit["name"], m.sequence)
                         self.processed_result.emit()
@@ -399,7 +430,7 @@ class BlastResultsWorker(QThread):
                     # hits that are in match_chain's hit dictionary, but that's not
                     # immediately clear.
                     self.waiting_for_info.emit("Postprocessing Hits")
-                    blast_results.add_info(self.session, match_chains)
+                    blast_results.add_info(self.session, match_chains, sequence_only_hits)
                     self.finished_processing_hits.emit()
                 self._hits = hits
                 self.report_hits.emit(self._hits)
