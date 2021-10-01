@@ -393,7 +393,7 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
-    def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None):
+    def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None, suppress_resize=False):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = NumSortingProxyModel()
@@ -422,7 +422,8 @@ class ItemTable(QTableView):
         for col in self._columns:
             if not col.display:
                 self.hideColumn(self._columns.index(col))
-        self.resizeColumnsToContents()
+        if not suppress_resize:
+            self.resizeColumnsToContents()
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
