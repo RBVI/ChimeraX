@@ -119,7 +119,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['sequences'].input_widget.valueChanged.connect(self._on_num_sequences_changed)
         self.menu_widgets['cutoff'].input_widget.valueChanged.connect(self._on_cutoff_value_changed)
 
-        self.menu_widgets['help'].clicked.connect(lambda *, run=run, ses=self.session: run(ses, "help blastprotein"))
+        self.menu_widgets['help'].clicked.connect(lambda *, run=run, ses=self.session: run(ses, " ".join(["open", self.help])))
         self.menu_widgets['apply'].clicked.connect(self._run_blast_job)
         self.menu_widgets['reset'].clicked.connect(self._reset_options)
         self.menu_widgets['close'].clicked.connect(self.delete)
@@ -181,7 +181,7 @@ class BlastProteinTool(ToolInstance):
 
     def _run_and_close(self) -> None:
         self._run_blast_job()
-        self.delete
+        self.delete()
 
     def _on_num_sequences_changed(self, value) -> None:
         self._num_sequences = value
