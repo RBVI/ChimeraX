@@ -51,7 +51,7 @@ class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html"
+    help = "help:/user/tools/blastprotein.html#results"
 
     def __init__(self, session, tool_name, **kw):
         self._instance_name = tool_name
