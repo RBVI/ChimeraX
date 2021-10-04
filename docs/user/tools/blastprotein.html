@@ -95,7 +95,11 @@ only hits with
 no larger than the specified value will be returned
 </ul>
 <p>
-Clicking the <b>BLAST</b> button initiates the search.
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+runs the search, whereas <b>Close</b> dismisses the dialog without 
+starting a search. <b>Help</b> opens this page in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>, and
+<b>Reset</b> restores the parameters to factory default settings.
 </p>
 
 <a name="results"></a>
@@ -119,6 +123,7 @@ information are shown in the table of hits, with buttons:
 initially displayed columns
 <li><b>Set Default</b> &ndash; save the currently shown set as a 
 user <a href="../preferences.html#other">preference</a>
+<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
 </ul>
 <p>
 Clicking a column header sorts by the values in that column.
@@ -141,7 +146,7 @@ can be used to fetch and superimpose all of the corresponding structures, or to
 show their <a href="#notes">multiple sequence alignment</a> with the query
 in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </p><p>
-Some columns are available regardless of which database is searched:
+Some columns are available no matter which database is searched:
 </p>
 <ul>
 <li><b>Rank</b> &ndash; 
@@ -161,10 +166,12 @@ target="_blank">NCBI Protein</a> database -->
 <li><b>E-Value</b> &ndash; significance of the hit; BLAST
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">Expect value</a>
 <li><b>Score</b> &ndash; alignment score
+<li><b>Description</b> 
+(or for AlphaFold, separate <b>Title</b> and <b>Species</b> columns)
+&ndash; sequence title and source species
+<!--
 <li><b>Title</b> &ndash; a brief description of the sequence
 <li><b>Species</b> &ndash; source organism
-<!--
-<li><b>Description</b> &ndash; a brief description of the sequence
 <li><b>URL</b> &ndash; URL used by ChimeraX for the <b>Name</b> click action
 -->
 </ul>
@@ -252,5 +259,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2021</address>
+October 2021</address>
 </body></html>
