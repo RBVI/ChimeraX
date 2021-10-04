@@ -118,9 +118,9 @@ endif
 # keep in alphabetical order, dependencies go below
 ifeq ($(OSARCH),DarwinArm64)
 # Have not ported ambertools, openmm, pytables to Mac arm64, July 2021
-SUBDIRS	+= cxservices imex pips PyQt Python qtshim
+SUBDIRS	+= imex pips PyQt Python qtshim
 else
-SUBDIRS	+= ambertools cxservices imex openmm pips PyQt pytables Python qtshim
+SUBDIRS	+= ambertools imex openmm pips PyQt pytables Python qtshim
 endif
 
 
@@ -186,9 +186,6 @@ endif
 # Please keep dependencies in alphabetical order.
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
-
-cxservices.install: pips.install
-cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
 #lineprofiler.install: pips.install
