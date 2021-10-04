@@ -66,3 +66,4 @@ target/
 # Files that get created on-demand
 swagger-codegen-cli*.jar
 cxservices.config
+cxservices.yml

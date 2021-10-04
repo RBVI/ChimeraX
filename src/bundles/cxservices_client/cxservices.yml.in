@@ -73,14 +73,11 @@ externalDocs:
 
 
 servers:
-    - url: http://webservices.rbvi.ucsf.edu/cxservices/api/v1/
-      description: Production server
-    # - url: http://localhost:8000/
-    #   description: Local test server
-
+    - url: SERVER_URL
+      description: SERVER_DESC
 
 paths:
-  /chimerax/job_id:
+  /chimerax/job/{job_id}:
     get:
       operationId: job_id
       summary: Return a new job identifier
