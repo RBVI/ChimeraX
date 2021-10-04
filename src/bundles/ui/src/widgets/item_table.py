@@ -219,7 +219,7 @@ class ItemTable(QTableView):
                 self._col_checkbox_container = QWidget(parent=widget)
                 self._col_checkbox_layout = QGridLayout()
                 self._col_checkbox_layout.setContentsMargins(0,0,0,0)
-                self._col_checkbox_layout.setSpacing(0)
+                self._col_checkbox_layout.setSpacing(5)
                 self._col_checkbox_container.setLayout(self._col_checkbox_layout)
                 main_layout.addWidget(self._col_checkbox_container)
                 self._col_checkboxes = []
@@ -239,7 +239,8 @@ class ItemTable(QTableView):
                     bbox.addButton("Default", qbbox.ActionRole).clicked.connect(self._show_default)
                     bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
                     bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
-                    bbox.addButton("Toggle Menu", qbbox.ActionRole).clicked.connect(self._toggle_columns_checkboxes)
+                    bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
+                        self._toggle_columns_checkboxes)
         self._highlighted = set()
 
 
