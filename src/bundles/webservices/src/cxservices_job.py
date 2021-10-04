@@ -22,8 +22,8 @@ import time
 from chimerax.core.tasks import Job
 from chimerax.core.tasks import JobError, JobLaunchError, JobMonitorError
 
-from cxservices.api import default_api
-from cxservices.rest import ApiException
+from chimerax.cxservices_client.api import default_api
+from chimerax.cxservices_client.rest import ApiException
 
 class CxServicesJob(Job):
     """Launch a ChimeraX REST web service request and monitor its status.
@@ -33,7 +33,7 @@ class CxServicesJob(Job):
 
     Attributes
     ----------
-    api : instance of cxservices.api.default_api.DefaultApi
+    api : instance of chimerax.cxservices_client.api.default_api.DefaultApi
         REST API instance for contacting server
     job_id : str
         ChimeraX REST job id assigned by server
