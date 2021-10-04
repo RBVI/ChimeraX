@@ -20,8 +20,10 @@ the ChimeraX REST server and monitors its status.
 """
 import time
 from chimerax.core.tasks import Job
-from cxservices.rest import ApiException
+from chimerax.core.tasks import JobError, JobLaunchError, JobMonitorError
 
+from cxservices.api import default_api
+from cxservices.rest import ApiException
 
 class CxServicesJob(Job):
     """Launch a ChimeraX REST web service request and monitor its status.
@@ -57,9 +59,7 @@ class CxServicesJob(Job):
     def start(self, *args, input_file_map=None, **kw):
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
-        from cxservices.api import default_api
         self.api = default_api.DefaultApi()
-        self.job_id = self.api.job_id().job_id
         if input_file_map is not None:
             for name, value_type, value in input_file_map:
                 self._post_file(name, value_type, value)
@@ -89,21 +89,23 @@ class CxServicesJob(Job):
 
         """
         if self.launch_time is not None:
-            from chimerax.core.tasks import JobError
             raise JobError("REST job has already been launched")
         self.launch_time = time.time()
 
         # Launch job
         try:
-            result = self.api.submit(params, self.job_id, service_name)
+            result = self.api.submit(params, service_name)
         except ApiException as e:
-            from chimerax.core.tasks import JobLaunchError
             raise JobLaunchError(str(e))
         else:
             def _notify(logger=self.session.logger, job_id=self.job_id):
                 logger.info("ChimeraX REST job id: %s" % job_id)
             self.session.ui.thread_safe(_notify)
             self.monitor()
+
+    # TODO: Override Job.next_check in core/tasks.py
+    #def next_check(self):
+    #    ...
 
     def running(self):
         """Return whether background process is still running.
@@ -121,7 +123,6 @@ class CxServicesJob(Job):
         try:
             status = self.api.status(self.job_id).status
         except ApiException as e:
-            from chimerax.core.tasks import JobMonitorError
             raise JobMonitorError(str(e))
         self._status = status
         if status in ["complete","failed","deleted"] and self.end_time is None:
@@ -129,7 +130,6 @@ class CxServicesJob(Job):
 
     def exited_normally(self):
         """Return whether background process terminated normally.
-
         """
         return self._status == "complete"
 
@@ -155,7 +155,6 @@ class CxServicesJob(Job):
             if a in data:
                 setattr(j, a, data[a])
         if j.end_time is None:
-            from cxservices.api import default_api
             j.api = default_api.DefaultApi()
         return j
 
@@ -203,7 +202,7 @@ class CxServicesJob(Job):
         return self.get_file("_stdout")
 
     def get_stderr(self):
-        return self.get_file("_stdout")
+        return self.get_file("_stderr")
 
     def get_outputs(self, refresh=False):
         """Return dictionary of output files and their URLs.
