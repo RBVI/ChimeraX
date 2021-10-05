@@ -198,6 +198,7 @@ class ItemTable(QTableView):
             If None, the number will be determined automatically (approx. square root of number of check
             buttons). This field comes before 'show global buttons'.
         """
+        super().__init__(parent)
         self._table_model = None
         self._columns = []
         self._data = []
@@ -215,18 +216,22 @@ class ItemTable(QTableView):
                 from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
+                self._col_checkbox_container = QWidget(parent=widget)
                 self._col_checkbox_layout = QGridLayout()
                 self._col_checkbox_layout.setContentsMargins(0,0,0,0)
-                self._col_checkbox_layout.setSpacing(0)
-                main_layout.addLayout(self._col_checkbox_layout)
+                self._col_checkbox_layout.setSpacing(5)
+                self._col_checkbox_container.setLayout(self._col_checkbox_layout)
+                main_layout.addWidget(self._col_checkbox_container)
                 self._col_checkboxes = []
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
-                    buttons_widget = QWidget()
-                    main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
+                    self._col_button_container = QWidget(parent=widget)
+                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
+                    toggle_callback = toggle_vis(self._col_button_container)
+                    main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
-                    buttons_widget.setLayout(buttons_layout)
+                    self._col_button_container.setLayout(buttons_layout)
                     buttons_layout.addWidget(QLabel("Show columns"))
                     bbox = qbbox()
                     buttons_layout.addWidget(bbox)
@@ -234,8 +239,13 @@ class ItemTable(QTableView):
                     bbox.addButton("Default", qbbox.ActionRole).clicked.connect(self._show_default)
                     bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
                     bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
+                    bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
+                        self._toggle_columns_checkboxes)
         self._highlighted = set()
-        super().__init__(parent)
+
+
+    def _toggle_columns_checkboxes(self):
+        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,

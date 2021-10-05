@@ -39,10 +39,10 @@ class BlastResultsTable(ItemTable):
                 control_widget
                 , settings
                 , default_cols
-                , False          # fallback default for column display
-                , None           # display callback
-                , None           # number of checkbox columns
-                , True          # Whether to show global buttons
+                , False        # fallback default for column display
+                , None         # display callback
+                , None         # number of checkbox columns
+                , True         # Whether to show global buttons
             )
             , parent=parent)
         self.doubleClicked.connect(self.doubleclicked)

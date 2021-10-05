@@ -46,7 +46,7 @@ class Database(ABC):
     parser: dbparsers.Parser = field(init=False)
     fetchable_col: str = ""
     name: str = ""
-    default_cols: tuple = ("name", "evalue", "score", "description")
+    default_cols: tuple = ("name", "e-value", "score", "description")
     # In BlastProteinWorker._process_results each hit's dict is created
     # and assigned an ID number, but we don't want to display it. It's
     # also used in BlastProteinResults._show_mav to retrieve selections.
@@ -76,7 +76,7 @@ class NCBIDB(Database):
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    default_cols: tuple = ("name", "evalue", "score", "description", "resolution", "ligand_symbols")
+    default_cols: tuple = ("name", "e-value", "score", "title", "resolution", "ligand_symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -97,21 +97,26 @@ class NCBIDB(Database):
             models = [models]
         return models, chain_id
 
+    @staticmethod 
+    def format_desc(desc):
+        species_range = slice(desc.rindex('['),desc.rindex(']'))
+        return desc[species_range.start+1:species_range.stop], desc[:species_range.start]
+
     @staticmethod
     def add_info(session, matches, sequences):
-        #_pdb_filter = lambda x: x.find('_') >= 0
-        # chain_ids = list(filter(_pdb_filter, matches.keys()))
-        chain_ids = matches.keys()
-        # non_pdb_entries = list(filterfalse(_pdb_filter, matches.keys()))
+        chain_ids = list(matches.keys())
         data = fetch_pdb_info(session, chain_ids)
         for chain_id, hit in matches.items():
             for k, v in data[chain_id].items():
                 if isinstance(v, list):
                     v = ", ".join([str(s) for s in v])
                 hit[k] = v
+            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            del hit["description"]
         for hit in sequences.values():
             hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
-
+            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            del hit["description"]
 
 @dataclass
 class PDB(NCBIDB):
@@ -132,7 +137,7 @@ class AlphaFoldDB(Database):
     fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
-    default_cols: tuple = ("name", "evalue", "score", "title", "species")
+    default_cols: tuple = ("name", "e-value", "score", "title", "species")
     excluded_cols: tuple = ("id", "url", "sequence_id")
 
     @staticmethod
