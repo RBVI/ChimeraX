@@ -93,8 +93,7 @@ def actual_version(version, build_type, daytime_number):
     if build_type == 'production':
         pass
     elif build_type == 'candidate':
-        # version = '%src%s' % (version, daytime_number)
-        pass
+        version = '%src%s' % (version, daytime_number)
     else:
         version = '%s.dev%s' % (version, daytime_number)
     return version
