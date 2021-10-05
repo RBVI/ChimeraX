@@ -131,8 +131,8 @@ class BlastProteinResults(ToolInstance):
 
 
     def fill_context_menu(self, menu, x, y):
-        seq_action = QAction("Load and Align Selections", menu)
-        seq_view_action = QAction("Show Selections in Sequence Viewer", menu)
+        seq_action = QAction("Load Structures", menu)
+        seq_view_action = QAction("Show Sequence Alignment", menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
         menu.addAction(seq_action)
