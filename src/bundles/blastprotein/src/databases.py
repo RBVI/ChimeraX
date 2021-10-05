@@ -76,7 +76,7 @@ class NCBIDB(Database):
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    default_cols: tuple = ("name", "e-value", "score", "description", "resolution", "ligand_symbols")
+    default_cols: tuple = ("name", "e-value", "score", "title", "resolution", "ligand_symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -97,6 +97,11 @@ class NCBIDB(Database):
             models = [models]
         return models, chain_id
 
+    @staticmethod 
+    def format_desc(desc):
+        species_range = slice(desc.rindex('['),desc.rindex(']'))
+        return desc[species_range.start+1:species_range.stop], desc[:species_range.start]
+
     @staticmethod
     def add_info(session, matches, sequences):
         chain_ids = matches.keys()
@@ -106,9 +111,12 @@ class NCBIDB(Database):
                 if isinstance(v, list):
                     v = ", ".join([str(s) for s in v])
                 hit[k] = v
+            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            del hit["description"]
         for hit in sequences.values():
             hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
-
+            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            del hit["description"]
 
 @dataclass
 class PDB(NCBIDB):
