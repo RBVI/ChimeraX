@@ -104,7 +104,7 @@ class NCBIDB(Database):
 
     @staticmethod
     def add_info(session, matches, sequences):
-        chain_ids = matches.keys()
+        chain_ids = list(matches.keys())
         data = fetch_pdb_info(session, chain_ids)
         for chain_id, hit in matches.items():
             for k, v in data[chain_id].items():

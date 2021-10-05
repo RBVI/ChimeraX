@@ -393,8 +393,8 @@ class BlastResultsWorker(QThread):
             self.job_failed.emit(err)
         else:
             self.waiting_for_info.emit("Downloading Results")
-            results = self.job.get_file(self.job.RESULTS_FILENAME)
             try:
+                results = self.job.get_file(self.job.RESULTS_FILENAME)
                 self.parsing_results.emit()
                 self.job._database.parse("query", self.job.seq, results)
             except Exception as e:
@@ -403,37 +403,34 @@ class BlastResultsWorker(QThread):
             else:
                 self._ref_atomspec = self.job.atomspec
                 blast_results = self.job._database
-                hits = []
                 self._sequences = {}
-                if blast_results is not None:
-                    query_match = blast_results.parser.matches[0]
-                    if self._ref_atomspec:
-                        name = self._ref_atomspec
+                query_match = blast_results.parser.matches[0]
+                if self._ref_atomspec:
+                    name = self._ref_atomspec
+                else:
+                    name = query_match.name
+                self._sequences[0] = (name, query_match.sequence)
+                match_chains = {}
+                sequence_only_hits = {}
+                self.set_progress_maxval.emit(len(blast_results.parser.matches))
+                for n, m in enumerate(blast_results.parser.matches[1:]):
+                    sid = n + 1
+                    hit = {"id":sid, "e-value":m.evalue, "score":m.score,
+                           "description":m.description}
+                    if m.match:
+                        hit["name"] = m.match
+                        match_chains[m.match] = hit
                     else:
-                        name = query_match.name
-                    self._sequences[0] = (name, query_match.sequence)
-                    match_chains = {}
-                    sequence_only_hits = {}
-                    self.set_progress_maxval.emit(len(blast_results.parser.matches))
-                    for n, m in enumerate(blast_results.parser.matches[1:]):
-                        sid = n + 1
-                        hit = {"id":sid, "e-value":m.evalue, "score":m.score,
-                               "description":m.description}
-                        if m.match:
-                            hit["name"] = m.match
-                            match_chains[m.match] = hit
-                        else:
-                            hit["name"] = m.name
-                            sequence_only_hits[m.name] = hit
-                        hits.append(hit)
-                        self._sequences[sid] = SeqId(hit["name"], m.sequence)
-                        self.processed_result.emit()
-                    # TODO: Make what this function does more explicit. It works on the
-                    # hits that are in match_chain's hit dictionary, but that's not
-                    # immediately clear.
-                    self.waiting_for_info.emit("Postprocessing Hits")
-                    blast_results.add_info(self.session, match_chains, sequence_only_hits)
-                    self.finished_processing_hits.emit()
-                self._hits = hits
+                        hit["name"] = m.name
+                        sequence_only_hits[m.name] = hit
+                    self._sequences[sid] = SeqId(hit["name"], m.sequence)
+                    self.processed_result.emit()
+                # TODO: Make what this function does more explicit. It works on the
+                # hits that are in match_chain's hit dictionary, but that's not
+                # immediately clear.
+                self.waiting_for_info.emit("Postprocessing Hits")
+                blast_results.add_info(self.session, match_chains, sequence_only_hits)
+                self.finished_processing_hits.emit()
+                self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
                 self.report_hits.emit(self._hits)
                 self.report_sequences.emit(self._sequences)
