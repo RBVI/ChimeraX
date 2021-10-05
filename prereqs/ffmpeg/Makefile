@@ -4,6 +4,10 @@ include $(TOP)/mk/config.make
 
 FFMPEG_VERSION = 3.2.4
 
+ifneq ($(OS),Linux)
+USE_PREBUILT = 1
+endif
+
 FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS).exe
 
 # The following variables are from compiling from source code.
@@ -64,6 +68,7 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 endif
 
 
+ifdef USE_PREBUILT
 install: $(FFMPEG_PREBUILT)
 	$(RSYNC) $(FFMPEG_PREBUILT) $(bindir)/ffmpeg$(PROG_EXT)
 
@@ -76,6 +81,14 @@ $(FFMPEG_PREBUILT):
 
 upload_new_version:
 	$(RSYNC) $(FFMPEG_PREBUILT) $(PREREQS_UPLOAD)/ffmpeg
+
+else
+install: $(FFMPEG_EXE)
+	$(RSYNC) $(FFMPEG_EXE) $(bindir)/ffmpeg$(PROG_EXT)
+
+app-install: $(FFMPEG_EXE)
+	$(RSYNC) $(FFMPEG_EXE) $(app_bindir)/ffmpeg$(PROG_EXT)
+endif
 
 ifeq ($(OS),Windows)
 

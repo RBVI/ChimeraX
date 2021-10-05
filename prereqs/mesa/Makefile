@@ -11,7 +11,11 @@ MESA_ENV = PKG_CONFIG=$(bindir)/pkg-config
 endif
 
 ifdef CENTOS_DIST
+ifeq ($(shell expr $(CENTOS_DIST) '<=' 7),1)
 MESA_ENV += LLVM_CONFIG=mesa-private-llvm-config-64
+else
+$(error "Mesa is not needed for CentOS $(CENTOS)")
+endif
 endif
 
 PATCHES	= $(wildcard mesa-$(VERSION)-$(OS).patch)
@@ -47,7 +51,7 @@ install: $(SOURCE)
 	  $(MESA_ENV) ./configure $(CONFIG_OPTS) && $(MAKE) install
 
 app-install:;
-	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
+#	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE) source: $(DISTRIBUTION)
 	tar -xf $(DISTRIBUTION) -C $(tmpdir)
