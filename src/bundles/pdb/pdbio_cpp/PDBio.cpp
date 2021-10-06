@@ -1450,6 +1450,11 @@ link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
             " in residue ", res2->str());
         return;
     }
+    if (a1 == a2) {
+        logger::warning(py_logger, "LINK or SSBOND record from atom to itself: ", pdb_atom1,
+            " in residue ", res1->str());
+        return;
+    }
     if (!a1->connects_to(a2)) {
         as->new_bond(a1, a2);
     }

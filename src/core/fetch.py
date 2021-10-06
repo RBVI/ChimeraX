@@ -34,7 +34,7 @@ TIMEOUT_CACHE_VALID = 600  # 10 minutes in seconds
 def fetch_file(session, url, name, save_name, save_dir, *,
                uncompress=False, transmit_compressed=True,
                ignore_cache=False, check_certificates=True,
-               timeout=60):
+               timeout=60, error_status=True):
     """fetch file from URL
 
     :param session: a ChimeraX :py:class:`~chimerax.core.session.Session`
@@ -45,6 +45,8 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     :param uncompress: contents are compressed (False)
     :param ignore_cache: skip checking for cached file (False)
     :param check_certificates: confirm https certificate (True)
+    :param timeout: maximum time to wait for http response
+    :param error_status: whether to give a status message if fetching fails
     :returns: the filename
     :raises UserError: if unsuccessful
     """
@@ -84,8 +86,8 @@ def fetch_file(session, url, name, save_name, save_dir, *,
 
     try:
         retrieve_url(url, filename, uncompress=uncompress, transmit_compressed=transmit_compressed,
-                     logger=session.logger,
-                     check_certificates=check_certificates, name=name, timeout=timeout)
+                     logger=session.logger, check_certificates=check_certificates, name=name,
+                     timeout=timeout, error_status=error_status)
     except (URLError, EOFError) as err:
         raise UserError('Fetching url %s failed:\n%s' % (url, str(err)))
     return filename
@@ -110,7 +112,7 @@ def cache_directories():
 # -----------------------------------------------------------------------------
 #
 def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compressed=True,
-                 update=False, check_certificates=True, name=None, timeout=60):
+                 update=False, check_certificates=True, name=None, timeout=60, error_status=True):
     """Return requested URL in filename
 
     :param url: the URL to retrive
@@ -120,6 +122,8 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compr
     :param uncompress: if true, then uncompress the content
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
+    :param timeout: maximum time to wait for http response
+    :param error_status: whether to give a status message if fetching fails
     :returns: None if an existing file, otherwise the content type
     :raises urllib.request.URLError or EOFError: if unsuccessful
 
@@ -207,7 +211,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False, transmit_compr
     except Exception as err:
         if os.path.exists(filename):
             os.remove(filename)
-        if logger:
+        if logger and error_status:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         import socket
         if isinstance(err, URLError) and isinstance(err.reason, (TimeoutError, socket.timeout)):

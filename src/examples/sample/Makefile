@@ -64,7 +64,7 @@ endif
 ifeq ($(OS),Linux)
 #CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 # since the install path varies by Linux distro, just do this and hope...
-CHIMERAX_EXE = ChimeraX
+CHIMERAX_EXE = chimerax
 endif
 
 BUNDLE_BASE_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
