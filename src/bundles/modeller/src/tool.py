@@ -83,10 +83,10 @@ class ModellerLauncher(ToolInstance):
         panel.add_option("Basic", PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller license key</a>', key, None, attr_name="license_key", settings=license_settings, balloon=
             "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
         panel.add_option("Advanced", BooleanOption(
-            "Use fast/approximate mode (produces only one model)",
+            "Use fast/approximate mode",
             settings.fast, None, attr_name="fast", settings=settings, balloon=
-            "If enabled, use a fast approximate method to generate a single model.\n"
-            "Typically used to get a rough idea what the model will look like or\n"
+            "If enabled, use a fast approximate method to generate models.\n"
+            "Typically used to get a rough idea what the models will look like or\n"
             "to check that the alignment is reasonable."))
         if hasattr(settings, "het_preserve"):
             panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
