@@ -142,7 +142,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                         r.chain))
                     target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
-                    offset_i += len(r.chain)
+                    offset_i += len(chain_target_chars)
                     match_chains.append(r.chain)
                 #if r.chain == s.chains[-1]:
                 #    break
