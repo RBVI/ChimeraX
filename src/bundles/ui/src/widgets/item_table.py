@@ -547,7 +547,7 @@ class ItemTable(QTableView):
     def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
-            display = display_defaults.get(col.title, fallback)
+            display = getattr(settings, self._settings_attr, display_defaults).get(col.title, fallback)
             self.update_column(col, display=display)
 
     def _show_standard(self):
