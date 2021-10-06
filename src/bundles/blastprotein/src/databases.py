@@ -157,7 +157,6 @@ class AlphaFoldDB(Database):
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
-            uniprot_id = raw_desc.split(' ')[0].split('_')[0]
             matches[match]["title"] = hit_title
             matches[match]["species"] = AlphaFoldDB._get_attr(raw_desc, 'OS')
             matches[match]["taxonomic_id"] = AlphaFoldDB._get_attr(raw_desc, 'OX')
@@ -165,8 +164,6 @@ class AlphaFoldDB(Database):
             protein_existence = AlphaFoldDB._get_attr(raw_desc, 'PE')
             matches[match]["protein_existence"] = experimental_evidence[int(protein_existence)]
             matches[match]["sequence_version"] = AlphaFoldDB._get_attr(raw_desc, 'SV')
-            # Move UniProt ID to the correct column
-            matches[match]["chain_sequence_id"] = uniprot_id
             # At this point all useful information has been extracted from the description
             # column and formatted elsewhere.
             del matches[match]["description"]

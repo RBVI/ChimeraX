@@ -29,16 +29,26 @@ endif
 
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
-ifndef CENTOS_DIST
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '<' 18.04),1)
+NEED_MESA=1
 NEED_OSMESA=1
-else ifeq ($(CENTOS_DIST),7)
+endif
+endif
+ifdef CENTOS_DIST
+ifeq ($(shell expr $(CENTOS_DIST) '<' 8),1)
+NEED_MESA=1
 NEED_OSMESA=1
+endif
 endif
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 #NEED_EXPAT=1
 NEED_OPENSSL=1
 NEED_ZLIB=1
+#NEED_LLVM=1
+#NEED_MESA=1
+#NEED_OSMESA=1
 endif
 endif
 endif
@@ -201,6 +211,10 @@ openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install pkgconfig.install
 osmesa.app-install: Python.app-install
 osmesa.install: Python.install
+ifdef NEED_MESA
+osmesa.app-install: mesa.install
+osmesa.install: mesa.install
+endif
 pips.app-install: Python.app-install
 pips.install: Python.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
