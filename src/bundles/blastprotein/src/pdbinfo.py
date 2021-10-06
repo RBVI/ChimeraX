@@ -119,7 +119,7 @@ chain_attr_name_mapping = [
     ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
     ('species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
         ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
-    ('chain_sequence_id', True, ["rcsb_polymer_entity_container_identifiers",
+    ('uniprot', True, ["rcsb_polymer_entity_container_identifiers",
         "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
     ('chain_weight',  True, ['rcsb_polymer_entity', 'formula_weight'])
 ]
