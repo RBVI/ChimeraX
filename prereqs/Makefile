@@ -29,7 +29,7 @@ endif
 
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
-ifdef UBUNUT_DIST
+ifdef UBUNTU_DIST
 ifeq ($(shell expr $(UBUNTU_DIST) '<' 18.04),1)
 NEED_MESA=1
 NEED_OSMESA=1
