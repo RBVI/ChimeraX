@@ -68,9 +68,14 @@ class AtomProximityGUI(QWidget):
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
         settings_defaults = {}
         self.show_values = {}
+        from chimerax.core.colors import ColorValue
         for arg_name in arg_names:
             if not arg_name.startswith('show_') or 'show_' + arg_name in arg_names:
-                settings_defaults[arg_name] = frame_dict[arg_name]
+                if arg_name.endswith('color'):
+                    value = ColorValue(frame_dict[arg_name])
+                else:
+                    value = frame_dict[arg_name]
+                settings_defaults[arg_name] = value
             else:
                 self.show_values[arg_name[5:]] = frame_dict[arg_name]
         if settings_name is None:
