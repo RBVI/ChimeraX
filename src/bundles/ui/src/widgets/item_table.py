@@ -66,7 +66,10 @@ class QCxTableModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
-            return None
+            if role != Qt.DisplayRole:
+                return None
+            else:
+                return (section + 1) 
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
