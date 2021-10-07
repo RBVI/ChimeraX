@@ -99,8 +99,17 @@ class NCBIDB(Database):
 
     @staticmethod 
     def format_desc(desc):
-        species_range = slice(desc.rindex('['),desc.rindex(']'))
-        return desc[species_range.start+1:species_range.stop], desc[:species_range.start]
+        title = species = ""
+        try:
+            species_range = slice(desc.rindex('['),desc.rindex(']'))
+            title = desc[:species_range.start]
+            species = desc[species_range.start+1:species_range.stop]
+        except ValueError:
+            # There is no species information in this description field
+            title = desc
+            species = ""
+        finally:
+            return title, species
 
     @staticmethod
     def add_info(session, matches, sequences):
@@ -111,11 +120,11 @@ class NCBIDB(Database):
                 if isinstance(v, list):
                     v = ", ".join([str(s) for s in v])
                 hit[k] = v
-            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
             del hit["description"]
         for hit in sequences.values():
             hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
-            hit["species"], hit["title"] = NCBIDB.format_desc(hit["description"])
+            hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
             del hit["description"]
 
 @dataclass
