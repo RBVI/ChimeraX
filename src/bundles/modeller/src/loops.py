@@ -99,6 +99,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             if chain_id is None:
                 chain_id = r.chain_id
             elif chain_id != r.chain_id:
+                # Modeller apparently "keeps going" for water/het with the same chain ID,
+                # but "stops" for water/het in its own chain
+                if r.chain is None:
+                    break
                 template_chars.append('/')
                 target_chars.append('/')
                 chain_id = r.chain_id
