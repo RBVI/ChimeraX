@@ -192,8 +192,8 @@ class BlastProteinResults(ToolInstance):
     def _format_table_title(self, title: str):
         if title == 'e-value':
             return 'E-Value'
-        if title == 'uniprot':
-            return 'UniProt'
+        if title == 'uniprot_id':
+            return 'UniProt ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
