@@ -70,6 +70,7 @@ class Database(ABC):
     def parse(self, query, sequence, results):
         self.parser = self.parser_factory(query, sequence, results)
 
+
 @dataclass
 class NCBIDB(Database):
     name: str = ""

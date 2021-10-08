@@ -12,9 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 from typing import Optional, Union
+
 from Qt.QtCore import Signal
 from Qt.QtWidgets import QMenu, QWidget
-from chimerax.ui.widgets.item_table import ItemTable
+
+from chimerax.ui.widgets import ItemTable
 
 class BlastResultsRow:
     """Takes in and stores a dictionary. This class only exists to coerce Python into hashing a dictionary."""

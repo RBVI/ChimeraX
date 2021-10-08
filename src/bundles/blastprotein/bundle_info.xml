@@ -6,14 +6,10 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Search PDB/NR using BLAST</Synopsis>
-  <Description>Use RBVI web service to search the PDB or NR database
-using BLAST.  Results are shown in a tool when a graphical
+  <Synopsis>Search PDB/NR/AlphaFold using BLAST</Synopsis>
+  <Description>Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+databases using BLAST.  Results are shown in a tool when a graphical
 interface is available; otherwise, the results are logged.</Description>
-
-  <DataFiles>
-    <DataFile>gui.html</DataFile>
-  </DataFiles>
 
   <Categories>
     <Category name="Sequence"/>

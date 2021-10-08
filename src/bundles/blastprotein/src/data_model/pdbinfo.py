@@ -17,6 +17,10 @@
 # and ligands, publication date, literature reference, number of residues...
 #
 
+import json
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
+
 query_template = """{
   entries(entry_ids: [%s]) {
     rcsb_id
@@ -113,9 +117,6 @@ def fetch_pdb_info(session, entry_chain_list):
     # Can't just sub in a list, since Python uses single quotes around strings by default
     query = query_template % ",".join(['"%s"' % entry_chain.split('_')[0]
         for entry_chain in entry_chain_list])
-    from urllib.request import urlopen, Request
-    from urllib.error import URLError, HTTPError
-    import json
     try:
         req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
              "Content-Type": "application/graphql"
