@@ -199,6 +199,9 @@ class BlastProteinResults(ToolInstance):
         return new_title
 
     def _on_report_hits_signal(self, items):
+        items = sorted(items, key = lambda i: i['e-value'])
+        for index, item in enumerate(items):
+            item['hit_#'] = index
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
@@ -214,6 +217,7 @@ class BlastProteinResults(ToolInstance):
             self._unload_progress_bar()
         else:
             # Convert dicts to objects (they're hashable)
+
             self.table.data = [BlastResultsRow(item) for item in items]
             for string in columns:
                 title = self._format_table_title(string)
@@ -224,6 +228,7 @@ class BlastProteinResults(ToolInstance):
             else:
                 self.table.launch(suppress_resize=True)
             self.table.resizeColumns(max_size = 100) # pixels
+            self.table.verticalHeader().setVisible(False)
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
