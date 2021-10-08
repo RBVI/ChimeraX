@@ -138,7 +138,7 @@ def _get_cofm(session, atoms, transformed, weighted):
     # If we want weighted center, we have to multiply coordinates
     # by the atomic mass
     if not weighted:
-        cofm = coords.mean(coords, axis=0)
+        cofm = coords.mean(axis=0)
     else:
         m = atoms.elements.masses
         c = coords * m[:,None]

@@ -28,7 +28,6 @@ query_template = """{
     }
     nonpolymer_entities {
         nonpolymer_comp {
-            rcsb_id
             rcsb_chem_comp_descriptor {
                 SMILES
             }
@@ -38,12 +37,6 @@ query_template = """{
                 name
             }
         }
-    }
-    pdbx_database_status {
-        status_code
-    }
-    pdbx_database_PDB_obs_spr {
-        replace_pdb_id
     }
     polymer_entities {
         entity_poly {
@@ -85,26 +78,18 @@ query_template = """{
     struct {
         title
     }
-    struct_keywords {
-        pdbx_keywords
-    }
   }
 }"""
 
 entry_attr_name_mapping = [
-    ("structure_id", ['rcsb_id']),
     ("title", ['struct', 'title']),
-    ("exp_method", ['exptl', 'method']),
+    ("method", ['exptl', 'method']),
     ("resolution", ['rcsb_entry_info', 'resolution_combined']),
-    ("keywords", ['struct_keywords', 'pdbx_keywords']),
-    ("#_entities", ['rcsb_entry_info', 'polymer_entity_count']),
     ("#_residues", ['rcsb_entry_info', 'deposited_polymer_monomer_count']),
     ("#_atoms", ['rcsb_entry_info', 'deposited_atom_count']),
-    ("deposition_date", ['rcsb_accession_info', 'deposit_date']),
-    ("structure_authors", ['audit_author', 'name']),
+    ("date", ['rcsb_accession_info', 'deposit_date']),
+    ("authors", ['audit_author', 'name']),
     ("pubmed_id", ['rcsb_primary_citation', 'pdbx_database_id_PubMed']),
-    ("status", ['pdbx_database_status', 'status_code']),
-    ("replaces", ['pdbx_database_PDB_obs_spr', 'replace_pdb_id']),
     ('ligand_formulas', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
     ('ligand_names', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'name']),
     ('ligand_smiles', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'SMILES']),
@@ -119,7 +104,7 @@ chain_attr_name_mapping = [
     ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
     ('species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
         ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
-    ('chain_sequence_id', True, ["rcsb_polymer_entity_container_identifiers",
+    ('uniprot_id', True, ["rcsb_polymer_entity_container_identifiers",
         "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
     ('chain_weight',  True, ['rcsb_polymer_entity', 'formula_weight'])
 ]

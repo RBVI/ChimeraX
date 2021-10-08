@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State, StateManager
-from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
+from numpy import uint8, int32, uint32, float64, float32, byte
+npy_bool = bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
 from . import ctypes_support as convert

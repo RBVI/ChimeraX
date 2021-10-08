@@ -25,8 +25,10 @@ from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
+from cxservices.api import default_api
+from cxservices.rest import ApiException
 
-from .databases import AvailableDBsDict
+from .databases import AvailableDBsDict, get_database
 from .datatypes import BlastParams, SeqId
 from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
@@ -51,22 +53,28 @@ class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html"
+    help = "help:/user/tools/blastprotein.html#results"
 
-    def __init__(self, session, tool_name, **kw):
-        self._instance_name = tool_name
-        _instance_map[self._instance_name] = self
-        self.display_name = "Blast Protein Results [name: %s]" % self._instance_name
-        # TODO When and how does this need to be incremented?
-        self._viewer_index = 1
-        self.job = kw.pop('job', None)
-        self.params: BlastParams = kw.pop('params', None)
-        self._hits = kw.pop('hits', None)
-        self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
-        self._table_session_data = kw.pop('table_session_data', None)
-        self._from_restore = kw.pop('from_restore', False)
-        super().__init__(session, self.display_name, **kw)
-        self._build_ui()
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+
+    @classmethod
+    def from_job(cls, session, tool_name, **kw):
+        temp = cls.__new__(cls)
+        display_name = "Blast Protein Results [name: %s]" % tool_name
+        temp.__init__(session, display_name)
+        temp._instance_name = tool_name
+        _instance_map[temp._instance_name] = temp
+        temp._viewer_index = 1
+        temp.display_name = display_name 
+        temp.job = kw.pop('job', None)
+        temp.params: BlastParams = kw.pop('params', None)
+        temp._hits = kw.pop('hits', None)
+        temp._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
+        temp._table_session_data = kw.pop('table_session_data', None)
+        temp._from_restore = kw.pop('from_restore', False)
+        temp._build_ui()
+        return temp
 
     def _make_settings_dict(self, db):
         defaults = {
@@ -84,7 +92,6 @@ class BlastProteinResults(ToolInstance):
             _settings = _BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
-        #self.align_button = QPushButton("Load and Align Selection", parent)
 
         param_str = ", ".join(
             [": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()]
@@ -131,8 +138,8 @@ class BlastProteinResults(ToolInstance):
 
 
     def fill_context_menu(self, menu, x, y):
-        seq_action = QAction("Load and Align Selections", menu)
-        seq_view_action = QAction("Show Selections in Sequence Viewer", menu)
+        seq_action = QAction("Load Structures", menu)
+        seq_view_action = QAction("Show Sequence Alignment", menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
         menu.addAction(seq_action)
@@ -183,11 +190,18 @@ class BlastProteinResults(ToolInstance):
         self._sequences = sequences
 
     def _format_table_title(self, title: str):
+        if title == 'e-value':
+            return 'E-Value'
+        if title == 'uniprot_id':
+            return 'UniProt ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
 
     def _on_report_hits_signal(self, items):
+        items = sorted(items, key = lambda i: i['e-value'])
+        for index, item in enumerate(items):
+            item['hit_#'] = index
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
@@ -203,16 +217,18 @@ class BlastProteinResults(ToolInstance):
             self._unload_progress_bar()
         else:
             # Convert dicts to objects (they're hashable)
+
             self.table.data = [BlastResultsRow(item) for item in items]
             for string in columns:
                 title = self._format_table_title(string)
                 self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-            self.table.sortByColumn(columns.index('evalue'), Qt.AscendingOrder)
+            self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data, suppress_resize=True)
             else:
                 self.table.launch(suppress_resize=True)
             self.table.resizeColumns(max_size = 100) # pixels
+            self.table.verticalHeader().setVisible(False)
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
@@ -329,7 +345,7 @@ class BlastProteinResults(ToolInstance):
                 sequences_dict[key] = SeqId(hit_name, sequence)
             data['params'] = BlastParams(*list(data['params'].values()))
 
-        return cls(
+        return cls.from_job(
             session, data['tool_name'], hits = data['results']
             , sequences = sequences_dict, params = data['params']
             , table_session_data = data['table_session'], from_restore=True
@@ -353,6 +369,55 @@ class BlastProteinResults(ToolInstance):
                            ) for key in self._sequences.keys()]
         }
         return data
+
+    @classmethod
+    def from_pull(cls, session, tool_name, params, sequence, results):
+        temp = cls.__new__(cls)
+        display_name = "Blast Protein Results [name: %s]" % tool_name
+        temp.__init__(session, display_name)
+        temp._instance_name = tool_name
+        _instance_map[temp._instance_name] = temp 
+        temp.display_name = display_name
+        temp._viewer_index = 1
+        temp.job = None
+        temp.params = params 
+        temp._hits = None
+        temp._sequences: Dict[int, SeqId] = None
+        temp._table_session_data = None
+        temp._from_restore = True
+
+        blast_results = get_database(params.database)
+        try:
+            blast_results.parse("query", sequence, results)
+        except Exception as e:
+            session.logger.bug(e)
+        else:
+            sequences = {}
+            ref_atomspec = params.chain
+            query_match = blast_results.parser.matches[0]
+            if ref_atomspec:
+                name = ref_atomspec
+            else:
+                name = query_match.name
+            sequences[0] = (name, query_match.sequence)
+            match_chains = {}
+            sequence_only_hits = {}
+            for n, m in enumerate(blast_results.parser.matches[1:]):
+                sid = n + 1
+                hit = {"id":sid, "e-value":m.evalue, "score":m.score,
+                        "description":m.description}
+                if m.match:
+                    hit["name"] = m.match
+                    match_chains[m.match] = hit
+                else:
+                    hit["name"] = m.name
+                    sequence_only_hits[m.name] = hit
+                sequences[sid] = SeqId(hit["name"], m.sequence)
+            blast_results.add_info(session, match_chains, sequence_only_hits)
+            temp._hits = list(match_chains.values()) + list(sequence_only_hits.values())
+            temp._sequences = sequences
+            temp._build_ui()
+        return temp
 
 class BlastResultsWorker(QThread):
     standard_output = Signal()
@@ -391,8 +456,8 @@ class BlastResultsWorker(QThread):
             self.job_failed.emit(err)
         else:
             self.waiting_for_info.emit("Downloading Results")
-            results = self.job.get_file(self.job.RESULTS_FILENAME)
             try:
+                results = self.job.get_file(self.job.RESULTS_FILENAME)
                 self.parsing_results.emit()
                 self.job._database.parse("query", self.job.seq, results)
             except Exception as e:
@@ -401,37 +466,34 @@ class BlastResultsWorker(QThread):
             else:
                 self._ref_atomspec = self.job.atomspec
                 blast_results = self.job._database
-                hits = []
                 self._sequences = {}
-                if blast_results is not None:
-                    query_match = blast_results.parser.matches[0]
-                    if self._ref_atomspec:
-                        name = self._ref_atomspec
+                query_match = blast_results.parser.matches[0]
+                if self._ref_atomspec:
+                    name = self._ref_atomspec
+                else:
+                    name = query_match.name
+                self._sequences[0] = (name, query_match.sequence)
+                match_chains = {}
+                sequence_only_hits = {}
+                self.set_progress_maxval.emit(len(blast_results.parser.matches))
+                for n, m in enumerate(blast_results.parser.matches[1:]):
+                    sid = n + 1
+                    hit = {"id":sid, "e-value":m.evalue, "score":m.score,
+                           "description":m.description}
+                    if m.match:
+                        hit["name"] = m.match
+                        match_chains[m.match] = hit
                     else:
-                        name = query_match.name
-                    self._sequences[0] = (name, query_match.sequence)
-                    match_chains = {}
-                    sequence_only_hits = {}
-                    self.set_progress_maxval.emit(len(blast_results.parser.matches))
-                    for n, m in enumerate(blast_results.parser.matches[1:]):
-                        sid = n + 1
-                        hit = {"id":sid, "evalue":m.evalue, "score":m.score,
-                               "description":m.description}
-                        if m.match:
-                            hit["name"] = m.match
-                            match_chains[m.match] = hit
-                        else:
-                            hit["name"] = m.name
-                            sequence_only_hits[m.name] = hit
-                        hits.append(hit)
-                        self._sequences[sid] = SeqId(hit["name"], m.sequence)
-                        self.processed_result.emit()
-                    # TODO: Make what this function does more explicit. It works on the
-                    # hits that are in match_chain's hit dictionary, but that's not
-                    # immediately clear.
-                    self.waiting_for_info.emit("Postprocessing Hits")
-                    blast_results.add_info(self.session, match_chains, sequence_only_hits)
-                    self.finished_processing_hits.emit()
-                self._hits = hits
+                        hit["name"] = m.name
+                        sequence_only_hits[m.name] = hit
+                    self._sequences[sid] = SeqId(hit["name"], m.sequence)
+                    self.processed_result.emit()
+                # TODO: Make what this function does more explicit. It works on the
+                # hits that are in match_chain's hit dictionary, but that's not
+                # immediately clear.
+                self.waiting_for_info.emit("Postprocessing Hits")
+                blast_results.add_info(self.session, match_chains, sequence_only_hits)
+                self.finished_processing_hits.emit()
+                self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
                 self.report_hits.emit(self._hits)
                 self.report_sequences.emit(self._sequences)

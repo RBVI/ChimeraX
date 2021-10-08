@@ -675,9 +675,14 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
             bring = None
     if pairing == CP_SPECIFIC_SPECIFIC:
         if len(refs) != len(matches):
-            raise UserError("Different number of reference/match"
-                    " chains (%d ref, %d match)" % (len(refs), len(matches)))
-        match_items = zip(refs, matches)
+            from chimerax.atomic import Chains
+            num_match_structs = len(Chains(matches).structures.unique())
+            if num_match_structs != len(matches) or len(refs) > 1:
+                raise UserError("Different number of reference/match"
+                        " chains (%d ref, %d match)" % (len(refs), len(matches)))
+            match_items = [(refs[0], match) for match in matches]
+        else:
+            match_items = zip(refs, matches)
     else:
         match_items = (refs[0], matches)
     ss_matrix = {}

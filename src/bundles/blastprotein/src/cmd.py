@@ -17,7 +17,7 @@ from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
 from .databases import AvailableDBs, AvailableMatrices
-from .job import BlastProteinJob
+from .job import BlastProteinJob, manually_pull_blast_job
 from .results import find_match
 
 # Use camel-case variable names for displaying keywords in help/usage
@@ -65,3 +65,9 @@ blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                  ("name", StringArg),
                                  ],
                         synopsis="Search PDB/NR using BLAST")
+
+def blastprotein_pull(session, jobid, log=None):
+    manually_pull_blast_job(session, jobid, log)
+
+blastprotein_pull_desc = CmdDesc(required=[("jobid", StringArg)],
+        keyword=[("log", BoolArg)])

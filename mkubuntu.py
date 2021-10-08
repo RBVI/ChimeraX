@@ -253,8 +253,7 @@ def main():
         version = version.base_version
     else:
         # candidate build
-        # version = f"{version.base_version}+rc{version_date}"
-        version = version.base_version
+        version = f"{version.base_version}+rc{version_date}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
