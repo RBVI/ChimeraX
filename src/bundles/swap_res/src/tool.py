@@ -220,6 +220,7 @@ class RotamerDialog(ToolInstance):
         self.table = RotamerTable(
             column_control_info=(column_disp_widget, _settings, {}, True, None, None, False),
             auto_multiline_headers=False)
+        self.table.verticalHeader().setVisibile(False)
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
         self.table.add_column("Prevalence", "rotamer_prob", format="%.6f ")
@@ -234,6 +235,7 @@ class RotamerDialog(ToolInstance):
             table_state = None
         self.table.data = self.mgr.rotamers
         self.table.launch(session_info=table_state)
+        self.table.verticalHeader().setVisibile(False)
         if not table_info:
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)

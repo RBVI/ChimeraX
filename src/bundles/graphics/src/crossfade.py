@@ -40,8 +40,11 @@ class CrossFade(Drawing):
 
         # Capture current image
         v = session.main_view
-        v.render.make_current()
-        self.rgba = v.frame_buffer_rgba()
+        if hasattr(v, 'movie_image_rgba'):
+            self.rgba = v.movie_image_rgba # Recording a movie.  Use its last image.
+        else:
+            v.render.make_current()
+            self.rgba = v.frame_buffer_rgba()
 
         # Make textured square surface piece
         from .drawing import rgba_drawing

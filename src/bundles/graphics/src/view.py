@@ -412,6 +412,23 @@ class View:
               transparent_background=False, camera=None, drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
 
+        rgba = self.image_rgba(width=width, height=height, supersample=supersample,
+                               transparent_background=transparent_background,
+                               camera=camera, drawings=drawings)
+        ncomp = 4 if transparent_background else 3
+        from PIL import Image
+        # Flip y-axis since PIL image has row 0 at top,
+        # opengl has row 0 at bottom.
+        pi = Image.fromarray(rgba[::-1, :, :ncomp])
+        return pi
+
+    def image_rgba(self, width=None, height=None, supersample=None,
+                   transparent_background=False, camera=None, drawings=None):
+        '''
+        Capture an image of the current scene.
+        A numpy uint8 rgba array is returned.
+        '''
+
         if not self._use_opengl():
             return	# OpenGL not available
 
@@ -419,7 +436,8 @@ class View:
 
         # TODO: For recording videos would be useful not to recreate framebuffer on every frame.
         from .opengl import Framebuffer
-        fb = Framebuffer('image capture', self.render.opengl_context, w, h, alpha = transparent_background)
+        fb = Framebuffer('image capture', self.render.opengl_context, w, h,
+                         alpha = transparent_background)
         if not fb.activate():
             fb.delete()
             return None         # Image size exceeds framebuffer limits
@@ -465,13 +483,8 @@ class View:
         fb.delete()
 
         delattr(r, 'image_save')
-        
-        ncomp = 4 if transparent_background else 3
-        from PIL import Image
-        # Flip y-axis since PIL image has row 0 at top,
-        # opengl has row 0 at bottom.
-        pi = Image.fromarray(rgba[::-1, :, :ncomp])
-        return pi
+
+        return rgba
 
     def frame_buffer_rgba(self):
         '''

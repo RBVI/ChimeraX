@@ -871,6 +871,8 @@ def init(argv, event_loop=True):
             import traceback
             traceback.print_exc()
             return os.EX_SOFTWARE
+    elif opts.gui:
+        sess.ui.quit()	# Clean up gui to avoid errors at exit.
     return os.EX_OK
 
 

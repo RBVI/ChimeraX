@@ -28,7 +28,7 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'AlphaFold %s' % uniprot_id, file_name, 'AlphaFold',
-                          ignore_cache=ignore_cache)
+                          ignore_cache=ignore_cache, error_status = False)
 
     model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',

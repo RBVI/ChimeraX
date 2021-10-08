@@ -32,7 +32,7 @@ interface is available; otherwise, the results are logged.</Description>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Blast Protein :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: blastprotein :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastprotein mav :: Sequence :: Display BLAST results in MultAlign Viewer</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein pull :: Sequence :: Get results for a finished BlastProtein job</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: blastpdb :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
   </Classifiers>
 
