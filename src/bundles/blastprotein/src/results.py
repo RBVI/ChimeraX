@@ -201,7 +201,7 @@ class BlastProteinResults(ToolInstance):
     def _on_report_hits_signal(self, items):
         items = sorted(items, key = lambda i: i['e-value'])
         for index, item in enumerate(items):
-            item['hit_#'] = index
+            item['hit_#'] = index + 1
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
