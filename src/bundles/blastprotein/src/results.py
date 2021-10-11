@@ -209,7 +209,8 @@ class BlastProteinResults(ToolInstance):
             columns = list(items[0].keys())
             columns = list(filter(lambda x: x not in db.excluded_cols, columns))
             nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
-            columns = list(db.default_cols)
+            columns = ['hit_#']
+            columns.extend(list(db.default_cols))
             columns.extend(nondefault_cols)
         except IndexError:
             if not self._from_restore:
@@ -217,7 +218,6 @@ class BlastProteinResults(ToolInstance):
             self._unload_progress_bar()
         else:
             # Convert dicts to objects (they're hashable)
-
             self.table.data = [BlastResultsRow(item) for item in items]
             for string in columns:
                 title = self._format_table_title(string)
