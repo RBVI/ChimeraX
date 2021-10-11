@@ -57,9 +57,9 @@ command additionally allows using a sequence
 such as to find templates for <a href="modeller.html">comparative modeling</a>
 <li><b>Database</b> &ndash; protein sequence database to search:
    <ul>
-   <li><b>PDB</b> (default) &ndash; experimentally determined structures in the
+   <li><b>pdb</b> (default) &ndash; experimentally determined structures in the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
-   <li><b>NR</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
+   <li><b>nr</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
 <a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
 CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
@@ -67,7 +67,7 @@ CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>PDB</b> alone and takes much longer to search
-  <li><b>AlphaFold</b> 
+  <li><b>alphafold</b> 
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
@@ -149,9 +149,8 @@ in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
 Some columns are available no matter which database is searched:
 </p>
 <ul>
-<li><b>Rank</b> &ndash; 
-<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
-rank (from most significant to least)
+<li><b>Hit #</b> &ndash; hit number (sorted by most significant
+<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>)
 <li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain 
@@ -194,28 +193,23 @@ target="_blank">NCBI taxid</a> of the source organism
 Additional columns for PDB entries (from searching PDB or NR):
 </p>
 <ul>
-<li><b>Date</b> &ndash; structure deposition date
-<!-- <li><b>Title</b> &ndash; structure title -->
-<li><b>Method</b> &ndash; method of structure determination
-<li><b>Resolution</b> &ndash; crystallographic resolution
-<li><b>Authors</b> &ndash; structure authors
-<li><b>PubMed</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/"
-target="_blank">PubMed</a> identifier of literature reference, if any
-<li><b>Total Atoms</b>
+<li><b># Atoms</b>
 &ndash; total number of atoms in the structure (all chains)
-<li><b>Total Residues</b>
+<li><b># Polymers</b>
+&ndash; number of different polymer chains in the structure
+(not counting multiple copies of the same sequence)
+<li><b># Residues</b>
 &ndash; total number of residues in the structure (all chains)
+<li><b>Authors</b> &ndash; structure authors
+<li><b>Chain Copies</b>
+&ndash; number of copies of the hit chain in the structure
 <li><b>Chain Names</b>
 &ndash; chain identifiers and descriptions of polymer chains in the structure
-<li><b>Copies</b> &ndash; number of copies of the hit chain in the structure
-<li><b>Polymers</b> &ndash; number of different polymer chains in the structure
-(not counting multiple copies of the same sequence)
-<li><b>Residues</b> &ndash; number of residues in the hit chain
-<!-- <li><b>Species</b> &ndash; scientific name of source organism -->
-<li><b>UniProt</b>
-&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-identifier, if any, for hit chain
-<li><b>Weight</b> &ndash; molecular weight of hit chain
+<li><b>Chain Residues</b>
+&ndash; number of residues in the hit chain
+<li><b>Chain Weight</b>
+&ndash; molecular weight of the hit chain
+<li><b>Date</b> &ndash; structure deposition date
 <li><b>Ligand Formulas</b> &ndash; chemical formulae of ligand chemical components
 <li><b>Ligand Names</b> &ndash; names of ligand chemical components
 <li><b>Ligand Smiles</b> &ndash;
@@ -224,6 +218,13 @@ target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 <li><b>Ligand Symbols</b> &ndash; residue names of ligand chemical components
 <li><b>Ligand Weights</b>
 &ndash; molecular weights of ligand chemical components
+<li><b>Method</b> &ndash; method of structure determination
+<li><b>PubMed ID</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/"
+target="_blank">PubMed</a> identifier of literature reference, if any
+<li><b>Resolution</b> &ndash; crystallographic resolution
+<li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+identifier, if any, for the hit chain
 </ul>
 
 <a name="notes"></a>
