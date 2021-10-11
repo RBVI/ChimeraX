@@ -66,7 +66,10 @@ class QCxTableModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
-            return None
+            if role != Qt.DisplayRole:
+                return None
+            else:
+                return (section + 1) 
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
@@ -547,7 +550,7 @@ class ItemTable(QTableView):
     def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
-            display = display_defaults.get(col.title, fallback)
+            display = getattr(settings, self._settings_attr, display_defaults).get(col.title, fallback)
             self.update_column(col, display=display)
 
     def _show_standard(self):

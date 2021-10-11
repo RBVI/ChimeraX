@@ -185,13 +185,16 @@ class BlastProteinResults(ToolInstance):
     def _format_table_title(self, title: str):
         if title == 'e-value':
             return 'E-Value'
-        if title == 'uniprot':
-            return 'UniProt'
+        if title == 'uniprot_id':
+            return 'UniProt ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
 
     def _on_report_hits_signal(self, items):
+        items = sorted(items, key = lambda i: i['e-value'])
+        for index, item in enumerate(items):
+            item['hit_#'] = index + 1
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
@@ -199,7 +202,8 @@ class BlastProteinResults(ToolInstance):
             columns = list(items[0].keys())
             columns = list(filter(lambda x: x not in db.excluded_cols, columns))
             nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
-            columns = list(db.default_cols)
+            columns = ['hit_#']
+            columns.extend(list(db.default_cols))
             columns.extend(nondefault_cols)
         except IndexError:
             if not self._from_restore:
@@ -217,6 +221,7 @@ class BlastProteinResults(ToolInstance):
             else:
                 self.table.launch(suppress_resize=True)
             self.table.resizeColumns(max_size = 100) # pixels
+            self.table.verticalHeader().setVisible(False)
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 
