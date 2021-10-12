@@ -70,13 +70,14 @@ class Database(ABC):
     def parse(self, query, sequence, results):
         self.parser = self.parser_factory(query, sequence, results)
 
+
 @dataclass
 class NCBIDB(Database):
     name: str = ""
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
     NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
-    default_cols: tuple = ("name", "e-value", "score", "title", "resolution", "ligand_symbols")
+    default_cols: tuple = ("hit_#", "name", "e-value", "score", "title", "resolution", "ligand_symbols")
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
@@ -146,7 +147,7 @@ class AlphaFoldDB(Database):
     fetchable_col: str = "name"
     parser_factory: object = dbparsers.AlphaFoldParser
     AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
-    default_cols: tuple = ("name", "e-value", "score", "title", "species")
+    default_cols: tuple = ("hit_#", "name", "e-value", "score", "title", "species")
     excluded_cols: tuple = ("id", "url", "sequence_id")
 
     @staticmethod

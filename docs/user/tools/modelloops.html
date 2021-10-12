@@ -72,12 +72,13 @@ The target sequence can be taken from the structure metadata
 or <a href="open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
 or opened from a <a href="open.html#sequence">file</a>.
-The sequence can be different from the sequence of the structure as long
-as they are similar enough to associate properly;
-however, the types shown in the
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-will be used for the segment that is filled in or refined, as well as any
-<a href="#adjacentFlexible">adjacent positions designated as flexible</a>.
+The sequence must be the same as the sequence of the structure, except that 
+differences are permitted within the segments to be filled in or refined,
+as well as any
+<a href="#adjacentFlexible">adjacent positions designated as flexible</a>;
+the residue types shown in the
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+will be used to model those segments.
 Accuracy can be quite high for shorter loops, but falls off rapidly with length
 (&gt;50% poor predictions for segments with 10+ residues including the
 <a href="#adjacentFlexible">flexible positions</a>, see Table 1 in 
