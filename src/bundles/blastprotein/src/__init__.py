@@ -36,7 +36,6 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi, ti):
-        from .tool import BlastProteinTool
         return BlastProteinTool(session, ti.name)
 
     @staticmethod
