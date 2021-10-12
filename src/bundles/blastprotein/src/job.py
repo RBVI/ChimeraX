@@ -43,7 +43,7 @@ class BlastProteinJob(CxServicesJob):
             session.logger.warning(self.inet_error)
 
     def setup(self, seq, atomspec, database: str ="pdb", cutoff: float = 1.0e-3,
-              matrix: str="BLOSUM62", max_seqs: int=500, log=None, tool_inst_name=None,
+              matrix: str="BLOSUM62", max_seqs: int=100, log=None, tool_inst_name=None,
               sequence_name=None):
         self.seq = seq.replace('?', 'X')                  # string
         self.sequence_name = sequence_name                # string
