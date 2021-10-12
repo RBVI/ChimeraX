@@ -25,9 +25,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.ui.options import Option
 
-from .databases import AvailableDBs, AvailableMatrices
+from ..data_model import AvailableDBs, AvailableMatrices
+from ..utils import make_instance_name
 from .widgets import BlastProteinFormWidget
-from .utils import make_instance_name
 
 class BlastProteinTool(ToolInstance):
 
