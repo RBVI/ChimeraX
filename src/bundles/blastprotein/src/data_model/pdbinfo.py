@@ -34,6 +34,7 @@ query_template = """{
         nonpolymer_comp {
             rcsb_chem_comp_descriptor {
                 SMILES
+                comp_id
             }
             chem_comp {
                 formula
@@ -97,7 +98,7 @@ entry_attr_name_mapping = [
     ('ligand_formulas', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
     ('ligand_names', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'name']),
     ('ligand_smiles', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'SMILES']),
-    ('ligand_symbols', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula']),
+    ('ligand_symbols', ['nonpolymer_entities', 'nonpolymer_comp', 'rcsb_chem_comp_descriptor', 'comp_id']),
     ('ligand_weights', ['nonpolymer_entities', 'nonpolymer_comp', 'chem_comp', 'formula_weight'])
 ]
 

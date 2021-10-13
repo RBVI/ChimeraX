@@ -26,7 +26,7 @@ from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemVi
 class StructMeasureTool(ToolInstance):
 
     tab_names = ["Distances", "Angles/Torsions"]
-    help_info = ["distances", None]
+    help_info = ["distances", "angles"]
 
     def __init__(self, session):
         ToolInstance.__init__(self, session, "Structure Measurements")
