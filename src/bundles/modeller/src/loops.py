@@ -99,6 +99,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             if chain_id is None:
                 chain_id = r.chain_id
             elif chain_id != r.chain_id:
+                # Modeller apparently "keeps going" for water/het with the same chain ID,
+                # but "stops" for water/het in its own chain
+                if r.chain is None:
+                    break
                 template_chars.append('/')
                 target_chars.append('/')
                 chain_id = r.chain_id
@@ -142,10 +146,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                         r.chain))
                     target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
-                    offset_i += len(r.chain)
+                    offset_i += len(chain_target_chars)
                     match_chains.append(r.chain)
-                if r.chain == s.chains[-1]:
-                    break
                 i += r.chain.num_existing_residues
         target_chars = ''.join(target_chars)
         compact_target_chars = target_chars.replace('/', '')

@@ -27,7 +27,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  dicom dist_monitor dist_ui dssp \
+	  dicom dist_monitor dssp \
 	  exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
@@ -43,7 +43,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  sdf sel_inspector segger segment seq_view shape \
 	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
-	  stl storm struts surface swapaa swap_res \
+	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
 	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone

@@ -16,13 +16,13 @@ from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf,
 from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
-from .databases import AvailableDBs, AvailableMatrices
+from .data_model import AvailableDBs, AvailableMatrices
 from .job import BlastProteinJob, manually_pull_blast_job
-from .results import find_match
+from .ui import find_match
 
 # Use camel-case variable names for displaying keywords in help/usage
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", maxSeqs=500, log=None, *, name=None):
+                 matrix="BLOSUM62", maxSeqs=100, log=None, *, name=None):
     if isinstance(atoms, tuple):
         # Must be alignment:seq
         alignment, chain = atoms

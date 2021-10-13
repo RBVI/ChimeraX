@@ -655,6 +655,7 @@ class SeqCanvas:
     def hide_header(self, header):
         self.lead_block.hide_header(header)
         self.sv.region_browser.redraw_regions()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
         
     def layout_alignment(self):
         """
@@ -1349,6 +1350,7 @@ class SeqCanvas:
     def show_header(self, header):
         self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
 
     """TODO
     def showNodes(self, show):

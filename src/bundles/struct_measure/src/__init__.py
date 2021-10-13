@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _DistUIBundleAPI(BundleAPI):
+class _StructMeasureBundleAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
@@ -41,7 +41,7 @@ class _DistUIBundleAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import DistanceTool
-        return DistanceTool(session, tool_name)
+        from .tool import get_tool
+        return get_tool(session, tool_name)
 
-bundle_api = _DistUIBundleAPI()
+bundle_api = _StructMeasureBundleAPI()

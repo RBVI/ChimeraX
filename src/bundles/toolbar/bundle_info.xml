@@ -26,7 +26,7 @@ Provides a Windows ribbon-style toolbar interface
     <!-- depend on everything that registers a mousemode for now,
 	 so they'll exist when toolbar is made -->
     <Dependency name="ChimeraX-BondRot" version="~=2.0"/>
-    <Dependency name="ChimeraX-DistUI" version="~=1.0"/>
+    <Dependency name="ChimeraX-StructMeasure" version="~=1.0"/>
     <Dependency name="ChimeraX-Label" version="~=1.0"/>
     <Dependency name="ChimeraX-Map" version="~=1.0"/>
     <Dependency name="ChimeraX-Markers" version="~=1.0"/>

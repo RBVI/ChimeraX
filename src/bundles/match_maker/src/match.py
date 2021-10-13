@@ -715,6 +715,8 @@ def check_domain_matching(chains, sel_residues):
             if this_chain.issubset(sel_residues):
                 new_chains.append(chain)
                 continue
+            if this_chain.isdisjoint(sel_residues):
+                continue
             nc = StructureSeq(structure=chain.structure, chain_id=chain.chain_id,
                 polymer_type=chain.polymer_type)
             nc._dm_rebuild_info = []
