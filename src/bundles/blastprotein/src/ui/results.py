@@ -315,7 +315,6 @@ class BlastProteinResults(ToolInstance):
             else:
                 self.table.launch(suppress_resize=True)
             self.table.resizeColumns(max_size = 100) # pixels
-            self.table.verticalHeader().setVisible(False)
             self.control_widget.setVisible(True)
             self._unload_progress_bar()
 

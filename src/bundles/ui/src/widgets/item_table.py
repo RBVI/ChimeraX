@@ -435,6 +435,7 @@ class ItemTable(QTableView):
         for col in self._columns:
             if not col.display:
                 self.hideColumn(self._columns.index(col))
+        self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
 

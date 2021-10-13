@@ -234,7 +234,6 @@ class RotamerDialog(ToolInstance):
             table_state = None
         self.table.data = self.mgr.rotamers
         self.table.launch(session_info=table_state)
-        self.table.verticalHeader().setVisibile(False)
         if not table_info:
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)
