@@ -1,0 +1,128 @@
+# vim: syntax=cmake 
+cmake_minimum_required(VERSION 3.10)
+project(bundles)
+# The "make" targets are:
+# 	wheel: build a Python wheel in "dist" directory.
+# 	install: build wheel (if needed) and install in ChimeraX.
+# 	sync: squirrel away wheel
+# 	build: make wheel and sync
+# 	test: run ChimeraX
+# 	debug: run ChimeraX with debugging flag set
+# 	clean: remove files used in building wheel
+if(NOT DEFINED TOP)
+	set(TOP ../../..)
+endif()
+
+file(GLOB CHIMERAX_APP ${TOP}/ChimeraX*.app)
+set(SYNC_DIR ${TOP}/build/sync)
+
+# These can be overridden by bundles for customization
+if(NOT DEFINED CHIMERAX_BUILD_ARGS)
+	set(BUILD_ARGS "")
+endif()
+if(NOT DEFINED CHIMERAX_INSTALL_ARGS)
+	set(INSTALL_ARGS "")
+endif()
+if(NOT DEFINED BUNDLE_CLEAN)
+	set(BUNDLE_CLEAN "build dist *.egg-info src/__pycache__ src/*/__pycache__")
+endif()
+if(NOT DEFINED BUNDLE_CLEAN_ALWAYS)
+	set(BUNDLE_CLEAN_ALWAYS "")
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+set(CHIMERAX_DEBUG_FLAGS "debug true")
+endif()
+
+if(CYGWIN)
+	set(CHIMERAX_EXE ${CHIMERAX_APP}/bin/ChimeraX-console.exe)
+	set(PYMOD_EXT pyd)
+endif()
+if(UNIX AND NOT APPLE)
+	set(CHIMERAX_EXE ${CHIMERAX_APP}/bin/ChimeraX)
+endif()
+if(APPLE)
+	set(CHIMERAX_EXE ${CHIMERAX_APP}/Contents/bin/ChimeraX)
+endif()
+if(UNIX)
+	set(PYMOD_EXT so)
+endif()
+set(RUN ${CHIMERAX_EXE} --nogui --safemode --exit --cmd)
+
+file(GLOB PYSRCS src/*.py)
+
+add_custom_target(app-install
+	DEPENDS
+		bundle_info.xml ${PYSRCS}
+	COMMAND
+	${RUN} \"devel install . user false exit true ${CHIMERAX_DEBUG_FLAGS} ${CHIMERAX_INSTALL_ARGS}\"
+)
+
+add_custom_target(wheel
+	DEPENDS
+		bundle_info.xml ${PYSRCS}
+	COMMAND
+		${RUN} \"devel build . exit true ${CHIMERAX_DEBUG_FLAGS} ${CHIMERAX_BUILD_ARGS}\"
+)
+
+add_custom_target(sync
+	COMMAND
+		if("" NOTEQUAL GLOB dist/*-py*-none-any.whl)
+			rsync -av dist/*.whl $(SYNC_DIR)/python-only
+		else
+			rsync -av dist/*.whl $(SYNC_DIR)/binary
+		endif()
+)
+
+if(UNIX AND NOT APPLE)
+	set(TEST_CMD nohup ${CHIMERAX_EXE} & 2>&1 >> /dev/null)
+endif()
+if(APPLE)
+	set(TEST_CMD open -n ${CHIMERAX_APP})
+endif()
+#if(CYGWIN)
+#    set(TEST_CMD ...)
+#endif()
+add_custom_target(test-changes
+	COMMAND ${TEST_CMD}
+)
+
+#test-changes: install
+#if(APPLE)
+## -n flag means open a new instance even if another already exists
+#	open -n $(CHIMERAX_APP)
+#endif()
+#if(Linux)
+#	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+#endif()
+#
+#ifdef BUILD_AND_INSTALL
+#INSTALL_ARGS = noDeps true
+#build: install
+#else
+#build: wheel
+#endif
+#	$(MAKE) sync
+#
+#test:
+#	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\
+#		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+#	done
+#
+#debug:
+#	$(CHIMERAX_EXE) --debug
+#
+#clean:
+#	if [ -x $(CHIMERAX_EXE) -a -e bundle_info.xml ]; then \
+#		$(RUN) "devel clean . exit true" ; \
+#	else \
+#		rm -rf $(CLEAN) ; \
+#	fi
+#	if [ -n "$(CLEAN_ALWAYS)" ]; then \
+#		rm -rf $(CLEAN_ALWAYS); \
+#	fi
+#
+#
+#pylint:
+#	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(PYSRCS))
+#
