@@ -6,10 +6,6 @@ VERSION = 19.0.8
 DISTRIBUTION = mesa-$(VERSION).tar.xz
 SOURCE = $(tmpdir)/mesa-$(VERSION)
 
-ifeq ($(OS),Darwin)
-MESA_ENV = PKG_CONFIG=$(bindir)/pkg-config
-endif
-
 ifdef CENTOS_DIST
 ifeq ($(shell expr $(CENTOS_DIST) '<=' 7),1)
 MESA_ENV += LLVM_CONFIG=mesa-private-llvm-config-64
