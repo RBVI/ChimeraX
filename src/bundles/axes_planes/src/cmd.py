@@ -321,6 +321,76 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         from chimerax.atomic.colors import element_color, predominant_color
         color = predominant_color(atoms)
         if color is None:
+           color = element_color(6)
+    else:
+        color = color.uint8x4()
+
+    plane_model = PlaneModel(session, name, plane, thickness, radius+padding, color)
+    if len(structures) > 1:
+        session.models.add([plane_model])
+    else:
+        structures[0].add([plane_model])
+    session.logger.info("Plane %s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    return plane_model
+
+def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None, name="axis",
+        primary=True, secondary=False, tertiary=False):
+    """Wrapper to be called by command line.
+
+       Use chimerax.geometry.vector for other programming applications.
+    """
+    from chimerax.core.errors import UserError
+
+    from chimerax.atomic.colors import element_color, predominant_color
+    from chimerax.core.commands import Axis
+    if isinstance(axis_info, Axis):
+        if secondary or tertiary:
+            raise UserError("Must specify 3 or more atoms to determine secondary/tertiary axes")
+        base_pt = axis_info.base_point()
+        if base_pt is None:
+            import numpy
+            base_pt = numpy.array([0.0, 0.0, 0.0])
+        v_pt = axis_info.scene_coordinates(normalize=False)
+        if color is None:
+            if axis_info.atoms is not None:
+                color = predominant_color(axis_info.atoms, none_fraction=0.6)
+            if color is None:
+                color = element_color(6)
+
+    from chimerax.atomic import AtomicStructure, concatenate, Structure
+    if atoms is None:
+        structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
+        if structures_atoms:
+            atoms = concatenate(structures_atoms)
+        else:
+            raise UserError("Atom specifier selects no atoms")
+    if len(atoms) < 3:
+        raise UserError("Must specify at least 3 atoms to define a plane")
+
+    structures = atoms.unique_structures
+    if len(structures) > 1:
+        crds = atoms.scene_coords
+    else:
+        crds = atoms.coords
+
+    from chimerax.geometry import Plane, distance_squared
+    plane = Plane(crds)
+
+    if radius is None:
+        max_sq_dist = None
+        origin = plane.origin
+        for crd in crds:
+            projected = plane.nearest(crd)
+            sq_dist = distance_squared(origin, projected)
+            if max_sq_dist is None or sq_dist > max_sq_dist:
+                max_sq_dist = sq_dist
+        from math import sqrt
+        radius = sqrt(max_sq_dist)
+
+    if color is None:
+        from chimerax.atomic.colors import element_color, predominant_color
+        color = predominant_color(atoms)
+        if color is None:
            color = element_color(a.element.number)
     else:
         color = color.uint8x4()
@@ -336,7 +406,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, ColorArg, PositiveFloatArg
-    from chimerax.core.commands import StringArg
+    from chimerax.core.commands import StringArg Or, AxisArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
@@ -345,3 +415,11 @@ def register_command(command_name, logger):
         synopsis = 'Create plane'
     )
     register('define plane', desc, cmd_define_plane, logger=logger)
+
+    desc = CmdDesc(
+        required=[('axis_info', Or(AxisArg, AtomsArg))],
+        keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
+            ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg)],
+        synopsis = 'Create plane'
+    )
+    register('define axis', desc, cmd_define_plane, logger=logger)
