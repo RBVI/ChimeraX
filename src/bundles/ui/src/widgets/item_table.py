@@ -218,6 +218,8 @@ class ItemTable(QTableView):
                 widget, settings, defaults, fallback = self._column_control_info[:4]
                 from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
+                main_layout.setContentsMargins(0,0,0,0)
+                main_layout.setSpacing(0)
                 column_control_info[0].setLayout(main_layout)
                 self._col_checkbox_container = QWidget(parent=widget)
                 self._col_checkbox_layout = QGridLayout()
@@ -435,6 +437,7 @@ class ItemTable(QTableView):
         for col in self._columns:
             if not col.display:
                 self.hideColumn(self._columns.index(col))
+        self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
 
