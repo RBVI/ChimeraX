@@ -13,6 +13,7 @@
 from typing import Dict, Optional, Union
 
 from Qt.QtWidgets import QPushButton
+from Qt.QtWidgets import QLabel, QSizePolicy
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout
 from Qt.QtWidgets import QComboBox, QWidget
 from Qt.QtWidgets import QSpinBox, QAbstractSpinBox
@@ -92,12 +93,16 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, input_container_row2)
         self.menu_widgets['cutoff'].input_widget.setRange(-100, 100)
         self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.menu_widgets['placeholder'] = BlastProteinFormWidget("", QLabel, input_container_row2)
 
         self.menu_widgets['help'] = QPushButton("Help", input_container_row3)
         self.menu_widgets['apply'] = QPushButton("Apply", input_container_row3)
         self.menu_widgets['reset'] = QPushButton("Reset", input_container_row3)
         self.menu_widgets['close'] = QPushButton("Close", input_container_row3)
         self.menu_widgets['ok'] = QPushButton("OK", input_container_row3)
+
+        for widget in ['help', 'apply', 'reset', 'close', 'ok']:
+            self.menu_widgets[widget].setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
 
         # Lay the menu out
         menu_layout_row1.addWidget(self.menu_widgets['chain'])
@@ -106,6 +111,7 @@ class BlastProteinTool(ToolInstance):
 
         menu_layout_row2.addWidget(self.menu_widgets['matrices'])
         menu_layout_row2.addWidget(self.menu_widgets['cutoff'])
+        menu_layout_row2.addWidget(self.menu_widgets['placeholder'])
 
         menu_layout_row3.addWidget(self.menu_widgets['help'])
         menu_layout_row3.addWidget(self.menu_widgets['apply'])
@@ -139,8 +145,12 @@ class BlastProteinTool(ToolInstance):
         main_layout.addWidget(input_container_row2)
         main_layout.addWidget(input_container_row3)
 
-        main_layout.setContentsMargins(0,0,0,0)
-        main_layout.setSpacing(0)
+        for layout in [main_layout, menu_layout_row1, menu_layout_row3]:
+            layout.setContentsMargins(0,0,0,0)
+            layout.setSpacing(0)
+        menu_layout_row2.setContentsMargins(8,0,0,0)
+        menu_layout_row2.setSpacing(0)
+
         self.tool_window.ui_area.setLayout(main_layout)
         self.tool_window.manage('side')
 
