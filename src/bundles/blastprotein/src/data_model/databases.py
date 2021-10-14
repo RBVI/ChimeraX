@@ -128,6 +128,7 @@ class NCBIDB(Database):
             hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
             del hit["description"]
 
+
 @dataclass
 class PDB(NCBIDB):
     name: str = "pdb"
