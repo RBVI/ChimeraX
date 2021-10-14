@@ -30,7 +30,6 @@ class PlaneModel(Surface, ComplexMeasurable):
             return _axis_plane_angle(obj, self)
         elif not isinstance(obj, PlaneModel):
             return NotImplemented
-        val = angle(
         from chimerax.geometry import angle
         degrees = angle(self.xform_normal, obj.xform_normal)
         return degrees if degrees < 90 else 180 - degrees
@@ -122,7 +121,6 @@ class PlaneModel(Surface, ComplexMeasurable):
 class AxisModel(Surface, ComplexMeasurable):
     def __init__(self, session, name, center, direction, extent, radius, color):
         super().__init__(name, session)
-        self.plane = plane
         self.color = color
         self._center = center
         self._direction = direction
@@ -136,13 +134,13 @@ class AxisModel(Surface, ComplexMeasurable):
             return _axis_plane_angle(self, obj)
         elif not isinstance(obj, AxisModel):
             return NotImplemented
-        return quadrant_angle(angle(self.xform_direction, obj.xform_direction)
+        return quadrant_angle(angle(self.xform_direction, obj.xform_direction))
 
     def _axis_ends_dist(self, axis):
         return min(
-            min([self._point_distance(axis.xform_center + axis.xform_direction * f * axis.extent
+            min([self._point_distance(axis.xform_center + axis.xform_direction * f * axis.extent)
                 for f in (-1, 1)]),
-            min([axis._point_distance(self.xform_center + self.xform_direction * f * self.extent
+            min([axis._point_distance(self.xform_center + self.xform_direction * f * self.extent)
                 for f in (-1, 1)])
         )
 
@@ -330,11 +328,11 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         session.models.add([plane_model])
     else:
         structures[0].add([plane_model])
-    session.logger.info("Plane %s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
     return plane_model
 
-def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None, name="axis",
-        primary=True, secondary=False, tertiary=False):
+def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None, name=None,
+        primary=True, secondary=False, tertiary=False, mass_weighting=False):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.vector for other programming applications.
@@ -343,70 +341,110 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
 
     from chimerax.atomic.colors import element_color, predominant_color
     from chimerax.core.commands import Axis
+    import numpy
+    if not (primary or secondary or tertiary):
+        raise UserError("One of 'primary', 'secondary', or 'tertiary' must be specified as true.")
+    if color is not None:
+        color = color.uint8x4()
+    axes_info = []
+    structure = None
     if isinstance(axis_info, Axis):
         if secondary or tertiary:
             raise UserError("Must specify 3 or more atoms to determine secondary/tertiary axes")
+        if mass_weighting:
+            raise UserError("Must specify 3 or more atoms for mass weighting")
         base_pt = axis_info.base_point()
         if base_pt is None:
-            import numpy
             base_pt = numpy.array([0.0, 0.0, 0.0])
-        v_pt = axis_info.scene_coordinates(normalize=False)
+        vec = axis_info.scene_coordinates(normalize=False)
         if color is None:
             if axis_info.atoms is not None:
                 color = predominant_color(axis_info.atoms, none_fraction=0.6)
             if color is None:
                 color = element_color(6)
+        if axis_info.atoms is not None and axis_info.atoms[0].structure == axis_info.atoms[1].structure:
+            structure = axis_info.atoms[0]
 
-    from chimerax.atomic import AtomicStructure, concatenate, Structure
-    if atoms is None:
-        structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
-        if structures_atoms:
-            atoms = concatenate(structures_atoms)
-        else:
-            raise UserError("Atom specifier selects no atoms")
-    if len(atoms) < 3:
-        raise UserError("Must specify at least 3 atoms to define a plane")
-
-    structures = atoms.unique_structures
-    if len(structures) > 1:
-        crds = atoms.scene_coords
+        center = ((vec + base_pt) + base_pt) / 2
+        from chimerax.geometry import distance
+        extent = distance(vec + base_pt, base_pt) / 2
+        axes_info.append((name, center, v_pt, extent, 1.0 if radius is None else radius, color))
     else:
-        crds = atoms.coords
-
-    from chimerax.geometry import Plane, distance_squared
-    plane = Plane(crds)
-
-    if radius is None:
-        max_sq_dist = None
-        origin = plane.origin
-        for crd in crds:
-            projected = plane.nearest(crd)
-            sq_dist = distance_squared(origin, projected)
-            if max_sq_dist is None or sq_dist > max_sq_dist:
-                max_sq_dist = sq_dist
-        from math import sqrt
-        radius = sqrt(max_sq_dist)
-
-    if color is None:
-        from chimerax.atomic.colors import element_color, predominant_color
-        color = predominant_color(atoms)
         if color is None:
-           color = element_color(a.element.number)
-    else:
-        color = color.uint8x4()
+            color = predominant_color(axis_info)
+            if color is None:
+                color = element_color(6)
+        us = axis_info.unique_structures
+        if len(us) == 1:
+            structure = us[0]
+        from numpy.linalg import eig, svd, eigh
+        if mass_weighting:
+            weights = axis_info.elements.masses
+            n = len(axis_info)
+            mat_weights = weights.reshape((n,1))
+            wcoords = mat_weights * axis_info.scene_coords
+            wsum = weights.sum()
+            centroid = wcoords.sum(0) / wsum
+            centered = axis_info.scene_coords - centroid
+            _, vals, vecs = svd(mat_weights * centered, full_matrices=False)
+        else:
+            centroid = axis_info.scene_coords.mean(0)
+            centered = axis_info.scene_coords - centroid
+            _, vals, vecs = svd(centered, full_matrices=False)
+        order = reversed(vals.argsort())
+        for index, name, use in zip(order, ('primary', 'secondary', 'tertiary'),
+                (primary, secondary, tertiary)):
+            if not use:
+                continue
+            vec = vecs[index]
+            if length is None:
+                dotted = numpy.dot(centered, vec)
+                bounds = (dotted.min(), dotted.max())
+                extent = (bounds[1] - bounds[0]) / 2
+                center = ((centroid + bounds[0] * vec) + (centroid + bounds[1] * vec)) / 2
+            else:
+                extent = length / 2
+                center = centroid
+            if radius is None:
+                # average of distances to axis
+                ts = numpy.tensordot(vec, centered, (0, 1)) / numpy.dot(vec, vec)
+                line_pts = numpy.outer(ts, vec)
+                temp = (centered - line_pts)
+                r = numpy.sqrt((temp * temp).sum(-1)).mean(0)
+            else:
+                r = radius
+            axes_info.append((name, center, vec, extent, r, color))
 
-    plane_model = PlaneModel(session, name, plane, thickness, radius+padding, color)
-    if len(structures) > 1:
-        session.models.add([plane_model])
+    if len(axes_info) > 1:
+        from chimerax.core.models import Model
+        add_model = Model("axes" if name is None else name, session)
+        if structure:
+            structure.add([add_model])
+        else:
+            session.models.add([add_model])
     else:
-        structures[0].add([plane_model])
-    session.logger.info("Plane %s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
-    return plane_model
+        add_model = structure
+    axes = []
+    for axis_name, center, direction, extent, radius, color in axes_info:
+        if axis_name is None:
+            axis_name = "axis"
+        session.logger.info("Axis '%s' centered at %s with direction %s and length %g"
+            % (axis_name, center, direction, 2*extent))
+        if structure:
+            inverse = structure.position.inverse()
+            center = inverse * center
+            direction = inverse * direction
+        axes.append(AxisModel(session, axis_name, center, direction, extent, radius, color))
+    if add_model:
+        add_model.add(axes)
+    else:
+        session.models.add(axes)
+    return axes
 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, ColorArg, PositiveFloatArg
-    from chimerax.core.commands import StringArg Or, AxisArg
+    from chimerax.core.commands import StringArg, Or, AxisArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
@@ -419,7 +457,8 @@ def register_command(command_name, logger):
     desc = CmdDesc(
         required=[('axis_info', Or(AxisArg, AtomsArg))],
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
-            ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg)],
+            ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
+            ('mass_weighting', BoolArg)],
         synopsis = 'Create plane'
     )
-    register('define axis', desc, cmd_define_plane, logger=logger)
+    register('define axis', desc, cmd_define_axis, logger=logger)

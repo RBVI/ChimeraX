@@ -29,6 +29,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: define plane :: Structure Analysis :: Create a plane in the scene</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: define axis :: Structure Analysis :: Create an axis in the scene</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
