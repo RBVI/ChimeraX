@@ -113,6 +113,16 @@ class NCBIDB(Database):
             return title, species
 
     @staticmethod
+    def format_formulas(formulas):
+        temp_formulas = formulas.split(',')
+        postprocessed_formulas = []
+        for formula in temp_formulas:
+            postprocessed_formulas.append(formula.replace(' ',''))
+            # TODO: Activate when Trac#5407 is complete
+            # Wrap the numbers in the formulas in <sub></sub> HTML tags
+            #postprocessed_formulas.append(re.sub(r"([1-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
+        return ", ".join(postprocessed_formulas)
+    @staticmethod
     def add_info(session, matches, sequences):
         chain_ids = list(matches.keys())
         data = fetch_pdb_info(session, chain_ids)
@@ -122,10 +132,16 @@ class NCBIDB(Database):
                     v = ", ".join([str(s) for s in v])
                 hit[k] = v
             hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
+            ligand_formulas = hit.get("ligand_formulas", None)
+            if ligand_formulas:
+                hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
             del hit["description"]
         for hit in sequences.values():
             hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
             hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
+            ligand_formulas = hit.get("ligand_formulas", None)
+            if ligand_formulas:
+                hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
             del hit["description"]
 
 
