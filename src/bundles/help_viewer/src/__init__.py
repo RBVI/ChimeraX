@@ -123,7 +123,6 @@ class _MyAPI(toolshed.BundleAPI):
 
                 in_file_history = False
 
-        print("provider in_file_history:", HelpViewerInfo().in_file_history)
         return HelpViewerInfo()
 
 
