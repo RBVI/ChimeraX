@@ -140,7 +140,7 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             if isinstance(seq, Chain):
                 _rename_chains(alphafold_model, seq)
-                _align_to_chain(alphafold_model, seq)
+                _align_to_chain(alphafold_model, seq, use_dssp = False)
             else:
                 _log_sequence_similarity(alphafold_model, seq)
             if trim and seq_match:
@@ -196,10 +196,10 @@ def _rename_chains(structure, chain):
     for schain in schains:
         schain.chain_id = chain.chain_id
         
-def _align_to_chain(structure, chain):
+def _align_to_chain(structure, chain, use_dssp = True):
     from chimerax.match_maker.match import cmd_match
     results = cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
-                        verbose=None)
+                        compute_s_s = use_dssp, verbose=None)
     if len(results) == 1:
         r = results[0]
         rmsd = r.get('full RMSD')
