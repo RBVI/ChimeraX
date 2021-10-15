@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AxesPlanes" version="2.0" package="chimerax.axes_planes"
+<BundleInfo name="ChimeraX-AxesPlanes" version="2.1" package="chimerax.axes_planes"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -29,6 +29,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: define plane :: Structure Analysis :: Create a plane in the scene</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: define axis :: Structure Analysis :: Create an axis in the scene</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
