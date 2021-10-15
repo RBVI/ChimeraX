@@ -293,8 +293,11 @@ class BlastProteinResults(ToolInstance):
         self._hits = items
         db = AvailableDBsDict[self.params.database]
         try:
+            # Compute the set of unique column names
+            columns = set()
+            for item in items:
+                columns.update(list(item.keys()))
             # Sort the columns so that defaults come first
-            columns = list(items[0].keys())
             columns = list(filter(lambda x: x not in db.excluded_cols, columns))
             nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
             columns = list(db.default_cols)
