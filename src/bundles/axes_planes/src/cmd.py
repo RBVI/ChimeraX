@@ -363,7 +363,7 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
             if color is None:
                 color = element_color(6)
         if axis_info.atoms is not None and axis_info.atoms[0].structure == axis_info.atoms[1].structure:
-            structure = axis_info.atoms[0]
+            structure = axis_info.atoms[0].structure
 
         center = ((vec + base_pt) + base_pt) / 2
         if length is None:
