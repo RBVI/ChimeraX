@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from Qt.QtCore import Qt
 from Qt.QtWidgets import QWidget, QFormLayout, QLabel
 
 class BlastProteinFormWidget(QWidget):
@@ -21,6 +22,8 @@ class BlastProteinFormWidget(QWidget):
         self._input_widget = input_widget(parent)
         layout.setWidget(0, QFormLayout.LabelRole, self._label)
         layout.setWidget(0, QFormLayout.FieldRole, self._input_widget)
+        layout.setLabelAlignment(Qt.AlignLeft)
+        layout.setFormAlignment(Qt.AlignLeft)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         self.setLayout(layout)

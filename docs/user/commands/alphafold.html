@@ -158,11 +158,12 @@ For each prediction with a corresponding structure chain
 from the <b>alphafold match</b> command or the
 <a href="#alignTo"><b>alignTo</b></a> option of <b>alphafold fetch</b>:
 </p>
+<a name="structmatch"></a>
 <ol>
 <li>the chain ID of the predicted structure is made the same as the
 corresponding chain of the existing model
 <li>the predicted structure is superimposed onto the existing chain using
-<a href="matchmaker.html"><b>matchmaker</b></a> defaults
+<a href="matchmaker.html"><b>matchmaker</b></a>,
 and the following are reported in a table
 in the <a href="../tools/log.html"><b>Log</b></a>:
   <ul>
@@ -431,12 +432,17 @@ A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
 predicting atomic coordinates, and energy-minimizing the best structure.
-</p><p>
 The free version of Google Colab does not allow for much run time.
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
+</p><p>
+The prediction will be opened automatically and
+<a href="#colorConfidence">colored by confidence value</a>.
+If the sequence was specified by structure chain, the prediction will
+be superimposed on that chain and assigned structure-comparison attributes
+for further analysis (<a href="#structmatch">details...</a>).
 </p><p>
 <a name="caveats"></a>
 Please note the following caveats:
@@ -473,5 +479,5 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+October 2021</address>
 </body></html>
