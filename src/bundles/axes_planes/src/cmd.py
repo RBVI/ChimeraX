@@ -243,7 +243,7 @@ class AxisModel(Surface, ComplexMeasurable):
 
     def _update_geometry(self):
         from chimerax.shape.shape import cylinder_geometry
-        length = 2 + self.extent
+        length = 2 * self.extent
         varray, tarray = cylinder_geometry(self.radius, length,
             max(2, int(length / 3 + 0.5)), max(40, int(20.0 * self.radius + 0.5)), True)
         from chimerax.geometry import translation, vector_rotation
@@ -366,9 +366,12 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
             structure = axis_info.atoms[0]
 
         center = ((vec + base_pt) + base_pt) / 2
-        from chimerax.geometry import distance
-        extent = distance(vec + base_pt, base_pt) / 2
-        axes_info.append((name, center, v_pt, extent, 1.0 if radius is None else radius, color))
+        if length is None:
+            from chimerax.geometry import distance
+            extent = distance(vec + base_pt, base_pt) / 2
+        else:
+            extent = length / 2
+        axes_info.append((name, center, vec, extent, 1.0 if radius is None else radius, color))
     else:
         if color is None:
             color = predominant_color(axis_info)
@@ -392,10 +395,12 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
             centered = axis_info.scene_coords - centroid
             _, vals, vecs = svd(centered, full_matrices=False)
         order = reversed(vals.argsort())
-        for index, name, use in zip(order, ('primary', 'secondary', 'tertiary'),
+        for index, axis_name, use in zip(order, ('primary', 'secondary', 'tertiary'),
                 (primary, secondary, tertiary)):
             if not use:
                 continue
+            if int(primary) + int(secondary) + int(tertiary) == 1:
+                axis_name = name
             vec = vecs[index]
             if length is None:
                 dotted = numpy.dot(centered, vec)
@@ -413,7 +418,7 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
                 r = numpy.sqrt((temp * temp).sum(-1)).mean(0)
             else:
                 r = radius
-            axes_info.append((name, center, vec, extent, r, color))
+            axes_info.append((axis_name, center, vec, extent, r, color))
 
     if len(axes_info) > 1:
         from chimerax.core.models import Model
@@ -428,8 +433,8 @@ def cmd_define_axis(session, axis_info, *, color=None, radius=None, length=None,
     for axis_name, center, direction, extent, radius, color in axes_info:
         if axis_name is None:
             axis_name = "axis"
-        session.logger.info("Axis '%s' centered at %s with direction %s and length %g"
-            % (axis_name, center, direction, 2*extent))
+        session.logger.info("Axis '%s' centered at %s with direction %s, radius %g, and length %g"
+            % (axis_name, center, direction, radius, 2*extent))
         if structure:
             inverse = structure.position.inverse()
             center = inverse * center
