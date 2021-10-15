@@ -47,13 +47,16 @@ appropriate `log command <../../user/commands/log.html>`_.
 HTML-based
 ==========
 
-The :doc:`HTML-based tool example <tutorial_tool_html>`
+For developers who are experts in both developing HTML-based
+user input forms and in Javascript development, it may be
+easier to deploy an HTML-based graphical user interface.
+Other developers are strongly advised to create a Qt-based
+interface instead, as described in the preceding section.
+The Javascript communication between the HTML front end and
+Python back end is particularly challenging for non-experts.
+That said, the :doc:`HTML-based tool example <tutorial_tool_html>`
 demonstrates developing a graphical interface whose
-layout is specified using HTML.  This approach is likely
-easiest for developers who are fairly well versed in web
-development (including form handling and Javascript).
-For those not so familiar with HTML development, the
-:doc:`Qt-based example <tutorial_tool_qt>` may prove simpler.
+layout is specified using HTML.
 
 The :doc:`HTML example <tutorial_tool_html>` takes the commands
 developed earlier in the tutorial and creates a graphical
