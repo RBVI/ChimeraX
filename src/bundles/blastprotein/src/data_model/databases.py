@@ -59,6 +59,10 @@ class Database(ABC):
     @staticmethod
     def display_model(chimerax_session, ref_atomspec, model, chain_id):
         spec = model.atomspec
+        # Rudimentary mechanism to detect NMR ensemble?
+        dot_index = spec.find('.')
+        if dot_index > 0: # -1 is not falsy
+            spec = spec[0:dot_index]
         if chain_id:
             spec += '/' + chain_id
         if ref_atomspec:
