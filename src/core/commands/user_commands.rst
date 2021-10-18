@@ -225,7 +225,7 @@ interfaces
 ==========
 Function found in *chimerax.interfaces.cmd*
 
-.. autofunction:: chimerax.interfaces.cmd.contacts
+.. autofunction:: chimerax.interfaces.cmd.interfaces
 
 ks
 ==
