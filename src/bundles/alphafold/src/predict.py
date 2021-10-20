@@ -158,6 +158,8 @@ class AlphaFoldRun(ToolInstance):
         self.session.models.add(models)
     
     def _unzip_results(self, *args, **kw):
+        if self._download_directory is None:
+            return  # If user manages to request two downloads before one completes. Bug #5412
         from os.path import join, exists
         path = join(self._download_directory, 'results.zip')
         if exists(path):
