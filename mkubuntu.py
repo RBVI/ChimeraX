@@ -254,6 +254,7 @@ def main():
     else:
         # candidate build
         version = f"{version.base_version}+rc{version_date}"
+    version = f"{version}ubuntu{os_version}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
@@ -264,7 +265,7 @@ def main():
     # print('bin_name:', bin_name)
 
     os.umask(0o22)  # turn off group and other writability
-    pkg_root = f"{deb_name}-{os_version}"
+    pkg_root = f"{deb_name}"
     os.mkdir(pkg_root)
     debian_dir = f"{pkg_root}/DEBIAN"
     os.mkdir(debian_dir)
