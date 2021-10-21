@@ -49,7 +49,7 @@ def find_clashes(session, test_atoms,
        Atom pairs are eliminated from consideration if they are less than
        or equal to 'bond_separation' bonds apart.
 
-       Clashes involving hidden models ('display' attr is False) are ignored
+       Clashes involving hidden models ('visible' attr is False) are ignored
        if 'ignore_hidden_models' is True.
        Intra-residue clashes are ignored unless intra_res is True.
        Intra-model clashes are ignored unless intra_model is True.
@@ -106,8 +106,8 @@ def find_clashes(session, test_atoms,
     else:
         search_atoms = test_atoms
     if ignore_hidden_models:
-        test_atoms = test_atoms.filter(test_atoms.structures.displays == True)
-        search_atoms = search_atoms.filter(search_atoms.structures.displays == True)
+        test_atoms = test_atoms.filter(test_atoms.structures.visibles == True)
+        search_atoms = search_atoms.filter(search_atoms.structures.visibles == True)
 
     if res_separation is not None:
         chain_pos = {}
