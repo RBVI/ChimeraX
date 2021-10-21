@@ -62,7 +62,7 @@ def surface_volume_and_area(model):
 
 # -----------------------------------------------------------------------------
 #
-def measure_volume(session, surfaces, include_masked = True):
+def measure_volume(session, surfaces, include_masked = True, return_holes = False):
     vtot = 0
     totholes = 0
     lines = []
@@ -99,6 +99,8 @@ def measure_volume(session, surfaces, include_masked = True):
         session.logger.status(msg)
     session.logger.info(msg)
 
+    return (vtot, totholes) if return_holes else vtot
+
 # -----------------------------------------------------------------------------
 #
 def measure_area(session, surfaces, include_masked = True):
@@ -119,6 +121,7 @@ def measure_area(session, surfaces, include_masked = True):
     if len(lines) == 1:
         session.logger.status(msg)
     session.logger.info(msg)
+    return atot
         
 # -----------------------------------------------------------------------------
 #
