@@ -41,24 +41,28 @@ class AtomProximityGUI(QWidget):
             #
             # Your tool needs to call the GUI's destroy() method when it's deleted
             attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
-            continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
-            intra_model=True, intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"],
-            log=defaults["action_log"], make_pseudobonds=defaults["action_pseudobonds"],
-            res_separation=None, restrict=None, reveal=False, save_file=None,
-            select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
-            summary=True, test_atoms=None,
+            continuous=False, dashes=None, distance_only=None, ignore_hidden_models=None, inter_model=True,
+            inter_submodel=False, intra_model=True, intra_mol=defaults["intra_mol"],
+            intra_res=defaults["intra_res"], log=defaults["action_log"],
+            make_pseudobonds=defaults["action_pseudobonds"], res_separation=None, restrict=None,
+            reveal=False, save_file=None, select=defaults["action_select"],
+            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test_atoms=None,
 
             # what controls to show in the interface
             #
             # note that if 'test_atoms' is not None, then the selection-restriction control will be omitted
             # regardless of the 'show_restrict' value
+            #
+            # Also, if 'ignore_hidden_models' is None and it's settings value is also None, then when
+            # the command arguments are generated 'ignore_hidden_models' is treated as True if
+            # 'show_ignore_hidden_models' is True, else False
             show_attr_name=True, show_bond_separation=True, show_checking_frequency=True, show_color=True,
-            show_dashes=True, show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
-            show_inter_submodel=False, show_intra_model=True, show_intra_mol=True, show_intra_res=True,
-            show_log=True, show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True,
-            show_radius=True, show_res_separation=True, show_restrict=True, show_reveal=True,
-            show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
-            show_summary=False):
+            show_dashes=True, show_distance_only=True, show_hbond_allowance=True,
+            show_ignore_hidden_models=False, show_inter_model=True, show_inter_submodel=False,
+            show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_log=True,
+            show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True, show_radius=True,
+            show_res_separation=True, show_restrict=True, show_reveal=True, show_save_file=True,
+            show_select=True, show_set_attrs=True, show_show_dist=True, show_summary=False):
 
         self.session = session
         self.cmd_name = cmd_name
@@ -82,7 +86,7 @@ class AtomProximityGUI(QWidget):
             self.settings = settings = None
         else:
             self.settings = settings = _get_settings(session, settings_name, settings_defaults, cmd_name)
-        final_val = {}
+        self.final_vals = final_val = {}
         for def_name in settings_defaults.keys():
             final_val[def_name] = getattr(settings, def_name) if settings else frame_dict[def_name]
 
@@ -103,7 +107,7 @@ class AtomProximityGUI(QWidget):
         if test_atoms is not None:
             show_restrict = False
         show_bool_params = show_intra_model or show_intra_mol or show_intra_res or show_inter_model \
-            or show_inter_submodel
+            or show_inter_submodel or show_ignore_hidden_models
         if show_overlap_cutoff or show_hbond_allowance or show_restrict or show_bond_separation \
         or show_bool_params:
             group = QGroupBox("Interaction parameters")
@@ -277,6 +281,11 @@ class AtomProximityGUI(QWidget):
                     self.intra_res_option = BooleanOption("Include intraresidue",
                         None if settings else intra_res, None, attr_name="intra_res", settings=settings)
                     bool_param_options.add_option(self.intra_res_option)
+                if show_ignore_hidden_models:
+                    self.ignore_hidden_option = BooleanOption("Ignore hidden models", None if settings else
+                        (True if ignore_hidden_models is None else ignore_hidden_models), None,
+                        attr_name="ignore_hidden_models", settings=settings)
+                    bool_param_options.add_option(self.ignore_hidden_option)
 
         if show_select or show_make_pseudobonds or show_color or show_dashes or show_radius \
         or show_show_dist or show_name or show_reveal or show_attr_name or show_set_attrs or show_log \
@@ -521,6 +530,13 @@ class AtomProximityGUI(QWidget):
             settings['intra_mol'] = self.intra_mol_option.value
         else:
             settings['intra_mol'] = None
+
+        if self.show_values['ignore_hidden_models']:
+            settings['ignore_hidden_models'] = self.ignore_hidden_option.value
+        else:
+            # not the same default as the command, but don't save in settings
+            final_val = self.final_vals['ignore_hidden_models']
+            command_values['ignore_hidden_models'] = False if final_val is None else final_val
 
         if self.show_values['select']:
             settings['select'] = self.select_option.value
