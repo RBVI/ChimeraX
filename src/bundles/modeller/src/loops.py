@@ -131,11 +131,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     chain_target_chars = []
                     seq_chars = seq.characters
                     modeled = set()
+                    # 'chain_indices' are into the *sequence*
+                    mmap = seq.match_maps[chain]
                     for start, end in chain_indices[r.chain]:
-                        start_range = max(start - adjacent_flexible, 0)
-                        end_range = min(end+1 + adjacent_flexible, len(r.chain))
-                        modeled.update(range(start_range, end_range))
-                    number = 1
+                        modeled.update(range(start, end+1))
                     for seq_i in range(len(seq_chars)):
                         if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
                             target_char = '-'
@@ -159,18 +158,18 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             mmap = seq.match_maps[chain]
             for start, end in chain_indices[chain]:
                 start = max(start - adjacent_flexible, 0)
-                while start > 0 and start-1 not in mmap:
+                while start > 0 and start not in mmap:
                     start -= 1
-                seq_len = len(seq.ungapped())
-                end = min(end+1 + adjacent_flexible, seq_len)
-                while end < seq_len and end not in mmap:
+                seq_len = len(seq)
+                end = min(end + adjacent_flexible, seq_len-1)
+                while end < seq_len-1 and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
                 # for residue indexing, unmodeled residues (target == '-') don't count...
                 unmodeled = compact_target_chars[:start+offset].count('-')
 
                 # Modeller residue_range()'s end index is the actual index, not index+1
-                loop_data.append((start+offset-unmodeled, end+offset-unmodeled-1))
+                loop_data.append((start+offset-unmodeled, end+offset-unmodeled))
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
