@@ -161,8 +161,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 start = max(start - adjacent_flexible, 0)
                 while start > 0 and start-1 not in mmap:
                     start -= 1
-                end = min(end+1 + adjacent_flexible, len(chain))
-                while end < len(chain) and end not in mmap:
+                seq_len = len(seq.ungapped())
+                end = min(end+1 + adjacent_flexible, seq_len)
+                while end < seq_len and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
                 # for residue indexing, unmodeled residues (target == '-') don't count...
