@@ -160,7 +160,7 @@ class Log(ToolInstance, HtmlLog):
         parent = self.tool_window.ui_area
         from chimerax.ui.widgets import ChimeraXHtmlView
 
-        from Qt.QtWebEngineWidgets import QWebEnginePage
+        from Qt.QtWebEngineCore import QWebEnginePage
         class MyPage(QWebEnginePage):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
@@ -182,7 +182,7 @@ class Log(ToolInstance, HtmlLog):
                 page = MyPage(self._profile, self)
                 self.setPage(page)
                 s = page.settings()
-                s.setAttribute(s.LocalStorageEnabled, True)
+                s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
                 self.log = log
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
@@ -400,6 +400,9 @@ class Log(ToolInstance, HtmlLog):
 
     def _show(self):
         # start() is documented to stop the timer if it is running
+        from Qt import qt_object_is_deleted
+        if qt_object_is_deleted(self.regulating_timer):
+            return
         self.regulating_timer.start(100)
 
     def _actually_show(self):

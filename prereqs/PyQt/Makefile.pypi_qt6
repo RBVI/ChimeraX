@@ -1,0 +1,32 @@
+PREREQ_MAKE = 1
+TOP	= ../..
+include $(TOP)/mk/config.make
+include ../pips/Makefile.pip
+
+# For PyQt6
+SIP_VERSION = 13.1.0
+PYQT_VERSION = 6.2.0
+SIP_WHEEL := PyQt6-sip==$(SIP_VERSION)
+QT_WHEEL := PyQt6==$(PYQT_VERSION)
+WB_WHEEL := PyQt6-WebEngine==$(PYQT_VERSION)
+
+all:
+
+install:
+	$(PIP) install -U $(SIP_WHEEL) $(QT_WHEEL) $(WB_WHEEL)
+
+app-install: app-uninstall-qt5
+	$(APP_PIP) install -U $(SIP_WHEEL) $(QT_WHEEL) $(WB_WHEEL)
+
+app-uninstall-qt5:
+	$(APP_PIP) uninstall PyQt5 PyQt5WebEngine PyQt5-sip
+
+app-uninstall-qt6:
+	$(APP_PIP) uninstall PyQt6 PyQt6-WebEngine PyQt6-sip
+	# uninstall is not removing the PyQt6 directory
+	\rm -rf $(APP_PYSITEDIR)/PyQt6
+	
+clean:
+
+distclean: clean
+

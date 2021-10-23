@@ -119,7 +119,7 @@ class UpdateLoop:
             return
         from Qt.QtCore import QTimer, Qt
         self._timer = t = QTimer()
-        t.timerType = Qt.PreciseTimer
+        t.timerType = Qt.TimerType.PreciseTimer
         t.timeout.connect(self._redraw_timer_callback)
         t.start(int(self.redraw_interval))
 

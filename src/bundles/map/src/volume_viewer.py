@@ -1423,13 +1423,13 @@ class Thresholds_Panel(PopupPanel):
     hf.resizeEvent = lambda e, self=self: self.resize_panel()
 
     self.histograms_layout = hl = QVBoxLayout(hf)
-    hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
+    hl.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
     right_margin = left_margin = 5
     hl.setContentsMargins(left_margin,0,right_margin,0)
     hl.setSpacing(0)
     hl.addStretch(1)
     frame.setWidget(hf)	# Set scrollable child.
-    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+    hf.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1687,7 +1687,7 @@ class Histogram_Pane:
     from Qt.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
-    f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+    f.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     self._layout = flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
@@ -1699,8 +1699,8 @@ class Histogram_Pane:
     
     # Create frame for step, color, level controls.
     df = QFrame(f)
-    df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-#    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
+    df.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+#    df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
     flayout.addWidget(df)
     layout = QHBoxLayout(df)
     layout.setContentsMargins(0,0,0,0)
@@ -1708,7 +1708,7 @@ class Histogram_Pane:
 
     # Display / hide map button
     self.shown = sh = QPushButton(df)
-    sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    sh.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sh.setMaximumSize(20,20)
     sh.setCheckable(True)
     sh.setFlat(True)
@@ -1786,7 +1786,7 @@ class Histogram_Pane:
 
     # Close map button
     cb = QPushButton(df)
-    cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    cb.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     cb.setMaximumSize(20,20)
     cb.setFlat(True)
     layout.addWidget(cb)
@@ -1968,7 +1968,7 @@ class Histogram_Pane:
       from Qt.QtWidgets import QPushButton
       from Qt.QtCore import Qt, QSize
       cb = QPushButton(f)
-      cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+      cb.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
       cb.setMaximumSize(20,20)
       cb.setFlat(True)
       layout.addWidget(cb)
@@ -2155,9 +2155,9 @@ class Histogram_Pane:
             self._drag(event)
 
     self.canvas = gv = Canvas(frame)
-    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     self.scene = gs = QGraphicsScene(gv)
     gs.setSceneRect(0, 0, 500, 50)

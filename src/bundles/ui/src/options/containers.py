@@ -52,10 +52,10 @@ class OptionsPanel(QWidget):
         self._sorting = sorting
         self._options = []
         self._option_groups = []
-        self._layout.setSizeConstraint(self._layout.SetMinAndMaxSize)
+        self._layout.setSizeConstraint(self._layout.SizeConstraint.SetMinAndMaxSize)
         self._form = QFormLayout()
-        self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
-        self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        self._form.setSizeConstraint(self._form.SizeConstraint.SetMinAndMaxSize)
+        self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
         # None of the below seem to have an effect on the Mac...
         #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -80,10 +80,10 @@ class OptionsPanel(QWidget):
                 insert_row = len(self._options)
         self._form.insertRow(insert_row, option.name, option.widget)
         self._options.insert(insert_row, option)
-        label_item = self._form.itemAt(insert_row, QFormLayout.LabelRole)
+        label_item = self._form.itemAt(insert_row, QFormLayout.ItemRole.LabelRole)
         if label_item:
             label_widget = label_item.widget()
-            label_widget.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            label_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
             label_widget.setOpenExternalLinks(True)
             if option.balloon:
                 label_widget.setToolTip(option.balloon)
@@ -216,7 +216,7 @@ class SettingsPanelBase(QWidget):
                 from .. import shrink_font
                 shrink_font(self.current_check)
                 from Qt.QtCore import Qt
-                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
+                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignmentFlag.AlignRight)
             save_button = QPushButton("Save")
             save_button.clicked.connect(self._save)
             save_button.setToolTip("Save as startup defaults")
