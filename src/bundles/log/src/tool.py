@@ -197,7 +197,7 @@ class Log(ToolInstance, HtmlLog):
                 scheme = qurl.scheme()
                 if scheme == 'cxcmd':
                     from Qt.QtCore import QUrl
-                    no_formatting = QUrl.FormattingOptions(QUrl.None_)
+                    no_formatting = QUrl.UrlFormattingOption.None_
                     cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
