@@ -476,6 +476,10 @@ class AtomicStructures(StructureDatas):
         for s in self:
             s.display = d
 
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         return array([s._c_pointer.value for s in data], dtype=cptr)
@@ -1555,6 +1559,9 @@ class Structures(StructureDatas):
         for s in self:
             s.display = d
 
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):

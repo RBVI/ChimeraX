@@ -62,6 +62,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         continuous=False,
         dashes=None,
         distance_only=None,
+        ignore_hidden_models=defaults["ignore_hidden_models"],
         inter_model=True,
         inter_submodel=False,
         intra_model=True,
@@ -121,11 +122,11 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         get_triggers().remove_handler(getattr(session, _continuous_attr))
         delattr(session, _continuous_attr)
     from .clashes import find_clashes
-    clashes = find_clashes(session, test_atoms, attr_name=attr_name,
-        bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, hbond_allowance=hbond_allowance, inter_model=inter_model,
-        inter_submodel=inter_submodel, intra_model=intra_model, intra_res=intra_res,
-        intra_mol=intra_mol, res_separation=res_separation, restrict=restrict)
+    clashes = find_clashes(session, test_atoms, attr_name=attr_name, bond_separation=bond_separation,
+        clash_threshold=overlap_cutoff, distance_only=distance_only, hbond_allowance=hbond_allowance,
+        ignore_hidden_models=ignore_hidden_models, inter_model=inter_model, inter_submodel=inter_submodel,
+        intra_model=intra_model, intra_res=intra_res, intra_mol=intra_mol, res_separation=res_separation,
+        restrict=restrict)
     if select:
         session.selection.clear()
         for a in clashes.keys():
@@ -301,10 +302,11 @@ def register_command(command_name, logger):
         kw = { 'required': [('test_atoms', Or(AtomsArg,EmptyArg))],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg), ('overlap_cutoff', FloatArg),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg), ('continuous', BoolArg),
-                ('distance_only', FloatArg), ('inter_model', BoolArg), ('inter_submodel', BoolArg),
-                ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg), ('log', BoolArg),
-                ('make_pseudobonds', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
+                ('distance_only', FloatArg), ('ignore_hidden_models', BoolArg), ('inter_model', BoolArg),
+                ('inter_submodel', BoolArg), ('intra_model', BoolArg), ('intra_mol', BoolArg),
+                ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('color', Or(NoneArg,ColorArg)),
+                ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg)], }
