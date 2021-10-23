@@ -20,11 +20,13 @@ app-install: app-uninstall-qt5
 
 app-uninstall-qt5:
 	$(APP_PIP) uninstall PyQt5 PyQt5WebEngine PyQt5-sip
+	# pip uninstall is not removing the PyQt5 directory and PyQtWebEngine-5.15.2.dist-info
+	\rm -rf $(APP_PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)/PyQtWebEngine*.dist-info
 
 app-uninstall-qt6:
 	$(APP_PIP) uninstall PyQt6 PyQt6-WebEngine PyQt6-sip
-	# uninstall is not removing the PyQt6 directory
-	\rm -rf $(APP_PYSITEDIR)/PyQt6
+	# pip uninstall is not removing the PyQt6 directory and dist-info files.
+	\rm -rf $(APP_PYSITEDIR)/PyQt6*
 	
 clean:
 
