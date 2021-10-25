@@ -439,7 +439,7 @@ class ModellerWebService(RunModeller):
         self.job = None
 
     def run(self, *, block=False):
-        self.job = ModellerJob(self.session, self, self.config_name, self.input_file_map, block)
+        self.job = ModellerWebJob(self.session, self, self.config_name, self.input_file_map, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
@@ -456,7 +456,7 @@ class ModellerWebService(RunModeller):
         inst.set_state_from_snapshot(data['base data'])
 
 from chimerax.webservices.opal_job import OpalJob
-class ModellerJob(OpalJob):
+class ModellerWebJob(OpalJob):
 
     OPAL_SERVICE = "Modeller9v8Service"
     SESSION_SAVE = True
@@ -522,3 +522,120 @@ class ModellerJob(OpalJob):
         self.caller.process_ok_models(model_info, stdout, get_pdb_model)
         self.caller = None
 
+class ModellerLocal(RunModeller):
+
+    def __init__(self, session, match_chains, num_models, target_seq_name, executable_location,
+            input_file_map, script_name, targets, temp_dir, **kw):
+
+        super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
+        self.executable_location = executable_location
+        self.input_file_map = input_file_map
+        self.script_name = script_name
+        self.temp_dir = temp_dir
+
+        self.job = None
+
+    def run(self, *, block=False):
+        self.job = ModellerLocalJob(self.session, self, self.executable_location, self.script_name,
+            self.input_file_map, self.temp_dir, block)
+
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        pass # The job's SESSION_SAVE attribute is False
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        pass # The job's SESSION_SAVE attribute is False
+
+from chimerax.core.tasks import Job
+class ModellerLocalJob(Job):
+
+    SESSION_SAVE = False
+
+    def __init__(self, session, caller, executable_location, command, input_file_map, temp_dir, block):
+        super().__init__(session)
+        self.caller = caller
+        self.temp_dir = temp_dir
+        self.start(executable_location, command, input_file_map, blocking=block)
+
+    def launch(self, executable_location, script_name, input_file_map):
+        import os, sys
+        cmd = [executable_location, os.path.join(self.temp_dir, script_name)]
+        if sys.platform == 'win32':
+            # need to set some environment variables
+            environ = {}
+            environ.update(os.environ)
+            bin_dir, exe = os.path.split(executable_location)
+            from chimerax.core.errors import UserError
+            while True:
+                head, tail = os.path.split(bin_dir)
+                if not head:
+                    raise UserError("Expected MODELLER executable to be located under a folder whose name"
+                        " begins with 'Modeller' or 'modeller' (the MODELLER home folder).  The executable"
+                        " specified (%s) does not.  If you feel this requirment is a bug, use 'Report a Bug'"
+                        " in the Help menu to report it." % executable_location)
+                elif tail.startswith("Modeller") or tail.startswith("modeller"):
+                    home = bin_dir
+                    break
+                bin_dir = head
+            if not exe.startswith("mod") or not exe.endswith(".exe"):
+                raise UserError("Expected MODELLER executable name to start with 'mod' and end with '.exe'."
+                    "  The executable specified (%s) does not.  If you feel this requirement is a bug, use"
+                    " 'Report a Bug' in the Help menu to report it." % executable_location)
+        #TODO
+    def monitor(self):
+        super().monitor()
+        stdout = self.get_file("stdout.txt")
+        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
+        status = self.session.logger.status
+        tsafe = self.session.ui.thread_safe
+        if not num_done:
+            tsafe(status, "No models generated yet")
+        else:
+            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
+
+    def next_check(self):
+        return 15
+
+    def on_finish(self):
+        logger = self.session.logger
+        logger.info("Modeller job ID %s finished" % self.job_id)
+        if not self.exited_normally():
+            err = self.get_file("stderr.txt")
+            if self.fail_callback:
+                self.fail_callback(self, err)
+                return
+            if err:
+                raise RuntimeError("Modeller failure; standard error:\n" + err)
+            else:
+                raise RuntimeError("Modeller failure with no error output")
+        try:
+            model_info = self.get_file("ok_models.dat")
+        except KeyError:
+            try:
+                stdout = self.get_file("stdout.txt")
+                stderr = self.get_file("stderr.txt")
+            except KeyError:
+                raise RuntimeError("No output from Modeller")
+            logger.info("<br><b>Modeller error output</b>", is_html=True)
+            logger.info(stderr)
+            logger.info("<br><b>Modeller run output</b>", is_html=True)
+            logger.info(stdout)
+            from chimerax.core.errors import NonChimeraError
+            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
+        try:
+            stdout = self.get_file("stdout.txt")
+        except KeyError:
+            raise RuntimeError("No standard output from Modeller job")
+        def get_pdb_model(fname):
+            from io import StringIO
+            try:
+                pdb_text = self.get_file(fname)
+            except KeyError:
+                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+            from chimerax.pdb import open_pdb
+            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+        self.caller.process_ok_models(model_info, stdout, get_pdb_model)
+        self.caller = None
+        self.temp_dir = None # allow temp dir to be destroyed
