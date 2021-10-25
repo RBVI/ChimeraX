@@ -103,6 +103,7 @@ distclean: clean
 	-$(MAKE) -C vdocs clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C docs clean
+	-$(MAKE) -C prereqs/cxservices distclean
 
 clean:
 	rm -rf $(build_prefix)/sync
