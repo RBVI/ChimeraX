@@ -14,10 +14,8 @@ from string import capwords
 from typing import Dict
 
 from Qt.QtCore import Qt, QThread, Signal, Slot
-from Qt.QtWidgets import (
-    QWidget, QVBoxLayout, QAbstractItemView
-    , QAction, QLabel
-)
+from Qt.QtGui import QAction
+from Qt.QtWidgets import QWidget, QVBoxLayout, QAbstractItemView, QLabel
 
 from chimerax.atomic import Sequence
 from chimerax.alphafold.match import _log_alphafold_sequence_info
@@ -181,7 +179,7 @@ class BlastProteinResults(ToolInstance):
 
         default_cols = self._make_settings_dict(AvailableDBsDict[self.params.database])
         self.table = BlastResultsTable(self.control_widget, default_cols, _settings, parent)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.get_selection.connect(self.load)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
@@ -311,7 +309,7 @@ class BlastProteinResults(ToolInstance):
             for string in columns:
                 title = self._format_column_title(string)
                 self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-            self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
+            self.table.sortByColumn(columns.index('e-value'), Qt.SortOrder.AscendingOrder)
             if self._from_restore:
                 self.table.launch(session_info=self._table_session_data, suppress_resize=True)
             else:

@@ -86,13 +86,13 @@ class BlastProteinTool(ToolInstance):
 
         self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox, input_container_row1)
         self.menu_widgets['sequences'].input_widget.setRange(1, 5000)
-        self.menu_widgets['sequences'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.menu_widgets['sequences'].input_widget.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
         self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox, input_container_row1)
 
         self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, input_container_row2)
         self.menu_widgets['cutoff'].input_widget.setRange(-100, 100)
-        self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.menu_widgets['placeholder'] = BlastProteinFormWidget("", QLabel, input_container_row2)
 
         self.menu_widgets['help'] = QPushButton("Help", input_container_row3)
@@ -102,7 +102,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['ok'] = QPushButton("OK", input_container_row3)
 
         for widget in ['help', 'apply', 'reset', 'close', 'ok']:
-            self.menu_widgets[widget].setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
+            self.menu_widgets[widget].setSizePolicy(QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
 
         # Lay the menu out
         menu_layout_row1.addWidget(self.menu_widgets['chain'])

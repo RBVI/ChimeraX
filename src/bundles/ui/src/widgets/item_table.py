@@ -29,7 +29,7 @@ class QCxTableModel(QAbstractTableModel):
     def data(self, index, role=None):
         col = self._item_table._columns[index.column()]
         item = self._item_table._data[index.row()]
-        if role is None or role == Qt.DisplayRole:
+        if role is None or role == Qt.ItemDataRole.DisplayRole:
             val = col.display_value(item)
             from chimerax.core.colors import Color
             if isinstance(val, bool):
@@ -47,7 +47,7 @@ class QCxTableModel(QAbstractTableModel):
                     self._item_table.setIndexWidget(index, widget)
                 widget.color = val
             return str(val)
-        if role == Qt.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
+        if role == Qt.ItemDataRole.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
                 or col.font is not None):
             if col.justification == "decimal":
                 font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
@@ -61,29 +61,29 @@ class QCxTableModel(QAbstractTableModel):
                 font = QFont(font)
                 font.setBold(True)
             return font
-        if role == Qt.TextAlignmentRole:
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             return self._convert_justification(col.justification)
         return None
 
     def headerData(self, section, orientation, role=None):
-        if orientation == Qt.Vertical:
-            if role != Qt.DisplayRole:
+        if orientation == Qt.Orientation.Vertical:
+            if role != Qt.ItemDataRole.DisplayRole:
                 return None
             else:
                 return (section + 1) 
 
         col = self._item_table._columns[section]
-        if role is None or role == Qt.DisplayRole:
+        if role is None or role == Qt.ItemDataRole.DisplayRole:
             if self._item_table._auto_multiline_headers:
                 title = self._make_multiline(col.title)
             else:
                 title = col.title
             return title
 
-        elif role == Qt.TextAlignmentRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
             return self._convert_justification(col.header_justification)
 
-        elif role == Qt.ForegroundRole:
+        elif role == Qt.ItemDataRole.ForegroundRole:
             if col.color is not None:
                 from chimerax.core.colors import Color
                 if isinstance(col.color, Color):
@@ -92,7 +92,7 @@ class QCxTableModel(QAbstractTableModel):
                     color = Color(col.color)
                 return QBrush(QColor(*color.uint8x4()))
 
-        elif role == Qt.ToolTipRole and col.balloon:
+        elif role == Qt.ItemDataRole.ToolTipRole and col.balloon:
             return col.balloon
 
         return None
@@ -102,10 +102,10 @@ class QCxTableModel(QAbstractTableModel):
 
     def _convert_justification(self, justification):
         if justification == "left":
-            return Qt.AlignLeft | Qt.AlignVCenter
+            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         if justification == "center":
-            return Qt.AlignHCenter | Qt.AlignVCenter
-        return Qt.AlignRight | Qt.AlignVCenter
+            return Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
     def _make_multiline(self, title):
         words = title.strip().split()
@@ -234,18 +234,18 @@ class ItemTable(QTableView):
                     self._col_button_container = QWidget(parent=widget)
                     toggle_vis = lambda x: x.setVisible(not x.isVisible())
                     toggle_callback = toggle_vis(self._col_button_container)
-                    main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
+                    main_layout.addWidget(self._col_button_container, alignment=Qt.AlignmentFlag.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
                     self._col_button_container.setLayout(buttons_layout)
                     buttons_layout.addWidget(QLabel("Show columns"))
                     bbox = qbbox()
                     buttons_layout.addWidget(bbox)
-                    bbox.addButton("All", qbbox.ActionRole).clicked.connect(self._show_all_columns)
-                    bbox.addButton("Default", qbbox.ActionRole).clicked.connect(self._show_default)
-                    bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
-                    bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
-                    bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
+                    bbox.addButton("All", qbbox.ButtonRole.ActionRole).clicked.connect(self._show_all_columns)
+                    bbox.addButton("Default", qbbox.ButtonRole.ActionRole).clicked.connect(self._show_default)
+                    bbox.addButton("Standard", qbbox.ButtonRole.ActionRole).clicked.connect(self._show_standard)
+                    bbox.addButton("Set Default", qbbox.ButtonRole.ActionRole).clicked.connect(self._set_default)
+                    bbox.addButton("Toggle Controls", qbbox.ButtonRole.ActionRole).clicked.connect(
                         self._toggle_columns_checkboxes)
         self._highlighted = set()
 
@@ -407,7 +407,7 @@ class ItemTable(QTableView):
         self._highlighted = new
         top_left = self._table_model.index(0, len(self._columns)-1)
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
-        self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
+        self._table_model.dataChanged(top_left, bottom_right, [Qt.ItemDataRole.FontRole]).emit()
 
     def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None, suppress_resize=False):
         self._table_model = QCxTableModel(self)
@@ -418,7 +418,7 @@ class ItemTable(QTableView):
             self.setSortingEnabled(True)
         else:
             self.setModel(self._table_model)
-        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionBehavior(self.SelectionBehavior.SelectRows)
         self.setSelectionMode(select_mode)
         if self._column_control_info and not isinstance(self._column_control_info[0], QMenu):
             self._arrange_col_checkboxes()
@@ -520,7 +520,7 @@ class ItemTable(QTableView):
         num_rows = int(ceil(num_buttons/num_cols))
         row = col = 0
         for checkbox in self._col_checkboxes:
-            self._col_checkbox_layout.addWidget(checkbox, row, col, alignment=Qt.AlignLeft)
+            self._col_checkbox_layout.addWidget(checkbox, row, col, alignment=Qt.AlignmentFlag.AlignLeft)
             row += 1
             if row >= num_rows:
                 row = 0
@@ -608,19 +608,19 @@ class _ItemColumn:
     def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None):
         changed = []
         if data:
-            changed.append(Qt.DisplayRole)
+            changed.append(Qt.ItemDataRole.DisplayRole)
         if data_fetch is not None and data_fetch != self.data_fetch:
             self.data_fetch = data_fetch
-            changed.append(Qt.DisplayRole)
+            changed.append(Qt.ItemDataRole.DisplayRole)
         if format is not None and format != self.display_format:
             self.display_format = format
-            changed.append(Qt.DisplayRole)
+            changed.append(Qt.ItemDataRole.DisplayRole)
         if display is not None and display != self.display:
             self.display = display
         if justification is not None and justification != self.justification:
             self.justification = justification
-            changed.append(Qt.TextAlignmentRole)
+            changed.append(Qt.ItemDataRole.TextAlignmentRole)
         if font is not None and font != self.font:
             self.font = font
-            changed.append(Qt.FontRole)
+            changed.append(Qt.ItemDataRole.FontRole)
         return changed
