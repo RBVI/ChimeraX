@@ -976,6 +976,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             }
         }
     }
+    set_gc_ribbon();
 }
 
 void

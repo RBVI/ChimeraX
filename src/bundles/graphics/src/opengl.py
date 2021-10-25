@@ -177,8 +177,8 @@ class OpenGLContext:
             fmt.setBlueBufferSize(cbits)
         fmt.setDepthBufferSize(self._depth_bits)
         if self.required_opengl_core_profile:
-            fmt.setProfile(QSurfaceFormat.CoreProfile)
-        fmt.setRenderableType(QSurfaceFormat.OpenGL)
+            fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+        fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
         if not self._wait_for_vsync:
             # Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
             # Has no effect on Windows 10, Nvidia GTX 1080.
@@ -197,7 +197,7 @@ class OpenGLContext:
                 'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
                 'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
-            if fmt.profile() != fmt.CoreProfile:
+            if fmt.profile() != fmt.OpenGLContextProfile.CoreProfile:
                 from chimerax.graphics import OpenGLVersionError
                 raise OpenGLVersionError(
                     'ChimeraX requires an OpenGL graphics core profile.\n' +

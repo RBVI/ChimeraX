@@ -255,7 +255,7 @@ class ModelListWidget(ItemListWidget):
            - AUTOSELECT_NONE: select nothing
            - AUTOSELECT_FIRST: the first item in the list will be selected
            - AUTOSELECT_FIRST_DISPLAYED: select the first item whose 'display' attribute is True; if there
-                is none, the the first item
+                is none, then the first item
            - AUTOSELECT_LAST, AUTOSELECT_LAST_DISPLAYED: analogous to the _FIRST_ values, except the last
                 item instead of the first.
        The default is AUTOSELECT_ALL.

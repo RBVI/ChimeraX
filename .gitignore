@@ -96,6 +96,12 @@ src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
 prereqs/ambertools/ambertools-*.tar.bz2
 prereqs/chrpath/*.tar.gz
+prereqs/ffmpeg/ffmpeg-*.tar.bz2
+prereqs/ffmpeg/libogg-*.tar.xz
+prereqs/ffmpeg/libtheora-*.tar.xz
+prereqs/ffmpeg/libvpx-*.tar.xz
+prereqs/ffmpeg/x264-*.tar.xz
+prereqs/ffmpeg/yasm-*.tar.bz2
 prereqs/openmm/openmm-*.tar.bz2
 prereqs/openssl/*.gz
 prereqs/osmesa/*.bz2

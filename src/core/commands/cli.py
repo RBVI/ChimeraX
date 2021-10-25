@@ -1115,7 +1115,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
         dlg.setAcceptMode(accept_mode)
         if name_filter is not None:
             dlg.setNameFilter(name_filter)
-        elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
+        elif accept_mode == QFileDialog.AcceptMode.AcceptOpen and dialog_mode != QFileDialog.FileMode.Directory:
             from chimerax.open_command.dialog import make_qt_name_filters
             dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
@@ -1145,7 +1145,7 @@ class OpenFileNameArg(FileNameArg):
     def parse(cls, text, session):
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFile
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptOpen, QFileDialog.FileMode.ExistingFile
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
@@ -1166,7 +1166,7 @@ class OpenFileNamesArg(Annotation):
         # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptOpen, QFileDialog.FileMode.ExistingFiles
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
@@ -1188,7 +1188,7 @@ class SaveFileNameArg(FileNameArg):
     def parse(cls, text, session):
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.AnyFile
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptSave, QFileDialog.FileMode.AnyFile
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
@@ -1204,7 +1204,7 @@ class OpenFolderNameArg(FileNameArg):
     def parse(cls, text, session):
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.DirectoryOnly
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptOpen, QFileDialog.FileMode.Directory
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
@@ -1220,7 +1220,7 @@ class SaveFolderNameArg(FileNameArg):
     def parse(cls, text, session):
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptSave, QFileDialog.DirectoryOnly
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptSave, QFileDialog.FileMode.DirectoryOnly
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,

@@ -351,8 +351,8 @@ def _layout(d, what):
 
 
 # tree item data roles:
-LINK_ROLE = Qt.UserRole
-ITEM_TYPE_ROLE = Qt.UserRole + 1
+LINK_ROLE = Qt.ItemDataRole.UserRole
+ITEM_TYPE_ROLE = Qt.ItemDataRole.UserRole + 1
 # tree item types:
 TAB_TYPE = 1
 SECTION_TYPE = 2
@@ -360,12 +360,12 @@ BUTTON_TYPE = 3
 GROUP_TYPE = 4
 # tree item flags:
 BUTTON_FLAGS = (
-    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-    | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
+    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemNeverHasChildren | Qt.ItemFlag.ItemIsDragEnabled
 )
 SECTION_FLAGS = (
-    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-    | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
+    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsDragEnabled
 )
 
 

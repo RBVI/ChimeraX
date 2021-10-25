@@ -148,8 +148,9 @@ class AlphaFoldRun(ToolInstance):
         if isinstance(self._sequence, Chain):
             chain = self._sequence
             from .fetch import _color_by_confidence, _log_chain_info
-            from .match import _align_to_chain
+            from .match import _align_to_chain, _rename_chains
             for m in models:
+                _rename_chains(m, chain)
                 _color_by_confidence(m)
                 _align_to_chain(m, chain)
             _log_chain_info(models, chain.name)
@@ -157,6 +158,8 @@ class AlphaFoldRun(ToolInstance):
         self.session.models.add(models)
     
     def _unzip_results(self, *args, **kw):
+        if self._download_directory is None:
+            return  # If user manages to request two downloads before one completes. Bug #5412
         from os.path import join, exists
         path = join(self._download_directory, 'results.zip')
         if exists(path):
