@@ -23,19 +23,22 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
     if len(emdb_id) < 4:
         raise UserError("EMDB identifiers are at least 4 characters long")
 
+    # Choice of ftp vs https based on speed tests.  Ticket #5448
     import socket
     hname = socket.gethostname()
     if hname.endswith('.edu') or hname.endswith('.gov'):
-        # TODO: RCSB https is 20x slower than ftp. Cole Christie looking into it.
-        #    url_pattern = ('https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
         # The RCSB ftp does not report file size so progress messages don't indicate how long it will take.
         url_pattern = 'ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
-#        url_pattern = 'https://files.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
-#        url_pattern = 'ftp://ftp.rcsb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'https://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
     elif hname.endswith('.cn'):
         url_pattern = 'ftp://ftp.emdb-china.org/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'https://ftp.emdb-china.org/structures/EMD-%s/map/%s.gz'
+    elif hname.endswith('.jp'):
+        url_pattern = 'https://ftp.pdbj.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'ftp://ftp.pdbj.org/pub/emdb/structures/EMD-%s/map/%s.gz'
     else:
         url_pattern = 'ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-%s/map/%s.gz'
+#        url_pattern = 'https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-%s/map/%s.gz'
         
     map_name = 'emd_%s.map' % emdb_id
     map_url = url_pattern % (emdb_id, map_name)

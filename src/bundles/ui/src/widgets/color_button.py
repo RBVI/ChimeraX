@@ -68,7 +68,7 @@ class ColorButton(QPushButton):
         if max_size is not None:
             self.setMaximumSize(*max_size)
         from Qt.QtCore import Qt
-        self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+        self.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
         self._color = None
@@ -97,7 +97,7 @@ class ColorButton(QPushButton):
         if _color_dialog is None:
             from Qt.QtWidgets import QColorDialog
             _color_dialog = cd = QColorDialog(self.window())
-            cd.setOption(cd.NoButtons, True)
+            cd.setOption(cd.ColorDialogOption.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
             cd.destroyed.connect(_color_dialog_destroyed)
         else:
@@ -110,14 +110,14 @@ class ColorButton(QPushButton):
             import sys
             if sys.platform == 'darwin':
                 cd.hide()
-        cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
+        cd.setOption(cd.ColorDialogOption.ShowAlphaChannel, self._has_alpha_channel)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
         _color_callback = self._color_changed_cb
         cd.show()
 
     def changeEvent(self, event):
-        if event.type() == event.EnabledChange:
+        if event.type() == event.Type.EnabledChange:
             if self.isEnabled():
                 color = self._color
             else:

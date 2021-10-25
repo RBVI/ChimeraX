@@ -2119,8 +2119,8 @@ def _draw_texture(texture, renderer):
     
 def qimage_to_numpy(qi):
     from Qt.QtGui import QImage
-    if qi.format() != QImage.Format_ARGB32:
-        qi = qi.convertToFormat(QImage.Format_ARGB32)
+    if qi.format() != QImage.Format.Format_ARGB32:
+        qi = qi.convertToFormat(QImage.Format.Format_ARGB32)
     shape = (qi.height(), qi.width(), 4)
     from Qt import qt_image_bytes
     buf = qt_image_bytes(qi)
@@ -2148,7 +2148,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     p = QPainter()
 
     # Determine image size.
-    weight = QFont.Bold if bold else QFont.Normal
+    weight = QFont.Weight.Bold if bold else QFont.Weight.Normal
     xbuf = xpad + outline_width
     ybuf = ypad + outline_width
     if pixels:
@@ -2175,7 +2175,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if ih == 0:
         ih = 1
         
-    ti = QImage(iw, ih, QImage.Format_ARGB32)
+    ti = QImage(iw, ih, QImage.Format.Format_ARGB32)
     
     # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)

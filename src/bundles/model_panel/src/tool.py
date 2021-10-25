@@ -45,7 +45,7 @@ class ModelPanel(ToolInstance):
                     width = self.header().length()
                 return QSize(width, 200)
         self.tree = SizedTreeWidget()
-        self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.tree.keyPressEvent = session.ui.forward_keystroke
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
@@ -63,11 +63,11 @@ class ModelPanel(ToolInstance):
         self.tree.headerItem().setIcon(4, get_qt_icon("select"))
         self.tree.headerItem().setToolTip(4, "Selected")
         self.tree.setColumnWidth(self.NAME_COLUMN, 200)
-        self.tree.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.tree.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tree.setAnimated(True)
         self.tree.setUniformRowHeights(True)
-        self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
         scrolled_button_area = QScrollArea()
         layout.addWidget(scrolled_button_area)
@@ -259,13 +259,13 @@ class ModelPanel(ToolInstance):
                     but.set_color(bg_color)
             item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
-                item.setCheckState(self.SHOWN_COLUMN, Qt.Checked if display else Qt.Unchecked)
+                item.setCheckState(self.SHOWN_COLUMN, Qt.CheckState.Checked if display else Qt.CheckState.Unchecked)
             if selected:
-                item.setCheckState(self.SELECT_COLUMN, Qt.Checked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Checked)
             elif part_selected:
-                item.setCheckState(self.SELECT_COLUMN, Qt.PartiallyChecked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.PartiallyChecked)
             else:
-                item.setCheckState(self.SELECT_COLUMN, Qt.Unchecked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Unchecked)
             item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
@@ -328,12 +328,12 @@ class ModelPanel(ToolInstance):
         model = self.models[self._items.index(item)]
         if column == self.SHOWN_COLUMN:
             self.self_initiated = True
-            command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
+            command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.CheckState.Checked else "hide"
             run(self.session, "%s #%s%s models" % (command_name,
                 "!" if len(model.all_models()) > 1 else "", model.id_string))
         elif column == self.SELECT_COLUMN:
             self.self_initiated = True
-            prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"
+            prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.CheckState.Checked else "~"
             run(self.session, prefix + "select #" + model.id_string)
 
 from chimerax.core.settings import Settings

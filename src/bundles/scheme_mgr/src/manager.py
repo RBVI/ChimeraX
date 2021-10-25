@@ -48,23 +48,23 @@ class SchemesManager(ProviderManager):
             scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostAndPort)
         elif syntax == "HostPortAndUserInformation":
             scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostPortAndUserInformation)
-        flags = 0
+        flags = QWebEngineUrlScheme.Flag(0)
         if is_true(kw.get("SecureScheme", None)):
-            flags |= QWebEngineUrlScheme.SecureScheme
+            flags |= QWebEngineUrlScheme.Flag.SecureScheme
         if is_true(kw.get("LocalScheme", None)):
-            flags |= QWebEngineUrlScheme.LocalScheme
+            flags |= QWebEngineUrlScheme.Flag.LocalScheme
         if is_true(kw.get("LocalAccessAllowed", None)):
-            flags |= QWebEngineUrlScheme.LocalAccessAllowed
+            flags |= QWebEngineUrlScheme.Flag.LocalAccessAllowed
         if is_true(kw.get("NoAccessAllowed", None)):
-            flags |= QWebEngineUrlScheme.NoAccessAllowed
+            flags |= QWebEngineUrlScheme.Flag.NoAccessAllowed
         if is_true(kw.get("ServiceWorkersAllowed", None)):
-            flags |= QWebEngineUrlScheme.ServiceWorkersAllowed
+            flags |= QWebEngineUrlScheme.Flag.ServiceWorkersAllowed
         if is_true(kw.get("ViewSourceAllowed", None)):
-            flags |= QWebEngineUrlScheme.ViewSourceAllowed
+            flags |= QWebEngineUrlScheme.Flag.ViewSourceAllowed
         if is_true(kw.get("ContentSecurityPolicyIgnored", None)):
-            flags |= QWebEngineUrlScheme.ContentSecurityPolicyIgnored
+            flags |= QWebEngineUrlScheme.Flag.ContentSecurityPolicyIgnored
         if is_true(kw.get("CorsEnabled", None)):
-            flags |= QWebEngineUrlScheme.CorsEnabled
+            flags |= QWebEngineUrlScheme.Flag.CorsEnabled
         if flags:
             scheme.setFlags(flags)
         QWebEngineUrlScheme.registerScheme(scheme)

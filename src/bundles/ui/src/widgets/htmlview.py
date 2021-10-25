@@ -17,7 +17,8 @@ ChimeraX-specific schemes.  It is built on top of :py:class:`HtmlView`,
 which provides scheme support.
 """
 
-from Qt.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineWidgets import QWebEngineView
 from Qt.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
@@ -183,18 +184,17 @@ class HtmlView(QWebEngineView):
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
-        s.setAttribute(s.LocalStorageEnabled, True)
+        s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
         # as of Qt 5.6.0, the keyboard shortcut for copying text
         # from the QWebEngineView did nothing on Mac, the below
         # gets it to work
         import sys
         if sys.platform == "darwin":
-            from Qt.QtGui import QKeySequence
-            from Qt.QtWidgets import QShortcut
+            from Qt.QtGui import QKeySequence, QShortcut
             from Qt.QtCore import Qt
-            self.copy_sc = QShortcut(QKeySequence.Copy, self)
-            self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
+            self.copy_sc = QShortcut(QKeySequence.StandardKey.Copy, self)
+            self.copy_sc.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
             if self._tool_window:
                 self.copy_sc.activated.connect(
                     lambda app=self._tool_window.session.ui:
@@ -464,7 +464,7 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 if prev_dir:
                     os.chdir(prev_dir)
         from Qt.QtCore import QUrl
-        no_formatting = QUrl.FormattingOptions(QUrl.None_)
+        no_formatting = QUrl.UrlFormattingOption.None_
         session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 
