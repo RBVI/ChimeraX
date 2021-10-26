@@ -577,10 +577,11 @@ Structure::delete_alt_locs()
         auto serial_number = a->serial_number();
         a->_alt_loc = ' ';
         change_tracker()->add_modified(this, a, ChangeTracker::REASON_ALT_LOC);
-        a->_alt_loc_map.clear();
         if (aniso_u != nullptr)
             a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
                 (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
+        // don't clear map until we've possibly used the aniso values
+        a->_alt_loc_map.clear();
         a->set_bfactor(bfactor);
         a->set_coord(coord);
         a->set_occupancy(occupancy);
