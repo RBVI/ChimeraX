@@ -6,7 +6,7 @@ include $(TOP)/mk/config.make
 METHOD=wheel
 
 ifeq ($(OSARCH),DarwinArm64)
-METHOD=mac_arm64
+METHOD=pypi_qt6
 endif
 
 # PYQT_LICENSE can be "commercial" for commercial version
