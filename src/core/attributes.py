@@ -115,13 +115,23 @@ class AttrRegistration:
         return data
 
     def restore_session_data(self, session, data):
-        if data.get('version', 1) == 1:
+        version = data.get('version', 1)
+        if version == 1:
             reg_attr_info = {}
             for attr_name, reg_info in data['reg_attr_info'].items():
                 registrant, default_value, attr_type = reg_info
                 reg_attr_info[attr_name] = (registrant, default_value, (attr_type, False))
-        else:
+        elif version == 2:
             reg_attr_info = data['reg_attr_info']
+        elif version == 3:
+            reg_attr_info = {}
+            for attr_name, reg_info in data['reg_attr_info'].items():
+                registrant, type_info = reg_info
+                reg_attr_info[attr_name] = (registrant, None, type_info)
+        else:
+            session.logger.warning("Don't know how to restore custom attribute information from newer"
+                " version of ChimeraX.  Skipping")
+            return
         for attr_name, reg_info in reg_attr_info.items():
             self.register(session, attr_name, *reg_info)
 
