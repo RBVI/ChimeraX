@@ -235,9 +235,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 pir_target.name, input_file_map, config_name, [t[:2] for t in targets],
                 res_numberings=renumberings)
         else:
-            #TODO: job_runner = ModellerLocal(...)
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Local Modeller execution not yet implemented")
+            from .common import ModellerLocal
+            job_runner = ModellerLocal(session, match_chains, num_models, pir_target.name,
+                executable_location, script_path, [t[:2] for t in targets], temp_dir, loop_job=True)
 
         job_runner.run(block=block)
     return
