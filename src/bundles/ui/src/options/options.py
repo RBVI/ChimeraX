@@ -349,7 +349,8 @@ class EnumBase(Option):
             self.widget.setText(self.multiple_value)
 
     def remake_menu(self, *, make_callback=True):
-        from Qt.QtWidgets import QAction, QRadioButton
+        from Qt.QtWidgets import QRadioButton
+        from Qt.QtGui import QAction
         from Qt.QtCore import Qt
         if isinstance(self, SymbolicEnumOption):
             labels = self.labels
@@ -870,7 +871,7 @@ class StringsOption(Option):
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
-        self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         sheet_info = ""
         if initial_text_width:
             sheet_info = "width: %s" % initial_text_width
@@ -938,14 +939,14 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
@@ -970,7 +971,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
 
@@ -979,14 +980,14 @@ def _make_int_spinbox(min, max, **kw):
     class NoScrollSpinBox(QSpinBox):
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
@@ -1001,6 +1002,6 @@ def _make_int_spinbox(min, max, **kw):
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box

@@ -14,8 +14,8 @@
 """ Citation:  show citation for literature reference"""
 
 import os
-from Qt.QtWidgets import QFrame, QGridLayout, QLabel, QToolButton, QAction
-from Qt.QtGui import QFont, QIcon
+from Qt.QtWidgets import QFrame, QGridLayout, QLabel, QToolButton
+from Qt.QtGui import QFont, QIcon, QAction
 from Qt.QtCore import Qt
 
 class Citation(QFrame):

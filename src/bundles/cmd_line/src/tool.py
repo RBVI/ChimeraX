@@ -44,7 +44,7 @@ class CommandLine(ToolInstance):
                 self._processing_key = False
                 from Qt.QtCore import Qt
                 # defer context menu to parent
-                self.setContextMenuPolicy(Qt.NoContextMenu)
+                self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
                 self.setAcceptDrops(True)
                 self._out_selection = None
                 # horrible hack needed for Linux...
@@ -100,32 +100,32 @@ class CommandLine(ToolInstance):
                 if session.ui.key_intercepted(event.key()):
                     return
                 
-                want_focus = forwarded and event.key() not in [Qt.Key_Control,
-                                                               Qt.Key_Shift,
-                                                               Qt.Key_Meta,
-                                                               Qt.Key_Alt]
+                want_focus = forwarded and event.key() not in [Qt.Key.Key_Control,
+                                                               Qt.Key.Key_Shift,
+                                                               Qt.Key.Key_Meta,
+                                                               Qt.Key.Key_Alt]
                 import sys
-                control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
-                shifted = event.modifiers() & Qt.ShiftModifier
-                if event.key() == Qt.Key_Up:  # up arrow
+                control_key = Qt.KeyboardModifier.MetaModifier if sys.platform == "darwin" else Qt.KeyboardModifier.ControlModifier
+                shifted = event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                if event.key() == Qt.Key.Key_Up:  # up arrow
                     self.tool.history_dialog.up(shifted)
-                elif event.key() == Qt.Key_Down:  # down arrow
+                elif event.key() == Qt.Key.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
-                elif event.matches(QKeySequence.Undo):
+                elif event.matches(QKeySequence.StandardKey.Undo):
                     want_focus = False
                     session.undo.undo()
-                elif event.matches(QKeySequence.Redo):
+                elif event.matches(QKeySequence.StandardKey.Redo):
                     want_focus = False
                     session.undo.redo()
                 elif event.modifiers() & control_key:
-                    if event.key() == Qt.Key_N:
+                    if event.key() == Qt.Key.Key_N:
                         self.tool.history_dialog.down(shifted)
-                    elif event.key() == Qt.Key_P:
+                    elif event.key() == Qt.Key.Key_P:
                         self.tool.history_dialog.up(shifted)
-                    elif event.key() == Qt.Key_U:
+                    elif event.key() == Qt.Key.Key_U:
                         self.tool.cmd_clear()
                         self.tool.history_dialog.search_reset()
-                    elif event.key() == Qt.Key_K:
+                    elif event.key() == Qt.Key.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
                         self.tool.history_dialog.search_reset()
                     else:
@@ -309,7 +309,7 @@ class CommandLine(ToolInstance):
 
     def set_focus(self):
         from Qt.QtCore import Qt
-        self.text.lineEdit().setFocus(Qt.OtherFocusReason)
+        self.text.lineEdit().setFocus(Qt.FocusReason.OtherFocusReason)
 
     @classmethod
     def get_singleton(cls, session, **kw):
@@ -367,7 +367,7 @@ class _HistoryDialog:
         parent = self.window.ui_area
         from Qt.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
         self.listbox = QListWidget(parent)
-        self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
+        self.listbox.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
         main_layout = QVBoxLayout(parent)
         main_layout.setContentsMargins(0,0,0,0)
@@ -378,7 +378,7 @@ class _HistoryDialog:
         num_cmd_layout.setContentsMargins(0,0,0,0)
         remem_label = QLabel("Remember")
         from Qt.QtCore import Qt
-        remem_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        remem_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         num_cmd_layout.addWidget(remem_label, 1)
         from Qt.QtWidgets import QSpinBox, QSizePolicy
         class ShorterQSpinBox(QSpinBox):
@@ -390,7 +390,7 @@ class _HistoryDialog:
                 return str(val)
 
         spin_box = ShorterQSpinBox()
-        spin_box.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        spin_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         spin_box.setRange(100, spin_box.max_val)
         spin_box.setSingleStep(100)
         spin_box.setValue(controller.settings.num_remembered)
@@ -442,7 +442,7 @@ class _HistoryDialog:
                 options_layout = QVBoxLayout(options_frame)
                 options_frame.setLayout(options_layout)
                 amount_frame = QFrame(options_frame)
-                options_layout.addWidget(amount_frame, Qt.AlignCenter)
+                options_layout.addWidget(amount_frame, Qt.AlignmentFlag.AlignCenter)
                 amount_layout = QHBoxLayout(amount_frame)
                 amount_layout.addWidget(QLabel("Save", amount_frame))
                 self.save_amount_widget = saw = QComboBox(amount_frame)
@@ -452,10 +452,10 @@ class _HistoryDialog:
                 amount_frame.setLayout(amount_layout)
                 self.append_checkbox = QCheckBox("Append to file", options_frame)
                 self.append_checkbox.stateChanged.connect(self.append_changed)
-                options_layout.addWidget(self.append_checkbox, Qt.AlignCenter)
+                options_layout.addWidget(self.append_checkbox, Qt.AlignmentFlag.AlignCenter)
                 self.overwrite_disclaimer = disclaimer = QLabel(
                     "<small><i>(ignore overwrite warning)</i></small>", options_frame)
-                options_layout.addWidget(disclaimer, Qt.AlignCenter)
+                options_layout.addWidget(disclaimer, Qt.AlignmentFlag.AlignCenter)
                 disclaimer.hide()
             else:
                 dlg = self._record_dialog

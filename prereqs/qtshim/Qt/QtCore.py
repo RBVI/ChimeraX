@@ -1,6 +1,16 @@
-from . import using_pyqt5, using_pyside2
+from . import using_pyqt6, using_pyqt5, using_pyside2
 
-if using_pyqt5:
+if using_pyqt6:
+    from PyQt6.QtCore import *
+    from PyQt6.QtCore import pyqtSignal as Signal
+    from PyQt6.QtCore import pyqtSlot as Slot
+    from PyQt6.QtCore import pyqtProperty as Property
+    from PyQt6.QtCore import QT_VERSION_STR as __version__
+
+    # Those are imported from `import *`
+    del pyqtSignal, pyqtSlot, pyqtProperty, QT_VERSION_STR
+
+elif using_pyqt5:
     from PyQt5.QtCore import *
     from PyQt5.QtCore import pyqtSignal as Signal
     from PyQt5.QtCore import pyqtSlot as Slot

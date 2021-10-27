@@ -139,11 +139,13 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     opened_models = []
     ungrouped_models = []
     statuses = []
+    from chimerax.atomic import Structure
     if homogeneous:
         data_format = formats.pop() if formats else None
         database_name, format = databases.pop() if databases else (None, format)
         if database_name:
-            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+                mgr, database_name, format)
             in_file_history = fetcher_info.in_file_history
             for ident, database_name, format_name in fetches:
                 if format_name is None:
@@ -155,7 +157,12 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
-                    ungrouped_models.extend(models)
+                    if pregrouped_structures:
+                        for model in models:
+                            ungrouped_models.extend([m for m in model.all_models()
+                                if isinstance(m, Structure)])
+                    else:
+                        ungrouped_models.extend(models)
         else:
             opener_info = mgr.opener_info(data_format)
             if opener_info is None:
@@ -171,7 +178,12 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, paths))
-                    ungrouped_models.extend(models)
+                    if provider_info.pregrouped_structures:
+                        for model in models:
+                            ungrouped_models.extend([m for m in model.all_models()
+                                if isinstance(m, Structure)])
+                    else:
+                        ungrouped_models.extend(models)
             else:
                 for fi in file_infos:
                     if provider_info.want_path:
@@ -184,9 +196,13 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if status:
                         statuses.append(status)
                     if models:
-                        opened_models.append(name_and_group_models(models, name,
-                            [fi.file_name]))
-                        ungrouped_models.extend(models)
+                        opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                        if provider_info.pregrouped_structures:
+                            for model in models:
+                                ungrouped_models.extend([m for m in model.all_models()
+                                    if isinstance(m, Structure)])
+                        else:
+                            ungrouped_models.extend(models)
     else:
         for fi in file_infos:
             opener_info = mgr.opener_info(fi.data_format)
@@ -205,9 +221,14 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [fi.file_name]))
-                ungrouped_models.extend(models)
+                if provider_info.pregrouped_structures:
+                    for model in models:
+                        ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
+                else:
+                    ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
-            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+                mgr, database_name, format)
             in_file_history = fetcher_info.in_file_history
             if format_name is None:
                 format_name = default_format_name
@@ -218,7 +239,11 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [ident]))
-                ungrouped_models.extend(models)
+                if pregrouped_structures:
+                    for model in models:
+                        ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
+                else:
+                    ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
     if _add_models and len(names) == 1 and in_file_history:
@@ -256,7 +281,7 @@ def _fetch_info(mgr, database_name, default_format_name):
             raise UserError("No default format for database '%s'.  Possible formats are:"
                 " %s" % (database_name, commas(db_info.keys())))
     return (provider_info.bundle_info.run_provider(mgr.session, database_name, mgr),
-        default_format_name)
+        default_format_name, provider_info.pregrouped_structures)
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists

@@ -115,7 +115,7 @@ void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out
 {
     if (res->chain_id().size() == 2) {
         std::string adjusted_name;
-        int num_spaces = res->name().size() - 3;
+        int num_spaces = 3 - res->name().size();
         if (num_spaces > 0)
             adjusted_name.insert(0, num_spaces, ' ');
         adjusted_name.append(res->name());
