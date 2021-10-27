@@ -133,7 +133,7 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             body += 'class MyModel(allhmodel):'
         elif loop_info:
             method_prefix, loop_data = loop_info
-            res_range = ",\n".join(["\t\t\tself.residue_range('%s', '%s')" % (start, end)
+            res_range = ",\n".join(["\t\t\tself.residue_range(%s, %s)" % (start, end)
                                     for start, end in loop_data])
             body += 'class MyModel(%sloopmodel):' % method_prefix
             body += """
@@ -548,16 +548,18 @@ from chimerax.core.tasks import Job
 class ModellerLocalJob(Job):
 
     SESSION_SAVE = False
+    stdout_file = "ModellerModelling.log"
 
     def __init__(self, session, caller, executable_location, script_name, block):
         super().__init__(session)
         self.caller = caller
+        self._running = False
         self.start(executable_location, script_name, blocking=block)
 
     def get_file(self, file_name):
         import os
         path = os.path.join(self.caller.temp_dir, file_name)
-        if not os.path.exists(file_name):
+        if not os.path.exists(path):
             raise ValueError("%s does not exist" % file_name)
         return open(path).read()
 
@@ -604,16 +606,22 @@ class ModellerLocalJob(Job):
         import subprocess
         old_dir = os.getcwd()
         os.chdir(self.caller.temp_dir)
+        self._running = True
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
-            import html
             from chimerax.ui.html import disclosure
-            tsafe(logger.info, disclosure(html.escape(e.output), summary="Modeller output"), is_html=True)
-            tsafe(logger.info, disclosure(html.escape(e.stderr), summary="Modeller errors", open=True),
+            try:
+                output = self.get_file(self.stdout_file)
+            except ValueError:
+                output = e.output
+            tsafe(logger.info, disclosure('<pre>' + output + '</pre>', summary="Modeller output"),
                 is_html=True)
+            tsafe(logger.info, disclosure('<pre>' + e.stderr + '</pre>', summary="Modeller errors",
+                open=True), is_html=True)
             raise UserError("Modeller execution failed; output and errors in log")
         finally:
+            self._running = False
             os.chdir(old_dir)
             tsafe(logger.status, "MODELLER finished")
 
@@ -651,18 +659,15 @@ class ModellerLocalJob(Job):
             model_info = self.get_file("ok_models.dat")
         except ValueError:
             try:
-                output = self.get_file("stdout.txt")
-                stderr = self.get_file("stderr.txt")
+                output = self.get_file(self.stdout_file)
             except ValueError:
                 raise RuntimeError("No output from Modeller")
-            import html
             from chimerax.ui.html import disclosure
-            logger.info(disclosure(html.escape(output), summary="Modeller output"), is_html=True)
-            logger.info(disclosure(html.escape(stderr), summary="Modeller errors", open=True), is_html=True)
+            logger.info(disclosure('<pre>' + output + '</pre>', summary="Modeller output"), is_html=True)
             from chimerax.core.errors import NonChimeraError
             raise NonChimeraError("No output models from Modeller; see log for Modeller text output/errors.")
         try:
-            stdout = self.get_file("stdout.txt")
+            stdout = self.get_file(self.stdout_file)
         except KeyError:
             raise RuntimeError("No standard output from Modeller job")
         def get_pdb_model(fname):
@@ -670,8 +675,11 @@ class ModellerLocalJob(Job):
             try:
                 pdb_text = self.get_file(fname)
             except KeyError:
-                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+                raise RuntimeError("Could not find Modeller output PDB file %s" % fname)
             from chimerax.pdb import open_pdb
             return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
         self.caller.process_ok_models(model_info, get_pdb_model)
         self.caller = None
+
+    def running(self, *args, **kw):
+        return self._running
