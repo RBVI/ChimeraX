@@ -127,7 +127,7 @@ class AttrRegistration:
             reg_attr_info = {}
             for attr_name, reg_info in data['reg_attr_info'].items():
                 registrant, type_info = reg_info
-                reg_attr_info[attr_name] = (registrant, None, type_info)
+                reg_attr_info[attr_name] = (registrant, NO_DEFAULT, type_info)
         else:
             session.logger.warning("Don't know how to restore custom attribute information from newer"
                 " version of ChimeraX.  Skipping")
