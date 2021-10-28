@@ -25,7 +25,7 @@ defaults = {
     "clash_threshold": 0.6,
     "contact_hbond_allowance": 0.0,
     "contact_threshold": -0.4,
-    "ignore_hidden_models": True,
+    "ignore_hidden_models": False,
     "intra_mol": True,
     "intra_res": False,
     "clash_pb_color": BuiltinColors["medium orchid"],

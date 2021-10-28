@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Log" version="1.1.4"
+<BundleInfo name="ChimeraX-Log" version="1.1.5"
 	    package="chimerax.log" customInit="true"
 		minSessionVersion="1" maxSessionVersion="1">
 
@@ -16,7 +16,7 @@ the user has done.</Description>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.14"/>
   </Dependencies>
 
   <Classifiers>
