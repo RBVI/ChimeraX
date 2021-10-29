@@ -21,8 +21,6 @@ libdir = $(build_prefix)/lib
 shlibdir = $(libdir)
 datadir = $(build_prefix)/share
 tmpdir = $(build_prefix)/tmp
-webdir = $(build_prefix)/webapp
-wheelhouse = $(build_prefix)/wheelhouse
 
 export PKG_CONFIG_PATH=$(libdir)/pkgconfig
 
