@@ -225,6 +225,7 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                     non_iso_res = FakeRes(br_type, non_iso_atoms)
                     non_iso.append(non_iso_res)
                 urt_list.append((iso_type, iso))
+                uncharged_res_types[iso_type] = iso
                 bond_residues = non_iso
             else:
                 # no isolated atoms
