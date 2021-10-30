@@ -13,6 +13,8 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+from .cmd import AxisArg, AxesArg, PlaneArg, PlanesArg
+
 class AxesPlanes_API(BundleAPI):
 
     @staticmethod
