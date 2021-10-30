@@ -14,7 +14,7 @@
 from .settings import defaults
 
 from chimerax.core.commands import ModelsArg, AnnotationError
-class AxesArg(ModelsArg):
+class AxisModelsArg(ModelsArg):
     """Parse command specifier for AxisModels"""
     name = "axis models"
 
@@ -23,7 +23,7 @@ class AxesArg(ModelsArg):
         models, text, rest = super().parse(text, session)
         return [m for m in models if isinstance(m, AxisModel)], text, rest
 
-class AxisArg(AxesArg):
+class AxisModelArg(AxisModelsArg):
     """Parse command specifier for an AxisModel"""
     name = "an axis model"
 
@@ -34,7 +34,7 @@ class AxisArg(AxesArg):
             raise AnnotationError("Must specify 1 axis, got %d" % len(axes), len(text))
         return axes[0], text, rest
 
-class PlanesArg(ModelsArg):
+class PlaneModelsArg(ModelsArg):
     """Parse command specifier for PlaneModels"""
     name = "plane models"
 
@@ -43,7 +43,7 @@ class PlanesArg(ModelsArg):
         models, text, rest = super().parse(text, session)
         return [m for m in models if isinstance(m, PlaneModel)], text, rest
 
-class PlaneArg(PlanesArg):
+class PlaneModelArg(PlaneModelsArg):
     """Parse command specifier for an PlaneModel"""
     name = "an plane model"
 
@@ -354,7 +354,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
             if max_sq_dist is None or sq_dist > max_sq_dist:
                 max_sq_dist = sq_dist
         from math import sqrt
-        radius = sqrt(max_sq_dist)
+        radius = sqrt(max_sq_dist) + padding
 
     if color is None:
         from chimerax.atomic.colors import element_color, predominant_color
@@ -364,7 +364,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
     else:
         color = color.uint8x4()
 
-    plane_model = PlaneModel(session, name, plane, thickness, radius+padding, color)
+    plane_model = PlaneModel(session, name, plane, thickness, radius, color)
     if len(structures) > 1:
         session.models.add([plane_model])
     else:
@@ -372,7 +372,7 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
     session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
     return plane_model
 
-def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None,
+def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None, padding=0.0,
         primary=True, secondary=False, tertiary=False, mass_weighting=False, from_point=None, to_point=None,
         per_helix=False):
     """Wrapper to be called by command line.
@@ -440,15 +440,15 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     helix_atoms = helical.filter(helical.residues.ss_ids == ss_id)
                     if len(helix_atoms) < min_atoms:
                         continue
-                    axes_info = determine_axes(helix_atoms, "axis", length, radius, mass_weighting, primary,
-                        secondary, tertiary, color)
+                    axes_info = determine_axes(helix_atoms, "axis", length, padding, radius, mass_weighting,
+                        primary, secondary, tertiary, color)
                     axis_info.setdefault(s, []).append(("helix %d" % ss_id, axes_info))
         else:
             if len(atoms) >= min_atoms:
                 us = atoms.unique_structures
                 structure = us[0] if len(us) == 1 else None
-                axis_info[structure] = [(None, determine_axes(atoms, name, length, radius, mass_weighting,
-                    primary, secondary, tertiary, color))]
+                axis_info[structure] = [(None, determine_axes(atoms, name, length, padding, radius,
+                    mass_weighting, primary, secondary, tertiary, color))]
 
         if not axis_info:
             raise UserError("Must specify %d or more atoms to determine axis/axes" % min_atoms)
@@ -519,7 +519,8 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                 add_model.add([axis])
     return axes
 
-def determine_axes(atoms, name, length, radius, mass_weighting, primary, secondary, tertiary, color):
+def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
+        color):
     from chimerax.atomic.colors import element_color, predominant_color
     if color is None:
         color = predominant_color(atoms)
@@ -555,7 +556,7 @@ def determine_axes(atoms, name, length, radius, mass_weighting, primary, seconda
         if length is None:
             dotted = numpy.dot(centered, vec)
             bounds = (dotted.min(), dotted.max())
-            extent = (bounds[1] - bounds[0]) / 2
+            extent = (bounds[1] - bounds[0]) / 2 + padding
             center = ((centroid + bounds[0] * vec) + (centroid + bounds[1] * vec)) / 2
         else:
             extent = length / 2
@@ -593,11 +594,11 @@ def register_command(command_name, logger):
             return atoms, text, rest
 
     desc = CmdDesc(
-        optional=[('targets', Or(NonEmptyAtomsArg, PlanesArg))],
+        optional=[('targets', Or(NonEmptyAtomsArg, PlaneModelsArg))],
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
             ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
             ('mass_weighting', BoolArg), ('from_point', Float3Arg), ('to_point', Float3Arg),
-            ('per_helix', BoolArg)],
+            ('per_helix', BoolArg), ('padding', FloatArg)],
         synopsis = 'Create plane'
     )
     register('define axis', desc, cmd_define_axis, logger=logger)

@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-from .cmd import AxisArg, AxesArg, PlaneArg, PlanesArg
+from .cmd import AxisModelArg, AxisModelsArg, PlaneModelArg, PlaneModelsArg
 
 class AxesPlanes_API(BundleAPI):
 
