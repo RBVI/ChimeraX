@@ -438,17 +438,20 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
             main_group = "helix axes" if name is None else name
             # do all helices of the structure, even if specified atoms is less
             for s in atoms.unique_structures:
-                backbone = s.atoms.filter(s.atoms.is_backbones(bb_extent=Atom.BBE_MIN))
-                helical = backbone.filter(backbone.residues.is_helices)
-                ss_ids = list(set(helical.residues.ss_ids))
-                ss_ids.sort()
-                for ss_id in ss_ids:
-                    helix_atoms = helical.filter(helical.residues.ss_ids == ss_id)
-                    if len(helix_atoms) < min_atoms:
-                        continue
-                    axes_info = determine_axes(helix_atoms, "axis", length, padding, radius, mass_weighting,
-                        primary, secondary, tertiary, color)
-                    axis_info.setdefault(s, []).append(("helix %d" % ss_id, axes_info))
+                for chain in s.chains:
+                    c_atoms = chain.existing_residues.atoms
+                    backbone = c_atoms.filter(c_atoms.is_backbones(bb_extent=Atom.BBE_MIN))
+                    helical = backbone.filter(backbone.residues.is_helices)
+                    ss_ids = list(set(helical.residues.ss_ids))
+                    ss_ids.sort()
+                    for ss_id in ss_ids:
+                        helix_atoms = helical.filter(helical.residues.ss_ids == ss_id)
+                        if len(helix_atoms) < min_atoms:
+                            continue
+                        axes_info = determine_axes(helix_atoms, "axis", length, padding, radius,
+                            mass_weighting, primary, secondary, tertiary, color)
+                        axis_info.setdefault(s, []).append(("%shelix %d" % (("chain %s " % chain.chain_id)
+                            if len(s.chains) > 1 else "", ss_id), axes_info))
         else:
             if len(atoms) >= min_atoms:
                 us = atoms.unique_structures
@@ -493,6 +496,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
 
         groupings = {}
         for grouping_name, grp_axes_info in s_axes_groups:
+            show_grouping_name = grouping_name is not None
             if len(grp_axes_info) > 1:
                 if grouping_name is None:
                     if main_group is None:
@@ -508,14 +512,15 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                 if axis_name is None:
                     # per-helix "groups" may contain only one axis or several (secondary, etc.)
                     axis_name = "axis" if grouping_name is None else grouping_name
-                    grouping_name = None
+                    show_grouping_name = False
                 elif len(grp_axes_info) == 1 and grouping_name is not None:
                     axis_name = grouping_name
+                    show_grouping_name = False
                 session.logger.info("Axis '%s%s%s%s' centered at %s with direction %s, radius %g,"
                     " and length %g" % (
                     ("" if structure is None else ("%s/" % structure)),
                     ("" if main_group is None else ("%s/" % main_group)),
-                    ("" if grouping_name is None else ("%s/" % grouping_name)),
+                    ("" if not show_grouping_name else ("%s/" % grouping_name)),
                     axis_name, center, direction, radius, 2*extent))
                 if structure:
                     inverse = structure.position.inverse()
