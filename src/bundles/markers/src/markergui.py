@@ -247,7 +247,7 @@ class MarkerModeSettings(ToolInstance):
         self._link_color.set_color(self._settings['link color'])
         self._link_radius.setText('%.3g' % s['link radius'])
         from Qt.QtCore import Qt
-        self.link_new_button.setChecked(Qt.Checked if s['link_new_markers'] else Qt.Unchecked)
+        self.link_new_button.setCheckState(Qt.Checked if s['link_new_markers'] else Qt.Unchecked)
         
     def show(self):
         self.tool_window.shown = True

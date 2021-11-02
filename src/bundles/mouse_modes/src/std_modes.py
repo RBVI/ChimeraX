@@ -73,7 +73,8 @@ class SelectMouseMode(MouseMode):
                     entries.append(entry)
         entries.sort(key = lambda e: e.label(ses))
         dangerous_entries.sort(key = lambda e: e.label(ses))
-        from Qt.QtWidgets import QMenu, QAction
+        from Qt.QtWidgets import QMenu
+        from Qt.QtGui import QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
@@ -91,7 +92,12 @@ class SelectMouseMode(MouseMode):
         else:
             menu.addAction("No applicable actions")
         # this will prevent atom-spec balloons from showing up
-        menu.exec_(event._event.globalPos())
+        from Qt.QtCore import QPoint
+        p = QPoint(*event.global_position())
+        if hasattr(menu, 'exec'):
+            menu.exec(p)	# PyQt6
+        else:
+            menu.exec_(p)	# PyQt5
 
     @staticmethod
     def register_menu_entry(menu_entry):

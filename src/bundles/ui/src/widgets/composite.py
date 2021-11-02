@@ -32,13 +32,16 @@ def button_row(parent, name_and_callback_list,
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
 #    from Qt.QtCore import Qt
+    from Qt import using_pyqt6
     buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
 #        b.setStyleSheet('QPushButton { background-color: pink;}')
 #        b.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-        b.setStyleSheet('QPushButton { padding-left: 15px; padding-right: 15px; padding-top: 5px; padding-bottom: 2px;}')
+        if not using_pyqt6:
+            # This creates very poor looking buttons on macOS with PyQt6.
+            b.setStyleSheet('QPushButton { padding-left: 15px; padding-right: 15px; padding-top: 5px; padding-bottom: 2px;}')
         if callback is None:
             b.setEnabled(False)
         else:

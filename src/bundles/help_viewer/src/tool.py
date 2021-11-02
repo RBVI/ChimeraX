@@ -102,27 +102,27 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from Qt.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
-        from Qt.QtGui import QIcon
+        from Qt.QtWidgets import QToolBar, QVBoxLayout, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
+        from Qt.QtGui import QIcon, QAction, QKeySequence
         from Qt.QtCore import Qt
         shortcuts = (
-            (Qt.CTRL + Qt.Key_0, self.page_reset_zoom),
-            (Qt.CTRL + Qt.Key_T, lambda: self.create_tab(empty=True)),
-            (Qt.CTRL + Qt.Key_W, self.close_current_tab),
-            (Qt.CTRL + Qt.Key_Tab, lambda: self.cycle_tab(1)),
-            (Qt.CTRL + Qt.SHIFT + Qt.Key_Tab, lambda: self.cycle_tab(-1)),
-            (Qt.CTRL + Qt.Key_1, lambda: self.tab_n(0)),
-            (Qt.CTRL + Qt.Key_2, lambda: self.tab_n(1)),
-            (Qt.CTRL + Qt.Key_3, lambda: self.tab_n(2)),
-            (Qt.CTRL + Qt.Key_4, lambda: self.tab_n(3)),
-            (Qt.CTRL + Qt.Key_5, lambda: self.tab_n(4)),
-            (Qt.CTRL + Qt.Key_6, lambda: self.tab_n(5)),
-            (Qt.CTRL + Qt.Key_7, lambda: self.tab_n(6)),
-            (Qt.CTRL + Qt.Key_8, lambda: self.tab_n(7)),
-            (Qt.CTRL + Qt.Key_9, lambda: self.tab_n(-1)),
+            (Qt.CTRL | Qt.Key_0, self.page_reset_zoom),
+            (Qt.CTRL | Qt.Key_T, lambda: self.create_tab(empty=True)),
+            (Qt.CTRL | Qt.Key_W, self.close_current_tab),
+            (Qt.CTRL | Qt.Key_Tab, lambda: self.cycle_tab(1)),
+            (Qt.CTRL | Qt.SHIFT | Qt.Key_Tab, lambda: self.cycle_tab(-1)),
+            (Qt.CTRL | Qt.Key_1, lambda: self.tab_n(0)),
+            (Qt.CTRL | Qt.Key_2, lambda: self.tab_n(1)),
+            (Qt.CTRL | Qt.Key_3, lambda: self.tab_n(2)),
+            (Qt.CTRL | Qt.Key_4, lambda: self.tab_n(3)),
+            (Qt.CTRL | Qt.Key_5, lambda: self.tab_n(4)),
+            (Qt.CTRL | Qt.Key_6, lambda: self.tab_n(5)),
+            (Qt.CTRL | Qt.Key_7, lambda: self.tab_n(6)),
+            (Qt.CTRL | Qt.Key_8, lambda: self.tab_n(7)),
+            (Qt.CTRL | Qt.Key_9, lambda: self.tab_n(-1)),
         )
         for shortcut, callback in shortcuts:
-            sc = QShortcut(shortcut, parent)
+            sc = QShortcut(QKeySequence(shortcut), parent)
             sc.activated.connect(callback)
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -143,9 +143,9 @@ class HelpUI(ToolInstance):
             ("new_tab", "New Tab", "New Tab", lambda: self.create_tab(empty=True),
                 Qt.Key_Reload, True),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
-                [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL + Qt.Key_Equal], True),
+                [Qt.CTRL | Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL | Qt.Key_Equal], True),
             ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
-                [Qt.CTRL + Qt.Key_Minus, Qt.Key_ZoomOut], True),
+                [Qt.CTRL | Qt.Key_Minus, Qt.Key_ZoomOut], True),
             ("home", "Home", "Home page", self.page_home,
                 Qt.Key_HomePage, True),
             (None, None, None, None, None, None),

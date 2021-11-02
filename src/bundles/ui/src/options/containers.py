@@ -216,7 +216,7 @@ class SettingsPanelBase(QWidget):
                 from .. import shrink_font
                 shrink_font(self.current_check)
                 from Qt.QtCore import Qt
-                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignmentFlag.AlignRight)
+                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
             save_button = QPushButton("Save")
             save_button.clicked.connect(self._save)
             save_button.setToolTip("Save as startup defaults")

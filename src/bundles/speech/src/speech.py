@@ -87,7 +87,8 @@ class Speech:
         return words
 
     def _scan_menu(self, menu, parent_info):
-        from Qt.QtWidgets import QMenu, QAction
+        from Qt.QtWidgets import QMenu
+        from Qt.QtGui import QAction
         words = self._words(menu.title())
         name = ' '.join(words)
         # print("menu", name)
