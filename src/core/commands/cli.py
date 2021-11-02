@@ -1367,6 +1367,16 @@ class AxisArg(Annotation):
                 elif len(atoms) > 0:
                     raise AnnotationError('Axis argument requires 2 atoms, got %d atoms' % len(atoms))
 
+        # AxisModel
+        if axis is None:
+            try:
+                from chimerax.axes_planes import AxisModelArg
+                axis_model, atext, rest = AxisModelArg.parse(text, session)
+            except Exception:
+                pass
+            else:
+                axis = Axis(axis_model=axis_model)
+
         if axis is None:
             raise AnnotationError('Expected 3 floats or "x", or "y", or "z" or two atoms')
 
@@ -1375,33 +1385,42 @@ class AxisArg(Annotation):
 
 class Axis:
 
-    def __init__(self, coords=None, atoms=None):
+    def __init__(self, coords=None, atoms=None, axis_model=None):
         if coords is not None:
             from numpy import array, float32
             coords = array(coords, float32)
         self.coords = coords   # Camera coordinates
         self.atoms = atoms
+        self.axis_model = axis_model
 
     def scene_coordinates(self, coordinate_system=None, camera=None, normalize=True):
         atoms = self.atoms
         if atoms is not None:
             a = atoms[1].scene_coord - atoms[0].scene_coord
-        elif coordinate_system is not None:
-            # Camera coords are actually coordinate_system coords if
-            # coordinate_system is not None.
-            a = coordinate_system.transform_vectors(self.coords)
-        elif camera:
-            a = camera.position.transform_vectors(self.coords)
+        elif self.coords is not None:
+            if coordinate_system is not None:
+                # Camera coords are actually coordinate_system coords if
+                # coordinate_system is not None.
+                a = coordinate_system.transform_vectors(self.coords)
+            elif camera:
+                a = camera.position.transform_vectors(self.coords)
+            else:
+                a = self.coords
         else:
-            a = self.coords
+            model = self.axis_model
+            a = model.scene_position.transform_vector(model.direction)
         if normalize:
             from chimerax import geometry
             a = geometry.normalize_vector(a)
         return a
 
     def base_point(self):
-        a = self.atoms
-        return None if a is None else a[0].scene_coord
+        if self.atoms is not None:
+            return self.atoms[0].scene_coord
+        if self.axis_model is not None:
+            model = self.axis_model
+            return model.scene_position * model.center
+        return None
 
 
 class CenterArg(Annotation):
