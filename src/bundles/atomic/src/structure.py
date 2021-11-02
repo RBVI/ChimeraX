@@ -115,7 +115,9 @@ class Structure(Model, StructureData):
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = Model.deleted
+    @property
+    def deleted(self):
+        return StructureData.deleted.fget(self) or Model.deleted.fget(self)
 
     def combine(self, s, chain_id_mapping, ref_xform):
         '''
