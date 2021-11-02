@@ -70,7 +70,7 @@ class BugReporter(ToolInstance):
         row += 1
         
         cnl = QLabel('Contact Name:')
-        align_right = Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter
+        align_right = Qt.AlignRight|Qt.AlignVCenter
         cnl.setAlignment(align_right)
         layout.addWidget(cnl, row, 1)
         self.contact_name = cn = QLineEdit(self.settings.contact_name)
@@ -166,7 +166,7 @@ class BugReporter(ToolInstance):
         ilc.setChecked(True)
         ilayout.addWidget(ilc)
         ill = QLabel('Include log contents in bug report')
-        align_left = Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter
+        align_left = Qt.AlignLeft|Qt.AlignVCenter
         ill.setAlignment(align_left)
         ilayout.addWidget(ill)
         ilayout.addStretch(1)

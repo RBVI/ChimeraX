@@ -1708,7 +1708,7 @@ class Histogram_Pane:
 
     # Display / hide map button
     self.shown = sh = QPushButton(df)
-    sh.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sh.setMaximumSize(20,20)
     sh.setCheckable(True)
     sh.setFlat(True)
@@ -1786,7 +1786,7 @@ class Histogram_Pane:
 
     # Close map button
     cb = QPushButton(df)
-    cb.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+    cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     cb.setMaximumSize(20,20)
     cb.setFlat(True)
     layout.addWidget(cb)
@@ -1814,7 +1814,7 @@ class Histogram_Pane:
       if v is None:
           return
       
-      from Qt.QtWidgets import QMenu, QAction
+      from Qt.QtWidgets import QMenu
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
@@ -1823,13 +1823,16 @@ class Histogram_Pane:
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
-      menu.exec_(event.globalPos())
+      if hasattr(menu, 'exec'):
+          menu.exec(event.globalPos())	# PyQt6
+      else:
+          menu.exec_(event.globalPos())	# PyQt5
 
   # ---------------------------------------------------------------------------
   #
   def add_menu_entry(self, menu, text, callback, *args, checked = None):
       '''Add menu item to context menu'''
-      from Qt.QtWidgets import QAction
+      from Qt.QtGui import QAction
       a = QAction(text, self.frame)
       if checked is not None:
           a.setCheckable(True)
@@ -1968,7 +1971,7 @@ class Histogram_Pane:
       from Qt.QtWidgets import QPushButton
       from Qt.QtCore import Qt, QSize
       cb = QPushButton(f)
-      cb.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+      cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
       cb.setMaximumSize(20,20)
       cb.setFlat(True)
       layout.addWidget(cb)

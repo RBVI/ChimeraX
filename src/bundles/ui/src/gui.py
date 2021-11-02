@@ -398,7 +398,8 @@ class UI(QApplication):
             return
         from Qt.QtCore import QEvent
         class ThreadSafeGuiFuncEvent(QEvent):
-            EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
+#            EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
+            EVENT_TYPE = QEvent.Type(QEvent.Type.User)
             def __init__(self, func, args, kw):
                 QEvent.__init__(self, self.EVENT_TYPE)
                 self.func_info = (func, args, kw)
@@ -2263,7 +2264,7 @@ class _Qt:
         dw.closeEvent = lambda e, *, tw=tool_window, mw=mw: mw.close_request(tw, e)
         if close_destroys:
             from Qt.QtCore import Qt
-            dw.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dw.setAttribute(Qt.WA_DeleteOnClose)
         dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
             self.dock_widget.setTitleBarWidget(QWidget())
@@ -2291,7 +2292,7 @@ class _Qt:
             # already destroyed
             return
         from Qt.QtCore import Qt
-        auto_delete = self.dock_widget.testAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
@@ -2525,7 +2526,10 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         position_action.triggered.connect(lambda *, ui=session.ui, widget=memorable, ti=ti:
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
-    menu.exec_(event.globalPos())
+    if hasattr(menu, 'exec'):
+        menu.exec(event.globalPos())	# PyQt6
+    else:
+        menu.exec_(event.globalPos())	# PyQt5
 
 def _remember_tool_pos(ui, tool_instance, widget):
     mw = ui.main_window
@@ -2704,7 +2708,7 @@ class SelZoneDialog(QDialog):
         self.target_button.setMenu(menu)
         target_layout.addWidget(self.target_button)
         target_layout.addWidget(QLabel(":"))
-        layout.addWidget(target_area, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(target_area, alignment=Qt.AlignLeft)
         less_layout = QHBoxLayout()
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
@@ -2900,7 +2904,7 @@ class InitWindowSizeOption(Option):
             action.triggered.connect(lambda *, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
         from Qt.QtCore import Qt
-        layout.addWidget(self.push_button, 0, Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.push_button, 0, Qt.AlignLeft)
 
         self.fixed_widgets = []
         self.proportional_widgets = []

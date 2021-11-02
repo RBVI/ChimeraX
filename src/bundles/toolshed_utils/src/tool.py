@@ -139,7 +139,7 @@ class UpdateTool(ToolInstance):
         self.install_button.setEnabled(False)
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
