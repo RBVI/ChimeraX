@@ -175,6 +175,7 @@ class AxisModel(Surface, ComplexMeasurable):
             return _axis_plane_angle(self, obj)
         elif not isinstance(obj, AxisModel):
             return NotImplemented
+        from chimerax.geometry import angle
         return quadrant_angle(angle(self.xform_direction, obj.xform_direction))
 
     def _axis_ends_dist(self, axis):
@@ -293,6 +294,10 @@ class AxisModel(Surface, ComplexMeasurable):
         from chimerax.surface import calculate_vertex_normals
         narray = calculate_vertex_normals(varray, tarray)
         self.set_geometry(varray, narray, tarray)
+
+    def _updated(self):
+        self._update_geometry()
+        self.redraw_needed()
 
     @property
     def xform_center(self):
@@ -431,8 +436,9 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
         if per_helix:
             from chimerax.atomic import Atom
             main_group = "helix axes" if name is None else name
-            for s, s_atoms in atoms.by_structure:
-                backbone = s_atoms.filter(s_atoms.is_backbones(bb_extent=Atom.BBE_MIN))
+            # do all helices of the structure, even if specified atoms is less
+            for s in atoms.unique_structures:
+                backbone = s.atoms.filter(s.atoms.is_backbones(bb_extent=Atom.BBE_MIN))
                 helical = backbone.filter(backbone.residues.is_helices)
                 ss_ids = list(set(helical.residues.ss_ids))
                 ss_ids.sort()
@@ -526,13 +532,19 @@ def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary
         color = predominant_color(atoms)
         if color is None:
             color = element_color(6)
-    us = atoms.unique_structures
-    if len(us) == 1:
-        structure = us[0]
     import numpy
     from numpy.linalg import eig, svd, eigh
     if mass_weighting:
-        weights = atoms.elements.masses
+        structures = atoms.unique_structures
+        classes = set([s.__class__ for s in structures])
+        if len(classes) > 1:
+            from chimerax.core.errors import UserError
+            raise UserError("Cannot mix markers/centroids and regular atoms when using mass weighting")
+        from chimerax.atomic import AtomicStructure
+        if AtomicStructure in classes:
+            weights = atoms.elements.masses
+        else:
+            weights = atoms.radii
         n = len(atoms)
         mat_weights = weights.reshape((n,1))
         wcoords = mat_weights * atoms.scene_coords
@@ -562,11 +574,14 @@ def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary
             extent = length / 2
             center = centroid
         if radius is None:
-            # average of distances to axis
-            ts = numpy.tensordot(vec, centered, (0, 1)) / numpy.dot(vec, vec)
-            line_pts = numpy.outer(ts, vec)
-            temp = (centered - line_pts)
-            r = numpy.sqrt((temp * temp).sum(-1)).mean(0)
+            if len(centered) > 2:
+                # average of distances to axis
+                ts = numpy.tensordot(vec, centered, (0, 1)) / numpy.dot(vec, vec)
+                line_pts = numpy.outer(ts, vec)
+                temp = (centered - line_pts)
+                r = numpy.sqrt((temp * temp).sum(-1)).mean(0)
+            else:
+                r = min(atoms.radii) / 2
         else:
             r = radius
         axes_info.append((axis_name, center, vec, extent, r, color))
