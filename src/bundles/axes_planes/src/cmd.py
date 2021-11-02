@@ -503,6 +503,8 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     # per-helix "groups" may contain only one axis or several (secondary, etc.)
                     axis_name = "axis" if grouping_name is None else grouping_name
                     grouping_name = None
+                elif len(grp_axes_info) == 1 and grouping_name is not None:
+                    axis_name = grouping_name
                 session.logger.info("Axis '%s%s%s%s' centered at %s with direction %s, radius %g,"
                     " and length %g" % (
                     ("" if structure is None else ("%s/" % structure)),
