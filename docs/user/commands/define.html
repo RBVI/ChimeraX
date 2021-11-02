@@ -29,9 +29,12 @@ class="clRight" title="User Guide Index"/></a>
 The <b>define</b> command calculates and displays geometric objects based on
 atomic coordinates: 
 <ul>
-<li><a href="#axis"><b>axis</b></a>
-<li><a href="#centroid"><b>centroid</b></a>
-<li><a href="#plane"><b>plane</b></a>
+<li><a href="#axis"><b>axis</b></a> 
+&ndash; cylindrical surface models
+<li><a href="#centroid"><b>centroid</b></a> 
+&ndash; spherical <a href="../markers.html">markers</a>
+<li><a href="#plane"><b>plane</b></a> 
+&ndash; disk-shaped surface models
 </ul>
 <p>
 These objects can be used in
@@ -40,6 +43,7 @@ and <a href="angle.html"><b>angle</b></a> measurements.
 See also: 
 <a href="measure.html#inertia"><b>measure inertia</b></a>,
 <a href="shape.html"><b>shape</b></a>,
+<a href="cartoon.html#style"><b>cartoon style</b></a>,
 <a href="open.html#object">3D object formats</a>,
 <a href="../measurements.html">measurements</a>
 </p>
@@ -110,10 +114,10 @@ Axes are anchored at the corresponding collective centroid
 and aligned with the first (if <b>primary</b> is <b>true</b>, default), second 
 (<b>secondary</b> true), and/or third (<b>tertiary</b> true) 
 eigenvector of the corresponding coordinates.
-Mass-weighting (default <b>false</b>) cannot be combined with the 
-<b>perHelix</b> option, and the points used in a mass-weighted calculation 
-must be either all &ldquo;real&rdquo; atoms or all
-<a href="../markers.html">markers</a> (which could include centroid objects).
+If <b>massWeighting</b> is true (default <b>false</b>), 
+the specification must contain either only
+&ldquo;real&rdquo; atoms or only <a href="../markers.html">markers</a>
+(which could include centroid objects).
 The radius of a marker (&Aring;) is used as its &ldquo;mass.&rdquo;
 </p>
 </blockquote>
@@ -130,6 +134,8 @@ mass-weighting (default without).
 The centroid is added as a <a href="../markers.html">marker</a>.
 The related command <a href="measure.html#center"><b>measure center</b></a>
 can also calculate center of mass for density maps.
+To simply add a marker at a specified point, see 
+the <a href="marker.html#create"><b>marker</b></a> command.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -176,9 +182,10 @@ style="display:inline-block; vertical-align:middle"><tr>
 Object radius in &Aring;. Defaults:
   <ul>
   <li>for axes defined by three or more atoms, 
-the average axis-atom/centroid distance, or
-for axes defined by two atoms or points, <b>1.0</b> &Aring;,
-  or for an axis normal to a plane, 5% of the plane radius
+the average axis-atom/centroid distance; 
+for axes defined by two atoms, half of the smaller atom's radius;
+for axes defined by points, <b>1.0</b> &Aring;;
+or for an axis normal to a plane, 5% of the plane radius
   <li>for centroids, <b>2.0</b> &Aring;
   <li>for planes, to enclose the projections of the atoms
   (an additional margin can be specified with the
@@ -196,7 +203,9 @@ is also assigned as its atom name. Default axis model names:
 for a set of atoms or points
 <li><b>normal</b> when the axis is defined by a plane model
 <li>when <b>perHelix</b> is true, a grouping model named
-<b>helix axes</b> with submodels named <b>helix N</b>;
+<b>helix axes</b> with submodels named <b>helix N</b> (or <b>chain ID 
+helix N</b> if the model has multiple chains), where N is the value of the 
+<a href="../attributes.html#residue">residue attribute</a> <b>ss_id</b>;
 a user-specified name replaces the grouping-model name only
 <li>when axes are generated for more than one eigenvector of a single set 
 of atoms, a grouping model named <b>axes</b> with submodels named
@@ -204,7 +213,8 @@ of atoms, a grouping model named <b>axes</b> with submodels named
 a user-specified name replaces the grouping-model name only
 <li>if <b>perHelix</b> is true <i>and</i> axes are generated for more 
 than eigenvector per helix, a grouping model named <b>helix axes</b>
-with submodels <b>helix N</b>, in turn containing submodels
+with submodels <b>helix N</b> (or <b>chain ID helix N</b>),
+in turn containing submodels
 <b>primary</b>, <b>secondary</b>, <b>tertiary</b> as appropriate
 </ul>
 </blockquote>
