@@ -77,7 +77,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(webdir) $(wheelhouse) $(build_prefix)/sync/{python-only,binary}
+		$(build_prefix)/sync/{python-only,binary}
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
@@ -103,6 +103,7 @@ distclean: clean
 	-$(MAKE) -C vdocs clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C docs clean
+	-$(MAKE) -C prereqs/cxservices distclean
 
 clean:
 	rm -rf $(build_prefix)/sync

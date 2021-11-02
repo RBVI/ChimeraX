@@ -201,7 +201,8 @@ class ModellerLauncher(ToolInstance):
             specific_args = "multichain %s hetPreserve %s hydrogens %s waterPreserve %s" % (
                 repr(self.settings.multichain).lower(),
                 repr(self.settings.het_preserve).lower(),
-                repr(self.settings.hydrogens).lower())
+                repr(self.settings.hydrogens).lower(),
+                repr(self.settings.water_preserve).lower())
         run(self.session, ("modeller %s %s numModels %d fast %s " % (sub_cmd,  " ".join(aln_seq_args),
             self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" tempPath %s"
             % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else "")))

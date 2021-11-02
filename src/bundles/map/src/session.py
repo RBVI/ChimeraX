@@ -307,13 +307,26 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
     compress_maps = False  # No advantage.  Ticket #4002
+    bytes = dt.matrix().tobytes()
+
+    MAX_MSGPACK_OBJECT_SIZE = 2**32-1
+    if len(bytes) > MAX_MSGPACK_OBJECT_SIZE:
+      from chimerax.core.errors import UserError
+      raise UserError('ChimeraX session files cannot include maps over 4 Gbytes in size.\n\n' +
+                      'You tried to save map "%s"' % dt.name +
+                      ', size %d,%d,%d' % tuple(dt.size) +
+                      ', type %s.  ' % str(dt.value_type) +
+                      'Instead save the map in a map file (e.g. *.mrc, *.cmap) ' +
+                      'then save the session file and it will reference the ' +
+                      'map file instead of including the map data in the session file.')
+      
     if compress_maps:
       from gzip import compress
       s['array_compression'] = 'gzip'
-      s['array'] = compress(dt.matrix().tobytes())
+      s['array'] = compress(bytes)
     else:
       s['array_compression'] = 'none'
-      s['array'] = dt.matrix().tobytes()
+      s['array'] = bytes
     save_position = True
   else:
     save_position = False

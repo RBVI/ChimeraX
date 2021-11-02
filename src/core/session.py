@@ -260,6 +260,8 @@ class _SaveManager:
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj, parents)
+                except UserError:
+                    raise	# For example map size is larger than 4 Gbyte msgpack limit.
                 except Exception as e:
                     raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
@@ -281,6 +283,8 @@ class _SaveManager:
         if sm:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
+            except UserError:
+                raise	# For example map size is larger than 4 Gbyte msgpack limit.
             except Exception as e:
                 msg = 'Error while saving session data for %s' % _obj_stack(parents, obj)
                 raise RuntimeError(msg) from e

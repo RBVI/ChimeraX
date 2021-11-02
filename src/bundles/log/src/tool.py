@@ -498,7 +498,9 @@ class Log(ToolInstance, HtmlLog):
             for e in reversed(script_elements):
                 e.getparent().remove(e)
             contents = html.tostring(tmp)
-        prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
+        from chimerax.ui.html import disclosure
+        prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
+            % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
         if self.settings.session_restore_clears and session.restore_options['clear log']:
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
                 if session.restore_options['error encountered']:
