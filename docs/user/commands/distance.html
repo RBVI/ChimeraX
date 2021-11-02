@@ -54,10 +54,10 @@ which can be:
 <ul>
 <li>two atoms 
 (where a <a href="../markers.html">marker</a> is equivalent to an atom)
-<li>an atom and a plane created previously with
-<a href="define.html#plane"><b>define plane</b></a>;
-the plane can be specified by model number
-<li>two planes
+<li>an atom and a previously defined <a href="define.html#axis">axis</a>
+or <a href="define.html#plane">plane</a>;
+for distance measurements, planes but not axes are treated as infinite
+<li>any two axes and/or planes
 </ul>
 <p>
 The current distance is reported in the 
@@ -73,6 +73,7 @@ adds a different type of distance measurement
 with <a href="../markers.html">markers and links</a>
 (<a href="../tools/mousemodes.html#tapemeasure">details...</a>).
 See also: 
+<a href="angle.html"><b>angle</b></a>,
 <a href="bond.html"><b>bond</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -95,7 +96,7 @@ distance labels on a distance monitor and the values shown in
 the <a href="../tools/distances.html"><b>Distances</b></a> tool 
 will update automatically.
 </p><p>
-No distance monitors are added for distances to planes.
+No distance monitors are added for distances to axes or planes.
 The <b>signed</b> option (default <b>false</b>) allows reporting 
 positive and negative distances for objects on opposite sides of a plane.
 </p><p>
@@ -173,5 +174,5 @@ Distances are assumed to be in &Aring;.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+November 2021</address>
 </body></html>

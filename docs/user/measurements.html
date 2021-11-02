@@ -40,6 +40,13 @@ when two atoms are <a href="selection.html">selected</a>
 <img class="icon" border=1 src="tools/mouse-icons/distance.png"></a>
 &ndash; create a distance monitor (which updates automatically as needed)
 between a specified or <a href="selection.html">selected</a> pair of atoms
+  <ul>
+  <li>the <a href="commands/distance.html"><b>distance</b></a> command
+  can also measure distances from an atoms to an object
+  (<a href="commands/define.html#axis">axis</a> or
+  <a href="commands/define.html#plane">plane</a>)
+  or between two objects, but without adding a distance monitor
+  </ul>
 <li>
 <a href="tools/clashes.html"><b>Clashes/Contacts</b></a> tools,
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
@@ -68,8 +75,9 @@ Angles:
 </p>
 <ul>
 <li><a href="commands/angle.html"><b>angle</b></a>
-&ndash; angle defined by three atoms
-or two <a href="commands/define.html#plane">planes</a>
+&ndash; angle defined by three atoms or two objects
+(<a href="commands/define.html#axis">axes</a> and/or
+<a href="commands/define.html#plane">planes</a>)
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; torsion angle defined by four atoms
 <li><a href="tools/angles.html"><b>Angles/Torsions</b></a>
@@ -83,7 +91,13 @@ Center coordinates:
 <li><a href="commands/define.html#centroid"><b>define centroid</b></a>
 </ul>
 <p>
-Best-fit plane or inertia ellipsoid, respectively:
+Best-fit axes:
+</p>
+<ul>
+<li><a href="commands/define.html#axis"><b>define axis</b></a>
+</ul>
+<p>
+Best-fit planes or inertia ellipsoids, respectively:
 </p>
 <ul>
 <li><a href="commands/define.html#plane"><b>define plane</b></a>
@@ -189,5 +203,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2021</address>
+November 2021</address>
 </body></html>
