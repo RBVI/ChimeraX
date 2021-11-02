@@ -29,11 +29,14 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>shape</b> &nbsp;<i>shape</i> &nbsp;<i>options</i></h3>
 <p>
 The <b>shape</b> command creates a surface model of the specified shape.
+For geometric objects that can be used in
+<a href="distance.html"><b>distance</b></a> and
+<a href="angle.html"><b>angle</b></a> measurements,
+see <a href="define.html"><b>define</b></a> instead.
 See also:
 <a href="volume.html#mask"><b>volume mask</b></a>,
 <a href="marker.html#fromMesh"><b>marker fromMesh</b>,
 <a href="cartoon.html"><b>cartoon</b>,
-<a href="define.html"><b>define</b>,
 <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
 <a href="open.html#object">3D object formats</a>,
 <a href="surface.html#sop">surface operations</a>
@@ -65,7 +68,9 @@ connecting a series of atoms or <a href="../markers.html">markers</a>
   <a href="#options"><i>general-options</i></a>
 <blockquote>
 The default <b>radius</b> <i>r</i> is <b>1.0</b> in units of physical distance
-(typically &Aring;).
+(typically &Aring;). To instead add a <a href="../markers.html">marker</a>
+(a pseudoatom that can be used in measurements) at a specified point, see
+the <a href="marker.html#create"><b>marker</b></a> command.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -102,7 +107,8 @@ instead of rotation values (in <a href="#options">general options</a>)
 <li>the endpoints can be specified directly with
 <b>fromPoint</b> and <b>toPoint</b> instead of with 
 height, center, and rotation values
-<ul>
+</ul>
+See also: <a href="define.html#axis"><b>define axis</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -407,5 +413,5 @@ Offsets can be positive (outward) or negative (inward).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+November 2021</address>
 </body></html>
