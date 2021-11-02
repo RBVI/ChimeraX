@@ -23,7 +23,7 @@ except ImportError:
 else:
     class OpenDialog(QFileDialog):
         def __init__(self, parent=None, caption='Open File', starting_directory=None,
-                     widget_alignment=Qt.AlignmentFlag.AlignCenter, filter=''):
+                     widget_alignment=Qt.AlignCenter, filter=''):
             if starting_directory is None:
                 import os
                 starting_directory = os.getcwd()

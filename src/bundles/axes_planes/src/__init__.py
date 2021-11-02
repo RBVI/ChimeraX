@@ -22,6 +22,9 @@ class AxesPlanes_API(BundleAPI):
         if class_name == "PlaneModel":
             from .cmd import PlaneModel
             return PlaneModel
+        elif class_name == "AxisModel":
+            from .cmd import AxisModel
+            return AxisModel
 
     @staticmethod
     def register_command(command_name, logger):

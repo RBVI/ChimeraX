@@ -68,7 +68,7 @@ class ColorButton(QPushButton):
         if max_size is not None:
             self.setMaximumSize(*max_size)
         from Qt.QtCore import Qt
-        self.setAttribute(Qt.WidgetAttribute.WA_LayoutUsesWidgetRect)
+        self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
         self._color = None

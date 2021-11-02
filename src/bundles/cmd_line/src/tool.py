@@ -212,7 +212,7 @@ class CommandLine(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
@@ -378,7 +378,7 @@ class _HistoryDialog:
         num_cmd_layout.setContentsMargins(0,0,0,0)
         remem_label = QLabel("Remember")
         from Qt.QtCore import Qt
-        remem_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        remem_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         num_cmd_layout.addWidget(remem_label, 1)
         from Qt.QtWidgets import QSpinBox, QSizePolicy
         class ShorterQSpinBox(QSpinBox):
@@ -442,7 +442,7 @@ class _HistoryDialog:
                 options_layout = QVBoxLayout(options_frame)
                 options_frame.setLayout(options_layout)
                 amount_frame = QFrame(options_frame)
-                options_layout.addWidget(amount_frame, Qt.AlignmentFlag.AlignCenter)
+                options_layout.addWidget(amount_frame, Qt.AlignCenter)
                 amount_layout = QHBoxLayout(amount_frame)
                 amount_layout.addWidget(QLabel("Save", amount_frame))
                 self.save_amount_widget = saw = QComboBox(amount_frame)
@@ -452,10 +452,10 @@ class _HistoryDialog:
                 amount_frame.setLayout(amount_layout)
                 self.append_checkbox = QCheckBox("Append to file", options_frame)
                 self.append_checkbox.stateChanged.connect(self.append_changed)
-                options_layout.addWidget(self.append_checkbox, Qt.AlignmentFlag.AlignCenter)
+                options_layout.addWidget(self.append_checkbox, Qt.AlignCenter)
                 self.overwrite_disclaimer = disclaimer = QLabel(
                     "<small><i>(ignore overwrite warning)</i></small>", options_frame)
-                options_layout.addWidget(disclaimer, Qt.AlignmentFlag.AlignCenter)
+                options_layout.addWidget(disclaimer, Qt.AlignCenter)
                 disclaimer.hide()
             else:
                 dlg = self._record_dialog
@@ -545,7 +545,7 @@ class _HistoryDialog:
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         filter_action = QAction("Typed commands only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.controller.settings.typed_only)

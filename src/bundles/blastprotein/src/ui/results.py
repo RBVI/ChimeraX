@@ -16,8 +16,9 @@ from typing import Dict
 from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QAbstractItemView
-    , QAction, QLabel
+    , QLabel
 )
+from Qt.QtGui import QAction
 
 from chimerax.atomic import Sequence
 from chimerax.alphafold.match import _log_alphafold_sequence_info
