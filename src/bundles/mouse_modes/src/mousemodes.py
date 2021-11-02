@@ -706,6 +706,17 @@ class MouseEvent:
                 return p.x(), p.y()
         return 0,0
 
+    def global_position(self):
+        e = self._event
+        if e is not None:
+            if hasattr(e, 'globalPosition'):
+                p = e.globalPosition().toPoint()		# PyQt6
+                return (p.x(), p.y())
+            elif hasattr(e, 'globalPos'):
+                p = e.globalPos()			# PyQt5
+                return (p.x(), p.y())
+        return (0,0)
+    
     def wheel_value(self):
         '''
         Supported API.

@@ -54,7 +54,8 @@ class AtomPairRestrictOption(Option):
     def _make_widget(self, *, display_value=None, **kw):
         if display_value is None:
             display_value = self.fixed_kw_menu_texts[0]
-        from Qt.QtWidgets import QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
+        from Qt.QtWidgets import QHBoxLayout, QPushButton, QMenu, QLineEdit
+        from Qt.QtGui import QAction
         from Qt.QtCore import Qt
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)

@@ -75,7 +75,7 @@ class SideViewCanvas(QWindow):
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
         self.widget = QWidget.createWindowContainer(self, parent)
-        self.setSurfaceType(QSurface.OpenGLSurface)
+        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.view = view
         self.session = session
         self.panel = panel
@@ -291,7 +291,8 @@ class SideViewCanvas(QWindow):
             self.widget.parent().parent().contextMenuEvent(e)
             return
         if b & Qt.LeftButton:
-            x, y = event.x(), event.y()
+            p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
+            x, y = p.x(), p.y()
             eye_x, eye_y = self.locations.eye[0:2]
             near = self.locations.near
             far = self.locations.far
@@ -323,7 +324,8 @@ class SideViewCanvas(QWindow):
         b = event.button() | event.buttons()
         if (b & Qt.LeftButton) == 0:
             return
-        x, y = event.x(), event.y()
+        p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
+        x, y = p.x(), p.y()
         diff_x = x - self.x
         self.x, self.y = x, y
         psize = self.view.pixel_size()

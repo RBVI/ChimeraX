@@ -156,7 +156,7 @@ class SeqCanvas:
         # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
         # the width of 'W' as the maximum width instead.
-        font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
+        font_width, font_height = self.font_metrics.horizontalAdvance('W'), self.font_metrics.height()
         self.label_view.setMinimumHeight(font_height)
         self.main_view.setMinimumHeight(font_height)
         # pad font a little...
@@ -635,7 +635,7 @@ class SeqCanvas:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
                 offset = len([c for c in seq[:extent] if c.isalpha() or c == '?'])
-                lwidth = max(lwidth, self.font_metrics.width(
+                lwidth = max(lwidth, self.font_metrics.horizontalAdvance(
                     "%d " % (seq.numbering_start + offset)))
             lwidth += 3
         if self.show_numberings[1]:
@@ -643,7 +643,7 @@ class SeqCanvas:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
                 offset = len(seq.ungapped())
-                rwidth = max(rwidth, self.font_metrics.width(
+                rwidth = max(rwidth, self.font_metrics.horizontalAdvance(
                     "  %d" % (seq.numbering_start + offset)))
         return [lwidth, rwidth]
 
@@ -1637,9 +1637,9 @@ class SeqBlock:
         label_text = self.label_texts[aseq]
         name = _seq_name(aseq, self.settings)
         from Qt.QtGui import QFontMetrics
-        first_width = QFontMetrics(label_text.font()).width(name)
+        first_width = QFontMetrics(label_text.font()).horizontalAdvance(name)
         label_text.setFont(self._label_font(aseq))
-        diff = QFontMetrics(label_text.font()).width(name) - first_width
+        diff = QFontMetrics(label_text.font()).horizontalAdvance(name) - first_width
         if diff:
             label_text.moveBy(-diff, 0.0)
         label_text.setToolTip(self._label_tip(aseq))
@@ -2788,8 +2788,8 @@ def _find_label_width(lines, settings, font_metrics, emphasis_font_metrics, labe
     label_width = 0
     for seq in lines:
         name = _seq_name(seq, settings)
-        label_width = max(label_width, font_metrics.width(name))
-        label_width = max(label_width, emphasis_font_metrics.width(name))
+        label_width = max(label_width, font_metrics.horizontalAdvance(name))
+        label_width = max(label_width, emphasis_font_metrics.horizontalAdvance(name))
     label_width += label_pad
     return label_width
 

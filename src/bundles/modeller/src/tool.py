@@ -295,7 +295,7 @@ class ModellerResultsViewer(ToolInstance):
             concise_model_spec(self.session, self.models), str(refresh).lower()))
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         if self.scores_fetched:
             refresh_action = QAction("Refresh Scores", menu)
             refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))

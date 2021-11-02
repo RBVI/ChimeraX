@@ -149,7 +149,7 @@ class Log(ToolInstance, HtmlLog):
                     self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
-                from Qt.QtWidgets import QAction
+                from Qt.QtGui import QAction
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)

@@ -115,7 +115,7 @@ class ToolbarTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         button_labels = QAction("Show button labels", menu)
         button_labels.setCheckable(True)
         button_labels.setChecked(_settings.show_button_labels)
