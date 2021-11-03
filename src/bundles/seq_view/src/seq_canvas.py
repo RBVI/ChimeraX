@@ -1746,14 +1746,14 @@ class SeqBlock:
         else:
             hi_row = self.row_index(rel_y2, bound="top")
             low_row = self.row_index(rel_y1, bound="bottom")
+        if hi_row is None or low_row is None:
+            return (None, None, None, None)
         if exclude_headers:
             num_headers = len(self.lines) - len(self.alignment.seqs)
             if hi_row < num_headers:
                 hi_row = num_headers
                 if hi_row > low_row:
                     return (None, None, None, None)
-        if hi_row is None or low_row is None:
-            return (None, None, None, None)
 
         if y1 <= end and y2 <= end:
             if y1 > self.bottom_y and y2 > self.bottom_y \
