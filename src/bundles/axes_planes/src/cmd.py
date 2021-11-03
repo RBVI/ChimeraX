@@ -395,10 +395,11 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         color = color.uint8x4()
 
     plane_model = PlaneModel(session, name, plane, thickness, radius, color)
-    if len(structures) > 1:
+    adding_model = find_adding_model(structures)
+    if not adding_model:
         session.models.add([plane_model])
     else:
-        structures[0].add([plane_model])
+        adding_model.add([plane_model])
     session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
     return plane_model
 
@@ -479,9 +480,8 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                             if len(s.chains) > 1 else "", ss_id), axes_info))
         else:
             if len(atoms) >= min_atoms:
-                us = atoms.unique_structures
-                structure = us[0] if len(us) == 1 else None
-                axis_info[structure] = [(None, determine_axes(atoms, name, length, padding, radius,
+                adding_model = find_adding_model(atoms.unique_structures)
+                axis_info[adding_model] = [(None, determine_axes(atoms, name, length, padding, radius,
                     mass_weighting, primary, secondary, tertiary, color))]
 
         if not axis_info:
@@ -557,6 +557,25 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                 axes.append(axis)
                 add_model.add([axis])
     return axes
+
+def find_adding_model(models):
+    adding_model = None
+    for m in models:
+        if adding_model is None:
+            adding_model = m
+        else:
+            models = set()
+            cur_model = adding_model
+            while cur_model is not None:
+                models.add(cur_model)
+                cur_model = cur_model.parent
+            common_model = m
+            while m not in models:
+                m = m.parent
+                if m is None:
+                    return None
+            adding_model = m
+    return adding_model
 
 def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
         color):
