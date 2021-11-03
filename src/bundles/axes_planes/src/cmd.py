@@ -88,13 +88,15 @@ class PlaneModel(Surface, ComplexMeasurable):
                     @property
                     def scene_coord(self):
                         return self.coord
-                return self.distance(CoordMeasurable(obj.position * obj.plane.origin), signed=signed)
+                return self.distance(CoordMeasurable(obj.scene_position * obj.plane.origin), signed=signed)
             return 0.0
+        if isinstance(obj, AxisModel):
+            return _axis_plane_distance(obj, self)
         if not isinstance(obj, SimpleMeasurable):
             return NotImplemented
         scene_crd = obj.scene_coord
         # need to inverse transform to get into same coord sys as self.plane
-        signed_dist = self.plane.distance(self.position.inverse() * scene_crd)
+        signed_dist = self.plane.distance(self.scene_position.inverse() * scene_crd)
         return signed_dist if signed else abs(signed_dist)
 
     @property
@@ -156,14 +158,17 @@ class PlaneModel(Surface, ComplexMeasurable):
 
     @property
     def xform_normal(self):
-        return self.position.transform_vector(self.normal)
+        return self.scene_position.transform_vector(self.normal)
 
 
 class AxisModel(Surface, ComplexMeasurable):
-    def __init__(self, session, name, center, direction, extent, radius, color):
+    def __init__(self, session, name, center, direction, extent, radius, color, *, needs_normalization=True):
         super().__init__(name, session)
         self.color = color
         self._center = center
+        if needs_normalization:
+            from chimerax.geometry import normalize_vector
+            direction = normalize_vector(direction)
         self._direction = direction
         self._extent = extent
         self._radius = radius
@@ -220,10 +225,12 @@ class AxisModel(Surface, ComplexMeasurable):
             d1 = Plane(self.xform_center, normal=short_dir).equation()[3]
             d2 = Plane(obj.xform_center, normal=short_dir).equation()[3]
             return abs(d1 - d2)
+        if isinstance(obj, PlaneModel):
+            return _axis_plane_distance(self, obj)
         if not isinstance(obj, SimpleMeasurable):
             return NotImplemented
         # put into same coord sys as axis
-        return self._point_distance(self.position.inverse() * obj.scene_coord)
+        return self._point_distance(self.scene_position.inverse() * obj.scene_coord)
 
     @property
     def extent(self):
@@ -301,16 +308,34 @@ class AxisModel(Surface, ComplexMeasurable):
 
     @property
     def xform_center(self):
-        return self.position.transform_vector(self.center)
+        return self.scene_position.transform_vector(self.center)
 
     @property
     def xform_direction(self):
-        return self.position.transform_vector(self.direction)
+        return self.scene_position.transform_vector(self.direction)
 
 def _axis_plane_angle(axis, plane):
     from chimerax.geometry import angle
     anti_angle = angle(axis.xform_direction, plane.xform_normal)
     return 90.0 - quadrant_angle(anti_angle)
+
+def _axis_plane_distance(axis, plane):
+    # get axis end points in the same reference frame as the plane...
+    xform = axis.scene_position.inverse()
+    end1 = xform * (axis.center + axis.extent * axis.direction)
+    end2 = xform * (axis.center - axis.extent * axis.direction)
+    class FakeMeasurable(SimpleMeasurable):
+        def __init__(self, crd):
+            self._crd = crd
+
+        @property
+        def scene_coord(self):
+            return self._crd
+    d1 = plane.distance(FakeMeasurable(end1), signed=True)
+    d2 = plane.distance(FakeMeasurable(end2), signed=True)
+    if (d1 < 0 and d2 > 0) or (d2 < 0 and d1 > 0):
+        return 0.0
+    return min(abs(d1), abs(d2))
 
 def quadrant_angle(angle):
     while angle < 0.0:
@@ -412,7 +437,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
             session.logger.info("Plane normal for %s centered at %s with direction %s, radius %g,"
                 " and length %g" % (plane, center, direction, radius, 2*extent))
             axis = AxisModel(session, "normal" if name is None else name, center, direction, extent, radius,
-                plane.color if color is None else color)
+                plane.color if color is None else color, needs_normalization=False)
             plane.add([axis])
             axes.append(axis)
         return axes
@@ -523,11 +548,12 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     ("" if not show_grouping_name else ("%s/" % grouping_name)),
                     axis_name, center, direction, radius, 2*extent))
                 if structure:
-                    inverse = structure.position.inverse()
+                    inverse = structure.scene_position.inverse()
                     center = inverse * center
                     direction = inverse * direction
 
-                axis = AxisModel(session, axis_name, center, direction, extent, radius, color)
+                axis = AxisModel(session, axis_name, center, direction, extent, radius, color,
+                    needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
     return axes
