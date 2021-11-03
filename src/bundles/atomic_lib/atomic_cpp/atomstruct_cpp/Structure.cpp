@@ -743,7 +743,16 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
                     " AtomicStructure/Structure");
             }
     if (atoms.size() == _atoms.size()) {
-        delete this;
+        // if there's a Python instance call its delete(), else directly delete
+        auto inst = py_instance(false);
+        // py_instance() returns new reference, so ...
+        Py_DECREF(inst);
+        if (inst == Py_None) {
+            delete this;
+        } else {
+            auto ret = py_call_method("delete");
+            Py_XDECREF(ret);
+        }
         return;
     }
     // want to put missing-structure pseudobonds across new mid-chain gaps,
