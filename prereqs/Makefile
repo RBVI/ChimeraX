@@ -201,8 +201,6 @@ cxservices.install: pips.install
 cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-#lineprofiler.install: pips.install
-#lineprofiler.app-install: pips.app-install
 llvm.install: 
 mesa.install: llvm.install pkgconfig.install
 openmm.app-install: Python.app-install pips.app-install
