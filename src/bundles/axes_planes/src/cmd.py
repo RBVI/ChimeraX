@@ -88,13 +88,15 @@ class PlaneModel(Surface, ComplexMeasurable):
                     @property
                     def scene_coord(self):
                         return self.coord
-                return self.distance(CoordMeasurable(obj.position * obj.plane.origin), signed=signed)
+                return self.distance(CoordMeasurable(obj.scene_position * obj.plane.origin), signed=signed)
             return 0.0
+        if isinstance(obj, AxisModel):
+            return _axis_plane_distance(obj, self)
         if not isinstance(obj, SimpleMeasurable):
             return NotImplemented
         scene_crd = obj.scene_coord
         # need to inverse transform to get into same coord sys as self.plane
-        signed_dist = self.plane.distance(self.position.inverse() * scene_crd)
+        signed_dist = self.plane.distance(self.scene_position.inverse() * scene_crd)
         return signed_dist if signed else abs(signed_dist)
 
     @property
@@ -156,14 +158,17 @@ class PlaneModel(Surface, ComplexMeasurable):
 
     @property
     def xform_normal(self):
-        return self.position.transform_vector(self.normal)
+        return self.scene_position.transform_vector(self.normal)
 
 
 class AxisModel(Surface, ComplexMeasurable):
-    def __init__(self, session, name, center, direction, extent, radius, color):
+    def __init__(self, session, name, center, direction, extent, radius, color, *, needs_normalization=True):
         super().__init__(name, session)
         self.color = color
         self._center = center
+        if needs_normalization:
+            from chimerax.geometry import normalize_vector
+            direction = normalize_vector(direction)
         self._direction = direction
         self._extent = extent
         self._radius = radius
@@ -220,10 +225,12 @@ class AxisModel(Surface, ComplexMeasurable):
             d1 = Plane(self.xform_center, normal=short_dir).equation()[3]
             d2 = Plane(obj.xform_center, normal=short_dir).equation()[3]
             return abs(d1 - d2)
+        if isinstance(obj, PlaneModel):
+            return _axis_plane_distance(self, obj)
         if not isinstance(obj, SimpleMeasurable):
             return NotImplemented
         # put into same coord sys as axis
-        return self._point_distance(self.position.inverse() * obj.scene_coord)
+        return self._point_distance(self.scene_position.inverse() * obj.scene_coord)
 
     @property
     def extent(self):
@@ -301,16 +308,34 @@ class AxisModel(Surface, ComplexMeasurable):
 
     @property
     def xform_center(self):
-        return self.position.transform_vector(self.center)
+        return self.scene_position.transform_vector(self.center)
 
     @property
     def xform_direction(self):
-        return self.position.transform_vector(self.direction)
+        return self.scene_position.transform_vector(self.direction)
 
 def _axis_plane_angle(axis, plane):
     from chimerax.geometry import angle
     anti_angle = angle(axis.xform_direction, plane.xform_normal)
     return 90.0 - quadrant_angle(anti_angle)
+
+def _axis_plane_distance(axis, plane):
+    # get axis end points in the same reference frame as the plane...
+    xform = axis.scene_position.inverse()
+    end1 = xform * (axis.center + axis.extent * axis.direction)
+    end2 = xform * (axis.center - axis.extent * axis.direction)
+    class FakeMeasurable(SimpleMeasurable):
+        def __init__(self, crd):
+            self._crd = crd
+
+        @property
+        def scene_coord(self):
+            return self._crd
+    d1 = plane.distance(FakeMeasurable(end1), signed=True)
+    d2 = plane.distance(FakeMeasurable(end2), signed=True)
+    if (d1 < 0 and d2 > 0) or (d2 < 0 and d1 > 0):
+        return 0.0
+    return min(abs(d1), abs(d2))
 
 def quadrant_angle(angle):
     while angle < 0.0:
@@ -370,10 +395,11 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         color = color.uint8x4()
 
     plane_model = PlaneModel(session, name, plane, thickness, radius, color)
-    if len(structures) > 1:
+    adding_model = find_adding_model(structures)
+    if not adding_model:
         session.models.add([plane_model])
     else:
-        structures[0].add([plane_model])
+        adding_model.add([plane_model])
     session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
     return plane_model
 
@@ -412,7 +438,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
             session.logger.info("Plane normal for %s centered at %s with direction %s, radius %g,"
                 " and length %g" % (plane, center, direction, radius, 2*extent))
             axis = AxisModel(session, "normal" if name is None else name, center, direction, extent, radius,
-                plane.color if color is None else color)
+                plane.color if color is None else color, needs_normalization=False)
             plane.add([axis])
             axes.append(axis)
         return axes
@@ -438,22 +464,24 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
             main_group = "helix axes" if name is None else name
             # do all helices of the structure, even if specified atoms is less
             for s in atoms.unique_structures:
-                backbone = s.atoms.filter(s.atoms.is_backbones(bb_extent=Atom.BBE_MIN))
-                helical = backbone.filter(backbone.residues.is_helices)
-                ss_ids = list(set(helical.residues.ss_ids))
-                ss_ids.sort()
-                for ss_id in ss_ids:
-                    helix_atoms = helical.filter(helical.residues.ss_ids == ss_id)
-                    if len(helix_atoms) < min_atoms:
-                        continue
-                    axes_info = determine_axes(helix_atoms, "axis", length, padding, radius, mass_weighting,
-                        primary, secondary, tertiary, color)
-                    axis_info.setdefault(s, []).append(("helix %d" % ss_id, axes_info))
+                for chain in s.chains:
+                    c_atoms = chain.existing_residues.atoms
+                    backbone = c_atoms.filter(c_atoms.is_backbones(bb_extent=Atom.BBE_MIN))
+                    helical = backbone.filter(backbone.residues.is_helices)
+                    ss_ids = list(set(helical.residues.ss_ids))
+                    ss_ids.sort()
+                    for ss_id in ss_ids:
+                        helix_atoms = helical.filter(helical.residues.ss_ids == ss_id)
+                        if len(helix_atoms) < min_atoms:
+                            continue
+                        axes_info = determine_axes(helix_atoms, "axis", length, padding, radius,
+                            mass_weighting, primary, secondary, tertiary, color)
+                        axis_info.setdefault(s, []).append(("%shelix %d" % (("chain %s " % chain.chain_id)
+                            if len(s.chains) > 1 else "", ss_id), axes_info))
         else:
             if len(atoms) >= min_atoms:
-                us = atoms.unique_structures
-                structure = us[0] if len(us) == 1 else None
-                axis_info[structure] = [(None, determine_axes(atoms, name, length, padding, radius,
+                adding_model = find_adding_model(atoms.unique_structures)
+                axis_info[adding_model] = [(None, determine_axes(atoms, name, length, padding, radius,
                     mass_weighting, primary, secondary, tertiary, color))]
 
         if not axis_info:
@@ -493,6 +521,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
 
         groupings = {}
         for grouping_name, grp_axes_info in s_axes_groups:
+            show_grouping_name = grouping_name is not None
             if len(grp_axes_info) > 1:
                 if grouping_name is None:
                     if main_group is None:
@@ -508,22 +537,45 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                 if axis_name is None:
                     # per-helix "groups" may contain only one axis or several (secondary, etc.)
                     axis_name = "axis" if grouping_name is None else grouping_name
-                    grouping_name = None
+                    show_grouping_name = False
+                elif len(grp_axes_info) == 1 and grouping_name is not None:
+                    axis_name = grouping_name
+                    show_grouping_name = False
                 session.logger.info("Axis '%s%s%s%s' centered at %s with direction %s, radius %g,"
                     " and length %g" % (
                     ("" if structure is None else ("%s/" % structure)),
                     ("" if main_group is None else ("%s/" % main_group)),
-                    ("" if grouping_name is None else ("%s/" % grouping_name)),
+                    ("" if not show_grouping_name else ("%s/" % grouping_name)),
                     axis_name, center, direction, radius, 2*extent))
                 if structure:
-                    inverse = structure.position.inverse()
+                    inverse = structure.scene_position.inverse()
                     center = inverse * center
                     direction = inverse * direction
 
-                axis = AxisModel(session, axis_name, center, direction, extent, radius, color)
+                axis = AxisModel(session, axis_name, center, direction, extent, radius, color,
+                    needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
     return axes
+
+def find_adding_model(models):
+    adding_model = None
+    for m in models:
+        if adding_model is None:
+            adding_model = m
+        else:
+            models = set()
+            cur_model = adding_model
+            while cur_model is not None:
+                models.add(cur_model)
+                cur_model = cur_model.parent
+            common_model = m
+            while m not in models:
+                m = m.parent
+                if m is None:
+                    return None
+            adding_model = m
+    return adding_model
 
 def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
         color):

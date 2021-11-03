@@ -64,7 +64,8 @@ The <b>modeller</b> command runs
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
 on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. 
+RBVI</a>, or using a local installation specified with
+<a href="#executableLocation"><b>executableLocation</b></a>.
 </p>
 <ul>
 <li><b>modeller comparative</b> performs comparative or
@@ -333,6 +334,16 @@ temporary system directory that will be removed when no longer needed.
 This option allows users to retain the input files for examination or
 other purposes.
 </blockquote>
+<blockquote>
+<a name="executableLocation"></a>
+<b>executableLocation</b>&nbsp;&nbsp;<i>executable</i>
+<br>
+Specify running a local installation of Modeller instead of the RBVI-hosted
+web service, where <i>executable</i> is either the pathname of the executable
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window. 
+The local installation must be version 10 or newer.
+</blockquote>
 </blockquote>
 
 <blockquote>
@@ -435,5 +446,5 @@ after making modifications that are expected to improve the scores.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2021</address>
+November 2021</address>
 </body></html>
