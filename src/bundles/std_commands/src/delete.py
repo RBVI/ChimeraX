@@ -37,9 +37,6 @@ def delete_atoms(session, atoms, attached_hyds=True):
         hyds = nbs.filter(nbs.elements.numbers == 1)
         atoms = atoms.merge(hyds)
     atoms.delete()
-    from chimerax.atomic import StructureData
-    session.models.close([s for s in session.models
-        if isinstance(s, StructureData) and StructureData.deleted.fget(s)])
 
 def delete_bonds(session, bonds):
     '''Delete bonds.
