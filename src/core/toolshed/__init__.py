@@ -388,7 +388,6 @@ class Toolshed:
         if check_available:
             need_check = need_to_check(
                 settings.newer_last_check, settings.newer_update_interval, now)
-            need_check = True ## DEBUG
             if session and need_check:
                 if not session.ui.is_gui or session.ui.main_window:
                     NewerVersionQuery(session)
@@ -1483,8 +1482,7 @@ class NewerVersionQuery(Task):
             "uuid": str(chimerax_uuid()),
             "os": system,
             "os_version": version,
-            #"chimera_x_version": buildinfo.version,
-            "chimera_x_version": "1.1",
+            "chimera_x_version": buildinfo.version,
         }
         # params = {
         #     # DEBUG DEBUG DEBUG
