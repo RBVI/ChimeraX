@@ -339,8 +339,7 @@ class BlastProteinResults(ToolInstance):
                 run(self.session, "select clear")
             else:
                 if db.name == 'alphafold':
-                    ...
-                #    self._log_alphafold(models)
+                    self._log_alphafold(models)
                 else:
                     for m in models:
                         db.display_model(self.session, self.params.chain, m, chain_id)
