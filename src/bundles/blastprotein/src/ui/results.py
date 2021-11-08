@@ -345,7 +345,7 @@ class BlastProteinResults(ToolInstance):
                     db.display_model(self.session, self.params.chain, m, chain_id)
 
     def _log_alphafold(self, models):
-        query_seq = Sequence(name = 'query', characters = self._sequences[0][1])
+        query_seq = Sequence(name = 'query', characters = self._sequences[0][1].replace('-',''))
         for m in models:
             _log_alphafold_sequence_info(m, query_seq)
 
