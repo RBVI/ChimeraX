@@ -345,7 +345,7 @@ class BlastProteinResults(ToolInstance):
                     db.display_model(self.session, self.params.chain, m, chain_id)
 
     def _log_alphafold(self, models):
-        query_seq = Sequence(name = 'query', characters = self._sequences[0][1].replace('-',''))
+        query_seq = Sequence(name = 'query', characters = self._sequences[0][1].h_seq)
         for m in models:
             _log_alphafold_sequence_info(m, query_seq)
 
@@ -365,7 +365,7 @@ class BlastProteinResults(ToolInstance):
         for sid in ids:
             name, seq = self._sequences[sid]
             names.append(name)
-            seqs.append(seq)
+            seqs.append(seq.sequence)
         # Find columns that are gaps in all sequences and remove them.
         all_gaps = set()
         for i in range(len(seqs[0])):
@@ -462,7 +462,7 @@ class BlastResultsWorker(QThread):
                 name = self._ref_atomspec
             else:
                 name = query_match.name
-            self._sequences[0] = (name, query_match.sequence)
+            self._sequences[0] = (name, query_match)
             match_chains = {}
             sequence_only_hits = {}
             self.set_progress_maxval.emit(len(blast_results.parser.matches))
@@ -476,7 +476,7 @@ class BlastResultsWorker(QThread):
                 else:
                     hit["name"] = m.name
                     sequence_only_hits[m.name] = hit
-                self._sequences[sid] = SeqId(hit["name"], m.sequence)
+                self._sequences[sid] = SeqId(hit["name"], m)
                 self.processed_result.emit()
             self.finished_processing_hits.emit()
             self.waiting_for_info.emit("Downloading Hit Info")
