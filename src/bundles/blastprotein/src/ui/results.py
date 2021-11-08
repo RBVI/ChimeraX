@@ -336,20 +336,18 @@ class BlastProteinResults(ToolInstance):
             if not models:
                 return
             if not self.params.chain:
-                run(self.session, "select clear")
-            else:
-                if db.name == 'alphafold':
-                    self._log_alphafold(models)
+                if not db.name == 'alphafold':
+                    run(self.session, "select clear")
                 else:
-                    for m in models:
-                        db.display_model(self.session, self.params.chain, m, chain_id)
+                    self._log_alphafold(models)
+            else:
+                for m in models:
+                    db.display_model(self.session, self.params.chain, m, chain_id)
 
     def _log_alphafold(self, models):
-        if not self.params.chain:
-            query_name = self.parser.true_name or 'query'
-            query_seq = Sequence(name = query_name, characters = self.parser.query_seq)
-            for m in models:
-                _log_alphafold_sequence_info(m, query_seq)
+        query_seq = Sequence(name = 'query', characters = self._sequences[0][1])
+        for m in models:
+            _log_alphafold_sequence_info(m, query_seq)
 
     #
     # Code for displaying matches as multiple sequence alignment
