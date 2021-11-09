@@ -178,7 +178,7 @@ class AlphaFoldDB(Database):
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)
         # Hack around the fact that we use run(...) to load the model
-        return [], None
+        return models, None
 
     @staticmethod
     def add_info(session, matches, sequences):
