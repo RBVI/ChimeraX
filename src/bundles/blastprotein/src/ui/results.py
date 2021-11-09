@@ -168,6 +168,17 @@ class BlastProteinResults(ToolInstance):
         }
         return defaults
 
+    def _format_param_str(self):
+        labels = list(self.params._asdict().keys())
+        values = list(self.params._asdict().values())
+        model_no = int(values[0].split('/')[0][1:])
+        chain = ''.join(['/',values[0].split('/')[1]])
+        model = ''.join([str(self.session.models._models[(model_no,)]), chain])
+        values[0] = model
+        param_str = ", ".join(
+            [": ".join([str(label), str(value)]) for label, value in zip(labels, values)]
+        )
+        return param_str
     #
     # UI
     #
@@ -183,9 +194,7 @@ class BlastProteinResults(ToolInstance):
         self.control_widget = QWidget(parent)
         #self.align_button = QPushButton("Load and Align Selection", parent)
 
-        param_str = ", ".join(
-            [": ".join([str(label), str(value)]) for label, value in self.params._asdict().items()]
-        )
+        param_str = self._format_param_str()
         self.param_report = QLabel(" ".join(["Query:", param_str]), parent)
         self.control_widget.setVisible(False)
 
