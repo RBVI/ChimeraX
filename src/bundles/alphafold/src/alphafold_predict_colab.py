@@ -22,6 +22,7 @@ def is_alphafold_installed():
 
 def install_alphafold(
         alphafold_git_repo = 'https://github.com/deepmind/alphafold',
+        alphafold_version = 'v2.0.1',
         alphafold_parameters = 'https://storage.googleapis.com/alphafold/alphafold_params_2021-07-14.tar',
         bond_parameters = 'https://git.scicore.unibas.ch/schwede/openstructure/-/raw/7102c63615b64735c4941278d92b554ec94415f8/modules/mol/alg/src/stereo_chemical_props.txt',
         install_log = 'install_log.txt'):
@@ -35,7 +36,7 @@ def install_alphafold(
 pip3 uninstall -y tensorflow
 
 # Get AlphaFold from GitHub and install it
-git clone {alphafold_git_repo} alphafold
+git clone --branch {alphafold_version} {alphafold_git_repo} alphafold
 # Install versions of dependencies specified in requirements.txt
 # Alphafold fails because jax==0.2.14 is incompatible with much newer jaxlib=0.1.70
 # resulting in error no module jax.experimental.compilation_cache.  The chex

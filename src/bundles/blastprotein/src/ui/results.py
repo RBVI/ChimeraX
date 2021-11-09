@@ -28,7 +28,7 @@ from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
-from ..data_model import AvailableDBsDict, get_database
+from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
 from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
 
@@ -74,7 +74,7 @@ class BlastProteinResults(ToolInstance):
 
         # from_snapshot
         self._hits = kw.pop('hits', None)
-        self._sequences: Dict[int, SeqId] = kw.pop('sequences', None)
+        self._sequences: Dict[int, Match] = kw.pop('sequences', None)
         self._table_session_data = kw.pop('table_session_data', None)
 
         self._build_ui()
@@ -102,16 +102,25 @@ class BlastProteinResults(ToolInstance):
         # We use get with a default value of 2 because for a few weeks in August and
         # September 2021 the daily builds did not save snapshots with a version number.
         # We can remove this when sufficient time has passed.
-        if data.get('version', 2) == 1:
+        if data.get('version', 3) == 1:
             sequences_dict = data['_sequences']
             data['params'] = BlastParams(*[x[1] for x in data['_params']])
             data['tool_name'] = data['_instance_name'] + str(data['_viewer_index'])
             data['results'] = data['_hits']
             data['table_session'] = None
-        else:
+        elif data.get('version', 3) == 2:
             sequences = data['sequences']
             for (key, hit_name, sequence) in sequences:
                 sequences_dict[key] = SeqId(hit_name, sequence)
+            data['params'] = BlastParams(*list(data['params'].values()))
+        else:
+            sequences = data['sequences']
+            for (key, hit_name, saved_seq_dict) in sequences:
+                keys = list(saved_seq_dict.keys())
+                keys[1] = 'match_id'
+                keys[2] = 'desc'
+                values = list(saved_seq_dict.values())
+                sequences_dict[key] = (hit_name, Match(**dict(zip(keys, values))))
             data['params'] = BlastParams(*list(data['params'].values()))
         return cls(
             session, data['tool_name'], from_restore=True, params = data['params']
@@ -129,7 +138,7 @@ class BlastProteinResults(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            'version': 2
+            'version': 3
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
             , 'params': self.params._asdict()
@@ -137,7 +146,7 @@ class BlastProteinResults(ToolInstance):
             , 'results': self._hits
             , 'sequences': [(key
                            , self._sequences[key][0]
-                           , self._sequences[key][1]
+                           , vars(self._sequences[key][1])
                            ) for key in self._sequences.keys()]
         }
         return data
@@ -336,21 +345,19 @@ class BlastProteinResults(ToolInstance):
             if not models:
                 return
             if not self.params.chain:
-                run(self.session, "select clear")
-            else:
-                if db.name == 'alphafold':
-                    ...
-                #    self._log_alphafold(models)
+                if not db.name == 'alphafold':
+                    run(self.session, "select clear")
                 else:
-                    for m in models:
-                        db.display_model(self.session, self.params.chain, m, chain_id)
+                    self._log_alphafold(models)
+            else:
+                for m in models:
+                    db.display_model(self.session, self.params.chain, m, chain_id)
 
     def _log_alphafold(self, models):
-        if not self.params.chain:
-            query_name = self.parser.true_name or 'query'
-            query_seq = Sequence(name = query_name, characters = self.parser.query_seq)
-            for m in models:
-                _log_alphafold_sequence_info(m, query_seq)
+        query_match = self._sequences[0][1]
+        query_seq = Sequence(name = 'query', characters = query_match.h_seq)
+        for m in models:
+            _log_alphafold_sequence_info(m, query_seq)
 
     #
     # Code for displaying matches as multiple sequence alignment
@@ -366,9 +373,9 @@ class BlastProteinResults(ToolInstance):
         names = []
         seqs = []
         for sid in ids:
-            name, seq = self._sequences[sid]
+            name, match = self._sequences[sid]
             names.append(name)
-            seqs.append(seq)
+            seqs.append(match.sequence)
         # Find columns that are gaps in all sequences and remove them.
         all_gaps = set()
         for i in range(len(seqs[0])):
@@ -465,7 +472,7 @@ class BlastResultsWorker(QThread):
                 name = self._ref_atomspec
             else:
                 name = query_match.name
-            self._sequences[0] = (name, query_match.sequence)
+            self._sequences[0] = (name, query_match)
             match_chains = {}
             sequence_only_hits = {}
             self.set_progress_maxval.emit(len(blast_results.parser.matches))
@@ -479,7 +486,7 @@ class BlastResultsWorker(QThread):
                 else:
                     hit["name"] = m.name
                     sequence_only_hits[m.name] = hit
-                self._sequences[sid] = SeqId(hit["name"], m.sequence)
+                self._sequences[sid] = (hit["name"], m)
                 self.processed_result.emit()
             self.finished_processing_hits.emit()
             self.waiting_for_info.emit("Downloading Hit Info")

@@ -1510,7 +1510,8 @@ class NewerVersionQuery(Task):
             "There is a newer version of UCSF ChimeraX available.  Downloads are available"
             " at the <a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
             "ChimeraX download page</a>."
-            f"  Here {plural_form(versions, 'is', 'are')} direct links to the newer"
+            f"  Here {plural_form(versions, 'is a', 'are')} direct"
+            f" {plural_form(versions, 'link')} to the newer"
             f" {plural_form(versions, 'version')} for your system:"
             "<ul>"
         ) + ''.join(f"<li> <a href='{link}'>UCSF ChimeraX {version}</a>\n" for version, link in versions) + (

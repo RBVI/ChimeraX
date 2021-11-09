@@ -91,6 +91,10 @@
     <Provider name="eds" type="fetch" format_name="CCP4 density map"/>
     <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"/>
     <Provider name="emdb" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map"/>
   </Providers>
 
   <Providers manager="save command">
