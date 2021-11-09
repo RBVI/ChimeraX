@@ -67,11 +67,11 @@ class RotamerLibManager(ProviderManager):
         if lib_name not in self.library_names(installed_only=installed_only):
             lib_name = self.default_command_library_name
         menu_button.setText(lib_name)
-        menu = QMenu()
+        menu = QMenu(menu_button)
         menu_button.setMenu(menu)
         menu.aboutToShow.connect(lambda *, menu=menu, installed=installed_only:
             self._menu_show_cb(menu, installed))
-        menu.triggered.connect(lambda action, button=menu_button, cb=callback:
+        menu.triggered.connect(lambda action, *, button=menu_button, cb=callback:
             self._menu_choose_cb(action, button, cb))
         return menu_button
 
