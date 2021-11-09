@@ -212,8 +212,8 @@ def _align_to_chain(structure, chain, use_dssp = True):
                 structure.seq_match_range = range
             structure.seq_identity = _sequence_identity(rseq, mseq, range)
             _set_match_attributes(rseq, mseq)
-            structure.num_observed_residues = chain.num_existing_residues
 
+    structure.num_observed_residues = chain.num_existing_residues
 
 def _sequence_identity(seq1, seq2, range2 = None):
     if range2:
