@@ -171,7 +171,7 @@ class BlastProteinResults(ToolInstance):
     def _format_param_str(self):
         labels = list(self.params._asdict().keys())
         values = list(self.params._asdict().values())
-        model_no = int(values[0].split('/')[0][1:])
+        model_no = int(float(values[0].split('/')[0][1:]))
         chain = ''.join(['/',values[0].split('/')[1]])
         model = ''.join([str(self.session.models._models[(model_no,)]), chain])
         values[0] = model
