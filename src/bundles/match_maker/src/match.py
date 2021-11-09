@@ -724,12 +724,13 @@ def check_domain_matching(chains, sel_residues):
             new_chains.append(nc)
             chars = []
             residues = []
-            for c, r in zip(chain.characters, chain.residues):
+            for i, c_r in enumerate(zip(chain.characters, chain.residues)):
+                c, r = c_r
                 if r in sel_residues:
                     chars.append(c)
                     residues.append(r)
                 else:
-                    nc._dm_rebuild_info.append((len(nc.residues), c, r))
+                    nc._dm_rebuild_info.append((i, c, r))
                     chars.append('?')
                     residues.append(None)
             nc.bulk_set(residues, chars)
