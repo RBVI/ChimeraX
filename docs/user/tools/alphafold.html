@@ -271,49 +271,49 @@ When first opened, AlphaFold-predicted structures are automatically colored by
 the <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field:
 </p>
-     <ul>
-     <li>90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
-to 100
+  <ul>
+     <li>100
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=blue width="10px" title="blue"></td></tr>
-</table>
-&ndash; high accuracy expected
-     <li>70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
 to 90
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
 </table>
-&ndash; expected to be modeled well (a generally good backbone prediction)
-     <li>50
+&ndash; high accuracy expected
+     <li>90
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
 </table>
 to 70
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
-&ndash; low confidence, treat with caution
-     <li>0
+&ndash; backbone expected to be modeled well
+     <li>70
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=red width="10px" title="red"></td></tr>
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
 to 50
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+&ndash; low confidence, caution
+     <li>50
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+to 0
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=red width="10px" title="red"></td></tr>
 </table>
 &ndash; should not be interpreted, may be disordered
      </ul>
