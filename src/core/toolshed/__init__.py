@@ -1527,12 +1527,14 @@ class NewerVersionQuery(Task):
         class NewerDialog(QDialog):
 
             def __init__(self, parent):
-                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox
+                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox, QFrame
                 from Qt.QtCore import Qt, QSize
                 from Qt.QtGui import QPalette
                 super().__init__(parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
                 self.setWindowTitle("ChimeraX Update Available")
                 self.setModal(False)
+                self.setBackgroundRole(QPalette.Base)
+                self.setAutoFillBackground(True)
                 self.ignored = {}
 
                 info = QLabel()
@@ -1567,8 +1569,14 @@ class NewerVersionQuery(Task):
                     layout.addWidget(w, row, 0)
                     layout.addWidget(ignore, row, 1)
 
+                hr = QFrame(self)
+                hr.setFrameShape(QFrame.HLine)
+                hr.setFixedHeight(1)
+                hr.setForegroundRole(QPalette.Midlight)
+                hr.setAutoFillBackground(True)
+
                 bbox = QDialogButtonBox(self)
-                bbox.setBackgroundRole(QPalette.Midlight)
+                bbox.setBackgroundRole(QPalette.Window)
                 bbox.setAutoFillBackground(True)
                 bbox.setStandardButtons(QDialogButtonBox.Close)
                 bbox.accepted.connect(self.accept)
@@ -1580,16 +1588,19 @@ class NewerVersionQuery(Task):
                 layout.addWidget(header, 0, 1)
                 layout.addWidget(updates, 1, 1, Qt.AlignmentFlag.AlignLeft)
                 layout.addWidget(footer, 2, 1)
-                layout.addWidget(bbox, 3, 0, 1, 2)
+                layout.addWidget(hr, 3, 0, 1, 2)
+                layout.addWidget(bbox, 4, 0, 1, 2)
 
                 # Need button box to be flush with edges of dialog, so move
                 # layout's margins to widgets within the layout
+                layout.setHorizontalSpacing(0)
+                layout.setVerticalSpacing(0)
                 margins = layout.getContentsMargins()  # left, top, right, bottom
                 layout.setContentsMargins(0, 0, 0, 0)
                 info.setContentsMargins(margins[0], 0, 0, 0)
                 header.setContentsMargins(0, margins[1], margins[2], 0)
                 updates.setContentsMargins(margins[0], 0, margins[2], 0)
-                footer.setContentsMargins(0, 0, margins[2], 0)
+                footer.setContentsMargins(0, 0, margins[2], margins[3])
                 bbox.setContentsMargins(*margins)
 
             def ignored_check(self, state, version=None):
