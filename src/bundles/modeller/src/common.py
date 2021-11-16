@@ -86,6 +86,14 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
         class FakeTmpDir:
             name = temp_path
         temp_dir = FakeTmpDir()
+        # in case it's not empty, clear out certain kinds of files so that status monitoring, etc., works
+        import os
+        for fn in os.listdir(temp_path)[:]:
+            if os.path.splitext(fn)[-1] in ['.ini', '.dat', '.pdb']:
+                try:
+                    os.remove(os.path.join(temp_path, fn))
+                except Exception:
+                    pass
     else:
         import tempfile
         temp_dir = tempfile.TemporaryDirectory(dir=temp_path)
