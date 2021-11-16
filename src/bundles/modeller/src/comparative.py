@@ -288,14 +288,14 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         job_runner = ModellerWebService(session, match_chains, num_models,
             pir_target.name, input_file_map, config_name, targets)
     else:
-        #TODO: job_runner = ModellerLocal(...)
-        from chimerax.core.errors import LimitationError
-        raise LimitationError("Local Modeller execution not yet implemented")
         # a custom script [only used when executing locally] needs to be copied into the tmp dir...
         if os.path.exists(script_path) \
         and os.path.normpath(temp_dir.name) != os.path.normpath(os.path.dirname(script_path)):
             import shutil
             shutil.copy(script_path, temp_dir.name)
+        from .common import ModellerLocal
+        job_runner = ModellerLocal(session, match_chains, num_models,
+            pir_target.name, executable_location, os.path.basename(script_path), targets, temp_dir)
 
     return job_runner.run(block=block)
 
