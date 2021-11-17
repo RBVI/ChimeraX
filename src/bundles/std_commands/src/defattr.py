@@ -292,7 +292,19 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
             if attr_name in allowable_attrs:
                 break
         else:
-            raise UserError("No known/registered attribute %s" % attr_name)
+            adjective = ""
+            if allowable_types:
+                if allowable_types == [bool]:
+                    adjective = "boolean "
+                elif allowable_types == [str]:
+                    adjective = "string "
+                elif allowable_types == [int]:
+                    adjective = "integer "
+                elif allowable_types == [float]:
+                    adjective = "floating-point "
+                elif set(allowable_types) == set([int, float]):
+                    adjective = "numeric "
+            raise UserError("No known/registered %sattribute %s" % (adjective, attr_name))
     return attr_name, class_obj
 
 def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1-to-1", model_ids=None,
