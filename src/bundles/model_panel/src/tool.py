@@ -362,7 +362,7 @@ class ModelPanel(ToolInstance):
             run(self.session, "rename %s id #%s" % (item._model.atomspec, id_text))
         elif column == self.NAME_COLUMN:
             new_name = item.text(self.NAME_COLUMN)
-            if new_name.isspace():
+            if not new_name or new_name.isspace():
                 from chimerax.ui.ask import ask
                 if ask(self.session, "Really use blank model name?", default="no") == "no":
                     self._initiate_fill_tree()
