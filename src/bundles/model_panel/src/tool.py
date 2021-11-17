@@ -28,6 +28,9 @@ class ModelPanel(ToolInstance):
         from time import time
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
+        if not short_titles:
+            session.logger.status("You can double click a model's Name or ID in the model panel"
+                " to edit those fields", log=True, color="forest green")
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
@@ -46,7 +49,6 @@ class ModelPanel(ToolInstance):
                 return QSize(width, 200)
         self.tree = SizedTreeWidget()
         self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.tree.keyPressEvent = session.ui.forward_keystroke
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -69,6 +71,7 @@ class ModelPanel(ToolInstance):
         self.tree.setUniformRowHeights(True)
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
+        self.tree.itemDoubleClicked.connect(self._item_double_clicked)
         scrolled_button_area = QScrollArea()
         layout.addWidget(scrolled_button_area)
         button_area = QWidget()
@@ -185,6 +188,9 @@ class ModelPanel(ToolInstance):
         if self.countdown > 0:
             return
 
+        # cell editing could have disabled key forwarding
+        # (to block the Return key getting to the command line)
+        self.tree.keyPressEvent = self.session.ui.forward_keystroke
         self.tree.blockSignals(True) # particularly itemChanged
         if self.check_model_list or always_rebuild:
             update = self._process_models() and not always_rebuild
@@ -219,6 +225,7 @@ class ModelPanel(ToolInstance):
             else:
                 parent = item_stack[0] if len(item_stack) == 1 else item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
@@ -307,6 +314,14 @@ class ModelPanel(ToolInstance):
             self._sort_breadth_first = not self._sort_breadth_first
             self._fill_tree()
 
+    def _item_double_clicked(self, item, column):
+        if column == self.NAME_COLUMN or column == self.ID_COLUMN:
+            # prevent the Return key from reaching the command line
+            self.tree.keyPressEvent = lambda event: event.setAccepted(True)
+            self.tree.editItem(item, column)
+            # too lazy to do the delegation rewrite to catch the editing
+            # finishing when the editing ends with no change
+
     def _label_click(self, event):
         if event.Col == self.ID_COLUMN:
             # ID label clicked.
@@ -338,6 +353,27 @@ class ModelPanel(ToolInstance):
             self.self_initiated = True
             prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.CheckState.Checked else "~"
             run(self.session, prefix + "select #" + model.id_string)
+        elif column == self.ID_COLUMN:
+            id_text = item.text(self.ID_COLUMN)
+            try:
+                ids = [int(x) for x in id_text.split('.')]
+            except Exception:
+                self._initiate_fill_tree()
+                from chimerax.core.errors import UserError
+                raise UserError("ID must be one or more integers separated by '.' characters")
+            self.self_initiated = True
+            run(self.session, "rename %s id #%s" % (item._model.atomspec, id_text))
+        elif column == self.NAME_COLUMN:
+            new_name = item.text(self.NAME_COLUMN)
+            if not new_name or new_name.isspace():
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Really use blank model name?", default="no") == "no":
+                    self._initiate_fill_tree()
+                    return
+            self.self_initiated = True
+            from chimerax.core.commands import StringArg
+            run(self.session, "rename %s %s" % (item._model.atomspec, StringArg.unparse(new_name)))
+
 
 from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):

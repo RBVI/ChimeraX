@@ -86,6 +86,14 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
         class FakeTmpDir:
             name = temp_path
         temp_dir = FakeTmpDir()
+        # in case it's not empty, clear out certain kinds of files so that status monitoring, etc., works
+        import os
+        for fn in os.listdir(temp_path)[:]:
+            if os.path.splitext(fn)[-1] in ['.ini', '.dat', '.pdb']:
+                try:
+                    os.remove(os.path.join(temp_path, fn))
+                except Exception:
+                    pass
     else:
         import tempfile
         temp_dir = tempfile.TemporaryDirectory(dir=temp_path)
@@ -600,33 +608,36 @@ class ModellerLocalJob(Job):
             environ['PATH'] = binDir + ';' + environ.get('PATH', '')
         else:
             environ = None
-        logger = self.session.logger
-        tsafe = self.session.ui.thread_safe
-        tsafe(logger.status, "Running MODELLER locally")
-        import subprocess
-        old_dir = os.getcwd()
-        os.chdir(self.caller.temp_dir)
         self._running = True
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        except subprocess.CalledProcessError as e:
-            from chimerax.ui.html import disclosure
+        def threaded_run(self=self, cmd=cmd):
+            import subprocess
+            old_dir = os.getcwd()
+            os.chdir(self.caller.temp_dir)
+            tsafe = self.session.ui.thread_safe
+            logger = self.session.logger
+            tsafe(logger.status, "Running MODELLER locally")
             try:
-                output = self.get_file(self.stdout_file)
-            except ValueError:
-                output = e.output
-            tsafe(logger.info, disclosure('<pre>' + output + '</pre>', summary="Modeller output"),
-                is_html=True)
-            tsafe(logger.info, disclosure('<pre>' + e.stderr + '</pre>', summary="Modeller errors",
-                open=True), is_html=True)
-            raise UserError("Modeller execution failed; output and errors in log")
-        finally:
-            self._running = False
-            os.chdir(old_dir)
-            tsafe(logger.status, "MODELLER finished")
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            except subprocess.CalledProcessError as e:
+                from chimerax.ui.html import disclosure
+                try:
+                    output = self.get_file(self.stdout_file)
+                except ValueError:
+                    output = e.output
+                tsafe(logger.info, disclosure('<pre>' + output + '</pre>', summary="Modeller output"),
+                    is_html=True)
+                tsafe(logger.info, disclosure('<pre>' + e.stderr + '</pre>', summary="Modeller errors",
+                    open=True), is_html=True)
+                raise UserError("Modeller execution failed; output and errors in log")
+            finally:
+                self._running = False
+                os.chdir(old_dir)
+                tsafe(logger.status, "MODELLER finished")
+        import threading
+        thread = threading.Thread(target=threaded_run, daemon=True)
+        thread.start()
 
     def monitor(self):
-        super().monitor()
         import os
         file_list = os.listdir(self.caller.temp_dir)
         status = self.session.logger.status

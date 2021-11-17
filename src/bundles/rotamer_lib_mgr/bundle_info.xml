@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-RotamerLibMgr" version="2.0" package="chimerax.rotamers"
+<BundleInfo name="ChimeraX-RotamerLibMgr" version="2.0.1" package="chimerax.rotamers"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

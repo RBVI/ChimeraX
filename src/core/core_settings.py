@@ -38,6 +38,7 @@ class _CoreSettings(Settings):
         'toolshed_last_check': '',
         'newer_update_interval': 'week',
         'newer_last_check': '',
+        'ignore_update': [],  # updates shown and then ignored
     }
 
 def init(session):
