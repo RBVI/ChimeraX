@@ -80,7 +80,8 @@ def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                         if _residue_atom_pairing_same_name(r0, r1, atomMap):
                                 curRList0.append(r0)
                                 curRList1.append(r1)
-                parts.append((curRList0, curRList1))
+                if curRList0 and curRList1:
+                        parts.append((curRList0, curRList1))
 
         #
         # Split each part on hinges and collate results
