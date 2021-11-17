@@ -28,6 +28,9 @@ class ModelPanel(ToolInstance):
         from time import time
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
+        if not short_titles:
+            session.logger.status("You can double click a model's Name or ID in the model panel"
+                " to edit those fields", log=True, color="forest green")
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
