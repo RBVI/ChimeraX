@@ -172,10 +172,19 @@ class BlastProteinResults(ToolInstance):
     def _format_param_str(self):
         labels = list(self.params._asdict().keys())
         values = list(self.params._asdict().values())
-        model_no = int(float(values[0].split('/')[0][1:]))
-        chain = ''.join(['/',values[0].split('/')[1]])
-        model = ''.join([str(self.session.models._models[(model_no,)]), chain])
-        values[0] = model
+        try:
+            model_no = int(float(values[0].split('/')[0][1:]))
+        except AttributeError: # AlphaFold can be run without a model
+            model_no = None
+        try:
+            chain = ''.join(['/',values[0].split('/')[1]])
+        except AttributeError: # There won't be a selected chain either
+            chain = None
+        if model_no:
+            model_formatted = ''.join([str(self.session.models._models[(model_no,)]), chain])
+        else:
+            model_formatted = None
+        values[0] = model_formatted
         param_str = ", ".join(
             [": ".join([str(label), str(value)]) for label, value in zip(labels, values)]
         )

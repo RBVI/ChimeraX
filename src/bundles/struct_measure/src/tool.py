@@ -47,6 +47,8 @@ class StructMeasureTool(ToolInstance):
         tw.manage(placement="side")
 
     def delete(self):
+        global _tool
+        _tool = None
         for handler in self.handlers:
             handler.remove()
         super().delete()
