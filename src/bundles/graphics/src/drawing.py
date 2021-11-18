@@ -2182,7 +2182,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         if outline_color is None:
             from chimerax.core.colors import contrast_with
-            outline_color = contrast_with(bg[:3]) + (255,)
+            outline_color = [c * 255.0 for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
         fill_color = tuple(outline_color)
     else:
         fill_color = bg
