@@ -1490,7 +1490,7 @@ class NewerVersionQuery(Task):
         #     "uuid": str(chimerax_uuid()),
         #     "os": "macosx",
         #     "os_version": "10.14",
-        #     "chimera_x_version": "1.1rc12",
+        #     "chimera_x_version": "1.1",
         # }
         self.start(self.SERVICE_NAME, params, blocking=False)
 
@@ -1542,32 +1542,35 @@ class NewerVersionQuery(Task):
                 info.setMinimumSize(64, 64)
                 info.setPixmap(icon.pixmap(QSize(64, 64)))
 
+                version = buildinfo.version
+                # version = "1.1"  # DEBUG
                 header = QLabel(
-                    "There is a newer version of UCSF ChimeraX available.  Downloads are available"
-                    "<br>at the <a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
-                    "ChimeraX download page</a>."
-                    f"<p>Here {plural_form(versions, 'is a', 'are')} direct"
-                    f" {plural_form(versions, 'link')} to the newer"
-                    f" {plural_form(versions, 'version')} for your system:"
+                    f"You are currently running UCSF ChimeraX {version}."
+                    "<p>Click here to download a newer release for your system:"
                 )
-                header.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-                header.setOpenExternalLinks(True)
-                footer = QLabel(f"You are currently running UCSF ChimeraX {buildinfo.version}.")
+                footer = QLabel(
+                    "You can get other releases from the "
+                    "<a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
+                    "ChimeraX download page</a>."
+                )
+                footer.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                footer.setOpenExternalLinks(True)
 
                 updates = QFrame()
-                # two columns: versioned link, ignore
+                # two columns: versioned link, remind
                 layout = QGridLayout()
                 updates.setLayout(layout)
-                for row, (version, link) in enumerate(versions):
+                for row, (version, link) in enumerate(reversed(versions)):
                     html = f"&bull; <a href='{link}'>UCSF ChimeraX {version}</a>\n"
                     w = QLabel(html)
                     w.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
                     w.setOpenExternalLinks(True)
-                    ignore = QCheckBox("Ignore")
-                    ignore.setToolTip("Ignore this release in future update checks")
-                    ignore.stateChanged.connect(lambda state, version=version: self.ignored_check(state, version))
+                    remind = QCheckBox("Remind me later")
+                    remind.setToolTip("Show this release in future update checks")
+                    remind.setChecked(True)
+                    remind.stateChanged.connect(lambda state, version=version: self.remind_later(state, version))
                     layout.addWidget(w, row, 0)
-                    layout.addWidget(ignore, row, 1)
+                    layout.addWidget(remind, row, 1)
 
                 hr = QFrame(self)
                 hr.setFrameShape(QFrame.HLine)
@@ -1603,8 +1606,8 @@ class NewerVersionQuery(Task):
                 footer.setContentsMargins(0, 0, margins[2], margins[3])
                 bbox.setContentsMargins(*margins)
 
-            def ignored_check(self, state, version=None):
-                self.ignored[version] = state
+            def remind_later(self, state, version=None):
+                self.ignored[version] = not state
 
             def done(self, result):
                 all_ignored = [version for version in self.ignored if self.ignored[version]]
