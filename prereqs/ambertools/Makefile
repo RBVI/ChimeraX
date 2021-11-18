@@ -88,7 +88,7 @@ app-install: install
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
 	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
 ifeq ($(OS),Windows)
-	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /bin/sh.exe $(AMBERBIN_DST)
+	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
 	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
 	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
