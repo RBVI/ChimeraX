@@ -604,8 +604,8 @@ class ModellerLocalJob(Job):
             environ['MODINSTALL' + version] = home
             environ['PYTHONPATH'] = os.path.join(home, 'modlib')
             environ['LIB_ASGL'] = os.path.join(home, 'asgl')
-            environ['BIN_ASGL'] = binDir
-            environ['PATH'] = binDir + ';' + environ.get('PATH', '')
+            environ['BIN_ASGL'] = bin_dir
+            environ['PATH'] = bin_dir + ';' + environ.get('PATH', '')
         else:
             environ = None
         self._running = True
