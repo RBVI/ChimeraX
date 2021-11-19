@@ -30,8 +30,12 @@ TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
 AMBERBIN_DST_HOME = $(app_bindir)/amber$(VERSION)
 AMBERBIN_DST = $(AMBERBIN_DST_HOME)/bin
-AMBERDAT_SRC = $(AMBERHOME)/dat/antechamber
-AMBERDAT_DST = $(AMBERBIN_DST_HOME)/dat/antechamber
+AMBERDAT_SRC = $(AMBERHOME)/dat
+AMBERDAT_DST = $(AMBERBIN_DST_HOME)/dat
+AMBERDAT_ANTECHAMBER_SRC = $(AMBERDAT_SRC)/antechamber
+AMBERDAT_ANTECHAMBER_DST = $(AMBERDAT_DST)/antechamber
+AMBERDAT_PARM_SRC = $(AMBERDAT_SRC)/leap/parm
+AMBERDAT_PARM_DST = $(AMBERDAT_DST)/leap/parm
 
 PATCHES	= $(wildcard AmberTools-*.patch)
 
@@ -81,7 +85,7 @@ install: $(SOURCE)
 	cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
 
 app-install: install
-	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_DST)
+	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
 	# Excluded files are because they reference netcdf and we do not need them
 	$(RSYNC) $(AMBERBIN_SRC)/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 --exclude to_be_dispatched $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
@@ -90,8 +94,9 @@ app-install: install
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
-	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
-	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
+	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
+	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
+	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_PARM_DST)
 ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cat /dev/null > $(FLIB_NAMES_FILE)
