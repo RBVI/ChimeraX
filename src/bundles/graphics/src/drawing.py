@@ -1330,6 +1330,29 @@ class Drawing:
         tm = self._triangle_mask
         return len(ta) if tm is None else tm.sum()
 
+    @property
+    def masked_edges(self):
+        ta = self.triangles
+        if ta is None:
+            from numpy import empty, int32
+            edges = empty((0,2), int32)
+        elif ta.shape[1] == 3:
+            tm, em = self.triangle_mask, self.edge_mask
+            mask = {}
+            if tm is not None:
+                mask['triangle_mask'] = tm
+            if em is not None:
+                mask['edge_mask'] = em
+            from ._graphics import masked_edges
+            edges = masked_edges(ta, **mask)
+        elif ta.shape[1] == 2:
+            edges = ta   # Triangles array contains edges.
+        else:
+            from numpy import empty, int32
+            edges = empty((0,2), int32)
+
+        return edges
+
     def x3d_needs(self, x3d_scene):
         if not self.display:
             return
