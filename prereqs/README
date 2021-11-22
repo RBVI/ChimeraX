@@ -41,8 +41,6 @@ appdirs
 	cross-platform access to applicatin directories
 beautifulsoup4
 	used to convert HTML output to plain text for nogui mode
-blockdiag
-	to be able to put block diagrams in sphinx documentation
 colorama
 	color terminal output for nogui mode
 distlib
@@ -51,8 +49,6 @@ docutils
 	used by sphinx
 flake8
 	Python linting
-funcparserlib
-	used by blockdiag
 grako
 	parser generator used by atomspec
 leapmotion/
@@ -121,12 +117,8 @@ six
 	and more
 sortedcontainers
 	provides SortedDict
-sphinxcontrib-blockdiag
-	Block diagrams for sphinx, needed for documentation ???
 suds-jurko
 	SOAP library, needed for web services
-webcolors
-	used by blockdiag
 wheel
 	wheel distribution format, needed for toolshed
 xdg-utils/
