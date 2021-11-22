@@ -1085,7 +1085,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
             balloon="Which side of main window that new tool windows appear on by default"))
         from .options import BooleanOption
-        self.add_settings_option("Window", BooleanOption("Start tool windows undocked",
+        self.add_settings_option("Window", BooleanOption("Tool windows start undocked",
             settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
             balloon="Tools (other than ones launched at ChimeraX startup) start undocked and undockable.\n"
             'A tool can be made dockable through its "Dockable Tool" context menu entry.'))

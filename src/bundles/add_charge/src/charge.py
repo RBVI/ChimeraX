@@ -339,7 +339,7 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
     if len(varieties) > 1:
         session.logger.info("%d tautomers of %s; charging separately" % (len(varieties), r0.name))
     for tautomer_residues in varieties.values():
-        _nonstd_charge(session, tautomer_residues, net_charge, method, status)
+        nonstd_charge(session, tautomer_residues, net_charge, method, status=status)
 
 def estimate_net_charge(atoms):
     charge_info = {
@@ -469,7 +469,16 @@ def _n2_charge(atom):
             return 0
     return 2
 
-def _nonstd_charge(session, residues, net_charge, method, status):
+def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_dir=None):
+    """Underlying "workhorse" function for add_nonstandard_res_charges()
+
+       Other than 'temp_dir', the arguments are the same as for add_nonstandard_res_charges(),
+       and in almost all situations you should use that function instead, but if you need
+       access to the input/output files to/from Antechamber, you can use this function to specify
+       a path for 'temp_dir' and all Antechamber files will be written into that directory and
+       the directory will not be deleted afterward.  Otherwise a temporary directory is used that
+       is deleted afterward.
+    """
     r = residues[0]
     if status:
         status("Copying residue %s" % r.name)
@@ -544,8 +553,12 @@ def _nonstd_charge(session, residues, net_charge, method, status):
         finally:
             s.delete()
 
-    import tempfile
-    with tempfile.TemporaryDirectory() as temp_dir, managed_structure(s) as s:
+    if not temp_dir:
+        import tempfile
+        # hold direct reference so that the directory isn't immediately deleted
+        temp_dir_ref = tempfile.TemporaryDirectory()
+        temp_dir = temp_dir_ref.name
+    with managed_structure(s) as s:
         import os, os.path
         ante_in = os.path.join(temp_dir, "ante.in.mol2")
         from chimerax.mol2 import write_mol2

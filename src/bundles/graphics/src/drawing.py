@@ -2205,7 +2205,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         if outline_color is None:
             from chimerax.core.colors import contrast_with
-            outline_color = contrast_with(bg[:3]) + (255,)
+            outline_color = [c * 255.0 for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
         fill_color = tuple(outline_color)
     else:
         fill_color = bg
@@ -2216,14 +2216,18 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         prev_b = p.brush()
         prev_p = p.pen()
+        prev_cm = p.compositionMode()
+        p.setCompositionMode(p.CompositionMode_Source)
         bc = QColor(*bg)
         from Qt.QtCore import Qt
         pbr = QBrush(bc, Qt.SolidPattern)
         p.setBrush(pbr)
         ppen = QPen(Qt.NoPen)
+        p.setPen(ppen)
         p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
         p.setBrush(prev_b)
         p.setPen(prev_p)
+        p.setCompositionMode(prev_cm)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
