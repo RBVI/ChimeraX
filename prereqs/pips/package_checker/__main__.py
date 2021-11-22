@@ -2,7 +2,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 Comments = {
-    "blockdiag": "required by Sphinx",
     "docutils": "required by Sphinx",
     "filelock": "",
     "flake8": "used for Python lint",
@@ -17,7 +16,6 @@ Comments = {
     "Pygments": "required by Sphinx",
     "sip": "used by PyQt",
     "Sphinx": "used by docs",
-    "webcolors": "required by blockdiag",
 }
 
 def main():
