@@ -69,7 +69,8 @@ class _SurfaceBundle(BundleAPI):
             colorzone.register_volume_split_command(logger)
         elif (command_name.startswith('surface') or
               command_name.startswith('sop') or
-              command_name.startswith('~surface')):
+              command_name.startswith('~surface') or
+              command_name == 'meshmol'):
             from . import surfacecmds
             surfacecmds.register_command(logger)
             from . import check
