@@ -546,6 +546,63 @@ class FontOption(EnumOption):
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
 
+class FileOption(Option):
+    """base class for specifying a file """
+
+    @classmethod
+    def browse_func(cls, *args, **kw):
+        from Qt.QtWidgets import QFileDialog
+        if cls == InputFileOption:
+            return QFileDialog.getOpenFileName(*args, **kw)
+        return QFileDialog.getSaveFileName(*args, **kw)
+
+    def get_value(self):
+        return self.line_edit.text()
+
+    def set_value(self, value):
+        self.line_edit.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.line_edit.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose File", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        self.widget = QWidget()
+        self.widget.setContentsMargins(0,0,0,0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.widget.setLayout(layout)
+        self.line_edit = QLineEdit()
+        self.line_edit.returnPressed.connect(self.make_callback)
+        if initial_text_width:
+            self.line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        layout.addWidget(self.line_edit, stretch=1)
+        self.start_folder = start_folder
+        self.browser_title = browser_title
+        button = QPushButton("Browse")
+        button.clicked.connect(self._launch_browser)
+        layout.addWidget(button)
+
+    def _launch_browser(self, *args):
+        import os
+        if self.start_folder is None or not os.path.exists(self.start_folder):
+            start_folder = os.getcwd()
+        else:
+            start_folder = self.start_folder
+        file = self.browse_func(self.widget, self.browser_title, start_folder)
+        if folder:
+            self.line_edit.setText(folder)
+            self.line_edit.returnPressed.emit()
+
+class InputFileOption(FileOption):
+    pass
+class OutputFileOption(FileOption):
+    pass
+
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
 
