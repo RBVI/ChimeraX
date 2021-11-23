@@ -21,7 +21,7 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 all:
 
 install:
-	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt	
+	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
 	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
