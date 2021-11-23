@@ -82,6 +82,7 @@
     <ChimeraXClassifier>Command :: surface zone :: Surfaces :: show surface near atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface unzone :: Surfaces :: show all of surface</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface check :: Surfaces :: check surface topology</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface meshmol :: Surfaces :: create marker model for surface mesh</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface splitbycolor :: Surfaces :: Split surface by color</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: sop :: Surfaces :: alias for surface commands</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
