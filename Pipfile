@@ -1,0 +1,82 @@
+# vim: syntax=config:
+
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+# Application runtime
+# Some packages are not available on macOS arm64 cpu, marked below with platform_machine != 'arm64'.
+appdirs = "*"
+colorama = "*"
+Cython = "*"
+filelock = "*"
+grako = "*"
+html2text = "*"
+ihm = "*"
+imagecodecs = {version = "*", markers = "platform_machine != 'arm64'"}
+ipykernel = "*"
+# if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
+# try a newer version of jedi
+ipython = "*"
+# the version of jedi that works with ipython
+jedi = "*"
+jupyter-client = "*"
+lxml = "*"
+lz4 = "*"
+matplotlib = {version = "*", markers = "platform_machine != 'arm64'"}
+msgpack = "*"
+netCDF4 = {version = "*", markers = "platform_machine != 'arm64'"}
+numpy = "*"
+networkx = "*"
+openvr = "*"
+# as per Tristan's request in ticket #3055
+ParmEd = "*"
+Pillow = "*"
+pkginfo = "*"
+psutil = "*"
+pycollada = "*"
+pydicom = "*"
+# PyOpenGL handled in app_pyopengl_requirements.txt
+pyopengl = "*"
+python-dateutil = "*"
+qtconsole = "*"
+requests = "*"
+scipy = {version = "*", markers = "platform_machine != 'arm64'"}
+six = "*"
+sortedcontainers = "*"
+# No binary wheels for Windows and Mac for PyTables in Python 3.9
+# tables=3.6.1
+tifffile = "*"
+wheel-filename = "*"
+#
+# Documentation
+#
+docutils = "*"
+Jinja2 = "*"
+Pygments = "*"
+Sphinx = "*"
+sphinx-autodoc-typehints = "*"
+#
+# Windows
+#
+pywin32 = {version = "*", markers = "sys_platform == 'win32'"}
+WMI = {version = "*", markers = "sys_platform == 'win32'"}
+comtypes = {version = "*", markers = "sys_platform == 'win32'"}
+#
+# Linux
+#
+distro = {version = "*", markers = "sys_platform == 'linux'"}
+# There are only line_profiler binaries for Linux,
+# and it is hard to compile elsewhere
+line_profiler = {version = "*", markers = "sys_platform == 'linux'"}
+
+[dev-packages]
+cython = "*"
+# used to manage package versions
+packaging = "*"
+grako = "*"
+
+[requires]
+python_version = "3.10"
