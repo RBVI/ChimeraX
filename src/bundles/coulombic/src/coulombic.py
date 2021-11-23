@@ -26,7 +26,11 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
     for struct, residue_list in list(by_structure.items()):
         from chimerax.atomic import Residues
         by_structure[struct] = residues = Residues(residue_list)
-        missing, extra = check_residues(residues)
+        try:
+            missing, extra = check_residues(residues)
+        except NoHydError:
+            copy_needed[struct] = True
+            continue
         heavies = [info for info in missing if not info[1].startswith('H')]
         missing_heavies.extend(heavies)
         copy_needed[struct] = len(heavies) < len(missing)
@@ -120,6 +124,9 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
             finally:
                 charged_struct.delete()
 
+class NoHydError(ValueError):
+    pass
+
 def check_residues(residues):
     from .data import starting_residues, ending_residues, other_residues
     missing_atoms = []
@@ -142,7 +149,12 @@ def check_residues(residues):
         try:
             res_data = reference[rname]
         except KeyError:
-            # Hope add_charge can handle it!
+            # Check if any hydrogens.  If not, raise error to alert caller to add hydrogens
+            for a in r.atoms:
+                if a.element.number == 1:
+                    break
+            else:
+                raise NoHydError(r.name)
             continue
         name_to_atom = {}
         for a in r.atoms:
