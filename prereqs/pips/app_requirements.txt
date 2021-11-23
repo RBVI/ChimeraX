@@ -45,7 +45,6 @@ requests==2.26.0
 scipy==1.7.1 ; platform_machine != 'arm64'
 six==1.16.0
 sortedcontainers==2.4.0
-suds-jurko==0.6
 tables==3.7.0
 tifffile==2021.4.8
 tinyarray==1.2.4
