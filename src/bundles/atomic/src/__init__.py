@@ -91,6 +91,8 @@ class _AtomicBundleAPI(BundleAPI):
                 return _NoDefault
             from chimerax.core.session import State
             class Fake(State):
+                def clear(self):
+                    pass
                 def reset_state(self, session):
                     pass
                 def take_snapshot(self, session, flags):
