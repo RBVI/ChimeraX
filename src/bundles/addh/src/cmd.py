@@ -507,7 +507,8 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 for a in res.atoms:
                     ea = exemplar.find_atom(a.name)
                     if ea:
-                        a.idatm_type = ea.idatm_type
+                        # allow type to change if structure later modified
+                        a.set_implicit_idatm_type(ea.idatm_type)
             for r in template_lookup.values():
                 r.structure.delete()
             template_lookup.clear()
