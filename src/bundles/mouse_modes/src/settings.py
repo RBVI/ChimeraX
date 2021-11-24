@@ -17,6 +17,7 @@ class _MouseModesSettings(Settings):
     EXPLICIT_SAVE = {
         'trackpad_multitouch': True,
         'trackpad_sensitivity': 1.0,
+        'trackpad_twist_speed': 6.0,
     }
 
 # 'settings' and 'clip_settings' module attributes will be set by the initialization of the bundle API
@@ -38,6 +39,11 @@ def register_trackpad_settings(session):
             (FloatOption, {'decimal_places': 2 }),
             _set_trackpad_sensitivity,
             'How fast models move in response to multitouch trackpad gestures'),
+        'trackpad_twist_speed': (
+            'Trackpad twist speed',
+            (FloatOption, {'decimal_places': 2 }),
+            _set_trackpad_twist_speed,
+            'How fast models rotate in response to multitouch 2-finger twist'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, updater, balloon = setting_info
@@ -56,6 +62,9 @@ def _enable_trackpad_multitouch(session, enable):
 
 def _set_trackpad_sensitivity(session, value):
     session.ui.mouse_modes.trackpad.trackpad_speed = value
+
+def _set_trackpad_twist_speed(session, value):
+    session.ui.mouse_modes.trackpad._twist_scaling = value
 
 class _MouseClipSettings(Settings):
     EXPLICIT_SAVE = {
