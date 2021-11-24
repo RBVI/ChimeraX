@@ -77,6 +77,8 @@ def view_objects(objects, v, clip, cofr, pad):
         from chimerax.core.errors import UserError
         raise UserError('No objects specified.')
     disp = objects.displayed()
+    # Use atoms but not whole molecular surfaces. Ticket #5663
+    disp = _remove_molecular_surfaces(disp)
     b = disp.bounds()
     if b is None:
         from chimerax.core.errors import UserError
@@ -98,6 +100,27 @@ def view_objects(objects, v, clip, cofr, pad):
         if not clip:
             v.set_rotation_depth(c)
 
+def _remove_molecular_surfaces(objects):
+    '''
+    Remove molecular surface models from objects if the objects include atoms
+    for those surfaces.
+    '''
+    from chimerax.atomic import MolecularSurface
+    msurfs = set([s for s in objects.models
+                  if isinstance(s, MolecularSurface) and s.atoms.intersects(objects.atoms)])
+    misurfs = set([s for s in objects.model_instances.keys()
+                   if isinstance(s, MolecularSurface) and s.atoms.intersects(objects.atoms)])
+    if len(msurfs) == 0 and len(misurfs) == 0:
+        return objects
+    from chimerax.core.objects import Objects
+    o = Objects(atoms = objects.atoms, bonds = objects.bonds,
+                pseudobonds = objects.pseudobonds,
+                models = [m for m in objects.models if m not in msurfs])
+    for m, minst in objects.model_instances.items():
+        if m not in misurfs:
+            o.add_model_instances(m, minst)
+    return o
+    
 def _z_align_view(camera, atoms):
     '''
     Rotate camera so two atoms are along view direction, first atom in front.
