@@ -34,11 +34,11 @@ $(DIST):
 	for dylib in *.dylib; do \
 		install_name_tool -id $$dylib $$dylib ;\
 	done
-	cd tables/.dylibs ; install_name_tool -change $(BREW_SZIP_LIB) ./$(BREW_LIBSZ) $(BREW_LIBHDF5)
+	cd tables/.dylibs ; install_name_tool -change $(BREW_SZIP_LIB) @loader_path/$(BREW_LIBSZ) $(BREW_LIBHDF5)
 	cd tables ; \
 	for shared_lib in *.so; do \
-		install_name_tool -change $(BREW_HDF5_LIB) .dylibs/$(BREW_LIBHDF5) $$shared_lib ;\
-		install_name_tool -change $(BREW_BLOSC_LIB) .dylibs/$(BREW_LIBBLOSC) $$shared_lib ;\
+		install_name_tool -change $(BREW_HDF5_LIB) @loader_path/.dylibs/$(BREW_LIBHDF5) $$shared_lib ;\
+		install_name_tool -change $(BREW_BLOSC_LIB) @loader_path/.dylibs/$(BREW_LIBBLOSC) $$shared_lib ;\
 	done
 	tar cf $(DIST_TAR) tables
 	gzip $(DIST_TAR)

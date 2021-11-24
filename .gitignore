@@ -40,6 +40,7 @@ dist
 *~
 *.out
 _build
+.venv
 src/apps/structcomp/structcomp.sh
 src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
