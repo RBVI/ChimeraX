@@ -686,6 +686,12 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
 
+    def set_implicit_idatm_type(self, idatm_type):
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if idatm_type is None:
+            raise ValueError("Cannot set implicit IDATM type to None")
+        self.cpp_atom.set_implicit_idatm_type(idatm_type.encode())
+
     def side_atoms(self, CyAtom skip_atom=None, CyAtom cycle_atom=None):
         '''All the atoms connected to this atom on this side of 'skip_atom' (if given).
            Missing-structure pseudobonds are treated as connecting their atoms for the purpose of
