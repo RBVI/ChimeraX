@@ -89,8 +89,9 @@ class _AtomicBundleAPI(BundleAPI):
             if class_name == "_NoDefault":
                 from chimerax.core.attributes import _NoDefault
                 return _NoDefault
-            from chimerax.core.session import State
-            class Fake(State):
+            from chimerax.core.session import State, StateManager
+            base_class = StateManager if class_name.endswith("Manager") else State
+            class Fake(base_class):
                 def clear(self):
                     pass
                 def reset_state(self, session):
