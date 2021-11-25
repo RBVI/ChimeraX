@@ -116,7 +116,7 @@ def copies_bounding_box(bounds, positions):
     Return :py:class:`.Bounds` that covers a specified bounding
     box replicated at :py:class:`.Places`.
     '''
-    if bounds is None:
+    if bounds is None or len(positions) == 0:
         return None
     sas = positions.shift_and_scale_array()
     if sas is not None and len(sas) > 0:

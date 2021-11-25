@@ -30,9 +30,10 @@ class ModellerLauncher(ToolInstance):
         self.settings = settings = get_settings(session, tool_name)
         self.help = "help:user/tools/modeller.html" if hasattr(settings, "multichain") \
             else "help:user/tools/modelloops.html"
-        license_settings = get_settings(session, "license")
+        self.common_settings = common_settings = get_settings(session, "license")
         from Qt.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from Qt.QtWidgets import QDialogButtonBox as qbbox
+        from Qt.QtCore import Qt
         interface_layout = QVBoxLayout()
         interface_layout.setContentsMargins(0,0,0,0)
         interface_layout.setSpacing(0)
@@ -63,7 +64,7 @@ class ModellerLauncher(ToolInstance):
         interface_layout.addWidget(options_area)
         interface_layout.setStretchFactor(options_area, 2)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption,\
-            OutputFolderOption, SymbolicEnumOption, EnumOption
+            OutputFolderOption, SymbolicEnumOption, EnumOption, InputFileOption
         panel = CategorizedSettingsPanel(category_sorting=False, option_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         if hasattr(settings, "multichain"):
@@ -79,9 +80,34 @@ class ModellerLauncher(ToolInstance):
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
             "Number of model structures to generate.  Must be no more than %d.\n"
             "Warning: please consider the calculation time" % max_models))
-        key = "" if license_settings.license_key is None else license_settings.license_key
-        panel.add_option("Basic", PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller license key</a>', key, None, attr_name="license_key", settings=license_settings, balloon=
-            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
+        class ExecutionTypeOption(SymbolicEnumOption):
+            values = (False, True)
+            labels = ("web service", "local machine")
+        execution_option = ExecutionTypeOption("Computation location", common_settings.local_execution,
+            self.show_execution_options, attr_name="local_execution", settings=common_settings,
+            balloon="Run computation using RBVI web service or on the local machine")
+        panel.add_option("Basic", execution_option)
+        self.web_container, web_options = panel.add_option_group("Basic",
+            group_label="Web execution parameters")
+        layout = QVBoxLayout()
+        self.web_container.setLayout(layout)
+        layout.addWidget(web_options, alignment=Qt.AlignLeft)
+        key = "" if common_settings.license_key is None else common_settings.license_key
+        password_opt = PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller'
+            ' license key</a>', key, None, attr_name="license_key", settings=common_settings, balloon=
+            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web"
+            " site")
+        password_opt.widget.setMinimumWidth(120)
+        web_options.add_option(password_opt)
+        self.local_container, local_options = panel.add_option_group("Basic",
+            group_label="Local execution parameters")
+        layout = QVBoxLayout()
+        self.local_container.setLayout(layout)
+        layout.addWidget(local_options, alignment=Qt.AlignLeft)
+        local_options.add_option(InputFileOption("Executable location", common_settings.executable_path,
+            None, attr_name="executable_path", settings=common_settings, balloon="Full path to Modeller"
+            " executable"))
+        self.show_execution_options(execution_option)
         panel.add_option("Advanced", BooleanOption(
             "Use fast/approximate mode",
             settings.fast, None, attr_name="fast", settings=settings, balloon=
@@ -203,10 +229,21 @@ class ModellerLauncher(ToolInstance):
                 repr(self.settings.het_preserve).lower(),
                 repr(self.settings.hydrogens).lower(),
                 repr(self.settings.water_preserve).lower())
+        if self.common_settings.local_execution:
+            specific_args += " executableLocation %s" % StringArg.unparse(
+                self.common_settings.executable_path)
         run(self.session, ("modeller %s %s numModels %d fast %s " % (sub_cmd,  " ".join(aln_seq_args),
             self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" tempPath %s"
             % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else "")))
         self.delete()
+
+    def show_execution_options(self, opt):
+        if opt.value:
+            self.local_container.show()
+            self.web_container.hide()
+        else:
+            self.web_container.show()
+            self.local_container.hide()
 
     def _list_selection_cb(self):
         layout = self.targets_layout
