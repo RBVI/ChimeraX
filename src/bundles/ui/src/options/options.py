@@ -599,9 +599,9 @@ class FileOption(Option):
             start_folder = os.getcwd()
         else:
             start_folder = self.start_folder
-        file = self.browse_func(self.widget, self.browser_title, start_folder)
-        if folder:
-            self.line_edit.setText(folder)
+        file, filter = self.browse_func(self.widget, self.browser_title, start_folder)
+        if file:
+            self.line_edit.setText(file)
             self.line_edit.returnPressed.emit()
 
 class InputFileOption(FileOption):
