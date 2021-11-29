@@ -195,7 +195,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
         if type == "DNA":
             type2 = "D" + type2
         r1 = structure.new_residue(type1, chain_id1, i+1)
-        r2 = structure.new_residue(type2, chain_id2, len(sequence)-1)
+        r2 = structure.new_residue(type2, chain_id2, len(sequence)-i)
         residues1.append(r1)
         residues2.append(r2)
         for at_info, crd in coords.items():
