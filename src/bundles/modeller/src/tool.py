@@ -80,6 +80,22 @@ class ModellerLauncher(ToolInstance):
             attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
             "Number of model structures to generate.  Must be no more than %d.\n"
             "Warning: please consider the calculation time" % max_models))
+        if hasattr(settings, "region"):
+            from .loops import ALL_MISSING, INTERNAL_MISSING
+            class RegionOption(SymbolicEnumOption):
+                values = (ALL_MISSING, INTERNAL_MISSING, "active")
+                labels = (
+                    "all missing structure",
+                    "internal missing structure",
+                    "active sequence-viewer region"
+                )
+            panel.add_option("Basic", RegionOption("Model", settings.region, None, attr_name="region",
+                settings=settings, balloon="Parts of the structure(s) to remodel/refine"))
+        if hasattr(settings, "adjacent_flexible"):
+            panel.add_option("Basic", IntOption("Adjacent flexible residues", settings.adjacent_flexible,
+                None, attr_name="adjacent_flexible", settings=settings, min=0, max=100, balloon= 
+                "Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
+                "(i.e. remodel as needed)."))
         class ExecutionTypeOption(SymbolicEnumOption):
             values = (False, True)
             labels = ("web service", "local machine")
@@ -125,22 +141,6 @@ class ModellerLauncher(ToolInstance):
                 "If enabled, the generated models will include hydrogen atoms.\n"
                 "Otherwise, only heavy atom coordinates will be built.\n"
                 "Increases computation time by approximately a factor of 4."))
-        if hasattr(settings, "region"):
-            from .loops import ALL_MISSING, INTERNAL_MISSING
-            class RegionOption(SymbolicEnumOption):
-                values = (ALL_MISSING, INTERNAL_MISSING, "active")
-                labels = (
-                    "all missing structure",
-                    "internal missing structure",
-                    "active sequence-viewer region"
-                )
-            panel.add_option("Basic", RegionOption("Model", settings.region, None, attr_name="region",
-                settings=settings, balloon="Parts of the structure(s) to remodel/refine"))
-        if hasattr(settings, "adjacent_flexible"):
-            panel.add_option("Basic", IntOption("Adjacent flexible residues", settings.adjacent_flexible,
-                None, attr_name="adjacent_flexible", settings=settings, min=0, max=100, balloon= 
-                "Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
-                "(i.e. remodel as needed)."))
         if hasattr(settings, "protocol"):
             from .loops import protocols
             class ProtocolOption(EnumOption):
