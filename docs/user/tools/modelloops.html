@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <b>Model Loops</b> is an interface to the
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
-program running on a web service hosted by the
+program, either installed locally or run on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>. The command-line implementation is
 <a href="../commands/modeller.html#loops"><b>modeller loops</b></a>.
@@ -135,8 +135,6 @@ the name of the target sequence should be selected from the pull-down menu.
 <ul>
 <li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
 &ndash; number of models to create
-<li><b>Modeller license key</b>
-&ndash; see <a href="#key">above</a>
 <li><b>Model</b> &ndash; which parts of the protein sequence to build or refine:
   <ul>
   <li><b>all missing structure</b> (initial default)
@@ -156,6 +154,23 @@ within the
 specified region to remodel relative to the input structure.
 If the residues designated as flexible are different types in the sequence
 than in the structure, the residue types in the sequence will be used.
+<li><b>Computation location</b>
+  <ul>
+  <li><b>web service</b> (initial default) 
+&ndash; run the Modeller web service hosted by the
+<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>; the user must provide:
+    <ul>
+    <li><b>Modeller license key</b> &ndash; see <a href="#key">above</a>
+    </ul>
+  <li><b>local machine</b> 
+&ndash; run a local installation of Modeller; 
+the user must install Modeller version 10 or newer, then provide:
+    <ul>
+    <li><b>Executable location</b></a> 
+&ndash; the pathname of the Modeller executable
+    </ul>
+  </ul>
 </ul>
 <p>
 <b>Advanced</b> settings:
@@ -202,5 +217,5 @@ is the same as described for
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2021</address>
+November 2021</address>
 </body></html>
