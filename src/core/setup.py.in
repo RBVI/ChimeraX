@@ -1,4 +1,3 @@
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,10 +8,6 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
-# import distutils.core, distutils.debug
-# distutils.core.DEBUG = True
-# distutils.debug.DEBUG = True
 
 from setuptools import setup, Extension
 from glob import glob
@@ -41,22 +36,7 @@ setup(
         "PKG_NAME": pkg_dir,
     },
     install_requires=[
-        # "beautifulsoup4 == 4.5.3",	# in prereqs/pips
-        # "colorama == 0.3.7",		# in prereqs/pips
-        # "filelock == 2",  # TODO: breaks on Windows
-        # "grako == 3.16.5",            # in prereqs/pips
-        # "numpy == 1.11",  # TODO: breaks on Windows
-        # "Pillow == 4.2.1",		# in prereqs/pips
-        # "pycollada == 0.4",  # TODO: pypi version doesn't work with Python 3
-        # We use PyOpenGL 3.1.1 for Windows but 3.1.0 (our build) for
-        # Linux and Mac.  Maybe we start using >=?
-        # "PyOpenGL == 3.1.0",
-        # "PySide2 == 5.15.1",		# in prereqs/pips
-        # "scipy == 0.18",  # TODO: breaks on Windows
-        # "setuptools == 34.4.1",	# in prereqs/setuptools
-        # "sortedcontainers == 1.5.7",	# in prereqs/pips
-        # "suds_jurko == 0.6",          # in prereqs/pips
-        # "msgpack >= 0.5",
+        'chimerax.linux ; platform_system=="Linux"'
     ],
     packages=[
         "PKG_NAME",
