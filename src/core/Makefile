@@ -46,6 +46,10 @@ PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
+ifdef INSTALL_TO_VENV
+WHEEL = $(wildcard dist/*.whl)
+endif
+
 all: $(PYOBJS)
 
 install reinstall: dir all
@@ -59,6 +63,18 @@ app-install: wheel
 	# number), so to install something that hasn't been committed, uninstall first.
 	$(APP_BOOTSTRAP_PIP) uninstall --yes $(WHL_BNDL_NAME)
 	$(APP_BOOTSTRAP_PIP) install $(WHEEL)
+ifdef INSTALL_TO_VENV
+ifndef VIRTUAL_ENV
+	@echo "No virtual env to install to! Skipping venv install."
+	@echo "This warning does not indicate success or failure of bundle installs to ChimeraX's internal environment."
+else
+ifdef IGNORE_DEPS
+	pip install $(WHEEL) --no-deps
+else
+	pip install $(WHEEL)
+endif # IGNORE_DEPS
+endif # VIRTUAL_ENV
+endif # INSTALL_TO_VENV
 
 .PHONY: wheel
 wheel: setup.py
