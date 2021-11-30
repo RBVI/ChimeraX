@@ -19,7 +19,7 @@ import sys, os
 #sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
 
-# --General configuration -----------------------------------------------------
+# -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
@@ -293,4 +293,4 @@ def skip_private(app, what, name, obj, skip, options):
     return skip
 
 def setup(app):
-    app.connect('autodoc-skip-member', skip_private) 
+    app.connect('autodoc-skip-member', skip_private)
