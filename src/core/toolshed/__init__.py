@@ -1612,9 +1612,10 @@ class NewerVersionQuery(Task):
             def done(self, result):
                 all_ignored = [version for version in self.ignored if self.ignored[version]]
                 if all_ignored:
-                    settings.ignore_update.extend(all_ignored)
-                    # explict save b/c extend() doesn't cause setattr to be called
-                    settings.save("ignore_update")
+                    # don't use += or .extend() to guarantee that Settings.__setattr__
+                    # will see that ignore_update has changed
+                    ignore = settings.ignore_update + all_ignored
+                    settings.ignore_update = ignore
                 super().done(result)
 
         # keep reference to dialog because it's non-modal and would disappear otherwise
