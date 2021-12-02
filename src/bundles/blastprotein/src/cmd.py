@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, AtomSpecArg
-from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or
+from chimerax.core.commands import (
+    StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or,
+    CmdDesc, AtomSpecArg, atomspec
+)
 from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 

@@ -30,7 +30,10 @@ from chimerax.ui.gui import MainToolWindow
 
 from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
-from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
+from .widgets import (
+    LabelledProgressBar, BlastResultsTable,
+    BlastResultsRow, BlastProteinResultsSettings
+)
 
 _settings = None
 
@@ -96,19 +99,20 @@ class BlastProteinResults(ToolInstance):
     @classmethod
     def from_snapshot(cls, session, data):
         """Initializer to be used when restoring ChimeraX sessions."""
-        # Data from version 1 snapshots is prefixed by _, so need to add it in
-        # for backwards compatibility.
         sequences_dict = {}
-        # We use get with a default value of 2 because for a few weeks in August and
-        # September 2021 the daily builds did not save snapshots with a version number.
-        # We can remove this when sufficient time has passed.
-        if data.get('version', 3) == 1:
+        version = data.get('version', 3)
+        if version == 1:
+            # Data from version 1 snapshots is prefixed by _, so need to add it in
+            # for backwards compatibility.
             sequences_dict = data['_sequences']
             data['params'] = BlastParams(*[x[1] for x in data['_params']])
             data['tool_name'] = data['_instance_name'] + str(data['_viewer_index'])
             data['results'] = data['_hits']
             data['table_session'] = None
-        elif data.get('version', 3) == 2:
+        # The version 2 getter exists because for a few weeks in August and
+        # September 2021 the daily builds did not save snapshots with a version number.
+        # We can remove this when sufficient time has passed.
+        elif version == 2:
             sequences = data['sequences']
             for (key, hit_name, sequence) in sequences:
                 sequences_dict[key] = SeqId(hit_name, sequence)
@@ -197,9 +201,7 @@ class BlastProteinResults(ToolInstance):
         parent = self.tool_window.ui_area
         global _settings
         if _settings is None:
-            class _BlastProteinResultsSettings(Settings):
-                EXPLICIT_SAVE = { BlastResultsTable.DEFAULT_SETTINGS_ATTR: {} }
-            _settings = _BlastProteinResultsSettings(self.session, "Blastprotein")
+            _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
 
@@ -223,7 +225,6 @@ class BlastProteinResults(ToolInstance):
         if self._from_restore:
             self._on_report_hits_signal(self._hits)
         else:
-            database = self.params.database
             if(self.job):
                 results = None
                 sequence = self.job.seq
@@ -240,8 +241,14 @@ class BlastProteinResults(ToolInstance):
             self.connect_worker_callbacks(self.worker)
             self.worker.start()
 
+        self.tool_window.ui_area.closeEvent = self.closeEvent
         self.tool_window.ui_area.setLayout(self.main_layout)
         self.tool_window.manage('side')
+
+    def closeEvent(self, event):
+        if self.worker is not None:
+            self.worker.exit()
+        self.tool_window.ui_area.close()
 
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
