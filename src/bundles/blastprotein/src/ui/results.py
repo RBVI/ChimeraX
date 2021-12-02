@@ -78,6 +78,7 @@ class BlastProteinResults(ToolInstance):
         self._hits = kw.pop('hits', None)
         self._sequences: Dict[int, Match] = kw.pop('sequences', None)
         self._table_session_data = kw.pop('table_session_data', None)
+        self.tool_window = None
 
         self._build_ui()
 
@@ -246,8 +247,9 @@ class BlastProteinResults(ToolInstance):
 
     def closeEvent(self, event):
         if self.worker is not None:
-            self.worker.exit()
+            self.worker.terminate()
         self.tool_window.ui_area.close()
+        self.tool_window = None
 
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
@@ -320,39 +322,46 @@ class BlastProteinResults(ToolInstance):
         self._sequences = sequences
 
     def _on_report_hits_signal(self, items):
-        items = sorted(items, key = lambda i: i['e-value'])
-        for index, item in enumerate(items):
-            item['hit_#'] = index + 1
-        self._hits = items
-        db = AvailableDBsDict[self.params.database]
         try:
-            # Compute the set of unique column names
-            columns = set()
-            for item in items:
-                columns.update(list(item.keys()))
-            # Sort the columns so that defaults come first
-            columns = list(filter(lambda x: x not in db.excluded_cols, columns))
-            nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
-            columns = list(db.default_cols)
-            columns.extend(nondefault_cols)
-        except IndexError:
-            if not self._from_restore:
-                self.session.logger.warning("BlastProtein returned no results")
-            self._unload_progress_bar()
-        else:
-            # Convert dicts to objects (they're hashable)
-            self.table.data = [BlastResultsRow(item) for item in items]
-            for string in columns:
-                title = self._format_column_title(string)
-                self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-            self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
-            if self._from_restore:
-                self.table.launch(session_info=self._table_session_data, suppress_resize=True)
+            items = sorted(items, key = lambda i: i['e-value'])
+            for index, item in enumerate(items):
+                item['hit_#'] = index + 1
+            self._hits = items
+            db = AvailableDBsDict[self.params.database]
+            try:
+                # Compute the set of unique column names
+                columns = set()
+                for item in items:
+                    columns.update(list(item.keys()))
+                # Sort the columns so that defaults come first
+                columns = list(filter(lambda x: x not in db.excluded_cols, columns))
+                nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
+                columns = list(db.default_cols)
+                columns.extend(nondefault_cols)
+            except IndexError:
+                if not self._from_restore:
+                    self.session.logger.warning("BlastProtein returned no results")
+                self._unload_progress_bar()
             else:
-                self.table.launch(suppress_resize=True)
-            self.table.resizeColumns(max_size = 100) # pixels
-            self.control_widget.setVisible(True)
-            self._unload_progress_bar()
+                # Convert dicts to objects (they're hashable)
+                self.table.data = [BlastResultsRow(item) for item in items]
+                for string in columns:
+                    title = self._format_column_title(string)
+                    self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
+                self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
+                if self._from_restore:
+                    self.table.launch(session_info=self._table_session_data, suppress_resize=True)
+                else:
+                    self.table.launch(suppress_resize=True)
+                self.table.resizeColumns(max_size = 100) # pixels
+                self.control_widget.setVisible(True)
+                self._unload_progress_bar()
+        except RuntimeError:
+            # The user closed the window before the results came back. 
+            # TODO: Remove the unnecessarly layer of abstraction in ui/src/gui.py that makes
+            # QWidget a member variable of a tool rather than the tool itself, so that 
+            # QWidget.closeEvent() can be used to do this cleanly.
+            pass
 
     #
     # Code for loading (and spatially matching) a match entry
