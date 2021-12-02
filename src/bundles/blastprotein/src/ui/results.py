@@ -29,7 +29,10 @@ from chimerax.ui.gui import MainToolWindow
 
 from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
-from .widgets import LabelledProgressBar, BlastResultsTable, BlastResultsRow
+from .widgets import (
+    LabelledProgressBar, BlastResultsTable, 
+    BlastResultsRow, BlastProteinResultsSettings
+)
 
 _settings = None
 
@@ -197,9 +200,7 @@ class BlastProteinResults(ToolInstance):
         parent = self.tool_window.ui_area
         global _settings
         if _settings is None:
-            class _BlastProteinResultsSettings(Settings):
-                EXPLICIT_SAVE = { BlastResultsTable.DEFAULT_SETTINGS_ATTR: {} }
-            _settings = _BlastProteinResultsSettings(self.session, "Blastprotein")
+            _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
         #self.align_button = QPushButton("Load and Align Selection", parent)
