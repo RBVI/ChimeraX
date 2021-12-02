@@ -402,6 +402,7 @@ def calculatefimap(atoms, method, spacing, max_dist, nexp):
     return pot, bounds
 
 def mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot):
+    computemethod = None
     if method == 'dubost':
         computemethod = _dubost
     elif method == 'fauchere':

@@ -3613,6 +3613,7 @@ def open_grids(session, grids, name, **kw):
         for i,g in enumerate(grids):
           if tuple(g.size) != tuple(grids[0].size):
             gsizes = '\n'.join((g.name + (' %d %d %d' % g.size)) for g in grids)
+            from chimerax.core.errors import UserError
             raise UserError('Cannot make series from volumes with different sizes:\n%s' % gsizes)
           g.series_index = i
       else:
