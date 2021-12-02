@@ -268,7 +268,7 @@ class MultitouchBinding:
         if action not in self.valid_actions:
             from chimerax.core.errors import UserError
             raise UserError('Unrecognised touchpad action! Must be one of: {}'.format(
-                ', '.join(valid_actions)
+                ', '.join(self.valid_actions)
             ))
         self.action = action
         self.modifiers = modifiers
