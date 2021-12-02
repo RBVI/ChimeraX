@@ -95,19 +95,20 @@ class BlastProteinResults(ToolInstance):
     @classmethod
     def from_snapshot(cls, session, data):
         """Initializer to be used when restoring ChimeraX sessions."""
-        # Data from version 1 snapshots is prefixed by _, so need to add it in
-        # for backwards compatibility.
         sequences_dict = {}
-        # We use get with a default value of 2 because for a few weeks in August and
-        # September 2021 the daily builds did not save snapshots with a version number.
-        # We can remove this when sufficient time has passed.
-        if data.get('version', 3) == 1:
+        version = data.get('version', 3)
+        if version == 1:
+            # Data from version 1 snapshots is prefixed by _, so need to add it in
+            # for backwards compatibility.
             sequences_dict = data['_sequences']
             data['params'] = BlastParams(*[x[1] for x in data['_params']])
             data['tool_name'] = data['_instance_name'] + str(data['_viewer_index'])
             data['results'] = data['_hits']
             data['table_session'] = None
-        elif data.get('version', 3) == 2:
+        # The version 2 getter exists because for a few weeks in August and
+        # September 2021 the daily builds did not save snapshots with a version number.
+        # We can remove this when sufficient time has passed.
+        elif version == 2:
             sequences = data['sequences']
             for (key, hit_name, sequence) in sequences:
                 sequences_dict[key] = SeqId(hit_name, sequence)
