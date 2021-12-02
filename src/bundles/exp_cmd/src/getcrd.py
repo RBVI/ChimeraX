@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg
+from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg, atomspec
 
 def initialize(command_name, logger):
     register("getcrd", getcrd_desc, getcrd, logger=logger)
