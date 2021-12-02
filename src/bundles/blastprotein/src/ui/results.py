@@ -30,7 +30,7 @@ from chimerax.ui.gui import MainToolWindow
 from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
 from .widgets import (
-    LabelledProgressBar, BlastResultsTable, 
+    LabelledProgressBar, BlastResultsTable,
     BlastResultsRow, BlastProteinResultsSettings
 )
 
@@ -203,7 +203,6 @@ class BlastProteinResults(ToolInstance):
             _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
-        #self.align_button = QPushButton("Load and Align Selection", parent)
 
         param_str = self._format_param_str()
         self.param_report = QLabel(" ".join(["Query:", param_str]), parent)
@@ -225,7 +224,6 @@ class BlastProteinResults(ToolInstance):
         if self._from_restore:
             self._on_report_hits_signal(self._hits)
         else:
-            database = self.params.database
             if(self.job):
                 results = None
                 sequence = self.job.seq
@@ -242,8 +240,14 @@ class BlastProteinResults(ToolInstance):
             self.connect_worker_callbacks(self.worker)
             self.worker.start()
 
+        self.tool_window.ui_area.closeEvent = self.closeEvent
         self.tool_window.ui_area.setLayout(self.main_layout)
         self.tool_window.manage('side')
+
+    def closeEvent(self, event):
+        if self.worker is not None:
+            self.worker.exit()
+        self.tool_window.ui_area.close()
 
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
