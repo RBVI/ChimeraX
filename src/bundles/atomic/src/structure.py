@@ -96,7 +96,16 @@ class Structure(Model, StructureData):
             from .settings import settings
             style = settings.atomspec_contents
 
-        id = '#' + self.id_string
+        # may need '#!' if there are Structure submodels
+        for cm in self.all_models(): # child_models() is only direct children
+            if cm is self:
+                continue
+            if isinstance(cm, Structure):
+                prefix = "#!"
+                break
+        else:
+            prefix = "#"
+        id = prefix + self.id_string
         if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
