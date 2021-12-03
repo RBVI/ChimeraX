@@ -101,9 +101,15 @@ class SaveFile:
                 if sys.platform.startswith("win") and e.winerror in [5, 32]:
                     # Windows can have the file open from another process
                     # for some reason (virus scan?), so wait a little and
-                    # try again
-                    time.sleep(0.5)
-                    os.replace(self._tmp_filename, self.name)
+                    # try again a few times
+                    for i in range(3):
+                        time.sleep(0.5)
+                        try:
+                            os.replace(self._tmp_filename, self.name)
+                        except PermissionError:
+                            if i == 2:
+                                raise
+                        break
                 else:
                     raise
         except Exception:
