@@ -11,25 +11,26 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def alphafold_predict(session, sequence):
+def alphafold_predict(session, sequences, prokaryote = False):
     if not _is_alphafold_available(session):
         return
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
-    ar.start(sequence)
+    ar.start(sequences, prokaryote)
 
 # ------------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
 class AlphaFoldRun(ToolInstance):
-    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_predict_colab.ipynb'
+    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
         self._running = False
-        self._sequence = None	# Sequence instance or subclass such as Chain
+        self._sequences = None	# List of Sequence or Chain instances
+        self._prokaryote = False
         self._download_directory = None
 
         from chimerax.ui import MainToolWindow
@@ -55,9 +56,10 @@ class AlphaFoldRun(ToolInstance):
 
         tw.manage(placement=None)
 
-    def start(self, sequence):
-        colab_started = (self._sequence is not None)
-        self._sequence = sequence
+    def start(self, sequences, prokaryote = False):
+        colab_started = (self._sequences is not None)
+        self._sequences = sequences
+        self._prokaryote = prokaryote
         if not colab_started:
             b = self._browser
             from Qt.QtCore import QUrl
@@ -81,10 +83,13 @@ class AlphaFoldRun(ToolInstance):
 
     def _set_colab_sequence(self):
         p = self._browser.page()
-        set_seq_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
-                              % self._sequence.characters + '; ' +
+        seqs = ','.join(seq.characters for seq in self._sequences)
+        if self._prokaryote:
+            seqs = 'prokaryote,' + seqs
+        set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
+                               % seqs + '; ' +
                               'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
-        p.runJavaScript(set_seq_javascript)
+        p.runJavaScript(set_seqs_javascript)
 
     def _run_colab(self):
         p = self._browser.page()
@@ -144,18 +149,27 @@ class AlphaFoldRun(ToolInstance):
         from .match import _set_alphafold_model_attributes
         _set_alphafold_model_attributes(models)
 
+        # TODO: Rename and align multiple chains and log info.
+        #   AlphaFold relaxed models have chains A,B,C,... I believe ordered by input sequence order.
+        #   The Alphafold unrelaxed models use B,C,D,....
         from chimerax.atomic import Chain
-        if isinstance(self._sequence, Chain):
-            chain = self._sequence
-            from .fetch import _color_by_confidence, _log_chain_info
+        chains = [seq for seq in self._sequences if isinstance(seq, Chain)]
+        if len(chains) == len(self._sequences):
             from .match import _align_to_chain, _rename_chains
+            chain_ids = [chain.chain_id for chain in chains]
+            longest_chain = max(chains, key = lambda c: c.num_residues)
             for m in models:
-                _rename_chains(m, chain)
-                _color_by_confidence(m)
-                _align_to_chain(m, chain)
-            _log_chain_info(models, chain.name)
+                _rename_chains(m, chain_ids)
+                _align_to_chain(m, longest_chain)
+            if len(chains) == 1:
+                from .fetch import _log_chain_info
+                _log_chain_info(models, chains[0].name)
 
         self.session.models.add(models)
+
+        from .fetch import _color_by_confidence
+        for m in models:
+            _color_by_confidence(m)
     
     def _unzip_results(self, *args, **kw):
         if self._download_directory is None:
@@ -175,7 +189,7 @@ class AlphaFoldRun(ToolInstance):
 #
 def _is_alphafold_available(session):
     '''Check if the AlphaFold web service has been discontinued or is down.'''
-    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_v2.html'
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold21.html'
     import requests
     try:
         r = requests.get(url)
@@ -195,10 +209,11 @@ def show_alphafold_run(session):
 # ------------------------------------------------------------------------------
 #
 def register_alphafold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register
-    from chimerax.atomic import SequenceArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg
+    from chimerax.atomic import SequencesArg
     desc = CmdDesc(
-        required = [('sequence', SequenceArg)],
+        required = [('sequences', SequencesArg)],
+        keyword = [('prokaryote', BoolArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)

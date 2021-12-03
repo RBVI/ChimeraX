@@ -76,7 +76,7 @@ def _color_by_confidence(structure):
 def _align_and_trim(models, align_to_chain, trim):
     from . import match
     for alphafold_model in models:
-        match._rename_chains(alphafold_model, align_to_chain)
+        match._rename_chains(alphafold_model, [align_to_chain.chain_id])
         match._align_to_chain(alphafold_model, align_to_chain)
         if trim:
             seq_range = getattr(alphafold_model, 'seq_match_range', None)

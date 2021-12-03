@@ -37,6 +37,8 @@ pydicom==2.1.2
 #PyOpenGL==3.1.5
 #PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.2
+# PyQt handled in prereqs/PyQt
+# sip handled in prereqs/PyQt
 #PySide2==5.15.2
 qtconsole==5.1.1
 requests==2.26.0
