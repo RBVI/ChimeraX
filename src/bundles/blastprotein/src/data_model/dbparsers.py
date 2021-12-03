@@ -151,7 +151,7 @@ class Parser(ABC):
             attr = getattr(self, a)
             if callable(attr):
                 continue
-            if isinstance(attr, basestring):
+            if isinstance(attr, str):
                 print("  %s: %s" % (a, attr), file=f)
             elif isinstance(attr, list):
                 for o in attr:

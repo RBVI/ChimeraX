@@ -194,7 +194,7 @@ class Interpolated_Map:
       self.stop_playing()
 
     from chimerax.core.commands import run
-    runCommand(self.session, 'movie stop')
+    run(self.session, 'movie stop')
 
     self.save_movie_cb()
 
