@@ -84,44 +84,47 @@ target="_blank">2BBV</a>, black beetle virus capsid
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:open 2bbv; light full">open 2bbv<br>light full</a>
-<td width=256 align=center><a href="cxcmd:style /b stick">style /b stick</a>
-<td width=256>Mouse drag to move.
-<td width=256 align=center><a href="cxcmd:hide /c">hide /c</a>
+<td width=180 align=center><a href="cxcmd:open 2bbv; color bychain">open 2bbv<br>color bychain</a>
+<td width=180 align=center><a href="cxcmd:style /b stick">style /b stick</a>
+<td width=180 align=center>Mouse drag to move.<br><a href="cxcmd:color /n teal">color /n teal</a>
+<td width=180 align=center><a href="cxcmd:hide /c">hide /c</a>
 <tr>
-<td><img src="images/colorchain.png">
-<td><img src="images/stick.png">
-<td><img src="images/shift.png">
-<td><img src="images/undisplay.png">
+<td><img src="images/colorchain.png" width=180>
+<td><img src="images/stick.png" width=180>
+<td><img src="images/shift.png" width=180>
+<td><img src="images/undisplay.png" width=180>
 <tr>
-<td width=256 valign=top><i>File is fetched from the PDB in mmCIF format 
+<td width=180 valign=top><i>File is fetched from the PDB in mmCIF format 
 and cached locally. Lighting with shadows.</i>
-<td width=256 valign=top><i>Change chain b to stick style.</i>
-<td width=256 valign=top><i>Rotate by dragging, 
+<td width=180 valign=top><i>Change chain b to stick style.</i>
+<td width=180 valign=top><i>Rotate by dragging, 
 translate by dragging with middle mouse button or
 with <b>option</b> key pressed (Mac)
 (<a href="../user/commands/ui.html#mousedefaults">more...</a>).</i>
-<td width=256 valign=top><i>Hide chain c atoms.</i>
+<td width=180 valign=top><i>Hide chain c atoms.</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:ribbon /c">ribbon /c</a>
-<td width=256>Mouse click with <b>ctrl</b> key pressed to select an atom.
-<td width=256>Press up-arrow key.
-<td width=256 align=center><a href="cxcmd:color sel gold; select clear">color sel gold<br>select clear</a>
+<td width=180 align=center><a href="cxcmd:ribbon /c">ribbon /c</a>
+<td width=180 align=center>Mouse click with <b>ctrl</b> key pressed to select an atom,
+  <br>or command <a href="cxcmd:select /N:4@C5'">select /N:4@C5'</a>.
+  
+<td width=180 align=center>Press up-arrow key,
+  <br>or command <a href="cxcmd:select up">select up</a>.
+<td width=180 align=center><a href="cxcmd:color sel gold; select clear">color sel gold<br>select clear</a>
 <tr>
-<td><img src="images/ribbon.png">
-<td><img src="images/select.png">
-<td><img src="images/uparrow.png">
-<td><img src="images/color.png">
+<td><img src="images/ribbon.png" width=180>
+<td><img src="images/select.png" width=180>
+<td><img src="images/uparrow.png" width=180>
+<td><img src="images/color.png" width=180>
 <tr>
-<td width=256 valign=top><i>Display backbone ribbon.</i>
-<td width=256 valign=top><i>Selection has green outline, <b>shift-ctrl</b>-click to add to selection, <b>ctrl</b>-click background to clear selection.</i>
-<td width=256 valign=top><i>Up-arrow and down-arrow keys expand and unexpand selection.</i>
-<td width=256 valign=top><i>Use &ldquo;sel&rdquo; to refer to the selected atoms
+<td width=180 valign=top><i>Display backbone ribbon.</i>
+<td width=180 valign=top><i>Selection has green outline, <b>shift-ctrl</b>-click to add to selection, <b>ctrl</b>-click background to clear selection.</i>
+<td width=180 valign=top><i>Up-arrow and down-arrow keys expand and unexpand selection.</i>
+<td width=180 valign=top><i>Use &ldquo;sel&rdquo; to refer to the selected atoms
 in any command. Clear the selection.</i>
 </table>
 
@@ -129,27 +132,27 @@ in any command. Clear the selection.</i>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:surface #1">surface #1</a>
-<td width=256 align=center><a href="cxcmd:style solvent sphere; style ~solvent stick">style solvent sphere<br>style ~solvent stick</a>
-<td width=256 align=center><a href="cxcmd:sym #1">sym #1</a>
+<td width=180 align=center><a href="cxcmd:surface #1 ; color /n fromatoms">surface #1<br>color /n fromatoms</a>
+<td width=180 align=center><a href="cxcmd:style solvent sphere; color solvent red">style solvent sphere<br>color solvent red</a>
+<td width=360 align=center><a href="cxcmd:sym #1">sym #1</a>
 <tr>
-<td><img src="images/surface.png">
-<td><img src="images/water.png">
+<td><img src="images/surface.png" width=180>
+<td><img src="images/water.png" width=180>
 <td>
-<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
+<table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" style="font-size:80%">
 <tr><th colspan=3>2bbv mmCIF Assemblies
-<tr><td>1<td>complete icosahedral assembly<td>60&nbsp;copies&nbsp;of&nbsp;chains&nbsp;A-F,N
+<tr><td>1<td>complete icosahedral assembly<td>60 copies of chains A-F,N
 <tr><td>2<td>icosahedral asymmetric unit<td>1 copy of chains A-F,N
 <tr><td>3<td>icosahedral pentamer<td>5 copies of chains A-F,N
 <tr><td>4<td>icosahedral 23 hexamer<td>6 copies of chains A-F,N
-<tr><td>PAU<td>icosahedral&nbsp;asymmetric&nbsp;unit,&nbsp;std&nbsp;point&nbsp;frame<td>1 copy of chains A-F,N
+<tr><td>PAU<td>icosahedral asymmetric unit, std point frame<td>1 copy of chains A-F,N
 <tr><td>XAU<td>crystal asymmetric unit, crystal frame<td>5 copies of chains A-F,N
 </table>
 <tr>
-<td width=256 valign=top><i>Show the solvent-excluded surface of each chain.</i>
-<td width=256 valign=top><i>Enlarge waters to spheres (from balls) and
-change other atoms from sphere to stick.</i>
-<td width=256 valign=top><i>List mmCIF assemblies in the <b>Log</b>.
+<td width=180 valign=top><i>Show the solvent-excluded surface of each chain,
+    and color chain N to match atoms.</i>
+<td width=180 valign=top><i>Enlarge waters to spheres (from balls), color them red.</i>
+<td width=180 valign=top><i>List mmCIF assemblies in the <b>Log</b>.
 Do not click the links in the <b>Log</b> to generate an
 assembly since it will be done with the next command instead.
 (If done by mistake, however, it can be reversed with command
@@ -161,39 +164,39 @@ assembly since it will be done with the next command instead.
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:sym #1 assembly 3 newmodel f">sym #1 assembly 3 newmodel f</a>
-<td width=256 align=center><a href="cxcmd:view">view</a>
-<td width=256 align=center><a href="cxcmd:set bg white; set silhouettes true; save ~/Desktop/2bbv.png">set bg white<br>set silhouettes true<br>save ~/Desktop/2bbv.png</a>
-<td width=256>
+<td width=180 align=center><a href="cxcmd:sym #1 assembly 3 newmodel false copies false">sym #1 assembly 3 newmodel false copies false</a>
+<td width=180 align=center><a href="cxcmd:view">view</a>
+<td width=180 align=center><a href="cxcmd:set bg white; set silhouettes true; save ~/Desktop/2bbv.png">set bg white<br>set silhouettes true<br>save ~/Desktop/2bbv.png</a>
+<td width=180>
   <a href="cxcmd:ks vd"><img src="../user/tools/shortcut-icons/video.png" 
   border=1 class="icon2"></a>
   Click the video camera icon to record a spin movie.
 <tr>
-<td><img src="images/assembly3.png">
-<td><img src="images/view3.png">
-<td><img src="images/view3nice.png">
+<td><img src="images/assembly3.png" width=180>
+<td><img src="images/view3.png" width=180>
+<td><img src="images/view3nice.png" width=180>
 <td>
-<video width="256px" height="256px" controls>
+<video width="180px" height="180px" controls>
   <source src="images/spin.mp4" type="video/mp4">
   <source src="images/spin.ogv" type="video/ogg">
 Your browser does not support the video tag.
 </video>
 <tr>
-<td width=256 valign=top><i>Show assembly &ldquo;3&rdquo; according to the 
+<td width=180 valign=top><i>Show assembly &ldquo;3&rdquo; according to the 
 information in the <b>Log</b> from the previous command.</i>
-<td width=256 valign=top><i>Bring all models into view.</i>
-<td width=256 valign=top><i>Set background color to white,
+<td width=180 valign=top><i>Bring all models into view.</i>
+<td width=180 valign=top><i>Set background color to white,
 show thin black outlines. Save PNG image file to Desktop.</i>
-<td width=256 valign=top><i>Movie saved on Desktop as movie.mp4.</i>
+<td width=180 valign=top><i>Movie saved on Desktop as movie.mp4.</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:measure buriedarea /a with /b; measure sasa #1 & ~solvent">measure buriedarea /a with /b<br>measure sasa #1 & ~solvent</a>
-<td width=256 align=center><a href="cxcmd:interfaces #1 & protein">interfaces #1 & protein</a>
-<td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
+<td width=180 align=center><a href="cxcmd:measure buriedarea /a with /b; measure sasa #1 & ~solvent">measure buriedarea /a with /b<br>measure sasa #1 & ~solvent</a>
+<td width=180 align=center><a href="cxcmd:interfaces #1 & protein">interfaces #1 & protein</a>
+<td width=180 align=center><a href="cxcmd:close; set bg black; set silhouettes false">close<br>set bg black<br>set silhouettes false</a>
 <tr>
 <td>
 <pre>
@@ -202,17 +205,17 @@ area /a = 15385, area /b = 14989, area both = 26573
 
 Solvent accessible area for #1 & ~solvent = 34093
 </pre>
-<td><img src="images/contacts.png">
+<td><img src="images/contacts.png" width=180>
 <pre>
 6 buried areas: 
   C A 1675, C B 1671, A B 1663,
   C F 739, A D 714, B E 699
 </pre>
 <tr>
-<td width=256 valign=top><i>Compute solvent accessible buried surface area between chains A and B.
+<td width=180 valign=top><i>Compute solvent accessible buried surface area between chains A and B.
 Also compute total solvent accessible area excluding waters.</i>
-<td width=256 valign=top><i>Display contact graph between all chains.</i>
-<td width=256 valign=top align="center"><i>Close all 3D data. 
+<td width=180 valign=top><i>Display contact graph between all chains.</i>
+<td width=180 valign=top align="center"><i>Close all 3D data. 
 Go back to black background, no outlines.</i>
 </table>
 
@@ -241,56 +244,56 @@ target="_blank">1A0M</a>, an &alpha;-conotoxin
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:open 1080 from emdb; light full">open 1080 from emdb<br>light full</a>
-<td width=256 align=center><a href="cxcmd:volume #1 level 0.9">volume #1 level 0.9</a>
-<td width=256>
+<td width=180 align=center><a href="cxcmd:open 1080 from emdb; light full">open 1080 from emdb<br>light full</a>
+<td width=180 align=center><a href="cxcmd:volume #1 level 0.9">volume #1 level 0.9</a>
+<td width=180>
 <a href="cxcmd:mousemode right contour">
 <img src="../user/tools/mouse-icons/contour.png" class="icon2" border=1
 align="right"></a>
 Click icon (in <b>Right Mouse</b> tab of 
 <a href="../user/tools/toolbar.html">toolbar</a>)
 to control the contour level with the mouse, then drag with right mouse button.
-<td width=256 align=center><a href="cxcmd:vol #1 enclose 1e6 step 1 color tan">vol #1 enclose 1e6 step 1 color tan</a>
+<td width=180 align=center><a href="cxcmd:vol #1 enclose 1e6 step 1 color tan">vol #1 enclose 1e6 step 1 color tan</a>
 
 <tr>
-<td><img src="images/emdb1080.png">
-<td><img src="images/level.png">
-<td><img src="images/mouselevel.png">
-<td><img src="images/enclose.png">
+<td><img src="images/emdb1080.png" width=180>
+<td><img src="images/level.png" width=180>
+<td><img src="images/mouselevel.png" width=180>
+<td><img src="images/enclose.png" width=180>
 <tr>
-<td width=256 valign=top><i>Open EM Databank map 1080. Lighting with shadows.</i>
-<td width=256 valign=top><i>Hover mouse over map reports contour level 1.675 in status line. Then change level.</i>
-<td width=256 valign=top><i>With Mac one-button mouse drag while pressing <b>command</b> key.</i>
-<td width=256 valign=top><i>Set level to enclose 1,000,000 cubic &Aring;, show full resolution and set color.</i>
+<td width=180 valign=top><i>Open EM Databank map 1080. Lighting with shadows.</i>
+<td width=180 valign=top><i>Hover mouse over map reports contour level 1.675 in status line. Then change level.</i>
+<td width=180 valign=top><i>With Mac one-button mouse drag while pressing <b>command</b> key.</i>
+<td width=180 valign=top><i>Set level to enclose 1,000,000 cubic &Aring;, show full resolution and set color.</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:set bg gray; set silhouettes true">set bg gray<br>set silhouettes true</a>
-<td width=256 align=center><a href="cxcmd:open 1grl; light default">open 1grl<br>light default</a>
-<td width=256 align=center>
+<td width=180 align=center><a href="cxcmd:set bg gray; set silhouettes true">set bg gray<br>set silhouettes true</a>
+<td width=180 align=center><a href="cxcmd:open 1grl; light default">open 1grl<br>light default</a>
+<td width=180 align=center>
 <a href="cxcmd:mousemode right 'translate selected'">
 <img src="../user/tools/mouse-icons/move_h2o.png" class="icon2" border=1
 align="right"></a>
 Click icon to move selection with the mouse. <b>Ctrl</b>-click atom to select.
 Then right-mouse drag to move molecule into map.
-<td width=256 align=center><a href="cxcmd:fit #2 in #1; volume #1 transparency 0.5">fit #2 in #1<br>volume #1 transparency 0.5</a>
+<td width=180 align=center><a href="cxcmd:fit #2 in #1; volume #1 transparency 0.5">fit #2 in #1<br>volume #1 transparency 0.5</a>
 <tr>
-<td><img src="images/litmap.png">
-<td><img src="images/1grl.png">
-<td><img src="images/handfit.png">
-<td><img src="images/fitmap.png">
+<td><img src="images/litmap.png" width=180>
+<td><img src="images/1grl.png" width=180>
+<td><img src="images/handfit.png" width=180>
+<td><img src="images/fitmap.png" width=180>
 <tr>
-<td width=256 valign=top><i>Gray background and thin black edges.</i>
-<td width=256 valign=top><i>Open atomic model to fit in map.
+<td width=180 valign=top><i>Gray background and thin black edges.</i>
+<td width=180 valign=top><i>Open atomic model to fit in map.
 Simpler lighting, without shadows.</i>
-<td width=256 valign=top>
+<td width=180 valign=top>
 <a href="cxcmd:mousemode right 'rotate selected'">
 <img src="../user/tools/mouse-icons/rotate_h2o.png" class="icon2" border=1></a>
 <i>Can also use rotate selection mouse mode.</i>
-<td width=256 valign=top><i>Locally optimize fit of atomic model in map.
+<td width=180 valign=top><i>Locally optimize fit of atomic model in map.
 Make map 50% transparent.</i>
 </table>
 
@@ -298,46 +301,46 @@ Make map 50% transparent.</i>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
-<td width=256 align=center><a href="cxcmd:vol subtract #1 #3 minrms t; vol #4 color pink transparency 0; hide atoms; show ribbon">vol subtract #1 #3 minrms t<br>vol #4 color pink transparency 0<br>hide atoms; show ribbon</a>
+<td width=180 align=center><a href="cxcmd:molmap #2 10; vol #3 style mesh">molmap #2 10<br>vol #3 style mesh</a>
+<td width=180 align=center><a href="cxcmd:vol subtract #1 #3 minrms t; vol #4 color pink transparency 0; hide atoms; show ribbon">vol subtract #1 #3 minrms t<br>vol #4 color pink transparency 0<br>hide atoms; show ribbon</a>
 <tr>
-<td><img src="images/molmap.png">
-<td><img src="images/vopsub2.png">
+<td><img src="images/molmap.png" width=180>
+<td><img src="images/vopsub2.png" width=180>
 <tr>
-<td width=256 valign=top><i>Create simulated map for atomic model at 10 &Aring; resolution and show as mesh.</i>
-<td width=256 valign=top><i>Subtract simulated map from experimental map.</i>
+<td width=180 valign=top><i>Create simulated map for atomic model at 10 &Aring; resolution and show as mesh.</i>
+<td width=180 valign=top><i>Subtract simulated map from experimental map.</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:close; set bg black; set silhouettes false; open 1a0m from eds">close<br>set bg black; set silhouettes false<br>open 1a0m from eds</a>
-<td width=256 align=center><a href="cxcmd:open 1a0m; hide ribbon; show; vol #1 level 1.0 style mesh">open 1a0m<br>hide ribbon<br>show atoms<br>vol #1 level 1.0 style mesh</a>
-<td width=256 align=center><a href="cxcmd:vol zone #1 near #2 range 2; vol #1 level 0.5 transp 0.6">vol zone #1 near #2 range 2<br>
+<td width=180 align=center><a href="cxcmd:close; set bg black; set silhouettes false; open 1a0m from eds">close<br>set bg black; set silhouettes false<br>open 1a0m from eds</a>
+<td width=180 align=center><a href="cxcmd:open 1a0m; hide ribbon; show; vol #1 level 1.0 style mesh">open 1a0m<br>hide ribbon<br>show atoms<br>vol #1 level 1.0 style mesh</a>
+<td width=180 align=center><a href="cxcmd:vol zone #1 near #2 range 2; vol #1 level 0.5 transp 0.6">vol zone #1 near #2 range 2<br>
   vol #1 level 0.5 transp 0.6</a>
 <tr>
-<td><img src="images/eds_1a0m.png" width="256px" height="256px">
-<td><img src="images/1a0m.png">
-<td><img src="images/zone.png">
+<td><img src="images/eds_1a0m.png" width="180px" height="180px">
+<td><img src="images/1a0m.png" width=180>
+<td><img src="images/zone.png" width=180>
 <tr>
-<td width=256 valign=top><i>Open x-ray map for PDB 1a0m from Uppsala Electron Density Server.</i>
-<td width=256 valign=top><i>Show atomic model and adjust contour level of x-ray map.</i>
-<td width=256 valign=top><i>Show map zone within 2 &Aring; of atoms.</i>
+<td width=180 valign=top><i>Open x-ray map for PDB 1a0m from Uppsala Electron Density Server.</i>
+<td width=180 valign=top><i>Show atomic model and adjust contour level of x-ray map.</i>
+<td width=180 valign=top><i>Show map zone within 2 &Aring; of atoms.</i>
 </table>
 
 <hr>
 
 <table cellpadding=5>
 <tr>
-<td width=256 align=center><a href="cxcmd:close; open 1273 from emdb">close<br>open emdb:1273</a>
-<td width=256 align=center><a href="cxcmd:volume #1 region all showOutline true">volume #1 region all showOutline true</a>
+<td width=180 align=center><a href="cxcmd:close; open 1273 from emdb">close<br>open emdb:1273</a>
+<td width=180 align=center><a href="cxcmd:volume #1 region all showOutline true">volume #1 region all showOutline true</a>
 <tr>
-<td><img src="images/emdb1273.png">
-<td><img src="images/grayscale.png">
+<td><img src="images/emdb1273.png" width=180>
+<td><img src="images/grayscale.png" width=180>
 <tr>
-<td width=256 valign=top><i>Open tomogram of a T-cell (200 Mbytes), single-plane grayscale displayed because of large map size.</i>
-<td width=256 valign=top><i>Show all planes of tomogram, grayscale rendering.</i>
+<td width=180 valign=top><i>Open tomogram of a T-cell (200 Mbytes), single-plane grayscale displayed because of large map size.</i>
+<td width=180 valign=top><i>Show all planes of tomogram, grayscale rendering.</i>
 </table>
 
 </body>
