@@ -363,22 +363,8 @@ def estimate_net_charge(atoms):
         'P3+': 2,
     }
     charge_total = 0 # really totals twice the charge...
-    all_atom_rings = {}
-    aro_atom_rings = {}
-    ring_atoms = {}
-    # _ng_charge() can call b.smaller_side, so need to cache ring info...
-    for a in atoms:
-        if a not in all_atom_rings:
-            all_atom_rings[a] = [id(ar) for ar in a.rings()]
-            aro_atom_rings[a] = [id(ar) for ar in a.rings() if ar.aromatic]
-            ring_atoms.update({id(ar):ar.atoms for ar in a.rings()})
-        for nb in a.neighbors:
-            if nb not in all_atom_rings:
-                all_atom_rings[nb] = [id(ar) for ar in nb.rings()]
-                aro_atom_rings[nb] = [id(ar) for ar in nb.rings() if ar.aromatic ]
-                ring_atoms.update({id(ar):ar.atoms for ar in nb.rings()})
-    subs = {}
     rings = set()
+    subs = {}
     for a in atoms:
         if len(a.bonds) == 0:
             if a.element.is_alkali_metal:
@@ -398,10 +384,12 @@ def estimate_net_charge(atoms):
         else:
             # missing/additional protons
             charge_total += 2 * (a.num_bonds - subs[a])
-        rings.update(aro_atom_rings[a])
-        if a.idatm_type == "C2" and not all_atom_rings[a]:
+        a_rings = a.rings()
+        rings.update([ar for ar in a_rings if ar.aromatic])
+        if a.idatm_type == "C2" and not a_rings:
             for nb in a.neighbors:
-                if not aro_atom_rings[nb]:
+                nb_rings = nb.rings()
+                if not nb_rings or not nb_rings[0].aromatic:
                     break
             else:
                 # all ring neighbors in aromatic rings
@@ -418,7 +406,7 @@ def estimate_net_charge(atoms):
         # since we are only handling aromatic rings, any non-ring bonds are presumably single bond
         # (or matched aromatic bonds)
         electrons = 0
-        for a in ring_atoms[ring]:
+        for a in ring.atoms:
             if a in subs:
                 electrons += a.element.number + subs[a] - 2
             else:

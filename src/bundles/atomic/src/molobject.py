@@ -669,6 +669,19 @@ class Ring:
 
     def __init__(self, ring_pointer):
         set_c_pointer(self, ring_pointer)
+        # Rings in the C++ are "ephemeral"; they get destroyed whenever a new set of rings is computed
+        # using different criteria, therefore for better reliability pre-fetch all the ring properties
+        # when the ring is constructed
+        self.__size = c_property('ring_size', size_t, read_only=True).fget(self)
+        self.__aromatic = c_property('ring_aromatic', npy_bool, read_only=True).fget(self)
+        self.__atoms = c_property('ring_atoms', cptr, 'size', astype = convert.atoms, read_only = True
+            ).fget(self)
+        self.__bonds = c_property('ring_bonds', cptr, 'size', astype = convert.bonds, read_only = True
+            ).fget(self)
+        self.__ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype = convert.atoms,
+            read_only=True).fget(self)
+        self.__ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype = convert.bonds,
+            read_only=True).fget(self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -683,20 +696,37 @@ class Ring:
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    aromatic = c_property('ring_aromatic', npy_bool, read_only=True,
-        doc="Supported API. Whether the ring is aromatic. Boolean value.")
-    atoms = c_property('ring_atoms', cptr, 'size', astype = convert.atoms, read_only = True,
-        doc="Supported API. :class:`.Atoms` collection containing the atoms of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_atoms`).")
-    bonds = c_property('ring_bonds', cptr, 'size', astype = convert.bonds, read_only = True,
-        doc="Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_bonds`).")
-    ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype = convert.atoms, read_only=True,
-        doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
-    ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype = convert.bonds, read_only=True,
-        doc=":class:`.Bonds` collection containing the bonds of the ring, in ring order.")
-    size = c_property('ring_size', size_t, read_only=True,
-        doc="Supported API. Number of atoms (and bonds) in the ring. Read only.")
+    @property
+    def aromatic(self):
+        "Supported API. Whether the ring is aromatic. Boolean value. Read only"
+        return self.__aromatic
+
+    @property
+    def atoms(self):
+        "Supported API. :class:`.Atoms` collection containing the atoms of the ring, in no particular order"
+        " (see :meth:`.Ring.ordered_atoms`)"
+        return self.__atoms
+
+    @property
+    def bonds(self):
+        "Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
+        "in no particular order (see :meth:`.Ring.ordered_bonds`)"
+        return self.__bonds
+
+    @property
+    def ordered_atoms(self):
+        ":class:`.Atoms` collection containing the atoms of the ring, in ring order."
+        return self.__ordered_atoms
+
+    @property
+    def ordered_bonds(self):
+        ":class:`.Bonds` collection containing the bonds of the ring, in ring order."
+        return self.__ordered_bonds
+
+    @property
+    def size(self):
+        "Supported API. Number of atoms (and bonds) in the ring"
+        return self.__size
 
     def __eq__(self, r):
         if not isinstance(r, Ring):
