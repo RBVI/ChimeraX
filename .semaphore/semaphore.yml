@@ -9,7 +9,11 @@ blocks:
     task:
       prologue:
         commands:
+          - sudo add-apt-repository ppa:deadsnakes/ppa -y
+          - sudo apt-get install -y python3.9 python3.9-venv python3.9-distutils
           - checkout
+          - python3.9 -m venv .venv
+          - source .venv/bin/activate
           - pip install -r prereqs/pips/pure_pip_test.txt
       jobs:
         - name: Lint
