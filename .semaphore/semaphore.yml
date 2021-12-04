@@ -10,6 +10,7 @@ blocks:
       prologue:
         commands:
           - checkout
+          - pip install -r prereqs/pips/pure_pip_test.txt
       jobs:
         - name: Lint
           commands:
