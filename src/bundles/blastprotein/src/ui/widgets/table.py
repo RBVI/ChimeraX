@@ -16,6 +16,7 @@ from typing import Optional, Union
 from Qt.QtCore import Signal
 from Qt.QtWidgets import QMenu, QWidget
 
+from chimerax.core.settings import Settings
 from chimerax.ui.widgets import ItemTable
 
 class BlastResultsRow:
@@ -56,3 +57,6 @@ class BlastResultsTable(ItemTable):
         for col in self._columns:
             if self.columnWidth(self._columns.index(col)) > max_size:
                 self.setColumnWidth(self._columns.index(col), max_size)
+
+class BlastProteinResultsSettings(Settings):
+    EXPLICIT_SAVE = { BlastResultsTable.DEFAULT_SETTINGS_ATTR: {} }

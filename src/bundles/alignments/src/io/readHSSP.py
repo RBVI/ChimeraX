@@ -49,7 +49,7 @@ def read(session, f):
                     begin = int(begin)
                     end = int(end)
                 except ValueError:
-                    raise FormatSyntaError("ALIGNMENTS line (line #%d) not of the form: "
+                    raise FormatSyntaxError("ALIGNMENTS line (line #%d) not of the form: "
                         "## ALIGNMENTS (number) - (number)" % line_num)
             continue
         if doing == 'proteins':

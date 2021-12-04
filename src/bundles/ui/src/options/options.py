@@ -47,7 +47,8 @@ class Option(metaclass=ABCMeta):
             from weakref import proxy
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and setattr(pself, "value", pself.get_attribute()))
+                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
+                or (self._callback and self._callback(self))))
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -194,8 +195,9 @@ class Option(metaclass=ABCMeta):
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
         if self.attr_name and self.settings and self.auto_set_attr:
+            # the attr-set callback will call _callback()
             self.set_attribute()
-        if self._callback:
+        elif self._callback:
             self._callback(self)
 
     @abstractmethod

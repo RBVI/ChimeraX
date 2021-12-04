@@ -23,8 +23,8 @@ def log_chains(session, structures=None):
 def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
 
     if structures is None:
-        from chimerax.atomic import Structure
-        structures = [m for m in session.models if isinstance(m, Structure)]
+        from chimerax.atomic import AtomicStructure
+        structures = [m for m in session.models if isinstance(m, AtomicStructure)]
     else:
         structures = list(structures)
     if not structures:
@@ -67,7 +67,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, BoolArg, ModelIdArg, \
         NoneArg
-    from .args import StructuresArg, AtomicStructuresArg
+    from .args import AtomicStructuresArg
 
     chains_desc = CmdDesc(
                         optional = [('structures', Or(AtomicStructuresArg, NoneArg))],
@@ -76,7 +76,7 @@ def register_command(logger):
     register('log chains', chains_desc, log_chains, logger=logger)
 
     combine_desc = CmdDesc(
-        required=[('structures', Or(StructuresArg,EmptyArg))],
+        required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
         keyword=[
             ('close', BoolArg),
             ('model_id', ModelIdArg),
