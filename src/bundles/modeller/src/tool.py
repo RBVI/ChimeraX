@@ -120,9 +120,14 @@ class ModellerLauncher(ToolInstance):
         layout = QVBoxLayout()
         self.local_container.setLayout(layout)
         layout.addWidget(local_options, alignment=Qt.AlignLeft)
+        import sys
+        if sys.platform == 'win32':
+            balloon_add = ".\nThe executable is typically located within a subfolder of the 'lib'\nfolder of your Modeller installation."
+        else:
+            balloon_add = ""
         local_options.add_option(InputFileOption("Executable location", common_settings.executable_path,
             None, attr_name="executable_path", settings=common_settings, balloon="Full path to Modeller"
-            " executable"))
+            " executable"+balloon_add))
         self.show_execution_options(execution_option)
         panel.add_option("Advanced", BooleanOption(
             "Use fast/approximate mode",
