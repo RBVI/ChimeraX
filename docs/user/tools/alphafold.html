@@ -57,6 +57,16 @@ Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
 </blockquote>
+<a name="alphafold-multimer"></a>
+<p>
+...and for multimer prediction:
+</p>
+<blockquote>
+<a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034"
+target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
+Evans R, O'Neill M, Pritzel A, <i>et al.</i> bioRxiv 2021.
+doi: https://doi.org/10.1101/2021.10.04.463034.
+</blockquote>
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
@@ -66,8 +76,7 @@ including humans. It does not cover all of
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
-The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
-system predicts structures for single chains, not complexes; 
+The database contains structures for single chains, not complexes; 
 assembling the individual predictions into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
@@ -106,8 +115,27 @@ The <b>Sequence</b> can be specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number, pasted in as plain text, or chosen
 from the menu of currently open protein structure chains.
+</p><p>
+For predicting a complex, the sequences of all chains in the complex
+must be given. The same sequence must be given multiple times if it occurs in 
+multiple copies in the complex. The sequences can be specified
+either collectively as a model number chosen from the menu of currently
+open models (<i>e.g.</i> when that model contains multiple chains), or
+individually within a comma-separated list of
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+identifiers or pasted-in amino acid sequences. Only commas,
+not spaces, should separate the sequences or identifiers.
+Prediction may only be feasible for smaller complexes
+(<a href="#caveats">details...</a>).
 </p>
 <ul>
+<li>
+<b>Is prokaryote? Used for predicting complexes.</b>
+&ndash; activate this option if predicting a complex of prokaryotic sequences,
+because <a href="#alphafold-multimer">AlphaFold-Multimer</a> uses a slightly
+different method for predicting complexes of prokaryotic <i>vs.</i> 
+eukaryotic sequences.
+<br><br>
 <li>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar prediction available from the
@@ -255,6 +283,12 @@ For best reliability, it is recommended to use the
 open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
+<br><br>
+<li>Total <b>sequence length cannot be very large</b>.
+AlphaFold runs out of graphics memory for long sequences (~800 amino acids
+on old Google Colab GPUs with 16 GB memory). For predicting complexes,
+the sum of the lengths of the sequences faces this same limit,
+so <b>only smaller complexes can be predicted</b>.
 </ul>
 <br>
 <li><a name="coloring"></a>
@@ -429,5 +463,5 @@ B-factor field of the PDB file) and
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+December 2021</address>
 </body></html>

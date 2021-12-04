@@ -27,6 +27,9 @@ chimerax
 .projectile
 *.swp
 .vscode
+# Test files
+.coverage
+#
 errs*
 build
 pip.log

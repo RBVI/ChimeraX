@@ -57,6 +57,16 @@ Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
 </blockquote>
+<a name="alphafold-multimer"></a>
+<p>
+...and for multimer prediction:
+</p>
+<blockquote>
+<a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034"
+target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
+Evans R, O'Neill M, Pritzel A, <i>et al.</i> bioRxiv 2021.
+doi: https://doi.org/10.1101/2021.10.04.463034.
+</blockquote>
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
@@ -66,8 +76,7 @@ including humans. It does not cover all of
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
-The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
-system predicts structures for single chains, not complexes; 
+The database contains structures for single chains, not complexes; 
 assembling the individual predictions into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
@@ -369,6 +378,15 @@ in PDB format and in
 tables in mmCIF.
 </blockquote>
 <blockquote>
+<a name="prokaryote"></a>
+<b>prokaryote</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+The method for predicting complexes with 
+<a href="#alphafold-multimer">AlphaFold-Multimer</a> varies for
+prokaryotic <i>vs.</i> eukaryotic sequences. 
+The default is to use the eukaryotic method.
+</blockquote>
+<blockquote>
 <a name="trim"></a>
 <b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -406,22 +424,46 @@ sequences, which could be longer.
 [<a href="#top">back to top: alphafold</a>]
 </p>
 <h3>Running an AlphaFold Prediction</h3>
+<p>
+For monomer prediction:
+</p>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>alphafold predict</b> &nbsp;<i>sequence</i>&nbsp;
+<b>alphafold predict</b> &nbsp;<i>sequence</i>
 </blockquote>
 <p>
+<a name="sequence-spec"></a>
 The protein <i>sequence</i> to predict can be given as any of the following:
 </p>
-<ul>
+<ol>
 <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 corresponding to a single chain in an atomic structure open in ChimeraX
 <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 <li>a UniProt name or accession number
 <li>plain text pasted directly into the command line
-</ul>
+</ol>
 <p>
+For multimer (protein complex) prediction:
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
+[&nbsp;<a href="#prokaryote"><b>prokaryote</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The sequences of two or more protein chains can be specified
+either collectively as a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+(for atomic-structure chains already open in ChimeraX), or
+individually within a comma-separated list using any combination of
+specifier types #2-4 listed <a href="#sequence-spec">above</a>.
+The list should not contain any spaces.
+If the same protein chain occurs multiple times in the complex, its sequence
+should be repeated that number of times. For example, to predict a
+homodimer, the same sequence (or its specifier) would need to be given twice.
+Prediction may only be feasible for smaller complexes
+(<a href="#caveats">details...</a>).
+</p><p>
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 calculations are run using <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a>. 
@@ -446,10 +488,10 @@ The prediction will be opened automatically and
 If the sequence was specified by structure chain, the prediction will
 be superimposed on that chain and assigned structure-comparison attributes
 for further analysis (<a href="#structmatch">details...</a>).
-</p><p>
-<a name="caveats"></a>
-Please note the following caveats:
 </p>
+
+<a name="caveats"></a>
+<h4>Caveats</h4>
 <ul>
 <li>Regardless of a user's 
 <a href="https://colab.research.google.com/signup" 
@@ -478,9 +520,15 @@ For best reliability, it is recommended to use the
 open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
+<br><br>
+<li>Total <b>sequence length cannot be very large</b>.
+AlphaFold runs out of graphics memory for long sequences (~800 amino acids 
+on old Google Colab GPUs with 16 GB memory). For predicting complexes, 
+the sum of the lengths of the sequences faces this same limit, 
+so <b>only smaller complexes can be predicted</b>.
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+December 2021</address>
 </body></html>

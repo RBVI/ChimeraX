@@ -617,7 +617,8 @@ class ModellerLocalJob(Job):
             logger = self.session.logger
             tsafe(logger.status, "Running MODELLER locally")
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True,
+                        env=environ)
             except subprocess.CalledProcessError as e:
                 from chimerax.ui.html import disclosure
                 try:
