@@ -1,0 +1,16 @@
+version: v1.0
+name: First pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+blocks:
+  - name: Lint the Code
+    task:
+      prologue:
+        commands:
+          - checkout
+      jobs:
+        - name: Lint
+          commands:
+            - pytest
