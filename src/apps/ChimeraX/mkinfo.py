@@ -64,7 +64,7 @@ def utid(f):
                 domain = "cgl.ucsf.edu"
             else:
                 return None
-    from urlparse import urlparse
+    from urllib.parse import urlparse
     if ':' not in domain:
         domain = urlparse("http://%s" % domain)[1]
     else:
