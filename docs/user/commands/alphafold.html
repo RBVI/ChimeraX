@@ -30,7 +30,7 @@ is an artificial intelligence method for predicting protein structures
 that has been highly successful in recent tests.
 The <b>alphafold</b> command:
 <ul>
-<li><a href="#fetch">finds and retrieves existing predictions</a> from the
+<li><a href="#fetch">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
 <br>&ndash; freely available for academic and commercial use under 
@@ -70,14 +70,14 @@ doi: https://doi.org/10.1101/2021.10.04.463034.
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-contains predictions for
+contains modeled structures of protein chains from
 <a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
 including humans. It does not cover all of
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
 The database contains structures for single chains, not complexes; 
-assembling the individual predictions into a complex may give 
+assembling the individual structures into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
 </p><p>
@@ -94,11 +94,11 @@ and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
 <a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching by sequence</a>
-for AlphaFold predictions (first 5 minutes),
+for AlphaFold models (first 5 minutes),
 <a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
-AlphaFold prediction,
+AlphaFold model,
 <a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
-predictions to an assembly,
+an assembly,
 <a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
 a new structure
 </p>
@@ -109,7 +109,7 @@ a new structure
 <p class="nav">
 [<a href="#top">back to top: alphafold</a>]
 </p>
-<h3>Getting Predictions from the AlphaFold Database</h3>
+<h3>Getting Models from the AlphaFold Database</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold fetch</b> &nbsp;<i>uniprot-id</i>&nbsp;
@@ -131,7 +131,7 @@ a new structure
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 </blockquote>
 <ul>
-<li>The <b>alphafold fetch</b> command retrieves the prediction (if available)
+<li>The <b>alphafold fetch</b> command retrieves the model (if available)
 for a specific UniProt name or accession number. It is equivalent to using the
 <b><a href="open.html#fetch">open</a></b> command to fetch
 <b>from alphafold</b>. Examples:
@@ -140,7 +140,7 @@ for a specific UniProt name or accession number. It is equivalent to using the
 <br>&ndash; OR &ndash; (equivalent)<br>
 <b><a href="open.html#fetch">open</a> p29474 from alphafold</b>
 </blockquote>
-<li>The <b>alphafold match</b> command retrieves predictions for sequences
+<li>The <b>alphafold match</b> command retrieves models for sequences
 the same as or similar to those of experimentally determined protein structures
 already open in ChimeraX, or other sequences independent of structure.
 Giving the model number of an atomic structure already open in ChimeraX 
@@ -160,13 +160,13 @@ Alternatively, the <i>sequence</i> can be given as any of the following:
   <li>plain text pasted directly into the command line
   </ul>
 <p>
-For a specified structure chain, a prediction is obtained for its exact 
+For a specified structure chain, a model is obtained for its exact 
 UniProt entry if available, otherwise the single top hit identified by
 <a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
 target="_blank">BLAT</a>-searching the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="#search-option">details...</a>).
-For each prediction with a corresponding structure chain
+For each model with a corresponding structure chain
 from the <b>alphafold match</b> command or the
 <a href="#alignTo"><b>alignTo</b></a> option of <b>alphafold fetch</b>:
 </p>
@@ -244,7 +244,7 @@ may have the same sequence.
 When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
 Clicking the name of a hit uses
-<a href="#fetch"><b>alphafold fetch</b></a> to retrieve the prediction.
+<a href="#fetch"><b>alphafold fetch</b></a> to retrieve the model.
 </p>
 </ul>
 
@@ -344,7 +344,7 @@ or a command can be used to draw a corresponding color key, for example:
 <a name="ignoreCache"></a>
 <b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-The fetched predictions are stored locally in 
+The fetched models are stored locally in 
 <b>~/Downloads/ChimeraX/AlphaFold/</b>,
 where ~ indicates a user's home directory.
 If a file specified for opening is not found in this local cache or 
@@ -354,7 +354,7 @@ If a file specified for opening is not found in this local cache or
 <a name="search-option"></a>
 <b>search</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-When fetching predictions with <b>alphafold match</b>, whether to search
+When fetching models with <b>alphafold match</b>, whether to search
 the database for the most similar sequence
 if the <a href="uniprot.org/help/accession_numbers"
 target="_blank">UniProt accession number</a>
@@ -366,7 +366,7 @@ The search uses a <a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
 target="_blank">BLAT</a> web service hosted by the 
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
 target="_blank">UCSF RBVI</a>.
-The closest sequence match for which a prediction is available
+The closest sequence match for which a models is available
 will be retrieved, as long as the sequence identity is at least 25%.
 With <b>search false</b>, only the experimental structure's input file will
 be used as a potential source of UniProt accession numbers.
@@ -381,10 +381,17 @@ tables in mmCIF.
 <a name="prokaryote"></a>
 <b>prokaryote</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-The method for predicting complexes with 
-<a href="#alphafold-multimer">AlphaFold-Multimer</a> varies for
-prokaryotic <i>vs.</i> eukaryotic sequences. 
-The default is to use the eukaryotic method.
+This option only applies to predicting complexes.
+When <a href="#alphafold-multimer">AlphaFold-Multimer</a> is predicting a 
+complex and finds multiple similar sequences from the same organism, it
+needs to decide which sequences are orthologous to which chain of the target.
+Since interacting genes tend to be colocalized into operons in prokaryotes,
+specifying <b>prokaryote true</b> uses smallest genomic distance 
+(approximated by the lexicographic
+difference between UniProt identifiers) to identify interacting pairs
+of sequences within species. 
+With <b>prokaryote false</b> (default), sequences from the same organism
+are instead paired in order of their rank similarity to the target sequences.
 </blockquote>
 <blockquote>
 <a name="trim"></a>
@@ -413,7 +420,7 @@ in the sequence alignment calculated by
 as part of the superposition step.
 </ul>
 <p>
-Using <b>trim false</b> indicates retaining the full-length predictions
+Using <b>trim false</b> indicates retaining the full-length models
 for the <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 sequences, which could be longer.
 </p>
@@ -473,19 +480,25 @@ Users will need to have a Google account and to sign into it via
 a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
+</p><p>
 A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
 predicting atomic coordinates, and energy-minimizing the best structure.
-The free version of Google Colab does not allow for much run time.
+Predicting a multimer (complex) structure may take longer than predicting
+the structure of a monomer with the same total number of residues.
+The free version of Colab
+limits jobs to 12 hours and may terminate them at shorter times at Google's
+discretion (see the <a href="https://colab.research.google.com/signup"
+target="_blank">FAQ</a>).
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
 </p><p>
-The prediction will be opened automatically and
+The model will be opened automatically and
 <a href="#colorConfidence">colored by confidence value</a>.
-If the sequence was specified by structure chain, the prediction will
+The model for a sequence that was specified by structure chain will
 be superimposed on that chain and assigned structure-comparison attributes
 for further analysis (<a href="#structmatch">details...</a>).
 </p>
@@ -523,8 +536,8 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 <br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids 
-on old Google Colab GPUs with 16 GB memory). For predicting complexes, 
-the sum of the lengths of the sequences faces this same limit, 
+on old Google Colab GPUs with 16 GB memory).
+Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>.
 </ul>
 
