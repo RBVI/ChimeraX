@@ -220,8 +220,7 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
         quality = formats.default_quality
     if quality:
         qopt = f['ffmpeg_quality']
-        if qopt is not None:
-            qual = (qopt['option_name'], qopt[quality])
+        qual = (qopt['option_name'], qopt[quality])
     elif qscale:
         qual = ('-qscale:v', qscale)
     elif bitrate:

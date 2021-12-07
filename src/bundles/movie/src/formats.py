@@ -124,15 +124,6 @@ formats['wmv'] = {
     'limited_framerates': False,
     'size_restriction': None,
 }
-formats['apng'] = {
-    'label': 'APNG',
-    'suffix': 'png',
-    'ffmpeg_name': 'apng',
-    'ffmpeg_codec': 'apng',
-    'ffmpeg_quality': None,
-    'limited_framerates': False,
-    'size_restriction': None,
-}
 
 movie_format_synonyms = {
     'webm': 'vp8',
