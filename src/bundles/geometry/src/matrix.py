@@ -102,9 +102,9 @@ def multiply_matrices_numpy(*tf_list):
         t1 = tf1[:, 3]
         r2 = tf2[:, :3]
         t2 = tf2[:, 3]
-        from numpy import zeros, float, add
+        from numpy import zeros, float64, add
         from numpy import dot as matrix_multiply
-        tf = zeros((3, 4), float)
+        tf = zeros((3, 4), float64)
         r = tf[:, :3]
         t = tf[:, 3]
         r[:] = matrix_multiply(r1, r2)
@@ -118,11 +118,11 @@ def multiply_matrices_numpy(*tf_list):
 # -----------------------------------------------------------------------------
 #
 def invert_matrix(tf):
-    from numpy import array, zeros, float
+    from numpy import array, zeros, float64
     tf = array(tf)
     r = tf[:, :3]
     t = tf[:, 3]
-    tfinv = zeros((3, 4), float)
+    tfinv = zeros((3, 4), float64)
     rinv = tfinv[:, :3]
     tinv = tfinv[:, 3]
     from numpy.linalg import inv as matrix_inverse
