@@ -139,8 +139,8 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
             if trim and not seq_match and uid.database_sequence_range:
                 _trim_sequence(alphafold_model, uid.database_sequence_range)
             if isinstance(seq, Chain):
-                _rename_chains(alphafold_model, seq)
-                _align_to_chain(alphafold_model, seq)
+                _rename_chains(alphafold_model, [seq.chain_id])
+                _align_to_chain(alphafold_model, seq, use_dssp = False)
             else:
                 _log_sequence_similarity(alphafold_model, seq)
             if trim and seq_match:
@@ -187,19 +187,26 @@ def _trim_sequence(structure, sequence_range):
         rdel = concatenate(rdelete)
         rdel.delete()
         
-def _rename_chains(structure, chain):
+def _rename_chains(structure, chain_ids):
     schains = structure.chains
-    if len(schains) > 1:
+    if len(schains) != len(chain_ids):
         cnames = ', '.join(c.chain_id for c in schains)
-        structure.session.logger.warning('Alphafold structure %s has %d chains (%s), expected 1.  Not renaming chain id to match target structure.' % (structure.name, len(schains), cnames))
+        structure.session.logger.warning('Alphafold structure %s has %d chains (%s), expected %d.'
+                                         % (structure.name, len(schains), cnames, len(chain_ids)) +
+                                         '  Not renaming chain id to match target structure.')
 
-    for schain in schains:
-        schain.chain_id = chain.chain_id
+    for schain, chain_id in zip(schains, chain_ids):
+        schain.chain_id = chain_id
         
-def _align_to_chain(structure, chain):
+def _align_to_chain(structure, chain, use_dssp = True):
+        
     from chimerax.match_maker.match import cmd_match
     results = cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
-                        verbose=None)
+                        compute_s_s = use_dssp, verbose=None)
+
+    if structure.num_chains > 1:
+        return  # Don't add alignment attributes to multi-chain structures
+
     if len(results) == 1:
         r = results[0]
         rmsd = r.get('full RMSD')
@@ -212,8 +219,8 @@ def _align_to_chain(structure, chain):
                 structure.seq_match_range = range
             structure.seq_identity = _sequence_identity(rseq, mseq, range)
             _set_match_attributes(rseq, mseq)
-            structure.num_observed_residues = chain.num_existing_residues
 
+    structure.num_observed_residues = chain.num_existing_residues
 
 def _sequence_identity(seq1, seq2, range2 = None):
     if range2:

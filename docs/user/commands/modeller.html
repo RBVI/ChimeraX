@@ -64,7 +64,8 @@ The <b>modeller</b> command runs
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
 on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. 
+RBVI</a>, or using a local installation specified with
+<a href="#executableLocation"><b>executableLocation</b></a>.
 </p>
 <ul>
 <li><b>modeller comparative</b> performs comparative or
@@ -77,7 +78,8 @@ refined by generating additional possible conformations
 (<a href="#loops-details">details...</a>).
 </ul>
 <p>
-A Modeller <a href="../tools/modeller.html#key">license key</a>
+For running the web service,
+a Modeller <a href="../tools/modeller.html#key">license key</a>
 must be specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
 command option or entered in the
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
@@ -206,12 +208,26 @@ The target sequence can be taken from the structure metadata
 or <a href="open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
 or opened from a <a href="open.html#sequence">file</a>.
+<!--
 The sequence can be different from the sequence of the structure as long
 as they are similar enough to associate properly;
-however, the types shown in the 
+however, the types shown in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 will be used for the segment that is filled in or refined, as well as any
 <a href="#adjacentFlexible">adjacent positions designated as flexible</a>.
+-->
+The sequence must be the same as the sequence of the structure, except that
+differences are permitted within the segments to be filled in or refined,
+as well as any
+<a href="#adjacentFlexible">adjacent positions designated as flexible</a>;
+the residue types shown in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+will be used to model those segments.
+Accuracy can be quite high for shorter loops, but falls off rapidly with length (&gt;50% poor predictions for segments with 10+ residues including the
+<a href="#adjacentFlexible">flexible positions</a>, see Table 1 in
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/"
+target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i>
+<b>9</b>(9):1753 (2000)).
 </td></tr></table>
 </blockquote>
 </ol>
@@ -319,6 +335,16 @@ temporary system directory that will be removed when no longer needed.
 This option allows users to retain the input files for examination or
 other purposes.
 </blockquote>
+<blockquote>
+<a name="executableLocation"></a>
+<b>executableLocation</b>&nbsp;&nbsp;<i>executable</i>
+<br>
+Specify running a local installation of Modeller instead of the RBVI-hosted
+web service, where <i>executable</i> is either the pathname of the executable
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window. 
+The local installation must be version 10 or newer.
+</blockquote>
 </blockquote>
 
 <blockquote>
@@ -421,5 +447,5 @@ after making modifications that are expected to improve the scores.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2021</address>
+November 2021</address>
 </body></html>

@@ -2,11 +2,11 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# alternate method is "fromsrc"
+# Methods are "wheel", "pypi_qt6" and "fromsrc"
 METHOD=wheel
 
 ifeq ($(OSARCH),DarwinArm64)
-METHOD=mac_arm64
+METHOD=pypi_qt6
 endif
 
 # PYQT_LICENSE can be "commercial" for commercial version

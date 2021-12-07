@@ -326,7 +326,20 @@ class Alignment(State):
             else:
                 note_name = self.NOTE_ADD_ASSOC
                 note_data = new_match_maps
-            self._notify_observers(note_name, note_data)
+            # since StructureSeq demotion notifications may be delayed until the 'changes done'
+            # trigger, we need to do a hacky check here and possibly also delay this notification
+            for seq in self.associations:
+                if not hasattr(seq, 'structure'):
+                    # it's been demoted
+                    def _delay_assoc(_, __, *, name=note_name, data=note_data):
+                        self._notify_observers(name, data)
+                        from chimerax.core.triggerset import DEREGISTER
+                        return DEREGISTER
+                    from chimerax import atomic
+                    atomic.get_triggers().add_handler('changes done', _delay_assoc)
+                    break
+            else:
+                self._notify_observers(note_name, note_data)
 
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer

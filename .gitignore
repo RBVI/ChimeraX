@@ -27,6 +27,9 @@ chimerax
 .projectile
 *.swp
 .vscode
+# Test files
+.coverage
+#
 errs*
 build
 pip.log
@@ -40,6 +43,7 @@ dist
 *~
 *.out
 _build
+.venv
 src/apps/structcomp/structcomp.sh
 src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
@@ -95,7 +99,18 @@ src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
 prereqs/ambertools/ambertools-*.tar.bz2
+prereqs/ambertools/Ambertools-*.tar.bz2
+prereqs/ambertools/AmberTools-*.tar.bz2
+prereqs/ambertools/ambertools*.tar.bz2
+prereqs/ambertools/Ambertools*.tar.bz2
+prereqs/ambertools/AmberTools*.tar.bz2
 prereqs/chrpath/*.tar.gz
+prereqs/ffmpeg/ffmpeg-*.tar.bz2
+prereqs/ffmpeg/libogg-*.tar.xz
+prereqs/ffmpeg/libtheora-*.tar.xz
+prereqs/ffmpeg/libvpx-*.tar.xz
+prereqs/ffmpeg/x264-*.tar.xz
+prereqs/ffmpeg/yasm-*.tar.bz2
 prereqs/openmm/openmm-*.tar.bz2
 prereqs/openssl/*.gz
 prereqs/osmesa/*.bz2

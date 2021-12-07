@@ -99,6 +99,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             if chain_id is None:
                 chain_id = r.chain_id
             elif chain_id != r.chain_id:
+                # Modeller apparently "keeps going" for water/het with the same chain ID,
+                # but "stops" for water/het in its own chain
+                if r.chain is None:
+                    break
                 template_chars.append('/')
                 target_chars.append('/')
                 chain_id = r.chain_id
@@ -127,11 +131,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     chain_target_chars = []
                     seq_chars = seq.characters
                     modeled = set()
+                    # 'chain_indices' are into the *sequence*
+                    mmap = seq.match_maps[chain]
                     for start, end in chain_indices[r.chain]:
-                        start_range = max(start - adjacent_flexible, 0)
-                        end_range = min(end+1 + adjacent_flexible, len(r.chain))
-                        modeled.update(range(start_range, end_range))
-                    number = 1
+                        modeled.update(range(start, end+1))
                     for seq_i in range(len(seq_chars)):
                         if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
                             target_char = '-'
@@ -142,10 +145,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                         r.chain))
                     target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
-                    offset_i += len(r.chain)
+                    offset_i += len(chain_target_chars)
                     match_chains.append(r.chain)
-                if r.chain == s.chains[-1]:
-                    break
                 i += r.chain.num_existing_residues
         target_chars = ''.join(target_chars)
         compact_target_chars = target_chars.replace('/', '')
@@ -157,17 +158,18 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             mmap = seq.match_maps[chain]
             for start, end in chain_indices[chain]:
                 start = max(start - adjacent_flexible, 0)
-                while start > 0 and start-1 not in mmap:
+                while start > 0 and start not in mmap:
                     start -= 1
-                end = min(end+1 + adjacent_flexible, len(chain))
-                while end < len(chain) and end not in mmap:
+                seq_len = len(seq)
+                end = min(end + adjacent_flexible, seq_len-1)
+                while end < seq_len-1 and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
                 # for residue indexing, unmodeled residues (target == '-') don't count...
                 unmodeled = compact_target_chars[:start+offset].count('-')
 
                 # Modeller residue_range()'s end index is the actual index, not index+1
-                loop_data.append((start+offset-unmodeled, end+offset-unmodeled-1))
+                loop_data.append((start+offset-unmodeled, end+offset-unmodeled))
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
@@ -233,9 +235,9 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 pir_target.name, input_file_map, config_name, [t[:2] for t in targets],
                 res_numberings=renumberings)
         else:
-            #TODO: job_runner = ModellerLocal(...)
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Local Modeller execution not yet implemented")
+            from .common import ModellerLocal
+            job_runner = ModellerLocal(session, match_chains, num_models, pir_target.name,
+                executable_location, script_path, [t[:2] for t in targets], temp_dir, loop_job=True)
 
         job_runner.run(block=block)
     return

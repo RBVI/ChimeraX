@@ -34,13 +34,16 @@ graphical objects, for example, those read from
 <a href="../formats/bild.html">BILD</a> format.
 A model can be read from a file,
 derived from another model, or created from scratch.
+Model ID numbers can be assigned automatically or specified by the user.
 </p><p>
-Model numbers can be assigned automatically or specified by the user.
-They are hierarchical, with any number of levels
-(positive integers N, N.N, <i>etc.</i>); for example,
-#1.1, #1.2, ... #1.10 could be 10 structures in an NMR ensemble.
-A <b><i>submodel</i></b> (model at a lower level) is still an entire model,
-but the hierarchy allows grouping. 
+<a name="grouping"></a>
+Models are arranged hierarchically into groups.
+For example, an NMR ensemble open as model #1 could contain different
+coordinate sets as <b><i>submodels</i></b> #1.1, #1.2, ... #1.10. 
+Hiding #1 hides all of its submodels, regardless of their individual 
+hide/show settings (<a href="../hierarchy.html">details...</a>).
+A submodel is a model in its own right, and the general term 
+&ldquo;model&rdquo; may refer to a model at any level of the hierarchy.
 Models that are grouped automatically include:
 </p>
 <ul>
@@ -49,9 +52,6 @@ Models that are grouped automatically include:
 <a href="volumeviewer.html">volume data</a>
 </ul>
 <p>
-Model names and/or numbers (and thus groupings) can be
-changed with the <a href="../commands/rename.html"><b>rename</b></a> command.
-</p><p>
 Like other tools, the <b>Model Panel</b> can be opened from the 
 <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
 It lists the current models, with columns:
@@ -72,6 +72,11 @@ that the model is partially selected)
 <p>
 Disclosure triangles allow collapsing/expanding the hierarchy when multiple
 levels are present.
+Model names and/or ID numbers (and thus <a href="#grouping">groupings</a>)
+can be changed by double-clicking and entering a new value, or by using the
+the <a href="../commands/rename.html"><b>rename</b></a> command.
+See also: <a href="toolbar.html"><b>Toolbar</b></a>,
+<a href="../commands/info.html"><b>info</b></a>
 </p><p>
 One or more entries (rows) can be highlighted with the mouse. 
 <a name="buttons"></a>
@@ -90,10 +95,8 @@ in the <a href="log.html"><b>Log</b></a>
 </ul>
 <p>
 The corresponding commands are shown in the <a href="log.html"><b>Log</b></a>.
-See also: <a href="toolbar.html"><b>Toolbar</b></a>,
-<a href="info.html"><b>info</b></a>
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+November 2021</address>
 </body></html>

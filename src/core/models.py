@@ -800,6 +800,9 @@ class Models(StateManager):
         '''number of models'''
         return len(self._models)
 
+    def __bool__(self):
+        return len(self._models) != 0
+
     def next_id(self, parent = None, minimum_id = 1):
         # Find lowest unused id.  Typically all ids 1,...,N are used with no gaps
         # and then it is fast to assign N+1 to the next model.  But if there are

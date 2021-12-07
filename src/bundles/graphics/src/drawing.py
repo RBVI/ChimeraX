@@ -1330,6 +1330,29 @@ class Drawing:
         tm = self._triangle_mask
         return len(ta) if tm is None else tm.sum()
 
+    @property
+    def masked_edges(self):
+        ta = self.triangles
+        if ta is None:
+            from numpy import empty, int32
+            edges = empty((0,2), int32)
+        elif ta.shape[1] == 3:
+            tm, em = self.triangle_mask, self.edge_mask
+            mask = {}
+            if tm is not None:
+                mask['triangle_mask'] = tm
+            if em is not None:
+                mask['edge_mask'] = em
+            from ._graphics import masked_edges
+            edges = masked_edges(ta, **mask)
+        elif ta.shape[1] == 2:
+            edges = ta   # Triangles array contains edges.
+        else:
+            from numpy import empty, int32
+            edges = empty((0,2), int32)
+
+        return edges
+
     def x3d_needs(self, x3d_scene):
         if not self.display:
             return
@@ -2119,8 +2142,8 @@ def _draw_texture(texture, renderer):
     
 def qimage_to_numpy(qi):
     from Qt.QtGui import QImage
-    if qi.format() != QImage.Format_ARGB32:
-        qi = qi.convertToFormat(QImage.Format_ARGB32)
+    if qi.format() != QImage.Format.Format_ARGB32:
+        qi = qi.convertToFormat(QImage.Format.Format_ARGB32)
     shape = (qi.height(), qi.width(), 4)
     from Qt import qt_image_bytes
     buf = qt_image_bytes(qi)
@@ -2148,7 +2171,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     p = QPainter()
 
     # Determine image size.
-    weight = QFont.Bold if bold else QFont.Normal
+    weight = QFont.Weight.Bold if bold else QFont.Weight.Normal
     xbuf = xpad + outline_width
     ybuf = ypad + outline_width
     if pixels:
@@ -2175,14 +2198,14 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if ih == 0:
         ih = 1
         
-    ti = QImage(iw, ih, QImage.Format_ARGB32)
+    ti = QImage(iw, ih, QImage.Format.Format_ARGB32)
     
     # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
     if outline_width > 0:
         if outline_color is None:
             from chimerax.core.colors import contrast_with
-            outline_color = contrast_with(bg[:3]) + (255,)
+            outline_color = [c * 255.0 for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
         fill_color = tuple(outline_color)
     else:
         fill_color = bg
@@ -2193,14 +2216,18 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         prev_b = p.brush()
         prev_p = p.pen()
+        prev_cm = p.compositionMode()
+        p.setCompositionMode(p.CompositionMode_Source)
         bc = QColor(*bg)
         from Qt.QtCore import Qt
         pbr = QBrush(bc, Qt.SolidPattern)
         p.setBrush(pbr)
         ppen = QPen(Qt.NoPen)
+        p.setPen(ppen)
         p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
         p.setBrush(prev_b)
         p.setPen(prev_p)
+        p.setCompositionMode(prev_cm)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)

@@ -410,7 +410,7 @@ class Graph(Plot):
     def add_menu_entry(self, menu, text, callback, *args):
         '''Add menu item to context menu'''
         widget = self.tool_window.ui_area
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         a = QAction(text, widget)
         #a.setStatusTip("Info about this menu entry")
         a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))

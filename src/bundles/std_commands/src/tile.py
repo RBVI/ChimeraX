@@ -5,6 +5,15 @@
 def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
     """Tile models onto a square(ish) grid."""
 
+    if models is None:
+        models = [m for m in session.models.list() if len(m.id) == 1]
+        if len(models) == 1:
+            # If we have one grouping model then tile the child models.
+            m = models[0]
+            from chimerax.core.models import Model
+            if m.empty_drawing() and type(m) is Model and len(m.child_models()) > 1:
+                models = m.child_models()
+            
     models = [m for m in models if m.bounds() is not None]
     if len(models) == 0:
         from chimerax.core.errors import UserError

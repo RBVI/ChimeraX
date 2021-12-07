@@ -675,9 +675,14 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
             bring = None
     if pairing == CP_SPECIFIC_SPECIFIC:
         if len(refs) != len(matches):
-            raise UserError("Different number of reference/match"
-                    " chains (%d ref, %d match)" % (len(refs), len(matches)))
-        match_items = zip(refs, matches)
+            from chimerax.atomic import Chains
+            num_match_structs = len(Chains(matches).structures.unique())
+            if num_match_structs != len(matches) or len(refs) > 1:
+                raise UserError("Different number of reference/match"
+                        " chains (%d ref, %d match)" % (len(refs), len(matches)))
+            match_items = [(refs[0], match) for match in matches]
+        else:
+            match_items = zip(refs, matches)
     else:
         match_items = (refs[0], matches)
     ss_matrix = {}
@@ -710,6 +715,8 @@ def check_domain_matching(chains, sel_residues):
             if this_chain.issubset(sel_residues):
                 new_chains.append(chain)
                 continue
+            if this_chain.isdisjoint(sel_residues):
+                continue
             nc = StructureSeq(structure=chain.structure, chain_id=chain.chain_id,
                 polymer_type=chain.polymer_type)
             nc._dm_rebuild_info = []
@@ -717,12 +724,13 @@ def check_domain_matching(chains, sel_residues):
             new_chains.append(nc)
             chars = []
             residues = []
-            for c, r in zip(chain.characters, chain.residues):
+            for i, c_r in enumerate(zip(chain.characters, chain.residues)):
+                c, r = c_r
                 if r in sel_residues:
                     chars.append(c)
                     residues.append(r)
                 else:
-                    nc._dm_rebuild_info.append((len(nc.residues), c, r))
+                    nc._dm_rebuild_info.append((i, c, r))
                     chars.append('?')
                     residues.append(None)
             nc.bulk_set(residues, chars)

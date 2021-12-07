@@ -225,6 +225,7 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                     non_iso_res = FakeRes(br_type, non_iso_atoms)
                     non_iso.append(non_iso_res)
                 urt_list.append((iso_type, iso))
+                uncharged_res_types[iso_type] = iso
                 bond_residues = non_iso
             else:
                 # no isolated atoms
@@ -338,7 +339,7 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
     if len(varieties) > 1:
         session.logger.info("%d tautomers of %s; charging separately" % (len(varieties), r0.name))
     for tautomer_residues in varieties.values():
-        _nonstd_charge(session, tautomer_residues, net_charge, method, status)
+        nonstd_charge(session, tautomer_residues, net_charge, method, status=status)
 
 def estimate_net_charge(atoms):
     charge_info = {
@@ -417,26 +418,24 @@ def estimate_net_charge(atoms):
     return charge_total // 2
 
 
-def _get_aname(base, known_names):
-    anum = 1
-    while True:
-        name = "%s%d" % (base, anum)
-        if name not in known_names:
-            known_names.add(name)
-            break
-        anum += 1
-    return name
+def _get_aname(element, element_counts):
+    element_count = element_counts.setdefault(element, 0) + 1
+    a_name = element.name + "%d" % element_count
+    element_counts[element] = element_count
+    return a_name
 
-def _methylate(na, n, atom_names):
+def _methylate(na, n, element_counts):
     added = []
     from chimerax.atomic import Element
     from chimerax.atomic.struct_edit import add_atom
-    nn = add_atom(_get_aname("C", atom_names), Element.get_element("C"), na.residue, n.coord)
+    C = Element.get_element("C")
+    nn = add_atom(_get_aname(C, element_counts), C, na.residue, n.coord)
     added.append(nn)
     na.structure.new_bond(na, nn)
     from chimerax.atomic.bond_geom import bond_positions
+    H = Element.get_element("H")
     for pos in bond_positions(nn.coord, 4, 1.1, [na.coord]):
-        nh = add_atom(_get_aname("H", atom_names), Element.get_element("H"), na.residue, pos)
+        nh = add_atom(_get_aname(H, element_counts), H, na.residue, pos)
         added.append(nh)
         na.structure.new_bond(nn, nh)
     return added
@@ -468,7 +467,16 @@ def _n2_charge(atom):
             return 0
     return 2
 
-def _nonstd_charge(session, residues, net_charge, method, status):
+def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_dir=None):
+    """Underlying "workhorse" function for add_nonstandard_res_charges()
+
+       Other than 'temp_dir', the arguments are the same as for add_nonstandard_res_charges(),
+       and in almost all situations you should use that function instead, but if you need
+       access to the input/output files to/from Antechamber, you can use this function to specify
+       a path for 'temp_dir' and all Antechamber files will be written into that directory and
+       the directory will not be deleted afterward.  Otherwise a temporary directory is used that
+       is deleted afterward.
+    """
     r = residues[0]
     if status:
         status("Copying residue %s" % r.name)
@@ -481,13 +489,16 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     # write out the residue's atoms first, since those are the ones we will be caring about
     nr = s.new_residue(r.name, ' ', 1)
     atom_map = {}
-    atom_names = set()
     # use same ordering of atoms as they had in input, to improve consistency of antechamber charges
     r_atoms = sorted(r.atoms, key=lambda a: a.coord_index)
     from chimerax.atomic.struct_edit import add_atom
+    element_counts = {}
     for a in r_atoms:
-        atom_map[a] = add_atom(a.name, a.element, nr, a.coord)
-        atom_names.add(a.name)
+        # Antechamber expects the atom names to start with the case-sensitive atomic symbol, and for
+        # single-letter atomic symbols, _not_ to be followed with upper case letters, though it
+        # makes exceptions for common cases like carbon.  Nonetheless it doesn't make an exception for
+        # flourine, which fouls up the FAC/FAD/FAE atoms in J8A of 6ega, so...
+        atom_map[a] = add_atom(_get_aname(a.element, element_counts), a.element, nr, a.coord)
 
     # add the intraresidue bonds and remember the interresidue ones
     electrons = 0
@@ -506,7 +517,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
     extras = set()
     while nearby:
         nb = nearby.pop()
-        na = add_atom(_get_aname(nb.element.name, atom_names), nb.element, nr, nb.coord)
+        na = add_atom(_get_aname(nb.element, element_counts), nb.element, nr, nb.coord)
         extras.add(na)
         atom_map[nb] = na
         for nbnb in nb.neighbors:
@@ -524,7 +535,7 @@ def _nonstd_charge(session, residues, net_charge, method, status):
                 if fc or geom != 4:
                     nearby.add(nbnb)
                 else:
-                    extras.update(_methylate(na, nbnb, atom_names))
+                    extras.update(_methylate(na, nbnb, element_counts))
     for ea in extras:
         electrons += ea.element.number
     total_net_charge = net_charge + estimate_net_charge(extras)
@@ -543,8 +554,12 @@ def _nonstd_charge(session, residues, net_charge, method, status):
         finally:
             s.delete()
 
-    import tempfile
-    with tempfile.TemporaryDirectory() as temp_dir, managed_structure(s) as s:
+    if not temp_dir:
+        import tempfile
+        # hold direct reference so that the directory isn't immediately deleted
+        temp_dir_ref = tempfile.TemporaryDirectory()
+        temp_dir = temp_dir_ref.name
+    with managed_structure(s) as s:
         import os, os.path
         ante_in = os.path.join(temp_dir, "ante.in.mol2")
         from chimerax.mol2 import write_mol2

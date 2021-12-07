@@ -809,6 +809,17 @@ The other possible `Provider`_ attributes are:
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
         attribute with a value of "false".
 
+    *pregrouped_structures*
+        If a provider returns multiple models, the open command will automatically group them
+        so that the entire set of models can be referenced with one model number (the individual
+        models can be referenced with submodel numbers).  The provider *could* pre-group them in
+        order to give the group a name other the default (which is based on the file name; the user can
+        still override that with the ``name`` keyword of the open command).  In the specific case
+        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
+        as "true" so the the open command's return value can be the actual list of structures rather
+        than a grouping model.  This greatly simplifies scripts trying to handle return values
+        from various kinds of structure-opening commands.
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -983,6 +994,17 @@ The other possible `Provider`_ attributes are:
         should be used when the user omits the ``format`` keyword should have *is_default*
         as "true", and the others should have it as "false".  *is_default* defaults to "true",
         so since most databases only have one format this attribute is in most cases omitted.
+
+    *pregrouped_structures*
+        If a provider returns multiple models, the open command will automatically group them
+        so that the entire set of models can be referenced with one model number (the individual
+        models can be referenced with submodel numbers).  The provider *could* pre-group them in
+        order to give the group a name other the default (which is based on the database entry ID;
+        the user can still override that with the ``name`` keyword of the open command).
+        In the specific case where the provider is pre-grouping atomic structures, it should specify
+        *pregrouped_structures* as "true" so the the open command's return value can be the actual list
+        of structures rather than a grouping model.  This greatly simplifies scripts trying to handle
+        return values from various kinds of structure-opening commands.
 
 For example::
 

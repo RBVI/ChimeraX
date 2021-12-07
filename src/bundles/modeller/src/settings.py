@@ -20,6 +20,8 @@ class _ModellerComparativeSettings(Settings):
         'het_preserve': False,
         'hydrogens': False,
         'license_key': None,
+        'local_execution': False,
+        'executable_path': "",
         'multichain': True,
         'num_models': 5,
         'temp_path': "",

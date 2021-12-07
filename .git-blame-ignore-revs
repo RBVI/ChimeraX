@@ -1,0 +1,8 @@
+# When making a commit that does not make a logical change, such as 
+# correcting a linting error, or modifying whitespace, add the 
+# commit to this file so that the code's owner is preserved in 
+# git blame.
+#
+228ff230b063d4ac8f4962d0f5f2b9ab1d637471 # Flake8 Error Corrections
+48468a2a7a09d664b0dbe62db4652e262f65b8cb # Typo Corrections
+42839823b7dadba4653e08a18bfce4ef989d7fed # Trailing Whitespace Corrections

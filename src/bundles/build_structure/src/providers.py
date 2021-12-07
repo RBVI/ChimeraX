@@ -198,7 +198,7 @@ class FragmentProvider(StartStructureProvider):
         layout.addWidget(but)
 
         gscene = QGraphicsScene()
-        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Background))
+        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Window))
         gview = QGraphicsView(gscene)
         gview.setRenderHint(QPainter.Antialiasing, True)
         layout.addWidget(gview)

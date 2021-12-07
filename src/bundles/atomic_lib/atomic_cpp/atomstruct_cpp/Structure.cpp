@@ -567,25 +567,8 @@ void
 Structure::delete_alt_locs()
 {
     // make current alt locs into "regular" atoms and remove other alt locs
-    for (auto a: _atoms) {
-        if (a->alt_loc() == ' ')
-            continue;
-        auto aniso_u = a->aniso_u();
-        auto bfactor = a->bfactor();
-        auto coord = a->coord();
-        auto occupancy = a->occupancy();
-        auto serial_number = a->serial_number();
-        a->_alt_loc = ' ';
-        change_tracker()->add_modified(this, a, ChangeTracker::REASON_ALT_LOC);
-        a->_alt_loc_map.clear();
-        if (aniso_u != nullptr)
-            a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
-                (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
-        a->set_bfactor(bfactor);
-        a->set_coord(coord);
-        a->set_occupancy(occupancy);
-        a->set_serial_number(serial_number);
-    }
+    for (auto a: _atoms)
+        a->clean_alt_locs();
 }
 
 void
@@ -742,7 +725,16 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
                     " AtomicStructure/Structure");
             }
     if (atoms.size() == _atoms.size()) {
-        delete this;
+        // if there's a Python instance call its delete(), else directly delete
+        auto inst = py_instance(false);
+        // py_instance() returns new reference, so ...
+        Py_DECREF(inst);
+        if (inst == Py_None) {
+            delete this;
+        } else {
+            auto ret = py_call_method("delete");
+            Py_XDECREF(ret);
+        }
         return;
     }
     // want to put missing-structure pseudobonds across new mid-chain gaps,
@@ -976,6 +968,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             }
         }
     }
+    set_gc_ribbon();
 }
 
 void

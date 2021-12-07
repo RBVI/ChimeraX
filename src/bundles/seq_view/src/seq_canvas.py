@@ -156,7 +156,7 @@ class SeqCanvas:
         # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
         # the width of 'W' as the maximum width instead.
-        font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
+        font_width, font_height = self.font_metrics.horizontalAdvance('W'), self.font_metrics.height()
         self.label_view.setMinimumHeight(font_height)
         self.main_view.setMinimumHeight(font_height)
         # pad font a little...
@@ -635,7 +635,7 @@ class SeqCanvas:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
                 offset = len([c for c in seq[:extent] if c.isalpha() or c == '?'])
-                lwidth = max(lwidth, self.font_metrics.width(
+                lwidth = max(lwidth, self.font_metrics.horizontalAdvance(
                     "%d " % (seq.numbering_start + offset)))
             lwidth += 3
         if self.show_numberings[1]:
@@ -643,7 +643,7 @@ class SeqCanvas:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
                 offset = len(seq.ungapped())
-                rwidth = max(rwidth, self.font_metrics.width(
+                rwidth = max(rwidth, self.font_metrics.horizontalAdvance(
                     "  %d" % (seq.numbering_start + offset)))
         return [lwidth, rwidth]
 
@@ -655,6 +655,7 @@ class SeqCanvas:
     def hide_header(self, header):
         self.lead_block.hide_header(header)
         self.sv.region_browser.redraw_regions()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
         
     def layout_alignment(self):
         """
@@ -1349,6 +1350,7 @@ class SeqCanvas:
     def show_header(self, header):
         self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
 
     """TODO
     def showNodes(self, show):
@@ -1635,9 +1637,9 @@ class SeqBlock:
         label_text = self.label_texts[aseq]
         name = _seq_name(aseq, self.settings)
         from Qt.QtGui import QFontMetrics
-        first_width = QFontMetrics(label_text.font()).width(name)
+        first_width = QFontMetrics(label_text.font()).horizontalAdvance(name)
         label_text.setFont(self._label_font(aseq))
-        diff = QFontMetrics(label_text.font()).width(name) - first_width
+        diff = QFontMetrics(label_text.font()).horizontalAdvance(name) - first_width
         if diff:
             label_text.moveBy(-diff, 0.0)
         label_text.setToolTip(self._label_tip(aseq))
@@ -1744,14 +1746,14 @@ class SeqBlock:
         else:
             hi_row = self.row_index(rel_y2, bound="top")
             low_row = self.row_index(rel_y1, bound="bottom")
+        if hi_row is None or low_row is None:
+            return (None, None, None, None)
         if exclude_headers:
             num_headers = len(self.lines) - len(self.alignment.seqs)
             if hi_row < num_headers:
                 hi_row = num_headers
                 if hi_row > low_row:
                     return (None, None, None, None)
-        if hi_row is None or low_row is None:
-            return (None, None, None, None)
 
         if y1 <= end and y2 <= end:
             if y1 > self.bottom_y and y2 > self.bottom_y \
@@ -2786,8 +2788,8 @@ def _find_label_width(lines, settings, font_metrics, emphasis_font_metrics, labe
     label_width = 0
     for seq in lines:
         name = _seq_name(seq, settings)
-        label_width = max(label_width, font_metrics.width(name))
-        label_width = max(label_width, emphasis_font_metrics.width(name))
+        label_width = max(label_width, font_metrics.horizontalAdvance(name))
+        label_width = max(label_width, emphasis_font_metrics.horizontalAdvance(name))
     label_width += label_pad
     return label_width
 

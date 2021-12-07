@@ -61,7 +61,7 @@ class Plane(State):
         return numpy.array(list(self._normal) + [self._offset])
 
     def intersection(self, plane):
-        """Returns (origin, normal); throws PlaneNoIntersectionError if parallel"""
+        """Returns a line in the form (origin, vector); throws PlaneNoIntersectionError if parallel"""
 
         v = numpy.cross(self._normal, plane._normal)
         if sqlength(v) == 0.0:

@@ -190,6 +190,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_implicit_idatm_type(const char*)
         void set_in_ribbon(bool)
         void set_name(const char*)
         void set_occupancy(float)

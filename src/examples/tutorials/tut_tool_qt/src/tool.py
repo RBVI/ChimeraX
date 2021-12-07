@@ -97,7 +97,7 @@ class TutorialTool(ToolInstance):
         # The x,y args are the x() and y() values of QContextMenuEvent, in the rare case
         # where the items put in the menu depends on where in the tool interface the menu
         # was raised.
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         clear_action = QAction("Clear", menu)
         clear_action.triggered.connect(lambda *args: self.line_edit.clear())
         menu.addAction(clear_action)

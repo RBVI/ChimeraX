@@ -47,7 +47,8 @@ can be altered is if C++ objects they hold are deleted in which case those objec
 are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, integer, empty, array
+npy_bool = bool
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
 from .molobject import c_function, c_array_function, cvec_property, Atom
@@ -474,6 +475,10 @@ class AtomicStructures(StructureDatas):
     def displays(self, d):
         for s in self:
             s.display = d
+
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1554,6 +1559,9 @@ class Structures(StructureDatas):
         for s in self:
             s.display = d
 
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):

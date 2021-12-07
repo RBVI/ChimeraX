@@ -295,7 +295,9 @@ def _displayed_objects(objects):
                 pseudobonds = pbonds[pbonds.displays], models = dmodels)
     from numpy import logical_and
     for m, minst in o.model_instances.items():
-        d.add_model_instances(m, logical_and(minst, m.display_positions))
+        shown = logical_and(minst, m.display_positions)
+        if shown.any():
+            d.add_model_instances(m, shown)
     return d
 
 class AllObjects:

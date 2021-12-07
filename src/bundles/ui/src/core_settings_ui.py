@@ -122,7 +122,7 @@ class CoreSettingsPanel:
             self.options[setting] = opt
 
         core_settings.triggers.add_handler('setting changed', self._core_setting_changed)
-        layout = QBoxLayout(QBoxLayout.TopToBottom)
+        layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
         layout.setSpacing(5)
         layout.addWidget(self.options_widget, 1)
         layout.setContentsMargins(0, 0, 0, 0)

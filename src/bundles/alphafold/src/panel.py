@@ -35,9 +35,11 @@ class AlphaFoldGUI(ToolInstance):
         heading = ('<html>'
                    'AlphaFold database and structure prediction'
                    '<ul style="margin-top: 5;">'
-                   '<li><b>Fetch</b> - Open the database structure with the most similar sequence'
-                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST'
-                   '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers'
+                   '<li><b>Fetch</b> - Open the database structure with the most similar sequence.'
+                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST.'
+                   '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers.'
+                   '<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                   'For complexes enter sequences separated by commas.'
                    '</ul></html>')
         from Qt.QtWidgets import QLabel
         hl = QLabel(heading)
@@ -52,7 +54,13 @@ class AlphaFoldGUI(ToolInstance):
         from Qt.QtWidgets import QTextEdit
         self._sequence_entry = se = QTextEdit(parent)
         layout.addWidget(se)
-                
+
+        # Prokaryote option for prediction
+        from chimerax.ui.widgets import EntriesRow
+        pr = EntriesRow(parent, False, 'Is prokaryote? Used for predicting complexes.')
+        self._prokaryote = pr.values[0]
+        layout.addWidget(pr.frame)
+        
         # Search, Fetch, and Predict buttons
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
@@ -183,20 +191,21 @@ class AlphaFoldGUI(ToolInstance):
     def _fetch(self):
         self._run_command('match')
     def _predict(self):
-        self._run_command('predict')
+        options = 'prokaryote true' if self._prokaryote.enabled else ''
+        self._run_command('predict', options = options)
     def _coloring(self):
         from . import colorgui
         colorgui.show_alphafold_coloring_panel(self.session)
         
     # ---------------------------------------------------------------------------
     #
-    def _run_command(self, action):
+    def _run_command(self, action, options = ''):
         seq = self._sequence_specifier(action)
         if seq is None:
             self.warn('No sequence chosen for AlphaFold %s' % action)
             return
 
-        if action in ('search', 'predict'):
+        if action in ('search',):
             nseq = self._sequence_count(seq)
             if nseq > 1:
                 self.warn('AlphaFold %s requires a single sequence, got %d sequences'
@@ -204,6 +213,8 @@ class AlphaFoldGUI(ToolInstance):
                 return
             
         cmd = 'alphafold %s %s' % (action, seq)
+        if options:
+            cmd += ' ' + options
 
         from chimerax.core.commands import run
         run(self.session, cmd)
@@ -218,7 +229,7 @@ class AlphaFoldGUI(ToolInstance):
             except Exception:
                 return 1
             return len(chains)
-        return 1
+        return len(seq.split(','))
             
     # ---------------------------------------------------------------------------
     #

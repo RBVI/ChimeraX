@@ -47,19 +47,21 @@ It is also implemented as the
 </p>
 <h3>Search Parameters</h3>
 
+<p>
+The first menu allows choosing a protein chain from the currently open 
+atomic structures to use as the query. Note: 
+the <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command 
+additionally allows using a sequence (for which no structure may be available) 
+as the query, such as to find templates for 
+<a href="modeller.html">comparative modeling</a>. See also:
+<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>
+</p>
 <ul class="none">
-<li>the first menu allows choosing a protein chain from the currently open 
-atomic structures to use as the query
-<br>
-*Note: the <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
-command additionally allows using a sequence
-(for which no structure may be available) as the query,
-such as to find templates for <a href="modeller.html">comparative modeling</a>
 <li><b>Database</b> &ndash; protein sequence database to search:
    <ul>
-   <li><b>PDB</b> (default) &ndash; experimentally determined structures in the
+   <li><b>pdb</b> (default) &ndash; experimentally determined structures in the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
-   <li><b>NR</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
+   <li><b>nr</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
 <a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
 CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
@@ -67,7 +69,7 @@ CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>PDB</b> alone and takes much longer to search
-  <li><b>AlphaFold</b> 
+  <li><b>alphafold</b> 
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
@@ -95,7 +97,11 @@ only hits with
 no larger than the specified value will be returned
 </ul>
 <p>
-Clicking the <b>BLAST</b> button initiates the search.
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+runs the search, whereas <b>Close</b> dismisses the dialog without 
+starting a search. <b>Help</b> opens this page in the 
+<a href="helpviewer.html"><b>Help Viewer</b></a>, and
+<b>Reset</b> restores the parameters to factory default settings.
 </p>
 
 <a name="results"></a>
@@ -107,6 +113,9 @@ Clicking the <b>BLAST</b> button initiates the search.
 When results are returned, the table of hits is shown in a separate window.
 These results are saved in 
 <a href="../commands/save.html#session">ChimeraX sessions</a>.
+If you wish to prevent the results from docking into the main window 
+(which may resize it), see <b>Tool windows start undocked</b> in the
+<a href="../preferences.html#window"><b>Window</b> preferences</a>.
 </p><p>
 Checkboxes in the bottom section of the panel control which columns of 
 information are shown in the table of hits, with buttons:
@@ -119,6 +128,7 @@ information are shown in the table of hits, with buttons:
 initially displayed columns
 <li><b>Set Default</b> &ndash; save the currently shown set as a 
 user <a href="../preferences.html#other">preference</a>
+<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
 </ul>
 <p>
 Clicking a column header sorts by the values in that column.
@@ -141,12 +151,11 @@ can be used to fetch and superimpose all of the corresponding structures, or to
 show their <a href="#notes">multiple sequence alignment</a> with the query
 in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </p><p>
-Some columns are available regardless of which database is searched:
+Some columns are available no matter which database is searched:
 </p>
 <ul>
-<li><b>Rank</b> &ndash; 
-<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
-rank (from most significant to least)
+<li><b>Hit #</b> &ndash; hit number (sorted by most significant
+<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>)
 <li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain 
@@ -164,7 +173,9 @@ target="_blank">NCBI Protein</a> database -->
 <li><b>Title</b> &ndash; a brief description of the sequence
 <li><b>Species</b> &ndash; source organism
 <!--
-<li><b>Description</b> &ndash; a brief description of the sequence
+<li><b>Description</b> 
+(or for AlphaFold, separate <b>Title</b> and <b>Species</b> columns)
+&ndash; sequence title and source species
 <li><b>URL</b> &ndash; URL used by ChimeraX for the <b>Name</b> click action
 -->
 </ul>
@@ -187,28 +198,23 @@ target="_blank">NCBI taxid</a> of the source organism
 Additional columns for PDB entries (from searching PDB or NR):
 </p>
 <ul>
-<li><b>Date</b> &ndash; structure deposition date
-<!-- <li><b>Title</b> &ndash; structure title -->
-<li><b>Method</b> &ndash; method of structure determination
-<li><b>Resolution</b> &ndash; crystallographic resolution
-<li><b>Authors</b> &ndash; structure authors
-<li><b>PubMed</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/"
-target="_blank">PubMed</a> identifier of literature reference, if any
-<li><b>Total Atoms</b>
+<li><b># Atoms</b>
 &ndash; total number of atoms in the structure (all chains)
-<li><b>Total Residues</b>
+<li><b># Polymers</b>
+&ndash; number of different polymer chains in the structure
+(not counting multiple copies of the same sequence)
+<li><b># Residues</b>
 &ndash; total number of residues in the structure (all chains)
+<li><b>Authors</b> &ndash; structure authors
+<li><b>Chain Copies</b>
+&ndash; number of copies of the hit chain in the structure
 <li><b>Chain Names</b>
 &ndash; chain identifiers and descriptions of polymer chains in the structure
-<li><b>Copies</b> &ndash; number of copies of the hit chain in the structure
-<li><b>Polymers</b> &ndash; number of different polymer chains in the structure
-(not counting multiple copies of the same sequence)
-<li><b>Residues</b> &ndash; number of residues in the hit chain
-<!-- <li><b>Species</b> &ndash; scientific name of source organism -->
-<li><b>UniProt</b>
-&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-identifier, if any, for hit chain
-<li><b>Weight</b> &ndash; molecular weight of hit chain
+<li><b>Chain Residues</b>
+&ndash; number of residues in the hit chain
+<li><b>Chain Weight</b>
+&ndash; molecular weight of the hit chain
+<li><b>Date</b> &ndash; structure deposition date
 <li><b>Ligand Formulas</b> &ndash; chemical formulae of ligand chemical components
 <li><b>Ligand Names</b> &ndash; names of ligand chemical components
 <li><b>Ligand Smiles</b> &ndash;
@@ -217,6 +223,13 @@ target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 <li><b>Ligand Symbols</b> &ndash; residue names of ligand chemical components
 <li><b>Ligand Weights</b>
 &ndash; molecular weights of ligand chemical components
+<li><b>Method</b> &ndash; method of structure determination
+<li><b>PubMed ID</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/"
+target="_blank">PubMed</a> identifier of literature reference, if any
+<li><b>Resolution</b> &ndash; crystallographic resolution
+<li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+identifier, if any, for the hit chain
 </ul>
 
 <a name="notes"></a>
@@ -252,5 +265,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2021</address>
+November 2021</address>
 </body></html>

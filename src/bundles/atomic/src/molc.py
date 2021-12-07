@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from numpy import object as string, uintp as cptr, object as pyobject
+from numpy import uintp as cptr
+string = object
+pyobject = object
 
 from numpy import empty, ndarray
 import ctypes
@@ -275,10 +277,10 @@ numpy_type_to_ctype = {
     numpy.uint8: ctypes.c_uint8,
     numpy.uintp: ctypes.c_void_p,
     numpy.byte: ctypes.c_char,
-    numpy.bool: ctypes.c_bool,
+    bool: ctypes.c_bool,
     numpy.bool_: ctypes.c_bool,
     numpy.object_: ctypes.py_object,
-    numpy.object: ctypes.py_object,
+    object: ctypes.py_object,
 }
 
 # -----------------------------------------------------------------------------

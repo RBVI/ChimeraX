@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ModelPanel" version="1.2"
+<BundleInfo name="ChimeraX-ModelPanel" version="1.3.1"
 	    package="chimerax.model_panel"
   	    minSessionVersion="1" maxSessionVersion="1">
 

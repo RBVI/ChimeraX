@@ -47,7 +47,8 @@ class Option(metaclass=ABCMeta):
             from weakref import proxy
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and setattr(pself, "value", pself.get_attribute()))
+                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
+                or (self._callback and self._callback(self))))
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -194,8 +195,9 @@ class Option(metaclass=ABCMeta):
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
         if self.attr_name and self.settings and self.auto_set_attr:
+            # the attr-set callback will call _callback()
             self.set_attribute()
-        if self._callback:
+        elif self._callback:
             self._callback(self)
 
     @abstractmethod
@@ -349,7 +351,8 @@ class EnumBase(Option):
             self.widget.setText(self.multiple_value)
 
     def remake_menu(self, *, make_callback=True):
-        from Qt.QtWidgets import QAction, QRadioButton
+        from Qt.QtWidgets import QRadioButton
+        from Qt.QtGui import QAction
         from Qt.QtCore import Qt
         if isinstance(self, SymbolicEnumOption):
             labels = self.labels
@@ -389,7 +392,11 @@ class EnumBase(Option):
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            self.__button_group.buttonClicked[int].connect(self.make_callback)
+            from Qt import using_pyqt6
+            if using_pyqt6:
+                self.__button_group.idClicked.connect(self.make_callback)
+            else:
+                self.__button_group.buttonClicked[int].connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -542,9 +549,67 @@ class FontOption(EnumOption):
     def __init__(self, *args, **kw):
         if self.values is None:
             from Qt.QtGui import QFontDatabase
-            fdb = QFontDatabase()
+            from Qt import using_qt5
+            fdb = QFontDatabase() if using_qt5 else QFontDatabase
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
+
+class FileOption(Option):
+    """base class for specifying a file """
+
+    @classmethod
+    def browse_func(cls, *args, **kw):
+        from Qt.QtWidgets import QFileDialog
+        if cls == InputFileOption:
+            return QFileDialog.getOpenFileName(*args, **kw)
+        return QFileDialog.getSaveFileName(*args, **kw)
+
+    def get_value(self):
+        return self.line_edit.text()
+
+    def set_value(self, value):
+        self.line_edit.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.line_edit.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose File", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        self.widget = QWidget()
+        self.widget.setContentsMargins(0,0,0,0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.widget.setLayout(layout)
+        self.line_edit = QLineEdit()
+        self.line_edit.returnPressed.connect(self.make_callback)
+        if initial_text_width:
+            self.line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        layout.addWidget(self.line_edit, stretch=1)
+        self.start_folder = start_folder
+        self.browser_title = browser_title
+        button = QPushButton("Browse")
+        button.clicked.connect(self._launch_browser)
+        layout.addWidget(button)
+
+    def _launch_browser(self, *args):
+        import os
+        if self.start_folder is None or not os.path.exists(self.start_folder):
+            start_folder = os.getcwd()
+        else:
+            start_folder = self.start_folder
+        file, filter = self.browse_func(self.widget, self.browser_title, start_folder)
+        if file:
+            self.line_edit.setText(file)
+            self.line_edit.returnPressed.emit()
+
+class InputFileOption(FileOption):
+    pass
+class OutputFileOption(FileOption):
+    pass
 
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
@@ -870,7 +935,7 @@ class StringsOption(Option):
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
-        self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         sheet_info = ""
         if initial_text_width:
             sheet_info = "width: %s" % initial_text_width
@@ -938,14 +1003,14 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
@@ -970,7 +1035,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
 
@@ -979,14 +1044,14 @@ def _make_int_spinbox(min, max, **kw):
     class NoScrollSpinBox(QSpinBox):
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
@@ -1001,6 +1066,6 @@ def _make_int_spinbox(min, max, **kw):
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box

@@ -38,7 +38,7 @@ def type_attrs(t):
 
 from .state import State, StateManager
 
-# something that can't be a default value, yet can be saved in sessions...
+# No longer used, but needed for session restore...
 class _NoDefault(State):
 
     def take_snapshot(self, session, flags):
@@ -49,23 +49,10 @@ class _NoDefault(State):
         return NO_DEFAULT
 NO_DEFAULT = _NoDefault()
 
-# methods that the manager will insert into the managed classes (inheritance won't work)
-def _getattr_(self, attr_name, look_in_class=None):
-    if look_in_class is None:
-        look_in_class = self.__class__
-    try:
-        return look_in_class._attr_registration.get_attr(attr_name)
-    except AttributeError:
-        for base in look_in_class.__bases__:
-            if hasattr(base, "__getattr__"):
-                return base.__getattr__(self, attr_name, look_in_class=base)
-        else:
-            raise
-
 @classmethod
-def register_attr(cls, session, attr_name, registerer, *, default_value=NO_DEFAULT, attr_type=None,
+def register_attr(cls, session, attr_name, registerer, *, attr_type=None,
         can_return_none=False):
-    cls._attr_registration.register(session, attr_name, registerer, default_value, (attr_type, can_return_none))
+    cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none))
 
 # used within the class to hold the registration info
 class AttrRegistration:
@@ -75,26 +62,14 @@ class AttrRegistration:
         self._session_attrs = {}
         self._ses_attr_counts = {}
 
-    def get_attr(self, attr_name):
-        try:
-            registrant, default_value, type_info = self.reg_attr_info[attr_name]
-        except KeyError:
-            if attr_name in dir(self.class_):
-                raise AttributeError("Execution of '%s' object's '%s' property raised AttributeError" % (self.class_.__name__, attr_name)) from None
-            else:
-                raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name)) from None
-        if default_value == NO_DEFAULT:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.class_.__name__, attr_name))
-        return default_value
-
-    def register(self, session, attr_name, registrant, default_value, type_info):
+    def register(self, session, attr_name, registrant, type_info):
         if attr_name in self.reg_attr_info:
-            prev_registrant, prev_default, prev_type_info = self.reg_attr_info[attr_name]
-            if prev_default == default_value and prev_type_info == type_info:
+            prev_registrant, prev_type_info = self.reg_attr_info[attr_name]
+            if prev_type_info == type_info:
                 return
             raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
                 " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
-        self.reg_attr_info[attr_name] = (registrant, default_value, type_info)
+        self.reg_attr_info[attr_name] = (registrant, type_info)
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
             session_attrs.add(attr_name)
@@ -111,17 +86,27 @@ class AttrRegistration:
         attr_names = self._session_attrs.get(session, [])
         for attr_name in attr_names:
             ses_reg_attr_info[attr_name] = self.reg_attr_info[attr_name]
-        data = {'reg_attr_info': ses_reg_attr_info, 'version': 2}
+        data = {'reg_attr_info': ses_reg_attr_info, 'version': 3}
         return data
 
     def restore_session_data(self, session, data):
-        if data.get('version', 1) == 1:
+        version = data.get('version', 1)
+        if version == 1:
             reg_attr_info = {}
             for attr_name, reg_info in data['reg_attr_info'].items():
                 registrant, default_value, attr_type = reg_info
-                reg_attr_info[attr_name] = (registrant, default_value, (attr_type, False))
-        else:
+                reg_attr_info[attr_name] = (registrant, (attr_type, False))
+        elif version == 2:
+            reg_attr_info = {}
+            for attr_name, reg_info in data['reg_attr_info'].items():
+                registrant, default_value, type_info = reg_info
+                reg_attr_info[attr_name] = (registrant, type_info)
+        elif version == 3:
             reg_attr_info = data['reg_attr_info']
+        else:
+            session.logger.warning("Don't know how to restore custom attribute information from newer"
+                " version of ChimeraX.  Skipping")
+            return
         for attr_name, reg_info in reg_attr_info.items():
             self.register(session, attr_name, *reg_info)
 
@@ -137,10 +122,9 @@ def custom_attrs(self):
     custom_attrs = []
     for attr_name, attr_info in self.__class__._attr_registration.reg_attr_info.items():
         if hasattr(self, attr_name):
-            registrant, default_value, attr_type = attr_info
+            registrant, attr_type = attr_info
             val = getattr(self, attr_name)
-            if default_value == NO_DEFAULT or val != default_value:
-                custom_attrs.append((attr_name, val))
+            custom_attrs.append((attr_name, val))
     return custom_attrs
 
 def set_custom_attrs(self, ses_data):
@@ -165,7 +149,6 @@ def register_class(reg_class, instances_func, builtin_attr_info={}):
     if hasattr(reg_class, '_attr_registration'):
         return
     reg_class._attr_registration = AttrRegistration(reg_class)
-    reg_class.__getattr__ = _getattr_
     reg_class.register_attr = register_attr
     reg_class.has_custom_attrs = has_custom_attrs
     reg_class.custom_attrs = custom_attrs
@@ -214,7 +197,7 @@ class RegAttrManager(StateManager):
 
         # registered attributes
         for attr_name, attr_info in class_obj._attr_registration.reg_attr_info.items():
-            registrant, default_value, type_info = attr_info
+            registrant, type_info = attr_info
             attr_type, can_return_none = type_info
             if attr_type not in return_types:
                 # this will also catch attr_type of None

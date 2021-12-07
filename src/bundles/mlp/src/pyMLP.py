@@ -59,12 +59,6 @@ import numpy
 from optparse import OptionParser
 from pprint import pformat
 
-try:
-    import psyco
-    psyco.full()
-except ImportError:
-    pass
-
 class Defaults(object):
     """Constants"""
 

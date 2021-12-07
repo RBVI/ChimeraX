@@ -26,7 +26,7 @@ class GraphicsWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
-        self.setSurfaceType(QSurface.OpenGLSurface)
+        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
 
         if opengl_context is None:
             from chimerax.graphics import OpenGLContext
@@ -51,7 +51,7 @@ class GraphicsWindow(QWindow):
         if self.handle_drag_and_drop(event):
             return True
         from Qt.QtCore import QEvent
-        if event.type() == QEvent.Show:
+        if event.type() == QEvent.Type.Show:
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
         return QWindow.event(self, event)
@@ -109,10 +109,10 @@ class GraphicsWindow(QWindow):
         ui = self.session.ui
         if hasattr(ui, 'main_window'):
             mw = ui.main_window
-            if t == QEvent.DragEnter:
+            if t == QEvent.Type.DragEnter:
                 mw.dragEnterEvent(event)
                 return True
-            elif t == QEvent.Drop:
+            elif t == QEvent.Type.Drop:
                 mw.dropEvent(event)
                 return True
 
@@ -172,9 +172,9 @@ class Popup(QLabel):
             # These flags also cause problems on Mac if ChimeraX is fullscreen, the
             # balloon replaces the entire gui, ChimeraX bug #2210.
 #            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
-            win_flags = Qt.ToolTip
+            win_flags = Qt.WindowType.ToolTip
         else:
-            win_flags = Qt.ToolTip
+            win_flags = Qt.WindowType.ToolTip
         self.setWindowFlags(self.windowFlags() | win_flags)
         self.graphics_window = graphics_window
 

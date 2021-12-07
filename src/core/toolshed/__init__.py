@@ -388,6 +388,7 @@ class Toolshed:
         if check_available:
             need_check = need_to_check(
                 settings.newer_last_check, settings.newer_update_interval, now)
+            # need_check = True  # DEBUG
             if session and need_check:
                 if not session.ui.is_gui or session.ui.main_window:
                     NewerVersionQuery(session)
@@ -1484,12 +1485,12 @@ class NewerVersionQuery(Task):
             "os_version": version,
             "chimera_x_version": buildinfo.version,
         }
-        # params = {
+        # params = {  # DEBUG
         #     # DEBUG DEBUG DEBUG
         #     "uuid": str(chimerax_uuid()),
         #     "os": "macosx",
         #     "os_version": "10.14",
-        #     "chimera_x_version": "1.1rc12",
+        #     "chimera_x_version": "1.1",
         # }
         self.start(self.SERVICE_NAME, params, blocking=False)
 
@@ -1502,34 +1503,122 @@ class NewerVersionQuery(Task):
         if not versions:
             return
 
+        # don't bother user about releases they've choosen to ignore
+        from ..core_settings import settings
+        versions = [v for v in versions if v[0] not in settings.ignore_update]
+        if not versions:
+            return
+
         # notify user of newer versions
         from chimerax.core.commands import plural_form
         from .. import buildinfo
         # TODO: would like link to release notes and/or change log
-        message = (
-            "There is a newer version of UCSF ChimeraX available.  Downloads are available"
-            " at the <a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
-            "ChimeraX download page</a>."
-            f"  Here {plural_form(versions, 'is', 'are')} direct links to the newer"
-            f" {plural_form(versions, 'version')} for your system:"
-            "<ul>"
-        ) + ''.join(f"<li> <a href='{link}'>UCSF ChimeraX {version}</a>\n" for version, link in versions) + (
-            "</ul><p>"
-            f"You are currently running UCSF ChimeraX {buildinfo.version}."
-        )
 
         if not self.session.ui.is_gui:
-            self.session.logger.info(message, is_html=True)
+            message = (
+                "There is a newer version of UCSF ChimeraX available.  Downloads are available"
+                "\nat the https://www.rbvi.ucsf.edu/chimerax/download.html."
+            )
+            self.session.logger.info(message)
             return
 
-        from Qt.QtWidgets import QMessageBox
-        from Qt.QtCore import Qt
-        # keep reference to message box because its non-modal and would disappear otherwise
-        self.msg_box = mb = QMessageBox(self.session.ui.main_window)
-        mb.setIcon(QMessageBox.Information)
-        mb.setWindowTitle("ChimeraX Update Available")
-        mb.setText(message)
-        mb.setStandardButtons(QMessageBox.Close)
-        mb.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        mb.setModal(False)
-        mb.show()
+        from Qt.QtWidgets import QDialog
+
+        class NewerDialog(QDialog):
+
+            def __init__(self, parent):
+                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox, QFrame
+                from Qt.QtCore import Qt, QSize
+                from Qt.QtGui import QPalette
+                super().__init__(parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
+                self.setWindowTitle("ChimeraX Update Available")
+                self.setModal(False)
+                self.setBackgroundRole(QPalette.Base)
+                self.setAutoFillBackground(True)
+                self.ignored = {}
+
+                info = QLabel()
+                icon = info.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+                info.setMinimumSize(64, 64)
+                info.setPixmap(icon.pixmap(QSize(64, 64)))
+
+                version = buildinfo.version
+                # version = "1.1"  # DEBUG
+                header = QLabel(
+                    f"You are currently running UCSF ChimeraX {version}."
+                    "<p>Click here to download a newer release for your system:"
+                )
+                footer = QLabel(
+                    "You can get other releases from the "
+                    "<a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
+                    "ChimeraX download page</a>."
+                )
+                footer.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                footer.setOpenExternalLinks(True)
+
+                updates = QFrame()
+                # two columns: versioned link, remind
+                layout = QGridLayout()
+                updates.setLayout(layout)
+                for row, (version, link) in enumerate(reversed(versions)):
+                    html = f"&bull; <a href='{link}'>UCSF ChimeraX {version}</a>\n"
+                    w = QLabel(html)
+                    w.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                    w.setOpenExternalLinks(True)
+                    remind = QCheckBox("Remind me later")
+                    remind.setToolTip("Show this release in future update checks")
+                    remind.setChecked(True)
+                    remind.stateChanged.connect(lambda state, version=version: self.remind_later(state, version))
+                    layout.addWidget(w, row, 0)
+                    layout.addWidget(remind, row, 1)
+
+                hr = QFrame(self)
+                hr.setFrameShape(QFrame.HLine)
+                hr.setFixedHeight(1)
+                hr.setForegroundRole(QPalette.Midlight)
+                hr.setAutoFillBackground(True)
+
+                bbox = QDialogButtonBox(self)
+                bbox.setBackgroundRole(QPalette.Window)
+                bbox.setAutoFillBackground(True)
+                bbox.setStandardButtons(QDialogButtonBox.Close)
+                bbox.accepted.connect(self.accept)
+                bbox.rejected.connect(self.reject)
+
+                layout = QGridLayout()
+                self.setLayout(layout)
+                layout.addWidget(info, 0, 0, 2, 1, Qt.AlignmentFlag.AlignTop)
+                layout.addWidget(header, 0, 1)
+                layout.addWidget(updates, 1, 1, Qt.AlignmentFlag.AlignLeft)
+                layout.addWidget(footer, 2, 1)
+                layout.addWidget(hr, 3, 0, 1, 2)
+                layout.addWidget(bbox, 4, 0, 1, 2)
+
+                # Need button box to be flush with edges of dialog, so move
+                # layout's margins to widgets within the layout
+                layout.setHorizontalSpacing(0)
+                layout.setVerticalSpacing(0)
+                margins = layout.getContentsMargins()  # left, top, right, bottom
+                layout.setContentsMargins(0, 0, 0, 0)
+                info.setContentsMargins(margins[0], 0, 0, 0)
+                header.setContentsMargins(0, margins[1], margins[2], 0)
+                updates.setContentsMargins(margins[0], 0, margins[2], 0)
+                footer.setContentsMargins(0, 0, margins[2], margins[3])
+                bbox.setContentsMargins(*margins)
+
+            def remind_later(self, state, version=None):
+                self.ignored[version] = not state
+
+            def done(self, result):
+                all_ignored = [version for version in self.ignored if self.ignored[version]]
+                if all_ignored:
+                    # don't use += or .extend() to guarantee that Settings.__setattr__
+                    # will see that ignore_update has changed
+                    ignore = settings.ignore_update + all_ignored
+                    settings.ignore_update = ignore
+                super().done(result)
+
+        # keep reference to dialog because it's non-modal and would disappear otherwise
+        d = NewerDialog(self.session.ui.main_window)
+        self.newer_dialog = d
+        d.show()

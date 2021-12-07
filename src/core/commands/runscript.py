@@ -27,5 +27,6 @@ def runscript(session, script_file, *, args=None):
     argv = [script_file]
     if args is not None:
         argv += shlex.split(args)
-    open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
+    with session.in_script:
+        open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
     return []

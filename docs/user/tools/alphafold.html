@@ -57,6 +57,16 @@ Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
 </blockquote>
+<a name="alphafold-multimer"></a>
+<p>
+...and for multimer prediction:
+</p>
+<blockquote>
+<a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034"
+target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
+Evans R, O'Neill M, Pritzel A, <i>et al.</i> bioRxiv 2021.
+doi: https://doi.org/10.1101/2021.10.04.463034.
+</blockquote>
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
@@ -66,8 +76,7 @@ including humans. It does not cover all of
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
-The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
-system predicts structures for single chains, not complexes; 
+The database contains structures for single chains, not complexes; 
 assembling the individual predictions into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
@@ -78,7 +87,9 @@ See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
-target="_blank">comparing AlphaFold and experimental structures</a>, and
+target="_blank">comparing AlphaFold and experimental structures</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-nov2021/af_sbgrid.html"
+target="_blank">cryoEM modeling with AlphaFold structures</a>, and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
 <a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching by sequence</a>
@@ -104,8 +115,27 @@ The <b>Sequence</b> can be specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number, pasted in as plain text, or chosen
 from the menu of currently open protein structure chains.
+</p><p>
+For predicting a complex, the sequences of all chains in the complex
+must be given. The same sequence must be given multiple times if it occurs in 
+multiple copies in the complex. The sequences can be specified
+either collectively as a model number chosen from the menu of currently
+open models (<i>e.g.</i> when that model contains multiple chains), or
+individually within a comma-separated list of
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+identifiers or pasted-in amino acid sequences. Only commas,
+not spaces, should separate the sequences or identifiers.
+Prediction may only be feasible for smaller complexes
+(<a href="#caveats">details...</a>).
 </p>
 <ul>
+<li>
+<b>Is prokaryote? Used for predicting complexes.</b>
+&ndash; activate this option if predicting a complex of prokaryotic sequences,
+because <a href="#alphafold-multimer">AlphaFold-Multimer</a> uses a slightly
+different method for predicting complexes of prokaryotic <i>vs.</i> 
+eukaryotic sequences.
+<br><br>
 <li>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar prediction available from the
@@ -126,7 +156,7 @@ If the sequence was specified by structure chain, then:
 <li>the chain ID of the predicted structure is made the same as the
 corresponding chain of the existing model
 <li>the predicted structure is superimposed onto the existing chain using
-<a href="../commands/matchmaker.html"><b>matchmaker</b></a> defaults,
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a>,
 and the following are reported in a table
 in the <a href="log.html"><b>Log</b></a>:
   <ul>
@@ -211,12 +241,16 @@ A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
 predicting atomic coordinates, and energy-minimizing the best structure.
-</p><p>
 The free version of Google Colab does not allow for much run time.
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
+</p><p>
+If the sequence was specified by structure chain, the prediction will
+be superimposed on that chain and assigned structure-comparison attributes 
+for further analysis
+(<a href="../commands/alphafold.html#structmatch">details...</a>).
 </p><p>
 <a name="caveats"></a>
 Please note the following caveats:
@@ -249,6 +283,12 @@ For best reliability, it is recommended to use the
 open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
+<br><br>
+<li>Total <b>sequence length cannot be very large</b>.
+AlphaFold runs out of graphics memory for long sequences (~800 amino acids
+on old Google Colab GPUs with 16 GB memory). For predicting complexes,
+the sum of the lengths of the sequences faces this same limit,
+so <b>only smaller complexes can be predicted</b>.
 </ul>
 <br>
 <li><a name="coloring"></a>
@@ -265,49 +305,49 @@ When first opened, AlphaFold-predicted structures are automatically colored by
 the <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field:
 </p>
-     <ul>
-     <li>90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
-to 100
+  <ul>
+     <li>100
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=blue width="10px" title="blue"></td></tr>
-</table>
-&ndash; high accuracy expected
-     <li>70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
 to 90
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
 </table>
-&ndash; expected to be modeled well (a generally good backbone prediction)
-     <li>50
+&ndash; high accuracy expected
+     <li>90
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
 </table>
 to 70
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
-&ndash; low confidence, treat with caution
-     <li>0
+&ndash; backbone expected to be modeled well
+     <li>70
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=red width="10px" title="red"></td></tr>
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
 </table>
 to 50
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle">
 <tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+&ndash; low confidence, caution
+     <li>50
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+to 0
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=red width="10px" title="red"></td></tr>
 </table>
 &ndash; should not be interpreted, may be disordered
      </ul>
@@ -423,5 +463,5 @@ B-factor field of the PDB file) and
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+December 2021</address>
 </body></html>
