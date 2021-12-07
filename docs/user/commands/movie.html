@@ -166,7 +166,7 @@ command and its output in the <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
 <a name="format"></a>
-<b>format</b> &nbsp;h264&nbsp;|&nbsp;vp8&nbsp;|&nbsp;webm&nbsp;|&nbsp;theora&nbsp;|&nbsp;ogg&nbsp;|&nbsp;ogv&nbsp;|&nbsp;mov&nbsp;|&nbsp;qt&nbsp;|&nbsp;quicktime&nbsp;|&nbsp;avi&nbsp;|&nbsp;wmv
+<b>format</b> &nbsp;h264&nbsp;|&nbsp;vp8&nbsp;|&nbsp;webm&nbsp;|&nbsp;theora&nbsp;|&nbsp;ogg&nbsp;|&nbsp;ogv&nbsp;|&nbsp;mov&nbsp;|&nbsp;qt&nbsp;|&nbsp;quicktime&nbsp;|&nbsp;avi&nbsp;|&nbsp;wmv&nbsp;|&nbsp;apng
 <br>
 Encode the movie in the specified format.  
 Format keywords and their synonyms are listed in the table below.
@@ -197,6 +197,9 @@ filename suffix.  The available formats can be listed with the command
 </tr><tr>
 <td align="center">wmv</td><td align="center">WMV2</td>
 <td align="center">.wmv</td>
+</tr><tr>
+<td align="center">apng</td><td align="center">APNG</td>
+<td align="center">.png</td>
 </tr></table>
 </blockquote>
 <blockquote>
@@ -211,6 +214,10 @@ The <a href="#qscale"><b>qscale</b></a> option can be used for finer control.
 When specified by the user,
 <b>quality</b> overrides <a href="#qscale"><b>qscale</b></a> and
 <a href="#bitrate"><b>bitrate</b></a> (constant bit rate encoding).
+<p>
+The <b>quality</b>, <a href="#qscale"><b>qscale</b></a>, and
+<a href="#bitrate"><b>bitrate</b></a> options do not apply to the
+lossless animated PNG (apng) <a href="#format">format</a>.
 </blockquote>
 <blockquote>
 <a name="qscale"></a>
@@ -321,5 +328,5 @@ script (movie content) development.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2020</address>
+December 2021</address>
 </body></html>
