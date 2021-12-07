@@ -33,7 +33,7 @@ class ModelPanel(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from Qt.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QFrame, QPushButton, QSizePolicy
+            QFrame, QPushButton, QSizePolicy, QScrollArea, QWidget
         class SizedTreeWidget(QTreeWidget):
             def sizeHint(self):
                 from Qt.QtCore import QSize
@@ -69,15 +69,21 @@ class ModelPanel(ToolInstance):
         self.tree.setUniformRowHeights(True)
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
+        scrolled_button_area = QScrollArea()
+        layout.addWidget(scrolled_button_area)
+        button_area = QWidget()
         buttons_layout = QVBoxLayout()
-        layout.addLayout(buttons_layout)
+        buttons_layout.setContentsMargins(0,0,0,0)
+        buttons_layout.setSpacing(0)
+        button_area.setLayout(buttons_layout)
         self._items = []
-        for model_func in [close, hide, show, view]:
+        for model_func in [close, hide, show, view, info]:
             button = QPushButton(model_func.__name__.capitalize())
             buttons_layout.addWidget(button)
             button.clicked.connect(lambda *, self=self, mf=model_func, ses=session:
                 mf([self.models[row] for row in [self._items.index(i)
                     for i in self.tree.selectedItems()]] or self.models, ses))
+        scrolled_button_area.setWidget(button_area)
         self.simply_changed_models = set()
         self.check_model_list = True
         self.countdown = 1
@@ -159,7 +165,7 @@ class ModelPanel(ToolInstance):
         if len(self.session.models) == 0:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
-            self._fill_tree(always_rebuild=always_rebuild)
+            self._fill_tree(always_rebuild=True)
         elif self._frame_drawn_handler is None:
             self._frame_drawn_handler = self.session.triggers.add_handler("new frame",
                 lambda *args, ft=self._fill_tree, ar=always_rebuild: ft(always_rebuild=ar))
@@ -218,11 +224,27 @@ class ModelPanel(ToolInstance):
                 self._items.append(item)
                 if bg_color is not False:
                     from chimerax.ui.widgets import MultiColorButton
-                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16))
-                    def set_single_color(rgba, m=model, ses=self.session):
-                        for cm in m.all_models():
-                            cm.single_color = rgba
-                    but.color_changed.connect(set_single_color)
+                    but = MultiColorButton(has_alpha_channel=True, max_size=(16,16), pause_delay=0.5)
+                    def set_model_color(rgba, m=model, ses=self.session, but=but):
+                        from chimerax.core.models import Surface
+                        from chimerax.atomic import Structure
+                        if isinstance(m, (Structure, Surface)):
+                            target_string = ""
+                        else:
+                            target_string = " models"
+                        from chimerax.core.commands import run
+                        from chimerax.core.colors import color_name
+                        c_name = color_name(rgba)
+                        need_transparency = (not c_name[0] == '#') or len(c_name) == 7
+                        cmd = "color #%s %s%s%s" % (m.id_string, color_name(rgba), target_string,
+                            " transparency 0" if need_transparency else "")
+                        run(ses, cmd, log=False)
+                        but.delayed_cmd_text = cmd
+                    but.color_changed.connect(set_model_color)
+                    def log_delayed_cmd(*args, but=but, ses=self.session):
+                        from chimerax.core.commands import Command
+                        Command(ses).run(but.delayed_cmd_text, log_only=True)
+                    but.color_pause.connect(log_delayed_cmd)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
                 
@@ -294,7 +316,7 @@ class ModelPanel(ToolInstance):
         event.Skip()
 
     def _model_color(self, model):
-        return model.single_color
+        return model.model_color
 
     def _process_models(self):
         models = self.session.models.list()
@@ -342,6 +364,22 @@ def close(models, session):
 def hide(models, session):
     _mp.self_initiated = True
     run(session, "hide %s target m" % concise_model_spec(session, models))
+
+def info(models, session):
+    from chimerax.atomic import AtomicStructure
+    structures = [m for m in models if isinstance(m, AtomicStructure)]
+    if not structures:
+        from chimerax.core.errors import UserError
+        raise UserError("No atomic structure models chosen")
+    spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
+    from chimerax.atomic.structure import assembly_html_table
+    for s in structures:
+        if assembly_html_table(s):
+            base_cmd = "sym %s; " % spec
+            break
+    else:
+        base_cmd = ""
+    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
 
 _mp = None
 def model_panel(session, tool_name):

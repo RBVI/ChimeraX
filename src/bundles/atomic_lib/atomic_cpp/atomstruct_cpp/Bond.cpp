@@ -31,14 +31,63 @@ template class pyinstance::PythonInstance<atomstruct::Bond>;
 
 namespace atomstruct {
 
-Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
+Bond::Bond(Structure* as, Atom* a1, Atom* a2, bool bond_only): UniqueConnection(a1, a2)
 {
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");
 
-    as->_form_chain_check(a1, a2, this);
-    a1->structure()->_structure_cats_dirty = true;
+    if (!bond_only) {
+        as->_form_chain_check(a1, a2, this);
+        a1->structure()->_structure_cats_dirty = true;
+    }
     change_tracker()->add_created(a1->structure(), this);
+}
+
+bool
+Bond::in_cycle() const
+{
+    // faster cycle checker than full ring recomputation;
+    // look in breadth-first fashion off both end simultaneously
+    std::vector<const Atom*> check_list1, check_list2, next_list;
+    std::set<const Atom*> visited1, visited2;
+    const Atom* a1 = atoms()[0];
+    const Atom* a2 = atoms()[1];
+    visited1.insert(a1);
+    visited2.insert(a2);
+    for (auto nb1: a1->neighbors()) {
+        if (nb1 != a2)
+            check_list1.push_back(nb1);
+    }
+    for (auto nb2: a2->neighbors()) {
+        if (nb2 != a1)
+            check_list1.push_back(nb2);
+    }
+    while (!check_list1.empty() && !check_list2.empty()) {
+        next_list.clear();
+        for (auto a: check_list1) {
+            for (auto nb: a->neighbors()) {
+                if (visited1.find(a) != visited1.end())
+                    continue;
+                if (nb == a2)
+                    return true;
+                next_list.push_back(nb);
+            }
+        }
+        check_list1.swap(next_list);
+
+        next_list.clear();
+        for (auto a: check_list2) {
+            for (auto nb: a->neighbors()) {
+                if (visited2.find(a) != visited2.end())
+                    continue;
+                if (nb == a1)
+                    return true;
+                next_list.push_back(nb);
+            }
+        }
+        check_list2.swap(next_list);
+    }
+    return false;
 }
 
 bool

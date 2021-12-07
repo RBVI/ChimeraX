@@ -44,6 +44,7 @@ It is the command implementation of the
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool.
 One use is to search with a target sequence of unknown structure
 to find templates for <a href="modeller.html">comparative modeling</a>.
+See also: <a href="alphafold.html#search"><b>alphafold search</b></a>
 </p><p>
 The query sequence can be taken from a protein structure or a sequence 
 alignment open in ChimeraX: 
@@ -68,6 +69,10 @@ CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>pdb</b> alone and takes much longer to search
+<li><b>alphafold</b>
+&ndash; artificial-intelligence-predicted structures in the
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+(<a href="alphafold.html">more...</a>)
 </ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
@@ -86,30 +91,37 @@ to use for alignment scoring (uppercase or lowercase can be used):
 </ul>
 <p>
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
-expectation value needed to qualify as a hit (default <b>1e-3</b>).
+<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
+needed to qualify as a hit (default <b>1e-3</b>).
 Results can also be limited with the <b>maxSeqs</b> option
 (default <b>100</b>); this is the
 maximum number of unique sequences to return; more hits than this number
 may be obtained because multiple structures or other sequence-database entries
 may have the same sequence.
 </p><p>
-When results are returned, the hits are listed in a
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
-The names of hits from the <b>pdb</b> database (a subset of <b>nr</b>),
-are links that can be clicked to 
-<a href="../commands/open.html#fetch">fetch</a> the structure,
-and if a structure chain was used as the query,
-to automatically superimpose the hit and query structures with
-<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
-The names of other hits are GI numbers that can be clicked to show the
-corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
-target="_blank">NCBI Protein</a> database.
-Checkboxes allow designating one or more hit sequences to show as a
-<a href="../tools/blastprotein.html#notes">multiple alignment</a>
-with the query.
+When the search completes, results are shown in a
+<a href="../tools/blastprotein.html#results">separate window</a>.
 Many other types of information can be shown and used to sort the hits:
 alignment scores, structure resolution, ligand residue names, <i>etc.</i>
 (<a href="../tools/blastprotein.html#results">details...</a>)
+</p><p>
+Double-clicking a row with an associated structure (AlphaFold or PDB)
+<a href="../commands/open.html#fetch">fetches</a> the structure,
+and if a structure chain was used as the query,
+automatically superimposes the hit and query structures with
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+AlphaFold-predicted structures are
+<a href="alphafold.html#colorConfidence">colored by confidence value</a>.
+<!-- CHECK THIS 
+Double-clicking rows for sequence-only hits shows the
+corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
+target="_blank">NCBI Protein</a> database.
+-->
+One or more hits can be chosen (highlighted) in the list and
+the panel's <a href="../window.html#context-menu">context menu</a>
+used to fetch and superimpose all of the corresponding structures, or to
+show their <a href="../tools/blastprotein.html#notes">multiple 
+sequence alignment</a> with the query.
 </p><p>
 The <b>log</b> option indicates whether to also list the results in the
 <a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
@@ -123,5 +135,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2020</address>
+September 2021</address>
 </body></html>

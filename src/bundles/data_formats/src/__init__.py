@@ -24,4 +24,11 @@ class _FormatsBundleAPI(BundleAPI):
             from .manager import FormatsManager
             session.data_formats = FormatsManager(session, name)
 
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'DataFormat':
+            from .format import DataFormat
+            return DataFormat
+        raise ValueError("Don't have class %s" % class_name)
+
 bundle_api = _FormatsBundleAPI()

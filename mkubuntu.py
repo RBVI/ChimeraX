@@ -75,6 +75,7 @@ UBUNTU_DEPENDENCIES = {
         "libx11-xcb1": "1.6.3",
         "libxcb-glx0": "1.11.1",
         "libxcb-xfixes0": "1.11.1",
+        "libxcb-xinerama0": "1.11.1",
         "libxcb1": "1.11.1",
         "libxcomposite1": "0.4.4",
         "libxcursor1": "1.1.14",
@@ -113,10 +114,10 @@ UBUNTU_DEPENDENCIES = {
         "libgstreamer-plugins-base1.0-0": "1.14.1",
         "libgstreamer1.0-0": "1.14.1",
         "libgtk-3-0": "3.22.30",
-        "libllvm6.0": "6.0",
         "liblzma5": "5.2.2",
         "libnspr4": "4.18",
         "libnss3": "3.35",
+        "libosmesa6": "18.0.0",
         "libpango-1.0-0": "1.40.14",
         "libpangocairo-1.0-0": "1.40.14",
         "libpulse-mainloop-glib0": "11.1",
@@ -128,6 +129,7 @@ UBUNTU_DEPENDENCIES = {
         "libx11-xcb1": "1.6.4",
         "libxcb-glx0": "1.13",
         "libxcb-xfixes0": "1.13",
+        "libxcb-xinerama0": "1.13",
         "libxcb1": "1.13",
         "libxcomposite1": "0.4.4",
         "libxcursor1": "1.1.15",
@@ -167,13 +169,12 @@ UBUNTU_DEPENDENCIES = {
        "libgstreamer-plugins-base1.0-0": "1.16.2",
        "libgstreamer1.0-0": "1.16.2",
        "libgtk-3-0": "3.24.18",
-       "libllvm10": "10.0.0",
        "liblzma5": "5.2.4",
        "libncursesw6": "6.2",
        "libnspr4": "4.25",
        "libnss3": "3.49.1",
        "libopenjp2-7": "2.3.1",
-       "libosmesa6-dev": "20.0.4",
+       "libosmesa6": "20.0.4",
        "libpango-1.0-0": "1.44.7",
        "libpangocairo-1.0-0": "1.44.7",
        "libpulse-mainloop-glib0": "13.99.1",
@@ -190,6 +191,7 @@ UBUNTU_DEPENDENCIES = {
        "libx11-6": "1.6.9",
        "libx11-xcb1": "1.6.9",
        "libxcb-glx0": "1.14",
+       "libxcb-xinerama0": "1.14",
        "libxcb1": "1.14",
        "libxcomposite1": "0.4.5",
        "libxcursor1": "1.2.0",
@@ -250,8 +252,8 @@ def main():
         version = version.base_version
     else:
         # candidate build
-        # version = f"{version.base_version}+rc{version_date}"
-        version = version.base_version
+        version = f"{version.base_version}+rc{version_date}"
+    version = f"{version}ubuntu{os_version}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
@@ -262,7 +264,7 @@ def main():
     # print('bin_name:', bin_name)
 
     os.umask(0o22)  # turn off group and other writability
-    pkg_root = f"{deb_name}-{os_version}"
+    pkg_root = f"{deb_name}"
     os.mkdir(pkg_root)
     debian_dir = f"{pkg_root}/DEBIAN"
     os.mkdir(debian_dir)

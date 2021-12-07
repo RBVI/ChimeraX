@@ -112,7 +112,7 @@ class SideViewCanvas(QWindow):
         self.render()
 
     def exposeEvent(self, event):  # noqa
-        if self.isExposed():
+        if self.isExposed() and not self.session.update_loop.blocked():
             self.render()
 
     def resizeEvent(self, event):  # noqa

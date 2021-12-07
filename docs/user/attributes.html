@@ -49,6 +49,8 @@ the command <a href="commands/setattr.html"><b>setattr</b></a>
 with the <a href="commands/open.html#defattr"><b>open</b></a> command
 <li><a href="commands/save.html#attributes">saved</a> to an
 <a href="formats/defattr.html">attribute assignment file</a>
+<li>viewed and changed for certain <a href="selection.html">selected</a> items
+using the <a href="tools/inspector.html"><b>Selection Inspector</b></a>
 </ul>
 <p>
 Attributes are saved in <a href="commands/save.html#session">sessions</a>.
@@ -88,10 +90,10 @@ Additional attributes can be created (<a href="#top">more...</a>).
 <tr>
 <td align=center><b>alt_loc=</b><i>ID</i></td>
 <td class="text"><a name="alt_loc"></a>
-<i>ID</i> is the identifier of the &ldquo;dominant&rdquo;
-alternate location, <i>i.e.</i>, which set of coordinate, occupancy, and bfactor
-values are being used for the atom; see also 
-<a href="#num_alt_locs"><b>num_alt_locs</b></a></td>
+<i>ID</i> is the identifier of the
+<a href="commands/altlocs.html">alternate location</a> being used for the atom;
+a single blank space is assigned to atoms without alternate locations;
+see also <a href="#num_alt_locs"><b>num_alt_locs</b></a></td>
 </tr><tr>
 <td align=center><b>area=</b><i>sasa</i></td>
 <td class="text"><i>sasa</i> is the solvent-accessible surface area of the atom 
@@ -127,7 +129,9 @@ the associated time step within the series (<i>N</i> = 0, 1, ...) for
 </tr><tr>
 <td align=center><b>num_alt_locs=</b><i>N</i></td>
 <td class="text"><a name="num_alt_locs"></a><i>N</i> is the number of 
-<a href="#alt_loc">alternate locations</a> the atom has</td>
+<a href="commands/altlocs.html">alternate locations</a> of the atom,
+&gt; 1 for atoms with alternate locations, 0 for those without;
+see also <a href="#alt_loc"><b>alt_loc</b></a></td>
 </tr><tr>
 <td align=center><b>num_bonds=</b><i>N</i></td>
 <td class="text"><i>N</i> is the total number of atoms bonded to the atom,
@@ -177,11 +181,16 @@ see also <a href="#chain">chain attributes</a></td>
 <td class="text">peptide secondary structure <i>type</i>: 0 for coil 
 (neither helix nor strand), 1 for helix, 2 for strand</td>
 </tr><tr>
-<td align=center><b>ss_id=</b><i>N</i></td>
-<td class="text"><i>N</i> indexes secondary structure elements from N&rarr;C in 
+<td align=center></a><b>ss_id=</b><i>N</i></td>
+<td class="text"><a name="ss_id"></a>
+<i>N</i> indexes secondary structure elements from N&rarr;C in 
 a protein chain: 1 for residues in the first helix and first strand, 
 2 for those in the second helix and second strand, and so on;
 0 for residues not in protein helix or strand</td>
+</tr><tr>
+<td align=center><b>name=</b><i>xyz</i></td>
+<td class="text"><i>xyz</i> is the residue name (not case-sensitive,
+but all-numeric names should be enclosed in quotation marks)</td>
 </tr><tr>
 <td align=center><b>num_atoms=</b><i>N</i></td>
 <td class="text"><i>N</i> is the total number of atoms in the residue</td>
@@ -275,6 +284,19 @@ also applies to nonpolymeric residues)</td>
 </tr><tr>
 <td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
+</tr><tr>
+<td width="150px" align=center><b>identity=</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
+<td class="text">the <i><a href="commands/atomspec.html">atom-spec</a></i>
+is any atom specification string (surrounding quotation marks required)
+and will be taken to indicate the biopolymer chains containing those atoms. 
+The attribute means that a chain has the same sequence as 
+any of the specified chains. For example, <b>//identity="#1/A,B"</b> 
+would specify all chains with sequences the same as either chain A or chain B 
+in model 1.
+Chain sequences are determined from PDB SEQRES records or the mmCIF equivalent,
+if available, otherwise from the atomic coordinates. See also 
+<a href="commands/color.html#bypolymer"><b>color byidentity</b></a> and the 
+<b>sequence</b> option of <a href="commands/select.html#new"><b>select</b></a>.
 </tr>
 </table>
 <br>
@@ -315,5 +337,5 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2021</address>
+August 2021</address>
 </body></html>

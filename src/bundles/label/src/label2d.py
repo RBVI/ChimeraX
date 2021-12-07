@@ -504,7 +504,8 @@ def session_labels(session, create=False):
 class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
-                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0):
+                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0,
+                 scalebar_width = None, scalebar_height = None):
 
         self.session = session
         self.name = name
@@ -525,6 +526,8 @@ class Label:
         self.visibility = visibility
         self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
+        self.scalebar_width = scalebar_width	# Angstroms
+        self.scalebar_height = scalebar_height	# Pixels
         self.drawing = d = LabelModel(session, self)
         d.display = visibility
         lb = session_labels(session, create = True)
@@ -548,6 +551,10 @@ class Label:
         if lm:
             lm.delete_label(self)
 
+    @property
+    def is_scalebar(self):
+        return self.scalebar_width is not None
+    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.models import Model
@@ -610,18 +617,26 @@ class LabelModel(Model):
             self._update_label_image()
         elif win_size_changed:
             self._position_label_image()
+        elif self.label.is_scalebar:
+            self._position_label_image()
 
     def _update_label_image(self):
         l = self.label
-        xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
-        ypad = l.margin
-        s = self._texture_pixel_scale
-        from chimerax.graphics import text_image_rgba
-        rgba = text_image_rgba(l.text, self.label_color, int(s*l.size), l.font,
-                               background_color = l.background,
-                               xpad =int(s*xpad), ypad = int(s*ypad),
-                               bold = l.bold, italic = l.italic,
-                               outline_width=int(s*l.outline_width))
+        if not l.is_scalebar:
+            xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
+            ypad = l.margin
+            s = self._texture_pixel_scale
+            from chimerax.graphics import text_image_rgba
+            rgba = text_image_rgba(l.text, self.label_color, int(s*l.size), l.font,
+                                   background_color = l.background,
+                                   xpad =int(s*xpad), ypad = int(s*ypad),
+                                   bold = l.bold, italic = l.italic,
+                                   outline_width=int(s*l.outline_width))
+        else:
+            from numpy import empty, uint8
+            rgba = empty((1,1,4),uint8)
+            rgba[0,0,:] = self.label_color
+            
         if rgba is None:
             l.session.logger.info("Can't find font for label")
         else:
@@ -649,8 +664,18 @@ class LabelModel(Model):
     def size(self):
         '''Label size as fraction of window size (0-1).'''
         w,h = self._window_size
-        tw,th = self._texture_size
-        return (tw/w, th/h)
+        l = self.label
+        if not l.is_scalebar:
+            tw,th = self._texture_size
+            sx,sy = (tw/w, th/h)
+        else:
+            sw,shp = l.scalebar_width, l.scalebar_height
+            psize = self.session.main_view.pixel_size()
+            if psize == 0:
+                psize = 1	# No models open, so no center of rotation depth.
+            tps = self._texture_pixel_scale
+            sx,sy = tps*sw/(w*psize), tps*shp/h
+        return sx,sy
     
     @property
     def label_color(self):
@@ -666,13 +691,13 @@ class LabelModel(Model):
             rgba8 = tuple(l.color)
         return rgba8
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         return self.label_color
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         l = self.label
         l.color = color
         l.update_drawing()
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d
@@ -684,7 +709,8 @@ class LabelModel(Model):
 
     def take_snapshot(self, session, flags):
         lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
-                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
+                  'bold', 'italic', 'xpos', 'ypos', 'visibility',
+                  'scalebar_width', 'scalebar_height')
         l = self.label
         lstate = {attr:getattr(l, attr) for attr in lattrs}
         data = {'label state': lstate,
@@ -693,5 +719,16 @@ class LabelModel(Model):
 
     @staticmethod
     def restore_snapshot(session, data):
-        label = Label(session, **data['label state'])
+        label = Label(session, **LabelModel._label_restore_parameters(data))
         return label.drawing
+
+    @staticmethod
+    def _label_restore_parameters(data):
+        # Try to allow a newer session to open in older ChimeraX by
+        # filtering out extra parameters not known by older ChimeraX.
+        from inspect import signature
+        param_names = signature(Label.__init__).parameters
+        ls = data['label state']
+        params = {key:val for key,val in ls.items() if key in param_names}
+        return params 
+        

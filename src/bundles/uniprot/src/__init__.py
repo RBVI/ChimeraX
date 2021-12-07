@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .fetch_uniprot import map_uniprot_ident
+
 from chimerax.core.toolshed import BundleAPI
 
 class _UniprotBundleAPI(BundleAPI):

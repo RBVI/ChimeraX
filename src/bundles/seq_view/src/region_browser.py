@@ -1462,7 +1462,8 @@ class RegionBrowser:
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
         if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
-            block = self.seq_canvas.bounded_by(canvas_x, canvas_y, self._start_x, self._start_y)
+            block = self.seq_canvas.bounded_by(canvas_x, canvas_y, self._start_x, self._start_y,
+                exclude_headers=True)
             if block[0] is None:
                 self._clear_drag()
                 return

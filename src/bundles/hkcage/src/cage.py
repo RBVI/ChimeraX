@@ -9,7 +9,7 @@
 
 def show_hk_lattice(session, h, k, radius, orientation='222',
                     color=(255, 255, 255, 255), sphere_factor=0,
-                    edge_radius=None, mesh=False, replace=True, alpha=1):
+                    edge_radius=None, mesh=False, replace=True, alpha='hexagonal'):
 
     varray, tarray, hex_edges = hk_icosahedron_lattice(h, k, radius, orientation, alpha)
     interpolate_with_sphere(varray, radius, sphere_factor)
@@ -81,7 +81,7 @@ def _cage_surface(session, name, replace):
 
 # -----------------------------------------------------------------------------
 #
-def hk_icosahedron_lattice(h, k, radius, orientation, alpha):
+def hk_icosahedron_lattice(h, k, radius, orientation = '222', alpha = 'hexagonal'):
     # Find triangles for the hk lattice covering one asymmetric unit equilateral triangle.
     # The asym unit triangle (corners) and hk lattice triangles are in the xy plane in 3-d.
     if alpha == 'hexagonal':

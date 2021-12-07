@@ -34,12 +34,15 @@ class _SessionAPI(BundleAPI):
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.scripting import open_command_script
-                        return open_command_script(session, data, file_name)
+                        return open_command_script(session, data, file_name, **kw)
 
                     @property
                     def open_args(self):
-                        from chimerax.core.commands import BoolArg
-                        return { 'resize_window': BoolArg }
+                        from chimerax.core.commands import BoolArg, StringArg, RepeatOf
+                        return {
+                            'log': BoolArg,
+                            'for_each_file': RepeatOf(StringArg),
+                        }
 
             elif name == "Python":
                 class Info(OpenerInfo):
@@ -70,6 +73,8 @@ class _SessionAPI(BundleAPI):
                             'data_format': EnumOf([fmt.nicknames[0]
                                 for fmt in session.open_command.open_data_formats]),
                         }
+                    # let what gets fetched handle file history insertion
+                    in_file_history = False
         else:
             from chimerax.save_command import SaverInfo
             if name == "ChimeraX session":

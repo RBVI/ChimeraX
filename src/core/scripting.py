@@ -83,8 +83,10 @@ def open_python_script(session, stream, file_name, argv=None):
         code = compile(data, stream.name, 'exec')
         _exec_python(session, code, argv)
     except Exception as e:
-        session.logger.error(_format_file_exception(stream.name))
         from chimerax.core.errors import UserError
+        if probably_chimera1_session(e):
+           raise UserError(chimera1_session_message)
+        session.logger.error(_format_file_exception(stream.name))
         raise UserError('Error opening python file %s' % stream.name)
     finally:
         stream.close()
@@ -132,7 +134,7 @@ def open_compiled_python_script(session, stream, file_name, argv=None):
     return [], "executed %s" % file_name
 
 
-def open_command_script(session, path, file_name):
+def open_command_script(session, path, file_name, log = True, for_each_file = None):
     """Execute utf-8 file as ChimeraX commands.
 
     The current directory is changed to the file directory before the commands
@@ -143,25 +145,71 @@ def open_command_script(session, path, file_name):
     ----------
     session : a ChimeraX :py:class:`~chimerax.core.session.Session`
     path : path to file to open
-    name : how to identify the file
+    file_name : how to identify the file
+    log : whether to log each script command
+    for_each_file : data file paths, iterate opening each file followed by the script which has $file replaced by filename with suffix stripped.
     """
+    if for_each_file is not None:
+        return apply_command_script_to_files(session, path, file_name, for_each_file, log = log)
+    
     input = _builtin_open(path, 'rb')
+    commands = [cmd.strip().decode('utf-8', errors='replace') for cmd in input.readlines()]
+    input.close()
 
-    prev_dir = None
-    import os
-    dir = os.path.dirname(path)
-    if dir:
+    from os.path import dirname
+    _run_commands(session, commands, directory = dirname(path), log = log)
+
+    return [], "executed %s" % file_name
+
+def _run_commands(session, commands, directory = None, log = True):
+    if directory:
+        import os
         prev_dir = os.getcwd()
-        os.chdir(dir)
+        os.chdir(directory)
 
     from .commands import run
     try:
-        for line in input.readlines():
-            text = line.strip().decode('utf-8', errors='replace')
-            run(session, text)
+        for cmd in commands:
+            run(session, cmd, log=log)
     finally:
-        input.close()
-        if prev_dir:
+        if directory:
             os.chdir(prev_dir)
 
-    return [], "executed %s" % file_name
+def apply_command_script_to_files(session, path, script_name, for_each_file, log = True):
+    input = _builtin_open(path, 'rb')
+    commands = [cmd.strip().decode('utf-8', errors='replace') for cmd in input.readlines()]
+    input.close()
+
+    paths = []
+    from glob import glob
+    from os.path import expanduser
+    for path in for_each_file:
+        paths.extend(glob(expanduser(path)))
+
+    from os.path import basename, dirname, splitext
+    from .commands import run
+    for i, data_path in enumerate(paths):
+        run(session, 'close', log = log)
+        run(session, 'open %s' % data_path, log = log)
+        session.logger.status('Executing script %s on file %s (%d of %d)'
+                              % (basename(script_name), basename(data_path), i+1, len(paths)))
+        fprefix = splitext(basename(data_path))[0]
+        cmds = [cmd.replace('$file', fprefix) for cmd in commands]
+        _run_commands(session, cmds, directory = dirname(data_path), log = log)
+
+    return [], "executed %s on %d data files" % (script_name, len(paths))
+
+def probably_chimera1_session(evalue):
+    if type(evalue) != ModuleNotFoundError:
+        return False
+    if 'cPickle' not in str(evalue):
+        return False
+    from traceback import format_exception
+    import sys
+    formatted = format_exception(*sys.exc_info())
+    if len(formatted) > 1 and ' line 1,' in formatted[-2]:
+        return True
+    return False
+
+chimera1_session_message = """ChimeraX cannot open a regular Chimera session.
+An exporter from Chimera to ChimeraX is being worked on but is not ready at this time."""

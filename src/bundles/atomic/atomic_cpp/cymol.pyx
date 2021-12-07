@@ -321,9 +321,16 @@ cdef class CyAtom:
         return self.cpp_atom.element().py_instance(True)
 
     @element.setter
-    def element(self, Element e):
+    def element(self, val):
         "Supported API. set atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
+        cdef Element e
+        if type(val) == Element:
+            e = val
+        elif type(val) in (int, str):
+            e = Element.get_element(val)
+        else:
+            raise ValueError("Cannot set Element from %s" % repr(val))
         self.cpp_atom.set_element(dereference(e.cpp_element))
 
     @property
@@ -679,6 +686,12 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
 
+    def set_implicit_idatm_type(self, idatm_type):
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if idatm_type is None:
+            raise ValueError("Cannot set implicit IDATM type to None")
+        self.cpp_atom.set_implicit_idatm_type(idatm_type.encode())
+
     def side_atoms(self, CyAtom skip_atom=None, CyAtom cycle_atom=None):
         '''All the atoms connected to this atom on this side of 'skip_atom' (if given).
            Missing-structure pseudobonds are treated as connecting their atoms for the purpose of
@@ -724,6 +737,8 @@ cdef class CyAtom:
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
+            if self.num_alt_locs > 0:
+                atom_str += " (alt loc %s)" % self.alt_loc
         elif style.startswith("command"):
             # have to get fancy if the atom name isn't unique in the residue
             atoms = self.residue.atoms
@@ -904,6 +919,8 @@ cdef class Element:
         " corresponding Element instance."
         cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
+            if ident < 0 or ident > cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS:
+                raise ValueError("Cannot create element with atomic number %d" % ident)
             ele_ptr = Element._int_to_cpp_element(ident)
         else:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
@@ -953,6 +970,22 @@ cdef class CyResidue:
     # properties...
 
     @property
+    def alt_loc(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        for a in self.atoms:
+            if a.alt_loc != ' ':
+                return a.alt_loc
+        return ' '
+
+    @property
+    def alt_locs(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        alt_locs = set()
+        for a in self.atoms:
+            alt_locs.update(a.alt_locs)
+        return alt_locs
+
+    @property
     def atoms(self):
         "Supported API. :class:`.Atoms` collection containing all atoms of the residue."
         from .molarray import Atoms
@@ -964,6 +997,7 @@ cdef class CyResidue:
 
     @property
     def atomspec(self):
+        if self._deleted: raise RuntimeError("Residue already deleted")
         return self.string(style="command")
 
     @property
@@ -981,7 +1015,7 @@ cdef class CyResidue:
 
     @property
     def chain_id(self):
-        "Supported API. PDB chain identifier. Limited to 4 characters."
+        "Supported API. PDB chain identifier."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.chain_id().decode()
 
@@ -1200,9 +1234,14 @@ cdef class CyResidue:
 
     @property
     def number(self):
-        "Supported API. Integer sequence position number from input data file. Read only."
+        "Supported API. Integer sequence position number from input data file."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.number()
+
+    @number.setter
+    def number(self, num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_number(num)
 
     @property
     def omega(self):
@@ -1507,6 +1546,11 @@ cdef class CyResidue:
         if self._deleted: raise RuntimeError("Residue already deleted")
         between = self.cpp_res.bonds_between(<cydecl.Residue*>other_res.cpp_res)
         return Bonds(numpy.array([<ptr_type>b for b in between], dtype=numpy.uintp))
+
+    def clean_alt_locs(self):
+        "Change the current alt locs in this residue to 'regular' locations and delete all alt locs"
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.clean_alt_locs()
 
     def connects_to(self, CyResidue other_res):
         "Supported API. Return True if this residue is connected by at least one bond "

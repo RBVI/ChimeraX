@@ -179,6 +179,8 @@ module or package is installed on the local machine.  The term
 but have not yet been installed on the local machine.
 
 """
+import abc
+from ..tasks import Task
 
 # Toolshed trigger names
 TOOLSHED_BUNDLE_INFO_ADDED = "bundle info added"
@@ -279,7 +281,7 @@ class Toolshed:
     """
 
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
-                 remote_url=None, check_available=True, ui=None):
+                 remote_url=None, check_available=True, session=None):
         """Initialize Toolshed instance.
 
         Parameters
@@ -360,49 +362,44 @@ class Toolshed:
         if check_available and (self._available_bundle_info is None or
                                 self._available_bundle_info.toolshed_url != self.remote_url):
             check_remote = True
-        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _ui=ui)
+        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
+        from datetime import datetime
+        from ..core_settings import settings
+        now = datetime.now()
         if check_available and not check_remote:
             # Did not check for available bundles synchronously
             # so start a thread and do it asynchronously if necessary
             from . import available
-            from ..core_settings import settings
-            from datetime import datetime, timedelta
-            now = datetime.now()
             if not available.has_cache_file(self._cache_dir):
                 need_check = True
             else:
-                last_check = settings.toolshed_last_check
-                if not last_check:
-                    need_check = True
-                else:
-                    interval = settings.toolshed_update_interval
-                    if interval == "never":
-                        need_check = False
-                    else:
-                        last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
-                        delta = now - last_check
-                        max_delta = timedelta(days=1)
-                        if interval == "week":
-                            max_delta = timedelta(days=7)
-                        elif interval == "day":
-                            max_delta = timedelta(days=1)
-                        elif interval == "month":
-                            max_delta = timedelta(days=30)
-                        need_check = delta > max_delta
+                need_check = need_to_check(
+                    settings.toolshed_last_check, settings.toolshed_update_interval, now)
             if need_check:
-                if ui is None or not ui.is_gui:
+                if session is None or not session.ui.is_gui:
                     self.async_reload_available(logger)
                 else:
                     def delayed_available(trigger_name, data, toolshed=self, logger=logger):
                         toolshed.async_reload_available(logger)
-                    ui.triggers.add_handler('ready', delayed_available)
+                    session.ui.triggers.add_handler('ready', delayed_available)
                 settings.toolshed_last_check = now.isoformat()
                 _debug("Initiated toolshed check: %s" %
                        settings.toolshed_last_check)
+        if check_available:
+            need_check = need_to_check(
+                settings.newer_last_check, settings.newer_update_interval, now)
+            # need_check = True  # DEBUG
+            if session and need_check:
+                if not session.ui.is_gui or session.ui.main_window:
+                    NewerVersionQuery(session)
+                else:
+                    session.ui.triggers.add_handler(
+                        'ready', lambda *args, sesssion=session: NewerVersionQuery(session))
+                settings.newer_last_check = now.isoformat()
         _debug("finished loading bundles")
 
     def reload(self, logger, *, session=None, reread_cache=True, rebuild_cache=False,
-               check_remote=False, report=False, _ui=None):
+               check_remote=False, report=False, _session=None):
         """Supported API. Discard and reread bundle info.
 
         Parameters
@@ -439,7 +436,7 @@ class Toolshed:
             self._installed_bundle_info.register_all(logger, session,
                                                      self._installed_packages)
         if check_remote:
-            self.reload_available(logger, _ui=_ui)
+            self.reload_available(logger, _session=_session)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
         return changes
 
@@ -451,7 +448,7 @@ class Toolshed:
                    name="Update list of available bundles")
         t.start()
 
-    def reload_available(self, logger, _ui=None):
+    def reload_available(self, logger, _session=None):
         from urllib.error import URLError
         from .available import AvailableBundleCache
         abc = AvailableBundleCache(self._cache_dir)
@@ -493,14 +490,14 @@ class Toolshed:
                 has_out_of_date = True
                 break
         if has_out_of_date:
-            if _ui is None:
+            if _session is None:
                 self.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, self)
             else:
                 # too early for trigger handler to be registered
-                if _ui.is_gui:
+                if _session.ui.is_gui:
                     def when_ready(trigger_name, data, toolshed=self):
                         toolshed.triggers.activate_trigger(TOOLSHED_OUT_OF_DATE_BUNDLES, toolshed)
-                    _ui.triggers.add_handler('ready', when_ready)
+                    _session.ui.triggers.add_handler('ready', when_ready)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
@@ -594,12 +591,15 @@ class Toolshed:
         app_name = bundle_name.casefold().replace('-', '').replace('_', '')
         return f"{self.remote_url}/apps/{app_name}"
 
-    def bundle_link(self, bundle_name):
+    def bundle_link(self, bundle_name, if_available=True):
         from html import escape
         if bundle_name.startswith("ChimeraX-"):
             short_name = bundle_name[len("ChimeraX-"):]
         else:
             short_name = bundle_name
+        if self._available_bundle_info is None or not self._available_bundle_info.find_by_name(bundle_name):
+            # not available, so link would not work
+            return escape(short_name)
         return f'<a href="{self.bundle_url(bundle_name)}">{escape(short_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
@@ -845,16 +845,16 @@ class Toolshed:
             failed.append(bi)
         done.add(bi)
 
-    def _init_single_manager(self, mgr, mgr_name):
+    def _init_single_manager(self, mgr):
         if self._available_bundle_info:
             all_bundles = self._installed_bundle_info + self._available_bundle_info
         else:
             all_bundles = self._installed_bundle_info
-        self._manager_instances[mgr_name] = mgr
+        self._manager_instances[mgr.name] = mgr
         for pbi in all_bundles:
             for name, kw in pbi.providers.items():
                 p_mgr, pvdr = name.split('/', 1)
-                if p_mgr == mgr_name:
+                if p_mgr == mgr.name:
                     mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()
 
@@ -967,15 +967,13 @@ class Toolshed:
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
 
-import abc
-
-
 class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles"""
 
     def __init__(self, manager_name):
+        self.name = manager_name
         ts = get_toolshed()
-        ts._init_single_manager(self, manager_name)
+        ts._init_single_manager(self)
 
     @abc.abstractmethod
     def add_provider(self, bundle_info, provider_name, **kw):
@@ -1041,7 +1039,8 @@ class BundleAPI:
         functionality, and then calls the command function.
         On subsequent uses of the command, ChimeraX will
         call the command function directly instead of calling
-        this method.
+        this method. The API version for this method is defined
+        by the :code:`api_version` class variable and defaults to 0.
 
         Parameters
         ----------
@@ -1049,7 +1048,7 @@ class BundleAPI:
         command_info : :py:class:`CommandInfo` instance.
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
-            Version 1 of the API pass in information for both
+            Version 1 of the API passes in information for both
             the command to be registered and the bundle where
             it was defined.
 
@@ -1418,3 +1417,208 @@ def restart_action_info():
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file
+
+
+def chimerax_uuid():
+    # Return anonymous unique string that represents
+    # the current user for accessing ChimeraX toolshed
+    from getpass import getuser
+    import uuid
+    node = uuid.getnode()   # Locality
+    name = getuser()
+    dn = "CN=%s, L=%s" % (name, node)
+    # and now make it anonymous
+    # (uuid is based on the first 16 bytes of a 20 byte SHA1 hash)
+    return uuid.uuid5(uuid.NAMESPACE_X500, dn)
+
+
+def need_to_check(last_check, update_interval, now):
+    if update_interval == "never":
+        return False
+    if not last_check:
+        return True
+
+    from datetime import datetime, timedelta
+    last_check = datetime.strptime(last_check, "%Y-%m-%dT%H:%M:%S.%f")
+    delta = now - last_check
+    max_delta = timedelta(days=1)
+    if update_interval == "week":
+        max_delta = timedelta(days=7)
+    elif update_interval == "day":
+        max_delta = timedelta(days=1)
+    elif update_interval == "month":
+        max_delta = timedelta(days=30)
+    return delta > max_delta
+
+
+class NewerVersionQuery(Task):
+    # asynchonously check for newer version of ChimeraX
+
+    SERVICE_NAME = "chimerax/newer"
+
+    def __init__(self, session):
+        super().__init__(session)
+        import platform
+        from .. import buildinfo
+        from cxservices.api import default_api
+        from . import chimerax_uuid
+        self.api = default_api.DefaultApi()
+        self.result = None
+        system = platform.system()
+        if system == "Darwin":
+            system = "macosx"
+            version = platform.mac_ver()[0]
+        elif system == "Windows":
+            system = "windows"
+            version = platform.version()
+        elif system == "Linux":
+            import distro
+            system = distro.id()
+            like = distro.like()
+            if like:
+                system = "{system} {like}"
+            version = distro.version(best=True)
+        params = {
+            # use cxservices API names for keys
+            "uuid": str(chimerax_uuid()),
+            "os": system,
+            "os_version": version,
+            "chimera_x_version": buildinfo.version,
+        }
+        # params = {  # DEBUG
+        #     # DEBUG DEBUG DEBUG
+        #     "uuid": str(chimerax_uuid()),
+        #     "os": "macosx",
+        #     "os_version": "10.14",
+        #     "chimera_x_version": "1.1",
+        # }
+        self.start(self.SERVICE_NAME, params, blocking=False)
+
+    def run(self, service_name, params, blocking=False):
+        self.result = self.api.newer_versions(**params, async_req=not blocking)
+
+    def on_finish(self):
+        # If async_req is True, then need to call self.result.get()
+        versions = self.result.get()
+        if not versions:
+            return
+
+        # don't bother user about releases they've choosen to ignore
+        from ..core_settings import settings
+        versions = [v for v in versions if v[0] not in settings.ignore_update]
+        if not versions:
+            return
+
+        # notify user of newer versions
+        from chimerax.core.commands import plural_form
+        from .. import buildinfo
+        # TODO: would like link to release notes and/or change log
+
+        if not self.session.ui.is_gui:
+            message = (
+                "There is a newer version of UCSF ChimeraX available.  Downloads are available"
+                "\nat the https://www.rbvi.ucsf.edu/chimerax/download.html."
+            )
+            self.session.logger.info(message)
+            return
+
+        from Qt.QtWidgets import QDialog
+
+        class NewerDialog(QDialog):
+
+            def __init__(self, parent):
+                from Qt.QtWidgets import QDialogButtonBox, QGridLayout, QLabel, QStyle, QFrame, QCheckBox, QFrame
+                from Qt.QtCore import Qt, QSize
+                from Qt.QtGui import QPalette
+                super().__init__(parent, Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
+                self.setWindowTitle("ChimeraX Update Available")
+                self.setModal(False)
+                self.setBackgroundRole(QPalette.Base)
+                self.setAutoFillBackground(True)
+                self.ignored = {}
+
+                info = QLabel()
+                icon = info.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+                info.setMinimumSize(64, 64)
+                info.setPixmap(icon.pixmap(QSize(64, 64)))
+
+                version = buildinfo.version
+                # version = "1.1"  # DEBUG
+                header = QLabel(
+                    f"You are currently running UCSF ChimeraX {version}."
+                    "<p>Click here to download a newer release for your system:"
+                )
+                footer = QLabel(
+                    "You can get other releases from the "
+                    "<a href='https://www.rbvi.ucsf.edu/chimerax/download.html'>"
+                    "ChimeraX download page</a>."
+                )
+                footer.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                footer.setOpenExternalLinks(True)
+
+                updates = QFrame()
+                # two columns: versioned link, remind
+                layout = QGridLayout()
+                updates.setLayout(layout)
+                for row, (version, link) in enumerate(reversed(versions)):
+                    html = f"&bull; <a href='{link}'>UCSF ChimeraX {version}</a>\n"
+                    w = QLabel(html)
+                    w.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                    w.setOpenExternalLinks(True)
+                    remind = QCheckBox("Remind me later")
+                    remind.setToolTip("Show this release in future update checks")
+                    remind.setChecked(True)
+                    remind.stateChanged.connect(lambda state, version=version: self.remind_later(state, version))
+                    layout.addWidget(w, row, 0)
+                    layout.addWidget(remind, row, 1)
+
+                hr = QFrame(self)
+                hr.setFrameShape(QFrame.HLine)
+                hr.setFixedHeight(1)
+                hr.setForegroundRole(QPalette.Midlight)
+                hr.setAutoFillBackground(True)
+
+                bbox = QDialogButtonBox(self)
+                bbox.setBackgroundRole(QPalette.Window)
+                bbox.setAutoFillBackground(True)
+                bbox.setStandardButtons(QDialogButtonBox.Close)
+                bbox.accepted.connect(self.accept)
+                bbox.rejected.connect(self.reject)
+
+                layout = QGridLayout()
+                self.setLayout(layout)
+                layout.addWidget(info, 0, 0, 2, 1, Qt.AlignmentFlag.AlignTop)
+                layout.addWidget(header, 0, 1)
+                layout.addWidget(updates, 1, 1, Qt.AlignmentFlag.AlignLeft)
+                layout.addWidget(footer, 2, 1)
+                layout.addWidget(hr, 3, 0, 1, 2)
+                layout.addWidget(bbox, 4, 0, 1, 2)
+
+                # Need button box to be flush with edges of dialog, so move
+                # layout's margins to widgets within the layout
+                layout.setHorizontalSpacing(0)
+                layout.setVerticalSpacing(0)
+                margins = layout.getContentsMargins()  # left, top, right, bottom
+                layout.setContentsMargins(0, 0, 0, 0)
+                info.setContentsMargins(margins[0], 0, 0, 0)
+                header.setContentsMargins(0, margins[1], margins[2], 0)
+                updates.setContentsMargins(margins[0], 0, margins[2], 0)
+                footer.setContentsMargins(0, 0, margins[2], margins[3])
+                bbox.setContentsMargins(*margins)
+
+            def remind_later(self, state, version=None):
+                self.ignored[version] = not state
+
+            def done(self, result):
+                all_ignored = [version for version in self.ignored if self.ignored[version]]
+                if all_ignored:
+                    # don't use += or .extend() to guarantee that Settings.__setattr__
+                    # will see that ignore_update has changed
+                    ignore = settings.ignore_update + all_ignored
+                    settings.ignore_update = ignore
+                super().done(result)
+
+        # keep reference to dialog because it's non-modal and would disappear otherwise
+        d = NewerDialog(self.session.ui.main_window)
+        self.newer_dialog = d
+        d.show()

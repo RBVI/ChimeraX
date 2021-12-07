@@ -34,6 +34,8 @@ different sets of items:
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
 &ndash; atomic models,
@@ -83,8 +85,9 @@ class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="../tools/coloractions.html"><b>Color Actions</b></a>,
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
+<a href="../tools/inspector.html"><b>Selection Inspector</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
-<a href="colortables.html#autocolors">initial colors</a>,
+<a href="colortables.html">color schemes</a>,
 <a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>,
 <a href="colornames.html#transparency-limitations">limitations
@@ -129,29 +132,30 @@ The <a name="colorname"><i>colorname</i></a> can be:
 <li>a <a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 &ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
 &ndash; color other <a href="#target">targets</a> in atomic models
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
-<li><a name="bynucleotide"><b>bynucleotide</b></a> &ndash; a built-in scheme 
-<a href="colortables.html#residue">by nucleotide base type</a>
+<li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
+&ndash; a built-in scheme 
+<a href="colortables.html#residue">by nucleotide base type</a>
 <li><a name="bychain"><b>bychain</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
 also used for the initial colors of per-chain
 <a href="surface.html">molecular surfaces</a>
+<li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-<li><a name="bymodel"><b>bymodel</b></a>
-&ndash; the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="bypolymer"><b>bypolymer</b></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -159,6 +163,9 @@ so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
+<li><a name="bymodel"><b>bymodel</b></a>
+&ndash; the <a href="colortables.html#autocolors">initial colors</a> 
+of atomic models
 <li><a name="random"><b>random</b></a>
 &ndash; random color per atom and residue
 </ul>
@@ -459,10 +466,16 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <p>
 Atomic models can be colored to show the values of numerical
 <a href="../attributes.html">attributes</a>.
-For coloring by a user-defined attribute, see the
-<a href="../preferences.html#startup">custom preset example</a>.
+Several attributes are present automatically, but others can be
+defined by the user arbitrarily or created by various ChimeraX tools and
+commands (<a href="../attributes.html">details...</a>).
+For example, the values of a map at atom positions can be assigned as an
+<a href="../attributes.html">attribute</a> with
+<a href="measure.html#mapvalues"><b>measure mapvalues</b></a>.
 Examples of coloring by <b>bfactor</b>, an attribute 
 automatically read from mmCIF/PDB, are given below.
+For coloring by a user-defined attribute, see the
+<a href="../preferences.html#startup">custom preset example</a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 See also the tutorial:
@@ -556,7 +569,7 @@ to make the cap match the nearby atoms.
 <p class="nav">
 [<a href="#top">back to top: color</a>]
 </p>
-<h3>Coloring by Map Value</h3>
+<h3>Coloring Surfaces by Map Value</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>sample</b>&nbsp;|&nbsp;<b>electrostatic</b>&nbsp;|&nbsp;<b>gradient</b>&nbsp;)
@@ -565,24 +578,30 @@ to make the cap match the nearby atoms.
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+[&nbsp;<a href="#palette-options"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b>&nbsp;]
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
-Coloring by <b>map</b> (<a href="../tools/volumeviewer.html">volume data</a>)
-value applies to surfaces only, both molecular and nonmolecular.
-It is also implemented in the
+The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
+color surfaces by <a href="../tools/volumeviewer.html">volume data</a>
+(map) values. To color atoms by map values, instead use 
+<a href="measure.html#mapvalues"><b>measure mapvalues</b></a>
+followed by <a href="#byattribute"><b>color byattribute</b></a>.
+Surface coloring by map value is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
-with <a href="#palette-options">palette options</a>
-(default <table border cellpadding="4" cellspacing="0"
+with <a href="#palette-options">palette options</a>,
+where the <a href="#palette-options"><b>palette</b></a> 
+default is <b>red-white-blue</b>
+<table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
-</tr></table> across the full range),
-and <a href="#transparency"><b>transparency</b></a>
-can be set independently. 
+</tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
+specific type of map coloring, explained below.
+The <a href="#transparency"><b>transparency</b></a> can be set independently. 
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
 the <b>key true</b> option can be used to
@@ -591,7 +610,7 @@ and draw a color key with the corresponding colors and values.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
-For coloring by segmentation region, 
+For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 The <a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
@@ -605,7 +624,13 @@ class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
-tutorial</a>
+tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX videos</a>:
+<a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by 
+electrostatic potential</a>,
+<a href="https://youtu.be/2EDZQs7lGNs" target="_blank">coloring a map by local
+resolution</a>
 </p>
 <ul>
 <li><b>color sample</b> colors by map value.
@@ -613,28 +638,31 @@ The value for each surface vertex is found by trilinear interpolation
 from the eight corners of the enclosing data grid cell.
 The <a name="offset"><b>offset</b></a> <i>d</i> is how far out 
 from each surface vertex, along its normal, to evaluate the data
-(default <b>0.0</b> &Aring;).
+(default <b>0.0</b> &Aring;). The <a href="#range"><b>range</b></a>
+specifies what data values the palette colors should span
+(default <b>full</b>, the full range of values found at the surface).
 <br><br>
 <li><b>color electrostatic</b> is the same as <b>color sample</b> except
-with default <b>offset</b> <b>1.4</b> &Aring;, 
-which is typically used for coloring a 
-<a href="surface.html">molecular surface</a> by electrostatic potential.
-The rationale for looking outward is to show the values that any atoms
-binding to the outside of the surface would &ldquo;see&rdquo; at their centers.
+with default <b>offset</b> <b>1.4</b> &Aring; 
+and default <a href="#range"><b>range</b></a> <b>-10,10</b>.
+An offset of 1.4 &Aring; is typically used for coloring a 
+<a href="surface.html">molecular surface</a> by electrostatic potential,
+to show the values that any atoms binding to the outside of the surface 
+would &ldquo;see&rdquo; at their centers.
 A molecular surface in ChimeraX is the
 <a href="surface.html#surfdefs">solvent-excluded surface</a>
 where the surface of a spherical probe can lie. The default probe radius
 is 1.4 &Aring;, so an offset of 1.4 &Aring; approximates the
 <a href="surface.html#surfdefs">solvent-accessible surface</a>,
-about as close as the probe center can get to the molecule.
+as close as the center of the probe can get to the molecule.
 **However, an offset of 0.0 may be preferred for coloring
 the <a href="surface.html#cap">cap</a>
 of a <a href="clip.html">clipped</a> surface,
 and a zero or negative offset for coloring the surface of one structure
 by the potential from another.**
 <br><br>
-<li><b>color gradient</b> colors by map gradient norm,
-with default <b>offset</b> <b>0.0</b> &Aring;.
+<li><b>color gradient</b> colors by map gradient norm with 
+default <b>offset</b> <b>0.0</b> &Aring; and default <b>range</b> <b>full</b>.
 The gradient at each volume grid point is
 computed by taking the difference in data values between the
 next and preceding grid points along each axis and dividing by twice
@@ -745,7 +773,7 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;keep&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
@@ -770,9 +798,11 @@ surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
 spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
-Vertices not within the cutoff of any of the atoms are assigned the
-<b>farColor</b> color, or if that option was not used,
-the single-color setting of the surface model.
+The <b>farColor</b> option indicates how to color vertices that are
+not within the cutoff distance of any of the atoms: either a specific
+color or <b>keep</b> to retain their current colors.
+If the <b>farColor</b> option is not given, 
+the single-color setting of the surface model will be used.
 </p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
@@ -784,6 +814,11 @@ A map that has been colored by zone can be split accordingly with
 <a href="volume.html#splitbyzone"><b>volume splitbyzone</b></a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+See also: 
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX video</a>:
+<a href="https://youtu.be/zU3Xb6LRFco" target="_blank">coloring each protein
+in an EM map</a>
 </p>
 
 <a name="single"></a>
@@ -955,7 +990,25 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>
   (default for the <a href="mlp.html"><b>mlp</b></a> command,
   along with <a href="#range"><b>range</b></a> -20,20)
-  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> -
+<li><b>alphafold</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">50</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1">70</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">90</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">100</font></td>
+</tr></table>
+(used to show the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field of
+<a href="../tools/alphafold.html">AlphaFold predictions</a>)
+  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
 <blockquote>
@@ -1059,8 +1112,8 @@ Web-fetched palettes are cached locally as
 </ul>
 </blockquote>
 <blockquote>
-<a name="range">
-<b>range</b> &nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b></a>
+<a name="range"></a>
+<b>range</b> &nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b>
 <br>
 For numerical data only (not <a href="#sequential">sequential coloring</a>), 
 what values should map to the extremes of the palette (default <b>full</b>,
@@ -1142,5 +1195,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+September 2021</address>
 </body></html>

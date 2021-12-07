@@ -79,8 +79,8 @@ def _set_standard_residues():
 
 
 def _same_chains(chain0, chain1):
-    c0 = {c.name: c.characters for c in chain0}
-    c1 = {c.name: c.characters for c in chain1}
+    c0 = {c.chain_id: c.characters for c in chain0}
+    c1 = {c.chain_id: c.characters for c in chain1}
     return c0 == c1
 
 
@@ -172,23 +172,24 @@ ChimeraX_audit_syntax_info = {
 
 ChimeraX_citation_id = "chimerax"
 ChimeraX_citation_info = {
-    'title': "UCSF ChimeraX: Meeting Modern Challenges in Visualization and Analysis",
+    'title': "UCSF ChimeraX: Structure visualization for researchers, educators, and developers",
     'journal_abbrev': "Protein Sci.",
-    'journal_volume': '27',
-    'year': '2018',
-    'page_first': '14',
-    'page_last': '25',
+    'journal_volume': '30',
+    'year': '2021',
+    'page_first': '70',
+    'page_last': '82',
     'journal_issue': '1',
     'pdbx_database_id_PubMed': '28710774',
-    'pdbx_database_id_DOI': '10.1002/pro.3235',
+    'pdbx_database_id_DOI': '10.1002/pro.3943',
 }
 
 ChimeraX_authors = (
+    'Pettersen EF',
     'Goddard TD',
     'Huang CC',
     'Meng EC',
-    'Pettersen EF',
     'Couch GS',
+    'Croll TI',
     'Morris JH',
     'Ferrin TE',
 )

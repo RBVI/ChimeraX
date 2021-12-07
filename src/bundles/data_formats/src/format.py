@@ -57,7 +57,8 @@ def compression_suffixes():
     return _compression.keys()
 """
 
-class DataFormat:
+from chimerax.core.state import State
+class DataFormat(State):
     """Keep tract of information about various data sources
 
     ..attribute:: name
@@ -107,6 +108,8 @@ class DataFormat:
         'suffixes' can be empty.
 
     """
+    attr_names = ['name', 'category', 'suffixes', 'nicknames', 'mime_types', 'reference_url', 'insecure',
+        'encoding', 'synopsis', 'allow_directory']
 
     def __init__(self, format_name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory):
@@ -128,4 +131,10 @@ class DataFormat:
             reference_url = parse.urlunsplit(r)
         self.reference_url = reference_url
 
+    def take_snapshot(self, session, flags):
+        return { attr_name: getattr(self, attr_name) for attr_name in self.attr_names }
+
+    @classmethod
+    def restore_snapshot(class_obj, session, data):
+        return class_obj(*[data[attr_name] for attr_name in class_obj.attr_names])
 

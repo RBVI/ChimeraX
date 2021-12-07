@@ -35,4 +35,14 @@ class _ColorKeyBundle(BundleAPI):
         from .tool import ColorKeyTool
         return ColorKeyTool(session, tool_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.core.commands import run
+        run(session,"ui tool show 'Color Key'", log=False)
+        from .tool import ColorKeyTool
+        menu_but = session.tools.find_by_class(ColorKeyTool)[0].mouse_button_button
+        if menu_but.text() != "right":
+            actions = menu_but.menu().actions()
+            [a for a in actions if a.text() == "right"][0].trigger()
+
 bundle_api = _ColorKeyBundle()

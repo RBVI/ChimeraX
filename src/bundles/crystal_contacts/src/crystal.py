@@ -33,7 +33,7 @@ def show_crystal_contacts(molecule, dist,
     from chimerax.pdb_matrices import unit_cell_parameters
     if unit_cell_parameters(molecule) is None:
         from chimerax.core.errors import UserError
-        raise UserError('No unit cell parameters for %s' % m.name)
+        raise UserError('No unit cell parameters for %s' % molecule.name)
 
     # Find all unique pairs of contacting asymmetric units.
     clist = report_crystal_contacts(molecule, dist,

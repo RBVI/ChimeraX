@@ -40,6 +40,15 @@ amino acid residues and C4' in nucleic acid residues.
 If a nucleic acid residue lacks a C4' atom
 (some lower-resolution structures are P traces),
 its P atom will be paired with the P atom of the aligned residue.
+To use a different set of atoms, including those not in biopolymer chains,
+see the <a href="../commands/align.html"><b>align</b></a> command instead.
+See also:
+<a href="fitmap.html"><b>Fit in Map</b></a>,
+<a href="../commands/morph.html"><b>morph</b></a>,
+<a href="../commands/view.html"><b>view</b></a>,
+<a href="../commands/dssp.html"><b>dssp</b></a>,
+<a href="../commands/measure.html#rotation"><b>measure rotation</b></a>,
+<a href="../commands/save.html#pdb"><b>save</b> PDB</a>
 </p><p>
 The method was originally implemented in Chimera, as described in:
 </p>
@@ -50,22 +59,8 @@ Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
 <i>BMC Bioinformatics.</i> 2006 Jul 12;7:339.
 </blockquote>
 <p>
-Note: if it is already known which residue numbers in one structure
-should be paired with which residue numbers in the other,
-another possibility is to use the
-<a href="../commands/align.html"><b>align</b></a> command,
-which executes more quickly
-because it does not include a sequence alignment step.
-See also:
-<a href="fitmap.html"><b>Fit in Map</b></a>,
-<a href="../commands/morph.html"><b>morph</b></a>,
-<a href="../commands/view.html"><b>view</b></a>,
-<a href="../commands/dssp.html"><b>dssp</b></a>,
-<a href="../commands/measure.html#rotation"><b>measure rotation</b></a>,
-<a href="../commands/save.html#pdb"><b>save</b> PDB</a>
-</p><p>
 <b>Matchmaker</b> can be opened from the <b>Structure Analysis</b>
-<b>Tools</b> menu and manipulated like other panels
+section of the <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>). 
 It contains three tabbed sections, explained in detail below:
 </p>
@@ -308,5 +303,5 @@ can be chosen from the model list
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+May 2021</address>
 </body></html>

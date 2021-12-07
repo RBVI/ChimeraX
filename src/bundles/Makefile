@@ -20,7 +20,7 @@ BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
-	  alignments amber_info arrays atom_search \
+	  alignments alphafold altloc_explorer amber_info arrays atom_search \
 	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -28,10 +28,10 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dist_ui dssp \
-	  emdb_sff exp_cmd file_history function_key \
+	  exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces io label list_info log looking_glass maestro \
+	  interfaces items_inspection io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -40,13 +40,18 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf segger segment seq_view sequences shape \
-	  shell shortcuts show_attr sideview sim_matrices smiles \
+	  sdf sel_inspector segger segment seq_view shape \
+	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
-	  viewdockx vive volume_menu vtk wavefront_obj \
+	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
+
+ifneq ($(OSARCH),DarwinArm64)
+# emdb_sff depends on h5py which is not available for Mac arm64 (July 2021)
+REST_SUBDIRS += emdb_sff
+endif
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
@@ -67,7 +72,7 @@ $(SUBDIR_BUILD): dir
 
 install:
 	$(MAKE) build
-	cd $(SYNC_DIR) && $(APP_PYTHON_EXE) -m pip install --upgrade --upgrade-strategy only-if-needed */*.whl
+	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed */*.whl
 	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:

@@ -56,15 +56,20 @@ See also:
 <a href="commands/windowsize.html"><b>windowsize</b></a>,
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
 <a href="preferences.html#window"><b>Window</b> preferences</a>,
-<a href="#fullscreen">using ChimeraX fullscreen</a>,
 <a href="menu.html">ChimeraX menu</a>
 </p>
+<blockquote><b>
+<a href="#panels">Panels and Window Controls</a>
+<br><a href="#hotkeys">Hiding and Cycling Through Windows</a>
+<br><a href="#context-menu">Context Menus</a>
+<br><a href="#fullscreen">Using ChimeraX Fullscreen</a>
+</b></blockquote>
 
 <a name="panels"></a>
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Window</a>]
 </p>
-<h3>Panels and General Window Controls</h3>
+<h3>Panels and Window Controls</h3>
 <p>
 A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>:
 </p>
@@ -107,11 +112,9 @@ and <a href="tools/cli.html"><b>Command Line</b></a>) have a
 <li>if <a href="#tool-context">dockable</a>,
 redocked by dragging or double-clicking its title bar, with the
 dragged location controlling where and how the panel will be inserted
-<li>tabbed with other panels, with only one shown at a time.
-Tabs are shown at the bottom of the panel.
-A tabbed set of panels can be docked/undocked collectively by dragging
-its top bar, and an individual tabbed panel can be untabbed 
-(separated from the others) by dragging its tab.
+<li>tabbed with other panels when dropped in the same area; 
+tabs are shown at the bottom of the tabbed set, and clicking a tab brings the
+corresponding panel to the front
 </ul>
 <p>
 The overall window or any undocked panel can be resized by dragging 
@@ -130,6 +133,28 @@ without losing the overall window configuration.
 The <a href="tools/toolbar.html"><b>Toolbar</b></a>
 and <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
+</p>
+
+<a name="hotkeys"></a>
+<p class="nav">
+[<a href="#top">back to top: ChimeraX Window</a>]
+</p>
+<h3>Hiding and Cycling Through Windows</h3>
+<p>
+A single running instance of ChimeraX may have multiple windows, 
+namely the main window (including all of its docked panels) plus any panels 
+that are undocked or &ldquo;floating.&rdquo; 
+Keyboard <b>Shift-Esc</b> can be used to hide/show all of the undocked panels
+collectively, as if using the command 
+<a href="commands/ui.html#hideFloating"><b>ui hideFloating toggle</b></a>. 
+</p><p>
+Platform-specific hotkeys cycle through the set of ChimeraX windows,
+bringing each in turn to the front.
+See the hotkey assignments listed for a platform as 
+NextChild (cycle windows in a certain order) and 
+PreviousChild (cycle windows in the opposite order) in the
+<a href="https://doc.qt.io/qt-5/qkeysequence.html#standard-shortcuts"
+target="_blank">Qt standard shortcuts table</a>.
 </p>
 
 <a name="context-menu"></a>
@@ -214,5 +239,5 @@ hides the menus (on Windows)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2021</address>
+November 2021</address>
 </body></html> 

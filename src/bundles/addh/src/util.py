@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic import Residue
+
 N_H = 1.01
 def bond_with_H_length(heavy, geom):
     element = heavy.element.name
@@ -58,22 +60,24 @@ def determine_termini(session, structs):
     real_C = []
     fake_N = []
     fake_C = []
+    fake_5p = []
     logger = session.logger
     for s in structs:
         sr_res = set()
         for chain in s.chains:
             if chain.from_seqres:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc = termini_from_seqres(chain)
+                rn, rc, fn, fc, f5p = termini_from_seqres(chain)
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
-                rn, rc, fn, fc = guess_termini(chain)
+                rn, rc, fn, fc, f5p = guess_termini(chain)
                 logger.info("No usable SEQRES records for %s; guessing termini instead"
                     % chain.full_name)
             real_N.extend(rn)
             real_C.extend(rc)
             fake_N.extend(fn)
             fake_C.extend(fc)
+            fake_5p.extend(f5p)
         if sr_res:
             # Look for peptide termini not in SEQRES records
             from chimerax.atomic import Sequence
@@ -95,72 +99,83 @@ def determine_termini(session, structs):
                         else:
                             termini.append(r)
 
-    return real_N, real_C, fake_N, fake_C
+    return real_N, real_C, fake_N, fake_C, fake_5p
 
 def termini_from_seqres(chain):
     real_N = []
     real_C = []
     fake_N = []
     fake_C = []
-    if chain.residues[0]:
-        real_N.append(chain.residues[0])
-    if chain.residues[-1]:
-        real_C.append(chain.residues[-1])
+    fake_5p = []
+    if chain.polymer_type == Residue.PT_AMINO:
+        if chain.residues[0]:
+            real_N.append(chain.residues[0])
+        if chain.residues[-1]:
+            real_C.append(chain.residues[-1])
 
-    last = chain.residues[0]
-    for res in chain.residues[1:]:
-        if res:
-            if not last:
-                fake_N.append(res)
-        else:
-            if last:
-                fake_C.append(last)
-        last = res
-    return real_N, real_C, fake_N, fake_C
+        last = chain.residues[0]
+        for res in chain.residues[1:]:
+            if res:
+                if not last:
+                    fake_N.append(res)
+            else:
+                if last:
+                    fake_C.append(last)
+            last = res
+    else:
+        for res in chain.residues:
+            if not res:
+                continue
+            if res != chain.residues[0]:
+                fake_5p.append(res)
+            break
+    return real_N, real_C, fake_N, fake_C, fake_5p
 
 def guess_termini(seq):
     real_N = []
     real_C = []
     fake_N = []
     fake_C = []
-    residues = seq.residues
-    existing_residues = seq.existing_residues
-    n_term = residues[0]
-    if not n_term:
-        fake_N.append(existing_residues[0])
-    elif cross_residue(n_term, 'N'):
-        fake_N.append(n_term)
-    else:
-        n = n_term.find_atom('N')
-        if n:
-            if n.num_bonds == 2 and 'H' in [nb.name for nb in n.neighbors]:
-                fake_N.append(n_term)
+    fake_5p = []
+    if seq.polymer_type == Residue.PT_AMINO:
+        residues = seq.residues
+        existing_residues = seq.existing_residues
+        n_term = residues[0]
+        if not n_term:
+            fake_N.append(existing_residues[0])
+        elif cross_residue(n_term, 'N'):
+            fake_N.append(n_term)
+        else:
+            n = n_term.find_atom('N')
+            if n:
+                if n.num_bonds == 2 and 'H' in [nb.name for nb in n.neighbors]:
+                    fake_N.append(n_term)
+                else:
+                    real_N.append(n_term)
             else:
                 real_N.append(n_term)
+        c_term = residues[-1]
+        if not c_term:
+            fake_C.append(existing_residues[-1])
+        elif cross_residue(c_term, 'C'):
+            fake_C.append(c_term)
         else:
-            real_N.append(n_term)
-    c_term = residues[-1]
-    if not c_term:
-        fake_C.append(existing_residues[-1])
-    elif cross_residue(c_term, 'C'):
-        fake_C.append(c_term)
-    else:
-        c = c_term.find_atom('C')
-        if c:
-            if c.num_bonds == 2 and 'O' in [nb.name for nb in c.neighbors]:
-                fake_C.append(c_term)
+            c = c_term.find_atom('C')
+            if c:
+                if c.num_bonds == 2 and 'O' in [nb.name for nb in c.neighbors]:
+                    fake_C.append(c_term)
+                else:
+                    real_C.append(c_term)
             else:
                 real_C.append(c_term)
-        else:
-            real_C.append(c_term)
-    for i, res in enumerate(existing_residues[:-1]):
-        next_res = existing_residues[i+1]
-        if res.connects_to(next_res):
-            continue
-        if res.number + 1 < next_res.number:
-            fake_C.append(res)
-            fake_N.append(next_res)
-    return real_N, real_C, fake_N, fake_C
+        for i, res in enumerate(existing_residues[:-1]):
+            next_res = existing_residues[i+1]
+            if res.connects_to(next_res):
+                continue
+            if res.number + 1 < next_res.number:
+                fake_C.append(res)
+                fake_N.append(next_res)
+    return real_N, real_C, fake_N, fake_C, fake_5p
 
 def cross_residue(res, at_name):
     a = res.find_atom(at_name)

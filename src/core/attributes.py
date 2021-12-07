@@ -115,13 +115,23 @@ class AttrRegistration:
         return data
 
     def restore_session_data(self, session, data):
-        if data.get('version', 1) == 1:
+        version = data.get('version', 1)
+        if version == 1:
             reg_attr_info = {}
             for attr_name, reg_info in data['reg_attr_info'].items():
                 registrant, default_value, attr_type = reg_info
                 reg_attr_info[attr_name] = (registrant, default_value, (attr_type, False))
-        else:
+        elif version == 2:
             reg_attr_info = data['reg_attr_info']
+        elif version == 3:
+            reg_attr_info = {}
+            for attr_name, reg_info in data['reg_attr_info'].items():
+                registrant, type_info = reg_info
+                reg_attr_info[attr_name] = (registrant, NO_DEFAULT, type_info)
+        else:
+            session.logger.warning("Don't know how to restore custom attribute information from newer"
+                " version of ChimeraX.  Skipping")
+            return
         for attr_name, reg_info in reg_attr_info.items():
             self.register(session, attr_name, *reg_info)
 
@@ -185,6 +195,8 @@ class RegAttrManager(StateManager):
         global _mgr
         _mgr = self
         self.init_state_manager(session, MANAGER_NAME)
+        self._python_instances = None
+        self.session = session
 
     def attributes_returning(self, class_obj, return_types, *, none_okay=False):
         """Return list of attribute names for class 'class_obj' whose return types
@@ -231,6 +243,15 @@ class RegAttrManager(StateManager):
 
         return attr_name in builtin_attr_info or attr_name in class_obj._attr_registration.reg_attr_info
 
+    def include_state(self):
+        self._python_instances = [[inst for  inst in inst_func(self.session)
+                if inst.has_custom_attrs and getattr(inst, 'session', None) == self.session]
+                for inst_func, builtin_info in self.class_info.values()]
+        for instances in self._python_instances:
+            if instances:
+                return True
+        return False
+
     @property
     def registered_classes(self):
         return self.class_info.keys()
@@ -253,6 +274,8 @@ class RegAttrManager(StateManager):
                     % rc.__name__)
                 continue
             bundles[rc] = bundle
+        python_instances = self._python_instances
+        self._python_instances = None
         return {
             'version': 2,
             'registrations': {(bundles[rc].name, rc.__name__):
@@ -260,9 +283,7 @@ class RegAttrManager(StateManager):
             # force all Python instances of registered classes to be restored (instance itself
             # is responsible for actually restoring the attributes), so that they get saved/restored in
             # sessions even if there are no Python-layer references to them
-            'instances': [[inst for  inst in inst_func(session)
-                if inst.has_custom_attrs and getattr(inst, 'session', None) == session]
-                for inst_func, builtin_info in self.class_info.values()]
+            'instances': python_instances
         }
 
     @staticmethod

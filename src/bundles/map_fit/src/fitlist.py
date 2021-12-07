@@ -11,38 +11,44 @@
 
 # ------------------------------------------------------------------------------
 #
-class Fit_List:
+from chimerax.core.tools import ToolInstance
+class FitList(ToolInstance):
 
     buttons = ('Place Copy', 'Save PDB', 'Options', 'Delete', 'Clear List', 'Close')
 
-    def __init__(self, session):
+    def __init__(self, session, tool_name):
 
-        self.session = session
         self.list_fits = []
         self.show_clash = False
         self.smooth_motion = True
         self.smooth_steps = 10
 
-        from chimerax.ui.qt import QtWidgets
-        self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', session.main_window)
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self)
+        self.tool_window = tw
+        parent = tw.ui_area
 
         # Place list above row of buttons
-        w = QtWidgets.QWidget(dw)
-        vb = QtWidgets.QVBoxLayout()
+        w = parent
+        from Qt.QtWidgets import QVBoxLayout, QListWidget, QAbstractItemView
+        vb = QVBoxLayout()
         vb.setContentsMargins(0,0,0,0)          # No border padding
         vb.setSpacing(0)                # Spacing between list and button row
-        class ListBox(QtWidgets.QListWidget):
+        class ListBox(QListWidget):
             def sizeHint(self):
-                from chimerax.ui.qt import QtCore
+                from Qt import QtCore
                 return QtCore.QSize(500,50)
         self.list_box = lb = ListBox(w)
-#        self.list_box = lb = QtWidgets.QListWidget(w)
+        lb.setSelectionMode(QAbstractItemView.ExtendedSelection)
         lb.itemSelectionChanged.connect(self.fit_selection_cb)
         vb.addWidget(lb)
 
         # Button row
-        buttons = QtWidgets.QWidget(w)
-        hb = QtWidgets.QHBoxLayout()
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QPushButton
+        buttons = QWidget(w)
+        hb = QHBoxLayout()
         hb.setContentsMargins(0,0,0,0)          # No border padding
         hb.addStretch(1)                        # Stretchable space at left
         hb.setSpacing(5)                # Spacing between buttons
@@ -50,32 +56,40 @@ class Fit_List:
                          ('Save PDB', self.save_fits_cb),
                          ('Delete', self.delete_fit_cb),
                          ('Clear List', lambda self=self: self.delete_fit_cb(all=True))):
-            b = QtWidgets.QPushButton(bname, buttons)
+            b = QPushButton(bname, buttons)
             b.pressed.connect(cb)
             hb.addWidget(b)
         buttons.setLayout(hb)
         vb.addWidget(buttons)
 # Appears that on mac there is a problem that prevents reducing QPushButton border to 0.
-#        b = QtWidgets.QPushButton('Test', w)
+#        b = QPushButton('Test', w)
 #        b.setContentsMargins(0,0,0,0)          # No effect
 #        vb.addWidget(b)
 
         w.setLayout(vb)
-        dw.setWidget(w)
 
-        from chimerax.ui.qt import QtGui
-        lb.setFont(QtGui.QFont("Courier"))  # Fixed with font so columns line up
+        from Qt.QtGui import QFont
+        lb.setFont(QFont("Courier"))  # Fixed with font so columns line up
 
         self.refill_list()      # Set heading
 
+        tw.manage(placement="side")
+
+    # ---------------------------------------------------------------------------
+    #
+    @classmethod
+    def get_singleton(self, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, FitList, 'Fit List', create=create)
+
     def show(self):
-        from chimerax.ui.qt import QtCore
+        from Qt import QtCore
         dw = self.dock_widget
-        self.session.main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
+        self.session.ui.main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
 
     def hide(self):
-        self.session.main_window.removeDockWidget(self.dock_widget)
+        self.session.ui.main_window.removeDockWidget(self.dock_widget)
 
     def fillInUI(self, parent):
 
@@ -215,45 +229,8 @@ class Fit_List:
     def save_fits_cb(self):
 
         lfits = self.selected_listbox_fits()
-        mlist = sum([f.fit_molecules() for f in lfits], [])
-        if len(mlist) == 0:
-            from chimera.replyobj import warning
-            warning('No fits of molecules chosen from list.')
-            return
-
-        idir = ifile = None
-        vlist = [f.volume for f in lfits]
-        pmlist = [m for m in mlist + vlist if hasattr(m, 'openedAs')]
-        if pmlist:
-            for m in pmlist:
-                import os.path
-                dpath, fname = os.path.split(m.openedAs[0])
-                base, suf = os.path.splitext(fname)
-                if ifile is None:
-                    suffix = '_fit%d.pdb' if len(lfits) > 1 else '_fit.pdb'
-                    ifile = base + suffix
-                if dpath and idir is None:
-                    idir = dpath
-            
-        def save(okay, dialog, lfits = lfits):
-            if okay:
-                paths = dialog.getPaths()
-                if paths:
-                    path = paths[0]
-                    import Midas
-                    if len(lfits) > 1 and path.find('%d') == -1:
-                        base, suf = os.path.splitext(path)
-                        path = base + '_fit%d' + suf
-                    for i, fit in enumerate(lfits):
-                        p = path if len(lfits) == 1 else path % (i+1)
-                        fit.place_models(self.session)
-                        Midas.write(fit.fit_molecules(), relModel = fit.volume,
-                                    filename = p)
-                      
-        from OpenSave import SaveModeless
-        SaveModeless(title = 'Save Fit Molecules',
-                     filters = [('PDB', '*.pdb', '.pdb')],
-                     initialdir = idir, initialfile = ifile, command = save)
+        from .search import save_fits
+        save_fits(self.session, lfits)
 
     def delete_fit_cb(self, all = False):
 
@@ -262,7 +239,7 @@ class Fit_List:
         else:
             dfits = self.selected_listbox_fits()
             if len(dfits) == 0:
-                self.session.show_status('No fits chosen from list.')
+                self.session.logger._status('No fits chosen from list.')
                 return
         dset = set(dfits)
         fits = self.list_fits
@@ -273,18 +250,18 @@ class Fit_List:
             lb.takeItem(i+1)
             del fits[i]
 
-        self.session.show_status('Deleted %d fits' % len(indices))
+        self.session.logger.status('Deleted %d fits' % len(indices))
 
     def place_copies_cb(self):
 
         lfits = [f for f in self.selected_listbox_fits() if f.fit_molecules()]
         if len(lfits) == 0:
-            self.session.show_status('No fits of molecules chosen from list.')
+            self.session.logger.status('No fits of molecules chosen from list.')
             return
         clist = []
         for fit in lfits:
             clist.extend(fit.place_copies())
-        self.session.show_status('Placed %d molecule copies' % len(clist))
+        self.session.logger.status('Placed %d molecule copies' % len(clist))
 
     def show_clash_cb(self):
 
@@ -299,19 +276,16 @@ class Fit_List:
     def close_session_cb(self, trigger, x, y):
 
         self.delete_fit_cb(all = True)
+
         
 # -----------------------------------------------------------------------------
 #
 def fit_list_dialog(session, create = False):
-    fit_list = session.fit_list
-    if fit_list is None and create:
-        session.fit_list = fit_list = Fit_List(session)
-    return fit_list
+
+    return FitList.get_singleton(session, create=create)
   
 # -----------------------------------------------------------------------------
 #
 def show_fit_list_dialog(session):
 
-    fl = fit_list_dialog(session, create = True)
-    fl.show()
-    return fl
+    return fit_list_dialog(session, create = True)

@@ -29,7 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>modeller &nbsp;comparative</b>
 &nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;
-[&nbsp;<a href="seqspec.html"><i>sequence-spec2</i></a>&nbsp; ...&nbsp;]
+[&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;&nbsp;...&nbsp;]
 [&nbsp;<b><a href="#licenseKey">licenseKey</a></b>&nbsp;&nbsp;<i>key</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
 <!--
@@ -42,6 +42,15 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 -->
 </h3>
+<a name="loops"></a>
+<a name="refine"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>modeller</b> (&nbsp;<b>loops</b>&nbsp;|&nbsp;<b>refine</b>&nbsp;)
+&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>:<i>region</i>&nbsp;
+[&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>:<i>region</i>&nbsp;&nbsp;...&nbsp;]
+[&nbsp;<b><a href="#licenseKey">licenseKey</a></b>&nbsp;&nbsp;<i>key</i>&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a>
+</h3>
 <a name="scores"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>modeller &nbsp;scores</b>
@@ -51,23 +60,30 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b><a href="#refresh">refresh</a></b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-The <b>modeller comparative</b> command performs comparative or
-&ldquo;homology&rdquo; modeling of proteins by running
+The <b>modeller</b> command runs
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
 on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. It is the command-line implementation of the
-<a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a> tool.
-Additional scores for the resulting models can be obtained from the
-<a href="https://modbase.compbio.ucsf.edu/evaluation/"
-target="_blank">SaliLab Model Evaluation Server</a> using the
-<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
-or the <b>modeller scores</b> command. 
-(Any atomic model can be &ldquo;evaluated&rdquo; with this command, 
-but in the absence of a
-<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
-to show the scores, the only result will be to assign them as model
-<a href="../attributes.html">attributes</a>.)
+RBVI</a>. 
+</p>
+<ul>
+<li><b>modeller comparative</b> performs comparative or
+&ldquo;homology&rdquo; (template-based) modeling of proteins
+(<a href="#comparative-details">details...</a>)
+<li><b>modeller loops</b> (or equivalently, <b>modeller refine</b>)
+builds parts of protein sequences without using a template.
+Missing segments can be built <i>de novo</i>, or existing segments 
+refined by generating additional possible conformations
+(<a href="#loops-details">details...</a>).
+</ul>
+<p>
+A Modeller <a href="../tools/modeller.html#key">license key</a>
+must be specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
+command option or entered in the
+<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
+or <a href="../tools/modelloops.html"><b>Model Loops</b></a> dialog,
+but this only has to be done once; the key is saved in the 
+<a href="../preferences.html">preferences</a>.
 </p><p>
 Modeller is developed by the
 <a href="https://www.salilab.org" target="_blank">&Scaron;ali Lab</a>,
@@ -79,34 +95,40 @@ Comparative protein modelling by satisfaction of spatial restraints.</a>
 &Scaron;ali A, Blundell TL.
 <i>J Mol Biol.</i> 1993 Dec 5;234(3):779-815.
 </blockquote>
+
+<a name="comparative-details"></a>
+<p class="nav">
+[<a href="#top">back to top: modeller</a>]
+</p>
+<h3>Comparative Modeling</h3>
 <p>
-Modeller comparative modeling requires the following for each target chain:
+The corresponding graphical tool is
+<a href="../tools/modeller.html"><b>Modeller&nbsp;Comparative</b></a>.
+The following are required for each target chain:
 </p>
 <ol>
 <li>At least one template structure.
 <!-- apparently they do not need to be superimposed -->
-<br><br>
-  <ul>
-  <li>Modeling a multimer requires a multimeric template structure
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+  Modeling a multimer requires a multimeric template structure
 with the same stoichiometry and expected spatial relationship. 
 Modeller uses this stoichiometry and spatial relationship rather
 than trying to calculate it. 
-  </ul>
-<br>
+</td></tr></table>
+</blockquote>
 <li>A sequence alignment that includes the sequence of the target;
 other sequences may also be included.
 The sequence alignment and template structure(s) should be open in ChimeraX
 and the template(s)
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with sequence(s) in the alignment.
-<br><br>
-  <ul>
-<!--
+
 <blockquote>
 <table cellpadding="10px"><tr>
 <td class="shaded">
--->
-  <li>The target sequence can be <a href="open.html#fetch">fetched</a>
+The target sequence can be <a href="open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a> or
 opened from a <a href="open.html#sequence">file</a>.
 That single sequence suffices as the
@@ -120,12 +142,12 @@ can be opened from a <a href="open.html#sequence">file</a>,
 if available, or obtained by using the
 <a href="blastprotein.html"><b>blastprotein</b></a>
 command to search for templates with the target sequence as a query.
-<!--
 </td></tr></table>
 </blockquote>
--->
-<br><br>
-  <li>Modeling a heteromultimer requires a separate sequence alignment 
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+Modeling a heteromultimer requires a separate sequence alignment 
 for each unique chain. For example, modeling  an 
 &alpha;<sub>2</sub>&beta;<sub>2</sub> tetramer requires a 
 template structure that is also a &alpha;<sub>2</sub>&beta;<sub>2</sub>
@@ -135,18 +157,12 @@ with one alignment containing the target &alpha; sequence,
 and its two &beta; subunits 
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with another alignment containing the target &beta; sequence.
-  </ul>
-<br>
-<li><a name="key"></a>
-A Modeller <a href="../tools/modeller.html#key">license key</a>
-specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
-command option or entered in the 
-<a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a>
-dialog (this only has to be done once; the key is saved in the 
-<a href="../preferences.html">preferences</a>).
+</td></tr></table>
+</blockquote>
 </ol>
 <p>
-With the above requirements in place, the only mandatory command argument
+With the above requirements and <a href="#licenseKey">license key</a>
+in place, the only mandatory command argument
 per target is the <a href="seqspec.html"><i>sequence-spec</i></a>.
 For example, the following command specifies the next-to-last sequence in 
 the alignment super8.msf as the target:
@@ -160,32 +176,165 @@ associated with any sequence in the same alignment as the target
 will be used as templates. For an example of modeling a heterodimer, see the 
 <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
 target="_blank">ChimeraX Modeller highlight</a>.
-</p><p>
+</p>
+
+<a name="loops-details"></a>
+<p class="nav">
+[<a href="#top">back to top: modeller</a>]
+</p>
+<h3>Loop Modeling</h3>
+<p>
+The corresponding graphical tool is
+<a href="../tools/modelloops.html"><b>Model&nbsp;Loops</b></a>.
+Missing segments can be built <i>de novo</i>, 
+or existing segments refined by generating additional possible conformations.
+The following are required:
+<ol>
+<li>The atomic structure of at least part of the protein, open in ChimeraX.
+<br><br>
+<li>A sequence that includes the segments to be filled in or refined, open 
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+(as a single sequence or within a multiple sequence alignment) and 
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with the protein structure.
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+The target sequence can be taken from the structure metadata 
+(and shown for a specific chain using the menu: 
+<b>Tools... Sequence... Show Sequence Viewer</b>),
+or <a href="open.html#fetch">fetched</a>
+from <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+or opened from a <a href="open.html#sequence">file</a>.
+The sequence must be the same as the sequence of the structure, except that
+differences are permitted within the segments to be filled in or refined,
+as well as any
+<a href="#adjacentFlexible">adjacent positions designated as flexible</a>;
+the residue types shown in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+will be used to model those segments.
+Accuracy can be quite high for shorter loops, but falls off rapidly with length (&gt;50% poor predictions for segments with 10+ residues including the
+<a href="#adjacentFlexible">flexible positions</a>, see Table 1 in
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/"
+target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i>
+<b>9</b>(9):1753 (2000)).
+</td></tr></table>
+</blockquote>
+</ol>
+With the above requirements and <a href="#licenseKey">license key</a> in place,
+the only mandatory command argument per segment to be modeled is the 
+<a href="seqspec.html"><i>sequence-spec</i></a>:<i>region</i>, where
+<i>region</i> can be any of the following:
+</p>
+<ul>
+<li>a comma-separated list of indices into the sequence, <i>i.e.</i>,
+positions in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+starting with 1 and including gaps 
+(frequently different from the residue numbers in associated structures)
+<li><b>all-missing</b> (or <b>all</b>) 
+&ndash; all missing segments of the structure relative to the
+<a href="../tools/sequenceviewer.html#association">associated</a> sequence
+<li><b>internal-missing</b> (or <b>internal</b>) 
+&ndash; all non-terminal missing segments of the structure relative to the
+<a href="../tools/sequenceviewer.html#association">associated</a> sequence
+</ul>
+<p>
+Examples:
+</p>
+<blockquote><b>
+<!-- 1www --->
+modeller refine 1/X:1:67-72 1/V:1:84,103 adjacent 2
+<br>
+modeller loops 1/A:1:all adjacent 0 num 3
+</b></blockquote>
+
+<a name="results"></a>
+<p class="nav">
+[<a href="#top">back to top: modeller</a>]
+</p>
+<h3>Results</h3>
+<p>
 When results are returned, the new models are opened, listed in the
 <a href="../tools/modelpanel.html"><b>Model Panel</b></a> along with any other
 models present in ChimeraX,
 and automatically superimposed on the lowest-model-ID template structure with
 <a href="matchmaker.html"><b>matchmaker</b></a>.
-Scores for the comparative models are shown in a 
+Scores are shown in a 
 <a href="../tools/modeller.html#output"><b>Modeller Results</b></a> panel.
+</p><p>
+Additional scores can be obtained from the
+<a href="https://modbase.compbio.ucsf.edu/evaluation/"
+target="_blank">SaliLab Model Evaluation Server</a> using the
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+or the <b>modeller scores</b> command. 
+(Any atomic model can be &ldquo;evaluated&rdquo; with this command, 
+but in the absence of a
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+to show the scores, the only result will be to assign them as model
+<a href="../attributes.html">attributes</a>.)
 </p>
 
 <a name="options"></a>
 <p class="nav">
 [<a href="#top">back to top: modeller</a>]
 </p>
-<h3>Comparative Modeling Options</h3>
+<h3>Modeling Options</h3>
+
+<blockquote>
+For <a href="#comparative">comparative</a> or 
+<a href="#loops">loop</a> modeling:
+<blockquote>
+<b>numModels</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Number of models to create (default <b>5</b>, maximum 1000).
+</blockquote>
+<blockquote>
+<a name="licenseKey"></a>
+<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>
+<br>
+Use of Modeller requires a license key, 
+but it only has to be specified once in ChimeraX; the key is saved in the 
+<a href="../preferences.html">preferences</a>.
+Academic users can <a href="https://www.salilab.org/modeller/registration.html"
+target="_blank">register</a> free of charge to receive a license key.
+Commercial entities and government research labs, please see
+<a href="https://www.salilab.org/modeller/accelrys.html"
+target="_blank">Modeller licensing</a>.
+</blockquote>
+<blockquote>
+<a name="block"></a>
+<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to wait for the calculation to finish before starting to execute
+any subsequent commands, default true when the 
+<b>modeller</b> command is being executed in a
+<a href="usageconventions.html#cxc-files">command script</a> and/or in
+<a href="../options.html#nogui">nogui mode</a>, otherwise false.
+</blockquote>
+<blockquote>
+<a name="tempPath"></a>
+<b>tempPath</b>&nbsp;&nbsp;<i>tempdir</i>
+<br>
+Specify a location for automatically generated input files, where 
+<i>tempdir</i> is either the pathname of an existing directory (folder),
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+If this option is not used, the files will be placed in a
+temporary system directory that will be removed when no longer needed.
+This option allows users to retain the input files for examination or
+other purposes.
+</blockquote>
+</blockquote>
+
+<blockquote>
+For <a href="#comparative">comparative</a> modeling only:
 <blockquote>
 <b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to retain template homomultimeric states (default <b>true</b>);
 for example, if the template structure is a homotrimer, whether to model
 the target as a homotrimer instead of as a monomer with three templates.
-</blockquote>
-<blockquote>
-<b>numModels</b>&nbsp;&nbsp;<i>N</i>
-<br>
-Number of models to create (default <b>5</b>, maximum 1000).
 </blockquote>
 <blockquote>
 <b>fast</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -221,28 +370,40 @@ if the option is turned on.
 Whether to include hydrogen atoms in the output models (default <b>false</b>);
 increases computation time by approximately a factor of 4.
 </blockquote>
+</blockquote>
+
 <blockquote>
-<a name="block"></a>
-<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+For <a href="#loops">loop</a> modeling only:
+<blockquote>
+<a name="adjacentFlexible"></a>
+<b>adjacentFlexible</b>&nbsp;&nbsp;<i>N</i>
 <br>
-Whether to wait for the calculation to finish before starting to execute
-any subsequent commands, default true when the 
-<b>modeller</b> command is being executed in a
-<a href="usageconventions.html#cxc-files">command script</a> and/or in
-<a href="../options.html#nogui">nogui mode</a>, otherwise false.
+How many additional residues at each end of the missing segment or
+specified region to remodel relative to the input structure 
+(zero or an integer, default <b>1</b>). 
+If the residues designated as flexible are different types in the sequence
+than in the structure, the residue types in the sequence will be used.
 </blockquote>
 <blockquote>
-<a name="licenseKey"></a>
-<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>
+<b>chains</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 <br>
-Use of Modeller requires a license key, 
-but it only has to be specified once in ChimeraX; the key is saved in the 
-<a href="../preferences.html">preferences</a>.
-Academic users can <a href="https://www.salilab.org/modeller/registration.html"
-target="_blank">register</a> free of charge to receive a license key.
-Commercial entities and government research labs, please see
-<a href="https://www.salilab.org/modeller/accelrys.html"
-target="_blank">Modeller licensing</a>.
+Limit the calculation to the specified chains (<i>e.g.</i>, when multiple
+structure chains are associated with the same sequence).
+</blockquote>
+<blockquote>
+<b>protocol</b>&nbsp;&nbsp;<b>standard</b>&nbsp;|&nbsp;DOPE&nbsp;|&nbsp;DOPE-HR
+<br>
+Which loop-modeling protocol to use:
+<b>standard</b> (default) or
+Discrete Optimized Protein Energy score (DOPE, see
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/17075131" target="_blank">Shen
+and Sali</a>, <i>Protein Sci</i> <b>15</b>:2507 (2006)) with Lennard-Jones
+potential and GB/SA implicit solvent interaction.  The DOPE protocol
+generally gives higher-quality results but is more computationally 
+expensive and more prone to calculation failure, potentially
+resulting in fewer models than requested.
+DOPE-HR is the same as DOPE, except with higher precision.
+</blockquote>
 </blockquote>
 
 <a name="refresh"></a>
@@ -266,5 +427,5 @@ after making modifications that are expected to improve the scores.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2020</address>
+October 2021</address>
 </body></html>

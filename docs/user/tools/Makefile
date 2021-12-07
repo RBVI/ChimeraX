@@ -23,6 +23,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
 		$(TOP)/src/bundles/dist_ui/src/distance.png \
 		$(TOP)/src/bundles/label/src/label.png \
+		$(TOP)/src/bundles/color_key/src/icons/ckiconvertical.png \
 		$(TOP)/src/bundles/label/src/movelabel.png \
 		$(TOP)/src/bundles/map/src/icons/*.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \
@@ -40,7 +41,8 @@ MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
-		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png
+		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png \
+		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.png
 TICONDIR = $(DOCDIR)/toolbar-icons
 NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.png
 NICONDIR = $(DOCDIR)/nuc-icons

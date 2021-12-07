@@ -28,13 +28,15 @@ from .structure import selected_atoms, selected_bonds, selected_residues
 from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures, all_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
 from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
+from .structure import uniprot_ids
 from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms
 from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
-from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
-from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
+from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg
+from .args import AtomicStructuresArg, StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
 
@@ -119,8 +121,12 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from .presets import run_preset
-        run_preset(session, name, mgr, **kw)
+        if mgr == session.presets:
+            from .presets import run_preset
+            run_preset(session, name, mgr, **kw)
+        else:
+            from .inspectors import item_options
+            return item_options(session, name, **kw)
 
     @staticmethod
     def finish(session, bundle_info):
@@ -131,6 +137,12 @@ class _AtomicBundleAPI(BundleAPI):
         # 'register_selector' is lazily called when selector is referenced
         from .selectors import register_selectors
         register_selectors(logger)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when command is referenced
+        from . import cmd
+        cmd.register_command(logger)
 
     @staticmethod
     def _add_gui_items(session):

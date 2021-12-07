@@ -44,6 +44,7 @@ class _PDBioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                             'segid_chains': BoolArg,
+                            'slider': BoolArg,
                             'missing_coordsets': EnumOf(('fill','ignore','renumber')),
                         }
             else:

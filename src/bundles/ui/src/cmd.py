@@ -39,6 +39,11 @@ def register_ui_command(logger):
         synopsis="Whether to temporarily hide docked tools or not")
     register('ui windowfill', ui_windowfill_desc, ui_windowfill, logger=logger)
 
+    ui_hide_floating_desc = CmdDesc(
+        required=[('hide_tools', Or(BoolArg,EnumOf(['toggle'])))],
+        synopsis="Whether to temporarily hide floating tools or not")
+    register('ui hideFloating', ui_hide_floating_desc, ui_hide_floating, logger=logger)
+
     ui_statusbar_desc = CmdDesc(
         required=[('show', BoolArg)],
         synopsis = "control whether main window status bar is shown or hidden")
@@ -128,6 +133,17 @@ def ui_dockable(session, dockable, tool_name):
     settings.save('undockable')
     if session.ui.is_gui:
         session.ui.main_window._dockability_change(tool_name, dockable)
+
+# -----------------------------------------------------------------------------
+#
+def ui_hide_floating(session, hide_tools):
+    '''
+    Temporarily show/hide floating tools.
+    '''
+    mw = session.ui.main_window
+    if hide_tools == 'toggle':
+        hide_tools = not mw.hide_floating_tools
+    mw.hide_floating_tools = hide_tools
 
 # -----------------------------------------------------------------------------
 #
@@ -232,7 +248,6 @@ def ui_tool_show(session, tool_name, _show=True):
             from chimerax.core.errors import UserError
             raise UserError('Multiple installed tools found: %s' %
                             commas((repr(t[1]) for t in tools), 'and'))
-        return
 
     from chimerax.core.errors import UserError
     # DEBUG:

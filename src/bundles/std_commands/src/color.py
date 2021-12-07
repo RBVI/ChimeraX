@@ -11,19 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel",
-                  "fromatoms", "random"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "byidentity", "bynucleotide",
+        "bymodel", "fromatoms", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
 DEFAULT_TARGETS = 'acsbpf'
-ALL_TARGETS = 'acrsbpfl'
+ALL_TARGETS = 'acrsbmpfl'
 WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
     'surfaces': 's',
     'bonds': 'b',
+    'models': 'm',
     'pseudobonds': 'p',
     'rings': 'f',
     'labels': 'l',
@@ -56,14 +57,14 @@ def color(session, objects, color=None, what=None, target=None,
     objects : Objects
       Which objects to color.
     color : Color
-      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
-    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels' or None
+      Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "byidentity", "bynucleotide", "bymodel".
+    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels', 'models' or None
       What to color. Everything is colored if option is not specified.
-    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f'
+    target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f', 'm'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
-      b = bonds, p = pseudobonds, f = (filled) rings
-      Everything except labels is colored if no target is specified.
+      b = bonds, p = pseudobonds, f = (filled) rings, m = models
+      Everything except labels and models is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     halfbond : bool
@@ -170,6 +171,12 @@ def color(session, objects, color=None, what=None, target=None,
             nl = _set_label_colors(session, objects, color, opacity, undo_state=undo_state)
             if nl > 0:
                 items.append('%d labels' % nl)
+    
+    if 'm' in target:
+        if color not in _SpecialColors:
+            _set_model_colors(session, objects.models, color, opacity, undo_state)
+            items.append('%d models' % len(objects.models))
+
     if not items:
         items.append('nothing')
 
@@ -185,7 +192,7 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         from chimerax.atomic.colors import chain_colors
         c = chain_colors(atoms.residues.chain_ids)
         c[:, 3] = atoms.colors[:, 3] if opacity is None else opacity
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c = atoms.colors.copy()
         sc,amask = polymer_colors(atoms.residues)
@@ -267,7 +274,7 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = residues.ribbon_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c,rmask = polymer_colors(residues)
         c[rmask, 3] = residues.ribbon_colors[rmask, 3] if opacity is None else opacity
@@ -311,7 +318,7 @@ def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = residues.ring_colors[:, 3] if opacity is None else opacity
         undo_state.add(residues, "ring_colors", residues.ring_colors, c)
         residues.ring_colors = c
-    elif color == "bypolymer":
+    elif color == "bypolymer" or color == "byidentity":
         from chimerax.atomic.colors import polymer_colors
         c,rmask = polymer_colors(residues)
         c[rmask, 3] = residues.ring_colors[rmask, 3] if opacity is None else opacity
@@ -362,9 +369,9 @@ def _set_model_colors(session, model_list, color, opacity, undo_state):
         c = color.uint8x4()
         if not opacity is None:
             c[3] = opacity
-        elif not m.single_color is None:
-            c[3] = m.single_color[3]
-        m.single_color = c
+        elif not m.model_color is None and not m.model_color is False:
+            c[3] = m.model_color[3]
+        m.model_color = c
         if undo_state:
             undo_state.add(m, 'color_undo_state', cprev, m.color_undo_state)
 
@@ -375,13 +382,13 @@ def _set_label_colors(session, objects, color, opacity, undo_state=None):
     from chimerax.label.label2d import LabelModel
     labels = [m for m in objects.models if isinstance(m, LabelModel)]
     if undo_state:
-        old_colors = [label.single_color for label in labels]
+        old_colors = [label.model_color for label in labels]
     for label in labels:
-        label.single_color = _color_with_opacity(color, opacity, label.color)
+        label.model_color = _color_with_opacity(color, opacity, label.color)
     if undo_state:
-        new_colors = [label.single_color for label in labels]
+        new_colors = [label.model_color for label in labels]
         for label, old_color, new_color in zip(labels, old_colors, new_colors):
-            undo_state.add(label, 'single_color', old_color, new_color)
+            undo_state.add(label, 'model_color', old_color, new_color)
     nl += len(labels)
 
     # 3D labels
@@ -1043,7 +1050,8 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
 
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range=None, no_value_color=None,
-                  transparency=None, undo_name="color byattribute", key=False):
+                  transparency=None, undo_name="color byattribute", key=False,
+                  log_info = True):
     '''
     Color atoms by attribute value using a color palette.
 
@@ -1066,7 +1074,9 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     key : boolean
-      Whether to also show a color key
+      Whether to also show a color key.
+    log_info: boolean
+      Whether to log number of atoms, residues and attribute value range.  Default True.
     '''
 
     from chimerax.core.errors import UserError
@@ -1139,7 +1149,11 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     res_average[r] = sum(vals)/len(vals) if vals else None
                 attr_vals = [res_average[r] for r in atoms.residues]
             non_none_attr_vals = [v for v in attr_vals if v is not None]
-            non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            if non_none_attr_vals:
+                non_none_colors = _value_colors(palette, range, non_none_attr_vals)
+            else:
+                non_none_colors = None
+                session.logger.warning("All '%s' values are None" % attr_name)
             acolors = _none_possible_colors(atoms.colors, attr_vals, non_none_colors, no_value_color)
             if 'c' in target or 'f' in target:
                 if class_obj == Atom:
@@ -1162,7 +1176,10 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                     else:
                         res_attr_vals = [getattr(r.structure, attr_name, None) for r in residues]
                 non_none_res_attr_vals = [v for v in res_attr_vals if v is not None]
-                non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                if non_none_res_attr_vals:
+                    non_none_res_colors = _value_colors(palette, range, non_none_res_attr_vals)
+                else:
+                    non_none_res_colors = None
                 rib_colors = _none_possible_colors(residues.ribbon_colors, res_attr_vals,
                     non_none_res_colors, no_value_color)
                 ring_colors = _none_possible_colors(residues.ring_colors, res_attr_vals,
@@ -1226,7 +1243,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         if msg:
             r = 'atom %s range' if average is None else 'residue average %s range'
             m = ', '.join(msg) + ', %s %.3g to %.3g' % (r % attr_name, min_val, max_val)
-            session.logger.status(m, log=True)
+            if log_info:
+                session.logger.status(m, log=True)
 
 # -----------------------------------------------------------------------------
 #
@@ -1289,17 +1307,25 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
       used then the surface is not changed.
     bond_point_spacing : float
       Include points along bonds between the given atoms at this spacing.
-    far_color : Color or None
-      Color surface points beyond the distance range this color.  If None then distance
-      points are given the current surface single color.
+    far_color : Color or 'keep' or None
+      Color surface points beyond the distance range this color.  If None then far
+      points are given the current surface single color.  If 'keep' then far points
+      keep their current color.  Default is None.
     update : bool
       Whether to update surface color when surface shape changes.  Default true.
     '''
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color zone: No surfaces specified.')
+    if len(near) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color zone: No atoms specified.')
     atoms = near
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
-    fcolor = far_color.uint8x4() if far_color is not None else None
+    from chimerax.core.colors import Color
+    fcolor = far_color.uint8x4() if isinstance(far_color, Color) else far_color
     from chimerax.core.undo import UndoState
     undo_state = UndoState('color zone')
     for s in surfaces:
@@ -1339,9 +1365,10 @@ def color_single(session, models = None):
 from chimerax.core.commands import StringArg
 class TargetArg(StringArg):
     """String containing characters indicating what to color:
-    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds, f = (filled) rings
+    a = atoms, c = cartoon, r = cartoon, s = surfaces, b = bonds, p = pseudobonds, f = (filled) rings,
+    m = models
     """
-    name = "characters from 'abcfprs'"
+    name = "characters from 'abcfmprs'"
 
     @staticmethod
     def parse(text, session):
@@ -1422,7 +1449,7 @@ def register_command(logger):
                             ('distance', FloatArg),
                             ('sharp_edges', BoolArg),
                             ('bond_point_spacing', FloatArg),
-                            ('far_color', ColorArg),
+                            ('far_color', Or(EnumOf(['keep']), ColorArg)),
                             ('update', BoolArg),
                        ],
                    required_arguments = ['near'],

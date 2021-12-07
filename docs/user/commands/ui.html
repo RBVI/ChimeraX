@@ -66,10 +66,11 @@ be adjusted through <a href="../window.html#tool-context">context menus</a>.
 <p>
 Whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
-initially true for all panels except the
-<a href="../tools/helpviewer.html"><b>Help Viewer</b></a>;
-saved in <a href="../preferences.html#other">preferences</a>. Can also be 
+saved in <a href="../preferences.html#other">preferences</a>. Can also be
 adjusted through <a href="../window.html#tool-context">context menus</a>.
+Most panels are initially dockable unless 
+<b>Tool windows start undocked</b> is turned on in the
+<a href="../preferences.html#window"><b>Window</b> preferences</a>.
 </p>
 </blockquote>
 
@@ -143,6 +144,15 @@ within the <a href="../window.html">overall window</a> like the icons:
 <img class="iconbar" src="../tools/ui-icons/expand1.png"> 
 <img class="iconbar" src="../tools/ui-icons/contract1.png">
 </blockquote>
+<a name="hideFloating"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>ui hideFloating</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;toggle
+<blockquote>
+The <b>ui hideFloating</b> command hides/shows all &ldquo;floating&rdquo;
+(undocked) panels collectively.
+<b>Shift-Esc</b> is equivalent to <b>ui hideFloating toggle</b>.
+See also: <a href="../window.html#hotkeys">cycling through windows</a>
+</blockquote>
 
 <a name="uiassign"></a>
 <p class="nav">
@@ -160,7 +170,8 @@ within the <a href="../window.html">overall window</a> like the icons:
 The <b>functionkey</b> command (same as <b>ui functionkey</b>) assigns
 ChimeraX commands to the keyboard function keys. The <i>key</i> can be given
 as <b>F1</b>, <b>F2</b>, <i>etc.</i>, with or without capitalization.
-The <i>wordlist</i> may contain one or more command(s) and their options. 
+The <i>wordlist</i> may contain one or more command(s) and their options,
+or the word <b>none</b> to remove a previous assignment.
 If multiple commands are included, they must be separated by semicolons and
 the entire <i>wordlist</i> enclosed in quotation marks.
 If no <i>wordlist</i> is given, the key's current function
@@ -227,6 +238,10 @@ Given without arguments, the <b>mousemode</b> command reports the current
 assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
 The analogous command for <a href="../vr.html">virtual reality</a> 
 hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
+</p><p>
+The right-mouse assignment can also be changed by clicking an icon in the
+<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab of the
+<a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 See also:
 <a href="cofr.html"><b>cofr</b></a>,
 <a href="device.html"><b>device</b></a>,
@@ -453,8 +468,12 @@ or <a href="label.html">&ldquo;3D&rdquo; label</a></td>
 </tr><tr>
 <td align="center"><b>color key</b></td>
 <td align="center" class="text">
+<a name="colorkey"></a>
 set <a href="../tools/colorkey.html">color key</a> location and dimensions
-<td align="center"></td>
+by clicking and dragging; a previously created color key can be moved 
+by clicking near its center and dragging, but clicking elsewhere will delete
+the key and start over</td>
+<td align="center"><img src="../tools/mouse-icons/ckiconvertical.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>clip</b> </td>
 <td align="center" class="text">
@@ -733,5 +752,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2021</address>
+November 2021</address>
 </body></html>

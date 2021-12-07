@@ -341,6 +341,18 @@ atomqr:
         }
         goto unknown;
 
+    case LINKR:
+        if (0 <= sscanf(buf,
+            "%12 %4s%c%4s%c%4d%c%15 %4s%c%4s%c%4d%c",
+                link.name[0], &link.alt_loc[0],
+                link.res[0].name, &link.res[0].chain_id,
+                &link.res[0].seq_num, &link.res[0].i_code,
+                link.name[1], &link.alt_loc[1],
+                link.res[1].name, &link.res[1].chain_id,
+                &link.res[1].seq_num, &link.res[1].i_code))
+            break;
+        goto unknown;
+
     case MASTER:
         if (0 > sscanf(buf, "%10 %5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d%5d",
                 &master.num_remark, &master.num_ftnote,
@@ -445,7 +457,7 @@ atomqr:
 
     case SEQRES:
         if (0 > sscanf(buf,
-        "%7 %3d %c %4d  %4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s",
+        "%7 %3d%2s %4d  %4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s",
                 &seqres.ser_num, &seqres.chain_id,
                 &seqres.num_res, seqres.res_name[0],
                 seqres.res_name[1], seqres.res_name[2],

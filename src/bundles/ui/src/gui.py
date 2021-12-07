@@ -96,7 +96,7 @@ def initialize_pyqt5_compatibility():
     I think this compatibility code should not be used but I am leaving
     it in if we decide to temporarily use it during transition to Qt.
     '''
-    
+
     # Matplotlib is looks for whether PyQt5.QtCore or Qt.QtCore
     # is present to choose backend. So have it decide before setting up
     # PyQt5 otherwise matplotlib will be broken looking for PyQt5 sip.
@@ -122,7 +122,7 @@ def initialize_pyqt5_compatibility():
 
     # Added PyQt5 pyqtSignal which has same API as Qt Signal class.
     QtCore.pyqtSignal = QtCore.Signal
-    
+
 from Qt.QtWidgets import QApplication
 class UI(QApplication):
     """Main ChimeraX user interface
@@ -151,7 +151,9 @@ class UI(QApplication):
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
-        import Qt.QtWebEngineWidgets
+        from Qt import qt_have_web_engine
+        if qt_have_web_engine():
+            import Qt.QtWebEngineWidgets
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
@@ -182,7 +184,7 @@ class UI(QApplication):
         return self._mouse_modes
 
     def redirect_qt_messages(self):
-        
+
         # redirect Qt log messages to our logger
         from chimerax.core.logger import Log
         from Qt.QtCore import QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg
@@ -222,7 +224,7 @@ class UI(QApplication):
         mw.graphics_window.keyPressEvent = self.forward_keystroke
         mw.rapid_access.keyPressEvent = self.forward_keystroke
         mw.show()
-        mw.rapid_access_shown = True
+
         # Register for tool installation/deinstallation so that
         # we can update the Tools menu
         from chimerax.core.toolshed import (TOOLSHED_BUNDLE_INSTALLED,
@@ -251,7 +253,11 @@ class UI(QApplication):
         from Qt.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
             from chimerax.core.toolshed import get_toolshed
-            if event.file() in self._bad_drop_events:
+            if not hasattr(self, '_bad_drop_events'):
+                # script running window_size() (which call processEvents)
+                # can cause this to get called before open_pending_files()
+                self._seen_bad_drops = getattr(self, '_seen_bad_drops', []) + [event.file()]
+            elif event.file() in self._bad_drop_events:
                 self._bad_drop_events.remove(event.file())
             elif get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
@@ -266,6 +272,8 @@ class UI(QApplication):
         # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
         # on the command-line, but our code also opens those files, so ignore files we already processed.
         self._bad_drop_events = set(ignore_files)
+        for bad_drop in getattr(self, '_seen_bad_drops', []):
+            self._bad_drop_events.discard(bad_drop)
         for path in self._files_to_open:
             if path not in ignore_files:
                 try:
@@ -273,7 +281,7 @@ class UI(QApplication):
                 except Exception as e:
                     self.session.logger.warning('Failed opening file %s:\n%s' % (path, str(e)))
         self._files_to_open.clear()
-                    
+
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
         """
@@ -328,7 +336,7 @@ class UI(QApplication):
             f(self.session, key_num)
             return True
         return False
-        
+
     def register_for_keystrokes(self, sink):
         """'sink' is interested in receiving keystrokes from the main
            graphics window.  That object's 'forwarded_keystroke'
@@ -343,6 +351,14 @@ class UI(QApplication):
 
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
+        # get garbage collection to break callback loops in deleted tools
+        # that might be triggered by live tools (e.g. settings changes)
+        # particularly since WA_DeleteOnClose can nuke the Qt side
+        def _cleanup(s=self):
+            import gc
+            gc.collect()
+            delattr(s, '_kludge_cleanup_timer')
+        self._kludge_cleanup_timer = self.timer(100, _cleanup)
 
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
@@ -388,7 +404,7 @@ class UI(QApplication):
 
     def update_undo(self, undo_manager):
         self.main_window.update_undo(undo_manager)
-        
+
 from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QDesktopWidget, \
     QToolButton, QWidget
 class MainWindow(QMainWindow, PlainTextLog):
@@ -459,9 +475,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             "</body>",
             "</html>"
         ]
-        from .file_history import FileHistory
-        fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
-            filename_size=15, no_hist_text="\n".join(new_user_text))
+        from Qt import qt_have_web_engine
+        if qt_have_web_engine():
+            from .file_history import FileHistory
+            fh = FileHistory(session, self.rapid_access, bg_color=ra_bg_color, thumbnail_size=(128,128),
+                             filename_size=15, no_hist_text="\n".join(new_user_text))
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
@@ -470,6 +488,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
         self._hide_tools = False
+        self._hide_floating_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
@@ -499,6 +518,9 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         # Allow drag and drop of files onto app window.
         self.setAcceptDrops(True)
+
+        self._activated_window_index = 0
+        self.set_hot_keys()
 
         # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
         # so withdrawn in favor of just "maximized" for now
@@ -539,18 +561,18 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def keyPressEvent(self, event):
         self.session.ui.forward_keystroke(event)
-        
+
     def dragEnterEvent(self, event):
         md = event.mimeData()
         if md.hasUrls():
             event.acceptProposedAction()
-        
+
     def dropEvent(self, event):
         md = event.mimeData()
         paths = [url.toLocalFile() for url in md.urls()]
         for p in paths:
             _open_dropped_file(self.session, p)
-        
+
     def add_tool_bar(self, tool, *tb_args, fill_context_menu_cb=None, **tb_kw):
         # need to track toolbars for checkbuttons in Tools->Toolbar
         retval = QMainWindow.addToolBar(self, *tb_args, **tb_kw)
@@ -599,7 +621,13 @@ class MainWindow(QMainWindow, PlainTextLog):
     def window_maximized(self):
         from Qt.QtCore import Qt
         return bool(self.windowState() & (Qt.WindowMaximized | Qt.WindowFullScreen))
-    
+
+    def changeEvent(self, event):
+        t = event.type()
+        from Qt.QtCore import QEvent
+        if t == QEvent.WindowStateChange:
+            self.hide_floating_tools = self.isMinimized()
+
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
         self._is_quitting = True
@@ -675,6 +703,40 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setEnabled(True)
 
     @property
+    def hide_floating_tools(self):
+        return self._hide_floating_tools
+
+    @hide_floating_tools.setter
+    def hide_floating_tools(self, ht):
+        if ht == self._hide_floating_tools:
+            return
+
+        # need to set _hide_floating_tools attr first, since it will be checked in
+        # subsequent calls
+        self._hide_floating_tools = ht
+        if ht == True:
+            self._hide_floating_tools_shown_states = states = {}
+            settings_dw = self.settings_ui_widget
+            self._pref_dialog_state = not settings_dw.isHidden() and settings_dw.isFloating()
+            if self._pref_dialog_state:
+                settings_dw.hide()
+            for tool_windows in self.tool_instance_to_windows.values():
+                for tw in tool_windows:
+                    if not tw.floating:
+                        continue
+                    state = tw.shown
+                    states[tw] = state
+                    if state:
+                        tw._mw_set_shown(False)
+        else:
+            for tw, state in self._hide_floating_tools_shown_states.items():
+                if state:
+                    tw._mw_set_shown(True)
+            self._hide_floating_tools_shown_states.clear()
+            if self._pref_dialog_state:
+                self.settings_ui_widget.show()
+
+    @property
     def hide_tools(self):
         return self._hide_tools
 
@@ -683,7 +745,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if ht == self._hide_tools:
             return
 
-        # need to set _hide_tools attr first, since it will be checked in 
+        # need to set _hide_tools attr first, since it will be checked in
         # subsequent calls
         self._hide_tools = ht
         if ht == True:
@@ -725,6 +787,18 @@ class MainWindow(QMainWindow, PlainTextLog):
                 tw._destroy()
             del self.tool_instance_to_windows[tool_instance]
 
+    def set_hot_keys(self):
+        from Qt.QtWidgets import QShortcut
+        from Qt.QtGui import QKeySequence
+        from Qt.QtCore import Qt
+        sc = QShortcut(QKeySequence("Shift+Esc"), self, context=Qt.ApplicationShortcut)
+        from chimerax.core.commands import run
+        sc.activated.connect(lambda run=run, ses=self.session: run(ses, "ui hideFloating toggle"))
+        sc = QShortcut(QKeySequence.NextChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(1))
+        sc = QShortcut(QKeySequence.PreviousChild, self, context=Qt.ApplicationShortcut)
+        sc.activated.connect(lambda mw=self: mw._activate_next_window(-1))
+
     def set_tool_shown(self, tool_instance, shown):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
         if tool_windows:
@@ -755,6 +829,15 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0
 
+    def showEvent(self, event):
+        """"""
+        QMainWindow.showEvent(self, event)
+        if not hasattr(self, '_already_shown'):
+            self._already_shown = True
+            # Work around startup crash on Windows that appears to happen when
+            # rapid access is shown too early, a likely Qt bug.  ChimeraX ticket #4698.
+            self.rapid_access_shown = True
+
     def resizeEvent(self, event):
         QMainWindow.resizeEvent(self, event)
         size = event.size()
@@ -771,7 +854,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._last_pixel_scale = r.pixel_scale()
             r.set_default_framebuffer_size(gw.width(), gw.height())
             gw.view.redraw_needed = True
-        
+
     def show_define_selector_dialog(self, *args):
         if self._define_selector_dialog is None:
             self._define_selector_dialog = DefineSelectorDialog(self.session)
@@ -822,11 +905,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtCore import QUrl
         import os.path
         from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
         fn = os.path.join(os.path.dirname(__file__), "about.html")
         with open(fn) as f:
             content = f.read()
-        content = content.replace("VERSION", ad.version)
+        content = content.replace("VERSION", buildinfo.version)
         content = content.replace("DATE", buildinfo.date.split()[0])
         self._about_dialog = QWebEngineView()
         self._about_dialog.setHtml(content, QUrl.fromLocalFile(
@@ -837,6 +919,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         if self.hide_tools and not as_floating:
             self.hide_tools = False
     _float_changed = _about_to_manage
+
+    def _activate_next_window(self, increment):
+        windows = [self]
+        if not self.settings_ui_widget.isHidden():
+            windows += [self.settings_ui_widget]
+        for tws in self.tool_instance_to_windows.values():
+            for tw in tws:
+                if tw.floating and tw.shown:
+                    windows.append(tw._dock_widget)
+        self._activated_window_index = (self._activated_window_index + increment) % len(windows)
+        from Qt.QtCore import Qt
+        windows[self._activated_window_index].activateWindow()
+        windows[self._activated_window_index].raise_()
 
     def _build_status(self):
         from .statusbar import _StatusBar
@@ -923,10 +1018,15 @@ class MainWindow(QMainWindow, PlainTextLog):
         from Qt.QtWidgets import QAction
         from Qt.QtGui import QKeySequence
         from Qt.QtCore import Qt
+        from chimerax.core.commands import run
 
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
+        cd_action = QAction("Set &Working Folder...", self)
+        cd_action.setToolTip("Set default folder for commands/tools to use when opening/saving files")
+        cd_action.triggered.connect(lambda *, run=run, sess=session: run(sess, "cd browse"))
+        file_menu.addAction(cd_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda *, s=self, sess=session: s.file_close_cb(sess))
@@ -973,7 +1073,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
             balloon="Which side of main window that new tool windows appear on by default"))
         from .options import BooleanOption
-        self.add_settings_option("Window", BooleanOption("Start tool windows undocked",
+        self.add_settings_option("Window", BooleanOption("Tool windows start undocked",
             settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
             balloon="Tools (other than ones launched at ChimeraX startup) start undocked and undockable.\n"
             'A tool can be made dockable through its "Dockable Tool" context menu entry.'))
@@ -996,12 +1096,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                 ('Tutorials', 'https://www.rbvi.ucsf.edu/chimerax/tutorials.html', 'Tutorials'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
+                ('Citing ChimeraX', 'credits.html', 'How to cite ChimeraX in publications'),
                 ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
             cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
             def cb(*, ses=session, cmd=cmd):
-                from chimerax.core.commands import run
                 run(ses, cmd)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
@@ -1017,16 +1117,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.presets_menu.clear()
         preset_info = session.presets.presets_by_category
         self._presets_menu_needs_update = False
-       
+
         from Qt.QtWidgets import QAction
         help_action = QAction("Add A Preset...", self)
         from chimerax.core.commands import run
         help_action.triggered.connect(lambda *, run=run, ses=session: run(ses,
-            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
+            "help help:user/preferences.html#startup"))
         if not preset_info:
             self.presets_menu.addAction(help_action)
             return
-        
+
         if len(preset_info) == 1:
             self._uncategorized_preset_menu(session, preset_info)
         elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 20:
@@ -1035,7 +1135,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._rollover_categorized_preset_menu(session, preset_info)
         self.presets_menu.addSeparator()
         self.presets_menu.addAction(help_action)
-    
+
     def _uncategorized_preset_menu(self, session, preset_info):
         for category, preset_names in preset_info.items():
             self._add_preset_entries(session, self.presets_menu, preset_names)
@@ -1248,7 +1348,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             color_menu.addAction(action)
             action.triggered.connect(lambda *, run=run, ses=self.session,
                 cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        action = QAction("From Editor", self)
+        action = QAction("Custom...", self)
         color_menu.addAction(action)
         action.triggered.connect(self.color_by_editor)
         color_menu.addSeparator()
@@ -1344,6 +1444,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         actions_menu.addAction(action)
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "cofr " + ("frontCenter" if ses.selection.empty() else "sel")))
+
+        actions_menu.addSeparator()
+
+        action = QAction("Inspect", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *, run=run, ses=self.session:
+            run(ses, "ui tool show 'Selection Inspector'"))
 
     def color_by_editor(self, *args):
         if not self._color_dialog:
@@ -1603,7 +1710,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None, 
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None,
             shortcut=None):
         '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
@@ -1888,7 +1995,7 @@ class ToolWindow(StatusLogger):
     def _set_floating(self, floating):
         return self.__toolkit.dock_widget.setFloating(floating)
     floating = property(_get_floating, _set_floating)
-    
+
     @property
     def hides_title_bar(self):
         return self.__toolkit.hide_title_bar
@@ -2095,27 +2202,22 @@ class MainToolWindow(ToolWindow):
     widgets for this window.  Call :py:meth:`manage` once the widgets
     are set up to show the tool window in the main interface.
 
-    Parameters
-    ----------
-    tool_instance : a :py:class:`~chimerax.core.tools.ToolInstance` instance
-        The tool creating this window.
+    Parameters:
+        tool_instance: a :py:class:`~chimerax.core.tools.ToolInstance` instance
+            The tool creating this window.
     """
     def __init__(self, tool_instance, **kw):
         super().__init__(tool_instance, tool_instance.display_name, **kw)
 
-    def create_child_window(self, title, *, window_class=None, **kw):
+    def create_child_window(self, title: str, *, window_class: 'ChildToolWindow'=None, **kw):
         """Supported API. Make additional tool window
 
-        Parameters
-        ----------
-        title : str
-            Text shown in the window's title bar.
-        window_class : :py:class:`ChildToolWindow` subclass, optional
-            Class to instantiate to create the child window.
-            Only needed if you want to override methods/attributes in
-            order to change behavior.
-            Defaults to :py:class:`ChildToolWindow`.
-        kw : Keywords to pass on to the tool window's constructor
+        Parameters:
+            title: Text shown in the window's title bar.
+            window_class: Class to instantiate to create the child window. Only
+                          needed if you want to override methods/attributes in
+                          order to change behavior.
+            kw: Keywords to pass on to the tool window's constructor
         """
 
         if window_class is None:
@@ -2170,6 +2272,7 @@ class _Qt:
             self.status_bar = None
         container.setLayout(layout)
         self.dock_widget.setWidget(container)
+        self._docked_window_flags = self.dock_widget.windowFlags()
 
     def destroy(self):
         if not self.tool_window:
@@ -2190,7 +2293,7 @@ class _Qt:
             self.status_bar = None
         if not auto_delete:
             # horrible hack to try to work around two different crashes, in 5.12:
-            # 1) destroying floating window closed with red-X with immediate destroy() 
+            # 1) destroying floating window closed with red-X with immediate destroy()
             # 2) resize event to dead window if deleteLater() used
             if is_floating:
                 self.dock_widget.deleteLater()
@@ -2214,6 +2317,26 @@ class _Qt:
         if self.hide_title_bar:
             from Qt.QtWidgets import QWidget
             self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        import sys
+        if sys.platform == 'darwin':
+            # Add iconify and maximize buttons to undocked tools.
+            if floating:
+                dw = self.dock_widget
+                vis = dw.isVisible()
+                from Qt.QtCore import Qt
+                # Changing window type allows undocked tool to stack
+                # below main window on but issues errors on macOS Big Sur.
+                # See ChimeraX bug #453 for details.
+                # window_flags = (Qt.CustomizeWindowHint | Qt.Window)
+                window_flags = dw.windowFlags()
+                button_flags = (Qt.WindowMinimizeButtonHint |
+                                Qt.WindowMaximizeButtonHint |
+                                Qt.WindowCloseButtonHint)
+                dw.setWindowFlags(window_flags | button_flags)
+                if vis:
+                    dw.show()
+            else:
+                self.dock_widget.setWindowFlags(self._docked_window_flags)
         self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
@@ -2273,13 +2396,13 @@ class _Qt:
         # once the main window shows, so comment out the optimization
         # until I can figure something out (showEvent and QTimer(0) both
         # seem to fire too early...)
-        """
-        if shown != self.dock_widget.isHidden():
-            if shown:
-                #ensure it's on top
-                self.dock_widget.raise_()
-            return
-        """
+        #
+        #if shown != self.dock_widget.isHidden():
+        #    if shown:
+        #        #ensure it's on top
+        #        self.dock_widget.raise_()
+        #    return
+        #
         if shown:
             self.dock_widget.show()
             #ensure it's on top

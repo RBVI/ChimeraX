@@ -32,7 +32,7 @@ public:
     AtomicStructure(PyObject* logger = nullptr) : Structure(logger) {}
 
     void  compute_secondary_structure(float energy_cutoff = -0.5, int min_helix_length = 3,
-        int min_strand_length = 3, bool report = false);
+        int min_strand_length = 3, bool = false, CompSSInfo* = nullptr);
     AtomicStructure*  copy() const;
     void  make_chains() const;
     void  normalize_ss_ids();

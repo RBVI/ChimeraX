@@ -37,9 +37,9 @@ class ToolbarManager(ProviderManager):
         self._toolbar.clear()
 
     def add_provider(self, bundle_info, name, **kw):
-
         if not bundle_info.installed:
             return
+
         def where():
             return 'for toolbar provider %r in bundle %r' % (name, bundle_info.name)
         # <Provider tab="Graphics" help="help:..."
@@ -140,7 +140,7 @@ class ToolbarManager(ProviderManager):
             self.session.logger.warning('Overriding existing toolbar provider %s' % where())
         section_dict[display_name] = (name, bundle_info, icon, description, kw)
         if before is not None or after is not None:
-            self._add_layout(section_dict, name, before, after)
+            self._add_layout(section_dict, display_name, before, after)
 
     def _add_layout(self, dict_, name, before, after):
         # layouts are an DAG
@@ -156,6 +156,12 @@ class ToolbarManager(ProviderManager):
     def end_providers(self):
         # self.triggers.activate_trigger("toolbar changed", self)
         pass
+
+    def set_enabled(self, enabled, tab_title, section_title, button_title):
+        from . import tool
+        tb = tool.get_toolbar_singleton(self.session, create=False)
+        if tb:
+            tb.set_enabled(enabled, tab_title, section_title, button_title)
 
 
 class FakeMouseModeBundleInfo:

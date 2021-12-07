@@ -60,6 +60,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         vector[Bond*] bonds_between(Residue*)
         Chain* chain()
         string chain_id()
+        void clean_alt_locs()
         bool connects_to(Residue*)
         void delete_alt_loc(char) except +
         Atom* find_atom(const char*)
@@ -88,6 +89,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_is_helix(bool)
         void set_is_strand(bool)
         void set_name(const char*)
+        void set_number(int)
         void set_ribbon_adjust(float)
         void set_ribbon_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_ribbon_display(bool)
@@ -188,6 +190,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_implicit_idatm_type(const char*)
         void set_in_ribbon(bool)
         void set_name(const char*)
         void set_occupancy(float)

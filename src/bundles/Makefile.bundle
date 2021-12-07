@@ -45,8 +45,18 @@ PYSRCS = $(wildcard src/*.py)
 wheel:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
+# The space means install and app-install are the same
 install app-install:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
+
+test-changes: install
+ifeq ($(OS),Darwin)
+# -n flag means open a new instance even if another already exists
+	open -n $(CHIMERAX_APP)
+endif
+ifeq ($(OS),Linux)
+	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+endif
 
 sync:
 ifneq (,$(wildcard dist/*-py*-none-any.whl))

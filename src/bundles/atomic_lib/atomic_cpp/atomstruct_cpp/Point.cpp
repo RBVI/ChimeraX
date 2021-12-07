@@ -50,6 +50,21 @@ Point::angle(const Point& pt1, const Point& pt3) const
     return 180.0 * acos(dot) / M_PI;
 }
 
+static inline double
+row_mul(const double row[4], const Point& crd)
+{
+    return row[0] * crd[0] + row[1] * crd[1] + row[2] * crd[2] + row[3];
+}
+
+Point
+Point::mat_mul(const PositionMatrix pos) const
+{
+    auto x = row_mul(pos[0], *this);
+    auto y = row_mul(pos[1], *this);
+    auto z = row_mul(pos[2], *this);
+    return Point(x, y, z);
+}
+
 void
 Point::normalize()
 {
@@ -82,6 +97,17 @@ Point::str() const
     }
     crd_string << ")";
     return crd_string.str();
+}
+
+void
+Point::xform(const PositionMatrix pos)
+{
+    auto x = row_mul(pos[0], *this);
+    auto y = row_mul(pos[1], *this);
+    auto z = row_mul(pos[2], *this);
+    _xyz[0] = x;
+    _xyz[1] = y;
+    _xyz[2] = z;
 }
 
 } //  namespace atomstruct

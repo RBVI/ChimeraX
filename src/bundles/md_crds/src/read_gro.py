@@ -28,6 +28,7 @@ def read_gro(session, stream, file_name, *, auto_style=True):
 from chimerax.atomic import AtomicStructure, Element
 
 def parse_gro(session, file_name, lines, structures, auto_style):
+    from chimerax.core.errors import UserError
     state = "init"
     anums = {}
     s = None

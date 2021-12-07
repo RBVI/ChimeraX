@@ -260,7 +260,8 @@ See also:
 <a href="commands/setattr.html"><b>setattr</b></a>,
 <a href="commands/color.html#byattribute"><b>color byattribute</b></a>,
 <a href="commands/mlp.html"><b>mlp</b></a>,
-<a href="formats/defattr.html#examples">attribute assignment examples</a>
+<a href="formats/defattr.html#examples">attribute assignment examples</a>,
+<a href="commands/colortables.html#residue">coloring by residue type</a>
 </p>
 <li><b>Execute these commands at startup</b> 
 &ndash; <a href="index.html#commands">ChimeraX commands</a> to execute
@@ -286,7 +287,21 @@ The command can also be used to list, install, or remove bundles,
 and to control how the toolshed manages bundle information.
 </p>
 <ul>
-<li><b>Toolshed update interval</b> &ndash; how often to check for updates
+<li><b>New version check interval</b> &ndash; how often to check 
+for a newer version of ChimeraX
+  <ul>
+  <li><b>every day</b>
+  <li><b>every week</b> (initial default)
+  <li><b>every month</b>
+  <li><b>never</b>
+  </ul>
+<li><b>Toolshed update interval</b> &ndash; how often to check 
+the Toolshed for updates to installed bundles as well as for
+new features (commands, file formats) available from bundles
+that the user does not have installed.
+This connection occurs at <a href="startup.html">startup</a>
+but asynchronously, <i>i.e.</i>,
+without slowing down the startup process or subsequent use of ChimeraX.  
   <ul>
   <li><b>every day</b>
   <li><b>every week</b> (initial default)
@@ -385,6 +400,10 @@ when a session is restored. This setting can be overridden with the
 <a href="commands/open.html"><b>open</b></a> command 
 <a href="commands/open.html#resizeWindow"><b>resizeWindow</b></a> option.
 See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
+<li><b>Tool windows start undocked</b>
+&ndash; whether tools (other than those launched at startup)
+should open in the undocked and 
+<a href="commands/ui.html#dockable">undockable</a> state; initial default off
 </ul>
 
 <a name="other"></a>
@@ -424,5 +443,5 @@ Examples:
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2021</address>
+November 2021</address>
 </body></html> 

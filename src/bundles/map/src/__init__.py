@@ -93,6 +93,9 @@ class _MapBundle(BundleAPI):
         elif command_name == 'measure mapstats':
             from . import measure
             measure.register_measure_mapstats_command(logger)
+        elif command_name == 'measure mapvalues':
+            from . import measure
+            measure.register_measure_mapvalues_command(logger)
         elif command_name == 'segmentation':
             map.register_segmentation_command(logger)
 
@@ -126,19 +129,37 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            fetches = ['eds', 'edsdiff', 'emdb']
-            if name in fetches:
-                from . import eds_fetch, emdb_fetch
+            if name in ['eds', 'edsdiff']:
+                from . import eds_fetch
                 fetcher = {
                     'eds': eds_fetch.fetch_eds_map,
                     'edsdiff': eds_fetch.fetch_edsdiff_map,
-                    'emdb': emdb_fetch.fetch_emdb
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china']:
+                from . import emdb_fetch
+                fetcher = {
+                    'emdb': emdb_fetch.fetch_emdb,
+                    'emdb_europe': emdb_fetch.fetch_emdb_europe,
+                    'emdb_us': emdb_fetch.fetch_emdb_us,
+                    'emdb_japan': emdb_fetch.fetch_emdb_japan,
+                    'emdb_china': emdb_fetch.fetch_emdb_china,
+                }[name]
+                from chimerax.open_command import FetcherInfo
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import EnumOf
+                        return {
+                            'transfer_method': EnumOf(['ftp', 'https']),
+                        }
             else:
                 from chimerax.open_command import OpenerInfo
                 class Info(OpenerInfo):

@@ -238,6 +238,8 @@ class SurfaceColorGUI(ToolInstance):
         self._axis_widget.setVisible(method in self._axis_methods)
         if self._options_panel.shown:
             self._options_panel.resize_panel()
+        if method == 'electrostatic potential' and not self._colors.has_values():
+            self._colors.set_value_range(-10,10)
 
     # ---------------------------------------------------------------------------
     #
@@ -483,7 +485,8 @@ class SurfaceColorGUI(ToolInstance):
         if win_xy == self._last_mouse_xy:
             return
         self._last_mouse_xy = win_xy
-        _report_surface_value(self.session, win_x, win_y)
+        reported = _report_surface_value(self.session, win_x, win_y)
+        self.session.logger._next_hover_chain_info = not reported
         
     # ---------------------------------------------------------------------------
     #
@@ -511,11 +514,11 @@ def _report_surface_value(session, win_x, win_y):
 
     pick = session.main_view.picked_object(win_x, win_y)
     if pick is None:
-        return
+        return False
     # For PickedMap surface pick is pick.triangle_pick
     surf_pick = pick.triangle_pick if hasattr(pick, 'triangle_pick') else pick
     if not hasattr(surf_pick, 'drawing'):
-        return
+        return False
     surf = surf_pick.drawing()
     sc = _surface_color_updater(surf)
     p = pick.position
@@ -528,14 +531,15 @@ def _report_surface_value(session, win_x, win_y):
         transform_to_scene_coords = Place()
         v, outside = sc.vertex_values(p.reshape((1,3)), transform_to_scene_coords)
         if len(outside) > 0:
-            return
+            return False
     else:
-        return
+        return False
     value = v[0]
     m = pick.drawing()
     mname = '%s (#%s)' % (m.name, m.id_string)
     msg = 'Value %.5g at %.4g,%.4g,%.4g of %s' % (value, p[0],p[1],p[2], mname)
     session.logger.status(msg)
+    return True
 
 # -----------------------------------------------------------------------------
 #
@@ -647,6 +651,13 @@ class PaletteWidget:
     def clear_values(self):
         for v in self._values:
             v.setText('')
+
+    def set_value_range(self, min_value, max_value):
+        n = self.color_count
+        step = (max_value - min_value) / (n-1) if n > 1 else 1
+        for i,v in enumerate(self._values):
+            value = min_value + i * step
+            v.setText('%.4g' % value)
         
 # -----------------------------------------------------------------------------
 #

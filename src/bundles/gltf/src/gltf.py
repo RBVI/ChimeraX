@@ -66,14 +66,28 @@ def read_gltf(session, filename, name):
     scenes, nodes = scene_and_node_models(j['scenes'], j['nodes'], name, session)
 
     # Make a Drawing for each mesh.
-    ba = buffer_arrays(j['accessors'], j['bufferViews'], bin_chunk)
-    mesh_drawings = meshes_as_models(session, j['meshes'], ba)
+    colors, textures = material_colors_and_textures(j.get('materials'),
+                                                    j.get('textures'),
+                                                    j.get('images'))
+    bv = buffer_views(j['bufferViews'], bin_chunk)
+    ba = buffer_arrays(j['accessors'], bv, bin_chunk)
+    mesh_drawings = meshes_as_models(session, j['meshes'], colors, textures, ba, bv)
 
     # Add mesh drawings to node models.
+    already_used = set()
     for nm in nodes:
         if hasattr(nm, 'gltf_mesh'):
-            for d in mesh_drawings[nm.gltf_mesh]:
-                nm.add_drawing(d)
+            md = mesh_drawings[nm.gltf_mesh]
+            if len(md) == 1:
+                # Don't make a child model for a mesh if there is just one child.
+                copy_model(md[0], nm)
+            else:
+                for d in md:
+                    if d in already_used:
+                        # Copy drawing if instance is a child of more than one node
+                        d = copy_model(d)
+                    already_used.add(d)
+                    nm.add_drawing(d)
 
     return scenes, ('Opened glTF file containing %d scenes, %d nodes, %d meshes'
                     % (len(scenes), len(nodes), len(j['meshes'])))
@@ -146,18 +160,33 @@ def scene_and_node_models(scenes, nodes, file_name, session):
         sm.add([nmodels[ni] for ni in sm.gltf_nodes])
 
     # Add child nodes to parent nodes.
+    already_used = set()
+    copies = []
     for nm in nmodels:
         if hasattr(nm, 'gltf_child_nodes'):
-            nm.add([nmodels[ni] for ni in nm.gltf_child_nodes])
+            cmodels = []
+            for ni in nm.gltf_child_nodes:
+                c = nmodels[ni]
+                if c in already_used:
+                    # If a node is a child of multiple nodes copy it.
+                    gltf_mesh = getattr(c, 'gltf_mesh', None)
+                    c = copy_model(c)
+                    if gltf_mesh is not None:
+                        c.gltf_mesh = gltf_mesh
+                    copies.append(c)
+                already_used.add(c)
+                cmodels.append(c)
+            nm.add(cmodels)
 
-    return smodels, nmodels
+    return smodels, nmodels + copies
 
 # -----------------------------------------------------------------------------
 #
-def meshes_as_models(session, meshes, buf_arrays):
+def meshes_as_models(session, meshes, material_colors, material_textures,
+                     buffer_arrays, buffer_views):
 
     mesh_models = []
-    ba = buf_arrays
+    ba = buffer_arrays
     from numpy import int32
     from chimerax.core.models import Surface
     for m in meshes:
@@ -188,13 +217,34 @@ def meshes_as_models(session, meshes, buf_arrays):
                 vc = ba[pa['COLOR_0']]
             else:
                 vc = None
+            tc = ba[pa['TEXCOORD_0']] if 'TEXCOORD_0' in pa else None
             pd = Surface('p%d' % pi, session)
-            set_geometry(pd, va, na, vc, ta)
+            if 'material' in p:
+                mi = p['material']
+                pd.color = material_colors[mi]
+                image_buf = material_textures[mi]
+                if image_buf is not None:
+                    pd.texture = _create_texture(buffer_views[image_buf])
+            set_geometry(pd, va, na, vc, tc, ta)
             pdlist.append(pd)
         mesh_models.append(pdlist)
 
     return mesh_models
-                    
+
+# -----------------------------------------------------------------------------
+#
+def copy_model(model, to_model = None):
+    if to_model is None:
+        to_model = gltfModel(model.name, model.session)
+        to_model.positions = model.positions
+    c = to_model
+    c.set_geometry(model.vertices, model.normals, model.triangles)
+    c.color = model.color
+    c.vertex_colors = model.vertex_colors
+    c.texture_coordinates = model.texture_coordinates
+    c.texture = model.texture
+    return c
+
 # -----------------------------------------------------------------------------
 #
 def read_chunks(input):
@@ -211,17 +261,24 @@ def read_chunks(input):
 
 # -----------------------------------------------------------------------------
 #
+def buffer_views(buffer_views, binc):
+    bviews = []
+    for bv in buffer_views:
+        bo = bv['byteOffset']	# int
+        bl = bv['byteLength']	# int
+        bviews.append(binc[bo:bo+bl])
+    return bviews
+        
+# -----------------------------------------------------------------------------
+#
 def buffer_arrays(accessors, buffer_views, binc):
     balist = []
     from numpy import float32, uint32, uint16, int16, uint8, frombuffer
     value_type = {5126:float32, 5125:uint32, 5123:uint16, 5122:int16, 5121:uint8}
-    atype_size = {'VEC3':3, 'VEC4':4, 'SCALAR':1}
+    atype_size = {'VEC2':2, 'VEC3':3, 'VEC4':4, 'SCALAR':1}
     for a in accessors:
         ibv = a['bufferView']	# index into buffer_views
         bv = buffer_views[ibv]
-        bo = bv['byteOffset']	# int
-        bl = bv['byteLength']	# int
-        bv = binc[bo:bo+bl]
         ct = a['componentType']	# 5123 = uint16, 5126 = float32, 5120 = uint8
         dtype = value_type[ct]
         atype = a['type']		# "VEC3", "SCALAR"
@@ -238,6 +295,8 @@ def buffer_arrays(accessors, buffer_views, binc):
             ba = ba.reshape((len(ba)//3, 3))
         elif atype == 'VEC4':
             ba = ba.reshape((len(ba)//4, 4))
+        elif atype == 'VEC2':
+            ba = ba.reshape((len(ba)//2, 2))
         elif atype == 'SCALAR':
             pass
         else:
@@ -247,10 +306,76 @@ def buffer_arrays(accessors, buffer_views, binc):
         
 # -----------------------------------------------------------------------------
 #
-def set_geometry(model, va, na, vc, ta):
+def set_geometry(model, va, na, vc, tc, ta):
     model.set_geometry(va, na, ta)
     if vc is not None:
         model.vertex_colors = colors_to_uint8(vc)
+    if tc is not None:
+        model.texture_coordinates = tc
+
+# -----------------------------------------------------------------------------
+#
+def material_colors_and_textures(materials, textures, images):
+    if materials is None:
+        return [], []
+    colors = []
+    tex = []
+    from chimerax.core.colors import rgba_to_rgba8
+    for material in materials:
+        pbr = material.get('pbrMetallicRoughness')
+        if pbr and 'baseColorFactor' in pbr:
+            color = rgba_to_rgba8(pbr['baseColorFactor'])
+        else:
+            color = (255,255,255,255)
+        colors.append(color)
+        tex.append(_material_texture_buffer(pbr, textures, images))
+    return colors, tex
+
+# -----------------------------------------------------------------------------
+#
+def _material_texture_buffer(pbr, textures, images):
+    if pbr is None:
+        return None
+    if 'baseColorTexture' not in pbr:
+        return None
+    pbrt = pbr['baseColorTexture']
+    if 'index' not in pbrt:
+        return None
+    ti = pbrt['index']
+    if textures is None:
+        return None
+    if ti >= len(textures):
+        return None
+    tex = textures[ti]		# Texture index
+    if 'source' not in tex:
+        return None
+    ii = tex['source']	# Image index
+    if images is None:
+        return None
+    if ii >= len(images):
+        return None
+    im = images[ii]
+    if 'bufferView' not in im:
+        return None
+    if 'mimeType' not in im:
+        return None
+    if im['mimeType'] != 'image/png':
+        return None
+    tbv = im['bufferView']
+    return tbv
+
+# -----------------------------------------------------------------------------
+#
+def _create_texture(png_bytes):
+    from io import BytesIO
+    stream = BytesIO(png_bytes)
+    from PIL import Image
+    image = Image.open(stream)
+    from numpy import array
+    color_array = array(image)
+    from chimerax.graphics import Texture
+    texture = Texture(color_array)
+    return texture
 
 # -----------------------------------------------------------------------------
 #
@@ -278,42 +403,75 @@ def colors_to_uint8(vc):
 #
 def write_gltf(session, filename, models = None,
                center = None, size = None, short_vertex_indices = False,
-               float_colors = False, preserve_transparency = True):
+               float_colors = False, preserve_transparency = True,
+               texture_colors = False, instancing = False):
     if models is None:
         models = session.models.list()
 
     drawings = all_visible_drawings(models)
+
+    buffers = Buffers()
+    materials = Materials(buffers, preserve_transparency, float_colors,
+                          texture_colors)
+    nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
+                                     short_vertex_indices,
+                                     instancing)
+    
+    if center is not None or size is not None:
+        from chimerax.geometry import union_bounds
+        bounds = union_bounds(m.bounds() for m in models if m.is_visible)
+        if bounds is not None:
+            # Place positioning node above top-level nodes.
+            cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
+            nodes.append(cs_node)
+
+    encode_gltf(nodes, buffers, meshes, materials, filename)
+        
+# -----------------------------------------------------------------------------
+#
+def center_and_size(nodes, bounds, center, size):
+
+    if bounds is None:
+        return
+    if center is None and size is None:
+        return
+    
+    c = bounds.center()
+    s = max(bounds.size())
+    f = 1 if size is None else size / s
+    tx,ty,tz = (0,0,0) if center is None else [center[a]-f*c[a] for a in (0,1,2)]
+    matrix = [f,0,0,0,
+              0,f,0,0,
+              0,0,f,0,
+              tx,ty,tz,1]
+    
+    cs_node = {'name': 'centering',
+               'children': nodes,
+               'matrix': matrix}
+    return cs_node
+
+# -----------------------------------------------------------------------------
+#
+def encode_gltf(nodes, buffers, meshes, materials, filename):
     
     # Write 80 character comment.
     from chimerax.core import version
     app_ver  = 'UCSF ChimeraX %s' % version
-
-    b = Buffers()
-    nodes, meshes = nodes_and_meshes(drawings, b, short_vertex_indices, float_colors,
-                                     preserve_transparency)
-    node_index = {d:di for di,d in enumerate(drawings)}
-    shown_models = [m for m in models if m in node_index]
-    child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
-    top_models = [m for m in shown_models if node_index[m] not in child_nodes]
-    top_nodes = [node_index[m] for m in top_models]
     
-    if center is not None or size is not None:
-        from chimerax.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in top_models)
-        tnodes = [nodes[ni] for ni in top_nodes]
-        # Apply matrix to only top-level nodes
-        center_and_size(tnodes, bounds, center, size)
-        
     h = {
         'asset': {'version': '2.0', 'generator': app_ver},
-        'scenes': [{'nodes':top_nodes}],
+        'scenes': [{'nodes':top_nodes(nodes)}],
         'nodes': nodes,
-        'meshes': meshes,
-        'accessors': b.accessors,
-        'bufferViews': b.buffer_views,
-        'buffers':[{'byteLength': b.nbytes}],
+        'meshes': meshes.mesh_specs,
+        'accessors': buffers.accessors,
+        'materials': materials.material_specs,
+        'bufferViews': buffers.buffer_views,
+        'buffers':[{'byteLength': buffers.nbytes}],
     }
-    
+
+    if len(materials.textures) > 0:
+        h.update(materials.textures.texture_specs)	# adds 'textures', 'images', 'samplers'
+        
     import json
     json_text = json.dumps(h).encode('utf-8')
     nj = len(json_text)
@@ -325,7 +483,10 @@ def write_gltf(session, filename, models = None,
     ctype = b'JSON'
     json_chunk = b''.join((clen, ctype, json_text))
 
-    binc = b.chunk_bytes()
+    binc = buffers.chunk_bytes()
+    if len(binc) % 4 != 0:
+        # Chunk length required to be a multiple of 4 bytes.
+        binc += b'\0' * (4-len(binc)%4)
     blen = to_bytes(len(binc), uint32)
     btype = b'BIN\x00'
     bin_chunk = b''.join((blen, btype, binc))
@@ -338,6 +499,23 @@ def write_gltf(session, filename, models = None,
     for b in (magic, version, length, json_chunk, bin_chunk):
         file.write(b)
     file.close()
+
+# -----------------------------------------------------------------------------
+#
+def to_bytes(x, dtype):
+    from numpy import array, little_endian
+    ta = array((x,), dtype)
+    if not little_endian:
+        ta[:] = ta.byteswap()
+    return ta.tobytes()
+
+# -----------------------------------------------------------------------------
+#
+def top_nodes(nodes):
+    # List all top level nodes as scenes.
+    child_nodes = set(sum([n.get('children',[]) for n in nodes], []))
+    top = [i for i,node in enumerate(nodes) if i not in child_nodes]
+    return top
 
 # -----------------------------------------------------------------------------
 # Collect all drawings including descendants of specified models, excluding
@@ -372,61 +550,299 @@ def any_triangles_shown(d, drawings, ts):
     return ts[d]
 
 # -----------------------------------------------------------------------------
+# Expand drawing instances into nodes and meshes.
 #
-def nodes_and_meshes(drawings, buffers, short_vertex_indices = False, float_colors = False,
-                     preserve_transparency = True):
-    nodes = []
-    meshes = []
-    b = buffers
-    drawing_index = {d:di for di,d in enumerate(drawings)}
-    from numpy import float32, uint32, uint16
-    for d in drawings:
-        dn = {'name':d.name}
-        cn = [drawing_index[c] for c in d.child_drawings() if c in drawing_index]
-        if cn:
-            dn['children'] = cn
-        nodes.append(dn)
-        va, na, vc, ta = d.vertices, d.normals, d.vertex_colors, d.masked_triangles
-        if va is None or ta is None or len(ta) == 0:
-            continue
-        dn['mesh'] = len(meshes)
-        pos = d.get_scene_positions(displayed_only = True)
-        if pos.is_identity():
-            geom = [(va,na,vc,ta)]
-        elif len(pos) > 1:
-            # TODO: Need instance colors to take account of parent instances.
-            ic = d.get_colors(displayed_only = True)
-            geom = [combine_instance_geometry(va, na, vc, ta, pos, ic)]
-        else:
-            p0 = pos[0]
-            geom = [(p0*va, p0.transform_vectors(na), vc, ta)]
-        if short_vertex_indices:
-            geom = limit_vertex_count(geom)
-        prims = []
-        for pva,pna,pvc,pta in geom:
-            attr = {'POSITION': b.add_array(pva.astype(float32, copy=False), bounds=True)}
-            if pna is not None:
-                # TODO: Ribbon normals were normalized, bug #829.  Normalize to work around.
-                from numpy import sqrt, newaxis
-                lengths = sqrt((pna*pna).sum(axis=1))
-                pnna = pna / lengths[..., newaxis]
-                attr['NORMAL'] = b.add_array(pnna)
-            if pvc is None:
-                pvc = single_vertex_color(len(pva), d.color)
-            if not preserve_transparency:
-                pvc = pvc[:,:3]
-            if float_colors:
-                pvc = pvc.astype(float32)
-                pvc /= 255
-            attr['COLOR_0'] = b.add_array(pvc, normalized = not float_colors)
-            etype = uint16 if short_vertex_indices else uint32
-            ne = len(pta)
-            ea = pta.astype(etype, copy=False).reshape((3*ne,))
-            elem = b.add_array(ea)
-            prims.append({'attributes': attr, 'indices':elem})
-        meshes.append({'primitives': prims})
+def nodes_and_meshes(drawings, buffers, materials,
+                     short_vertex_indices = False,
+                     leaf_instancing = False):
+
+    # Create tree of nodes with children and matrices set.
+    nodes, drawing_nodes = node_tree(drawings, leaf_instancing)
+
+    # Create meshes for nodes.
+    meshes = Meshes(buffers, materials, short_vertex_indices, leaf_instancing)
+    for drawing, dnodes in drawing_nodes.items():
+        if meshes.has_mesh(drawing):
+            for node in dnodes:
+                node['mesh'] = meshes.mesh_index(drawing, node['single_color'])
+
+    for node in nodes:
+        del node['single_color']
 
     return nodes, meshes
+
+# -----------------------------------------------------------------------------
+# The GLTF 2.0 spec requires that a node cannot be the child of more than one
+# other node.  So the child nodes for drawing instances need to be duplicated.
+#
+def node_tree(drawings, leaf_instancing):
+    
+    # Find top level drawings.
+    child_drawings = []
+    for d in drawings:
+        child_drawings.extend(d.child_drawings())
+    child_set = set(child_drawings)
+    top_drawings = [d for d in drawings if not d in child_set]
+
+    # Create the node hierarchy expanding instances into nodes.
+    nodes = []		# All nodes.
+    drawing_nodes = {}	# Maps drawing to list of nodes that are copies of that drawing.
+    drawing_set = set(drawings)
+    for drawing in top_drawings:
+        create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing)
+
+    return nodes, drawing_nodes
+
+# -----------------------------------------------------------------------------
+# Create node hierarchy starting at drawing, adding new nodes to nodes list
+# and to the drawing_nodes mapping that records all the node copies for each
+# drawing.
+#
+def create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing):
+    dn = {'name': drawing.name,
+          'single_color': drawing.color}
+    dni = len(nodes)
+    nodes.append(dn)
+
+    children = [c for c in drawing.child_drawings() if c.display and c in drawing_set]
+
+    positions = drawing.get_positions(displayed_only = True)
+    if len(positions) == 1:
+        inodes = gnodes = [dn]
+        if not positions.is_identity():
+            dn['matrix'] = gltf_transform(positions[0])
+    elif leaf_instancing or children:
+        ic = drawing.get_colors(displayed_only = True)
+        inodes = [{'name': '%s %d' % (drawing.name, i+1),
+                   'matrix': gltf_transform(p),
+                   'single_color': ic[i]}
+                  for i,p in enumerate(positions)]
+        ni = len(nodes)
+        nodes.extend(inodes)
+        dn['children'] = list(range(ni,ni+len(inodes)))
+        gnodes = inodes if leaf_instancing else [dn]
+    else:
+        # Copying leaf node geometry so don't make child nodes.
+        gnodes = [dn]
+        dn['single_color'] = (255,255,255,255)	# color factor if texture colors used.
+        
+    if drawing not in drawing_nodes:
+        drawing_nodes[drawing] = []
+    drawing_nodes[drawing].extend(gnodes)
+
+    if children:
+        for node in inodes:
+            node['children'] = [create_node(c, drawing_set, nodes, drawing_nodes, leaf_instancing)
+                                for c in children]
+
+    return dni
+
+# -----------------------------------------------------------------------------
+#
+def gltf_transform(place):
+    (m00,m01,m02,m03),(m10,m11,m12,m13),(m20,m21,m22,m23) = place.matrix
+    return [m00,m10,m20,0,
+            m01,m11,m21,0,
+            m02,m12,m22,0,
+            m03,m13,m23,1]
+
+# -----------------------------------------------------------------------------
+#
+class Meshes:
+    def __init__(self, buffers, materials, short_vertex_indices = False, leaf_instancing = False):
+        self._buffers = buffers
+        self._materials = materials
+        self._short_vertex_indices = short_vertex_indices
+        self._leaf_instancing = leaf_instancing
+        self._meshes = {}	# Map Drawing to Mesh.
+        self._mesh_specs = []	# List of all mesh specifications
+
+    def has_mesh(self, drawing):
+        if drawing.vertices is None or drawing.triangles is None or len(drawing.triangles) == 0:
+            return False
+        return True
+    
+    def mesh_index(self, drawing, instance_color):
+        mesh = self._meshes.get(drawing)
+        if mesh is None:
+            mesh = Mesh(drawing, self._buffers, self._materials,
+                        self._short_vertex_indices, self._leaf_instancing)
+            self._meshes[drawing] = mesh
+        mi = len(self._mesh_specs)
+        spec = mesh.specification(instance_color)
+        self._mesh_specs.append(spec)
+        return mi
+
+    @property
+    def mesh_specs(self):
+        return self._mesh_specs
+    
+# -----------------------------------------------------------------------------
+#
+class Mesh:
+    def __init__(self, drawing, buffers, materials,
+                 short_vertex_indices = False,
+                 leaf_instancing = False):
+        self._drawing = drawing
+        self._buffers = buffers
+        self._materials = materials
+        self._short_vertex_indices = short_vertex_indices
+        self._leaf_instancing = leaf_instancing
+        
+        self._primitives = None
+        self._geom_buffers = None
+        self._texture_image = None
+        self._converted_vertex_to_texture_colors = False
+
+    # -----------------------------------------------------------------------------
+    #
+    def specification(self, instance_color):
+        prims = self._geometry_primitives()
+        if not self._has_vertex_colors:
+            # Need to copy the geometry with the correct material color.
+            materials = self._materials
+            from copy import deepcopy
+            prims = deepcopy(prims)
+            if self._converted_vertex_to_texture_colors:
+                instance_color = (255,255,255,255)
+            for prim in prims:
+                material = materials.material(instance_color, self._texture_image)
+                prim['material'] = material.index
+        mesh = {'primitives': prims}
+        return mesh
+
+    # -----------------------------------------------------------------------------
+    #
+    def _geometry_primitives(self):
+        prims = self._primitives
+        if prims is not None:
+            return prims
+        
+        self._primitives = prims = []
+        for vi,ni,ci,tci,ti in self._geometry_buffers():
+            attr = {'POSITION': vi}
+            prim = {'attributes': attr,
+                    'indices': ti}
+            if ni is not None:
+                attr['NORMAL'] = ni
+            if ci is not None:
+                attr['COLOR_0'] = ci
+            if tci is not None:
+                attr['TEXCOORD_0'] = tci
+            prims.append(prim)
+            
+        return prims
+
+    # -----------------------------------------------------------------------------
+    #
+    def _geometry_buffers(self):
+        geom_bufs = self._geom_buffers
+        if geom_bufs is not None:
+            return geom_bufs
+        
+        d = self._drawing
+        va, na, vc, tc, ta = (d.vertices, d.normals, d.vertex_colors,
+                              d.texture_coordinates, d.masked_triangles)
+        if d.texture and d.texture.dimension == 2 and hasattr(d.texture, 'image_array'):
+            self._texture_image = d.texture.image_array
+        else:
+            tc = None
+
+        # Combine instances into a single triangle set.
+        if not self._leaf_instancing:
+            positions = d.get_positions(displayed_only = True)
+            if not positions.is_identity():
+                instance_colors = d.get_colors(displayed_only = True)
+                va,na,vc,tc,ta = combine_instance_geometry(va, na, vc, tc, ta,
+                                                           positions, instance_colors)
+
+        # Convert vertex colors to texture colors
+        if self._materials._convert_vertex_to_texture_colors:
+            if vc is not None:
+                from chimerax.surface.texture import has_single_color_triangles
+                if has_single_color_triangles(ta, vc):
+                    from chimerax.surface.texture import vertex_colors_to_texture
+                    tex_coords, tex_image = vertex_colors_to_texture(vc)
+                    tc = tex_coords
+                    self._texture_image = tex_image
+                    vc = None
+                    self._converted_vertex_to_texture_colors = True
+                    
+        # Some implementations only allow 16-bit unsigned vertex indices.
+        geom = [(va, na, vc, tc, ta)]
+        if self._short_vertex_indices:
+            geom = limit_vertex_count(geom)
+            
+        self._has_vertex_colors = (vc is not None)
+        self._geom_buffers = geom_bufs = [self._make_buffers(pva,pna,pvc,ptc,pta)
+                                          for pva,pna,pvc,ptc,pta in geom]
+        return geom_bufs
+
+    # -----------------------------------------------------------------------------
+    #
+    def _make_buffers(self, va, na, vc, tc, ta):
+        b = self._buffers
+        mat = self._materials
+        from numpy import float32, uint32, uint16
+        
+        vi = b.add_array(va.astype(float32, copy=False), bounds=True)
+        ni = b.add_array(na) if na is not None else None
+        if vc is None:
+            ci = None
+        else:
+            if not mat._preserve_transparency:
+                vc = vc[:,:3]
+            if mat._float_vertex_colors:
+                vc = vc.astype(float32)
+                vc /= 255
+            ci = b.add_array(vc, normalized = not mat._float_vertex_colors)
+        tci = b.add_array(tc) if tc is not None else None
+        ne = len(ta)
+        etype = uint16 if self._short_vertex_indices else uint32
+        ea = ta.astype(etype, copy=False).reshape((3*ne,))
+        ti = b.add_array(ea)
+        return (vi,ni,ci,tci,ti)
+
+# -----------------------------------------------------------------------------
+#
+def combine_instance_geometry(va, na, vc, tc, ta, places, instance_colors):
+    v = []
+    n = []
+    c = []
+    u = []
+    t = []
+    offset = 0
+    for i,p in enumerate(places):
+        v.append(p*va)
+        n.append(p.transform_vectors(na))
+        if vc is None:
+            ivc = single_vertex_color(len(va), instance_colors[i])
+            c.append(ivc)
+        else:
+            c.append(vc)
+        if tc:
+            u.append(tc)
+        t.append(ta+offset)
+        offset += len(va)
+
+    from numpy import concatenate
+    ctc = concatenate(u) if tc else None
+
+    cva, cna, cca, cta = concatenate(v), concatenate(n), concatenate(c), concatenate(t)
+
+    # Instanced geometry often is scaled so normals need renormalizing.
+    from chimerax.geometry import normalize_vectors
+    normalize_vectors(cna)
+    
+    return cva, cna, cca, ctc, cta
+
+# -----------------------------------------------------------------------------
+#
+def single_vertex_color(n, color):
+    from numpy import empty, uint8
+    vc = empty((n,4), uint8)
+    vc[:] = color
+    return vc
 
 # -----------------------------------------------------------------------------
 # Split triangle geometry so vertex arrays are of specified maximum size.
@@ -481,16 +897,16 @@ class Buffers:
         a['count'] = array.shape[0]
         if len(array.shape) == 1:
             t = 'SCALAR'
+        elif array.shape[1] == 2:
+            t = 'VEC2'
         elif array.shape[1] == 3:
             t = 'VEC3'
         elif array.shape[1] == 4:
             t = 'VEC4'
         else:
-            raise glTFError('glTF buffer shape %s not allowed, must be 1 dimensional or N by 3'
-                            % repr(tuple(array.shape)))
+            raise glTFError('glTF buffer shape %s not allowed, must be 1 or 2 dimensional with second dimension size 1, 2, 3, or 4' % repr(tuple(array.shape)))
         a['type'] = t
         a['componentType'] = self.value_types[array.dtype.type]
-        a['bufferView'] = len(self.buffer_views)
         if normalized:
             a['normalized'] = True	# Required for COLOR_0
 
@@ -506,14 +922,22 @@ class Buffers:
         self.accessors.append(a)
 
         b = array.tobytes()
-        nb = len(b)
-        self.buffer_bytes.append(b)
-        bv = {"byteLength": nb, "byteOffset": self.nbytes, "buffer": 0}
-        self.buffer_views.append(bv)
-        self.nbytes += nb
+        a['bufferView'] = self.add_buffer(b)
 
         return len(self.accessors) - 1
 
+    # -----------------------------------------------------------------------------
+    #
+    def add_buffer(self, bytes):
+        bvi = len(self.buffer_views)
+        nb = len(bytes)
+        if nb % 4 != 0:
+            bytes += b'\0' * (4 - (nb%4))  # byteOffset is required to be multiple of 4
+        self.buffer_bytes.append(bytes)
+        bv = {"byteLength": nb, "byteOffset": self.nbytes, "buffer": 0}
+        self.buffer_views.append(bv)
+        self.nbytes += len(bytes)
+        return bvi
 
     # -----------------------------------------------------------------------------
     #
@@ -522,60 +946,98 @@ class Buffers:
 
 # -----------------------------------------------------------------------------
 #
-def center_and_size(nodes, bounds, center, size):
+class Materials:
+    def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
+                 convert_vertex_to_texture_colors = False):
+        self._colors = {}	# rgba tuple -> Material
+        self._materials = []
+        self._preserve_transparency = preserve_transparency
+        self._float_vertex_colors = float_vertex_colors
+        self._convert_vertex_to_texture_colors = convert_vertex_to_texture_colors
+        self.textures = Textures(buffers)
+        
+    def material(self, color, texture_image = None):
+        r,g,b,a = color
+        if not self._preserve_transparency:
+            a = 255
+        c = (r,g,b,a)
+        m = self._colors.get(c, None)
+        if m is None:
+            mi = len(self._materials)
+            ti = self.textures.add_texture(texture_image) if texture_image is not None else None
+            m = Material(mi, c, ti)
+            if ti is None:
+                self._colors[c] = m
+            self._materials.append(m)
+        return m
 
-    if bounds is None:
-        return
-    if center is None and size is None:
-        return
+    @property
+    def material_specs(self):
+        return [m.specification for m in self._materials]
+
+# -----------------------------------------------------------------------------
+#
+class Material:
+    def __init__(self, material_index, base_color8, texture_index = None):
+        self._index = material_index
+        self._base_color8 = base_color8
+        self._texture_index = texture_index
+
+    @property
+    def index(self):
+        return self._index
     
-    c = bounds.center()
-    s = max(bounds.size())
-    f = 1 if size is None else size / s
-    tx,ty,tz = (0,0,0) if center is None else [center[a]-f*c[a] for a in (0,1,2)]
-    matrix = [f,0,0,0,
-              0,f,0,0,
-              0,0,f,0,
-              tx,ty,tz,1]
+    @property
+    def specification(self):
+        from chimerax.core.colors import rgba8_to_rgba
+        color = rgba8_to_rgba(self._base_color8)
+        pbr = {'baseColorFactor': color}
+        if self._texture_index is not None:
+            pbr['baseColorTexture'] = {'index': self._texture_index}
+        spec = {'pbrMetallicRoughness': pbr}
+        return spec
+
+# -----------------------------------------------------------------------------
+#
+class Textures:
+    def __init__(self, buffers):
+        self._buffers = buffers
+        self._texture_buffers = []	# gltf buffer ids for each image
+        self._array_image_id = {}	# id(rgba_array) -> image buffer id
+
+    def __len__(self):
+        return len(self._texture_buffers)
     
-    for n in nodes:
-           n['matrix'] = matrix
+    def add_texture(self, rgba_array):
+        a_id = id(rgba_array)
+        if a_id in self._array_image_id:
+            return self._array_image_id[a_id]
+        bv = self._texture_buffer(rgba_array)
+        self._texture_buffers.append(bv)
+        im_id = len(self._texture_buffers)-1
+        self._array_image_id[a_id] = im_id
+        return im_id
 
-# -----------------------------------------------------------------------------
-#
-def combine_instance_geometry(va, na, vc, ta, places, instance_colors):
-    v = []
-    n = []
-    c = []
-    t = []
-    offset = 0
-    for i,p in enumerate(places):
-        v.append(p*va)
-        n.append(p.transform_vectors(na))
-        if vc is None:
-            ivc = single_vertex_color(len(va), instance_colors[i])
-            c.append(ivc)
-        else:
-            c.append(vc)
-        t.append(ta+offset)
-        offset += len(va)
+    def _texture_buffer(self, rgba_array):
+        '''Make a PNG image and save as a buffer.'''
+        # Ut oh, Texture does not keep data after filling OpenGL texture, to save memory
+        # for large volume data.
+        from PIL import Image
+        pi = Image.fromarray(rgba_array)
+        from io import BytesIO
+        image_bytes = BytesIO()
+        pi.save(image_bytes, format='PNG')
+        bvi = self._buffers.add_buffer(image_bytes.getvalue())
+        return bvi
+    
+    @property
+    def texture_specs(self):
+        textures = [{'source': i} for i in range(len(self._texture_buffers))]
+        images = [{'bufferView': bv, 'mimeType':'image/png'}
+                  for bv in self._texture_buffers]
+        samplers = [{}]
+        return {'textures': textures,
+                'images': images,
+                'samplers': samplers,
+        }
 
-    from numpy import concatenate
-    return concatenate(v), concatenate(n), concatenate(c), concatenate(t)
-
-# -----------------------------------------------------------------------------
-#
-def single_vertex_color(n, color):
-    from numpy import empty, uint8
-    vc = empty((n,4), uint8)
-    vc[:] = color
-    return vc
-
-# -----------------------------------------------------------------------------
-#
-def to_bytes(x, dtype):
-    from numpy import array, little_endian
-    ta = array((x,), dtype)
-    if not little_endian:
-        ta[:] = ta.byteswap()
-    return ta.tobytes()

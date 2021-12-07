@@ -234,14 +234,15 @@ def commas(text_seq, conjunction='or'):
     return text
 
 
-def plural_form(seq, word, plural=None):
+def plural_form(things, word, plural=None):
     """Return plural of word based on length of sequence
 
-    :param seq: a sequence of objects
+    :param things: a sequence of objects or an integer
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    if len(seq) == 1:
+    count = things if isinstance(things, int) else len(things)
+    if count == 1:
         return word
     if plural is None:
         return plural_of(word)
@@ -1028,6 +1029,17 @@ class StringArg(Annotation):
         return quote_if_necessary(value)
 
 
+class CharacterArg(StringArg):
+    name = "a single character"
+
+    @staticmethod
+    def parse(text, session):
+        token, log_token, rest = StringArg.parse(text, session)
+        if len(token) != 1:
+            raise AnnotationError("must be a single character")
+        return token, log_token, rest
+
+
 class PasswordArg(StringArg):
     """Annotation for a password (should not be echoed to log)"""
     name = "a password"
@@ -1253,26 +1265,14 @@ class TopModelsArg(AtomSpecArg):
         return concise_model_spec(session, tmodels)
 
 
-total_calls = 0
-total_parse = 0
-total_evaluate = 0
-
-
 class ObjectsArg(AtomSpecArg):
     """Parse command objects specifier"""
     name = "an objects specifier"
 
     @classmethod
     def parse(cls, text, session):
-        global total_calls, total_parse, total_evaluate
-        from time import time
-        t0 = time()
         aspec, text, rest = super().parse(text, session)
-        t1 = time()
         objects = aspec.evaluate(session)
-        total_evaluate += time() - t1
-        total_calls += 1
-        total_parse += t1-t0
         objects.spec = str(aspec)
         return objects, text, rest
 
@@ -2845,11 +2845,19 @@ class Command:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]
             with command_trigger(session, really_log, cmd_text):
+                from chimerax.core.errors import CancelOperation
                 if not isinstance(ci.function, Alias):
                     if not log_only:
                         if ci.can_return_json:
                             kw_args['return_json'] = return_json
-                        result = ci.function(session, **kw_args)
+                        if self._ci.self_logging:
+                            kw_args['log'] = log
+                        try:
+                            result = ci.function(session, **kw_args)
+                        except CancelOperation:
+                            if not self._ci.self_logging:
+                                session.logger.info("Command cancelled by user")
+                            raise
                         results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
@@ -2865,9 +2873,14 @@ class Command:
                         used_aliases = _used_aliases.copy()
                         used_aliases.add(self.command_name)
                     if not log_only:
-                        result = ci.function(session, *args, optional=optional,
+                        try:
+                            result = ci.function(session, *args, optional=optional,
                                              _used_aliases=used_aliases, log=log)
-                        results.append(result)
+                        except CancelOperation:
+                            if not self._ci.self_logging:
+                                session.logger.info("Command cancelled by user")
+                            raise
+                        results.extend(result)
 
             self.command_name = None
             self._ci = None

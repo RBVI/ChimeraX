@@ -42,7 +42,13 @@ See also:
 <a href="../tools/colorkey.html"><b>Color Key</b></a>,
 <a href="../commands/coulombic.html"><b>coulombic</b></a>,
 <a href="../commands/mlp.html"><b>mlp</b></a>,
-<a href="../images.html">making images</a>
+<a href="../images.html">making images</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX videos</a>:
+<a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by
+electrostatic potential</a>,
+<a href="https://youtu.be/2EDZQs7lGNs" target="_blank">coloring a map by local
+resolution</a>
 </p><p>
 The <b>Surface Color</b> dialog can be opened from the 
 <b>Depiction</b> or <b>Volume Data</b> section 
@@ -72,7 +78,9 @@ Coloring by a specified map:
 </ul>
 <p>
 A series of color wells is shown, with fields below them to enter 
-the corresponding values. If no values are entered, the entire range of values
+the corresponding values. Choosing to color by <b>electrostatic potential</b>
+fills in the values (if they were blank) to span the range -10 to +10.
+If no values are filled in, the entire range of values
 (as defined by the surface points and the data)
 will be spread across the colors when <b>Color</b> is clicked. The number 
 of color/value pairs can be changed in the <a href="#options">options</a>.
@@ -140,12 +148,16 @@ style="display:inline-block; vertical-align:middle"><tr>
 &ndash; whether to color only the <a href="../commands/surface.html#cap">cap</a>
 of a <a href="../commands/clip.html">clipped</a> surface
 <li><b>Report value at mouse position</b>
-&ndash; whether mouseover (when mouse focus is in the graphics window)
+&ndash; whether mouseover
 should report the data value for that surface vertex in the
 <a href="../window.html">status line</a>
+<!-- 
+for how to avoid dueling chain info in the status line, see
+https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-September/002646.html 
+-->
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+September 2021</address>
 </body></html>

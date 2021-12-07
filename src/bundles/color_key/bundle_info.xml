@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ColorKey" version="1.2.1"
+<BundleInfo name="ChimeraX-ColorKey" version="1.5"
 	    package="chimerax.color_key"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -9,17 +9,26 @@
   <Synopsis>Add color key to graphics</Synopsis>
   <Description>Overlay color key on graphics scene.</Description>
 
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="Depiction"/>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-Label" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
     <Dependency name="ChimeraX-UI" version="~=1.7"/>
   </Dependencies>
+
+  <Providers manager="toolbar">
+    <Provider tab="Right Mouse" section="Annotation" name="color key" after="Move label"
+	  display_name="Key" icon="ckiconvertical.png" description="Draw color key"/>
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

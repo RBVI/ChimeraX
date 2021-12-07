@@ -135,10 +135,10 @@ class Settings(ConfigFile):
 
     Attributes
     ----------
-    AUTO_SAVE : dict
+    AUTO_SAVE: Dict
         Class dictionary containing setting names and default values.
         Such settings will be saved to disk immediately when changed.
-    EXPLICIT_SAVE : dict
+    EXPLICIT_SAVE: Dict
         Class dictionary containing setting names and default values.
         Such settings will be saved to disk only when the :py:meth:`save`
         method is called.
@@ -146,12 +146,6 @@ class Settings(ConfigFile):
         When a setting changes its current value, the 'setting changed'
         trigger will be activated with (attr_name, prev_val, new_val)
         as the data provided with the trigger.
-
-    Methods
-    -------
-    save()
-        Save settings to disk.  Only needed for EXPLICIT_SAVE settings.
-        AUTO_SAVE settings are immediately saved to disk when changed.
     """
 
     AUTO_SAVE = EXPLICIT_SAVE = {}
@@ -183,8 +177,11 @@ class Settings(ConfigFile):
     def __setattr__(self, name, value):
         if (self._settings_initialized and name[0] != '_' and name in self._cur_settings):
             cur_val = self._cur_settings[name]
-            from numpy import array_equal
-            if not array_equal(cur_val, value):
+            import numpy as np
+            with np.warnings.catch_warnings():
+                np.warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+                unequal = not np.array_equal(cur_val, value)
+            if unequal:
                 self._cur_settings[name] = value
                 if name in self.__class__.AUTO_SAVE:
                     ConfigFile.__setattr__(self, name, value)
@@ -206,7 +203,11 @@ class Settings(ConfigFile):
             setattr(self, name, self.saved_value(name))
 
     def save(self, setting=None, *, settings=None):
-        '''Supported API. If 'setting' or 'settings' is specified, save only those settings (don't
+        '''Supported API. 
+        Save settings to disk.  Only needed for EXPLICIT_SAVE settings.
+        AUTO_SAVE settings are immediately saved to disk when changed.
+
+        If 'setting' or 'settings' is specified, save only those settings (don't
         change saved value of any other setting. Otherwise, save all settings.'''
         if setting is not None:
             settings_to_save = [setting]

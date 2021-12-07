@@ -42,12 +42,11 @@ See also:
 <a href="key.html"><b>key</b></a>,
 <a href="color.html#list"><b>color list</b></a>, 
 <a href="colornames.html">color specification</a>,
-<a href="colortables.html#autocolors">initial colors</a>
+<a href="colortables.html">color schemes</a>
 </p><p>
 The following palettes are predefined in ChimeraX:
 <ul>
-<li><b>rainbow</b> (default for
-<a href="color.html"><b>color</b></a> command <b>sequential</b> coloring)
+<li><b>rainbow</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="30px" title="blue"></td>
@@ -56,14 +55,16 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=yellow width="30px" title="yellow"></td>
 <td bgcolor=red width="30px" title="red"></td>
 </tr></table>
-<li><b>red-white-blue</b> or <b>redblue</b> (default for
-<a href="color.html"><b>color</b></a> command <b>map</b> coloring)
+(default for
+<a href="color.html"><b>color</b></a> command <b>sequential</b> coloring)
+<li><b>red-white-blue</b> or <b>redblue</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="30px" title="red"></td>
 <td bgcolor=white width="30px" title="white"></td>
 <td bgcolor=blue width="30px" title="blue"></td>
 </tr></table>
+(default for <a href="color.html"><b>color</b></a> command <b>map</b> coloring)
   <li><b>blue-white-red</b> or <b>bluered</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -92,14 +93,32 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="30px" title="white"></td>
 </tr></table>
 <li><b>lipophilicity</b>
-(default for the <a href="mlp.html"><b>mlp</b></a> command,
-along with <a href="color.html#range"><b>range</b></a> -20,20)
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkcyan width="30px" title="darkcyan"></td>
 <td bgcolor=white width="30px" title="white"></td>
 <td bgcolor=darkgoldenrod width="30px" title="darkgoldenrod"></td>
 </tr></table>
+(default for the <a href="mlp.html"><b>mlp</b></a> command,
+along with <a href="color.html#range"><b>range</b></a> -20,20)
+<li><b>alphafold</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">50</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1">70</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">90</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">100</font></td>
+</tr></table>
+(used to show the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field of
+<a href="../tools/alphafold.html">AlphaFold predictions</a>)
 <li><a href="#colorbrewer">ColorBrewer palettes</a>
 </ul>
 
@@ -441,5 +460,5 @@ the more colors used, the darker the ends):
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+September 2021</address>
 </body></html>

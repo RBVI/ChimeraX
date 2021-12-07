@@ -33,8 +33,8 @@ Markers and links can also be created and adjusted with the
 <a href="../commands/marker.html"><b>marker</b></a> command.
 Markers placed on <a href="../trajectories.html#vseries">volume series</a>
 data are assigned a 
-<a href="../attributes.html#atom"><b>frame</b> attribute</a> with value
-indicating the associated time step within the series.
+<a href="../attributes.html#atom"><b>frame</b> attribute</a>
+with value indicating the associated time step within the series.
 See also: <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
 <a href="../commands/measure.html#length"><b>measure length</b></a>,
 <a href="../commands/vseries.html"><b>vseries</b></a>,
@@ -47,7 +47,8 @@ from the <b>Volume Data</b> section of the <b>Tools</b> menu
 or by clicking any of the icons in the
 <a href="markers.html"><b>Markers</b></a> tab of the
 <a href="toolbar.html"><b>Toolbar</b></a>:&nbsp;
-<br><img class="iconbar" src="../marker-icons.png">
+<img class="iconbar" src="../marker-icons.png">
+<br>
 The tool window can be
 <a href="../window.html#panels">moved, resized, <i>etc.</i></a>
 </p><p>
@@ -66,18 +67,26 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#659CEF" width="10px"></td> 
 </tr></table>
 &nbsp;&nbsp;<b>radius</b> [default <b>0.5</b>]
-<li><b>Link new marker to <a href="../selection.html">selected</a> marker</b> 
-(default <b>off</b>) 
-&ndash; whether to link markers as they are created
 </ul>
 <p>
 Pressing enter (return) after entering a new <b>radius</b> value is
 required for it to take effect. A change in <b>color</b> or <b>radius</b> 
 applies to any currently <a href="../selection.html">selected</a>
 markers and links, as well as those which are subsequently created.
+</p><p>
+<a name="options"></a>
+Clicking the <b>Options</b> button hides/shows further options:
 </p>
+<ul class="none">
+<li><b>Marker set</b> &ndash; allows choosing which marker model 
+will receive any markers subsequently added with the mouse; 
+clicking <b>New</b> adds a new marker model
+<li><b>Link new marker to <a href="../selection.html">selected</a> marker</b> 
+(default <b>off</b>) 
+&ndash; whether to link markers as they are created
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+June 2021</address>
 </body></html>

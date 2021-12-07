@@ -77,8 +77,9 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED
+        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
+        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -114,7 +115,19 @@ class Structure(Model, StructureData):
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = Model.deleted
+    @property
+    def deleted(self):
+        return StructureData.deleted.fget(self) or Model.deleted.fget(self)
+
+    def combine(self, s, chain_id_mapping, ref_xform):
+        '''
+        Combine structure 's' into this structure.  'chain_id_mapping' is a chain ID -> chain ID
+        dictionary describing how to change chain IDs of 's' when in conflict with this structure.
+        'ref_xform' is the scene_position of the reference model.
+        '''
+        totals = self._get_instance_totals()
+        StructureData._combine(self, s, chain_id_mapping, ref_xform)
+        self._copy_custom_attrs(s, totals)
 
     def copy(self, name = None):
         '''
@@ -124,10 +137,34 @@ class Structure(Model, StructureData):
         '''
         if name is None:
             name = self.name
-        m = self.__class__(self.session, name = name, c_pointer = StructureData._copy(self),
-                           auto_style = False, log_info = False)
+        m = self.__class__(self.session, name = name,
+            c_pointer = StructureData._copy(self), auto_style = False, log_info = False)
         m.positions = self.positions
+        m._copy_custom_attrs(self)
         return m
+
+    def _get_instance_totals(self):
+        return {
+            'atoms': self.num_atoms,
+            'bonds': self.num_bonds,
+            'residues': self.num_residues,
+            'chains': self.num_chains
+        }
+
+    def _copy_custom_attrs(self, source, totals=None):
+        from .molobject import Chain
+        for class_obj in [Atom, Bond, Chain, Residue]:
+            py_objs = [py_obj for py_obj in python_instances_of_class(class_obj)
+                if (not py_obj.deleted) and py_obj.structure == source and py_obj.has_custom_attrs]
+            if not py_objs:
+                continue
+            class_attr = class_obj.__name__.lower() + 's'
+            index_lookup = { obj:i for i, obj in enumerate(getattr(source, class_attr)) }
+            base_index = 0 if totals is None else totals[class_attr]
+            collection = getattr(self, class_attr)
+            for py_obj in py_objs:
+                collection[base_index + index_lookup[py_obj]].set_custom_attrs(
+                    {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
         if not self.scene_position.is_identity():
@@ -241,7 +278,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_single_color(self):
+    def _get_model_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -255,13 +292,13 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_single_color(self, color):
+    def _set_model_color(self, color):
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    single_color = property(_get_single_color, _set_single_color)
+    model_color = property(_get_model_color, _set_model_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals
@@ -444,6 +481,12 @@ class Structure(Model, StructureData):
         if pbg:
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
+
+    def _notify_display_change(self, trig_name, model):
+        if model != self:
+            return
+        # ensure that "display changed" trigger fires
+        StructureData.display.fset(self, self.display)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -702,20 +745,23 @@ class Structure(Model, StructureData):
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
         elif itype == 'residues':
-            from .molarray import concatenate, Atoms
+            from . import concatenate, Atoms
             atoms, bonds = self.atoms, self.bonds
-            sel_atoms = []
+            sel_residues = []
             if atoms.num_selected > 0:
-                sel_atoms.append(atoms.filter(atoms.selected))
+                sel_residues.append(atoms.filter(atoms.selected).residues)
             if bonds.num_selected > 0:
                 sel_bonds = bonds.filter(bonds.selected)
-                import numpy
                 atoms1, atoms2 = sel_bonds.atoms
-                is_intra = numpy.equal(atoms1.residues, atoms2.residues)
-                sel_atoms.extend(sel_bonds.filter(is_intra).atoms)
-            if sel_atoms:
-                from . import concatenate
-                return [concatenate(sel_atoms, remove_duplicates=True).unique_residues]
+                is_intra = atoms1.residues.pointers == atoms2.residues.pointers
+                same_res = atoms1.residues.filter(is_intra)
+                if same_res:
+                    sel_residues.append(same_res)
+            if sel_residues:
+                from . import concatenate, Residues
+                return [concatenate(sel_residues, Residues, remove_duplicates=True).unique()]
+        elif itype == 'structures':
+            return [[self]] if self.selected else []
         return []
 
     def clear_selection(self):
@@ -1231,10 +1277,18 @@ class AtomicStructure(Structure):
             lighting = {'preset': 'full'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
                 lighting['multi_shadow'] = MULTI_SHADOW
-            from .colors import chain_colors, element_colors
+            from .colors import chain_colors, element_colors, polymer_colors
             residues = self.residues
-            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
-            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            nseq = len(residues.unique_sequences[0])
+            if nseq <= 2:
+                # Only one polymer sequence.  Sequence 0 is for non-polymers.
+                rcolors = chain_colors(residues.chain_ids)
+                acolors = chain_colors(atoms.residues.chain_ids)
+            else:
+                rcolors = polymer_colors(residues)[0]
+                acolors = polymer_colors(atoms.residues)[0]
+            residues.ribbon_colors = residues.ring_colors = rcolors
+            atoms.colors = acolors
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
             ligand_atoms.draw_modes = Atom.STICK_STYLE
@@ -1440,31 +1494,45 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
+        uids = {u.chain_id:u.uniprot_name for u in uniprot_ids(self)}
+        have_uniprot_ids = len([chain for chains in descripts.values()
+                                for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
-        summary = '\n<table %s>\n' % html_table_params
-        summary += '  <thead>\n'
-        summary += '    <tr>\n'
-        summary += '      <th colspan="2">Chain information for %s</th>\n' % (
-            self.name if is_ensemble else self)
-        summary += '    </tr>\n'
-        summary += '    <tr>\n'
-        summary += '      <th>Chain</th>\n'
-        summary += '      <th>Description</th>\n'
-        summary += '    </tr>\n'
-        summary += '  </thead>\n'
-        summary += '  <tbody>\n'
+        struct_name = self.name if is_ensemble else str(self)
+        lines = ['<table %s>' % html_table_params,
+                 '  <thead>',
+                 '    <tr>',
+                 '      <th colspan="%d">Chain information for %s</th>'
+                   % ((3 if have_uniprot_ids else 2), struct_name),
+                 '    </tr>',
+                 '    <tr>',
+                 '      <th>Chain</th>',
+                 '      <th>Description</th>',
+                 '      <th>UniProt</th>' if have_uniprot_ids else '',
+                 '    </tr>',
+                 '  </thead>',
+                 '  <tbody>',
+        ]
         for key, chains in descripts.items():
             description, characters = key
-            summary += '    <tr>\n'
-            summary += '      <td style="text-align:center">'
-            summary += ' '.join([chain_text(chain) for chain in chains])
-            summary += '      </td>'
-            summary += '      <td>'
-            summary += descript_text(description, chains)
-            summary += '      </td>'
-            summary += '    </tr>\n'
-        summary += '  </tbody>\n'
-        summary += '</table>'
+            cids = ' '.join([chain_text(chain) for chain in chains])
+            cdescrip = descript_text(description, chains)
+            if have_uniprot_ids:
+                uidset = set(uids.get(chain.chain_id) for chain in chains
+                             if chain.chain_id in uids)
+                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+                cuids = ','.join(ucmd % (uname,uname) for uname in uidset)
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center">' + cids + '</td>',
+                '      <td>' + cdescrip + '</td>',
+                (('      <td style="text-align:center">' + cuids + '</td>')
+                 if have_uniprot_ids else ''),
+                '    </tr>',
+            ])
+        lines.extend(['  </tbody>',
+                      '</table>'])
+        summary = '\n'.join(lines)
         session.logger.info(summary, is_html=True)
 
     def _report_assemblies(self, session):
@@ -1474,6 +1542,7 @@ class AtomicStructure(Structure):
         if html:
             session.logger.info(html, is_html=True)
 
+# also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
     from chimerax import mmcif
@@ -1816,6 +1885,23 @@ class PickedAtom(Pick):
     def description(self):
         return str(self.atom)
     def specifier(self):
+        # have to do something fancy for the rare case of duplicate atom specs [#4617]
+        residues = self.atom.structure.residues
+        same_numbers = residues.numbers == self.atom.residue.number
+        import numpy
+        if numpy.count_nonzero(same_numbers) > 1:
+            same_chains = residues.chain_ids == self.atom.residue.chain_id
+            same = numpy.logical_and(same_numbers, same_chains)
+            if numpy.count_nonzero(same) > 1:
+                same_inserts = residues.insertion_codes == self.atom.residue.insertion_code
+                same = numpy.logical_and(same, same_inserts)
+                if numpy.count_nonzero(same) > 1:
+                    # Well, I could go off and see if the other residue(s) contain an atom
+                    # with the same name, but at this point I'm going to be lazy...
+                    base = '@@serial_number=%d' % self.atom.serial_number
+                    if len([s for s in self.atom.structure.session.models if isinstance(s, Structure)]) == 1:
+                        return base
+                    return self.atom.structure.string(style="command") + base
         return self.atom.string(style='command')
     @property
     def residue(self):
@@ -2228,24 +2314,40 @@ def selected_residues(session):
 # -----------------------------------------------------------------------------
 #
 def structure_residues(structures):
-    '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
+    '''Return all residues in specified atomic structures as an :class:`.Residues` collection.'''
     from .molarray import Residues
     res = Residues()
     for m in structures:
         res = res | m.residues
     return res
 
+# -----------------------------------------------------------------------------
+#
+def uniprot_ids(structure):
+    from chimerax.mmcif.uniprot_id import uniprot_ids
+    uids = uniprot_ids(structure)
+    if len(uids) == 0:
+        from chimerax.pdb.uniprot_id import uniprot_ids
+        uids = uniprot_ids(structure)
+    return uids
+
 def _residue_mouse_hover(pick, log):
     res = getattr(pick, 'residue', None)
     if res is None:
         return
     from .molobject import Residue
-    if isinstance(res, Residue):
-        chain = res.chain
-        if chain and chain.description:
-            log.status("chain %s: %s" % (chain.chain_id, chain.description))
-        elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
-            log.status(res.structure._hetnam_descriptions[res.name])
+    if not isinstance(res, Residue):
+        return
+    if not getattr(log, '_next_hover_chain_info', True):
+        # Supress status message if another mouse mode such
+        # as surface color value reporting is issuing status messages.
+        log._next_hover_chain_info = True
+        return
+    chain = res.chain
+    if chain and chain.description:
+        log.status("chain %s: %s" % (chain.chain_id, chain.description))
+    elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+        log.status(res.structure._hetnam_descriptions[res.name])
             
 def _register_hover_trigger(session):
     if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:
@@ -2261,9 +2363,9 @@ from .pbgroup import PseudobondGroup
 for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
-        {attr_name: types for attr_name, types in getattr(reg_class, '_cython_property_return_info', [])})
+        {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
 # Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
 # necessary really due to the way instance attributes actually get restored)
 register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
     if not isinstance(inst, AtomicStructure)],
-    {attr_name: types for attr_name, types in getattr(Structure, '_cython_property_return_info', [])})
+    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

@@ -11,10 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-
+#data_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.data_dir, other instance in core/toolshed, use :noindex: for one of them
+#executable_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.executable_dir, other instance in core/toolshed, use :noindex: for one of them
+#include_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.include_dir, other instance in core/toolshed, use :noindex: for one of them
+#library_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.library_dir, other instance in core/toolshed, use :noindex: for one of them
 from . import ToolshedError, BundleAPI
 from . import _debug
-
 
 class BundleInfo:
     """Supported API. Metadata about a bundle, whether installed or available.
@@ -22,39 +24,22 @@ class BundleInfo:
     A :py:class:`BundleInfo` instance stores the properties about a bundle and
     can create a tool instance.
 
-    Attributes
-    ----------
-    commands : list of :py:class:`CommandInfo`
-        List of commands registered for this bundle.
-    tools : list of :py:class:`ToolInfo`
-        List of tools registered for this bundle.
-    installed : boolean
-        True if this bundle is installed locally; False otherwise.
-    session_versions : range
-        Given as the minimum and maximum session versions
-        that this bundle can read.
-    session_write_version : integer
-        The session version that bundle data is written in.
-        Defaults to maximum of 'session_versions'.
-    custom_init : boolean
-        Whether bundle has custom initialization code
-    name : readonly str
-        The internal name of the bundle.
-    short_name : readonly str
-        A short name for the bundle.  Typically the same as 'name' with 'ChimeraX-' omitted.
-    synopsis : readonly str
-        Short description of this bundle.
-    version : readonly str
-        Bundle version (which is actually the same as the distribution version,
-        so all bundles from the same distribution share the same version).
-    data_dir:
-        Path (relative to bundle root) of directory of data files
-    include_dir:
-        Path (relative to bundle root) of directory of compilation include files
-    library_dir:
-        Path (relative to bundle root) of directory of link libraries
-    executable_dir:
-        Path (relative to bundle root) of directory of executables
+    Attributes:
+        commands: list of :py:class:`CommandInfo`
+            List of commands registered for this bundle.
+        tools: list of :py:class:`ToolInfo`
+            List of tools registered for this bundle.
+        installed: boolean
+            True if this bundle is installed locally; False otherwise.
+        session_versions: range
+            Given as the minimum and maximum session versions 
+            that this bundle can read.
+        session_write_version: integer
+            The session version that bundle data is written in. 
+            Defaults to maximum of 'session_versions'.
+        custom_init: boolean
+            Whether bundle has custom initialization code
+    
     """
 
     def __init__(self, name, installed,
@@ -75,39 +60,40 @@ class BundleInfo:
                  packages=[], supersedes=[]):
         """Initialize instance.
 
-        Parameters
-        ----------
-        name : str
-            Name of Python distribution that provided this bundle.
-        installed : boolean
-            Whether this bundle is locally installed.
-        categories : list of str
-            List of categories in which this bundle belong.
-        version : str
-            Version of Python distribution that provided this bundle.
-        api_package_name : str
-            Name of package with bundle's API.  Package name must be a dotted Python name or blank if no ChimeraX deliverables in bundle.
-        packages : list of tuples
-            List of the Python packages implementing by this bundle.  The packages are given as a tuple e.g., ('chimerax', 'core') for chimerax.core.
-        session_versions : range
-            Range of session versions that this bundle can read.
-        custom_init : boolean
-            Whether bundle has custom initialization code.
-        data_dir:
-            Path (relative to bundle root) of directory of data files.
-        include_dir:
-            Path (relative to bundle root) of directory of compilation include files.
-        library_dir:
-            Path (relative to bundle root) of directory of link libraries.
-        executable_dir:
-            Path (relative to bundle root) of directory of executables.
-        managers:
-            Dictionary of manager names to init keywords
-        providers:
-            Dictionary of provider names to manager names + init keywords
-        inits:
-            Dictionary of initialization dependencies
+        Parameters:
+            name: str
+                Name of Python distribution that provided this bundle.
+            installed: boolean
+                Whether this bundle is locally installed.
+            categories: list of str
+                List of categories in which this bundle belong.
+            version: str
+                Version of Python distribution that provided this bundle.
+            api_package_name: str
+                Name of package with bundle's API.  Package name must be a dotted Python name or blank if no ChimeraX deliverables in bundle.
+            packages: list of tuples
+                List of the Python packages implementing by this bundle.  The packages are given as a tuple e.g., ('chimerax', 'core') for chimerax.core.
+            session_versions: range
+                Range of session versions that this bundle can read.
+            custom_init: boolean
+                Whether bundle has custom initialization code.
+            data_dir:
+                Path (relative to bundle root) of directory of data files.
+            include_dir:
+                Path (relative to bundle root) of directory of compilation include files.
+            library_dir:
+                Path (relative to bundle root) of directory of link libraries.
+            executable_dir:
+                Path (relative to bundle root) of directory of executables.
+            managers:
+                Dictionary of manager names to init keywords
+            providers:
+                Dictionary of provider names to manager names + init keywords
+            inits:
+                Dictionary of initialization dependencies
+
         """
+
         # Public attributes
         self.installed = installed
         self.session_versions = session_versions
@@ -143,11 +129,18 @@ class BundleInfo:
 
     @property
     def name(self):
-        """Supported API. Return bundle name."""
+        """Supported API. 
+        
+        Returns: Internal name of the bundle.
+        """
         return self._name
     @property
     def short_name(self):
-        """Supported API. Return bundle name."""
+        """Supported API. 
+         
+           Returns:
+               A short name for the bundle.  Typically the same as 'name' with 'ChimeraX-' omitted.
+        """
         boilerplate = "ChimeraX-"
         if self._name.startswith(boilerplate):
             return self._name[len(boilerplate):]
@@ -155,12 +148,21 @@ class BundleInfo:
 
     @property
     def version(self):
-        """Supported API. Return bundle version."""
+        """Supported API. 
+
+           Returns:
+               Bundle version (which is actually the same as the distribution version,
+               so all bundles from the same distribution share the same version).
+        """
         return self._version
 
     @property
     def synopsis(self):
-        """Supported API. Return bundle synopsis."""
+        """Supported API. 
+           
+           Returns: 
+               Bundle synopsis; a short description of this bundle.
+        """
         return self._synopsis or "no synopsis available"
 
     def __repr__(self):
@@ -394,19 +396,31 @@ class BundleInfo:
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def include_dir(self):
-        """Supported API. Return bundle include directory."""
+        """Supported API. 
+       
+           Returns: Path (relative to bundle root) of the bundle's directory of compilation include files.
+        """
         return self._bundle_path(self.installed_include_dir)
 
     def library_dir(self):
-        """Supported API. Return bundle library directory."""
+        """Supported API. 
+           
+           Returns: Path (relative to bundle root) of the bundle's directory of link libraries.
+        """
         return self._bundle_path(self.installed_library_dir)
 
     def executable_dir(self):
-        """Supported API. Return bundle executable directory."""
+        """Supported API. 
+           Returns: Path (relative to bundle root) of the bundle's directory of executables. 
+        """
         return self._bundle_path(self.installed_executable_dir)
 
     def data_dir(self):
-        """Supported API. Return bundle data directory."""
+        """Supported API. 
+
+           Returns:
+               Path (relative to the bundle root) of the bundle's data directory.
+        """
         return self._bundle_path(self.installed_data_dir)
 
     def _bundle_path(self, filename):
@@ -575,17 +589,17 @@ class BundleInfo:
             Dependent bundles.
         """
         from . import get_toolshed
-        from distlib.database import DistributionPath
+        from pkg_resources import working_set
         keep = set()
-        for d in DistributionPath().get_distributions():
-            for req in d.run_requires:
-                if req.split()[0] == self.name:
+        for d in working_set:
+            for req in d.requires():
+                if req.name == self.name:
                     keep.add(d)
                     break
         ts = get_toolshed()
         deps = set()
         for d in keep:
-            bi = ts.find_bundle(d.name, logger)
+            bi = ts.find_bundle(d.project_name, logger)
             if bi:
                 deps.add(bi)
         return deps

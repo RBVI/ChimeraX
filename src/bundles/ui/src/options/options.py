@@ -29,7 +29,7 @@ class Option(metaclass=ABCMeta):
 
         if attr_name:
             self.attr_name = attr_name
-        else:
+        elif not hasattr(self, 'attr_name'):
             if self.name:
                 self.attr_name = self.name
             else:
@@ -59,9 +59,7 @@ class Option(metaclass=ABCMeta):
 
         if balloon or not hasattr(self, 'balloon'):
             self.balloon = balloon
-        command_line = False
-        if hasattr(self, 'in_class'):
-            command_line = self.attr_name and '.' not in self.attr_name
+        command_line = self.attr_name and not self.settings
         if self.balloon or command_line:
             balloon = self.balloon if self.balloon else ""
             if command_line:
@@ -72,7 +70,7 @@ class Option(metaclass=ABCMeta):
                 elif hasattr(self, 'mapping'):
                     attr_vals = self.mapping.items()
                 elif hasattr(self, 'labels') and hasattr(self, 'values'):
-                    if not isinstance(BooleanOption) or self.labels != BooleanOption.labels:
+                    if not isinstance(self, BooleanOption) or self.labels != BooleanOption.labels:
                         attr_vals = zip(self.values, self.labels)
                 if attr_vals:
                     attr_balloon += '\n'
@@ -108,6 +106,37 @@ class Option(metaclass=ABCMeta):
         if self.settings_handler:
             self.settings_handler.remove()
             self.settings_handler = None
+
+    def display_for_items(self, items):
+        """Supported API.  Use the option's 'attr_name' attribute to survey the given items for
+           their value or values for that attribute and display the value or values in the option.
+           The 'items' can be a chimerax.atomic.Collection or a normal Python sequence. If a Collection,
+           the "plural form" of attr_name will be used to check the Collection.
+        """
+        values = self.values_for_items(items)
+        if len(values) == 0:  # 'not values' fails when it's a numpy array
+            return
+        from numpy import array_equal
+        value = values[0]
+        for val in values[1:]:
+            if not array_equal(val, value):
+                self.set_multiple()
+                return
+        self.value = value
+
+    def values_for_items(self, items):
+        """Supported API.  Convenience function to get values for the 'attr_name' attribute from the
+           given items.  Used by display_for_items() and by subclasses overriding display_for_items().
+        """
+        if not items:
+            return []
+        from chimerax.atomic import Collection
+        if isinstance(items, Collection):
+            from chimerax.core.commands import plural_of
+            values = getattr(items, plural_of(self.attr_name))
+        else:
+            values = [getattr(i, self.attr_name) for i in items]
+        return values
 
     @property
     def enabled(self):
@@ -237,6 +266,39 @@ def make_optional(cls):
     return opt_class
 
 
+class NumericOption(Option):
+    """base class for options that display single numbers (e.g. IntOption, FloatOption)"""
+
+    def display_for_items(self, items):
+        """Supported API.  Use the option's 'attr_name' attribute to survey the given items for
+           their value or values for that attribute and display the value or values in the option.
+           The 'items' can be a chimerax.atomic.Collection or a normal Python sequence. If a Collection,
+           the "plural form" of attr_name will be used to check the Collection.  Ranges will be
+           shown appropriately.
+        """
+        values = self.values_for_items(items)
+        if len(values) == 0:  # 'not values' fails when it's a numpy array
+            return
+        from numbers import Real
+        num_vals = [val for val in values if isinstance(val, Real)]
+        if not num_vals:
+            self.show_text("N/A")
+        else:
+            min_val = min(num_vals)
+            max_val = max(num_vals)
+            if ("%g" % max_val) == ("%g" % min_val):
+                self.value = max_val
+            else:
+                decimal_places = getattr(self, 'decimal_places', None)
+                decimal_format = "%g" if not decimal_places else "%%.%df" % decimal_places
+                self.show_text((decimal_format + " \N{LEFT RIGHT ARROW} " + decimal_format)
+                    % (min_val, max_val))
+
+    @abstractmethod
+    def show_text(self, text):
+        """So that option can show text such as 'N/A' and number ranges"""
+        pass
+
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""
 
@@ -360,7 +422,7 @@ class EnumOption(EnumBase):
 
 OptionalEnumOption = make_optional(EnumOption)
 
-class FloatOption(Option):
+class FloatOption(NumericOption):
     """Supported API. Option for floating-point values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        Besides being numeric values, those keyords can also be 'positive' or 'negative'
@@ -383,25 +445,38 @@ class FloatOption(Option):
        of the slider if using a slider."""
 
     def get_value(self):
-        val = self._float_widget.value()
-        return val
+        return self._float_widget.value()
 
     def set_value(self, value):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText("")
+        self._float_widget.set_text("")
+        self._float_widget.blockSignals(True)
         self._float_widget.setValue(value)
+        self._float_widget.blockSignals(False)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText(self.multiple_value)
-        self._float_widget.setValue(self._float_widget.minimum())
+        self.show_text(self.multiple_value)
+
+    def show_text(self, text):
+        self._float_widget.set_text(text)
+
+    def _possible_callback(self):
+        if self._value_has_changed:
+            self._value_has_changed = False
+            self.make_callback()
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
             decimal_places=3, step=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
-        self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        self._value_has_changed = False
+        if as_slider:
+            self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
+        else:
+            self._float_widget.valueChanged.connect(lambda val, s=self:
+                setattr(s, '_value_has_changed', True))
+            self._float_widget.editingFinished.connect(lambda *, s=self: s._possible_callback())
         if (not left_text and not right_text) or as_slider:
             if left_text:
                 self._float_widget.set_left_text(left_text)
@@ -432,21 +507,19 @@ class FloatEnumOption(EnumBase):
 
     def set_value(self, value):
         float, text = value
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText("")
+        self._float_widget.set_text("")
         self._float_widget.setValue(float)
         self._enum.setText(text)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        if hasattr(self._float_widget, 'setSpecialValueText'):
-            self._float_widget.setSpecialValueText(self.multiple_value)
-        self._float_widget.setValue(self._float_widget.minimum())
+        self._float_widget.set_text(self.mulitple_value)
         self._enum.setText(self.multiple_value)
 
     def _make_widget(self, min=None, max=None, float_label=None, enum_label=None,
             decimal_places=3, step=None, display_value=None, as_slider=False, **kw):
+        self.decimal_places = decimal_places
         self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         self._enum = EnumBase._make_widget(self, display_value=display_value, **kw)
@@ -472,6 +545,63 @@ class FontOption(EnumOption):
             fdb = QFontDatabase()
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
+
+class FileOption(Option):
+    """base class for specifying a file """
+
+    @classmethod
+    def browse_func(cls, *args, **kw):
+        from Qt.QtWidgets import QFileDialog
+        if cls == InputFileOption:
+            return QFileDialog.getOpenFileName(*args, **kw)
+        return QFileDialog.getSaveFileName(*args, **kw)
+
+    def get_value(self):
+        return self.line_edit.text()
+
+    def set_value(self, value):
+        self.line_edit.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.line_edit.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose File", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        self.widget = QWidget()
+        self.widget.setContentsMargins(0,0,0,0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.widget.setLayout(layout)
+        self.line_edit = QLineEdit()
+        self.line_edit.returnPressed.connect(self.make_callback)
+        if initial_text_width:
+            self.line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        layout.addWidget(self.line_edit, stretch=1)
+        self.start_folder = start_folder
+        self.browser_title = browser_title
+        button = QPushButton("Browse")
+        button.clicked.connect(self._launch_browser)
+        layout.addWidget(button)
+
+    def _launch_browser(self, *args):
+        import os
+        if self.start_folder is None or not os.path.exists(self.start_folder):
+            start_folder = os.getcwd()
+        else:
+            start_folder = self.start_folder
+        file = self.browse_func(self.widget, self.browser_title, start_folder)
+        if folder:
+            self.line_edit.setText(folder)
+            self.line_edit.returnPressed.emit()
+
+class InputFileOption(FileOption):
+    pass
+class OutputFileOption(FileOption):
+    pass
 
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
@@ -522,7 +652,7 @@ class InputFolderOption(Option):
 
 OutputFolderOption = InputFolderOption
 
-class IntOption(Option):
+class IntOption(NumericOption):
     """Supported API. Option for integer values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        
@@ -534,17 +664,31 @@ class IntOption(Option):
 
     def set_value(self, value):
         self._spin_box.setSpecialValueText("")
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(value)
+        self._spin_box.blockSignals(False)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        self._spin_box.setSpecialValueText(self.multiple_value)
+        self.show_text(self.multiple_value)
+
+    def show_text(self, text):
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(self._spin_box.minimum())
+        self._spin_box.blockSignals(False)
+        self._spin_box.setSpecialValueText(text)
+
+    def _possible_callback(self):
+        if self._value_has_changed:
+            self._value_has_changed = False
+            self.make_callback()
 
     def _make_widget(self, min=None, max=None, left_text=None, right_text=None, **kw):
         self._spin_box = _make_int_spinbox(min, max, **kw)
-        self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        self._value_has_changed = False
+        self._spin_box.valueChanged.connect(lambda val, s=self: setattr(s, '_value_has_changed', True))
+        self._spin_box.editingFinished.connect(lambda *, s=self: s._possible_callback())
         if not left_text and not right_text:
             self.widget = self._spin_box
             return
@@ -819,94 +963,6 @@ class SymbolicEnumOption(EnumOption):
 
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
-from Qt.QtWidgets import QWidget
-from Qt.QtCore import Qt, Signal
-
-class FloatSlider(QWidget):
-
-    valueChanged = Signal(float)
-
-    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
-            ignore_wheel_event=False, **kw):
-        from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
-        super().__init__()
-        layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
-        self.setLayout(layout)
-        if ignore_wheel_event:
-            class Slider(QSlider):
-                def wheelEvent(self, event):
-                    event.ignore()
-        else:
-            Slider = QSlider
-        self._slider = Slider(**kw)
-        self._slider.setOrientation(Qt.Horizontal)
-        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self._minimum = minimum
-        self._maximum = maximum
-        self._continuous = continuous_callback
-        # slider are only integer, so have to do conversions
-        self._slider.setMinimum(0)
-        self._slider.setMaximum(5000)
-        int_step = max(1, int(5000 * step / (maximum - minimum)))
-        self._slider.setSingleStep(int_step)
-        layout.addWidget(self._slider, 0, 0, 1, 3)
-        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
-        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
-        # line wrapping
-        from chimerax.ui import shrink_font
-        self._left_text = QLabel()
-        self._left_text.setWordWrap(True)
-        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        shrink_font(self._left_text)
-        layout.addWidget(self._left_text, 1, 0)
-        self._value_text = QLabel()
-        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
-        layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
-        self._right_text = QLabel()
-        self._right_text.setWordWrap(True)
-        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
-        shrink_font(self._right_text)
-        layout.addWidget(self._right_text, 1, 2)
-        self._format = "%%.%df" % decimal_places
-        self._slider.valueChanged.connect(self._slider_value_changed)
-        self._slider.sliderReleased.connect(self._slider_released)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
-
-    def set_left_text(self, text):
-        self._left_text.setText(text)
-
-    def set_right_text(self, text):
-        self._right_text.setText(text)
-
-    def setSpecialValueText(self, text):
-        if text:
-            self._value_text.setText(text)
-
-    def setValue(self, float_val):
-        fract = (float_val - self._minimum) / (self._maximum - self._minimum)
-        self._slider.setValue(int(5000 * fract + 0.5))
-
-    def value(self):
-        return self._int_val_to_float(self._slider.value())
-
-    def _int_val_to_float(self, int_val):
-        fract = int_val / 5000
-        return (1-fract) * self._minimum + fract * self._maximum
-
-    def _slider_released(self):
-        if not self._continuous:
-            self.valueChanged.emit(self.value())
-
-    def _slider_value_changed(self, int_val):
-        float_val = self._int_val_to_float(int_val)
-        self._value_text.setText(self._format % float_val)
-        if self._continuous:
-            self.valueChanged.emit(float_val)
-
 def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, continuous_callback=False, **kw):
     def compute_bound(bound, default_bound):
         if bound is None:
@@ -922,7 +978,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         step = 10 ** (0 - (decimal_places-1))
 
     if as_slider:
-        from Qt.QtWidgets import QSlider
+        from chimerax.ui.widgets import FloatSlider
         return FloatSlider(minimum, maximum, step, decimal_places, continuous_callback, **kw)
     # as spinbox...
     from Qt.QtWidgets import QDoubleSpinBox
@@ -937,6 +993,13 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                     val = -step
             return val
 
+        def event(self, event):
+            ret = super().event(event)
+            if event.type() in [event.KeyPress, event.KeyRelease]:
+                event.accept()
+                return True
+            return ret
+
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
             if event.type() == event.Wheel and source is self:
@@ -944,25 +1007,18 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
                 return True
             return super().eventFilter(source, event)
 
-        def validate(self, text, pos):
-            suffix_index = len(text)
-            while suffix_index > 0 and not text[suffix_index-1].isdigit():
-                suffix_index -= 1
-            if suffix_index == 0:
-                return super().validate(text, pos)
-            numeric_text = text[:suffix_index]
-            suffix = text[suffix_index:]
-            try:
-                fval = float(numeric_text)
-            except ValueError:
-                return super().validate(text, pos)
-            # drop trailing decimal zeros if possible until input it valid
-            from Qt.QtGui import QValidator
-            while super().validate("%s%s" % (numeric_text, suffix), pos)[0] == QValidator.Invalid:
-                if len(numeric_text) < 2 or numeric_text[-1] != '0':
-                    return super().validate(text, pos)
-                numeric_text = numeric_text[:-1]
-            return super().validate("%s%s" % (numeric_text, suffix), pos)
+        def set_text(self, text):
+            self.blockSignals(True)
+            self.setValue(self.minimum())
+            self.blockSignals(False)
+            self.setSpecialValueText(text)
+
+        def special_value_shown(self):
+            return self.specialValueText() != ""
+
+        def stepBy(self, *args, **kw):
+            super().stepBy(*args, **kw)
+            self.editingFinished.emit()
 
     spin_box = NZDoubleSpinBox(**kw)
     spin_box.non_zero = (max == 'negative' or min == 'positive')
@@ -978,12 +1034,23 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 def _make_int_spinbox(min, max, **kw):
     from Qt.QtWidgets import QSpinBox
     class NoScrollSpinBox(QSpinBox):
+        def event(self, event):
+            ret = super().event(event)
+            if event.type() in [event.KeyPress, event.KeyRelease]:
+                event.accept()
+                return True
+            return ret
+
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
             if event.type() == event.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
+
+        def stepBy(self, *args, **kw):
+            super().stepBy(*args, **kw)
+            self.editingFinished.emit()
 
     spin_box = NoScrollSpinBox(**kw)
     default_minimum = -(2**31)

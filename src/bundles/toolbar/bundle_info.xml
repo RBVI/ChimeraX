@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
-	    version="1.0.1" package="chimerax.toolbar"
+	    version="1.1" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -21,6 +21,7 @@ Provides a Windows ribbon-style toolbar interface
     <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-Shortcuts" version="~=1.0"/>
+    <Dependency name="ChimeraX-SelInspector" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
     <!-- depend on everything that registers a mousemode for now,
 	 so they'll exist when toolbar is made -->
@@ -108,27 +109,27 @@ Provides a Windows ribbon-style toolbar interface
 
     <Provider tab="Markers" section="Place markers"
       name="layout-markers-place"/>
-    <Provider tab="Markers" section="Place markers" name="pm1"
-      mouse_mode="mark maximum" display_name="Maximum" description="Mark maximum"/>
-    <Provider tab="Markers" section="Place markers" name="pm2"
-      mouse_mode="mark plane" display_name="Plane" description="Mark volume plane"/>
-    <Provider tab="Markers" section="Place markers" name="pm3"
-      mouse_mode="mark surface" display_name="Surface" description="Mark surface"/>
-    <Provider tab="Markers" section="Place markers" name="pm4"
-      mouse_mode="mark center" display_name="Center" description="Mark center of connected surface"/>
-    <Provider tab="Markers" section="Place markers" name="pm5"
-      mouse_mode="mark point" display_name="Point" description="Mark 3d point"/>
+    <Provider tab="Markers" section="Place markers" name="pm1" mouse_mode="mark maximum"
+      display_name="Maximum" description="Mark maximum"/>
+    <Provider tab="Markers" section="Place markers" name="pm2" mouse_mode="mark plane"
+      display_name="Plane" description="Mark volume plane" after="Maximum"/>
+    <Provider tab="Markers" section="Place markers" name="pm3" mouse_mode="mark surface"
+      display_name="Surface" description="Mark surface" after="Plane"/>
+    <Provider tab="Markers" section="Place markers" name="pm4" mouse_mode="mark center"
+      display_name="Center" description="Mark center of connected surface" after="Surface"/>
+    <Provider tab="Markers" section="Place markers" name="pm5" mouse_mode="mark point"
+      display_name="Point" description="Mark 3d point" after="Center"/>
 
     <Provider tab="Markers" section="Adjust markers"
       name="layout-markers-adjust" after="Place markers"/>
-    <Provider tab="Markers" section="Adjust markers" name="am1"
-      mouse_mode="link markers" display_name="Link" description="Link consecutively clicked markers"/>
-    <Provider tab="Markers" section="Adjust markers" name="am2"
-      mouse_mode="move markers" display_name="Move" description="Move markers"/>
-    <Provider tab="Markers" section="Adjust markers" name="am3"
-      mouse_mode="resize markers" display_name="Resize" description="Resize markers or links"/>
-    <Provider tab="Markers" section="Adjust markers" name="am4"
-      mouse_mode="delete markers" display_name="Delete" description="Delete markers or links"/>
+    <Provider tab="Markers" section="Adjust markers" name="am1" mouse_mode="link markers"
+      display_name="Link" description="Link consecutively clicked markers"/>
+    <Provider tab="Markers" section="Adjust markers" name="am2" mouse_mode="move markers"
+      display_name="Move" description="Move markers" after="Link"/>
+    <Provider tab="Markers" section="Adjust markers" name="am3" mouse_mode="resize markers"
+      display_name="Resize" description="Resize markers or links" after="Move"/>
+    <Provider tab="Markers" section="Adjust markers" name="am4" mouse_mode="delete markers"
+      display_name="Delete" description="Delete markers or links" after="Resize"/>
 
     <!-- Right Mouse tab -->
     <Provider tab="Right Mouse" after="Markers"
@@ -136,84 +137,84 @@ Provides a Windows ribbon-style toolbar interface
 
     <Provider tab="Right Mouse" section="Movement"
       name="layout-mouse-movement"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm1"
-      mouse_mode="select" display_name="Select" description="Select models"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm2"
-      mouse_mode="rotate" display_name="Rotate" description="Rotate models"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm3"
-      mouse_mode="translate" display_name="Translate" description="Translate models"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm4"
-      mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm5"
-      mouse_mode="translate selected models" display_name="Move model" description="Translate selected models, hold shift key to rotate"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm6"
-      mouse_mode="rotate selected models" display_name="Rotate model" description="Rotate selected models, hold shift key to translate"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm6a"
-      mouse_mode="move picked models" display_name="Drag model" description="Move clicked-on models, hold shift key to rotate"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm7"
-      mouse_mode="translate selected atoms" display_name="Move atoms" description="Translate selected atoms, hold shift key to rotate"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm8" hidden="true"
-      mouse_mode="rotate selected atoms" display_name="Rotate atoms" description="Rotate selected atoms, hold shift key to translate"/>
-    <Provider tab="Right Mouse" section="Movement" name="mm9"
-      mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm1" mouse_mode="select"
+      display_name="Select" description="Select models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm2" mouse_mode="rotate"
+      display_name="Rotate" description="Rotate models" after="Select"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm3" mouse_mode="translate"
+      display_name="Translate" description="Translate models" after="Rotate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm4" mouse_mode="zoom"
+      display_name="Zoom" description="Zoom view" after="Translate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm5" mouse_mode="translate selected models"
+      display_name="Move model" description="Translate selected models, hold shift key to rotate" after="Zoom"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm6" mouse_mode="rotate selected models"
+      display_name="Rotate model" description="Rotate selected models, hold shift key to translate" after="Move model"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm6a" mouse_mode="move picked models"
+      display_name="Drag model" description="Move clicked-on models, hold shift key to rotate" after="Rotate model"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm7" mouse_mode="translate selected atoms"
+      display_name="Move atoms" description="Translate selected atoms, hold shift key to rotate" after="Drag model"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm8" hidden="true" mouse_mode="rotate selected atoms"
+      display_name="Rotate atoms" description="Rotate selected atoms, hold shift key to translate" after="Move atoms"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm9" mouse_mode="pivot"
+      display_name="Pivot" description="Set center of rotation at atom" after="Rotate atoms"/>
 
     <Provider tab="Right Mouse" section="Annotation"
       name="layout-mouse-annotation" after="Movement"/>
 	  ("Annotation", False): [
-    <Provider tab="Right Mouse" section="Annotation" name="ma1"
-      mouse_mode="distance" display_name="Distance" description="Toggle distance monitor between two atoms"/>
-    <Provider tab="Right Mouse" section="Annotation" name="ma2"
-      mouse_mode="label" display_name="Label" description="Toggle atom or cartoon label"/>
-    <Provider tab="Right Mouse" section="Annotation" name="ma3"
-      mouse_mode="move label" display_name="Move label" description="Reposition 2D label"/>
+    <Provider tab="Right Mouse" section="Annotation" name="ma1" mouse_mode="distance"
+      display_name="Distance" description="Toggle distance monitor between two atoms"/>
+    <Provider tab="Right Mouse" section="Annotation" name="ma2" mouse_mode="label"
+      display_name="Label" description="Toggle atom or cartoon label" after="Distance"/>
+    <Provider tab="Right Mouse" section="Annotation" name="ma3" mouse_mode="move label"
+      display_name="Move label" description="Reposition 2D label" after="Label"/>
 
     <Provider tab="Right Mouse" section="Clipping"
       name="layout-mouse-clipping" after="Annotation"/>
-    <Provider tab="Right Mouse" section="Clipping" name="mc1"
-      mouse_mode="clip" display_name="Clip" description="Activate clipping"/>
-    <Provider tab="Right Mouse" section="Clipping" name="mc2"
-      mouse_mode="clip rotate" display_name="Clip rotate" description="Rotate clipping planes"/>
-    <Provider tab="Right Mouse" section="Clipping" name="mc3"
-      mouse_mode="zone" display_name="Zone" description="Limit display to zone around clicked residues"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc1" mouse_mode="clip"
+      display_name="Clip" description="Activate clipping"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc2" mouse_mode="clip rotate"
+      display_name="Clip rotate" description="Rotate clipping planes" after="Clip"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc3" mouse_mode="zone"
+      display_name="Zone" description="Limit display to zone around clicked residues" after="Clip rotate"/>
 
     <Provider tab="Right Mouse" section="Map"
       name="layout-mouse-map" after="Clipping"/>
-    <Provider tab="Right Mouse" section="Map" name="mM1"
-      mouse_mode="contour level" display_name="Contour level" description="Adjust volume data threshold level"/>
-    <Provider tab="Right Mouse" section="Map" name="mM2"
-      mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
-    <Provider tab="Right Mouse" section="Map" name="mM3"
-      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes, hold shift key to translate"/>
-    <Provider tab="Right Mouse" section="Map" name="mM4"
-      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
-    <Provider tab="Right Mouse" section="Map" name="mM5"
-      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
-    <Provider tab="Right Mouse" section="Map" name="mM6"
-      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
-    <Provider tab="Right Mouse" section="Map" name="mM7"
-      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
-    <Provider tab="Right Mouse" section="Map" name="mM8"
-      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
-    <Provider tab="Right Mouse" section="Map" name="mM9"
-      mouse_mode="windowing" display_name="Windowing" description="Adjust volume data thresholds collectively"/>
+    <Provider tab="Right Mouse" section="Map" name="mM1" mouse_mode="contour level"
+      display_name="Contour level" description="Adjust volume data threshold level"/>
+    <Provider tab="Right Mouse" section="Map" name="mM2" mouse_mode="move planes"
+      display_name="Move planes" description="Move plane or slab along its axis to show a different section" after="Contour level"/>
+    <Provider tab="Right Mouse" section="Map" name="mM3" mouse_mode="rotate slab"
+      display_name="Rotate slab" description="Tilt volume planes, hold shift key to translate" after="Move planes"/>
+    <Provider tab="Right Mouse" section="Map" name="mM4" mouse_mode="crop volume"
+      display_name="Crop" description="Crop volume data dragging any face of box outline" after="Rotate slab"/>
+    <Provider tab="Right Mouse" section="Map" name="mM5" mouse_mode="tape measure"
+      display_name="Tape" description="Measure distance between two map points" after="Crop"/>
+    <Provider tab="Right Mouse" section="Map" name="mM6" mouse_mode="pick blobs"
+      display_name="Blob" description="Measure and color connected parts of surface" after="Tape"/>
+    <Provider tab="Right Mouse" section="Map" name="mM7" mouse_mode="map eraser"
+      display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero" after="Blob"/>
+    <Provider tab="Right Mouse" section="Map" name="mM8" mouse_mode="play map series"
+      display_name="Play series" description="Play map series" after="Erase"/>
+    <Provider tab="Right Mouse" section="Map" name="mM9" mouse_mode="windowing"
+      display_name="Windowing" description="Adjust volume data thresholds collectively" after="Play series"/>
 
     <Provider tab="Right Mouse" section="Structure Modification"
       name="layout-mouse-structure" after="Map"/>
-    <Provider tab="Right Mouse" section="Structure Modification" name="ms1"
-      mouse_mode="bond rotation" display_name="Bond rotation" description="Adjust torsion angle"/>
-    <Provider tab="Right Mouse" section="Structure Modification" name="ms2"
-      mouse_mode="swapaa" display_name="Swapaa" description="Mutate and label residue"/>
-    <Provider tab="Right Mouse" section="Structure Modification" name="ms3"
-      mouse_mode="play coordinates" display_name="Play coords" description="Play trajectory"/>
-    <Provider tab="Right Mouse" section="Structure Modification" name="ms4"
-      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
-    <Provider tab="Right Mouse" section="Structure Modification" name="ms5"
-      mouse_mode="minimize" display_name="Minimize" description="Jiggle residue and its neighbors"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms1" mouse_mode="bond rotation"
+      display_name="Bond rotation" description="Adjust torsion angle"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms2" mouse_mode="swapaa"
+      display_name="Swapaa" description="Mutate and label residue" after="Bond rotation"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms3" mouse_mode="play coordinates"
+      display_name="Play coords" description="Play trajectory" after="Swapaa"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms4" mouse_mode="tug"
+      display_name="Tug" description="Drag atom while applying dynamics" after="Play coords"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms5" mouse_mode="minimize"
+      display_name="Minimize" description="Jiggle residue and its neighbors" after="Tug"/>
 
     <Provider tab="Right Mouse" section="Other"
       name="layout-mouse-other" after="Structure Modification"/>
-    <Provider tab="Right Mouse" section="Other" name="mO1"
-      mouse_mode="next docked" display_name="Next docked" description="Show next docked ligand"/>
+    <Provider tab="Right Mouse" section="Other" name="mO1" mouse_mode="next docked"
+      display_name="Next docked" description="Show next docked ligand"/>
   </Providers>
 
   <DataFiles>

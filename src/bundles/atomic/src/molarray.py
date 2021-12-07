@@ -47,7 +47,8 @@ can be altered is if C++ objects they hold are deleted in which case those objec
 are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, integer, empty, array
+npy_bool = bool
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
 from .molobject import c_function, c_array_function, cvec_property, Atom
@@ -437,6 +438,24 @@ class StructureDatas(Collection):
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
 
+    @property
+    def autochains(self):
+        return array([s.autochain for s in self])
+    
+    @autochains.setter
+    def autochains(self, ac):
+        for s in self:
+            s.autochain = ac
+
+    @property
+    def names(self):
+        return array([s.name for s in self])
+
+    @names.setter
+    def names(self, nm):
+        for s in self:
+            s.name = nm
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -446,6 +465,16 @@ class AtomicStructures(StructureDatas):
     def __init__(self, mol_pointers):
         from . import AtomicStructure
         Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
+
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -860,6 +889,10 @@ class Bonds(Collection):
     set with such an array (or equivalent sequence), or with a
     single boolean value.
     '''
+    lengths = cvec_property('bond_length', float32, read_only = True)
+    '''
+    Returns a :mod:`numpy` array of bond lengths. Read only.
+    '''
     radii = cvec_property('bond_radius', float32)
     '''
     Returns a :mod:`numpy` array of bond radii (half thicknesses).
@@ -1140,11 +1173,11 @@ class Residues(Collection):
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
-    numbers = cvec_property('residue_number', int32, read_only = True, doc =
+    numbers = cvec_property('residue_number', int32, doc =
     '''
     Returns a :mod:`numpy` array of residue sequence numbers, as provided by
     whatever data source the structure came from, so not necessarily consecutive,
-    or starting from 1, *etc.* Read only.
+    or starting from 1, *etc.*.
     ''')
     polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
@@ -1208,6 +1241,69 @@ class Residues(Collection):
         '''Delete the C++ Residue objects'''
         c_function('residue_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+
+    @property
+    def chi1s(self):
+        return [r.chi1 for r in self]
+
+    @chi1s.setter
+    def chi1s(self, chi1):
+        for r in self:
+            r.chi1 = chi1
+
+    @property
+    def chi2s(self):
+        return [r.chi2 for r in self]
+
+    @chi2s.setter
+    def chi2s(self, chi2):
+        for r in self:
+            r.chi2 = chi2
+
+    @property
+    def chi3s(self):
+        return [r.chi3 for r in self]
+
+    @chi3s.setter
+    def chi3s(self, chi3):
+        for r in self:
+            r.chi3 = chi3
+
+    @property
+    def chi4s(self):
+        return [r.chi4 for r in self]
+
+    @chi4s.setter
+    def chi4s(self, chi4):
+        for r in self:
+            r.chi4 = chi4
+
+    @property
+    def omegas(self):
+        return [r.omega for r in self]
+
+    @omegas.setter
+    def omegas(self, omega):
+        for r in self:
+            r.omega = omega
+
+    @property
+    def phis(self):
+        return [r.phi for r in self]
+
+    @phis.setter
+    def phis(self, phi):
+        for r in self:
+            r.phi = phi
+
+    @property
+    def psis(self):
+        return [r.psi for r in self]
+
+    @psis.setter
+    def psis(self, psi):
+        for r in self:
+            r.psi = psi
 
     @property
     def unique_structures(self):
@@ -1358,6 +1454,17 @@ class PseudobondGroupDatas(Collection):
         Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
                             PseudobondGroupDatas)
 
+    colors = cvec_property('pseudobond_group_color', uint8, 4,
+        doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
+        "with such an array (or equivalent sequence), or with a single RGBA value.")
+    halfbonds = cvec_property('pseudobond_group_halfbond', npy_bool)
+    '''
+    Controls whether the pseudobonds should be colored in "halfbond"
+    mode, *i.e.* each half colored the same as its endpoint atom.
+    Returns a :mod:`numpy` array of boolean values.  Can be
+    set with such an array (or equivalent sequence), or with a
+    single boolean value.
+    '''
     pseudobonds = cvec_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
                                 astype = _pseudobonds, read_only = True, per_object = False)
     '''A single :class:`.Pseudobonds` object containing pseudobonds for all groups. Read only.'''
@@ -1365,6 +1472,20 @@ class PseudobondGroupDatas(Collection):
     '''A numpy string array of categories of each group.'''
     num_pseudobonds = cvec_property('pseudobond_group_num_pseudobonds', size_t, read_only = True)
     '''Number of pseudobonds in each group. Read only.'''
+    radii = cvec_property('pseudobond_group_radius', float32,
+        doc="Returns a :mod:`numpy` array of radii.  Can be set with such an array (or equivalent "
+        "sequence), or with a single floating-point number.")
+
+    # 'displays' being defined as property only so that setattr (used by selection inspector)
+    # knows that it exists.  Not defining as a vector property since we actually want to go
+    # through Model.display
+    @property
+    def displays(self):
+        return array([pbg.display for pbg in self])
+    @displays.setter
+    def displays(self, d):
+        for pbg in self:
+            pbg.display = d
 
 # -----------------------------------------------------------------------------
 #
@@ -1375,6 +1496,19 @@ class PseudobondGroups(PseudobondGroupDatas):
     def __init__(self, pbg_pointers):
         from . import pbgroup
         Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+
+    @property
+    def dashes(self):
+        return array([pbg.dashes for pbg in self])
+
+    @dashes.setter
+    def dashes(self, n):
+        for pbg in self:
+            pbg.dashes = n
+
+    @property
+    def names(self):
+        return array([pbg.name for pbg in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1410,6 +1544,17 @@ class Structures(StructureDatas):
     def __init__(self, mol_pointers):
         from . import Structure
         Collection.__init__(self, mol_pointers, Structure, Structures)
+
+    # so setattr knows that attr exists (used by selection inspector);
+    # also, don't want to directly set Structure.display, want to go through Model.display
+    @property
+    def displays(self):
+        return array([s.display for s in self])
+    @displays.setter
+    def displays(self, d):
+        for s in self:
+            s.display = d
+
 
     @classmethod
     def session_restore_pointers(cls, session, data):

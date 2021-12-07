@@ -51,6 +51,9 @@ defaults = {
             "ChimeraX-Shortcuts:la",  # soft
             "ChimeraX-Shortcuts:lf",  # full
         ]),
+        ("Selection", [
+            "ChimeraX-SelInspector:selection inspector",  # inspect selection
+        ]),
     ],
 }
 
@@ -239,6 +242,9 @@ class ToolbarTool(ToolInstance):
             tab_title, section_title, button_title, icon_path = info
             self.ttb.add_button_highlight(tab_title, section_title, button_title)
 
+    def set_enabled(self, enabled, tab_title, section_title, button_title):
+        self.ttb.set_enabled(enabled, tab_title, section_title, button_title)
+
 
 def _home_layout(session, home_tab):
     # interact through buttons in home tab
@@ -325,6 +331,15 @@ def _layout(d, what):
     if "Home" in layout and layout["Home"]:
         raise RuntimeError("%s: 'Home' must be first" % what)
     layout["Home"] = []
+    from chimerax.core import is_daily_build
+    if is_daily_build():
+        import sys
+        for key, values in layout.items():
+            for value in values:
+                if not isinstance(value, str):
+                    continue
+                if value not in layout:
+                    print(f"developer warning: toolbar '{key}' depends on non-existent '{value}'", file=sys.__stderr__)
     from chimerax.core import order_dag
     ordered = []
     try:

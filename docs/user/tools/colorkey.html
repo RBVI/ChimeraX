@@ -59,10 +59,19 @@ class="icon" border=1 src="shortcut-icons/hydrophobicity.png"></a>
 The <b>Color Key</b> dialog can be opened from the <b>Depiction</b> 
 section of the <b>Tools</b> menu and manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
-It can also be started by clicking the <b>Key</b> button in 
+It can also be started by clicking 
+the <a href="mousemodes.html"><b>Right Mouse</b></a> toolbar icon
+<img class="icon" src="mouse-icons/ckiconvertical.png">
+or the <b>Key</b> button in 
 <a href="surfacecolor.html"><b>Surface Color</b></a>.
-A color bar with value labels is automatically generated in the 
-graphics window according to the current settings in the dialog. 
+Starting the tool automatically generates an initial color
+key according to the current settings and enables redrawing and moving
+it <a href="#adjust">with the mouse</a>.
+The color key can be controlled with the dialog, mouse, and/or the
+<a href="../commands/key.html"><b>key</b></a> command.
+The command also has a <a href="../commands/key.html#showTool"><b>showTool</b>
+option</a> to raise the dialog.
+</p><p>
 To create a title for the key
 (<i>e.g.</i>, &ldquo;electrostatic potential&rdquo; as shown in the image),
 use <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
@@ -70,8 +79,15 @@ use <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
 When a color-by-value command is run interactively (in gui mode and not via a
 <a href="../commands/usageconventions.html#cxc-files">script</a>), 
 the <b>key</b> option of that command can be used to start <b>Color Key</b>
-with the corresponding colors and values already set. 
+with the corresponding colors and values already set.
+For example, see the instructions for the last image in 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html#omp"
+target="_blank">Coloring by Sequence Conservation, pt. 3</a>.
 See also:
+<a href="scalebar.html"><b>Scale Bar</b></a>,
+<a href="../commands/ui.html#mousemode"><b>mousemode</b></a>
+<a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/ckiconvertical.png"></a>,
 <a href="../images.html">making images</a>
 </p><p>
 It is usually best to adjust the <b>Number of colors/labels</b> 
@@ -101,11 +117,12 @@ The <b>Size</b> and lower-left corner <b>Position</b> values can be edited
 directly, and are expressed in fractional coordinates 0.0-1.0
 where 1.0 represents the full width or height of the
 <a href="../window.html">graphics window</a> and 1.0,1.0 its top right corner.
+<a name="adjust"></a>
 However, it is usually easiest to set the location and size interactively
-<a href="../commands/ui.html#mousemode">with the mouse</a> according to 
+with the mouse according to 
 <b>Adjust key with [<i>button</i>] mouse button</b> 
 (on by default; sets the
-<a href="../commands/ui.html#mousemode"><b>color key</b> mouse mode</a>).
+<a href="../commands/ui.html#colorkey"><b>color key</b> mouse mode</a>).
 Clicking with the assigned button or its trackpad equivalent
 sets the location, and dragging sets the size. 
 A color key can be vertical (taller than wide) or horizontal (wider than tall).
@@ -217,5 +234,5 @@ Tick mark color is the same as <a href="#border">border color</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+September 2021</address>
 </body></html>

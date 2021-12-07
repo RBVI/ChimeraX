@@ -1,14 +1,14 @@
+
+# used to manage package versions
+packaging==21.0
+
 #
 # Packages needed during the build process.
 # These are not installed in the ChimeraX app.
 #
 
 # Cython used by compile core/_serialize.pyx
-Cython==0.29.21
+Cython==0.29.24
 
 # Grako used to make _atomspec.py parser from _atomspec.peg in core/commands
 grako==3.16.5
-
-# For creating programmer documentation in docs/devel from .rst files and code doc strings.
-Sphinx==3.2.1
-

@@ -668,14 +668,15 @@ class Drawing:
                     return True
         return False
 
-    def set_geometry(self, vertices, normals, triangles):
+    def set_geometry(self, vertices, normals, triangles,
+                     edge_mask = None, triangle_mask = None):
         '''Set vertices, normals and triangles defining the shape to be drawn.'''
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
         self._vertex_colors = None
-        self._edge_mask = None
-        self._triangle_mask = None
+        self._edge_mask = edge_mask
+        self._triangle_mask = triangle_mask
         self._highlighted_triangles_mask = None
         self.redraw_needed(shape_changed=True)
 
@@ -790,7 +791,7 @@ class Drawing:
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
-            r.set_single_color([c / 255.0 for c in self._colors[0]])
+            r.set_model_color([c / 255.0 for c in self._colors[0]])
 
         t = self.texture
         if t is not None:
@@ -2031,13 +2032,14 @@ class PickedInstance(Pick):
         d.highlighted_positions = pmask
 
 
-def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True):
+def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True,
+                 clamp_to_edge = True):
     '''
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
     '''
     from . import opengl
-    t = opengl.Texture(rgba)
+    t = opengl.Texture(rgba, clamp_to_edge = clamp_to_edge)
     d = _texture_drawing(t, pos, size, drawing)
     d.opaque_texture = opaque
     return d
@@ -2180,7 +2182,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         if outline_color is None:
             from chimerax.core.colors import contrast_with
-            outline_color = contrast_with(bg[:3]) + (255,)
+            outline_color = [c * 255.0 for c in contrast_with([c/255.0 for c in bg[:3]])] + [255]
         fill_color = tuple(outline_color)
     else:
         fill_color = bg
@@ -2191,14 +2193,18 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     if outline_width > 0:
         prev_b = p.brush()
         prev_p = p.pen()
+        prev_cm = p.compositionMode()
+        p.setCompositionMode(p.CompositionMode_Source)
         bc = QColor(*bg)
         from Qt.QtCore import Qt
         pbr = QBrush(bc, Qt.SolidPattern)
         p.setBrush(pbr)
         ppen = QPen(Qt.NoPen)
+        p.setPen(ppen)
         p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
         p.setBrush(prev_b)
         p.setPen(prev_p)
+        p.setCompositionMode(prev_cm)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)

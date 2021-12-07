@@ -59,7 +59,7 @@ class FormatsManager(ProviderManager):
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)
         for suffix in suffixes:
-            self._suffix_to_formats.setdefault(suffix, []).append(data_format)
+            self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)
@@ -134,9 +134,14 @@ class FormatsManager(ProviderManager):
             raise TypeError("Data format key is not a string")
         if key in self._formats:
             return self._formats[key][1]
+        fallback = None
         for bi, format_data in self._formats.values():
             if key in format_data.nicknames:
-                return format_data
+                if bi.installed:
+                    return format_data
+                fallback = format_data
+        if fallback is not None:
+            return fallback
         raise KeyError("No known data format '%s'" % key)
 
     def __len__(self):
@@ -166,11 +171,11 @@ class FormatsManager(ProviderManager):
         if '#' in suffix:
             suffix = suffix[:suffix.index('#')]
         try:
-            formats = self._suffix_to_formats[suffix]
+            formats = self._suffix_to_formats[suffix.lower()]
         except KeyError:
             return None
 
-        fallback_fmt = None
+        fallback_fmt = fallback_provider_info = None
         for fmt in formats:
             try:
                 provider_info = info_func(fmt)
@@ -179,5 +184,8 @@ class FormatsManager(ProviderManager):
             else:
                 if provider_info.is_default:
                     return fmt
-                fallback_fmt = fmt
+                if fallback_fmt is None or (provider_info.bundle_info.installed
+                and not fallback_provider_info.bundle_info.installed):
+                    fallback_fmt = fmt
+                    fallback_provider_info = provider_info
         return fallback_fmt

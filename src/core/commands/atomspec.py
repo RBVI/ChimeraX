@@ -118,11 +118,16 @@ class AtomSpecArg(Annotation):
             from .cli import AnnotationError
             raise AnnotationError("incomplete quoted text")
         end = m.end()
+        consumed = text[start:end]
         if text[end - 1].isspace():
             end -= 1
+        if text[1] == '=':
+            add_implied = False
+            start += 1
+        else:
+            add_implied = True
         # Quoted argument is consumed on success
         # Text after quote is unused
-        consumed = text[start:end]
         rest = text[end:]
         # Convert quote contents to string
         from .cli import unescape_with_index_map
@@ -130,7 +135,7 @@ class AtomSpecArg(Annotation):
         # Create parser and parse converted token
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
             with maximum_stack():
@@ -159,13 +164,21 @@ class AtomSpecArg(Annotation):
         # Try to parse the entire line.
         # If we get nothing, then raise AnnotationError.
         # Otherwise, consume what we can use and call it a success.
+        if text.startswith('='):
+            parse_text = text[1:]
+            add_implied = False
+            text_offset = 1
+        else:
+            parse_text = text
+            add_implied = True
+            text_offset = 0
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session)
+        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
             with maximum_stack():
-                ast = parser.parse(text, "atom_specifier", semantics=semantics)
+                ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
@@ -180,7 +193,7 @@ class AtomSpecArg(Annotation):
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
-        if end < len(text) and _terminator.match(text[end]) is None:
+        if end < len(parse_text) and _terminator.match(parse_text[end]) is None:
             # We got an error in the middle of a string (no whitespace or
             # semicolon).  We check if there IS whitespace between the
             # start of the string and the error location.  If so, we
@@ -188,20 +201,20 @@ class AtomSpecArg(Annotation):
             # and leave the rest as unconsumed input.
             blank = end
             while blank > 0:
-                if text[blank].isspace():
+                if parse_text[blank].isspace():
                     break
                 else:
                     blank -= 1
             if blank == 0:
                 # No whitespace found
                 from .cli import AnnotationError
-                raise AnnotationError('only initial part "%s" of atom specifier valid' % text[:end])
+                raise AnnotationError('only initial part "%s" of atom specifier valid'
+                    % text[:end+text_offset])
             else:
-                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank],
-                                                             session)
-                return ast, used, rem + text[blank:]
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank+text_offset], session)
+                return ast, used, rem + text[blank+text_offset:]
         # Consume what we used and return the remainder
-        return ast, text[:end], text[end:]
+        return ast, text[:end+text_offset], text[end+text_offset:]
 
 
 #
@@ -211,12 +224,13 @@ class AtomSpecArg(Annotation):
 
 class _AtomSpecSemantics:
     """Semantics class to convert basic ASTs into AtomSpec instances."""
-    def __init__(self, session):
+    def __init__(self, session, *, add_implied=True):
         self._session = session
+        self._add_implied = add_implied
 
     def atom_specifier(self, ast):
         # print("atom_specifier", ast)
-        atom_spec = AtomSpec(ast.operator, ast.left, ast.right)
+        atom_spec = AtomSpec(ast.operator, ast.left, ast.right, add_implied=self._add_implied)
         try:
             atom_spec.parseinfo = ast.parseinfo
         except AttributeError:
@@ -236,7 +250,7 @@ class _AtomSpecSemantics:
         elif ast.atomspec is not None:
             return ast.atomspec
         elif ast.tilde is not None:
-            return _Invert(ast.tilde)
+            return _Invert(ast.tilde, add_implied=self._add_implied)
         elif ast.selector is not None:
             return _Term(ast.selector)
         else:
@@ -425,10 +439,10 @@ class _ModelList(list):
             return "<no model specifier>"
         return "".join(str(mr) for mr in self)
 
-    def find_matches(self, session, model_list, results, ordered):
+    def find_matches(self, session, model_list, results, ordered, *, add_implied=None):
         for model_spec in self:
             # "model_spec" should be an _Model instance
-            model_spec.find_matches(session, model_list, results, ordered)
+            model_spec.find_matches(session, model_list, results, ordered, add_implied=add_implied)
 
 
 class _ModelHierarchy(list):
@@ -442,7 +456,7 @@ class _ModelHierarchy(list):
             return "[empty]"
         return ".".join(str(mr) for mr in self)
 
-    def find_matches(self, session, model_list, sub_parts, results, ordered):
+    def find_matches(self, session, model_list, sub_parts, results, ordered, *, add_implied=None):
         self._check(session, model_list, sub_parts, results, 0, ordered)
 
     def _check(self, session, model_list, sub_parts, results, i, ordered):
@@ -575,7 +589,7 @@ class _Model(_SubPart):
         super().__init__(*args)
         self.exact_match = exact_match
 
-    def find_matches(self, session, model_list, results, ordered):
+    def find_matches(self, session, model_list, results, ordered, *, add_implied=None):
         model_list = [model for model in model_list
                       if not self.my_attrs or
                       model.atomspec_model_attr(self.my_attrs)]
@@ -585,7 +599,8 @@ class _Model(_SubPart):
             if self.exact_match:
                 model_list = [model for model in model_list
                               if len(model.id) == len(self.my_parts)]
-            self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered)
+            self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered,
+                add_implied=add_implied)
         else:
             # No model spec given, everything matches
             for model in model_list:
@@ -854,6 +869,7 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
+                    v = str(v)
                     if not case_sensitive:
                         v = v.lower()
                     matches = fnmatchcase(v, attr_value)
@@ -866,7 +882,8 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
-                    if not case_sensitive:
+                    v = str(v)
+                    if not case_sensitive and isinstance(v, str):
                         v = v.lower()
                     matches = v == attr_value
                     return not matches if invert else matches
@@ -893,7 +910,7 @@ class _SelectorName:
     def __str__(self):
         return self.name
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
         f = get_selector(self.name)
         if f:
             from ..objects import Objects
@@ -925,14 +942,14 @@ class _ZoneSelector:
     def __str__(self):
         return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
         if self.model is None:
             # No reference atomspec, so do nothing
             return
         from ..objects import Objects
         my_results = Objects()
         zone_results = Objects()
-        self.model.find_matches(session, models, my_results, ordered)
+        self.model.find_matches(session, models, my_results, ordered, add_implied=add_implied)
         if my_results.num_atoms > 0:
             # expand my_results before combining with results
             coords = my_results.atoms.scene_coords
@@ -957,38 +974,45 @@ class _Term:
     def __str__(self):
         return str(self._specifier)
 
-    def evaluate(self, session, models, *, top=True, ordered=False):
+    def evaluate(self, session, models, *, top=True, ordered=False, add_implied=None):
         """Return Objects for model elements that match."""
         from ..objects import Objects
         results = Objects()
-        return self.find_matches(session, models, results, ordered)
+        return self.find_matches(session, models, results, ordered, add_implied=add_implied)
 
-    def find_matches(self, session, models, results, ordered):
-        self._specifier.find_matches(session, models, results, ordered)
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        self._specifier.find_matches(session, models, results, ordered, add_implied=add_implied)
         return results
 
 
 class _Invert:
     """A "not" (~) term in an atom specifier."""
-    def __init__(self, atomspec):
+    def __init__(self, atomspec, *, add_implied=True):
         self._atomspec = atomspec
+        self._add_implied = add_implied
 
     def __str__(self):
         return "~%s" % str(self._atomspec)
 
-    def evaluate(self, session, models=None, *, ordered=False, **kw):
+    def evaluate(self, session, models=None, *, ordered=False, add_implied=None, **kw):
+        if add_implied is None:
+            add_implied = self._add_implied
         if models is None:
             models = session.models.list(**kw)
         with maximum_stack():
             results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
-        add_implied_bonds(results)
+        if add_implied:
+            add_implied_bonds(results)
         results.invert(session, models)
         return results
 
-    def find_matches(self, session, models, results, ordered):
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        if add_implied is None:
+            add_implied = self._add_implied
         with maximum_stack():
-            self._atomspec.find_matches(session, models, results, ordered)
-        add_implied_bonds(results)
+            self._atomspec.find_matches(session, models, results, ordered, add_implied=add_implied)
+        if add_implied:
+            add_implied_bonds(results)
         results.invert(session, models)
         return results
 
@@ -1001,10 +1025,13 @@ class AtomSpec:
     When evaluated, the model elements that match the specifier
     are returned.
     """
-    def __init__(self, operator, left_spec, right_spec):
+
+    def __init__(self, operator, left_spec, right_spec, *, add_implied=True):
         self._operator = operator
         self._left_spec = left_spec
         self._right_spec = right_spec
+        self._add_implied = add_implied
+        self.outermost_inversion = None
 
     def __str__(self):
         if self._operator is None:
@@ -1013,7 +1040,7 @@ class AtomSpec:
             return "%s %s %s" % (str(self._left_spec), self._operator,
                                  str(self._right_spec))
 
-    def evaluate(self, session, models=None, *, order_implicit_atoms=False, **kw):
+    def evaluate(self, session, models=None, *, order_implicit_atoms=False, add_implied=None, **kw):
         """Return results of evaluating atom specifier for given models.
 
         Parameters
@@ -1035,35 +1062,48 @@ class AtomSpec:
             this atom specifier.
         """
         # print("evaluate:", str(self))
+        if add_implied is None:
+            add_implied = self._add_implied
         if models is None:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
         if self._operator is None:
             results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = isinstance(self._left_spec, _Invert)
         elif self._operator == '|':
             left_results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             right_results = self._right_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             from ..objects import Objects
             results = Objects.union(left_results, right_results)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = False
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
-            add_implied_bonds(left_results)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if add_implied:
+                add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(
-                session, models, top=False, ordered=order_implicit_atoms)
-            add_implied_bonds(right_results)
+                session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
+            if add_implied:
+                add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
+            if self.outermost_inversion is None:
+                self.outermost_inversion = False
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
-        add_implied_bonds(results)
+        if add_implied:
+            add_implied_bonds(results)
         return results
 
-    def find_matches(self, session, models, results, ordered):
-        my_results = self.evaluate(session, models, top=False, ordered=ordered)
+    def find_matches(self, session, models, results, ordered, *, add_implied=None):
+        if add_implied is None:
+            add_implied = self._add_implied
+        my_results = self.evaluate(session, models, top=False, ordered=ordered, add_implied=add_implied)
         results.combine(my_results)
         return results
 

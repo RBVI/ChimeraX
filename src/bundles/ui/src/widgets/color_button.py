@@ -71,7 +71,6 @@ class ColorButton(QPushButton):
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
-        self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
         self._pause_timer = None
         self._pause_delay = pause_delay 	# Seconds before color_pause signal is issued.
@@ -123,9 +122,15 @@ class ColorButton(QPushButton):
             self.setStyleSheet('background-color: %s' % hex_color_name(color))
 
     def _color_changed_cb(self, color):
-        self.set_color(color)
-        self.color_changed.emit(self._color)
-        self._set_pause_timer()
+        try:
+            self.set_color(color)
+        except RuntimeError:
+            # C++ has been destroyed (don't seem to get a destroyed() signal)
+            global _color_callback
+            _color_callback = None
+        else:
+            self.color_changed.emit(self._color)
+            self._set_pause_timer()
 
     def _set_pause_timer(self):
         delay = self._pause_delay

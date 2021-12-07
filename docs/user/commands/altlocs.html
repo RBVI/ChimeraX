@@ -1,0 +1,113 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: altlocs</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: altlocs</h3>
+
+<p>
+The <b>altlocs</b> command lists and manages <b><i>alternate locations</i></b>,
+where an atomic structure contains multiple different positions for the 
+same set of atoms. In PDB format, for example, alternate locations are 
+indicated by a character identifier in column 17 of ATOM and HETATM records.
+<!-- examples 1hf4, 1crc, 1a0m, 5nn8 -->
+Most of the command capabilities are also available in the
+<a href="../tools/altlocexplorer.html"><b>Altloc Explorer</b></a> 
+graphical interface.
+</p><p>
+ChimeraX uses only one of the alternate locations at a time for display
+and for any calculations. For each contiguous (through-bond) set of atoms
+with alternate locations, the location used initially is that with
+the highest average atomic occupancy, then as a tie-breaker, the lowest
+average atomic B-factor, and if a  tie-breaker is still needed, 
+by alphabetical order of the alternate location ID.
+</p><p>
+See also:
+<a href="swapaa.html"><b>swapaa</b></a>,
+<a href="torsion.html"><b>torsion</b></a>,
+<a href="build.html"><b>build</b></a>,
+<a href="../attributes.html">attributes</a>
+<ul>
+<li><a href="#list"><b>altlocs list</b></a>
+&ndash; list alternate locations and report which is being used
+<li><a href="#change"><b>altlocs change</b></a>
+&ndash; specify which alternate location to use
+<li><a href="#clean"><b>altlocs clean</b></a>
+&ndash; delete all but the currently used alternate location
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="list"></a>
+<b>altlocs list</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<blockquote>
+In the <a href="../tools/log.html"><b>Log</b></a>,
+report any alternate locations of the 
+<a href="atomspec.html">specified</a> residues,
+and for each residue with alternate locations, 
+which location is being used. For example, to list all
+residues in chain A that have alternate locations:
+<blockquote>
+<b>altlocs list /A</b>
+</blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="change"></a>
+<b>altlocs change</b> &nbsp;<i>altloc-ID</i>
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<blockquote>
+Use the indicated alternate location for all 
+<a href="atomspec.html">specified</a> residues that contain it.
+Even if only part of a residue is specified (<i>e.g.</i>, a single atom),
+the same alternate location will be used for any other atoms in that residue
+and any contiguous (through-bond) set of atoms for which the same
+alternate location identifier is available, including atoms in other residues.
+For example, to use alternate location C of residue 171 in chain A: 
+<blockquote>
+<b>altlocs change C /A:171</b>
+</blockquote>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="clean"></a>
+<b>altlocs clean</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<blockquote>
+Delete all but the currently used alternate location
+for the <a href="atomspec.html">specified</a> residues
+and remove their alternate location IDs. Examples:
+<blockquote>
+<b>altlocs clean /A:171</b>
+<br>
+<b>altlocs clean /A</b>
+<br>
+<b>altlocs clean</b>
+</blockquote>
+The last example deletes all unused alternate locations.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2021</address>
+</body></html>

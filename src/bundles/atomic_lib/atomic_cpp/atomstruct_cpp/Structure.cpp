@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <cctype>
 #include <set>
 
 #include <logger/logger.h>
@@ -327,28 +328,61 @@ _copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
     }
 }
 
-void Structure::_copy(Structure* s) const
+void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
+    std::map<ChainID, ChainID>* chain_id_map) const
 {
+    // if chain_id_map is not nullptr, then we are combining this structure into existing
+    // structure s
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
-    s->lower_case_chains = lower_case_chains;
-    s->set_ss_assigned(ss_assigned());
-    s->set_ribbon_tether_scale(ribbon_tether_scale());
-    s->set_ribbon_tether_shape(ribbon_tether_shape());
-    s->set_ribbon_tether_sides(ribbon_tether_sides());
-    s->set_ribbon_tether_opacity(ribbon_tether_opacity());
-    s->set_ribbon_show_spine(ribbon_show_spine());
-    s->set_ribbon_orientation(ribbon_orientation());
-    s->set_ribbon_mode_helix(ribbon_mode_helix());
-    s->set_ribbon_mode_strand(ribbon_mode_strand());
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 4; ++j)
-            s->_position[i][j] = _position[i][j];
+    s->_polymers_computed = true;
+    if (chain_id_map == nullptr) {
+        s->lower_case_chains = lower_case_chains;
+        s->set_ss_assigned(ss_assigned());
+        s->set_ribbon_tether_scale(ribbon_tether_scale());
+        s->set_ribbon_tether_shape(ribbon_tether_shape());
+        s->set_ribbon_tether_sides(ribbon_tether_sides());
+        s->set_ribbon_tether_opacity(ribbon_tether_opacity());
+        s->set_ribbon_show_spine(ribbon_show_spine());
+        s->set_ribbon_orientation(ribbon_orientation());
+        s->set_ribbon_mode_helix(ribbon_mode_helix());
+        s->set_ribbon_mode_strand(ribbon_mode_strand());
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                s->_position[i][j] = _position[i][j];
+    } else {
+        if (s->ss_assigned())
+            s->set_ss_assigned(ss_assigned());
+    }
+
+    if (chain_id_map == nullptr) {
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                s->_position[i][j] = _position[i][j];
+    }
 
     std::map<Residue*, Residue*> rmap;
     for (auto r: residues()) {
-        Residue* cr = s->new_residue(r->name(), r->chain_id(), r->number(), r->insertion_code());
+        ChainID cid;
+        if (chain_id_map == nullptr)
+            cid = r->chain_id();
+        else {
+            auto cid_i = chain_id_map->find(r->chain_id());
+            if (cid_i == chain_id_map->end())
+                cid = r->chain_id();
+            else
+                cid = cid_i->second;
+            if (s->lower_case_chains) {
+                for (auto c: cid) {
+                    if (isupper(c)) {
+                        s->lower_case_chains = false;
+                        break;
+                    }
+                }
+            }
+        }
+        Residue* cr = s->new_residue(r->name(), cid, r->number(), r->insertion_code());
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
@@ -363,12 +397,46 @@ void Structure::_copy(Structure* s) const
         rmap[r] = cr;
     }
     std::map<CoordSet*, CoordSet*> cs_map;
-    for (auto cs: coord_sets()) {
-        auto new_cs = s->new_coord_set(cs->id());
-        *new_cs = *cs;
-        cs_map[cs] = new_cs;
+    unsigned int coord_base = 0;
+    if (chain_id_map == nullptr) {
+        for (auto cs: coord_sets()) {
+            auto new_cs = s->new_coord_set(cs->id());
+            *new_cs = *cs;
+            if (coord_adjust != nullptr)
+                new_cs->xform(coord_adjust);
+            cs_map[cs] = new_cs;
+        }
+        s->set_active_coord_set(cs_map[active_coord_set()]);
+    } else {
+        coord_base = s->active_coord_set()->coords().size();
+        if (s->coord_sets().size() != coord_sets().size()) {
+            // copy just the current coord set onto the current one, and prune others from combination
+            auto active = s->active_coord_set();
+            auto add_cs = active_coord_set();
+            if (coord_adjust != nullptr)
+                add_cs->xform(coord_adjust);
+            active->add_coords(add_cs);
+            s->_coord_sets.clear();
+            s->_coord_sets.push_back(active);
+            cs_map[active_coord_set()] = active;
+        } else {
+            for (decltype(_coord_sets)::size_type i = 0; i < coord_sets().size(); ++i) {
+                auto s_cs = s->coord_sets()[i];
+                auto c_cs = coord_sets()[i];
+                if (coord_adjust != nullptr)
+                    c_cs->xform(coord_adjust);
+                s_cs->add_coords(c_cs);
+                cs_map[c_cs] = s_cs;
+            }
+        }
     }
-    s->set_active_coord_set(cs_map[active_coord_set()]);
+
+    int serial_base = 0;
+    if (chain_id_map != nullptr) {
+        for (auto a: s->atoms())
+            if (a->serial_number() > serial_base)
+                serial_base = a->serial_number();
+    }
 
     set_alt_loc_change_notify(false);
     std::map<Atom*, Atom*> amap;
@@ -376,7 +444,7 @@ void Structure::_copy(Structure* s) const
         Atom* ca = s->new_atom(a->name().c_str(), a->element());
         Residue *cr = rmap[a->residue()];
         cr->add_atom(ca);	// Must set residue before setting alt locs
-        ca->_coord_index = a->coord_index();
+        ca->_coord_index = coord_base + a->coord_index();
         std::set<char> alocs = a->alt_locs();
         if (!alocs.empty()) {
             char aloc = a->alt_loc();	// Remember original alt loc.
@@ -384,7 +452,10 @@ void Structure::_copy(Structure* s) const
                 char al = *ali;
                 a->set_alt_loc(al);
                 ca->set_alt_loc(al, true);
-                ca->set_coord(a->coord());
+                auto crd = a->coord();
+                if (coord_adjust != nullptr)
+                    crd = crd.mat_mul(coord_adjust);
+                ca->set_coord(crd);
                 ca->set_bfactor(a->bfactor());
                 ca->set_occupancy(a->occupancy());
             }
@@ -394,6 +465,7 @@ void Structure::_copy(Structure* s) const
             ca->set_bfactor(a->bfactor());
             ca->set_occupancy(a->occupancy());
         }
+        ca->set_serial_number(serial_base + a->serial_number());
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
         ca->set_color(a->color());
@@ -404,7 +476,7 @@ void Structure::_copy(Structure* s) const
     
     for (auto b: bonds()) {
         const Bond::Atoms& a = b->atoms();
-        Bond* cb = s->new_bond(amap[a[0]], amap[a[1]]);
+        Bond* cb = s->_new_bond(amap[a[0]], amap[a[1]], true);
         cb->set_display(b->display());
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
@@ -412,9 +484,20 @@ void Structure::_copy(Structure* s) const
     }
 
     if (_chains != nullptr) {
-        s->_chains = new Chains();
+        if (chain_id_map == nullptr)
+            s->_chains = new Chains();
         for (auto c: chains()) {
-            auto cc = s->_new_chain(c->chain_id(), c->polymer_type());
+            ChainID cid;
+            if (chain_id_map == nullptr)
+                cid = c->chain_id();
+            else {
+                auto cid_i = chain_id_map->find(c->chain_id());
+                if (cid_i == chain_id_map->end())
+                    cid = c->chain_id();
+                else
+                    cid = cid_i->second;
+            }
+            auto cc = s->_new_chain(cid, c->polymer_type());
             StructureSeq::Residues bulk_residues;
             for (auto r: c->residues()) {
                 if (r == nullptr)
@@ -425,6 +508,7 @@ void Structure::_copy(Structure* s) const
             cc->bulk_set(bulk_residues, &c->contents());
             cc->set_circular(c->circular());
             cc->set_from_seqres(c->from_seqres());
+            cc->set_description(c->description());
         }
     }
 
@@ -439,6 +523,11 @@ void Structure::_copy(Structure* s) const
         } else {
             // per coordinate set pseudobond groups
             for (auto cs: coord_sets()) {
+                if (chain_id_map != nullptr && s->coord_sets().size() == 1) {
+                    // coord sets may have been pruned; only copy current
+                    if (cs != active_coord_set())
+                        continue;
+                }
                 _copy_pseudobonds(pbgc, pbg->pseudobonds(cs), amap, cs_map[cs]);
             }
         }
@@ -478,25 +567,8 @@ void
 Structure::delete_alt_locs()
 {
     // make current alt locs into "regular" atoms and remove other alt locs
-    for (auto a: _atoms) {
-        if (a->alt_loc() == ' ')
-            continue;
-        auto aniso_u = a->aniso_u();
-        auto bfactor = a->bfactor();
-        auto coord = a->coord();
-        auto occupancy = a->occupancy();
-        auto serial_number = a->serial_number();
-        a->_alt_loc = ' ';
-        change_tracker()->add_modified(this, a, ChangeTracker::REASON_ALT_LOC);
-        a->_alt_loc_map.clear();
-        if (aniso_u != nullptr)
-            a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
-                (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
-        a->set_bfactor(bfactor);
-        a->set_coord(coord);
-        a->set_occupancy(occupancy);
-        a->set_serial_number(serial_number);
-    }
+    for (auto a: _atoms)
+        a->clean_alt_locs();
 }
 
 void
@@ -887,6 +959,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             }
         }
     }
+    set_gc_ribbon();
 }
 
 void
@@ -957,6 +1030,8 @@ Structure::delete_bond(Bond *b)
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
     // for backbone bonds, create missing-structure pseudobonds
+    // if the criteria for adding the pseudobond is changed, the code in pdb_lib/connect_cpp/connect.cpp
+    // in find_missing_structure_bonds for deleting bonds will have to be changed
     if (b->is_backbone()) {
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
@@ -1086,11 +1161,13 @@ follow_backbone(Atom* bb1, Atom* bb2, Atom* goal, std::set<Atom*>& seen)
 }
 
 Bond *
-Structure::new_bond(Atom *a1, Atom *a2)
+Structure::_new_bond(Atom *a1, Atom *a2, bool bond_only)
 {
-    Bond *b = new Bond(this, a1, a2);
+    Bond *b = new Bond(this, a1, a2, bond_only);
     b->finish_construction(); // virtual calls work now
     add_bond(b);
+    if (bond_only)
+        return b;
     _idatm_valid = false;
     auto inst = py_instance(false);
     Py_DECREF(inst);
@@ -1577,8 +1654,8 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     int num_chains = _chains == nullptr ? -1 : _chains->size();
     num_ints = 1; // for storing num_chains, since len(chain_ids) can't show nullptr
     num_floats = 0;
-    // allocate for list of chain IDs
-    PyObject* chain_misc = PyList_New(1);
+    // allocate for list of chain IDs; descriptions
+    PyObject* chain_misc = PyList_New(2);
     if (chain_misc == nullptr)
         throw std::runtime_error("Cannot create Python list for chain misc info");
     if (PyList_Append(misc, chain_misc) < 0)
@@ -1587,14 +1664,19 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     if (chain_ids == nullptr)
         throw std::runtime_error("Cannot create Python list for chain IDs");
     PyList_SET_ITEM(chain_misc, 0, chain_ids);
+    PyObject* descriptions = PyList_New(num_chains);
+    if (descriptions == nullptr)
+        throw std::runtime_error("Cannot create Python list for chain descriptions");
+    PyList_SET_ITEM(chain_misc, 1, descriptions);
     i = 0;
     if (_chains != nullptr) {
         for (auto ch: *_chains) {
             num_ints += ch->session_num_ints();
             num_floats += ch->session_num_floats();
 
-            // remember chain ID
-            PyList_SET_ITEM(chain_ids, i++, cchar_to_pystring(ch->chain_id(), "chain chain ID"));
+            // remember chain ID, description
+            PyList_SET_ITEM(chain_ids, i, cchar_to_pystring(ch->chain_id(), "chain chain ID"));
+            PyList_SET_ITEM(descriptions, i++, cchar_to_pystring(ch->description(), "chain description"));
         }
     }
     int* chain_ints;
@@ -1869,10 +1951,16 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
 
     // chains
     PyObject* chain_misc = PyTuple_GET_ITEM(misc, 6);
-    if (!(PyTuple_Check(chain_misc) || PyList_Check(chain_misc)) || PySequence_Fast_GET_SIZE(chain_misc) != 1)
-        throw std::invalid_argument("chain misc info is not a one-item tuple");
+    int misc_size = 1;
+    if (version > 16)
+        misc_size = 2;
+    if (!(PyTuple_Check(chain_misc) || PyList_Check(chain_misc)) || PySequence_Fast_GET_SIZE(chain_misc) != misc_size)
+        throw std::invalid_argument("chain misc info list is wrong size");
     std::vector<ChainID> chain_chain_ids;
     pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(chain_misc, 0), chain_chain_ids, "chain ID");
+    std::vector<std::string> chain_descriptions;
+    if (version > 16)
+        pysequence_of_string_to_cvec(PySequence_Fast_GET_ITEM(chain_misc, 1), chain_descriptions, "chain description");
     PyObject* py_chain_ints = PyTuple_GET_ITEM(ints, 6);
     iarray = Numeric_Array();
     if (!array_from_python(py_chain_ints, 1, Numeric_Array::Int, &iarray, false))
@@ -1889,9 +1977,12 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _chains = nullptr;
     } else {
         _chains = new Chains();
+        i = 0;
         for (auto chain_id: chain_chain_ids) {
             auto chain = _new_chain(chain_id);
             chain->session_restore(version, &chain_ints, &chain_floats);
+            if (version > 16)
+                chain->set_description(chain_descriptions[i++]);
         }
     }
 }

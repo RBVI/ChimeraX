@@ -715,6 +715,123 @@ class DefaultApi(object):
             _request_timeout=params.get('_request_timeout'),
             collection_formats=collection_formats)
 
+    def newer_versions(self, uuid, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
+        """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+        >>> thread = api.newer_versions(uuid, os, os_version, chimera_x_version, async_req=True)
+        >>> result = thread.get()
+
+        :param async_req bool
+        :param str uuid: anonymous unique user id (required)
+        :param str os: operating system name (required)
+        :param str os_version: operating system version (required)
+        :param str chimera_x_version: ChimeraX version to compare with (required)
+        :return: list[list[str]]
+                 If the method is called asynchronously,
+                 returns the request thread.
+        """
+        kwargs['_return_http_data_only'] = True
+        if kwargs.get('async_req'):
+            return self.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, **kwargs)  # noqa: E501
+        else:
+            (data) = self.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, **kwargs)  # noqa: E501
+            return data
+
+    def newer_versions_with_http_info(self, uuid, os, os_version, chimera_x_version, **kwargs):  # noqa: E501
+        """Return list of newer ChimeraX releases (version, URL)  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+        >>> thread = api.newer_versions_with_http_info(uuid, os, os_version, chimera_x_version, async_req=True)
+        >>> result = thread.get()
+
+        :param async_req bool
+        :param str uuid: anonymous unique user id (required)
+        :param str os: operating system name (required)
+        :param str os_version: operating system version (required)
+        :param str chimera_x_version: ChimeraX version to compare with (required)
+        :return: list[list[str]]
+                 If the method is called asynchronously,
+                 returns the request thread.
+        """
+
+        all_params = ['uuid', 'os', 'os_version', 'chimera_x_version']  # noqa: E501
+        all_params.append('async_req')
+        all_params.append('_return_http_data_only')
+        all_params.append('_preload_content')
+        all_params.append('_request_timeout')
+
+        params = locals()
+        for key, val in six.iteritems(params['kwargs']):
+            if key not in all_params:
+                raise TypeError(
+                    "Got an unexpected keyword argument '%s'"
+                    " to method newer_versions" % key
+                )
+            params[key] = val
+        del params['kwargs']
+        # verify the required parameter 'uuid' is set
+        if ('uuid' not in params or
+                params['uuid'] is None):
+            raise ValueError("Missing the required parameter `uuid` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'os' is set
+        if ('os' not in params or
+                params['os'] is None):
+            raise ValueError("Missing the required parameter `os` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'os_version' is set
+        if ('os_version' not in params or
+                params['os_version'] is None):
+            raise ValueError("Missing the required parameter `os_version` when calling `newer_versions`")  # noqa: E501
+        # verify the required parameter 'chimera_x_version' is set
+        if ('chimera_x_version' not in params or
+                params['chimera_x_version'] is None):
+            raise ValueError("Missing the required parameter `chimera_x_version` when calling `newer_versions`")  # noqa: E501
+
+        collection_formats = {}
+
+        path_params = {}
+
+        query_params = []
+        if 'uuid' in params:
+            query_params.append(('uuid', params['uuid']))  # noqa: E501
+        if 'os' in params:
+            query_params.append(('OS', params['os']))  # noqa: E501
+        if 'os_version' in params:
+            query_params.append(('OSVersion', params['os_version']))  # noqa: E501
+        if 'chimera_x_version' in params:
+            query_params.append(('ChimeraXVersion', params['chimera_x_version']))  # noqa: E501
+
+        header_params = {}
+
+        form_params = []
+        local_var_files = {}
+
+        body_params = None
+        # HTTP header `Accept`
+        header_params['Accept'] = self.api_client.select_header_accept(
+            ['application/json'])  # noqa: E501
+
+        # Authentication setting
+        auth_settings = []  # noqa: E501
+
+        return self.api_client.call_api(
+            '/chimerax/newer', 'GET',
+            path_params,
+            query_params,
+            header_params,
+            body=body_params,
+            post_params=form_params,
+            files=local_var_files,
+            response_type='list[list[str]]',  # noqa: E501
+            auth_settings=auth_settings,
+            async_req=params.get('async_req'),
+            _return_http_data_only=params.get('_return_http_data_only'),
+            _preload_content=params.get('_preload_content', True),
+            _request_timeout=params.get('_request_timeout'),
+            collection_formats=collection_formats)
+
     def sleep(self, job_id, **kwargs):  # noqa: E501
         """Sleep for a while and exit  # noqa: E501
 

@@ -65,6 +65,8 @@ class _ImageFormatsBundleAPI(BundleAPI):
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()
 
+                in_file_history = False
+
             return SaveImageInfo()
 
     @staticmethod

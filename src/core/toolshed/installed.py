@@ -557,13 +557,16 @@ def _get_installed_packages(d, logger):
 
     For example, 'foo.bar' from foo/bar/__init__.py becomes ('foo', 'bar')
     """
+    import csv
     record_file = "RECORD"
     if not d.has_metadata(record_file):
         logger.warning("cannot get installed file list for %r" % d.project_name)
         return []
     packages = []
-    for line in d.get_metadata_lines(record_file):
-        path, hash, size = line.split(',')
+    for row in csv.reader(d.get_metadata_lines(record_file)):
+        if len(row) != 3:
+            continue
+        path = row[0]
         if not path.endswith('/__init__.py'):
             continue
         parts = path.split('/')

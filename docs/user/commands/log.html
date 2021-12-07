@@ -38,17 +38,6 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>errorDialog</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>warningDialog</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
-<!--
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>log save</b> &nbsp;<i>pathname</i>&nbsp;
-[&nbsp;<b>executableLinks</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>log metadata</b>
-&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</h3>
--->
 <p>
 The <b>log</b> command acts on the
 <a href="../tools/log.html"><b>Log</b></a>. 
@@ -81,15 +70,17 @@ must be the last option in the command, for example:
 Subcommands:
 </p>
 <ul>
-<li><b>log show</b> - open the <a href="../tools/log.html"><b>Log</b></a>
-<li><b>log hide</b> - close the <a href="../tools/log.html"><b>Log</b></a>
-<li><b>log clear</b> - clear the contents
-<li><b>log settings</b> - whether errors/warnings should raise dialogs 
+<li><b>log show</b> &ndash; open the <a href="../tools/log.html"><b>Log</b></a>
+<li><b>log hide</b> &ndash; close the <a href="../tools/log.html"><b>Log</b></a>
+<li><b>log clear</b> &ndash; clear the contents
+<li><b>log settings</b> &ndash; whether errors/warnings should raise dialogs 
 (in the current session; can be saved for later sessions in the
 <a href="../preferences.html#log"><b>Log</b> preferences</a>)
-<li><a href="#save"><b>log save</b></a> - save contents to an HTML file
+<li><a href="#save"><b>log save</b></a> &ndash; save contents to an HTML file
 <li><a href="#metadata"><b>log metadata</b></a>
-- show information associated with a model
+&ndash; show metadata associated with a model (literature citation, <i>etc.</i>)
+<li><a href="#chains"><b>log chains</b></a>
+&ndash; show an interactive table of the biopolymer chains in a model
 </ul>
 
 <a name="save"></a>
@@ -118,15 +109,19 @@ set with its <a href="../window.html#context-menu">context menu</a>.
 </p>
 
 <a name="metadata"></a>
+<a name="chains"></a>
 <p class="nav">
 [<a href="#top">back to top: log</a>]
 </p>
-<h3>Model Metadata</h3>
+<h3>Model Information</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>log metadata</b>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>log chains</b> &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
 </blockquote>
 <p>
 The subcommand <b>log metadata</b> reports model metadata in the
@@ -137,11 +132,24 @@ Using <b>verbose true</b> shows all available information, sometimes the
 same as with <b>verbose false</b> (depending on what is available).
 Currently, metadata is read from the mmCIF and PDB 
 <a href="open.html#formats">input formats</a>.
+</p><p>
+The subcommand <b>log chains</b> shows a table of the model's
+biopolymer chains, in which:
+</p>
+  <ul>
+  <li>clicking a chain identifier <a href="../selection.html">selects</a>
+   the corresponding chain in the structure
+  <li>clicking a chain description opens the sequence in the
+  <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+  associated with all of the corresponding chains in the structure
+  </ul>
+<p>
 See also: <a href="info.html"><b>info</b></a>,
+<a href="../tools/modelpanel.html#buttons"><b>Model Panel</b> buttons</a>,
 <a href="../modelinfo.html">model information</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+September 2021</address>
 </body></html>

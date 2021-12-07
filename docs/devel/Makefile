@@ -16,13 +16,12 @@ include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINX_EXE    = $(APP_PYTHON_EXE)
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(SPHINX_EXE) $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(SPHINX_EXE) '$(shell cygpath -m '$(bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(SPHINX_EXE) $(bindir)/sphinx-build
+SPHINXBUILD   = $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
 endif
 PAPER         =
 BUILDDIR      = _build
@@ -82,13 +81,16 @@ index.rst: index.rst.in
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@
 
-html: conf.py index.rst _static/cxlinks.js
+html: conf.py index.rst _static/cxlinks.js _static/devdocs.css
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 _static/cxlinks.js: ../js/cxlinks.js
 	mkdir -p _static
+	cp $< $@
+
+_static/devdocs.css: ../css/devdocs.css _static/cxlinks.js
 	cp $< $@
 
 dirhtml: conf.py index.rst

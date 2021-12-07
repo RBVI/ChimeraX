@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Help" version="1.1"
+<BundleInfo name="ChimeraX-Help" version="1.2"
     package="chimerax.help_viewer"
     minSessionVersion="1" maxSessionVersion="1" customInit="true">
 

@@ -69,8 +69,9 @@ class EntriesRow:
         self.frame = f
 
         from .color_button import ColorButton
-        from Qt.QtWidgets import QLabel, QPushButton
-        values = []
+        from Qt.QtWidgets import QLabel, QPushButton, QWidget
+        self.values = values = []
+        self.labels = labels = []
         for a in args:
             if isinstance(a, str):
                 if a == '':
@@ -83,6 +84,7 @@ class EntriesRow:
                         a = a[:-1]
                     l = QLabel(a, f)
                     layout.addWidget(l)
+                    labels.append(l)
                     if newline:
                         # String ends in newline so make new row.
                         layout.addStretch(1)
@@ -130,20 +132,25 @@ class EntriesRow:
                 cb = ColorButton(f, max_size = (20,20))
                 layout.addWidget(cb)
                 values.append(cb)
+            elif isinstance(a, QWidget):
+                layout.addWidget(a)
 
         layout.addStretch(1)    # Extra space at end
 
-        self.values = values
-
 def radio_buttons(*check_boxes):
     for cb in check_boxes:
-        cb.widget.stateChanged.connect(lambda state, cb=cb, others=check_boxes: _uncheck_others(cb, others))
+        cb.widget.toggled.connect(lambda state, cb=cb, others=check_boxes: _uncheck_others(cb, others))
 
 def _uncheck_others(check_box, other_check_boxes):
     if check_box.enabled:
         for ocb in other_check_boxes:
-            if ocb is not check_box:
+            if ocb is not check_box and ocb.enabled:
                 ocb.enabled = False
+    else:
+        # If all checkboxes are off, then turn this one back on.
+        # This prevents turning all radio buttons off.
+        if len([ocb for ocb in other_check_boxes if ocb.enabled]) == 0:
+            check_box.enabled = True
 
 class StringEntry:
     def __init__(self, parent, value = '', pixel_width = 100):
@@ -219,7 +226,10 @@ class MenuEntry:
         b.setText(values[0])
         m = QMenu(b)
         for value in values:
-            m.addAction(value)
+            if value == '-':
+                m.addSeparator()
+            else:
+                m.addAction(value)
         b.setMenu(m)
         m.triggered.connect(self._menu_selection_cb)
     def _menu_selection_cb(self, action):
@@ -361,7 +371,7 @@ class ModelMenu:
                              special_items = special_items, parent = f)
         self._menu = sm
         
-        mlist = session.models.list(type = class_filter)
+        mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:
             sm.value = mdisp[0]

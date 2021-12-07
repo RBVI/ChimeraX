@@ -1,0 +1,53 @@
+# YAML 1.2
+---
+abstract: "UCSF ChimeraX is the next-generation interactive visualization program from the Resource for Biocomputing, Visualization, and Informatics (RBVI), following UCSF Chimera. ChimeraX brings (a) significant performance and graphics enhancements; (b) new implementations of Chimera's most highly used tools, many with further improvements; (c) several entirely new analysis features; (d) support for new areas such as virtual reality, light-sheet microscopy, and medical imaging data; (e) major ease-of-use advances, including toolbars with icons to perform actions with a single click, basic \"undo\" capabilities, and more logical and consistent commands; and (f) an app store for researchers to contribute new tools. ChimeraX includes full user documentation and is free for noncommercial use, with downloads available for Windows, Linux, and macOS from https://www.rbvi.ucsf.edu/chimerax."
+authors: 
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Pettersen
+    given-names: "Eric F."
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Goddard
+    given-names: "Thomas D."
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Huang
+    given-names: "Conrad C."
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Meng
+    given-names: "Elaine C."
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Couch
+    given-names: "Gregory S."
+  -
+    affiliation: "Cambridge Institute for Medical Research, Department of Haematology, University of Cambridge, Cambridge, UK"
+    family-names: Croll
+    given-names: "Tristan I."
+    orcid: https://orcid.org/0000-0002-3514-8377
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Morris
+    given-names: "John H."
+    orcid: https://orcid.org/0000-0003-0290-7979
+  -
+    affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
+    family-names: Ferrin
+    given-names: "Thomas E."
+    orcid: https://orcid.org/0000-0001-6227-0637
+cff-version: "1.1.0"
+date-released: 2021-01-01
+doi: "10.1002/pro.3943"
+keywords: 
+  - cryoEM
+  - "density maps"
+  - "interactive visualization and analysis"
+  - "molecular graphics"
+  - "molecular modeling"
+  - "structural biology"
+  - "virtual reality"
+message: "If you use this software, please cite it using these metadata."
+title: "UCSF ChimeraX: Structure visualization for researchers, educators, and developers"
+version: "development"

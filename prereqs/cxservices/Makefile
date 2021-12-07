@@ -4,11 +4,13 @@ include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
 NAME = cxservices
-VERSION = 1.0
+VERSION = 1.1
 SOURCE = client
 PIPINSTALL_ARGS = --upgrade-strategy only-if-needed
 
-SWAGGER_CODEGEN = swagger-codegen-cli.jar
+# From https://mvnrepository.com/artifact/io.swagger.codegen.v3/swagger-codegen-cli
+SWAGGER_VERSION=3.0.27
+SWAGGER_CODEGEN = swagger-codegen-cli-$(SWAGGER_VERSION).jar
 
 ifdef WIN32
 WHEEL = `cygpath -m $(SOURCE)/dist/*.whl`
@@ -46,7 +48,7 @@ cxservices.config:	cxservices.config.in
 	sed -e 's/VERSION/$(VERSION)/' \
 	    -e 's/PACKAGE/$(NAME)/' cxservices.config.in > cxservices.config
 
-# "-DpackageName=cxservices_client" is needed to set the package name
+# "-DpackageName=cxservices" is needed to set the package name
 # because "packageName" in cxservices.config does nothing
 
 #

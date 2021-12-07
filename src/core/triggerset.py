@@ -21,6 +21,10 @@ which may have a number of handlers registered with it. Activating a trigger
 in the instance causes all its handlers to be called, in the order of
 registration.
 
+This document describes the mechanics of creating or subscribing to a trigger,
+but not what triggers exist.
+:doc:`../well_known_triggers` describes the most widely useful triggers available in ChimeraX.
+
 Example
 -------
 

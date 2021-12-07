@@ -224,7 +224,7 @@ class StructureTugger:
         self._forcefields = openmm_forcefield_parameters
         self._sim_steps = 50		# Simulation steps between mouse position updates
         self._force_constant = 10000
-        from simtk import unit
+        from openmm import unit
         #self._temperature = 300*unit.kelvin
         self._temperature = 100*unit.kelvin
         #self._constraint_tolerance = 0.00001
@@ -278,18 +278,18 @@ class StructureTugger:
         self._make_simulation()
 
     def _make_simulation(self):
-        from simtk import openmm as mm
+        import openmm as mm
         integrator = mm.VariableLangevinIntegrator(self._temperature, self._friction, self._integrator_tolerance)
         integrator.setConstraintTolerance(self._constraint_tolerance)
 
         # Make a new simulation.
-        from simtk.openmm import app
+        from openmm import app
         s = app.Simulation(self._topology, self._system, integrator, self._platform)
         self._simulation = s
         
     def _max_force (self):
         c = self._simulation.context
-        from simtk.unit import kilojoule_per_mole, nanometer
+        from openmm.unit import kilojoule_per_mole, nanometer
         self._sim_forces = c.getState(getForces = True).getForces(asNumpy = True)/(kilojoule_per_mole/nanometer)
         forcesx = self._sim_forces[:,0]
         forcesy = self._sim_forces[:,1]
@@ -384,7 +384,7 @@ class StructureTugger:
     def _simulation_atom_coordinates(self):
         c = self._simulation.context
         state = c.getState(getPositions = True)
-        from simtk import unit
+        from openmm import unit
         pos = state.getPositions().value_in_unit(unit.angstrom)
         from numpy import array, float64
         xyz = array(pos, float64)
@@ -403,7 +403,7 @@ class StructureTugger:
         bonds = self.structure.bonds
         self._topology = openmm_topology(atoms, bonds)
 
-        from simtk.openmm import app
+        from openmm import app
         forcefield = app.ForceField(*self._forcefields)
 #        self._add_hydrogens(pdb, forcefield)
 
@@ -415,7 +415,7 @@ class StructureTugger:
 #        crd_path = '/Users/goddard/ucsf/amber/gfp_tutorial/min1.rst7'
 #         self._system_from_prmtop(path, crd_path)
         
-        from simtk import openmm as mm
+        import openmm as mm
         platform = mm.Platform.getPlatformByName(self._platform_name)
         self._platform = platform
 
@@ -432,7 +432,7 @@ class StructureTugger:
         prmtop = app.AmberPrmtopFile(prmtop_path)
         inpcrd = app.AmberInpcrdFile(incrd_path)
         from numpy import array, float64
-        from simtk import unit
+        from openmm import unit
         positions = 10*array(inpcrd.positions.value_in_unit(unit.nanometers), float64)  # Angstroms
         self._particle_positions = positions
 
@@ -477,8 +477,8 @@ class StructureTugger:
         # hydrogen atoms are fixed to allow larger integration time steps.
         # Constraints are not supported to atoms with particle mass = 0 which
         # indicates a fixed atom position, and will generate errors.
-        from simtk.openmm import app
-        from simtk import unit
+        from openmm import app
+        from openmm import unit
         try:
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
@@ -516,7 +516,7 @@ class StructureTugger:
         # When openmm does have all heavy atoms (1gcn) it preserves order of those atoms
         # but hydrogens are inserted after the heavy atom they are attached to.  Would need to
         # take that into account to map between ChimeraX structure and openmm structure with hydrogens.
-        from simtk.openmm.app.modeller import Modeller
+        from openmm.app.modeller import Modeller
         m = Modeller(openmm_pdb.topology, openmm_pdb.positions)
         m.addHydrogens(forcefield)
         top, pos = m.getTopology(), m.getPositions()
@@ -558,7 +558,7 @@ def openmm_topology(atoms, bonds):
     rname = r.names
     rnum = r.numbers
     cids = r.chain_ids
-    from simtk.openmm.app import Topology, Element
+    from openmm.app import Topology, Element
     top = Topology()
     cmap = {}
     rmap = {}

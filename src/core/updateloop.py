@@ -79,12 +79,13 @@ class UpdateLoop:
                 except OpenGLError as e:
                     self.block_redraw()
                     msg = 'An OpenGL graphics error occurred. Most often this is caused by a graphics driver bug. The only way to fix such bugs is to update your graphics driver. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
-                    session.logger.bug(msg + '\n\n' + str(e))
-                except Exception:
+                    import traceback
+                    session.logger.bug(msg + '\n\n' + str(e) + '\n\n' + traceback.format_exc())
+                except Exception as e:
                     self.block_redraw()
                     msg = 'An error occurred in drawing the scene. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
                     import traceback
-                    session.logger.bug(msg + '\n\n' + traceback.format_exc())
+                    session.logger.bug(msg + '\n\n' + str(e) + '\n\n' + traceback.format_exc())
                 session.triggers.activate_trigger('frame drawn', self)
         finally:
             self.unblock_redraw()

@@ -29,13 +29,26 @@ endif
 
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
-NEED_P7ZIP=1
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '<' 18.04),1)
+NEED_MESA=1
 NEED_OSMESA=1
+endif
+endif
+ifdef CENTOS_DIST
+ifeq ($(shell expr $(CENTOS_DIST) '<' 8),1)
+NEED_MESA=1
+NEED_OSMESA=1
+endif
+endif
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
-NEED_EXPAT=1
+#NEED_EXPAT=1
 NEED_OPENSSL=1
 NEED_ZLIB=1
+#NEED_LLVM=1
+#NEED_MESA=1
+#NEED_OSMESA=1
 endif
 endif
 endif
@@ -102,13 +115,6 @@ openssl.install:
 openssl.app-install:
 endif
 
-ifdef NEED_P7ZIP
-SUBDIRS += p7zip
-else
-p7zip.install:
-p7zip.app-install:
-endif
-
 ifdef NEED_ZLIB
 SUBDIRS += zlib
 else
@@ -120,7 +126,13 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices imex lineprofiler openmm pips PyQt Python qtshim
+ifeq ($(OSARCH),DarwinArm64)
+# Have not ported ambertools, openmm, pytables to Mac arm64, July 2021
+SUBDIRS	+= cxservices imex pips PyQt Python qtshim
+else
+SUBDIRS	+= ambertools cxservices imex openmm pips PyQt pytables Python qtshim
+endif
+
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -189,17 +201,21 @@ cxservices.install: pips.install
 cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
-lineprofiler.install: pips.install
-lineprofiler.app-install: pips.app-install
-llvm.install: p7zip.install
-mesa.install: p7zip.install llvm.install pkgconfig.install
+#lineprofiler.install: pips.install
+#lineprofiler.app-install: pips.app-install
+llvm.install: 
+mesa.install: llvm.install pkgconfig.install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
 openssl.install: chrpath.install pkgconfig.install
 osmesa.app-install: Python.app-install
 osmesa.install: Python.install
+ifdef NEED_MESA
+osmesa.app-install: mesa.install
+osmesa.install: mesa.install
+endif
 pips.app-install: Python.app-install
 pips.install: Python.install
 Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
-Python.install: p7zip.install zlib.install openssl.install expat.install chrpath.install
+Python.install: zlib.install openssl.install expat.install chrpath.install

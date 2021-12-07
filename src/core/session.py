@@ -246,6 +246,8 @@ class _SaveManager:
                     self.processed[key] = self.process(value, (key,))
                     self.graph[key] = self._found_objs
                 else:
+                    if hasattr(sm, 'include_state') and not sm.include_state(value):
+                        continue
                     self.unprocessed.append((value, (key,)))
                     uid = _UniqueName.from_obj(self.session, value)
                     self.processed[key] = uid
@@ -445,6 +447,7 @@ class Session:
         self.metadata = {}              # session metadata.
         self.in_script = InScriptFlag()
         self.session_file_path = None  # Last saved or opened session file.
+        self.minimal = minimal
 
         from . import logger
         self.logger = logger.Logger(self)
@@ -459,6 +462,8 @@ class Session:
         from .triggerset import set_exception_reporter
         set_exception_reporter(lambda preface, logger=self.logger:
                                logger.report_exception(preface=preface))
+        from .import tasks
+        self.tasks = tasks.Tasks(self, first=True)
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
@@ -496,7 +501,8 @@ class Session:
         from . import colors
         self.user_colors = colors.UserColors()
         self.user_colormaps = colors.UserColormaps()
-        # tasks and bundles are initialized later
+
+        # bundles are initialized later
         # TODO: scenes need more work
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
@@ -541,9 +547,15 @@ class Session:
         object.__delattr__(self, name)
 
     def add_state_manager(self, tag, container):
+        # container should be subclassed from StateManager, but we didn't require it before,
+        # so we can't require it now.
         sm = self.snapshot_methods(container)
         if sm is None and not hasattr(container, 'clear'):
             raise ValueError('container "%s" of type "%s" does not have snapshot methods and does not have clear method' % (tag, str(type(container))))
+        if sm and not isinstance(container, StateManager):
+            from . import is_daily_build
+            if is_daily_build() and not hasattr(sm, 'include_state'):
+                self.logger.info(f'developer warning: container "{tag}" snapshot methods are missing include_state method')
         self._state_containers[tag] = container
 
     def get_state_manager(self, tag):
@@ -744,24 +756,25 @@ class InScriptFlag:
 def standard_metadata(previous_metadata={}):
     """Fill in standard metadata for created files
 
-    Parameters
-    ----------
-    previous_metadata : dict
-        Optional dictionary of previous metadata.
+    Parameters:
+        previous_metadata: dict
+            Optional dictionary of previous metadata.
+
 
     The standard metadata consists of:
 
-    generator :
-        Application that created file in HTML User Agent format
-        (app name version (os))
-    created :
-        Date first created
-    modified :
-        Date last modified after being created
-    creator :
-        User name(s)
-    dateCopyrighted :
-        Copyright(s)
+    Parameters:
+        generator:
+            Application that created file in HTML User Agent format
+            (app name version (os))
+        created:
+            Date first created
+        modified:
+            Date last modified after being created
+        creator:
+            User name(s)
+        dateCopyrighted:
+            Copyright(s)
 
     creator and dateCopyrighted can be lists if there
     is previous metadata with different values.

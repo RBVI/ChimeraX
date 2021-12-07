@@ -17,7 +17,7 @@ class IterationError(UserError):
 
 def align(session, atoms, to_atoms = None, move = None, each = None,
           match_chain_ids = False, match_numbering = False, match_atom_names = False,
-          sequence = None, cutoff_distance = None, report_matrix = False):
+          sequence = None, cutoff_distance = None, report_matrix = False, log_info = True):
     """Move atoms to minimize RMSD with to_atoms.
     Returns matched atoms and matched to_atoms, matched atom rmsd, paired atom rmsd, and a
     chimerax.geometry.Place instance (i.e. the transform to place the match atoms onto
@@ -50,6 +50,8 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
     
     If 'report_matrix' is True, report the transformation matrix to
     the Reply Log.
+
+    If 'log_info' is True, report RMSD and pruned atoms to the log.
     """
     if each == 'chain':
         groups = atoms.by_chain
@@ -79,12 +81,12 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
     if move is None:
         move = 'structures'
 
-    log = session.logger
+    log = session.logger if log_info else None
     if sequence is None:
         patoms, pto_atoms = paired_atoms(atoms, to_atoms, match_chain_ids,
                                          match_numbering, match_atom_names)
         da, dra = len(atoms) - len(patoms), len(to_atoms) - len(pto_atoms)
-        if da > 0 or dra > 0:
+        if log and (da > 0 or dra > 0):
             log.info('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
     else:
         patoms, pto_atoms = sequence_alignment_pairing(atoms, to_atoms, sequence)
@@ -131,11 +133,11 @@ def align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
         msg = 'RMSD between %d pruned atom pairs is %.3f angstroms;' \
             ' (across all %d pairs: %.3f)' % (np, rmsd, len(patoms), full_rmsd)
 
-    if report_matrix:
+    if report_matrix and log:
         log.info(matrix_text(tf, atoms, to_atoms))
 
-    log.status(msg)
-    log.info(msg)
+    if log:
+        log.status(msg, log=True)
 
     move_atoms(atoms, to_atoms, tf, move)
 

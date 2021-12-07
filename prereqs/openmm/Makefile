@@ -2,26 +2,25 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# Using OpenMM builds from https://anaconda.org/omnia/openmm/files
+# Using OpenMM builds from https://anaconda.org/conda-forge/openmm/files
 
-VERSION = 7.5.0
-OPENMM_REL = 1
-PYVER = py38
+VERSION = 7.6.0
 
 ifeq ($(OS),Darwin)
 PLATFORM = mac
-CUDA_VERSION = nocuda
+DISTRIBUTION = openmm-7.6.0-mac-py39h17f8b25_0_apple.tar.bz2
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
-CUDA_VERSION = cuda110
+# The Linux distribution comes from Tristan Croll
+# compiled with the same compiler as ChimeraX.
+DISTRIBUTION = openmm-7.6.0-linux-py39_cuda112_1.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
-CUDA_VERSION = cuda110
+DISTRIBUTION = openmm-7.6.0-win-cuda11.2-py39h6dc0912_0.tar.bz2
 endif
 
-DISTRIBUTION = openmm-$(VERSION)-$(PLATFORM)-$(PYVER)_$(CUDA_VERSION)_$(OPENMM_REL).tar.bz2
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
 OPENMM_LIB_INSTALL = $(libdir)/openmm
 
@@ -36,21 +35,21 @@ ifeq ($(OS),Windows)
 
 install: $(SOURCE)
 	cd $(SOURCE) ; \
-	  $(RSYNC) Lib/site-packages/simtk $(PYSITEDIR) ; \
+	  $(RSYNC) Lib/site-packages/openmm $(PYSITEDIR) ; \
 	  $(RSYNC) Library/lib/ --exclude site-packages $(OPENMM_LIB_INSTALL)
 
 else
 
 install: $(SOURCE)
 	cd $(SOURCE) ; \
-	  $(RSYNC) lib/python$(PYTHON_VERSION)/site-packages/simtk $(PYSITEDIR) ; \
+	  $(RSYNC) lib/python$(PYTHON_VERSION)/site-packages/openmm $(PYSITEDIR) ; \
 	  $(RSYNC) lib/ --exclude python$(PYTHON_VERSION) $(OPENMM_LIB_INSTALL)
 
 endif
 
 app-install: install
 	$(RSYNC) $(OPENMM_LIB_INSTALL)/* $(app_shlibdir)
-	$(RSYNC) $(PYSITEDIR)/simtk $(APP_PYSITEDIR)
+	$(RSYNC) $(PYSITEDIR)/openmm $(APP_PYSITEDIR)
 ifeq ($(OS),Windows)
 	cd $(app_shlibdir); mv OpenMM*.lib libs/
 endif
@@ -65,8 +64,8 @@ ifneq (,$(PATCHES))
 endif
 ifeq ($(OS),Windows)
 	cd $(SOURCE)/Lib ; \
-	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
-	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
+	  chmod a+x site-packages/openmm/*.pyd ; \
+	  chmod a+x site-packages/openmm/app/internal/*.pyd
 	cd $(SOURCE)/Library/lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib
 endif

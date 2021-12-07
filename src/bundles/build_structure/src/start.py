@@ -45,8 +45,7 @@ def place_fragment(structure, fragment_name, res_name, position=None):
     res = structure.new_residue(res_name, "het", _next_het_res_num(structure))
     need_focus = _need_focus(structure)
 
-    if position is None:
-        position = session.main_view.center_of_rotation
+    position = final_position(structure, position)
 
     from chimerax.atomic.struct_edit import add_atom, gen_atom_name, add_bond
     from tinyarray import array
@@ -71,19 +70,9 @@ def place_fragment(structure, fragment_name, res_name, position=None):
 def place_helium(structure, res_name, position=None):
     '''If position is None, place in the center of view'''
     res = structure.new_residue(res_name, "het", _next_het_res_num(structure))
-    if position is None:
-        if len(structure.session.models) == 0:
-            position = (0.0, 0.0 ,0.0)
-        else:
-            #view = structure.session.view
-            #n, f = view.near_far_distances(view.camera, None)
-            #position = view.camera.position.origin() + (n+f) * view.camera.view_direction() / 2
 
-            # apparently the commented-out code above is equivalent to...
-            position = structure.session.main_view.center_of_rotation
+    position = final_position(structure, position)
 
-    from numpy import array
-    position = array(position)
     from chimerax.atomic.struct_edit import add_atom
     helium = Element.get_element("He")
     a = add_atom("He", helium, res, position)
@@ -145,10 +134,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
     open_models = session.models[:]
     need_focus = _need_focus(structure)
 
-    if position is None:
-        position = session.main_view.center_of_rotation
-    from numpy import array
-    position = array(position)
+    position = final_position(structure, position)
 
     if form not in nucleic_forms:
         raise NucleicError(form + "-form RNA/DNA not supported")
@@ -209,7 +195,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
         if type == "DNA":
             type2 = "D" + type2
         r1 = structure.new_residue(type1, chain_id1, i+1)
-        r2 = structure.new_residue(type2, chain_id2, len(sequence)-1)
+        r2 = structure.new_residue(type2, chain_id2, len(sequence)-i)
         residues1.append(r1)
         residues2.append(r2)
         for at_info, crd in coords.items():
@@ -325,10 +311,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     open_models = session.models[:]
     need_focus = _need_focus(structure)
 
-    if position is None:
-        position = session.main_view.center_of_rotation
-    from numpy import array
-    position = array(position)
+    position = final_position(structure, position)
 
     prev = [None] * 3
     pos = 1
@@ -439,3 +422,11 @@ def _next_het_res_num(structure):
         if r.chain_id == "het" and r.number > max_existing:
             max_existing = r.number
     return max_existing+1
+
+def final_position(structure, position):
+    if position is None:
+        position = structure.session.main_view.center_of_rotation
+    from numpy import array
+    pos = array(position)
+    return structure.scene_position.inverse() * pos
+

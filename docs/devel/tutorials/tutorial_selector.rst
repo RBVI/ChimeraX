@@ -93,7 +93,8 @@ there is one chemical subgroup selector named ``endres`` in
 the bundle.  The last field is a short description for
 the selector.  If ``endres`` appears in the target specification
 of a ChimeraX command, the bundle function associated with
-``endres`` will be invoked to find the atoms of interest.
+``endres`` will be invoked to find the atoms of interest,
+*e.g.* the command ``sel endres`` will select the ending residues of chains.
 
 
 ``src``

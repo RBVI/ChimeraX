@@ -59,6 +59,8 @@ of ``mac``.
 
     - Name of bundle author
 
+.. _BundleInfo:
+
 - **BundleInfo**:
 
   - Root element containing all information needed to build the bundle.
@@ -83,8 +85,12 @@ of ``mac``.
       to declare that they *can't* work with older Python versions.
       In either case, the value is the oldest version that the bundle works with,
       and is of the form "3.x" (e.g. 3.7).
-    - **minSessionVersion**: version number of oldest supported Chimera session
-    - **maxSessionVersion**: version number of newest supported Chimera session
+    - **minSessionVersion**: for session data saved from this bundle, the oldest version that the
+      bundle currently supports (an integer).  
+    - **maxSessionVersion**: the newest version of this bundle's session data.  Presumably the bundle
+      currently writes this version.  The version number should only be increased if the change is not
+      backwards compatible with old readers, because the session-restore code checks these version numbers
+      in order to decide if a session will be able to be restored by the currently installed bundles.
     - **package**: Python package name corresponding to bundle
     - **purePython**: set to ``false`` if bundle should be treated as
       binary, *i.e.*, includes a compiled module; omit otherwise

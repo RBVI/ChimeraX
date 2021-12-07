@@ -32,6 +32,8 @@ The equivalent commands are
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="modelloops.html"><b>Model Loops</b></a>,
+<a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
 <a href="../commands/rna.html"><b>rna</b></a>,
 <a href="../commands/torsion.html"><b>torsion</b></a>
 </p><p>
@@ -203,7 +205,8 @@ The <b>Modify Structure</b> section of
 <a href="#top"><b>Build Structure</b></a> 
 can change the element, valence (number of directly attached atoms),
 and/or geometry (spatial arrangement of attached atoms) of a single
-<a href="../selection.html">selected</a> atom at a time.
+<a href="../selection.html">selected</a> atom at a time, potentially
+changing its <a href="../atomtypes.html">atom type</a> assignment.
 Hydrogens are appended as needed to fill the valence.
 Building outward can be done by successive cycles
 of modifying a hydrogen attached to the previously modified atom.
@@ -316,6 +319,7 @@ allows adding and deleting covalent bonds.
 A bond can also be deleted using its 
 <a href="../selection.html#context">selection context menu</a>.
 See also: <a href="../commands/bond.html"><b>bond</b></a>,
+<a href="../commands/combine.html"><b>combine</b></a>,
 <a href="../commands/delete.html"><b>delete</b></a>
 </p>
 <ul>
@@ -333,6 +337,23 @@ the <i>option</i> setting:
  <li><b>all possible</b>
 &ndash; all pairwise combinations regardless of distance
  </ul>
+</ul>
+<ul>
+<li><b>Set length of selected bonds to</b> [<i>length</i>] 
+&ndash; change the lengths of the currently selected bonds 
+(for the purposes of this dialog, either
+<a href="../selection.html">selected</a>
+and/or between pairs of <a href="../selection.html">selected</a> atoms)
+to the value specified in the entry field or with the slider
+<li><b>Move atoms on</b> 
+&ndash; which end to move when adjusting the length of a bond
+  <ul>
+  <li><b>smaller side</b> (default)
+  <li><b>larger side</b>
+  </ul>
+<li><b>Revert lengths</b> 
+&ndash; restore the currently selected bonds to their lengths when the bonds 
+were selected (not necessarily their original lengths)
 </ul>
 
 <a name="covrad"></a>
@@ -377,5 +398,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2021</address>
+September 2021</address>
 </body></html>

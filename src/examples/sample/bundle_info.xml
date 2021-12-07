@@ -45,8 +45,9 @@ Implements command "sample count" to report number of atoms and bonds.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-Atomic" version=">=0.1"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=4.0"/>
   </Dependencies>
 
     <!-- Register XYZ format as one of the supported input file formats -->

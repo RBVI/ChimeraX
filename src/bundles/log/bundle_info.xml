@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Log" version="1.1.2"
+<BundleInfo name="ChimeraX-Log" version="1.1.4"
 	    package="chimerax.log" customInit="true"
 		minSessionVersion="1" maxSessionVersion="1">
 

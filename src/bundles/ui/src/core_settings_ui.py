@@ -88,6 +88,14 @@ class CoreSettingsPanel:
             None,
             'How frequently to check toolshed for new updates<br>',
             True),
+        'newer_update_interval': (
+            "New version check interval",
+            "Toolshed",
+            UpdateIntervalOption,
+            None,
+            None,
+            'How frequently to check for newer versions of ChimeraX<br>',
+            True),
     }
 
     def __init__(self, session, ui_area):
