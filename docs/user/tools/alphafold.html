@@ -116,7 +116,7 @@ The <b>Sequence</b> can be specified by
 name or accession number, pasted in as plain text, or chosen
 from the menu of currently open protein structure chains.
 </p><p>
-For predicting a complex, the sequences of all chains in the complex
+For predicting a complex (multimer), the sequences of all chains in the complex
 must be given. The same sequence must be given multiple times if it occurs in 
 multiple copies in the complex. The sequences can be specified
 either collectively as a model number chosen from the menu of currently
@@ -242,17 +242,23 @@ Users will need to have a Google account and to sign into it via
 a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
+</p><p>
 A single prediction run generally takes on the order of an hour or more.
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
 predicting atomic coordinates, and energy-minimizing the best structure.
-The free version of Google Colab does not allow for much run time.
+Predicting a multimer (complex) structure may take longer than predicting
+the structure of a monomer with the same total number of residues.
+The free version of Google Colab
+limits jobs to 12 hours and may terminate them at shorter times at Google's 
+discretion (see the <a href="https://colab.research.google.com/signup" 
+target="_blank">FAQ</a>).
 Those who want to run longer and/or more frequent calculations 
 may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
 </p><p>
-If the sequence was specified by structure chain, the model will
+The model for a sequence that was specified by structure chain will
 be superimposed on that chain and assigned structure-comparison attributes 
 for further analysis
 (<a href="../commands/alphafold.html#structmatch">details...</a>).
@@ -291,13 +297,9 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 <br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
-on old Google Colab GPUs with 16 GB memory). For predicting complexes,
-the sum of the lengths of the sequences faces the same limit
-and the calculation takes longer,
-so <b>only smaller complexes can be predicted</b>. The free version of Colab
-limits jobs to 12 hours and may terminate them at shorter times at Google's 
-discretion (see the <a href="https://colab.research.google.com/signup" 
-target="_blank">FAQ</a> ).
+on old Google Colab GPUs with 16 GB memory). 
+Multimer predictions face the same limit on the total number of residues,
+so <b>only smaller complexes can be predicted</b>. 
 </ul>
 <br>
 <li><a name="coloring"></a>
