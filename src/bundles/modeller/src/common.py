@@ -654,6 +654,7 @@ class ModellerLocalJob(Job):
 
         if prefix is None:
             tsafe(status, "No models generated yet")
+            return
 
         for f in file_list:
             if f.startswith(prefix) and f.endswith(".pdb") and not f.endswith("_fit.pdb"):
