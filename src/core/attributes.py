@@ -90,7 +90,10 @@ class AttrRegistration:
     def register(self, session, attr_name, registrant, default_value, type_info):
         if attr_name in self.reg_attr_info:
             prev_registrant, prev_default, prev_type_info = self.reg_attr_info[attr_name]
-            if prev_default == default_value and prev_type_info == type_info:
+            # now allow default-value "conflict" if previous registration was NO_DEFAULT so that
+            # bundles can "future proof" their code against the dropping of default-value support in 1.4
+            if (prev_default == default_value or (prev_registrant == registrant
+            and prev_default == NO_DEFAULT)) and prev_type_info == type_info:
                 return
             raise RegistrationConflict("Registration of attr '%s' with %s by %s conflicts with previous"
                 " registration by %s" % (attr_name, self.class_.__name__, registrant, prev_registrant))
