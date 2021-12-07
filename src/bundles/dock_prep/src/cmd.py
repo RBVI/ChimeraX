@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-from chimerax.core.commands import CmdDesc, register, BoolArg, Or, NoneArg, EnumArg
+from chimerax.core.commands import CmdDesc, register, BoolArg, Or, NoneArg, EnumArg, SaveFileNameArg
 
 MEMORIZE_USE = "use"
 MEMORIZE_SAVE = "save"
@@ -23,7 +23,7 @@ prep_cmd_param_info = {
 }
 
 complete_cmd_param_info = {}
-# use a function to avoid importing modules of subsidary commands until needed
+# use a function to avoid importing modules of subsidiary commands until needed
 _cmd_sources = None
 def cmd_sources():
     global _cmd_sources
@@ -40,7 +40,26 @@ def get_param_info():
                     if prefix is None else (prefix + '_' + arg_name)] = arg_info
     return complete_cmd_param_info
 
+#NOTES: An iterator is used to go through the requested Dock Prep steps, yielding the next step.
+#  The step info provides a function to call, that should receive the session, iterator, callback,
+#  memorization info, and step-associated keywords.  The callback should be invoked, with session
+#  and iterator, and will call the next step, or the dock_prep_caller callback if finished.
+#
+#  Bundles need to provide a function that can be called to get keyword info (so that the dockprep
+#  command can register (prefixed) keywords.
+#
+#  Bundles are in charge of their own memorization
+def dock_prep_steps(del_solvent=True, del_ions=False, del_alt_locs=True, change_MSE=True, change_UMP=True,
+        change_UMS=True, change_CSL=True, complete_side_chains=True, add_hydrogens=True, add_charges=True):
+    steps = []
+    if del_solvent:
+        steps.append([])
+    #TOD
+    return steps
+    
 def dock_prep_caller(session, structures, memorization, *, callback=None, **kw):
+    if steps is None:
+        steps = dock_prep_steps()
     for prefix, func, param_dict in cmd_sources():
         func_kw = {}
         if memorization == MEMORIZE_NONE:
@@ -63,13 +82,17 @@ def dock_prep_caller(session, structures, memorization, *, callback=None, **kw):
         func(session, structures, **func_kw)
     #TODO: log command equivalents; handle memorization; call workhorse function; make callback
 
-def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
+def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, mol2=None, **kw):
     if structures is None:
         from chimerax.atomic import all_atomic_structures
         structures = all_atomic_structures(session)
     if not structures:
         raise UserError("No atomic structures open/specified")
     dock_prep_caller(session, structures, memorize, **kw)
+    if mol2:
+        #TODO: nope -- need to provide a callback to the above function (and a memorization name) because the
+        # above will return immediately
+        pass
 
 class MemorizationArg(EnumArg):
     values = (MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE)
@@ -78,7 +101,7 @@ def register_command(logger):
     from chimerax.atomic import AtomicStructuresArg
     cmd_desc = CmdDesc(
         required=[('structures', Or(AtomicStructuresArg, NoneArg))],
-        keyword=[('memorize', MemorizationArg)] + [(arg_name, arg_info[0])
+        keyword=[('memorize', MemorizationArg), ('mol2', SaveFileNameArg)] + [(arg_name, arg_info[0])
             for arg_name, arg_info in get_param_info()],
         synopsis='Prepare structures for computations')
     register('dockprep', cmd_desc, dock_prep_cmd, logger=logger)
