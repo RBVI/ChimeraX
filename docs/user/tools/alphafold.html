@@ -30,7 +30,7 @@ is an artificial intelligence method for predicting protein structures
 that has been highly successful in recent tests.
 The ChimeraX <b>AlphaFold</b> tool:
 <ul>
-<li><a href="#search">finds and retrieves existing predictions</a> from the
+<li><a href="#search">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
 <br>&ndash; freely available for academic and commercial use under 
@@ -70,14 +70,14 @@ doi: https://doi.org/10.1101/2021.10.04.463034.
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-contains predictions for
+contains modeled structures of protein chains from
 <a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
 including humans. It does not cover all of 
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
 The database contains structures for single chains, not complexes; 
-assembling the individual predictions into a complex may give 
+assembling the individual structures into a complex may give 
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
 </p><p>
@@ -93,9 +93,9 @@ target="_blank">cryoEM modeling with AlphaFold structures</a>, and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
 <a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching by sequence</a>
-for AlphaFold predictions (first 5 minutes),
+for AlphaFold models (first 5 minutes),
 <a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
-AlphaFold prediction,
+AlphaFold model,
 <a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
 an assembly,
 <a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
@@ -131,18 +131,23 @@ Prediction may only be feasible for smaller complexes
 <ul>
 <li>
 <b>Is prokaryote? Used for predicting complexes.</b>
-&ndash; activate this option if predicting a complex of prokaryotic sequences,
-because <a href="#alphafold-multimer">AlphaFold-Multimer</a> uses a slightly
-different method for predicting complexes of prokaryotic <i>vs.</i> 
-eukaryotic sequences.
+When <a href="#alphafold-multimer">AlphaFold-Multimer</a> is predicting a
+complex and finds multiple similar sequences from the same organism, it
+needs to decide which sequences are orthologous to which chain of the target.
+Since interacting genes tend to be colocalized into operons in prokaryotes, 
+this option uses smallest genomic distance (approximated by the lexicographic
+difference between UniProt identifiers) to identify interacting pairs
+of sequences within species.
+When this option is not used, sequences from the same organism
+are instead paired in order of their rank similarity to the target sequences.
 <br><br>
 <li>
 <a name="match"></a>
-<b>Fetch</b> gets the most sequence-similar prediction available from the
+<b>Fetch</b> gets the most sequence-similar model available from the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 for each specified chain. 
 Specifying a whole model specifies all of its protein chains.
-For each chain, a prediction is obtained for the exact UniProt entry 
+For each chain, a model is obtained for the exact UniProt entry 
 if available, otherwise the single top hit identified by
 <a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
 target="_blank">BLAT</a>-searching the 
@@ -192,7 +197,7 @@ These <a href="../attributes.html">attributes</a>
 can be used for <a href="#coloring">coloring</a> and other purposes.
 </ol>
 <p>
-The fetched predictions are stored locally in 
+The fetched models are stored locally in 
 <b>~/Downloads/ChimeraX/AlphaFold/</b>,
 where ~ indicates a user's home directory. 
 If a file specified for opening is not found in this local cache,
@@ -221,7 +226,7 @@ When results are returned, the hits are listed in a
 <a href="blastprotein.html#results"><b>Blast Protein</b></a> window.
 Clicking the name of a hit uses
 <a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a> 
-to retrieve the prediction.
+to retrieve the model.
 <br><br>
 <li>
 <a name="predict"></a>
@@ -247,7 +252,7 @@ may wish to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
 </p><p>
-If the sequence was specified by structure chain, the prediction will
+If the sequence was specified by structure chain, the model will
 be superimposed on that chain and assigned structure-comparison attributes 
 for further analysis
 (<a href="../commands/alphafold.html#structmatch">details...</a>).
@@ -287,8 +292,12 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
 on old Google Colab GPUs with 16 GB memory). For predicting complexes,
-the sum of the lengths of the sequences faces this same limit,
-so <b>only smaller complexes can be predicted</b>.
+the sum of the lengths of the sequences faces the same limit
+and the calculation takes longer,
+so <b>only smaller complexes can be predicted</b>. The free version of Colab
+limits jobs to 12 hours and may terminate them at shorter times at Google's 
+discretion (see the <a href="https://colab.research.google.com/signup" 
+target="_blank">FAQ</a> ).
 </ul>
 <br>
 <li><a name="coloring"></a>
@@ -389,18 +398,18 @@ AlphaFold-predicted model and one of the following:
 B-factor field of the PDB file)
   <li><b>C-alpha distance greater than</b> [<i>d</i>]
 &ndash; based on the <b>c_alpha_distance</b>
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>missing structure</b>
 &ndash; based on the <b>missing_structure</b> 
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 positions missing from the coordinates of the existing chain
   <li><b>different sequence</b>
 &ndash; based on the <b>same_sequence</b> 
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 positions with different residue types than the existing chain
   <li><b>confidence above</b> [<i>N</i>]
@@ -410,18 +419,18 @@ positions with different residue types than the existing chain
 B-factor field of the PDB file)
   <li><b>C-alpha distance less than</b> [<i>d</i>]
 &ndash; based on the <b>c_alpha_distance</b>
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 C&alpha; distance between corresponding positions of the predicted and
 existing chains after their automatic superposition
   <li><b>paired structure</b>
 &ndash; based on the <b>missing_structure</b> 
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 positions present in the coordinates of the existing structure chain
   <li><b>same sequence</b>
 &ndash; based on the <b>same_sequence</b> 
-residue attribute of AlphaFold predictions 
+residue attribute of AlphaFold models 
 <a href="#match">fetched by existing structure chain</a>;
 positions with identical residue types as the existing chain
   </ul>
