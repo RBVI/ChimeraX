@@ -29,6 +29,7 @@ chimerax
 .vscode
 # Test files
 .coverage
+*htmlcov
 #
 errs*
 build
