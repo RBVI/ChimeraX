@@ -6,3 +6,4 @@
 228ff230b063d4ac8f4962d0f5f2b9ab1d637471 # Flake8 Error Corrections
 48468a2a7a09d664b0dbe62db4652e262f65b8cb # Typo Corrections
 42839823b7dadba4653e08a18bfce4ef989d7fed # Trailing Whitespace Corrections
+1b4ecf0f4bd69f05d2b7cc48ee23cce482432e13 # Lint the blastprotein bundle
