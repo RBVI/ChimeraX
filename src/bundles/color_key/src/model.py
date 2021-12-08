@@ -226,7 +226,6 @@ class ColorKeyModel(Model):
 
     @property
     def label_offset(self):
-        # None means contrast with background
         return self._label_offset
 
     @label_offset.setter
