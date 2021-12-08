@@ -146,9 +146,9 @@ class BlastProteinTool(ToolInstance):
         main_layout.addWidget(input_container_row3)
 
         for layout in [main_layout, menu_layout_row1, menu_layout_row3]:
-            layout.setContentsMargins(0,0,0,0)
+            layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
-        menu_layout_row2.setContentsMargins(8,0,0,0)
+        menu_layout_row2.setContentsMargins(8, 0, 0, 0)
         menu_layout_row2.setSpacing(0)
 
         self.tool_window.ui_area.setLayout(main_layout)
@@ -188,7 +188,6 @@ class BlastProteinTool(ToolInstance):
             ]
             run(self.session, " ".join(cmd_text))
 
-
     def _run_and_close(self) -> None:
         self._run_blast_job()
         self.delete()
@@ -208,7 +207,7 @@ class BlastProteinTool(ToolInstance):
         print(">", name, file=f)
         block_size = 60
         for i in range(0, len(seq), block_size):
-            print(seq[i:i+block_size], file=f)
+            print(seq[i:i + block_size], file=f)
 
     def job_failed(self, job, error):
         raise UserError("BlastProtein failed: %s" % error)
