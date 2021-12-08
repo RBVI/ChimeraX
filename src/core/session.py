@@ -966,9 +966,9 @@ def sdump(session, session_file, output=None):
             name = fdeserialize(stream)
             if name is None:
                 break
-            print('==== name/uid:', name, file=output, flush=True)
             data = fdeserialize(stream)
             data = dereference_state(data, lambda x: x, _UniqueName)
+            print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 
 

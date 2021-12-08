@@ -1146,13 +1146,6 @@ Atom::effective_scene_coord() const
 }
 
 Coord
-Atom::effective_scene_coord() const
-{
-    return mat_mul(structure()->position(), effective_coord());
-
-}
-
-Coord
 Atom::scene_coord(const CoordSet* cs) const
 {
     return coord(cs).mat_mul(structure()->position());
