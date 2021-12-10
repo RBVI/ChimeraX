@@ -294,7 +294,7 @@ Atom::_set_structure_category(Atom::StructCat sc) const
 
 inline void
 Atom::set_computed_idatm_type(const char* it) {
-    if (!idatm_is_explicit() && _computed_idatm_type != it) {
+    if (structure()->_atom_types_notify && !idatm_is_explicit() && _computed_idatm_type != it) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _computed_idatm_type =  it;
