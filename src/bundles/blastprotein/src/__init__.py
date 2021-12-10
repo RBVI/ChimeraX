@@ -43,8 +43,10 @@ class _MyAPI(BundleAPI):
         command_name = ci.name
         if command_name == "blastpdb":
             from chimerax.core.commands import create_alias
-            create_alias(command_name, "blastprotein $*", logger=logger,
-                    url="help:user/commands/blastprotein.html")
+            create_alias(
+                command_name, "blastprotein $*", logger=logger,
+                url="help:user/commands/blastprotein.html"
+            )
             return
         from . import cmd
         function_name = command_name.replace(' ', '_')

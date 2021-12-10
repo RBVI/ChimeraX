@@ -174,7 +174,6 @@ def _parse_sequence(seq_text, session):
     for arg_type in (UniProtSequenceArg, AlignmentSequenceArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
-            print (arg_type, srest)
             if len(srest) == 0:
                 return seq
         except Exception:

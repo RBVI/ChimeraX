@@ -13,7 +13,6 @@
 import json
 
 from abc import ABC, abstractmethod
-from typing import Callable
 
 from ..utils import SeqGapChars
 from .match import Match
@@ -53,7 +52,7 @@ class Parser(ABC):
         # Extract information from results
         self.res = json.loads(self.output)
 
-        if not 'BlastOutput2' in self.res.keys():
+        if 'BlastOutput2' not in self.res.keys():
             raise ValueError("Text is not BLAST JSON output")
 
         self.res_data = self.res["BlastOutput2"][0]["report"]
@@ -80,7 +79,7 @@ class Parser(ABC):
     def _append_query(self):
         """Insert the query as the first match"""
         m = Match(self.true_name, None, "user_input",
-                  0.0, 0.0, 1, len(self.query_seq), self.query_seq, self.query_seq) #SH
+                  0.0, 0.0, 1, len(self.query_seq), self.query_seq, self.query_seq) # SH
         self.matches.insert(0, m)
         self.match_dict[self.query] = m
 
@@ -92,7 +91,7 @@ class Parser(ABC):
         self.database = md["search_target"]["db"]
         self.query = md["results"]["search"]["query_id"]
         self.query_length = md["results"]["search"]["query_len"]
-        self._gap_count = [ 0 ] * self.query_length
+        self._gap_count = [0] * self.query_length
         self.reference = md["reference"]
         self.version = md["version"]
 
@@ -109,8 +108,9 @@ class Parser(ABC):
         score = int(float(hsp["bit_score"]))
         evalue = float(hsp["evalue"])
         h_seq = hsp["hseq"]
-        h_start = int(hsp["hit_from"])
-        h_end = int(hsp["hit_to"])
+        # Unused
+        # h_start = int(hsp["hit_from"])
+        # h_end = int(hsp["hit_to"])
         q_seq = hsp["qseq"]
         q_start = int(hsp["query_from"])
         q_end = int(hsp["query_to"])
