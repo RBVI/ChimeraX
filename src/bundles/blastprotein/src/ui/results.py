@@ -375,7 +375,7 @@ class BlastProteinResults(ToolInstance):
             code = row[db.fetchable_col]
             if self.params.database == "alphafold":
                 models, chain_id = db.load_model(
-                    self.session, code, self.params.chain, self.params.get("version", 1)
+                    self.session, code, self.params.chain, self.params._asdict().get("version", 1)
                 )
             else:
                 models, chain_id = db.load_model(

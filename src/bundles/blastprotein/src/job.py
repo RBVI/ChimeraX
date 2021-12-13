@@ -44,7 +44,7 @@ class BlastProteinJob(CxServicesJob):
             "blimit": str(self.max_seqs),
             "input_seq": self.seq,
             "output_file": self.RESULTS_FILENAME,
-            "version": "2"
+            "version": self.version
         }
         try:
             self.start("blast", self.params)
@@ -61,6 +61,7 @@ class BlastProteinJob(CxServicesJob):
         self.cutoff = cutoff                              # float
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
+        self.version = "2"
         self.log = log
         self.tool_inst_name = tool_inst_name
 
@@ -72,7 +73,7 @@ class BlastProteinJob(CxServicesJob):
         return ''.join(data)
 
     def _params(self):
-        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix)
+        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix, self.version)
 
     def on_finish(self):
         logger = self.session.logger
