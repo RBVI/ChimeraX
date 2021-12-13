@@ -166,8 +166,8 @@ class AlphaFoldDB(Database):
     excluded_cols: tuple = ("id", "url", "sequence_id")
 
     @staticmethod
-    def load_model(chimerax_session, match_code, ref_atomspec):
-        cmd = "alphafold fetch %s" % match_code
+    def load_model(chimerax_session, match_code, ref_atomspec, version):
+        cmd = "alphafold fetch %s version %s" % match_code
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)

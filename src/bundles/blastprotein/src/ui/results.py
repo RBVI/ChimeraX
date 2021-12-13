@@ -373,9 +373,14 @@ class BlastProteinResults(ToolInstance):
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
-            models, chain_id = db.load_model(
-                self.session, code, self.params.chain
-            )
+            if self.params.database == "alphafold":
+                models, chain_id = db.load_model(
+                    self.session, code, self.params.chain, self.params.get("version", 1)
+                )
+            else:
+                models, chain_id = db.load_model(
+                    self.session, code, self.params.chain
+                )
             if not models:
                 return
             if not self.params.chain:
@@ -439,7 +444,7 @@ class BlastProteinResults(ToolInstance):
 
 
 class BlastResultsWorker(QThread):
-    standard_output = Signal()
+    standard_output = Signal(object)
     job_failed = Signal(str)
     parse_failed = Signal(str)
     waiting_for_info = Signal(str)

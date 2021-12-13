@@ -38,6 +38,7 @@ class BlastParams(NamedTuple):
     cutoff: float
     maxSeqs: int
     matrix: str
+    version: str
 
 
 class SeqId(NamedTuple):
