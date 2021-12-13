@@ -38,12 +38,13 @@ class BlastProteinJob(CxServicesJob):
             kw['tool_inst_name'] = make_instance_name()
         self.setup(seq, atomspec, **kw)
         self.params = {
-                "db": self.database,
-                "evalue": str(self.cutoff),
-                "matrix": self.matrix,
-                "blimit": str(self.max_seqs),
-                "input_seq": self.seq,
-                "output_file": self.RESULTS_FILENAME
+            "db": self.database,
+            "evalue": str(self.cutoff),
+            "matrix": self.matrix,
+            "blimit": str(self.max_seqs),
+            "input_seq": self.seq,
+            "output_file": self.RESULTS_FILENAME,
+            "version": "2"
         }
         try:
             self.start("blast", self.params)
