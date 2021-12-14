@@ -50,6 +50,9 @@ ifeq ($(OS),Darwin)
 endif
 	@echo 'Finished install at' `date`
 
+install-rbvi:
+	$(MAKE) PYQT_LICENSE=commercial install
+
 test src.test: testimports
 	$(MAKE) -C src test
 
