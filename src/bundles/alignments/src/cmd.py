@@ -288,10 +288,18 @@ def seqalign_header(session, alignments, subcommand_text):
     for alignment in alignments:
         alignment._dispatch_header_command(subcommand_text)
 
+MUSCLE = "MUSCLE"
+CLUSTAL_OMEGA = "Clustal Omega"
+alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
+    'clustalOmega': CLUSTAL_OMEGA }
+def seqalign_align(session, sequences, *, program=CLUSTAL_OMEGA):
+    print("align %d sequences using" % len(sequences), program)
+
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf
-    from chimerax.atomic import UniqueChainsArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
+        EnumOf
+    from chimerax.atomic import UniqueChainsArg, SequencesArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
@@ -320,6 +328,14 @@ def register_seqalign_command(logger):
         synopsis = "send subcommand to header"
     )
     register('sequence header', desc, seqalign_header, logger=logger)
+
+    apns = list(alignment_program_name_args.keys())
+    desc = CmdDesc(
+        required = [('sequences', SequencesArg)],
+        keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
+        synopsis = "align sequences"
+    )
+    register('sequence align', desc, seqalign_align, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
