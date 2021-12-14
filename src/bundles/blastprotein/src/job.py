@@ -61,7 +61,7 @@ class BlastProteinJob(CxServicesJob):
         self.cutoff = cutoff                              # float
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
-        self.version = "2"
+        self.version = "2"                                # AlphaFold DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
 
